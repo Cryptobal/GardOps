@@ -21,11 +21,13 @@ import {
   ChevronUp,
   Link as LinkIcon,
   MapPin,
-  ClipboardList
+  ClipboardList,
+  Clock
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { DatabaseStatus } from "@/components/database-status"
 
 const navigationItems = [
   {
@@ -87,8 +89,13 @@ const configurationItems = [
     icon: MapPin
   },
   {
-    title: "Pautas de servicio",
-    href: "/configuracion/pautas-servicio",
+    title: "Roles de servicio",
+    href: "/configuracion/roles-servicio",
+    icon: Clock
+  },
+  {
+    title: "Pautas operativas",
+    href: "/configuracion/pautas-operativas",
     icon: ClipboardList
   }
 ]
@@ -106,7 +113,7 @@ export function Sidebar({ className }: SidebarProps) {
 
   // Mensaje de consola al cargar el componente
   React.useEffect(() => {
-    console.log("Sidebar actualizado con secciones y submenús de configuración.")
+    console.log("Sidebar actualizado con roles de servicio y renombrado de pauta")
   }, [])
 
   // Auto-abrir configuración si estamos en una subpágina
@@ -296,6 +303,23 @@ export function Sidebar({ className }: SidebarProps) {
           </AnimatePresence>
         </div>
       </nav>
+
+      {/* Estado de la Base de Datos */}
+      <div className="border-t border-border p-4">
+        {!isCollapsed ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <DatabaseStatus />
+          </motion.div>
+        ) : (
+          <div className="flex justify-center">
+            <DatabaseStatus compact />
+          </div>
+        )}
+      </div>
 
       {/* Toggle de Tema en la parte inferior */}
       <div className="border-t border-border p-4">

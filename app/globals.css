@@ -55,16 +55,78 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+}
+
+@layer utilities {
+  .capitalize-first::first-letter {
+    text-transform: capitalize;
   }
   
-  /* Evitar texto en mayúsculas */
-  * {
+  .text-no-transform {
     text-transform: none !important;
   }
+}
+
+/* Estilos mejorados para tablas */
+@layer components {
+  .table-improved {
+    @apply w-full border-collapse;
+  }
   
-  /* Capitalize solo la primera letra */
-  .capitalize-first {
-    text-transform: capitalize;
+  .table-improved th {
+    @apply font-semibold text-sm tracking-wide;
+  }
+  
+  .table-improved td {
+    @apply text-sm;
+  }
+  
+  .table-improved tr:nth-child(even) {
+    @apply bg-muted/20;
+  }
+  
+  .table-improved tr:hover {
+    @apply bg-muted/40;
+  }
+  
+  /* Mejorar alineación de números */
+  .table-numeric {
+    @apply text-right tabular-nums;
+    font-variant-numeric: tabular-nums;
+  }
+  
+  /* Mejorar alineación de fechas */
+  .table-date {
+    @apply text-center tabular-nums;
+    font-variant-numeric: tabular-nums;
+  }
+  
+  /* Filas inactivas */
+  .table-row-inactive {
+    @apply opacity-60 bg-muted/30;
+  }
+  
+  .table-row-inactive:hover {
+    @apply bg-muted/50;
+  }
+  
+  /* Scrollbar personalizado para tablas */
+  .table-container::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+  
+  .table-container::-webkit-scrollbar-track {
+    @apply bg-muted rounded;
+  }
+  
+  .table-container::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded;
+  }
+  
+  .table-container::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
   }
 } 

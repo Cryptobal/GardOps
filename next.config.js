@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
+  // La configuración appDir ya no es necesaria en Next.js 14
+  env: {
+    DATABASE_URL: process.env.DATABASE_URL,
   },
 }
 
