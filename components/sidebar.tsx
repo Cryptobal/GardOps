@@ -92,11 +92,6 @@ const configurationItems = [
     title: "Roles de servicio",
     href: "/configuracion/roles-servicio",
     icon: Clock
-  },
-  {
-    title: "Pautas operativas",
-    href: "/configuracion/pautas-operativas",
-    icon: ClipboardList
   }
 ]
 

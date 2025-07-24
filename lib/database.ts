@@ -91,8 +91,10 @@ export async function getTableDataWithRelations(tableName: string, limit: number
       'guardia_id': { table: 'guardias', nameField: 'nombre' },
       'usuario_id': { table: 'usuarios', nameField: 'nombre' },
       'empresa_id': { table: 'empresas', nameField: 'nombre' },
-      'puesto_id': { table: 'puestos', nameField: 'nombre' },
-      'turno_id': { table: 'turnos', nameField: 'nombre' }
+      'puesto_id': { table: 'puestos_operativos', nameField: 'nombre' },
+      'turno_id': { table: 'turnos', nameField: 'nombre' },
+      'rol_id': { table: 'roles_servicio', nameField: 'nombre' },
+      'pauta_id': { table: 'pautas_operativas', nameField: 'nombre' }
     }
 
     // Obtener columnas de la tabla
@@ -183,8 +185,10 @@ export async function getTableDataWithRelationsAndStatus(
       'guardia_id': { table: 'guardias', nameField: 'nombre' },
       'usuario_id': { table: 'usuarios', nameField: 'nombre' },
       'empresa_id': { table: 'empresas', nameField: 'nombre' },
-      'puesto_id': { table: 'puestos', nameField: 'nombre' },
-      'turno_id': { table: 'turnos', nameField: 'nombre' }
+      'puesto_id': { table: 'puestos_operativos', nameField: 'nombre' },
+      'turno_id': { table: 'turnos', nameField: 'nombre' },
+      'rol_id': { table: 'roles_servicio', nameField: 'nombre' },
+      'pauta_id': { table: 'pautas_operativas', nameField: 'nombre' }
     }
 
     // Obtener columnas de la tabla
@@ -236,6 +240,24 @@ export async function getTableDataWithRelationsAndStatus(
 // Función para insertar un nuevo registro
 export async function insertRecord(tableName: string, data: Record<string, any>) {
   try {
+    // Validación especial para roles_servicio - verificar duplicados
+    if (tableName === 'roles_servicio') {
+      const duplicateCheck = await query(`
+        SELECT id, nombre FROM roles_servicio 
+        WHERE dias_trabajo = $1 
+          AND dias_descanso = $2 
+          AND hora_inicio = $3 
+          AND hora_termino = $4 
+          AND estado = 'Activo'
+        LIMIT 1
+      `, [data.dias_trabajo, data.dias_descanso, data.hora_inicio, data.hora_termino])
+
+      if (duplicateCheck.rows.length > 0) {
+        const existingRole = duplicateCheck.rows[0]
+        throw new Error(`Ya existe un rol activo con estas características: "${existingRole.nombre}"`)
+      }
+    }
+
     // Agregar campos automáticos
     const recordData = {
       ...data,
@@ -265,6 +287,25 @@ export async function insertRecord(tableName: string, data: Record<string, any>)
 // Función para actualizar un registro
 export async function updateRecord(tableName: string, id: string, data: Record<string, any>) {
   try {
+    // Validación especial para roles_servicio - verificar duplicados
+    if (tableName === 'roles_servicio') {
+      const duplicateCheck = await query(`
+        SELECT id, nombre FROM roles_servicio 
+        WHERE dias_trabajo = $1 
+          AND dias_descanso = $2 
+          AND hora_inicio = $3 
+          AND hora_termino = $4 
+          AND estado = 'Activo'
+          AND id != $5
+        LIMIT 1
+      `, [data.dias_trabajo, data.dias_descanso, data.hora_inicio, data.hora_termino, id])
+
+      if (duplicateCheck.rows.length > 0) {
+        const existingRole = duplicateCheck.rows[0]
+        throw new Error(`Ya existe un rol activo con estas características: "${existingRole.nombre}"`)
+      }
+    }
+
     // Agregar campo de actualización
     const recordData = {
       ...data,

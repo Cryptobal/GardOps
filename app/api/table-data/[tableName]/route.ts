@@ -56,66 +56,13 @@ export async function GET(
       showInactive,
       timestamp: new Date().toISOString()
     })
+
   } catch (error) {
     console.error(`Error obteniendo datos de tabla ${params.tableName}:`, error)
     
-    // Verificar si es un error de tabla no encontrada
-    const isTableNotFound = error instanceof Error && 
-      (error.message.includes('does not exist') || error.message.includes('relation'))
-    
     return NextResponse.json(
       { 
-        error: isTableNotFound 
-          ? `La tabla "${params.tableName}" no existe en la base de datos`
-          : 'Error al obtener datos de la tabla',
-        details: error instanceof Error ? error.message : 'Error desconocido',
-        tableName: params.tableName,
-        tableNotFound: isTableNotFound
-      },
-      { status: isTableNotFound ? 404 : 500 }
-    )
-  }
-}
-
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { tableName: string } }
-) {
-  try {
-    const { tableName } = params
-    const body = await request.json()
-    
-    // Validar el nombre de la tabla para seguridad
-    if (!/^[a-zA-Z0-9_]+$/.test(tableName)) {
-      return NextResponse.json(
-        { error: 'Nombre de tabla inválido' },
-        { status: 400 }
-      )
-    }
-
-    // Validar que se proporcionen datos
-    if (!body || Object.keys(body).length === 0) {
-      return NextResponse.json(
-        { error: 'No se proporcionaron datos para insertar' },
-        { status: 400 }
-      )
-    }
-
-    // Insertar el registro
-    const newRecord = await insertRecord(tableName, body)
-
-    return NextResponse.json({
-      message: 'Registro creado exitosamente',
-      tableName,
-      data: newRecord
-    }, { status: 201 })
-
-  } catch (error) {
-    console.error(`Error en POST para tabla ${params.tableName}:`, error)
-    
-    return NextResponse.json(
-      { 
-        error: 'Error al crear el registro',
+        error: 'Error al obtener datos de la tabla',
         details: error instanceof Error ? error.message : 'Error desconocido',
         tableName: params.tableName
       },
@@ -124,16 +71,15 @@ export async function POST(
   }
 }
 
-export async function PUT(
+// Crear nuevo registro
+export async function POST(
   request: NextRequest,
   { params }: { params: { tableName: string } }
 ) {
   try {
     const { tableName } = params
-    const body = await request.json()
-    const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
-    
+    const data = await request.json()
+
     // Validar el nombre de la tabla para seguridad
     if (!/^[a-zA-Z0-9_]+$/.test(tableName)) {
       return NextResponse.json(
@@ -142,47 +88,80 @@ export async function PUT(
       )
     }
 
-    // Validar que se proporcione el ID
-    if (!id) {
-      return NextResponse.json(
-        { error: 'ID del registro es requerido' },
-        { status: 400 }
-      )
-    }
-
-    // Validar que se proporcionen datos
-    if (!body || Object.keys(body).length === 0) {
-      return NextResponse.json(
-        { error: 'No se proporcionaron datos para actualizar' },
-        { status: 400 }
-      )
-    }
-
-    // Actualizar el registro
-    const updatedRecord = await updateRecord(tableName, id, body)
+    const result = await insertRecord(tableName, data)
 
     return NextResponse.json({
-      message: 'Registro actualizado exitosamente',
-      tableName,
-      data: updatedRecord
+      success: true,
+      message: 'Registro creado exitosamente',
+      data: result,
+      timestamp: new Date().toISOString()
     })
 
   } catch (error) {
-    console.error(`Error en PUT para tabla ${params.tableName}:`, error)
-    
-    const isNotFound = error instanceof Error && error.message.includes('No se encontró')
+    console.error(`Error creando registro en tabla ${params.tableName}:`, error)
     
     return NextResponse.json(
       { 
-        error: isNotFound ? 'Registro no encontrado' : 'Error al actualizar el registro',
+        error: 'Error al crear registro',
         details: error instanceof Error ? error.message : 'Error desconocido',
         tableName: params.tableName
       },
-      { status: isNotFound ? 404 : 500 }
+      { status: 500 }
     )
   }
 }
 
+// Actualizar registro
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { tableName: string } }
+) {
+  try {
+    const { tableName } = params
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: 'ID requerido para actualizar' },
+        { status: 400 }
+      )
+    }
+
+    const data = await request.json()
+
+    // Validar el nombre de la tabla para seguridad
+    if (!/^[a-zA-Z0-9_]+$/.test(tableName)) {
+      return NextResponse.json(
+        { error: 'Nombre de tabla inválido' },
+        { status: 400 }
+      )
+    }
+
+    const result = await updateRecord(tableName, id, data)
+
+    return NextResponse.json({
+      success: true,
+      message: 'Registro actualizado exitosamente',
+      data: result,
+      timestamp: new Date().toISOString()
+    })
+
+  } catch (error) {
+    console.error(`Error actualizando registro en tabla ${params.tableName}:`, error)
+    
+    return NextResponse.json(
+      { 
+        error: 'Error al actualizar registro',
+        details: error instanceof Error ? error.message : 'Error desconocido',
+        tableName: params.tableName
+      },
+      { status: 500 }
+    )
+  }
+}
+
+// Inactivar o eliminar registro
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { tableName: string } }
@@ -191,8 +170,15 @@ export async function PATCH(
     const { tableName } = params
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
-    const action = searchParams.get('action')
+    const action = searchParams.get('action') // 'inactivate' o 'delete'
     
+    if (!id) {
+      return NextResponse.json(
+        { error: 'ID requerido para la operación' },
+        { status: 400 }
+      )
+    }
+
     // Validar el nombre de la tabla para seguridad
     if (!/^[a-zA-Z0-9_]+$/.test(tableName)) {
       return NextResponse.json(
@@ -201,59 +187,44 @@ export async function PATCH(
       )
     }
 
-    // Validar que se proporcione el ID
-    if (!id) {
-      return NextResponse.json(
-        { error: 'ID del registro es requerido' },
-        { status: 400 }
-      )
-    }
+    let result
+    let message
 
-    // Si la acción es inactivar
     if (action === 'inactivate') {
-      const inactivatedRecord = await inactivateRecord(tableName, id)
-      
-      return NextResponse.json({
-        message: 'Registro inactivado exitosamente',
-        tableName,
-        data: inactivatedRecord
-      })
-    }
-
-    // Para otros tipos de PATCH (actualizaciones parciales)
-    const body = await request.json()
-    
-    if (!body || Object.keys(body).length === 0) {
+      result = await inactivateRecord(tableName, id)
+      message = 'Registro inactivado exitosamente'
+    } else if (action === 'delete') {
+      result = await deleteRecord(tableName, id)
+      message = 'Registro eliminado exitosamente'
+    } else {
       return NextResponse.json(
-        { error: 'No se proporcionaron datos para actualizar' },
+        { error: 'Acción no válida. Use "inactivate" o "delete"' },
         { status: 400 }
       )
     }
-
-    const updatedRecord = await updateRecord(tableName, id, body)
 
     return NextResponse.json({
-      message: 'Registro actualizado exitosamente',
-      tableName,
-      data: updatedRecord
+      success: true,
+      message,
+      data: result,
+      timestamp: new Date().toISOString()
     })
 
   } catch (error) {
-    console.error(`Error en PATCH para tabla ${params.tableName}:`, error)
-    
-    const isNotFound = error instanceof Error && error.message.includes('No se encontró')
+    console.error(`Error en operación PATCH para tabla ${params.tableName}:`, error)
     
     return NextResponse.json(
       { 
-        error: isNotFound ? 'Registro no encontrado' : 'Error al procesar la solicitud',
+        error: 'Error en la operación',
         details: error instanceof Error ? error.message : 'Error desconocido',
         tableName: params.tableName
       },
-      { status: isNotFound ? 404 : 500 }
+      { status: 500 }
     )
   }
-} 
+}
 
+// Eliminar registro (método DELETE)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { tableName: string } }
@@ -263,6 +234,13 @@ export async function DELETE(
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     
+    if (!id) {
+      return NextResponse.json(
+        { error: 'ID requerido para eliminar' },
+        { status: 400 }
+      )
+    }
+
     // Validar el nombre de la tabla para seguridad
     if (!/^[a-zA-Z0-9_]+$/.test(tableName)) {
       return NextResponse.json(
@@ -271,35 +249,25 @@ export async function DELETE(
       )
     }
 
-    // Validar que se proporcione el ID
-    if (!id) {
-      return NextResponse.json(
-        { error: 'ID del registro es requerido' },
-        { status: 400 }
-      )
-    }
-
-    // Eliminar el registro permanentemente
-    const deletedRecord = await deleteRecord(tableName, id)
+    const result = await deleteRecord(tableName, id)
 
     return NextResponse.json({
+      success: true,
       message: 'Registro eliminado exitosamente',
-      tableName,
-      data: deletedRecord
+      data: result,
+      timestamp: new Date().toISOString()
     })
 
   } catch (error) {
-    console.error(`Error en DELETE para tabla ${params.tableName}:`, error)
-    
-    const isNotFound = error instanceof Error && error.message.includes('No se encontró')
+    console.error(`Error eliminando registro en tabla ${params.tableName}:`, error)
     
     return NextResponse.json(
       { 
-        error: isNotFound ? 'Registro no encontrado' : 'Error al eliminar el registro',
+        error: 'Error al eliminar registro',
         details: error instanceof Error ? error.message : 'Error desconocido',
         tableName: params.tableName
       },
-      { status: isNotFound ? 404 : 500 }
+      { status: 500 }
     )
   }
 } 
