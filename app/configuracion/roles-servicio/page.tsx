@@ -73,12 +73,13 @@ export default function RolesServicioPage() {
   const [formData, setFormData] = useState({
     dias_trabajo: 1,
     dias_descanso: 1,
+    horas_turno: 8, // Cambiar a valor directo
     hora_inicio: '08:00',
     hora_termino: '16:00',
     estado: 'Activo'
   })
 
-  // Función para calcular horas automáticamente
+  // Función para calcular horas automáticamente (mantener para referencia)
   const calculateHours = (horaInicio: string, horaTermino: string): number => {
     const [inicioHora, inicioMin] = horaInicio.split(':').map(Number)
     const [terminoHora, terminoMin] = horaTermino.split(':').map(Number)
@@ -95,8 +96,8 @@ export default function RolesServicioPage() {
     return Math.round((diferenciaMinutos / 60) * 10) / 10 // Redondear a 1 decimal
   }
 
-  // Calcular horas automáticamente
-  const horasCalculadas = calculateHours(formData.hora_inicio, formData.hora_termino)
+  // Usar horas del formulario directamente
+  const horasCalculadas = formData.horas_turno
 
   // Opciones para horas (00:00 a 23:30 en pasos de 30 min)
   const timeOptions = []
@@ -153,6 +154,7 @@ export default function RolesServicioPage() {
     setFormData({
       dias_trabajo: 1,
       dias_descanso: 1,
+      horas_turno: 8,
       hora_inicio: '08:00',
       hora_termino: '16:00',
       estado: 'Activo'
@@ -166,6 +168,7 @@ export default function RolesServicioPage() {
     setFormData({
       dias_trabajo: rol.dias_trabajo,
       dias_descanso: rol.dias_descanso,
+      horas_turno: rol.horas_turno,
       hora_inicio: rol.hora_inicio,
       hora_termino: rol.hora_termino,
       estado: rol.estado
@@ -201,6 +204,7 @@ export default function RolesServicioPage() {
     return roles.some(rol => 
       rol.dias_trabajo === data.dias_trabajo &&
       rol.dias_descanso === data.dias_descanso &&
+      rol.horas_turno === data.horas_turno &&
       rol.hora_inicio === data.hora_inicio &&
       rol.hora_termino === data.hora_termino &&
       rol.estado === 'Activo' &&
@@ -222,13 +226,11 @@ export default function RolesServicioPage() {
         return
       }
 
-      // Calcular horas y generar el nombre automáticamente
-      const horas_turno = horasCalculadas
-      const nombre = generateRoleName(formData, horas_turno)
+      // Generar el nombre automáticamente
+      const nombre = generateRoleName(formData, formData.horas_turno)
       
       const submitData = {
         ...formData,
-        horas_turno,
         nombre
       }
 
@@ -468,10 +470,7 @@ export default function RolesServicioPage() {
               <Label className="text-sm font-medium text-muted-foreground">Nombre que se generará:</Label>
               <p className="text-lg font-semibold mt-1">{previewName}</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Horas calculadas automáticamente: <span className="font-medium">{horasCalculadas}h</span>
-                {horasCalculadas !== Math.floor(horasCalculadas) && (
-                  <span className="text-xs ml-1">({horasCalculadas * 60} min)</span>
-                )}
+                Configuración: <span className="font-medium">{horasCalculadas} horas por turno</span>
               </p>
             </div>
 
@@ -522,6 +521,27 @@ export default function RolesServicioPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
+                <Label htmlFor="horas_turno">
+                  Horas turno <span className="text-red-500">*</span>
+                </Label>
+                <Select 
+                  value={formData.horas_turno.toString()} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, horas_turno: parseInt(value) }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map(hour => (
+                      <SelectItem key={hour} value={hour.toString()}>
+                        {hour} {hour === 1 ? 'hora' : 'horas'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="hora_inicio">
                   Hora inicio <span className="text-red-500">*</span>
                 </Label>
@@ -541,27 +561,27 @@ export default function RolesServicioPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="hora_termino">
-                  Hora término <span className="text-red-500">*</span>
-                </Label>
-                <Select 
-                  value={formData.hora_termino} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, hora_termino: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-48">
-                    {timeOptions.map(time => (
-                      <SelectItem key={time} value={time}>
-                        {time}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="hora_termino">
+                Hora término <span className="text-red-500">*</span>
+              </Label>
+              <Select 
+                value={formData.hora_termino} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, hora_termino: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-48">
+                  {timeOptions.map(time => (
+                    <SelectItem key={time} value={time}>
+                      {time}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

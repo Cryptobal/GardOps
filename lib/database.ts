@@ -92,9 +92,13 @@ export async function getTableDataWithRelations(tableName: string, limit: number
       'usuario_id': { table: 'usuarios', nameField: 'nombre' },
       'empresa_id': { table: 'empresas', nameField: 'nombre' },
       'puesto_id': { table: 'puestos_operativos', nameField: 'nombre' },
+      'puesto_operativo_id': { table: 'puestos_operativos', nameField: 'nombre' },
       'turno_id': { table: 'turnos', nameField: 'nombre' },
       'rol_id': { table: 'roles_servicio', nameField: 'nombre' },
-      'pauta_id': { table: 'pautas_operativas', nameField: 'nombre' }
+      'rol_servicio_id': { table: 'roles_servicio', nameField: 'nombre' },
+      'pauta_id': { table: 'pautas_operativas', nameField: 'nombre' },
+      'asignacion_operativa_id': { table: 'asignaciones_operativas', nameField: 'id' },
+      'guardia_asignado_id': { table: 'guardias_asignados', nameField: 'id' }
     }
 
     // Obtener columnas de la tabla
@@ -186,9 +190,13 @@ export async function getTableDataWithRelationsAndStatus(
       'usuario_id': { table: 'usuarios', nameField: 'nombre' },
       'empresa_id': { table: 'empresas', nameField: 'nombre' },
       'puesto_id': { table: 'puestos_operativos', nameField: 'nombre' },
+      'puesto_operativo_id': { table: 'puestos_operativos', nameField: 'nombre' },
       'turno_id': { table: 'turnos', nameField: 'nombre' },
       'rol_id': { table: 'roles_servicio', nameField: 'nombre' },
-      'pauta_id': { table: 'pautas_operativas', nameField: 'nombre' }
+      'rol_servicio_id': { table: 'roles_servicio', nameField: 'nombre' },
+      'pauta_id': { table: 'pautas_operativas', nameField: 'nombre' },
+      'asignacion_operativa_id': { table: 'asignaciones_operativas', nameField: 'id' },
+      'guardia_asignado_id': { table: 'guardias_asignados', nameField: 'id' }
     }
 
     // Obtener columnas de la tabla
