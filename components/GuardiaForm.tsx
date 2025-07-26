@@ -367,358 +367,358 @@ export function GuardiaForm({ open, onOpenChange, editData, onSuccess }: Guardia
   return (
     <>
       <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent side="right" className="dark:bg-black w-full sm:max-w-2xl h-full overflow-y-auto">
-        <DrawerHeader className="border-b">
-          <div className="flex items-center justify-between">
-            <div>
-              <DrawerTitle>
-                {editData ? 'Editar Guardia' : 'Nuevo Guardia'}
-              </DrawerTitle>
-              <DrawerDescription>
-                Complete todos los campos para {editData ? 'actualizar' : 'crear'} el guardia
-              </DrawerDescription>
+        <DrawerContent side="right" className="dark:bg-black w-full sm:max-w-2xl h-full overflow-y-auto">
+          <DrawerHeader className="border-b">
+            <div className="flex items-center justify-between">
+              <div>
+                <DrawerTitle>
+                  {editData ? 'Editar Guardia' : 'Nuevo Guardia'}
+                </DrawerTitle>
+                <DrawerDescription>
+                  Complete todos los campos para {editData ? 'actualizar' : 'crear'} el guardia
+                </DrawerDescription>
+              </div>
+              {/* Eliminar el botón de cierre duplicado - DrawerContent ya incluye uno automáticamente */}
             </div>
-            {/* Eliminar el botón de cierre duplicado - DrawerContent ya incluye uno automáticamente */}
-          </div>
-        </DrawerHeader>
+          </DrawerHeader>
 
-        <div className="flex-1 p-6 space-y-6">
-          {loadingOptions ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              <span className="ml-2">Cargando opciones...</span>
+          <div className="flex-1 p-6 space-y-6">
+            {loadingOptions ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2">Cargando opciones...</span>
+              </div>
+            ) : (
+              <>
+                {/* Información Personal */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">Información Personal</h3>
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <Label htmlFor="nombre">Nombre *</Label>
+                      <Input
+                        id="nombre"
+                        value={formData.nombre}
+                        onChange={(e) => handleInputChange('nombre', e.target.value)}
+                        placeholder="Ingrese el nombre"
+                        className={errors.nombre ? 'border-red-500' : ''}
+                      />
+                      {errors.nombre && <p className="text-sm text-red-500 mt-1">{errors.nombre}</p>}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="apellido_paterno">Apellido Paterno *</Label>
+                        <Input
+                          id="apellido_paterno"
+                          value={formData.apellido_paterno}
+                          onChange={(e) => handleInputChange('apellido_paterno', e.target.value)}
+                          placeholder="Apellido paterno"
+                          className={errors.apellido_paterno ? 'border-red-500' : ''}
+                        />
+                        {errors.apellido_paterno && <p className="text-sm text-red-500 mt-1">{errors.apellido_paterno}</p>}
+                      </div>
+
+                      <div>
+                        <Label htmlFor="apellido_materno">Apellido Materno *</Label>
+                        <Input
+                          id="apellido_materno"
+                          value={formData.apellido_materno}
+                          onChange={(e) => handleInputChange('apellido_materno', e.target.value)}
+                          placeholder="Apellido materno"
+                          className={errors.apellido_materno ? 'border-red-500' : ''}
+                        />
+                        {errors.apellido_materno && <p className="text-sm text-red-500 mt-1">{errors.apellido_materno}</p>}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="rut">RUT *</Label>
+                        <Input
+                          id="rut"
+                          value={formData.rut}
+                          onChange={(e) => handleInputChange('rut', e.target.value)}
+                          placeholder="12345678-9"
+                          className={errors.rut ? 'border-red-500' : ''}
+                        />
+                        {errors.rut && <p className="text-sm text-red-500 mt-1">{errors.rut}</p>}
+                      </div>
+
+                      <div>
+                        <Label htmlFor="fecha_nacimiento">Fecha de Nacimiento *</Label>
+                        <Input
+                          id="fecha_nacimiento"
+                          type="date"
+                          value={formData.fecha_nacimiento}
+                          onChange={(e) => handleInputChange('fecha_nacimiento', e.target.value)}
+                          className={errors.fecha_nacimiento ? 'border-red-500' : ''}
+                        />
+                        {errors.fecha_nacimiento && <p className="text-sm text-red-500 mt-1">{errors.fecha_nacimiento}</p>}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="celular">Celular *</Label>
+                        <Input
+                          id="celular"
+                          value={formData.celular}
+                          onChange={(e) => handleInputChange('celular', e.target.value)}
+                          placeholder="569XXXXXXXX"
+                          className={errors.celular ? 'border-red-500' : ''}
+                        />
+                        {errors.celular && <p className="text-sm text-red-500 mt-1">{errors.celular}</p>}
+                      </div>
+
+                      <div>
+                        <Label htmlFor="email">Email *</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => handleInputChange('email', e.target.value)}
+                          placeholder="correo@ejemplo.com"
+                          className={errors.email ? 'border-red-500' : ''}
+                        />
+                        {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email}</p>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Información Laboral */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">Información Laboral</h3>
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <Label htmlFor="instalacion_id">Instalación *</Label>
+                      <Select value={formData.instalacion_id} onValueChange={(value) => handleInputChange('instalacion_id', value)}>
+                        <SelectTrigger className={errors.instalacion_id ? 'border-red-500' : ''}>
+                          <SelectValue placeholder="Seleccione una instalación" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {instalaciones.map((instalacion) => (
+                            <SelectItem key={instalacion.id} value={instalacion.id}>
+                              {instalacion.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.instalacion_id && <p className="text-sm text-red-500 mt-1">{errors.instalacion_id}</p>}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="jornada">Jornada *</Label>
+                      <Input
+                        id="jornada"
+                        value={formData.jornada}
+                        onChange={(e) => handleInputChange('jornada', e.target.value)}
+                        placeholder="Ej: Diurno, Nocturno, 12x12"
+                        className={errors.jornada ? 'border-red-500' : ''}
+                      />
+                      {errors.jornada && <p className="text-sm text-red-500 mt-1">{errors.jornada}</p>}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="estado">Estado *</Label>
+                      <Select value={formData.estado} onValueChange={(value) => handleInputChange('estado', value)}>
+                        <SelectTrigger className={errors.estado ? 'border-red-500' : ''}>
+                          <SelectValue placeholder="Seleccione estado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {estadosOptions.map((estado) => (
+                            <SelectItem key={estado} value={estado}>
+                              {estado}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.estado && <p className="text-sm text-red-500 mt-1">{errors.estado}</p>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ubicación */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">Ubicación</h3>
+                  
+                  <div>
+                    <Label>Dirección *</Label>
+                    <UbicacionAutocomplete
+                      value={formData.direccion}
+                      onSelect={handleUbicacionSelect}
+                      placeholder="Buscar dirección..."
+                      error={errors.direccion}
+                    />
+                    {errors.direccion && <p className="text-sm text-red-500 mt-1">{errors.direccion}</p>}
+                  </div>
+
+                  {/* Previsualización del mapa */}
+                  <div>
+                    <Label>Previsualización del Mapa</Label>
+                    <MapPreview lat={formData.lat} lng={formData.lng} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="lat">Latitud</Label>
+                      <Input
+                        id="lat"
+                        value={formData.lat || ''}
+                        readOnly
+                        placeholder="Automático"
+                        className="bg-muted"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="lng">Longitud</Label>
+                      <Input
+                        id="lng"
+                        value={formData.lng || ''}
+                        readOnly
+                        placeholder="Automático"
+                        className="bg-muted"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="comuna">Comuna</Label>
+                      <Input
+                        id="comuna"
+                        value={formData.comuna}
+                        readOnly
+                        placeholder="Automático"
+                        className="bg-muted"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="ciudad">Ciudad</Label>
+                      <Input
+                        id="ciudad"
+                        value={formData.ciudad}
+                        readOnly
+                        placeholder="Automático"
+                        className="bg-muted"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Información Bancaria y Previsional */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">Información Bancaria y Previsional</h3>
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <Label htmlFor="banco">Banco *</Label>
+                      <Select value={formData.banco_id} onValueChange={(value) => handleInputChange('banco_id', value)}>
+                        <SelectTrigger className={errors.banco_id ? 'border-red-500' : ''}>
+                          <SelectValue placeholder="Seleccione un banco" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {bancos.map((banco) => (
+                            <SelectItem key={banco.id} value={banco.id}>
+                              {banco.codigo} - {banco.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.banco_id && <p className="text-sm text-red-500 mt-1">{errors.banco_id}</p>}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="tipo_cuenta">Tipo de Cuenta *</Label>
+                      <Select value={formData.tipo_cuenta} onValueChange={(value) => handleInputChange('tipo_cuenta', value)}>
+                        <SelectTrigger className={errors.tipo_cuenta ? 'border-red-500' : ''}>
+                          <SelectValue placeholder="Seleccione tipo de cuenta" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {tiposCuenta.map((tipo) => (
+                            <SelectItem key={tipo} value={tipo}>
+                              {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.tipo_cuenta && <p className="text-sm text-red-500 mt-1">{errors.tipo_cuenta}</p>}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="salud">Salud *</Label>
+                      <Select value={formData.salud_id} onValueChange={(value) => handleInputChange('salud_id', value)}>
+                        <SelectTrigger className={errors.salud_id ? 'border-red-500' : ''}>
+                          <SelectValue placeholder="Seleccione sistema de salud" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {isapres.map((isapre) => (
+                            <SelectItem key={isapre.id} value={isapre.id}>
+                              {isapre.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.salud_id && <p className="text-sm text-red-500 mt-1">{errors.salud_id}</p>}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="afp">AFP *</Label>
+                      <Select value={formData.afp_id} onValueChange={(value) => handleInputChange('afp_id', value)}>
+                        <SelectTrigger className={errors.afp_id ? 'border-red-500' : ''}>
+                          <SelectValue placeholder="Seleccione AFP" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {afps.map((afp) => (
+                            <SelectItem key={afp.id} value={afp.id}>
+                              {afp.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.afp_id && <p className="text-sm text-red-500 mt-1">{errors.afp_id}</p>}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <DrawerFooter className="border-t">
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSubmit}
+                disabled={isLoading || loadingOptions}
+                className="flex-1"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  'Guardar Guardia'
+                )}
+              </Button>
+              <Button 
+                variant="outline" 
+                disabled={isLoading}
+                onClick={() => onOpenChange(false)}
+              >
+                Cancelar
+              </Button>
             </div>
-          ) : (
-            <>
-              {/* Información Personal */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold border-b pb-2">Información Personal</h3>
-                
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <Label htmlFor="nombre">Nombre *</Label>
-                    <Input
-                      id="nombre"
-                      value={formData.nombre}
-                      onChange={(e) => handleInputChange('nombre', e.target.value)}
-                      placeholder="Ingrese el nombre"
-                      className={errors.nombre ? 'border-red-500' : ''}
-                    />
-                    {errors.nombre && <p className="text-sm text-red-500 mt-1">{errors.nombre}</p>}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="apellido_paterno">Apellido Paterno *</Label>
-                      <Input
-                        id="apellido_paterno"
-                        value={formData.apellido_paterno}
-                        onChange={(e) => handleInputChange('apellido_paterno', e.target.value)}
-                        placeholder="Apellido paterno"
-                        className={errors.apellido_paterno ? 'border-red-500' : ''}
-                      />
-                      {errors.apellido_paterno && <p className="text-sm text-red-500 mt-1">{errors.apellido_paterno}</p>}
-                    </div>
-
-                    <div>
-                      <Label htmlFor="apellido_materno">Apellido Materno *</Label>
-                      <Input
-                        id="apellido_materno"
-                        value={formData.apellido_materno}
-                        onChange={(e) => handleInputChange('apellido_materno', e.target.value)}
-                        placeholder="Apellido materno"
-                        className={errors.apellido_materno ? 'border-red-500' : ''}
-                      />
-                      {errors.apellido_materno && <p className="text-sm text-red-500 mt-1">{errors.apellido_materno}</p>}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="rut">RUT *</Label>
-                      <Input
-                        id="rut"
-                        value={formData.rut}
-                        onChange={(e) => handleInputChange('rut', e.target.value)}
-                        placeholder="12345678-9"
-                        className={errors.rut ? 'border-red-500' : ''}
-                      />
-                      {errors.rut && <p className="text-sm text-red-500 mt-1">{errors.rut}</p>}
-                    </div>
-
-                    <div>
-                      <Label htmlFor="fecha_nacimiento">Fecha de Nacimiento *</Label>
-                      <Input
-                        id="fecha_nacimiento"
-                        type="date"
-                        value={formData.fecha_nacimiento}
-                        onChange={(e) => handleInputChange('fecha_nacimiento', e.target.value)}
-                        className={errors.fecha_nacimiento ? 'border-red-500' : ''}
-                      />
-                      {errors.fecha_nacimiento && <p className="text-sm text-red-500 mt-1">{errors.fecha_nacimiento}</p>}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="celular">Celular *</Label>
-                      <Input
-                        id="celular"
-                        value={formData.celular}
-                        onChange={(e) => handleInputChange('celular', e.target.value)}
-                        placeholder="569XXXXXXXX"
-                        className={errors.celular ? 'border-red-500' : ''}
-                      />
-                      {errors.celular && <p className="text-sm text-red-500 mt-1">{errors.celular}</p>}
-                    </div>
-
-                    <div>
-                      <Label htmlFor="email">Email *</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        placeholder="correo@ejemplo.com"
-                        className={errors.email ? 'border-red-500' : ''}
-                      />
-                      {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email}</p>}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Información Laboral */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold border-b pb-2">Información Laboral</h3>
-                
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <Label htmlFor="instalacion_id">Instalación *</Label>
-                    <Select value={formData.instalacion_id} onValueChange={(value) => handleInputChange('instalacion_id', value)}>
-                      <SelectTrigger className={errors.instalacion_id ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="Seleccione una instalación" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {instalaciones.map((instalacion) => (
-                          <SelectItem key={instalacion.id} value={instalacion.id}>
-                            {instalacion.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.instalacion_id && <p className="text-sm text-red-500 mt-1">{errors.instalacion_id}</p>}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="jornada">Jornada *</Label>
-                    <Input
-                      id="jornada"
-                      value={formData.jornada}
-                      onChange={(e) => handleInputChange('jornada', e.target.value)}
-                      placeholder="Ej: Diurno, Nocturno, 12x12"
-                      className={errors.jornada ? 'border-red-500' : ''}
-                    />
-                    {errors.jornada && <p className="text-sm text-red-500 mt-1">{errors.jornada}</p>}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="estado">Estado *</Label>
-                    <Select value={formData.estado} onValueChange={(value) => handleInputChange('estado', value)}>
-                      <SelectTrigger className={errors.estado ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="Seleccione estado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {estadosOptions.map((estado) => (
-                          <SelectItem key={estado} value={estado}>
-                            {estado}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.estado && <p className="text-sm text-red-500 mt-1">{errors.estado}</p>}
-                  </div>
-                </div>
-              </div>
-
-              {/* Ubicación */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold border-b pb-2">Ubicación</h3>
-                
-                <div>
-                  <Label>Dirección *</Label>
-                  <UbicacionAutocomplete
-                    value={formData.direccion}
-                    onSelect={handleUbicacionSelect}
-                    placeholder="Buscar dirección..."
-                    error={errors.direccion}
-                  />
-                  {errors.direccion && <p className="text-sm text-red-500 mt-1">{errors.direccion}</p>}
-                </div>
-
-                {/* Previsualización del mapa */}
-                <div>
-                  <Label>Previsualización del Mapa</Label>
-                  <MapPreview lat={formData.lat} lng={formData.lng} />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="lat">Latitud</Label>
-                    <Input
-                      id="lat"
-                      value={formData.lat || ''}
-                      readOnly
-                      placeholder="Automático"
-                      className="bg-muted"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="lng">Longitud</Label>
-                    <Input
-                      id="lng"
-                      value={formData.lng || ''}
-                      readOnly
-                      placeholder="Automático"
-                      className="bg-muted"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="comuna">Comuna</Label>
-                    <Input
-                      id="comuna"
-                      value={formData.comuna}
-                      readOnly
-                      placeholder="Automático"
-                      className="bg-muted"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="ciudad">Ciudad</Label>
-                    <Input
-                      id="ciudad"
-                      value={formData.ciudad}
-                      readOnly
-                      placeholder="Automático"
-                      className="bg-muted"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Información Bancaria y Previsional */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold border-b pb-2">Información Bancaria y Previsional</h3>
-                
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <Label htmlFor="banco">Banco *</Label>
-                    <Select value={formData.banco_id} onValueChange={(value) => handleInputChange('banco_id', value)}>
-                      <SelectTrigger className={errors.banco_id ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="Seleccione un banco" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {bancos.map((banco) => (
-                          <SelectItem key={banco.id} value={banco.id}>
-                            {banco.codigo} - {banco.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.banco_id && <p className="text-sm text-red-500 mt-1">{errors.banco_id}</p>}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="tipo_cuenta">Tipo de Cuenta *</Label>
-                    <Select value={formData.tipo_cuenta} onValueChange={(value) => handleInputChange('tipo_cuenta', value)}>
-                      <SelectTrigger className={errors.tipo_cuenta ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="Seleccione tipo de cuenta" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {tiposCuenta.map((tipo) => (
-                          <SelectItem key={tipo} value={tipo}>
-                            {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.tipo_cuenta && <p className="text-sm text-red-500 mt-1">{errors.tipo_cuenta}</p>}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="salud">Salud *</Label>
-                    <Select value={formData.salud_id} onValueChange={(value) => handleInputChange('salud_id', value)}>
-                      <SelectTrigger className={errors.salud_id ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="Seleccione sistema de salud" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {isapres.map((isapre) => (
-                          <SelectItem key={isapre.id} value={isapre.id}>
-                            {isapre.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.salud_id && <p className="text-sm text-red-500 mt-1">{errors.salud_id}</p>}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="afp">AFP *</Label>
-                    <Select value={formData.afp_id} onValueChange={(value) => handleInputChange('afp_id', value)}>
-                      <SelectTrigger className={errors.afp_id ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="Seleccione AFP" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {afps.map((afp) => (
-                          <SelectItem key={afp.id} value={afp.id}>
-                            {afp.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.afp_id && <p className="text-sm text-red-500 mt-1">{errors.afp_id}</p>}
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        <DrawerFooter className="border-t">
-          <div className="flex gap-2">
-            <Button
-              onClick={handleSubmit}
-              disabled={isLoading || loadingOptions}
-              className="flex-1"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Guardando...
-                </>
-              ) : (
-                'Guardar Guardia'
-              )}
-            </Button>
-            <Button 
-              variant="outline" 
-              disabled={isLoading}
-              onClick={() => onOpenChange(false)}
-            >
-              Cancelar
-            </Button>
-          </div>
-        </DrawerFooter>
-      </DrawerContent>
+          </DrawerFooter>
+        </DrawerContent>
       </Drawer>
       
       {/* Componente de alerta moderna */}
       <AlertDialog />
     </>
   )
-} 
+}
