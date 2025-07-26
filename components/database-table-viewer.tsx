@@ -216,7 +216,7 @@ export function DatabaseTableViewer({
   }
 
   // Filtrar columnas visibles
-  const visibleColumns = tableData?.columns.filter(col => !shouldHideColumn(col)) || []
+  const visibleColumns = tableData?.columns?.filter(col => !shouldHideColumn(col)) || []
   
   // Ordenar columnas según el orden personalizado
   const orderedColumns = columnOrder.length > 0 
@@ -518,11 +518,11 @@ export function DatabaseTableViewer({
             {tableData && (
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span>
-                  {orderedColumns.length} columnas visibles • {tableData.pagination.total} registros {showInactive ? 'totales' : 'activos'}
+                  {orderedColumns.length} columnas visibles • {tableData?.pagination?.total || 0} registros {showInactive ? 'totales' : 'activos'}
                 </span>
-                {tableData.columns.length > orderedColumns.length && (
+                {(tableData?.columns?.length || 0) > orderedColumns.length && (
                   <span className="px-2 py-1 rounded text-xs bg-muted border">
-                    {tableData.columns.length - orderedColumns.length} columnas ocultas (IDs, UUIDs)
+                    {(tableData?.columns?.length || 0) - orderedColumns.length} columnas ocultas (IDs, UUIDs)
                   </span>
                 )}
               </div>
@@ -543,7 +543,7 @@ export function DatabaseTableViewer({
               </Button>
             )}
             
-            {tableData && tableData.pagination.total > limit && (
+            {tableData && (tableData?.pagination?.total || 0) > limit && (
               <>
                 <div className="h-4 w-px bg-border mx-2" />
                 <Button
@@ -556,14 +556,14 @@ export function DatabaseTableViewer({
                 </Button>
                 
                 <span className="text-sm px-2">
-                  Página {currentPage + 1} de {Math.ceil(tableData.pagination.total / limit)}
+                  Página {currentPage + 1} de {Math.ceil((tableData?.pagination?.total || 0) / limit)}
                 </span>
                 
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={!tableData.pagination.hasMore}
+                  disabled={!tableData?.pagination?.hasMore}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -687,7 +687,7 @@ export function DatabaseTableViewer({
                 </TableHeader>
                 
                 <TableBody>
-                  {tableData.data.map((row, rowIndex) => (
+                  {tableData?.data?.map((row, rowIndex) => (
                     <TableRow 
                       key={rowIndex} 
                       className={`hover:bg-muted/50 transition-colors ${
@@ -744,14 +744,14 @@ export function DatabaseTableViewer({
             </div>
           ) : null}
           
-          {tableData && tableData.data.length > 0 && (
+          {tableData && (tableData?.data?.length || 0) > 0 && (
             <div className="p-4 border-t bg-muted/20">
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <div>
-                  Mostrando {currentPage * limit + 1} - {Math.min((currentPage + 1) * limit, tableData.pagination.total)} de {tableData.pagination.total} registros {showInactive ? 'totales' : 'activos'}
+                  Mostrando {currentPage * limit + 1} - {Math.min((currentPage + 1) * limit, tableData?.pagination?.total || 0)} de {tableData?.pagination?.total || 0} registros {showInactive ? 'totales' : 'activos'}
                 </div>
                 <div>
-                  Última actualización: {new Date(tableData.timestamp).toLocaleString('es-ES')}
+                  Última actualización: {tableData?.timestamp ? new Date(tableData?.timestamp).toLocaleString('es-ES') : 'No disponible'}
                 </div>
               </div>
             </div>

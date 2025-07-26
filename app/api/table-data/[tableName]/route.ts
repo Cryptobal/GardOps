@@ -165,22 +165,51 @@ export async function GET(
       total = parseInt(countResult.rows[0].total)
     }
 
+    // Obtener información de columnas de la tabla
+    const columnsResult = await query(`
+      SELECT 
+        column_name,
+        data_type,
+        is_nullable,
+        column_default,
+        character_maximum_length,
+        numeric_precision,
+        numeric_scale
+      FROM information_schema.columns 
+      WHERE table_name = $1 AND table_schema = 'public'
+      ORDER BY ordinal_position
+    `, [tableName])
+
     return NextResponse.json({
-      success: true,
+      tableName,
+      columns: columnsResult.rows,
       data,
-      total,
-      limit,
-      offset
+      pagination: {
+        limit,
+        offset,
+        total,
+        hasMore: offset + limit < total
+      },
+      showInactive,
+      timestamp: new Date().toISOString()
     })
 
   } catch (error) {
     console.error('Error fetching table data:', error)
     return NextResponse.json(
       { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Error desconocido',
+        tableName: params.tableName,
+        columns: [],
         data: [],
-        total: 0
+        pagination: {
+          limit: 10,
+          offset: 0,
+          total: 0,
+          hasMore: false
+        },
+        showInactive: false,
+        timestamp: new Date().toISOString(),
+        error: error instanceof Error ? error.message : 'Error desconocido'
       },
       { status: 500 }
     )
