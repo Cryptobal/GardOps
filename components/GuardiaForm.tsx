@@ -226,7 +226,18 @@ export function GuardiaForm({ open, onOpenChange, editData, onSuccess }: Guardia
   useEffect(() => {
     if (open) {
       if (editData) {
-        setFormData(prev => ({ ...prev, ...editData }))
+        // Limpiar datos nulos o undefined
+        const cleanedData = Object.keys(editData).reduce((acc, key) => {
+          const value = editData[key]
+          if (value === null || value === undefined) {
+            acc[key] = ''
+          } else {
+            acc[key] = value
+          }
+          return acc
+        }, {} as any)
+        
+        setFormData(prev => ({ ...prev, ...cleanedData }))
       } else {
         setFormData(initialFormData)
       }
@@ -254,25 +265,30 @@ export function GuardiaForm({ open, onOpenChange, editData, onSuccess }: Guardia
     }))
   }
 
-  const validateForm = (): boolean => {
+  // Helper para verificar si un campo está vacío (maneja null, undefined y strings vacíos)
+  const isEmpty = (value: any): boolean => {
+    return !value || (typeof value === 'string' && !value.trim())
+  }
+
+  const getValidationErrors = (): Record<string, string> => {
     const newErrors: Record<string, string> = {}
 
     // Campos obligatorios
-    if (!formData.nombre.trim()) newErrors.nombre = 'Nombre es obligatorio'
-    if (!formData.apellido_paterno.trim()) newErrors.apellido_paterno = 'Apellido paterno es obligatorio'
-    if (!formData.apellido_materno.trim()) newErrors.apellido_materno = 'Apellido materno es obligatorio'
-    if (!formData.rut.trim()) newErrors.rut = 'RUT es obligatorio'
-    if (!formData.fecha_nacimiento) newErrors.fecha_nacimiento = 'Fecha de nacimiento es obligatoria'
-    if (!formData.celular.trim()) newErrors.celular = 'Celular es obligatorio'
-    if (!formData.instalacion_id) newErrors.instalacion_id = 'Instalación es obligatoria'
-    if (!formData.jornada.trim()) newErrors.jornada = 'Jornada es obligatoria'
-    if (!formData.direccion.trim()) newErrors.direccion = 'Dirección es obligatoria'
-    if (!formData.banco_id) newErrors.banco_id = 'Banco es obligatorio'
-    if (!formData.tipo_cuenta) newErrors.tipo_cuenta = 'Tipo de cuenta es obligatorio'
-    if (!formData.salud_id) newErrors.salud_id = 'Salud es obligatoria'
-    if (!formData.afp_id) newErrors.afp_id = 'AFP es obligatoria'
-    if (!formData.email.trim()) newErrors.email = 'Email es obligatorio'
-    if (!formData.estado) newErrors.estado = 'Estado es obligatorio'
+    if (isEmpty(formData.nombre)) newErrors.nombre = 'Nombre es obligatorio'
+    if (isEmpty(formData.apellido_paterno)) newErrors.apellido_paterno = 'Apellido paterno es obligatorio'
+    if (isEmpty(formData.apellido_materno)) newErrors.apellido_materno = 'Apellido materno es obligatorio'
+    if (isEmpty(formData.rut)) newErrors.rut = 'RUT es obligatorio'
+    if (isEmpty(formData.fecha_nacimiento)) newErrors.fecha_nacimiento = 'Fecha de nacimiento es obligatoria'
+    if (isEmpty(formData.celular)) newErrors.celular = 'Celular es obligatorio'
+    if (isEmpty(formData.instalacion_id)) newErrors.instalacion_id = 'Instalación es obligatoria'
+    if (isEmpty(formData.jornada)) newErrors.jornada = 'Jornada es obligatoria'
+    if (isEmpty(formData.direccion)) newErrors.direccion = 'Dirección es obligatoria'
+    if (isEmpty(formData.banco_id)) newErrors.banco_id = 'Banco es obligatorio'
+    if (isEmpty(formData.tipo_cuenta)) newErrors.tipo_cuenta = 'Tipo de cuenta es obligatorio'
+    if (isEmpty(formData.salud_id)) newErrors.salud_id = 'Salud es obligatoria'
+    if (isEmpty(formData.afp_id)) newErrors.afp_id = 'AFP es obligatoria'
+    if (isEmpty(formData.email)) newErrors.email = 'Email es obligatorio'
+    if (isEmpty(formData.estado)) newErrors.estado = 'Estado es obligatorio'
 
     // Validaciones específicas
     if (formData.rut && !validateRut(formData.rut)) {
@@ -287,12 +303,33 @@ export function GuardiaForm({ open, onOpenChange, editData, onSuccess }: Guardia
       newErrors.email = 'Email debe tener formato válido'
     }
 
+    return newErrors
+  }
+
+  const validateForm = (): boolean => {
+    const newErrors = getValidationErrors()
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async () => {
-    if (!validateForm()) return
+    // Validar y obtener errores directamente
+    const validationErrors = getValidationErrors()
+    
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors)
+      
+      // Mostrar alerta con los campos faltantes
+      const errorMessages = Object.values(validationErrors).filter(Boolean)
+      const firstErrors = errorMessages.slice(0, 3) // Mostrar solo los primeros 3 errores
+      const message = `Por favor, complete los siguientes campos:\n\n• ${firstErrors.join('\n• ')}`
+      if (errorMessages.length > 3) {
+        alert(message + `\n\n... y ${errorMessages.length - 3} más`)
+      } else {
+        alert(message)
+      }
+      return
+    }
 
     setIsLoading(true)
     try {
