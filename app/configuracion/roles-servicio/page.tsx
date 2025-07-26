@@ -316,26 +316,7 @@ export default function RolesServicioPage() {
             </div>
             
             <div className="flex items-center gap-2">
-              <Button
-                onClick={handleCreateNew}
-                variant="default"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Nuevo rol
-              </Button>
-              
-              <Button
-                onClick={handleRefresh}
-                disabled={isLoading}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                Actualizar
-              </Button>
+              {/* Botones eliminados - solo se usa formulario interno */}
             </div>
           </div>
         </motion.div>
@@ -375,8 +356,7 @@ export default function RolesServicioPage() {
           {error ? (
             <div className="p-8 text-center">
               <h3 className="text-lg font-semibold text-destructive mb-2">Error al cargar datos</h3>
-              <p className="text-muted-foreground mb-4">{error}</p>
-              <Button onClick={handleRefresh} variant="outline">Reintentar</Button>
+              <p className="text-muted-foreground">{error}</p>
             </div>
           ) : isLoading ? (
             <div className="p-8 text-center">
@@ -390,10 +370,7 @@ export default function RolesServicioPage() {
               <p className="text-muted-foreground mb-4">
                 {showInactive ? 'No hay roles registrados' : 'No hay roles activos'}
               </p>
-              <Button onClick={handleCreateNew} variant="outline">
-                <Plus className="h-4 w-4 mr-2" />
-                Crear primer rol
-              </Button>
+
             </div>
           ) : (
             <div className="overflow-auto">

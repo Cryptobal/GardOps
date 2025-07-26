@@ -63,13 +63,15 @@ interface DatabaseTableViewerProps {
   title?: string
   description?: string
   initialLimit?: number
+  onEdit?: (item: any) => void
 }
 
 export function DatabaseTableViewer({ 
   tableName, 
   title, 
   description,
-  initialLimit = 10 
+  initialLimit = 10,
+  onEdit
 }: DatabaseTableViewerProps) {
   const router = useRouter()
   const { success, error: showError, ToastContainer } = useToast()
@@ -147,9 +149,13 @@ export function DatabaseTableViewer({
   }
 
   const handleEdit = (record: any) => {
-    setFormMode('edit')
-    setSelectedRecord(record)
-    setIsFormOpen(true)
+    if (onEdit) {
+      onEdit(record)
+    } else {
+      setFormMode('edit')
+      setSelectedRecord(record)
+      setIsFormOpen(true)
+    }
   }
 
   const handleInactivate = (record: any) => {
@@ -474,26 +480,7 @@ export function DatabaseTableViewer({
             </div>
             
             <div className="flex items-center gap-2">
-              <Button
-                onClick={handleCreateNew}
-                variant="default"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Nuevo
-              </Button>
-              
-              <Button
-                onClick={handleRefresh}
-                disabled={isLoading}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                Actualizar
-              </Button>
+              {/* Botones de Nuevo y Actualizar eliminados para usar solo Drawer */}
             </div>
           </div>
         </motion.div>
@@ -601,11 +588,7 @@ export function DatabaseTableViewer({
                 {error?.includes('no existe') ? 'Tabla no encontrada' : 'Error al cargar datos'}
               </h3>
               <p className="text-muted-foreground mb-4">{error}</p>
-              {error && !error.includes('no existe') && (
-                <Button onClick={handleRefresh} variant="outline">
-                  Reintentar
-                </Button>
-              )}
+
               {error?.includes('no existe') && (
                 <p className="text-xs text-muted-foreground">
                   Esta tabla aún no ha sido creada en la base de datos
@@ -624,10 +607,7 @@ export function DatabaseTableViewer({
               <p className="text-muted-foreground mb-4">
                 {showInactive ? 'No hay registros en esta tabla' : 'No hay registros activos'}
               </p>
-              <Button onClick={handleCreateNew} variant="outline">
-                <Plus className="h-4 w-4 mr-2" />
-                Crear primer registro
-              </Button>
+
             </div>
           ) : tableData ? (
             <div className="overflow-auto max-h-[600px] border rounded-lg shadow-sm table-container">

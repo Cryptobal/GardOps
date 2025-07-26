@@ -715,26 +715,7 @@ export default function InstalacionesPage() {
             </div>
             
             <div className="flex items-center gap-2">
-              <Button
-                onClick={handleCreateNew}
-                variant="default"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Nueva instalación
-              </Button>
-              
-              <Button
-                onClick={handleRefresh}
-                disabled={isLoading}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                Actualizar
-              </Button>
+              {/* Botones eliminados - solo se usa formulario interno */}
             </div>
           </div>
         </motion.div>
@@ -774,8 +755,7 @@ export default function InstalacionesPage() {
           {error ? (
             <div className="p-8 text-center">
               <h3 className="text-lg font-semibold text-destructive mb-2">Error al cargar datos</h3>
-              <p className="text-muted-foreground mb-4">{error}</p>
-              <Button onClick={handleRefresh} variant="outline">Reintentar</Button>
+              <p className="text-muted-foreground">{error}</p>
             </div>
           ) : isLoading ? (
             <div className="p-8 text-center">
@@ -786,13 +766,9 @@ export default function InstalacionesPage() {
             <div className="p-8 text-center">
               <Building className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">Sin instalaciones</h3>
-              <p className="text-muted-foreground mb-4">
+              <p className="text-muted-foreground">
                 {showInactive ? 'No hay instalaciones registradas' : 'No hay instalaciones activas'}
               </p>
-              <Button onClick={handleCreateNew} variant="outline">
-                <Plus className="h-4 w-4 mr-2" />
-                Crear primera instalación
-              </Button>
             </div>
           ) : (
             <div className="overflow-auto">
@@ -947,7 +923,7 @@ export default function InstalacionesPage() {
 
       {/* Formulario de Instalación */}
       <Drawer open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DrawerContent className="max-w-lg">
+        <DrawerContent className="max-w-lg h-full overflow-y-auto">
           <DrawerHeader>
             <DrawerTitle className="capitalize-first">
               {formMode === 'create' ? 'Crear instalación' : 'Editar instalación'}

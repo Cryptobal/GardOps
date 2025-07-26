@@ -535,8 +535,7 @@ export default function PPCPage() {
           {error ? (
             <div className="p-8 text-center">
               <h3 className="text-lg font-semibold text-destructive mb-2">Error al cargar datos</h3>
-              <p className="text-muted-foreground mb-4">{error}</p>
-              <Button onClick={handleRefresh} variant="outline">Reintentar</Button>
+              <p className="text-muted-foreground">{error}</p>
             </div>
           ) : isLoading ? (
             <div className="p-8 text-center">

@@ -263,6 +263,185 @@ export async function POST() {
                 EXECUTE FUNCTION update_timestamp();
             END IF;
           END $$`
+      },
+      {
+        name: 'Agregar georreferenciación a tabla guardias',
+        sql: `DO $$ 
+          BEGIN 
+            IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'guardias' AND table_schema = 'public') THEN
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'guardias' AND column_name = 'lat' AND table_schema = 'public') THEN
+                ALTER TABLE guardias ADD COLUMN lat DOUBLE PRECISION;
+                RAISE NOTICE 'Campo lat agregado a guardias';
+              END IF;
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'guardias' AND column_name = 'lng' AND table_schema = 'public') THEN
+                ALTER TABLE guardias ADD COLUMN lng DOUBLE PRECISION;
+                RAISE NOTICE 'Campo lng agregado a guardias';
+              END IF;
+            END IF;
+          END $$`
+      },
+      {
+        name: 'Crear tablas AFPs e ISAPREs',
+        sql: `
+          CREATE TABLE IF NOT EXISTS public.afps (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            nombre TEXT NOT NULL UNIQUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+          
+          INSERT INTO public.afps (nombre) VALUES
+            ('AFP Habitat'),
+            ('AFP Capital'),
+            ('AFP Provida'),
+            ('AFP Cuprum'),
+            ('AFP PlanVital'),
+            ('AFP Modelo')
+          ON CONFLICT (nombre) DO NOTHING;
+          
+          CREATE TABLE IF NOT EXISTS public.isapres (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            nombre TEXT NOT NULL UNIQUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+          
+          INSERT INTO public.isapres (nombre) VALUES
+            ('FONASA'),
+            ('Colmena'),
+            ('Cruz Blanca'),
+            ('Banmédica'),
+            ('Nueva Masvida'),
+            ('Consalud'),
+            ('Vida Tres')
+          ON CONFLICT (nombre) DO NOTHING;
+        `
+      },
+      {
+        name: 'Agregar apellidos a tabla guardias',
+        sql: `DO $$ 
+          BEGIN 
+            IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'guardias' AND table_schema = 'public') THEN
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'guardias' AND column_name = 'apellido_paterno' AND table_schema = 'public') THEN
+                ALTER TABLE guardias ADD COLUMN apellido_paterno VARCHAR(255);
+                RAISE NOTICE 'Campo apellido_paterno agregado a guardias';
+              END IF;
+              
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'guardias' AND column_name = 'apellido_materno' AND table_schema = 'public') THEN
+                ALTER TABLE guardias ADD COLUMN apellido_materno VARCHAR(255);
+                RAISE NOTICE 'Campo apellido_materno agregado a guardias';
+              END IF;
+              
+              CREATE INDEX IF NOT EXISTS idx_guardias_location ON public.guardias (lat, lng);
+            END IF;
+          END $$`
+      },
+      {
+        name: 'Actualizar tabla bancos con códigos oficiales',
+        sql: `
+          -- Limpiar tabla bancos existente
+          TRUNCATE TABLE public.bancos RESTART IDENTITY CASCADE;
+          
+          -- Agregar columna codigo si no existe
+          DO $$ 
+          BEGIN 
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'bancos' AND column_name = 'codigo' AND table_schema = 'public') THEN
+              ALTER TABLE public.bancos ADD COLUMN codigo VARCHAR(3) UNIQUE;
+              RAISE NOTICE 'Campo codigo agregado a bancos';
+            END IF;
+          END $$;
+          
+          -- Insertar bancos oficiales chilenos con códigos
+          INSERT INTO public.bancos (codigo, nombre) VALUES
+            ('001', 'Banco de Chile'),
+            ('009', 'Banco Internacional'),
+            ('012', 'Banco del Estado de Chile (BancoEstado)'),
+            ('014', 'Scotiabank Chile (BancoDesarrollo)'),
+            ('016', 'Banco de Crédito e Inversiones (BCI)'),
+            ('028', 'Banco BICE'),
+            ('031', 'HSBC Bank Chile'),
+            ('037', 'Banco Santander Chile'),
+            ('039', 'Banco Itaú Corpbanca (Itaú Chile)'),
+            ('049', 'Banco Security'),
+            ('051', 'Banco Falabella'),
+            ('052', 'Deutsche Bank (Chile)'),
+            ('053', 'Banco Ripley'),
+            ('054', 'Rabobank Chile'),
+            ('055', 'Banco Consorcio'),
+            ('056', 'Banco Penta'),
+            ('059', 'Banco BTG Pactual Chile'),
+            ('062', 'Tanner Banco Digital');
+          
+          -- Crear índice para código
+          CREATE INDEX IF NOT EXISTS idx_bancos_codigo ON public.bancos (codigo);
+        `
+      },
+      {
+        name: 'Corregir foreign keys en tabla guardias',
+        sql: `
+          -- Agregar columnas con foreign keys
+          DO $$ 
+          BEGIN 
+            -- Agregar banco_id si no existe
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'guardias' AND column_name = 'banco_id' AND table_schema = 'public') THEN
+              ALTER TABLE public.guardias ADD COLUMN banco_id UUID;
+              RAISE NOTICE 'Campo banco_id agregado a guardias';
+            END IF;
+            
+            -- Agregar salud_id si no existe  
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'guardias' AND column_name = 'salud_id' AND table_schema = 'public') THEN
+              ALTER TABLE public.guardias ADD COLUMN salud_id UUID;
+              RAISE NOTICE 'Campo salud_id agregado a guardias';
+            END IF;
+            
+            -- Agregar afp_id si no existe
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'guardias' AND column_name = 'afp_id' AND table_schema = 'public') THEN
+              ALTER TABLE public.guardias ADD COLUMN afp_id UUID;
+              RAISE NOTICE 'Campo afp_id agregado a guardias';
+            END IF;
+          END $$;
+          
+          -- Crear foreign keys si no existen
+          DO $$
+          BEGIN
+            -- FK para banco_id -> bancos(id)
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.table_constraints 
+              WHERE constraint_name = 'guardias_banco_id_fkey' 
+              AND table_name = 'guardias' 
+              AND table_schema = 'public'
+            ) THEN
+              ALTER TABLE public.guardias 
+              ADD CONSTRAINT guardias_banco_id_fkey 
+              FOREIGN KEY (banco_id) REFERENCES public.bancos(id);
+              RAISE NOTICE 'FK guardias_banco_id_fkey creada';
+            END IF;
+            
+            -- FK para salud_id -> isapres(id)  
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.table_constraints 
+              WHERE constraint_name = 'guardias_salud_id_fkey' 
+              AND table_name = 'guardias' 
+              AND table_schema = 'public'
+            ) THEN
+              ALTER TABLE public.guardias 
+              ADD CONSTRAINT guardias_salud_id_fkey 
+              FOREIGN KEY (salud_id) REFERENCES public.isapres(id);
+              RAISE NOTICE 'FK guardias_salud_id_fkey creada';
+            END IF;
+            
+            -- FK para afp_id -> afps(id)
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.table_constraints 
+              WHERE constraint_name = 'guardias_afp_id_fkey' 
+              AND table_name = 'guardias' 
+              AND table_schema = 'public'
+            ) THEN
+              ALTER TABLE public.guardias 
+              ADD CONSTRAINT guardias_afp_id_fkey 
+              FOREIGN KEY (afp_id) REFERENCES public.afps(id);
+              RAISE NOTICE 'FK guardias_afp_id_fkey creada';
+            END IF;
+          END $$;
+        `
       }
     ]
 
