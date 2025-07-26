@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { query, getTableDataWithRelationsAndStatus } from '@/lib/database'
+import { query, getTableDataWithRelationsAndStatus, getTableDataWithRelationsStatusAndSearch, getTableCountWithSearch } from '@/lib/database'
 
 export async function GET(
   request: NextRequest,
@@ -10,6 +10,11 @@ export async function GET(
     const limit = parseInt(searchParams.get('limit') || '10')
     const offset = parseInt(searchParams.get('offset') || '0')
     const showInactive = searchParams.get('showInactive') === 'true'
+    
+    // Parámetros de búsqueda
+    const search = searchParams.get('search') || ''
+    const searchFieldsParam = searchParams.get('searchFields') || ''
+    const searchFields = searchFieldsParam ? searchFieldsParam.split(',') : []
     
     // Parámetros especiales para filtros
     const instalacionId = searchParams.get('instalacion_id')
@@ -141,28 +146,35 @@ export async function GET(
     }
     // Usar el método estándar para otras tablas
     else {
-      data = await getTableDataWithRelationsAndStatus(tableName, limit, offset, showInactive)
-      
-      // Obtener total con filtro de estado
-      const hasStatusColumn = await hasColumn(tableName, 'estado')
-      
-      let countSql = `SELECT COUNT(*) as total FROM ${tableName}`
-      let countParams: any[] = []
-      
-      if (hasStatusColumn && !showInactive) {
-        // Mapeo específico de valores de estado por tabla
-        const stateValues: { [key: string]: { active: string; inactive: string } } = {
-          'instalaciones': { active: 'Activa', inactive: 'Inactiva' },
-          'default': { active: 'Activo', inactive: 'Inactivo' }
+      if (search && searchFields.length > 0) {
+        // Usar función con búsqueda
+        data = await getTableDataWithRelationsStatusAndSearch(tableName, limit, offset, showInactive, search, searchFields)
+        total = await getTableCountWithSearch(tableName, showInactive, search, searchFields)
+      } else {
+        // Usar función sin búsqueda
+        data = await getTableDataWithRelationsAndStatus(tableName, limit, offset, showInactive)
+        
+        // Obtener total con filtro de estado
+        const hasStatusColumn = await hasColumn(tableName, 'estado')
+        
+        let countSql = `SELECT COUNT(*) as total FROM ${tableName}`
+        let countParams: any[] = []
+        
+        if (hasStatusColumn && !showInactive) {
+          // Mapeo específico de valores de estado por tabla
+          const stateValues: { [key: string]: { active: string; inactive: string } } = {
+            'instalaciones': { active: 'Activa', inactive: 'Inactiva' },
+            'default': { active: 'Activo', inactive: 'Inactivo' }
+          }
+          
+          const tableStates = stateValues[tableName] || stateValues['default']
+          countSql += ` WHERE estado = $1`
+          countParams = [tableStates.active]
         }
         
-        const tableStates = stateValues[tableName] || stateValues['default']
-        countSql += ` WHERE estado = $1`
-        countParams = [tableStates.active]
+        const countResult = await query(countSql, countParams)
+        total = parseInt(countResult.rows[0].total)
       }
-      
-      const countResult = await query(countSql, countParams)
-      total = parseInt(countResult.rows[0].total)
     }
 
     // Obtener información de columnas de la tabla

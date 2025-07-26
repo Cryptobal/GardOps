@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { 
   Table,
@@ -37,7 +38,8 @@ import {
   Phone,
   Mail,
   Building,
-  User
+  User,
+  X
 } from 'lucide-react'
 import { DynamicForm } from '@/components/dynamic-form'
 import { useToast } from '@/components/ui/toast'
@@ -106,6 +108,10 @@ export function DatabaseTableViewer({
   const [showInactive, setShowInactive] = useState(false)
   const [isMobileView, setIsMobileView] = useState(false)
   
+  // Estados para búsqueda
+  const [searchTerm, setSearchTerm] = useState('')
+  const [searchFields, setSearchFields] = useState<string[]>([])
+  
   // Estados para el formulario
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
@@ -127,13 +133,42 @@ export function DatabaseTableViewer({
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  const fetchTableData = async (page: number = 0, pageLimit: number = limit, includeInactive: boolean = showInactive) => {
+  // Configurar campos de búsqueda según la tabla
+  useEffect(() => {
+    const getSearchFields = (tableName: string) => {
+      switch (tableName) {
+        case 'instalaciones':
+          return ['nombre', 'rut']
+        case 'clientes':
+          return ['nombre', 'rut']
+        case 'guardias':
+          return ['apellidos', 'rut']
+        default:
+          return ['nombre']
+      }
+    }
+    
+    setSearchFields(getSearchFields(tableName))
+  }, [tableName])
+
+  const fetchTableData = async (page: number = 0, pageLimit: number = limit, includeInactive: boolean = showInactive, search: string = searchTerm) => {
     try {
       setIsLoading(true)
       setError(null)
       
       const offset = page * pageLimit
-      const response = await fetch(`/api/table-data/${tableName}?limit=${pageLimit}&offset=${offset}&showInactive=${includeInactive}`)
+      const searchParams = new URLSearchParams({
+        limit: pageLimit.toString(),
+        offset: offset.toString(),
+        showInactive: includeInactive.toString()
+      })
+      
+      if (search.trim()) {
+        searchParams.append('search', search)
+        searchParams.append('searchFields', searchFields.join(','))
+      }
+      
+      const response = await fetch(`/api/table-data/${tableName}?${searchParams}`)
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)
@@ -170,6 +205,18 @@ export function DatabaseTableViewer({
   const handleShowInactiveChange = (checked: boolean) => {
     setShowInactive(checked)
     fetchTableData(0, limit, checked)
+  }
+
+  const handleSearch = (search: string) => {
+    setSearchTerm(search)
+    setCurrentPage(0)
+    fetchTableData(0, limit, showInactive, search)
+  }
+
+  const clearSearch = () => {
+    setSearchTerm('')
+    setCurrentPage(0)
+    fetchTableData(0, limit, showInactive, '')
   }
 
   // Funciones CRUD
@@ -668,6 +715,47 @@ export function DatabaseTableViewer({
             </div>
           </div>
         </motion.div>
+
+        {/* Search Bar */}
+        {searchFields.length > 0 && (
+          <motion.div
+            className="flex items-center gap-4 p-4 rounded-lg border bg-card"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.05 }}
+          >
+            <div className="flex items-center gap-2 flex-1">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <div className="flex-1 max-w-md">
+                <Input
+                  placeholder={`Buscar por ${searchFields.join(' o ')}...`}
+                  value={searchTerm}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearSearch}
+                  className="flex items-center gap-1"
+                >
+                  <X className="h-3 w-3" />
+                  <span className="text-xs">Limpiar</span>
+                </Button>
+              )}
+            </div>
+            
+            <div className="text-xs text-muted-foreground">
+              {searchTerm ? (
+                <span>Filtrando por: <strong>{searchTerm}</strong></span>
+              ) : (
+                <span>Busca palabras que empiecen con los términos ingresados</span>
+              )}
+            </div>
+          </motion.div>
+        )}
 
         {/* Controls */}
         <motion.div

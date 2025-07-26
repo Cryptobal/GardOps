@@ -245,6 +245,110 @@ export async function getTableDataWithRelationsAndStatus(
   }
 }
 
+// Función para obtener datos de tabla con relaciones, filtro de estado y búsqueda
+export async function getTableDataWithRelationsStatusAndSearch(
+  tableName: string,
+  limit: number = 10,
+  offset: number = 0,
+  showInactive: boolean = false,
+  searchTerm: string = '',
+  searchFields: string[] = []
+) {
+  try {
+    // Verificar si la tabla tiene columna estado
+    const hasStatusColumn = await hasColumn(tableName, 'estado')
+    
+    if (!hasStatusColumn && !searchTerm) {
+      // Si no tiene columna estado y no hay búsqueda, usar la función original
+      return await getTableDataWithRelations(tableName, limit, offset)
+    }
+
+    // Mapeo específico de valores de estado por tabla
+    const stateValues: { [key: string]: { active: string; inactive: string } } = {
+      'instalaciones': { active: 'Activa', inactive: 'Inactiva' },
+      // Para el resto de tablas usar los valores por defecto
+      'default': { active: 'Activo', inactive: 'Inactivo' }
+    }
+
+    const tableStates = stateValues[tableName] || stateValues['default']
+    
+    // Mapeo de relaciones conocidas
+    const relationMappings: { [key: string]: { table: string, nameField: string } } = {
+      'instalacion_id': { table: 'instalaciones', nameField: 'nombre' },
+      'cliente_id': { table: 'clientes', nameField: 'nombre' },
+      'guardia_id': { table: 'guardias', nameField: 'nombre' },
+      'usuario_id': { table: 'usuarios', nameField: 'nombre' },
+      'empresa_id': { table: 'empresas', nameField: 'nombre' },
+      'puesto_id': { table: 'puestos_operativos', nameField: 'nombre' },
+      'puesto_operativo_id': { table: 'puestos_operativos', nameField: 'nombre' },
+      'turno_id': { table: 'turnos', nameField: 'nombre' },
+      'rol_id': { table: 'roles_servicio', nameField: 'nombre' },
+      'rol_servicio_id': { table: 'roles_servicio', nameField: 'nombre' },
+      'pauta_id': { table: 'pautas_operativas', nameField: 'nombre' },
+      'asignacion_operativa_id': { table: 'asignaciones_operativas', nameField: 'id' },
+      'guardia_asignado_id': { table: 'guardias_asignados', nameField: 'id' }
+    }
+
+    // Obtener columnas de la tabla
+    const columnsResult = await query(`
+      SELECT column_name, data_type
+      FROM information_schema.columns 
+      WHERE table_name = $1 AND table_schema = 'public'
+      ORDER BY ordinal_position
+    `, [tableName])
+
+    const columns = columnsResult.rows
+    
+    // Construir consulta con JOINs para relaciones
+    let selectFields = [`${tableName}.*`]
+    let joinClauses = []
+    
+    for (const column of columns) {
+      const columnName = column.column_name
+      if (relationMappings[columnName]) {
+        const relation = relationMappings[columnName]
+        const alias = `${columnName}_name`
+        selectFields.push(`${relation.table}.${relation.nameField} as ${alias}`)
+        joinClauses.push(`LEFT JOIN ${relation.table} ON ${tableName}.${columnName} = ${relation.table}.id`)
+      }
+    }
+    
+    // Construir cláusula WHERE
+    let whereConditions = []
+    
+    if (hasStatusColumn && !showInactive) {
+      whereConditions.push(`${tableName}.estado = '${tableStates.active}'`)
+    }
+    
+    // Agregar condiciones de búsqueda
+    if (searchTerm && searchFields.length > 0) {
+      const searchConditions = searchFields.map(field => 
+        `${tableName}.${field} ILIKE '${searchTerm}%'`
+      )
+      whereConditions.push(`(${searchConditions.join(' OR ')})`)
+    }
+    
+    const whereClause = whereConditions.length > 0 
+      ? `WHERE ${whereConditions.join(' AND ')}`
+      : ''
+    
+    const sql = `
+      SELECT ${selectFields.join(', ')}
+      FROM ${tableName}
+      ${joinClauses.join(' ')}
+      ${whereClause}
+      ORDER BY ${tableName}.created_at DESC
+      LIMIT $1 OFFSET $2
+    `
+
+    const result = await query(sql, [limit, offset])
+    return result.rows
+  } catch (error) {
+    console.error(`Error fetching table data for ${tableName}:`, error)
+    throw error
+  }
+}
+
 // Función para insertar un nuevo registro
 export async function insertRecord(tableName: string, data: Record<string, any>) {
   try {
@@ -447,6 +551,55 @@ export async function getTableCount(tableName: string, showInactive: boolean = f
     } else {
       sql = `SELECT COUNT(*) as total FROM ${tableName} WHERE estado = '${tableStates.active}'`
     }
+    
+    const result = await query(sql, [])
+    return parseInt(result.rows[0].total)
+  } catch (error) {
+    console.error(`Error obteniendo conteo de tabla ${tableName}:`, error)
+    throw error
+  }
+}
+
+// Función para obtener el conteo de registros con búsqueda
+export async function getTableCountWithSearch(
+  tableName: string, 
+  showInactive: boolean = false, 
+  searchTerm: string = '', 
+  searchFields: string[] = []
+): Promise<number> {
+  try {
+    // Verificar si la tabla tiene columna estado
+    const hasStatusColumn = await hasColumn(tableName, 'estado')
+    
+    // Mapeo específico de valores de estado por tabla
+    const stateValues: { [key: string]: { active: string; inactive: string } } = {
+      'instalaciones': { active: 'Activa', inactive: 'Inactiva' },
+      // Para el resto de tablas usar los valores por defecto
+      'default': { active: 'Activo', inactive: 'Inactivo' }
+    }
+
+    const tableStates = stateValues[tableName] || stateValues['default']
+    
+    // Construir cláusula WHERE
+    let whereConditions = []
+    
+    if (hasStatusColumn && !showInactive) {
+      whereConditions.push(`estado = '${tableStates.active}'`)
+    }
+    
+    // Agregar condiciones de búsqueda
+    if (searchTerm && searchFields.length > 0) {
+      const searchConditions = searchFields.map(field => 
+        `${field} ILIKE '${searchTerm}%'`
+      )
+      whereConditions.push(`(${searchConditions.join(' OR ')})`)
+    }
+    
+    const whereClause = whereConditions.length > 0 
+      ? `WHERE ${whereConditions.join(' AND ')}`
+      : ''
+    
+    const sql = `SELECT COUNT(*) as total FROM ${tableName} ${whereClause}`
     
     const result = await query(sql, [])
     return parseInt(result.rows[0].total)
