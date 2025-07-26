@@ -104,18 +104,6 @@ interface EstadisticasPPC {
   cubiertos: number
   justificados: number
   porcentajeCubierto: number
-  puesto_operativo_id: string
-  rol_servicio_id: string
-  asignacion_operativa_id: string
-  guardia_asignado_id: string | null
-  estado: 'pendiente' | 'cubierto' | 'justificado'
-  fecha_creacion: string
-  observaciones: string | null
-  instalacion_id_name?: string
-  puesto_operativo_id_name?: string
-  rol_servicio_id_name?: string
-  created_at: string
-  updated_at: string
 }
 
 interface Instalacion {
