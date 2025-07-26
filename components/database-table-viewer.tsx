@@ -30,12 +30,31 @@ import {
   Plus,
   Edit,
   UserX,
-  Filter
+  Filter,
+  MoreVertical,
+  Calendar,
+  MapPin,
+  Phone,
+  Mail,
+  Building,
+  User
 } from 'lucide-react'
 import { DynamicForm } from '@/components/dynamic-form'
 import { useToast } from '@/components/ui/toast'
 import { ToastContainer } from '@/components/ui/toast'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 
 interface Column {
   column_name: string
@@ -85,6 +104,7 @@ export function DatabaseTableViewer({
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null)
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
   const [showInactive, setShowInactive] = useState(false)
+  const [isMobileView, setIsMobileView] = useState(false)
   
   // Estados para el formulario
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -95,6 +115,17 @@ export function DatabaseTableViewer({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [recordToDelete, setRecordToDelete] = useState<any>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Detectar si estamos en móvil
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileView(window.innerWidth < 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   const fetchTableData = async (page: number = 0, pageLimit: number = limit, includeInactive: boolean = showInactive) => {
     try {
@@ -451,6 +482,159 @@ export function DatabaseTableViewer({
     return row.estado === tableStates.inactive
   }
 
+  // Función para obtener el icono según el tipo de campo
+  const getFieldIcon = (columnName: string) => {
+    const name = columnName.toLowerCase()
+    if (name.includes('email') || name.includes('correo')) return Mail
+    if (name.includes('celular') || name.includes('telefono') || name.includes('phone')) return Phone
+    if (name.includes('fecha') || name.includes('date') || name.includes('timestamp')) return Calendar
+    if (name.includes('direccion') || name.includes('address')) return MapPin
+    if (name.includes('instalacion') || name.includes('building')) return Building
+    if (name.includes('nombre') || name.includes('name') || name.includes('guardia')) return User
+    return null
+  }
+
+  // Función para formatear valor para la vista móvil
+  const formatMobileValue = (value: any, column: Column, row: any) => {
+    if (value === null || value === undefined) return '-'
+    
+    // Para relaciones, mostrar solo el nombre sin enlace en móvil
+    if (column.column_name.endsWith('_id') && row) {
+      const relationNameField = `${column.column_name}_name`
+      const relationName = row[relationNameField]
+      if (relationName) return relationName
+    }
+    
+    // Formatear fechas de manera más compacta en móvil
+    if (column.data_type.includes('timestamp') || column.data_type.includes('date')) {
+      try {
+        const date = new Date(value)
+        if (!isNaN(date.getTime())) {
+          return date.toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: '2-digit'
+          })
+        }
+      } catch (e) {
+        // Si falla el parseo, continuar
+      }
+    }
+    
+    // Truncar textos largos en móvil
+    if (typeof value === 'string' && value.length > 30) {
+      return value.substring(0, 30) + '...'
+    }
+    
+    return String(value)
+  }
+
+  // Renderizar vista móvil como tarjetas
+  const renderMobileView = () => {
+    if (!tableData?.data?.length) return null
+
+    return (
+             <div className="space-y-4 smooth-scroll">
+         {tableData.data.map((row, index) => (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+          >
+                         <Card className={`relative mobile-card mobile-interactive ${isInactiveRecord(row) ? 'opacity-60 bg-muted/30' : ''}`}>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    {/* Mostrar campos principales */}
+                    {orderedColumns.slice(0, 2).map((column) => {
+                      const Icon = getFieldIcon(column.column_name)
+                      const value = formatMobileValue(row[column.column_name], column, row)
+                      
+                      return (
+                        <div key={column.column_name} className="flex items-center gap-2 mb-1">
+                          {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+                          <span className="text-sm font-medium">
+                            {formatColumnName(column.column_name)}:
+                          </span>
+                          <span className="text-sm">{value}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  
+                  {/* Acciones en dropdown para móvil */}
+                  <DropdownMenu>
+                                       <DropdownMenuTrigger asChild>
+                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0 mobile-touch-button">
+                       <MoreVertical className="h-4 w-4" />
+                     </Button>
+                   </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEdit(row)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar
+                      </DropdownMenuItem>
+                      {!isInactiveRecord(row) && (
+                        <DropdownMenuItem 
+                          onClick={() => handleInactivate(row)}
+                          className="text-orange-600"
+                        >
+                          <UserX className="h-4 w-4 mr-2" />
+                          Inactivar
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="pt-0">
+                {/* Mostrar campos adicionales en filas */}
+                <div className="space-y-2">
+                  {orderedColumns.slice(2).map((column) => {
+                    const Icon = getFieldIcon(column.column_name)
+                    const value = formatMobileValue(row[column.column_name], column, row)
+                    
+                                           return (
+                         <div key={column.column_name} className="mobile-card-field">
+                           <div className="flex items-center gap-2">
+                             {Icon && <Icon className="h-3 w-3 text-muted-foreground" />}
+                             <span className="text-xs text-muted-foreground">
+                               {formatColumnName(column.column_name)}
+                             </span>
+                           </div>
+                           <span className="text-sm font-medium text-right max-w-[60%]" title={String(row[column.column_name])}>
+                             {value}
+                           </span>
+                         </div>
+                       )
+                  })}
+                </div>
+                
+                {/* Estado del registro */}
+                {row.estado && (
+                  <div className="mt-3 pt-2 border-t border-border/50">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Estado</span>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        isInactiveRecord(row) 
+                          ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
+                          : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                      }`}>
+                        {row.estado}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <>
       <ToastContainer />
@@ -471,7 +655,7 @@ export function DatabaseTableViewer({
               <p className="text-muted-foreground mt-2">
                 {description || `Gestión de ${tableName}`}
               </p>
-              {orderedColumns.length > 1 && (
+              {!isMobileView && orderedColumns.length > 1 && (
                 <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                   <GripVertical className="h-3 w-3" />
                   Arrastra las columnas para reordenarlas o usa las flechas
@@ -492,7 +676,7 @@ export function DatabaseTableViewer({
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <Eye className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">Mostrar:</span>
@@ -520,9 +704,9 @@ export function DatabaseTableViewer({
             {tableData && (
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span>
-                  {orderedColumns.length} columnas visibles • {tableData?.pagination?.total || 0} registros {showInactive ? 'totales' : 'activos'}
+                  {isMobileView ? 'Vista móvil' : `${orderedColumns.length} columnas visibles`} • {tableData?.pagination?.total || 0} registros {showInactive ? 'totales' : 'activos'}
                 </span>
-                {(tableData?.columns?.length || 0) > orderedColumns.length && (
+                {!isMobileView && (tableData?.columns?.length || 0) > orderedColumns.length && (
                   <span className="px-2 py-1 rounded text-xs bg-muted border">
                     {(tableData?.columns?.length || 0) - orderedColumns.length} columnas ocultas (IDs, UUIDs)
                   </span>
@@ -532,7 +716,7 @@ export function DatabaseTableViewer({
           </div>
 
           <div className="flex items-center gap-2">
-            {orderedColumns.length > 0 && (
+            {!isMobileView && orderedColumns.length > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -541,7 +725,7 @@ export function DatabaseTableViewer({
                 title="Restablecer orden de columnas"
               >
                 <RotateCcw className="h-3 w-3" />
-                <span className="text-xs">Resetear orden</span>
+                <span className="text-xs hidden sm:inline">Resetear orden</span>
               </Button>
             )}
             
@@ -558,7 +742,7 @@ export function DatabaseTableViewer({
                 </Button>
                 
                 <span className="text-sm px-2">
-                  Página {currentPage + 1} de {Math.ceil((tableData?.pagination?.total || 0) / limit)}
+                  {isMobileView ? `${currentPage + 1}/${Math.ceil((tableData?.pagination?.total || 0) / limit)}` : `Página ${currentPage + 1} de ${Math.ceil((tableData?.pagination?.total || 0) / limit)}`}
                 </span>
                 
                 <Button
@@ -607,136 +791,145 @@ export function DatabaseTableViewer({
               <p className="text-muted-foreground mb-4">
                 {showInactive ? 'No hay registros en esta tabla' : 'No hay registros activos'}
               </p>
-
             </div>
           ) : tableData ? (
-            <div className="overflow-auto max-h-[600px] border rounded-lg shadow-sm table-container">
-              <Table className="relative table-improved">
-                <TableHeader className="sticky top-0 bg-background z-10">
-                  <TableRow className="border-b border-border">
-                    {orderedColumns.map((column, index) => (
-                      <TableHead 
-                        key={column.column_name} 
-                        className={`whitespace-nowrap cursor-move select-none font-semibold text-sm ${
-                          draggedColumn === column.column_name ? 'opacity-50' : ''
-                        } ${
-                          dragOverColumn === column.column_name ? 'bg-accent' : ''
-                        } ${
-                          // Alineación del header según tipo de datos
-                          column.data_type.includes('integer') || 
-                          column.data_type.includes('numeric') || 
-                          column.data_type.includes('decimal') ||
-                          column.data_type.includes('money')
-                            ? 'text-right table-numeric' 
-                            : column.data_type.includes('timestamp') || 
-                              column.data_type.includes('date')
-                            ? 'text-center table-date'
-                            : 'text-left'
-                        } px-4 py-3 bg-background border-b`}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, column.column_name)}
-                        onDragOver={(e) => handleDragOver(e, column.column_name)}
-                        onDragLeave={handleDragLeave}
-                        onDragEnd={handleDragEnd}
-                        onDrop={(e) => handleDrop(e, column.column_name)}
-                      >
-                        <div className="flex items-center gap-2 group">
-                          <GripVertical className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <div className="flex items-center gap-1">
-                            <span className="font-medium capitalize-first">
-                              {formatColumnName(column.column_name)}
-                              {column.is_nullable === 'NO' && (
-                                <span className="text-red-500 ml-1">*</span>
-                              )}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {index > 0 && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-5 w-5 p-0"
-                                onClick={() => moveColumn(column.column_name, 'left')}
-                                title="Mover a la izquierda"
-                              >
-                                <ArrowLeft className="h-3 w-3" />
-                              </Button>
-                            )}
-                            {index < orderedColumns.length - 1 && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-5 w-5 p-0"
-                                onClick={() => moveColumn(column.column_name, 'right')}
-                                title="Mover a la derecha"
-                              >
-                                <ArrowRight className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </TableHead>
-                    ))}
-                    <TableHead className="w-32 px-4 py-3 text-center font-semibold text-sm bg-background border-b">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                
-                <TableBody>
-                  {tableData?.data?.map((row, rowIndex) => (
-                    <TableRow 
-                      key={rowIndex} 
-                      className={`hover:bg-muted/50 transition-colors ${
-                        isInactiveRecord(row) ? 'table-row-inactive' : ''
-                      }`}
-                    >
-                      {orderedColumns.map((column) => (
-                        <TableCell 
-                          key={column.column_name} 
-                          className={`whitespace-nowrap text-sm ${
-                            // Alineación según tipo de datos usando las nuevas clases
-                            column.data_type.includes('integer') || 
-                            column.data_type.includes('numeric') || 
-                            column.data_type.includes('decimal') ||
-                            column.data_type.includes('money')
-                              ? 'table-numeric' 
-                              : column.data_type.includes('timestamp') || 
-                                column.data_type.includes('date')
-                              ? 'table-date'
-                              : 'text-left'
-                          } px-4 py-3`}
-                        >
-                          {formatCellValue(row[column.column_name], column, row)}
-                        </TableCell>
-                      ))}
-                      <TableCell className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(row)}
-                            className="h-8 w-8 p-0"
-                            title="Editar"
+            <>
+              {/* Vista móvil */}
+              {isMobileView ? (
+                <div className="p-4">
+                  {renderMobileView()}
+                </div>
+              ) : (
+                /* Vista desktop (tabla original) */
+                <div className="overflow-auto max-h-[600px] border rounded-lg shadow-sm table-container">
+                  <Table className="relative table-improved">
+                    <TableHeader className="sticky top-0 bg-background z-10">
+                      <TableRow className="border-b border-border">
+                        {orderedColumns.map((column, index) => (
+                          <TableHead 
+                            key={column.column_name} 
+                            className={`whitespace-nowrap cursor-move select-none font-semibold text-sm ${
+                              draggedColumn === column.column_name ? 'opacity-50' : ''
+                            } ${
+                              dragOverColumn === column.column_name ? 'bg-accent' : ''
+                            } ${
+                              // Alineación del header según tipo de datos
+                              column.data_type.includes('integer') || 
+                              column.data_type.includes('numeric') || 
+                              column.data_type.includes('decimal') ||
+                              column.data_type.includes('money')
+                                ? 'text-right table-numeric' 
+                                : column.data_type.includes('timestamp') || 
+                                  column.data_type.includes('date')
+                                ? 'text-center table-date'
+                                : 'text-left'
+                            } px-4 py-3 bg-background border-b`}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, column.column_name)}
+                            onDragOver={(e) => handleDragOver(e, column.column_name)}
+                            onDragLeave={handleDragLeave}
+                            onDragEnd={handleDragEnd}
+                            onDrop={(e) => handleDrop(e, column.column_name)}
                           >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          {!isInactiveRecord(row) && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleInactivate(row)}
-                              className="h-8 w-8 p-0 text-orange-600 hover:text-orange-800"
-                              title="Inactivar"
+                            <div className="flex items-center gap-2 group">
+                              <GripVertical className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <div className="flex items-center gap-1">
+                                <span className="font-medium capitalize-first">
+                                  {formatColumnName(column.column_name)}
+                                  {column.is_nullable === 'NO' && (
+                                    <span className="text-red-500 ml-1">*</span>
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {index > 0 && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0"
+                                    onClick={() => moveColumn(column.column_name, 'left')}
+                                    title="Mover a la izquierda"
+                                  >
+                                    <ArrowLeft className="h-3 w-3" />
+                                  </Button>
+                                )}
+                                {index < orderedColumns.length - 1 && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0"
+                                    onClick={() => moveColumn(column.column_name, 'right')}
+                                    title="Mover a la derecha"
+                                  >
+                                    <ArrowRight className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </TableHead>
+                        ))}
+                        <TableHead className="w-32 px-4 py-3 text-center font-semibold text-sm bg-background border-b">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    
+                    <TableBody>
+                      {tableData?.data?.map((row, rowIndex) => (
+                        <TableRow 
+                          key={rowIndex} 
+                          className={`hover:bg-muted/50 transition-colors ${
+                            isInactiveRecord(row) ? 'table-row-inactive' : ''
+                          }`}
+                        >
+                          {orderedColumns.map((column) => (
+                            <TableCell 
+                              key={column.column_name} 
+                              className={`whitespace-nowrap text-sm ${
+                                // Alineación según tipo de datos usando las nuevas clases
+                                column.data_type.includes('integer') || 
+                                column.data_type.includes('numeric') || 
+                                column.data_type.includes('decimal') ||
+                                column.data_type.includes('money')
+                                  ? 'table-numeric' 
+                                  : column.data_type.includes('timestamp') || 
+                                    column.data_type.includes('date')
+                                  ? 'table-date'
+                                  : 'text-left'
+                              } px-4 py-3`}
                             >
-                              <UserX className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                              {formatCellValue(row[column.column_name], column, row)}
+                            </TableCell>
+                          ))}
+                          <TableCell className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(row)}
+                                className="h-8 w-8 p-0"
+                                title="Editar"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              {!isInactiveRecord(row) && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleInactivate(row)}
+                                  className="h-8 w-8 p-0 text-orange-600 hover:text-orange-800"
+                                  title="Inactivar"
+                                >
+                                  <UserX className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </>
           ) : null}
           
           {tableData && (tableData?.data?.length || 0) > 0 && (
@@ -745,7 +938,7 @@ export function DatabaseTableViewer({
                 <div>
                   Mostrando {currentPage * limit + 1} - {Math.min((currentPage + 1) * limit, tableData?.pagination?.total || 0)} de {tableData?.pagination?.total || 0} registros {showInactive ? 'totales' : 'activos'}
                 </div>
-                <div>
+                <div className="hidden sm:block">
                   Última actualización: {tableData?.timestamp ? new Date(tableData?.timestamp).toLocaleString('es-ES') : 'No disponible'}
                 </div>
               </div>

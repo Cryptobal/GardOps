@@ -129,4 +129,99 @@
   .table-container::-webkit-scrollbar-thumb:hover {
     @apply bg-muted-foreground/50;
   }
+
+  /* Estilos para vista móvil */
+  .mobile-card {
+    @apply transition-all duration-200 ease-in-out;
+    touch-action: pan-y;
+  }
+  
+  .mobile-card:active {
+    @apply scale-[0.98] shadow-lg;
+  }
+  
+  .mobile-card-field {
+    @apply flex items-center justify-between py-2 border-b border-border/30 last:border-b-0;
+  }
+  
+  .mobile-card-field:last-child {
+    @apply border-b-0;
+  }
+  
+  /* Mejoras para touch en móvil */
+  @media (max-width: 768px) {
+    .table-container {
+      @apply overflow-x-auto;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+    
+    /* Mejorar área de toque en botones móvil */
+    .mobile-touch-button {
+      @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+    }
+    
+    /* Indicador visual para elementos interactivos en móvil */
+    .mobile-interactive {
+      @apply relative;
+    }
+    
+    .mobile-interactive::after {
+      content: '';
+      @apply absolute inset-0 bg-primary/5 rounded opacity-0 transition-opacity duration-150;
+      pointer-events: none;
+    }
+    
+    .mobile-interactive:active::after {
+      @apply opacity-100;
+    }
+    
+    /* Animación de tarjeta móvil */
+    .mobile-card-enter {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    
+    .mobile-card-enter-active {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 300ms, transform 300ms;
+    }
+    
+    .mobile-card-exit {
+      opacity: 1;
+    }
+    
+    .mobile-card-exit-active {
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: opacity 300ms, transform 300ms;
+    }
+  }
+  
+  /* Mejoras de accesibilidad */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background;
+  }
+  
+  /* Estados de loading para móvil */
+  .mobile-loading-shimmer {
+    @apply animate-pulse bg-gradient-to-r from-muted via-muted/50 to-muted bg-[length:200%_100%];
+    animation: shimmer 1.5s infinite;
+  }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  
+  /* Scroll suave en contenedores móviles */
+  .smooth-scroll {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
 } 
