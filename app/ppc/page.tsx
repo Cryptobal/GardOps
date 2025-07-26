@@ -166,7 +166,9 @@ export default function PPCPage() {
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobileView(window.innerWidth < 768)
+      const isMobile = window.innerWidth < 768
+      console.log('🔍 Detectando vista móvil:', { width: window.innerWidth, isMobile })
+      setIsMobileView(isMobile)
     }
     
     checkMobile()
@@ -410,6 +412,7 @@ export default function PPCPage() {
 
   // Vista móvil para registros PPC
   const renderMobilePPC = () => {
+    console.log('📱 Renderizando vista móvil PPC con', registros.length, 'registros')
     if (registros.length === 0) {
       return (
         <div className="p-8 text-center">
@@ -661,6 +664,8 @@ export default function PPCPage() {
       </div>
     </motion.div>
   )
+
+  console.log('🎯 PPC Page render:', { isMobileView, registrosLength: registros.length })
 
   return (
     <>
