@@ -81,7 +81,7 @@ class ResponsiveAuditor {
       files.push(...matches)
     }
     
-    return [...new Set(files)] // Eliminar duplicados
+    return Array.from(new Set(files)) // Eliminar duplicados
   }
 
   // Extraer rutas desde archivos de páginas
