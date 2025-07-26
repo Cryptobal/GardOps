@@ -63,7 +63,7 @@ interface Banco {
 
 interface GuardiaFormProps {
   open: boolean
-  onClose: () => void
+  onOpenChange: (open: boolean) => void  // Cambiar de onClose a onOpenChange
   editData?: any
   onSuccess?: () => void
 }
@@ -142,7 +142,7 @@ const MapPreview = ({ lat, lng }: { lat?: number | null, lng?: number | null }) 
   )
 }
 
-export function GuardiaForm({ open, onClose, editData, onSuccess }: GuardiaFormProps) {
+export function GuardiaForm({ open, onOpenChange, editData, onSuccess }: GuardiaFormProps) {
   const [formData, setFormData] = useState<GuardiaFormData>(initialFormData)
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -310,7 +310,7 @@ export function GuardiaForm({ open, onClose, editData, onSuccess }: GuardiaFormP
         alert("Guardia creado con éxito")
         console.log("Guardia creado con éxito")
         onSuccess?.()
-        onClose()
+        onOpenChange(false)
       } else {
         console.error('Error:', result.error)
         alert(`Error: ${result.error}`)
@@ -324,7 +324,7 @@ export function GuardiaForm({ open, onClose, editData, onSuccess }: GuardiaFormP
   }
 
   return (
-    <Drawer open={open} onOpenChange={onClose}>
+    <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent side="right" className="dark:bg-black w-full sm:max-w-2xl h-full overflow-y-auto">
         <DrawerHeader className="border-b">
           <div className="flex items-center justify-between">
@@ -336,11 +336,7 @@ export function GuardiaForm({ open, onClose, editData, onSuccess }: GuardiaFormP
                 Complete todos los campos para {editData ? 'actualizar' : 'crear'} el guardia
               </DrawerDescription>
             </div>
-            <DrawerClose asChild>
-              <Button variant="ghost" size="icon">
-                <X className="h-4 w-4" />
-              </Button>
-            </DrawerClose>
+            {/* Eliminar el botón de cierre duplicado - DrawerContent ya incluye uno automáticamente */}
           </div>
         </DrawerHeader>
 
@@ -667,11 +663,13 @@ export function GuardiaForm({ open, onClose, editData, onSuccess }: GuardiaFormP
                 'Guardar Guardia'
               )}
             </Button>
-            <DrawerClose asChild>
-              <Button variant="outline" disabled={isLoading}>
-                Cancelar
-              </Button>
-            </DrawerClose>
+            <Button 
+              variant="outline" 
+              disabled={isLoading}
+              onClick={() => onOpenChange(false)}
+            >
+              Cancelar
+            </Button>
           </div>
         </DrawerFooter>
       </DrawerContent>
