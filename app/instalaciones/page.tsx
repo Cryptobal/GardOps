@@ -68,7 +68,8 @@ import {
   Building2,
   Navigation,
   Phone,
-  Mail
+  Mail,
+  Search
 } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { ToastContainer } from '@/components/ui/toast'
@@ -126,10 +127,14 @@ export default function InstalacionesPage() {
   
   // Estados existentes
   const [instalaciones, setInstalaciones] = useState<Instalacion[]>([])
+  const [filteredInstalaciones, setFilteredInstalaciones] = useState<Instalacion[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showInactive, setShowInactive] = useState(false)
+  
+  // Estados para búsqueda
+  const [searchTerm, setSearchTerm] = useState('')
   
   // Estados de formulario
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -220,7 +225,9 @@ export default function InstalacionesPage() {
         guardiasRes.json()
       ])
       
-      setInstalaciones(instalacionesData.data || [])
+      const instalacionesArray = instalacionesData.data || []
+      setInstalaciones(instalacionesArray)
+      setFilteredInstalaciones(instalacionesArray)
       setPuestosOperativos(puestosData.data || [])
       setRolesServicio(rolesData.data || [])
       setGuardias(guardiasData.data || [])
@@ -250,6 +257,44 @@ export default function InstalacionesPage() {
       setIsLoadingAsignaciones(false)
     }
   }
+
+  // Función para filtrar instalaciones
+  const filterInstalaciones = (searchValue: string) => {
+    if (!searchValue.trim()) {
+      setFilteredInstalaciones(instalaciones)
+      return
+    }
+    
+    const filtered = instalaciones.filter(instalacion => {
+      const nombreMatch = instalacion.nombre.toLowerCase().startsWith(searchValue.toLowerCase())
+      // Buscar en el RUT si el cliente tiene esa propiedad
+      const rutMatch = instalacion.cliente_id_name && 
+                      typeof instalacion.cliente_id_name === 'string' &&
+                      instalacion.cliente_id_name.toLowerCase().includes('rut:') &&
+                      instalacion.cliente_id_name.toLowerCase().includes(searchValue.toLowerCase())
+      
+      return nombreMatch || rutMatch
+    })
+    
+    setFilteredInstalaciones(filtered)
+  }
+
+  // Manejar búsqueda
+  const handleSearch = (value: string) => {
+    setSearchTerm(value)
+    filterInstalaciones(value)
+  }
+
+  // Limpiar búsqueda
+  const clearSearch = () => {
+    setSearchTerm('')
+    setFilteredInstalaciones(instalaciones)
+  }
+
+  // Efecto para actualizar filtros cuando cambian las instalaciones
+  useEffect(() => {
+    filterInstalaciones(searchTerm)
+  }, [instalaciones])
 
   useEffect(() => {
     fetchData()
@@ -745,11 +790,11 @@ export default function InstalacionesPage() {
 
   // Renderizar vista móvil como tarjetas
   const renderMobileInstalaciones = () => {
-    if (!instalaciones?.length) return null
+    if (!filteredInstalaciones?.length) return null
 
     return (
       <div className="space-y-4">
-        {instalaciones.map((instalacion, index) => (
+        {filteredInstalaciones.map((instalacion, index) => (
           <motion.div
             key={instalacion.id}
             initial={{ opacity: 0, y: 20 }}
@@ -921,6 +966,48 @@ export default function InstalacionesPage() {
           )}
         </motion.div>
 
+        {/* Buscador */}
+        <motion.div
+          className="flex items-center gap-4 p-4 rounded-lg border bg-card"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.05 }}
+        >
+          <div className="flex items-center gap-2 flex-1">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <div className="flex-1 max-w-md">
+              <Input
+                placeholder="Buscar por nombre o RUT..."
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="text-sm"
+              />
+            </div>
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearSearch}
+                className="flex items-center gap-1"
+              >
+                <X className="h-3 w-3" />
+                <span className="text-xs">Limpiar</span>
+              </Button>
+            )}
+          </div>
+          
+          <div className="text-xs text-muted-foreground">
+            {searchTerm ? (
+              <span>
+                Filtrando por: <strong>{searchTerm}</strong> 
+                ({filteredInstalaciones.length} de {instalaciones.length})
+              </span>
+            ) : (
+              <span>Busca palabras que empiecen con los términos ingresados</span>
+            )}
+          </div>
+        </motion.div>
+
         {/* Controls optimizados para móvil */}
         <motion.div
           className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-lg border bg-card"
@@ -994,7 +1081,7 @@ export default function InstalacionesPage() {
                     </TableHeader>
                 
                 <TableBody>
-                  {instalaciones.map((instalacion) => (
+                  {filteredInstalaciones.map((instalacion) => (
                     <TableRow 
                       key={instalacion.id} 
                       className={`hover:bg-muted/50 transition-colors ${
