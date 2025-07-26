@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { motion } from "framer-motion"
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts'
 import { 
   Users, 
   UserCheck, 
@@ -75,47 +75,6 @@ function SummaryCard({
 function TopPpcChart({ data }: { data: TopPpcData[] }) {
   const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6']
   
-  // Ensure data is properly formatted and convert ppc_count to numbers
-  const chartData = React.useMemo(() => {
-    if (!data || !Array.isArray(data)) return []
-    
-    return data.map(item => ({
-      ...item,
-      ppc_count: typeof item.ppc_count === 'string' ? parseInt(item.ppc_count) || 0 : (item.ppc_count || 0),
-      instalacion_nombre: item.instalacion_nombre || 'Sin nombre'
-    })).filter(item => item.ppc_count > 0)
-  }, [data])
-  
-
-  
-  if (!chartData || chartData.length === 0) {
-    return (
-      <motion.div
-        className="p-6 rounded-xl border bg-card/30 backdrop-blur-sm"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.6 }}
-      >
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="rounded-lg p-2 bg-red-500/10">
-            <PieChartIcon className="h-5 w-5 text-red-600" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-foreground">
-              Top 5 Instalaciones - PPC Activos
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Sitios con mayor cantidad de turnos no cubiertos
-            </p>
-          </div>
-        </div>
-        <div style={{ height: '320px' }} className="flex items-center justify-center">
-          <p className="text-muted-foreground">No hay datos disponibles</p>
-        </div>
-      </motion.div>
-    )
-  }
-  
   return (
     <motion.div
       className="p-6 rounded-xl border bg-card/30 backdrop-blur-sm"
@@ -137,63 +96,20 @@ function TopPpcChart({ data }: { data: TopPpcData[] }) {
         </div>
       </div>
       
-      <div className="w-full bg-background" style={{ height: '320px', minHeight: '320px' }}>
+      <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart 
-            data={chartData} 
-            layout="horizontal" 
-            margin={{ top: 20, right: 60, left: 20, bottom: 20 }}
-            barCategoryGap="15%"
-          >
-            <XAxis 
-              type="number" 
-              stroke="hsl(var(--muted-foreground))" 
-              fontSize={12}
-              tickLine={false}
-              axisLine={false}
-              domain={[0, 'dataMax + 1']}
-              allowDecimals={false}
-            />
+          <BarChart data={data} layout="horizontal" margin={{ top: 20, right: 40, left: 10, bottom: 20 }}>
+            <XAxis type="number" stroke="#888888" fontSize={12} />
             <YAxis 
               type="category" 
               dataKey="instalacion_nombre" 
-              stroke="hsl(var(--muted-foreground))" 
-              fontSize={11}
-              width={200}
-              tickLine={false}
-              axisLine={false}
-              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))', textAnchor: 'end' }}
-              interval={0}
-              tickFormatter={(value) => {
-                if (value.length > 30) {
-                  return value.substring(0, 27) + '...'
-                }
-                return value
-              }}
+              stroke="#888888" 
+              fontSize={12}
+              width={180}
+              tick={{ fontSize: 11 }}
             />
-            <Tooltip 
-              contentStyle={{
-                backgroundColor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-                color: 'hsl(var(--foreground))',
-                fontSize: '12px',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-              }}
-              labelStyle={{ color: 'hsl(var(--foreground))' }}
-              formatter={(value: any, name: string) => [
-                `${value} PPC${value !== 1 ? 's' : ''}`,
-                'Cantidad'
-              ]}
-              labelFormatter={(label: string) => `${label}`}
-            />
-            <Bar 
-              dataKey="ppc_count" 
-              radius={[0, 4, 4, 0]}
-              maxBarSize={40}
-              minPointSize={1}
-            >
-              {chartData.map((entry, index) => (
+            <Bar dataKey="ppc_count" radius={[0, 4, 4, 0]}>
+              {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
               ))}
             </Bar>
@@ -201,15 +117,15 @@ function TopPpcChart({ data }: { data: TopPpcData[] }) {
         </ResponsiveContainer>
       </div>
       
-      <div className="mt-6 flex flex-wrap gap-3">
-        {chartData.map((item, index) => (
-          <div key={item.instalacion_nombre} className="flex items-center space-x-2 text-sm">
+      <div className="mt-4 flex flex-wrap gap-2">
+        {data.map((item, index) => (
+          <div key={item.instalacion_nombre} className="flex items-center space-x-2 text-xs">
             <div 
-              className="w-4 h-4 rounded-sm" 
+              className="w-3 h-3 rounded-full" 
               style={{ backgroundColor: colors[index % colors.length] }}
             />
-            <span className="text-muted-foreground font-medium">
-              {item.instalacion_nombre}: <span className="text-foreground font-semibold">{item.ppc_count} PPC</span>
+            <span className="text-muted-foreground">
+              {item.instalacion_nombre}: {item.ppc_count} PPC
             </span>
           </div>
         ))}
@@ -220,13 +136,7 @@ function TopPpcChart({ data }: { data: TopPpcData[] }) {
 
 export function DashboardSummary({ className }: DashboardSummaryProps) {
   const [resumen, setResumen] = React.useState<ResumenOperacional | null>(null)
-  const [topPpc, setTopPpc] = React.useState<TopPpcData[]>([
-    { instalacion_nombre: 'Plaza Los Leones', ppc_count: 8 },
-    { instalacion_nombre: 'Centro Comercial Maipú', ppc_count: 6 },
-    { instalacion_nombre: 'Oficinas Santiago Centro', ppc_count: 4 },
-    { instalacion_nombre: 'Clínica Las Condes', ppc_count: 3 },
-    { instalacion_nombre: 'Universidad de Chile', ppc_count: 2 }
-  ])
+  const [topPpc, setTopPpc] = React.useState<TopPpcData[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
 
   React.useEffect(() => {
@@ -237,9 +147,7 @@ export function DashboardSummary({ className }: DashboardSummaryProps) {
         
         if (data.success || data.metrics) {
           setResumen(data.metrics.resumenOperacional)
-          // Ensure topPpcPorInstalacion is an array and has proper data format
-          const topPpcData = data.metrics.topPpcPorInstalacion || []
-          setTopPpc(Array.isArray(topPpcData) ? topPpcData : [])
+          setTopPpc(data.metrics.topPpcPorInstalacion || [])
         }
       } catch (err) {
         console.error('Error fetching summary data:', err)
@@ -251,10 +159,10 @@ export function DashboardSummary({ className }: DashboardSummaryProps) {
           instalacionesIncompletas: 12
         })
         setTopPpc([
-          { instalacion_nombre: 'Plaza Los Leones', ppc_count: 8 },
-          { instalacion_nombre: 'Centro Comercial Maipú', ppc_count: 6 },
-          { instalacion_nombre: 'Oficinas Santiago Centro', ppc_count: 4 },
-          { instalacion_nombre: 'Clínica Las Condes', ppc_count: 3 },
+          { instalacion_nombre: 'Plaza Los Leones', ppc_count: 5 },
+          { instalacion_nombre: 'Centro Comercial Maipú', ppc_count: 4 },
+          { instalacion_nombre: 'Oficinas Santiago Centro', ppc_count: 3 },
+          { instalacion_nombre: 'Clínica Las Condes', ppc_count: 2 },
           { instalacion_nombre: 'Universidad de Chile', ppc_count: 2 }
         ])
       } finally {
