@@ -947,23 +947,7 @@ export default function InstalacionesPage() {
             </Button>
           </div>
 
-          {/* Indicador de vista móvil */}
-          {isMobileView && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-              className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3"
-            >
-              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-                <Building className="h-4 w-4" />
-                <span className="text-sm font-medium">Vista Móvil Optimizada</span>
-              </div>
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                Todas las acciones están disponibles en formato de tarjetas
-              </p>
-            </motion.div>
-          )}
+
         </motion.div>
 
         {/* Buscador */}
