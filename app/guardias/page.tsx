@@ -1,15 +1,28 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { DatabaseTableViewer } from "@/components/database-table-viewer"
 import { GuardiaForm } from "@/components/GuardiaForm"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Plus, Users, Shield } from "lucide-react"
+import { motion } from "framer-motion"
 
 export default function GuardiasPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editData, setEditData] = useState<any>(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [isMobileView, setIsMobileView] = useState(false)
+
+  // Detectar si estamos en móvil
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileView(window.innerWidth < 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   const handleNewGuardia = () => {
     setEditData(null)
@@ -26,29 +39,79 @@ export default function GuardiasPage() {
   }
 
   return (
-    <div className="space-y-6">
-            <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Guardias</h1>
-          <p className="text-muted-foreground">
-            Gestión de guardias de seguridad con georreferenciación
-          </p>
+    <div className="space-y-6 p-4 md:p-6">
+      {/* Header optimizado para móvil */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="space-y-4"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-2">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Shield className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+                {isMobileView && <Users className="h-5 w-5 text-muted-foreground" />}
+              </div>
+              Guardias
+            </h1>
+            <p className="text-sm md:text-base text-muted-foreground">
+              {isMobileView 
+                ? "Gestión de guardias de seguridad" 
+                : "Gestión de guardias de seguridad con georreferenciación"
+              }
+            </p>
+          </div>
+          
+          {/* Botón optimizado para móvil */}
+          <Button 
+            onClick={handleNewGuardia} 
+            className={`gap-2 ${isMobileView ? 'w-full sm:w-auto' : ''}`}
+            size={isMobileView ? "lg" : "default"}
+          >
+            <Plus className="h-4 w-4" />
+            {isMobileView ? "Agregar Nuevo Guardia" : "Nuevo Guardia"}
+          </Button>
         </div>
-        <Button onClick={handleNewGuardia} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nuevo Guardia
-        </Button>
-      </div>
 
-      <DatabaseTableViewer 
-        key={refreshKey}
-        tableName="guardias"
-        title="Lista de Guardias"
-        description="Gestión completa de guardias de seguridad"
-        initialLimit={10}
-        onEdit={handleEditGuardia}
-      />
+        {/* Indicador de vista móvil */}
+        {isMobileView && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+            className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3"
+          >
+            <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+              <Shield className="h-4 w-4" />
+              <span className="text-sm font-medium">Vista Móvil Optimizada</span>
+            </div>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+              Todas las acciones están disponibles en formato de tarjetas
+            </p>
+          </motion.div>
+        )}
+      </motion.div>
 
+      {/* Contenedor de tabla con padding responsivo */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className={isMobileView ? "px-0" : ""}
+      >
+        <DatabaseTableViewer 
+          key={refreshKey}
+          tableName="guardias"
+          title={isMobileView ? "Guardias" : "Lista de Guardias"}
+          description={isMobileView ? "Gestión completa" : "Gestión completa de guardias de seguridad"}
+          initialLimit={isMobileView ? 5 : 10}
+          onEdit={handleEditGuardia}
+        />
+      </motion.div>
+
+      {/* Formulario optimizado para móvil */}
       <GuardiaForm
         open={isFormOpen}
         onOpenChange={setIsFormOpen}

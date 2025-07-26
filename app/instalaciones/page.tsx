@@ -28,6 +28,18 @@ import {
   DrawerDescription,
   DrawerFooter,
 } from "@/components/ui/drawer"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { 
   Table,
   TableHeader,
@@ -51,7 +63,12 @@ import {
   Users,
   Settings,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  MoreVertical,
+  Building2,
+  Navigation,
+  Phone,
+  Mail
 } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { ToastContainer } from '@/components/ui/toast'
@@ -98,65 +115,86 @@ interface AsignacionOperativa {
   rol_servicio_id_name?: string
 }
 
+interface Cliente {
+  id: string
+  nombre: string
+}
+
 export default function InstalacionesPage() {
-  const { success, error: showError, ToastContainer } = useToast()
+  // Estados móviles
+  const [isMobileView, setIsMobileView] = useState(false)
   
+  // Estados existentes
   const [instalaciones, setInstalaciones] = useState<Instalacion[]>([])
-  const [puestosOperativos, setPuestosOperativos] = useState<PuestoOperativo[]>([])
-  const [rolesServicio, setRolesServicio] = useState<RolServicio[]>([])
-  const [guardias, setGuardias] = useState<any[]>([])
+  const [clientes, setClientes] = useState<Cliente[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showInactive, setShowInactive] = useState(false)
   
-  // Estados para el formulario principal
+  // Estados de formulario
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
-  const [selectedInstalacion, setSelectedInstalacion] = useState<Instalacion | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Estados del formulario de instalaciones
+  const [nombre, setNombre] = useState('')
+  const [direccion, setDireccion] = useState('')
+  const [clienteId, setClienteId] = useState('')
+  const [lat, setLat] = useState<number | null>(null)
+  const [lng, setLng] = useState<number | null>(null)
+  
+  // Estados para vista de mapa
   const [viewingInstalacion, setViewingInstalacion] = useState<Instalacion | null>(null)
   
-  // Estados para asignaciones operativas
-  const [isAsignacionesOpen, setIsAsignacionesOpen] = useState(false)
-  const [currentInstalacionId, setCurrentInstalacionId] = useState<string>('')
+  // Estados para gestión de asignaciones
+  const [selectedInstalacion, setSelectedInstalacion] = useState<Instalacion | null>(null)
   const [asignaciones, setAsignaciones] = useState<AsignacionOperativa[]>([])
+  const [puestosOperativos, setPuestosOperativos] = useState<PuestoOperativo[]>([])
+  const [rolesServicio, setRolesServicio] = useState<RolServicio[]>([])
+  const [isAsignacionesOpen, setIsAsignacionesOpen] = useState(false)
   const [isLoadingAsignaciones, setIsLoadingAsignaciones] = useState(false)
   
-  // Datos del formulario
-  const [formData, setFormData] = useState({
-    nombre: '',
-    direccion: '',
-    cliente_id: '',
-    estado: 'Activa',
-    lat: null as number | null,
-    lng: null as number | null
-  })
-
-  // Datos del formulario de asignaciones
-  const [asignacionData, setAsignacionData] = useState({
+  // Estados para nueva asignación
+  const [newAsignacionData, setNewAsignacionData] = useState({
     puesto_operativo_id: '',
     roles_servicio: [] as { rol_id: string, cantidad: number, guardias_asignados: { guardia_id: string }[] }[]
   })
-
-  // Estados para editar/eliminar asignaciones
-  const [isEditingAsignacion, setIsEditingAsignacion] = useState(false)
-  const [selectedAsignacion, setSelectedAsignacion] = useState<AsignacionOperativa | null>(null)
-  const [isDeleteAsignacionOpen, setIsDeleteAsignacionOpen] = useState(false)
-  const [asignacionToDelete, setAsignacionToDelete] = useState<AsignacionOperativa | null>(null)
   
-  // Estados para confirmación de eliminación de instalaciones
-  const [isDeleteInstallationOpen, setIsDeleteInstallationOpen] = useState(false)
-  const [installationToDelete, setInstallationToDelete] = useState<Instalacion | null>(null)
-  
-
+  // Estados para edición de asignación
   const [editAsignacionData, setEditAsignacionData] = useState({
-    instalacion_id: '',
+    id: '',
     puesto_operativo_id: '',
     rol_servicio_id: '',
     cantidad_guardias: 1,
-    estado: 'Activo',
     guardias_asignados: [] as { guardia_id: string }[]
   })
+  const [isEditAsignacionOpen, setIsEditAsignacionOpen] = useState(false)
+  const [selectedAsignacion, setSelectedAsignacion] = useState<AsignacionOperativa | null>(null)
+  
+  // Estados para guardias
+  const [guardias, setGuardias] = useState<any[]>([])
+  
+  // Estados para confirmación de eliminación
+  const [isDeleteInstallationOpen, setIsDeleteInstallationOpen] = useState(false)
+  const [installationToDelete, setInstallationToDelete] = useState<Instalacion | null>(null)
+  
+  // Estados para eliminación de asignación
+  const [isDeleteAsignacionOpen, setIsDeleteAsignacionOpen] = useState(false)
+  const [asignacionToDelete, setAsignacionToDelete] = useState<AsignacionOperativa | null>(null)
+  
+  const { success, error: showError, ToastContainer } = useToast()
+
+  // Detectar vista móvil
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileView(window.innerWidth < 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // Fetch de todos los datos necesarios
   const fetchData = async () => {
@@ -222,30 +260,24 @@ export default function InstalacionesPage() {
   }
 
   const handleCreateNew = () => {
-    setFormMode('create')
-    setSelectedInstalacion(null)
-    setFormData({ 
-      nombre: '', 
-      direccion: '', 
-      cliente_id: '', 
-      estado: 'Activa',
-      lat: null,
-      lng: null
-    })
+    setIsEditing(false)
+    setEditingId(null)
+    setNombre('')
+    setDireccion('')
+    setClienteId('')
+    setLat(null)
+    setLng(null)
     setIsFormOpen(true)
   }
 
   const handleEdit = (instalacion: Instalacion) => {
-    setFormMode('edit')
-    setSelectedInstalacion(instalacion)
-    setFormData({
-      nombre: instalacion.nombre || '',
-      direccion: instalacion.direccion || '',
-      cliente_id: instalacion.cliente_id || '',
-      estado: instalacion.estado || 'Activa',
-      lat: (instalacion as any).lat || null,
-      lng: (instalacion as any).lng || null
-    })
+    setIsEditing(true)
+    setEditingId(instalacion.id)
+    setNombre(instalacion.nombre || '')
+    setDireccion(instalacion.direccion || '')
+    setClienteId(instalacion.cliente_id || '')
+    setLat((instalacion as any).lat || null)
+    setLng((instalacion as any).lng || null)
     setIsFormOpen(true)
   }
 
@@ -282,8 +314,8 @@ export default function InstalacionesPage() {
   }
 
   const handleManageAsignaciones = (instalacion: Instalacion) => {
-    setCurrentInstalacionId(instalacion.id)
-    setAsignacionData({
+    setSelectedInstalacion(instalacion)
+    setNewAsignacionData({
       puesto_operativo_id: '',
       roles_servicio: []
     })
@@ -294,7 +326,7 @@ export default function InstalacionesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.nombre.trim() || !formData.direccion.trim()) {
+    if (!nombre.trim() || !direccion.trim()) {
       showError('Nombre y dirección son requeridos')
       return
     }
@@ -303,7 +335,14 @@ export default function InstalacionesPage() {
       setIsSubmitting(true)
 
       // Limpiar datos para enviar solo campos con valores válidos
-      const cleanData = Object.entries(formData).reduce((acc, [key, value]) => {
+      const cleanData = Object.entries({
+        nombre,
+        direccion,
+        cliente_id: clienteId,
+        estado: 'Activa', // Estado por defecto
+        lat,
+        lng
+      }).reduce((acc, [key, value]) => {
         // Incluir campos requeridos aunque estén vacíos
         if (['nombre', 'estado'].includes(key)) {
           acc[key] = value
@@ -320,20 +359,12 @@ export default function InstalacionesPage() {
       }, {} as Record<string, any>)
 
       console.log('🚀 Datos a enviar al API:', cleanData)
-      console.log('📝 FormData original:', formData)
+      console.log('📝 FormData original:', { nombre, direccion, clienteId, lat, lng })
 
       let response: Response
       
-      if (formMode === 'create') {
-        response = await fetch(`/api/table-data/instalaciones`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(cleanData),
-        })
-      } else if (selectedInstalacion) {
-        response = await fetch(`/api/table-data/instalaciones?id=${selectedInstalacion.id}`, {
+      if (editingId) {
+        response = await fetch(`/api/table-data/instalaciones?id=${editingId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -341,7 +372,13 @@ export default function InstalacionesPage() {
           body: JSON.stringify(cleanData),
         })
       } else {
-        throw new Error('No se encontró la instalación a editar')
+        response = await fetch(`/api/table-data/instalaciones`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(cleanData),
+        })
       }
 
       if (!response.ok) {
@@ -349,7 +386,7 @@ export default function InstalacionesPage() {
         throw new Error(errorData.error || 'Error en la operación')
       }
 
-      success(formMode === 'create' ? 'Instalación creada exitosamente' : 'Instalación actualizada exitosamente')
+      success(editingId ? 'Instalación actualizada exitosamente' : 'Instalación creada exitosamente')
       setIsFormOpen(false)
       handleRefresh()
     } catch (error) {
@@ -361,21 +398,21 @@ export default function InstalacionesPage() {
   }
 
   const addRolToAsignacion = () => {
-    setAsignacionData(prev => ({
+    setNewAsignacionData(prev => ({
       ...prev,
       roles_servicio: [...prev.roles_servicio, { rol_id: '', cantidad: 1, guardias_asignados: [{ guardia_id: '' }] }]
     }))
   }
 
   const removeRolFromAsignacion = (index: number) => {
-    setAsignacionData(prev => ({
+    setNewAsignacionData(prev => ({
       ...prev,
       roles_servicio: prev.roles_servicio.filter((_, i) => i !== index)
     }))
   }
 
   const updateRolAsignacion = (index: number, field: 'rol_id' | 'cantidad' | 'guardias_asignados', value: string | number | { guardia_id: string }[]) => {
-    setAsignacionData(prev => ({
+    setNewAsignacionData(prev => ({
       ...prev,
       roles_servicio: prev.roles_servicio.map((rol, i) => {
         if (i === index) {
@@ -413,7 +450,7 @@ export default function InstalacionesPage() {
   }
 
   const updateGuardiaAsignacion = (rolIndex: number, guardiaIndex: number, guardiaId: string) => {
-    setAsignacionData(prev => ({
+    setNewAsignacionData(prev => ({
       ...prev,
       roles_servicio: prev.roles_servicio.map((rol, i) => 
         i === rolIndex 
@@ -429,13 +466,13 @@ export default function InstalacionesPage() {
   }
 
   const handleSubmitAsignaciones = async () => {
-    if (!asignacionData.puesto_operativo_id || asignacionData.roles_servicio.length === 0) {
+    if (!newAsignacionData.puesto_operativo_id || newAsignacionData.roles_servicio.length === 0) {
       showError('Debe seleccionar un puesto operativo y al menos un rol de servicio')
       return
     }
 
     // Verificar que todos los roles tengan datos completos
-    for (const rol of asignacionData.roles_servicio) {
+    for (const rol of newAsignacionData.roles_servicio) {
       if (!rol.rol_id || rol.cantidad < 1) {
         showError('Todos los roles deben tener selección y cantidad válida')
         return
@@ -446,10 +483,10 @@ export default function InstalacionesPage() {
       setIsSubmitting(true)
 
       // Crear asignaciones para cada rol
-      for (const rol of asignacionData.roles_servicio) {
+      for (const rol of newAsignacionData.roles_servicio) {
         const asignacionPayload = {
-          instalacion_id: currentInstalacionId,
-          puesto_operativo_id: asignacionData.puesto_operativo_id,
+          instalacion_id: selectedInstalacion?.id || '', // Asegurarse de que selectedInstalacion esté definido
+          puesto_operativo_id: newAsignacionData.puesto_operativo_id,
           rol_servicio_id: rol.rol_id,
           cantidad_guardias: rol.cantidad
         }
@@ -521,11 +558,11 @@ export default function InstalacionesPage() {
       }
 
       success('Asignaciones operativas creadas exitosamente')
-      setAsignacionData({
+      setNewAsignacionData({
         puesto_operativo_id: '',
         roles_servicio: []
       })
-      fetchAsignaciones(currentInstalacionId)
+      fetchAsignaciones(selectedInstalacion?.id || '')
     } catch (error) {
       console.error('Error creating asignaciones:', error)
       showError(error instanceof Error ? error.message : 'Error al crear asignaciones')
@@ -551,27 +588,25 @@ export default function InstalacionesPage() {
       })
       
       setEditAsignacionData({
-        instalacion_id: asignacion.instalacion_id,
+        id: asignacion.id,
         puesto_operativo_id: asignacion.puesto_operativo_id,
         rol_servicio_id: asignacion.rol_servicio_id,
         cantidad_guardias: asignacion.cantidad_guardias,
-        estado: asignacion.estado,
         guardias_asignados: guardiasArray
       })
     } catch (error) {
       console.error('Error loading guardias asignados:', error)
       // Inicializar con array vacío si falla
       setEditAsignacionData({
-        instalacion_id: asignacion.instalacion_id,
+        id: asignacion.id,
         puesto_operativo_id: asignacion.puesto_operativo_id,
         rol_servicio_id: asignacion.rol_servicio_id,
         cantidad_guardias: asignacion.cantidad_guardias,
-        estado: asignacion.estado,
         guardias_asignados: Array.from({ length: asignacion.cantidad_guardias }, () => ({ guardia_id: '' }))
       })
     }
     
-    setIsEditingAsignacion(true)
+    setIsEditAsignacionOpen(true)
   }
 
   const handleDeleteAsignacion = (asignacion: AsignacionOperativa) => {
@@ -597,7 +632,7 @@ export default function InstalacionesPage() {
       success('Asignación eliminada exitosamente')
       setIsDeleteAsignacionOpen(false)
       setAsignacionToDelete(null)
-      fetchAsignaciones(currentInstalacionId)
+      fetchAsignaciones(selectedInstalacion?.id || '')
     } catch (error) {
       console.error('Error deleting asignacion:', error)
       showError(error instanceof Error ? error.message : 'Error al eliminar')
@@ -616,11 +651,11 @@ export default function InstalacionesPage() {
 
       // Actualizar asignación operativa
       const asignacionPayload = {
-        instalacion_id: editAsignacionData.instalacion_id,
+        id: editAsignacionData.id, // Usar el ID de la asignación existente
         puesto_operativo_id: editAsignacionData.puesto_operativo_id,
         rol_servicio_id: editAsignacionData.rol_servicio_id,
         cantidad_guardias: editAsignacionData.cantidad_guardias,
-        estado: editAsignacionData.estado
+        estado: 'Activo' // Estado por defecto
       }
 
       const response = await fetch(`/api/table-data/asignaciones_operativas?id=${selectedAsignacion.id}`, {
@@ -677,9 +712,9 @@ export default function InstalacionesPage() {
       }
 
       success('Asignación actualizada exitosamente')
-      setIsEditingAsignacion(false)
+      setIsEditAsignacionOpen(false)
       setSelectedAsignacion(null)
-      fetchAsignaciones(currentInstalacionId)
+      fetchAsignaciones(selectedInstalacion?.id || '')
     } catch (error) {
       console.error('Error updating asignacion:', error)
       showError(error instanceof Error ? error.message : 'Error al actualizar')
@@ -692,42 +727,208 @@ export default function InstalacionesPage() {
     return instalacion.estado === 'Inactiva'
   }
 
+  // Función para formatear valor para móviles
+  const formatMobileValue = (value: any, field: string) => {
+    if (value === null || value === undefined) return '-'
+    if (typeof value === 'string' && value.length > 30) {
+      return value.substring(0, 30) + '...'
+    }
+    if (field === 'created_at') {
+      return new Date(value).toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit'
+      })
+    }
+    return String(value)
+  }
+
+  // Renderizar vista móvil como tarjetas
+  const renderMobileInstalaciones = () => {
+    if (!instalaciones?.length) return null
+
+    return (
+      <div className="space-y-4">
+        {instalaciones.map((instalacion, index) => (
+          <motion.div
+            key={instalacion.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+          >
+            <Card className={`relative mobile-card mobile-interactive ${
+              isInactiveRecord(instalacion) ? 'opacity-60 bg-muted/30' : ''
+            }`}>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 space-y-2">
+                    {/* Nombre de instalación */}
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-primary" />
+                      <span className="font-semibold text-sm">{instalacion.nombre}</span>
+                    </div>
+                    
+                    {/* Dirección */}
+                    <div className="flex items-center gap-2">
+                      <Navigation className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">
+                        {formatMobileValue(instalacion.direccion, 'direccion')}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Acciones en dropdown para móvil */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 mobile-touch-button">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {((instalacion as any).lat && (instalacion as any).lng) && (
+                        <DropdownMenuItem onClick={() => {
+                          setViewingInstalacion(
+                            viewingInstalacion?.id === instalacion.id ? null : instalacion
+                          )
+                        }}>
+                          <MapPin className="h-4 w-4 mr-2" />
+                          Ver Mapa
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => handleEdit(instalacion)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleManageAsignaciones(instalacion)}>
+                        <Settings className="h-4 w-4 mr-2" />
+                        Asignaciones
+                      </DropdownMenuItem>
+                      {!isInactiveRecord(instalacion) && (
+                        <DropdownMenuItem 
+                          onClick={() => handleInactivate(instalacion)}
+                          className="text-orange-600"
+                        >
+                          <UserX className="h-4 w-4 mr-2" />
+                          Inactivar
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="pt-0">
+                {/* Campos adicionales */}
+                <div className="space-y-2">
+                  <div className="mobile-card-field">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Cliente</span>
+                    </div>
+                    <span className="text-sm font-medium text-right max-w-[60%]">
+                      {instalacion.cliente_id_name || 'Sin asignar'}
+                    </span>
+                  </div>
+                  
+                  <div className="mobile-card-field">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Creado</span>
+                    </div>
+                    <span className="text-sm font-medium">
+                      {formatMobileValue(instalacion.created_at, 'created_at')}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Estado del registro */}
+                <div className="mt-3 pt-2 border-t border-border/50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Estado</span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      instalacion.estado === 'Activa'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                        : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                    }`}>
+                      {instalacion.estado}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <>
       <ToastContainer />
       
-      <div className="space-y-6">
-        {/* Header */}
+      <div className="space-y-6 p-4 md:p-6">
+        {/* Header optimizado para móvil */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          className="space-y-4"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold capitalize-first flex items-center gap-3">
-                <Building className="h-8 w-8 text-primary" />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="space-y-2">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Building className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+                  {isMobileView && <Building2 className="h-5 w-5 text-muted-foreground" />}
+                </div>
                 Instalaciones
               </h1>
-              <p className="text-muted-foreground mt-2">
-                Gestión de instalaciones y asignaciones operativas
+              <p className="text-sm md:text-base text-muted-foreground">
+                {isMobileView 
+                  ? "Gestión de instalaciones y asignaciones" 
+                  : "Gestión de instalaciones y asignaciones operativas"
+                }
               </p>
             </div>
             
-            <div className="flex items-center gap-2">
-              {/* Botones eliminados - solo se usa formulario interno */}
-            </div>
+            {/* Botón optimizado para móvil */}
+            <Button 
+              onClick={handleCreateNew} 
+              className={`gap-2 ${isMobileView ? 'w-full sm:w-auto' : ''}`}
+              size={isMobileView ? "lg" : "default"}
+            >
+              <Plus className="h-4 w-4" />
+              {isMobileView ? "Nueva Instalación" : "Nueva Instalación"}
+            </Button>
           </div>
+
+          {/* Indicador de vista móvil */}
+          {isMobileView && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+              className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3"
+            >
+              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                <Building className="h-4 w-4" />
+                <span className="text-sm font-medium">Vista Móvil Optimizada</span>
+              </div>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                Todas las acciones están disponibles en formato de tarjetas
+              </p>
+            </motion.div>
+          )}
         </motion.div>
 
-        {/* Controls */}
+        {/* Controls optimizados para móvil */}
         <motion.div
-          className="flex items-center justify-between gap-4 p-4 rounded-lg border bg-card"
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-lg border bg-card"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">Incluir inactivos:</span>
@@ -739,7 +940,7 @@ export default function InstalacionesPage() {
             
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span>
-                {instalaciones.length} instalaciones {showInactive ? 'totales' : 'activas'}
+                {isMobileView ? 'Vista móvil' : `${instalaciones.length} instalaciones`} • {instalaciones.length} {showInactive ? 'totales' : 'activas'}
               </span>
             </div>
           </div>
@@ -771,18 +972,26 @@ export default function InstalacionesPage() {
               </p>
             </div>
           ) : (
-            <div className="overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="font-semibold">Nombre</TableHead>
-                    <TableHead className="font-semibold">Dirección</TableHead>
-                    <TableHead className="font-semibold">Cliente</TableHead>
-                    <TableHead className="font-semibold text-center">Estado</TableHead>
-                    <TableHead className="font-semibold text-center">Fecha creación</TableHead>
-                    <TableHead className="font-semibold text-center w-64">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
+            <>
+              {/* Vista móvil */}
+              {isMobileView ? (
+                <div className="p-4">
+                  {renderMobileInstalaciones()}
+                </div>
+              ) : (
+                /* Vista desktop (tabla original) */
+                <div className="overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="font-semibold">Nombre</TableHead>
+                        <TableHead className="font-semibold">Dirección</TableHead>
+                        <TableHead className="font-semibold">Cliente</TableHead>
+                        <TableHead className="font-semibold text-center">Estado</TableHead>
+                        <TableHead className="font-semibold text-center">Fecha creación</TableHead>
+                        <TableHead className="font-semibold text-center w-64">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
                 
                 <TableBody>
                   {instalaciones.map((instalacion) => (
@@ -863,9 +1072,11 @@ export default function InstalacionesPage() {
                       </TableCell>
                     </TableRow>
                   ))}
-                </TableBody>
-              </Table>
-            </div>
+                                  </TableBody>
+                  </Table>
+                </div>
+              )}
+            </>
           )}
         </motion.div>
       </div>
@@ -921,17 +1132,17 @@ export default function InstalacionesPage() {
         </div>
       )}
 
-      {/* Formulario de Instalación */}
+      {/* Formulario de Instalación optimizado para móvil */}
       <Drawer open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DrawerContent className="max-w-lg h-full overflow-y-auto">
+        <DrawerContent className={`${isMobileView ? 'w-full' : 'max-w-lg'} h-full overflow-y-auto`}>
           <DrawerHeader>
             <DrawerTitle className="capitalize-first">
-              {formMode === 'create' ? 'Crear instalación' : 'Editar instalación'}
+              {isEditing ? 'Editar instalación' : 'Crear instalación'}
             </DrawerTitle>
             <DrawerDescription>
-              {formMode === 'create' 
-                ? 'Complete la información para crear una nueva instalación con dirección real.' 
-                : 'Modifique los datos de la instalación existente.'}
+              {isEditing 
+                ? 'Modifique los datos de la instalación existente.' 
+                : 'Complete la información para crear una nueva instalación con dirección real.'}
             </DrawerDescription>
           </DrawerHeader>
 
@@ -943,8 +1154,8 @@ export default function InstalacionesPage() {
                 </Label>
                 <Input
                   id="nombre"
-                  value={formData.nombre}
-                  onChange={(e) => setFormData(prev => ({ ...prev, nombre: e.target.value }))}
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
                   placeholder="Ej: Sede Central, Sucursal Norte"
                   required
                 />
@@ -953,27 +1164,22 @@ export default function InstalacionesPage() {
               <div className="space-y-2">
                 <AddressAutocomplete
                   label="Dirección"
-                  value={formData.direccion}
+                  value={direccion}
                   onChange={(address, placeDetails) => {
-                    const newFormData = { 
-                      ...formData, 
-                      direccion: address,
-                      lat: null as number | null,
-                      lng: null as number | null
-                    }
+                    const newDireccion = address
                     
                     // Guardar coordenadas si están disponibles
                     if (placeDetails?.geometry?.location) {
                       const lat = placeDetails.geometry.location.lat()
                       const lng = placeDetails.geometry.location.lng()
-                      newFormData.lat = lat
-                      newFormData.lng = lng
+                      setLat(lat)
+                      setLng(lng)
                       console.log('✅ Coordenadas guardadas:', { lat, lng, address })
                     } else {
                       console.log('⚠️ Sin coordenadas disponibles - placeDetails:', !!placeDetails, 'address:', address)
                     }
                     
-                    setFormData(newFormData)
+                    setDireccion(newDireccion)
                   }}
                   placeholder="Buscar dirección real..."
                   required
@@ -990,11 +1196,8 @@ export default function InstalacionesPage() {
                         lat: -33.4489,
                         lng: -70.6693
                       }
-                      setFormData(prev => ({
-                        ...prev,
-                        lat: testCoords.lat,
-                        lng: testCoords.lng
-                      }))
+                      setLat(testCoords.lat)
+                      setLng(testCoords.lng)
                       console.log('🧪 Coordenadas de prueba establecidas:', testCoords)
                     }}
                     className="text-xs"
@@ -1002,23 +1205,23 @@ export default function InstalacionesPage() {
                     🧪 Probar coordenadas (Santiago)
                   </Button>
                   
-                  {(formData.lat && formData.lng) && (
+                  {(lat && lng) && (
                     <div className="mt-1 p-2 bg-green-50 dark:bg-green-950/30 rounded border text-xs">
-                      📍 Coordenadas: {formData.lat?.toFixed(6)}, {formData.lng?.toFixed(6)}
+                      📍 Coordenadas: {lat?.toFixed(6)}, {lng?.toFixed(6)}
                     </div>
                   )}
                 </div>
               </div>
 
               {/* Mapa en el drawer */}
-              {(formData.lat && formData.lng) && (
+              {(lat && lng) && (
                 <div className="space-y-2">
                   <Label>📍 Vista previa de ubicación</Label>
                   <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                     <MapView
-                      lat={formData.lat}
-                      lng={formData.lng}
-                      address={formData.direccion}
+                      lat={lat}
+                      lng={lng}
+                      address={direccion}
                       height="200px"
                     />
                   </div>
@@ -1026,10 +1229,29 @@ export default function InstalacionesPage() {
               )}
 
               <div className="space-y-2">
+                <Label htmlFor="cliente">Cliente</Label>
+                <Select 
+                  value={clienteId} 
+                  onValueChange={(value) => setClienteId(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clientes.map((cliente) => (
+                      <SelectItem key={cliente.id} value={cliente.id}>
+                        {cliente.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="estado">Estado</Label>
                 <Select 
-                  value={formData.estado} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, estado: value }))}
+                  value="Activa" 
+                  onValueChange={(value) => {}}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -1060,7 +1282,7 @@ export default function InstalacionesPage() {
                   >
                     {isSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                     <Save className="h-4 w-4 mr-2" />
-                    {formMode === 'create' ? 'Crear' : 'Actualizar'}
+                    {isEditing ? 'Actualizar' : 'Crear'}
                   </Button>
                 </div>
               </DrawerFooter>
@@ -1153,8 +1375,8 @@ export default function InstalacionesPage() {
                 <div className="space-y-2">
                   <Label>Puesto operativo <span className="text-red-500">*</span></Label>
                   <Select
-                    value={asignacionData.puesto_operativo_id}
-                    onValueChange={(value) => setAsignacionData(prev => ({ ...prev, puesto_operativo_id: value }))}
+                    value={newAsignacionData.puesto_operativo_id}
+                    onValueChange={(value) => setNewAsignacionData(prev => ({ ...prev, puesto_operativo_id: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccionar puesto operativo" />
@@ -1184,7 +1406,7 @@ export default function InstalacionesPage() {
                     </Button>
                   </div>
 
-                  {asignacionData.roles_servicio.map((rol, index) => (
+                  {newAsignacionData.roles_servicio.map((rol, index) => (
                     <div key={index} className="space-y-3">
                       <div className="flex items-end gap-3 p-3 border rounded-lg">
                         <div className="flex-1 space-y-2">
@@ -1373,7 +1595,7 @@ export default function InstalacionesPage() {
       </Dialog>
 
       {/* Formulario de edición de asignación */}
-      <Dialog open={isEditingAsignacion} onOpenChange={setIsEditingAsignacion}>
+      <Dialog open={isEditAsignacionOpen} onOpenChange={setIsEditAsignacionOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="capitalize-first">
@@ -1544,27 +1766,27 @@ export default function InstalacionesPage() {
                  </div>
                )}
 
-            <div className="space-y-2">
-              <Label htmlFor="estado">Estado</Label>
-              <Select 
-                value={editAsignacionData.estado} 
-                onValueChange={(value) => setEditAsignacionData(prev => ({ ...prev, estado: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Activo">Activo</SelectItem>
-                  <SelectItem value="Inactivo">Inactivo</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                          <div className="space-y-2">
+                <Label htmlFor="estado">Estado</Label>
+                <Select 
+                  value="Activo" 
+                  onValueChange={(value) => {}}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Activo">Activo</SelectItem>
+                    <SelectItem value="Inactivo">Inactivo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
             <DialogFooter className="gap-2">
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => setIsEditingAsignacion(false)}
+                onClick={() => setIsEditAsignacionOpen(false)}
                 disabled={isSubmitting}
               >
                 <X className="h-4 w-4 mr-2" />
