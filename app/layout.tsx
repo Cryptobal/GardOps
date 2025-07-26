@@ -4,12 +4,13 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Navbar } from "@/components/navbar"
 import { Sidebar } from "@/components/sidebar"
+import { MobileMenu } from "@/components/MobileMenu"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "App Operaciones",
-  description: "Sistema de gestión operativa profesional",
+  title: "GARD Security - Sistema Operacional",
+  description: "Sistema de gestión operativa y seguridad profesional - GARD Security",
   icons: {
     icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE2IDJMMiA5djE0YzAgNS41IDMuNSAxMCA4IDExdi04YzAtMi4yIDEuOC00IDQtNHM0IDEuOCA0IDR2OGM0LjUtMSA4LTUuNSA4LTExVjlMMTYgMnoiIGZpbGw9IiM2MzY2ZjEiLz4KPHJlY3QgeD0iMTQiIHk9IjE2IiB3aWR0aD0iNCIgaGVpZ2h0PSIxMiIgcng9IjEiIGZpbGw9IiMzNzMwYTMiLz4KPC9zdmc+",
     shortcut: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE2IDJMMiA5djE0YzAgNS41IDMuNSAxMCA4IDExdi04YzAtMi4yIDEuOC00IDQtNHM0IDEuOCA0IDR2OGM0LjUtMSA4LTUuNSA4LTExVjlMMTYgMnoiIGZpbGw9IiM2MzY2ZjEiLz4KPHJlY3QgeD0iMTQiIHk9IjE2IiB3aWR0aD0iNCIgaGVpZ2h0PSIxMiIgcng9IjEiIGZpbGw9IiMzNzMwYTMiLz4KPC9zdmc+",
@@ -40,8 +41,8 @@ export default function RootLayout({
             <Navbar />
             
             <div className="flex">
-              {/* Sidebar lateral izquierda */}
-              <aside className="hidden md:block">
+              {/* Sidebar lateral izquierda - oculto en móviles */}
+              <aside className="hidden md:flex">
                 <div className="sticky top-16 h-[calc(100vh-4rem)]">
                   <Sidebar />
                 </div>

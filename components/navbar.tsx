@@ -3,6 +3,8 @@
 import * as React from "react"
 import { motion } from "framer-motion"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { MobileMenu } from "@/components/MobileMenu"
+import { GardLogo } from "@/components/GardLogo"
 import { cn } from "@/lib/utils"
 
 interface NavbarProps {
@@ -21,21 +23,17 @@ export function Navbar({ className }: NavbarProps) {
       transition={{ duration: 0.3, ease: "easeOut" }}
     >
       <div className="flex h-16 items-center justify-between px-6">
-        {/* Logo y título */}
+        {/* Sección izquierda: Logo y título */}
         <motion.div
           className="flex items-center space-x-4"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
         >
-          <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">AO</span>
-            </div>
-            <h1 className="text-xl font-bold capitalize-first">
-              App Operaciones
-            </h1>
-          </div>
+          {/* Menú móvil (solo en móviles) */}
+          <MobileMenu />
+          
+          <GardLogo size="md" showText={true} />
         </motion.div>
 
         {/* Controles de la derecha */}

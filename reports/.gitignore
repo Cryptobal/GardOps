@@ -1,0 +1,7 @@
+# Reportes de auditoría - pueden ser grandes y cambiar frecuentemente
+responsive-audit.json
+*.backup.*
+
+# Mantener el README
+!README.md
+!.gitignore 

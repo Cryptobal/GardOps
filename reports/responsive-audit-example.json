@@ -1,0 +1,161 @@
+{
+  "timestamp": "2024-01-27T10:30:00.000Z",
+  "totalRoutes": 8,
+  "totalIssues": 12,
+  "issuesByType": {
+    "overflow": 3,
+    "text-scaling": 4,
+    "image-fit": 2,
+    "alignment": 2,
+    "layout": 1
+  },
+  "issuesBySeverity": {
+    "high": 1,
+    "medium": 7,
+    "low": 4
+  },
+  "issues": [
+    {
+      "file": "app/page.tsx",
+      "route": "/",
+      "breakpoint": "xs",
+      "width": 320,
+      "type": "text-scaling",
+      "description": "Texto con tamaño 32px puede no ser optimal para este breakpoint",
+      "element": "h1.text-4xl",
+      "severity": "medium",
+      "autoFixApplied": true,
+      "suggestion": "Usar clases responsive como text-sm md:text-base lg:text-lg"
+    },
+    {
+      "file": "components/dashboard-kpis.tsx",
+      "route": "/",
+      "breakpoint": "sm",
+      "width": 480,
+      "type": "overflow",
+      "description": "Elemento desborda el viewport por 25px",
+      "element": "div.w-[500px]",
+      "severity": "medium",
+      "autoFixApplied": true,
+      "suggestion": "Agregar clases responsive como max-w-full, overflow-hidden, o flex-wrap"
+    },
+    {
+      "file": "components/enhanced-instalaciones-map.tsx",
+      "route": "/",
+      "breakpoint": "md",
+      "width": 640,
+      "type": "image-fit",
+      "description": "Imagen sin object-fit apropiado puede distorsionarse",
+      "element": "img.w-full",
+      "severity": "low",
+      "autoFixApplied": true,
+      "suggestion": "Agregar object-cover, object-contain, o background-size apropiado"
+    },
+    {
+      "file": "app/guardias/page.tsx",
+      "route": "/guardias",
+      "breakpoint": "xs",
+      "width": 320,
+      "type": "alignment",
+      "description": "Podría beneficiarse de layout flex/grid en mobile",
+      "element": "div.space-y-4",
+      "severity": "medium",
+      "suggestion": "Considerar usar flex, grid, o clases responsive de ancho"
+    },
+    {
+      "file": "components/GuardiaForm.tsx",
+      "route": "/guardias",
+      "breakpoint": "sm",
+      "width": 480,
+      "type": "overflow",
+      "description": "Elemento desborda el viewport por 15px",
+      "element": "form.w-full",
+      "severity": "medium",
+      "autoFixApplied": false,
+      "suggestion": "Agregar clases responsive como max-w-full, overflow-hidden, o flex-wrap"
+    },
+    {
+      "file": "app/instalaciones/page.tsx",
+      "route": "/instalaciones",
+      "breakpoint": "lg",
+      "width": 768,
+      "type": "layout",
+      "description": "Error al cargar la página: Network timeout",
+      "severity": "high"
+    },
+    {
+      "file": "components/sidebar.tsx",
+      "route": "/clientes",
+      "breakpoint": "xs",
+      "width": 320,
+      "type": "text-scaling",
+      "description": "Texto con tamaño 14px puede no ser optimal para este breakpoint",
+      "element": "span.text-sm",
+      "severity": "low",
+      "autoFixApplied": true,
+      "suggestion": "Usar clases responsive como text-sm md:text-base lg:text-lg"
+    },
+    {
+      "file": "app/configuracion/page.tsx",
+      "route": "/configuracion",
+      "breakpoint": "md",
+      "width": 640,
+      "type": "alignment",
+      "description": "Ancho fijo muy grande para este breakpoint",
+      "element": "div.w-96",
+      "severity": "medium",
+      "autoFixApplied": true,
+      "suggestion": "Considerar usar flex, grid, o clases responsive de ancho"
+    },
+    {
+      "file": "components/database-table-viewer.tsx",
+      "route": "/configuracion",
+      "breakpoint": "sm",
+      "width": 480,
+      "type": "overflow",
+      "description": "Elemento desborda el viewport por 80px",
+      "element": "table.min-w-full",
+      "severity": "high",
+      "autoFixApplied": false,
+      "suggestion": "Agregar clases responsive como max-w-full, overflow-hidden, o flex-wrap"
+    },
+    {
+      "file": "app/alertas-kpis/page.tsx",
+      "route": "/alertas-kpis",
+      "breakpoint": "xs",
+      "width": 320,
+      "type": "text-scaling",
+      "description": "Texto con tamaño 28px puede no ser optimal para este breakpoint",
+      "element": "h2.text-2xl",
+      "severity": "medium",
+      "autoFixApplied": true,
+      "suggestion": "Usar clases responsive como text-sm md:text-base lg:text-lg"
+    },
+    {
+      "file": "components/dynamic-form.tsx",
+      "route": "/documentos",
+      "breakpoint": "sm",
+      "width": 480,
+      "type": "image-fit",
+      "description": "Imagen sin object-fit apropiado puede distorsionarse",
+      "element": "img.h-48",
+      "severity": "low",
+      "autoFixApplied": true,
+      "suggestion": "Agregar object-cover, object-contain, o background-size apropiado"
+    },
+    {
+      "file": "app/turnos-diarios/page.tsx",
+      "route": "/turnos-diarios",
+      "breakpoint": "lg",
+      "width": 768,
+      "type": "text-scaling",
+      "description": "Texto con tamaño 36px puede no ser optimal para este breakpoint",
+      "element": "h1.text-3xl",
+      "severity": "medium",
+      "autoFixApplied": true,
+      "suggestion": "Usar clases responsive como text-sm md:text-base lg:text-lg"
+    }
+  ],
+  "autoFixesApplied": 9,
+  "summary": "Se encontraron 12 incidencias de responsividad en 8 rutas (severidad media). 9 correcciones aplicadas automáticamente."
+} 

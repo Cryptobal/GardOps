@@ -27,7 +27,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { DatabaseStatus } from "@/components/database-status"
+
 
 const navigationItems = [
   {
@@ -133,14 +133,14 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Header del Sidebar */}
       <div className="flex items-center justify-between p-4 border-b border-border">
         {!isCollapsed && (
-          <motion.h2
-            className="text-lg font-semibold capitalize-first"
+          <motion.div
+            className="text-lg font-semibold text-muted-foreground"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            Operaciones
-          </motion.h2>
+            Navegación
+          </motion.div>
         )}
         <Button
           variant="ghost"
@@ -299,22 +299,7 @@ export function Sidebar({ className }: SidebarProps) {
         </div>
       </nav>
 
-      {/* Estado de la Base de Datos */}
-      <div className="border-t border-border p-4">
-        {!isCollapsed ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <DatabaseStatus />
-          </motion.div>
-        ) : (
-          <div className="flex justify-center">
-            <DatabaseStatus compact />
-          </div>
-        )}
-      </div>
+
 
       {/* Toggle de Tema en la parte inferior */}
       <div className="border-t border-border p-4">
