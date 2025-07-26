@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SelectWithSearch } from '@/components/ui/select-with-search'
 import { UbicacionAutocomplete } from '@/components/UbicacionAutocomplete'
 import { useAlertDialog } from '@/components/ui/alert-dialog'
 import { Loader2, X, MapPin } from 'lucide-react'
@@ -495,18 +496,18 @@ export function GuardiaForm({ open, onOpenChange, editData, onSuccess }: Guardia
                   <div className="grid grid-cols-1 gap-4">
                     <div>
                       <Label htmlFor="instalacion_id">Instalación *</Label>
-                      <Select value={formData.instalacion_id} onValueChange={(value) => handleInputChange('instalacion_id', value)}>
-                        <SelectTrigger className={errors.instalacion_id ? 'border-red-500' : ''}>
-                          <SelectValue placeholder="Seleccione una instalación" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {instalaciones.map((instalacion) => (
-                            <SelectItem key={instalacion.id} value={instalacion.id}>
-                              {instalacion.nombre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SelectWithSearch
+                        options={instalaciones.map((instalacion) => ({
+                          value: instalacion.id,
+                          label: instalacion.nombre
+                        }))}
+                        value={formData.instalacion_id}
+                        onValueChange={(value) => handleInputChange('instalacion_id', value)}
+                        placeholder="Seleccione una instalación"
+                        searchPlaceholder="Buscar instalación..."
+                        emptyMessage="No se encontraron instalaciones"
+                        className={errors.instalacion_id ? 'border-red-500' : ''}
+                      />
                       {errors.instalacion_id && <p className="text-sm text-red-500 mt-1">{errors.instalacion_id}</p>}
                     </div>
 
@@ -618,18 +619,18 @@ export function GuardiaForm({ open, onOpenChange, editData, onSuccess }: Guardia
                   <div className="grid grid-cols-1 gap-4">
                     <div>
                       <Label htmlFor="banco">Banco *</Label>
-                      <Select value={formData.banco_id} onValueChange={(value) => handleInputChange('banco_id', value)}>
-                        <SelectTrigger className={errors.banco_id ? 'border-red-500' : ''}>
-                          <SelectValue placeholder="Seleccione un banco" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {bancos.map((banco) => (
-                            <SelectItem key={banco.id} value={banco.id}>
-                              {banco.codigo} - {banco.nombre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SelectWithSearch
+                        options={bancos.map((banco) => ({
+                          value: banco.id,
+                          label: `${banco.codigo} - ${banco.nombre}`
+                        }))}
+                        value={formData.banco_id}
+                        onValueChange={(value) => handleInputChange('banco_id', value)}
+                        placeholder="Seleccione un banco"
+                        searchPlaceholder="Buscar banco por código o nombre..."
+                        emptyMessage="No se encontraron bancos"
+                        className={errors.banco_id ? 'border-red-500' : ''}
+                      />
                       {errors.banco_id && <p className="text-sm text-red-500 mt-1">{errors.banco_id}</p>}
                     </div>
 
@@ -652,35 +653,35 @@ export function GuardiaForm({ open, onOpenChange, editData, onSuccess }: Guardia
 
                     <div>
                       <Label htmlFor="salud">Salud *</Label>
-                      <Select value={formData.salud_id} onValueChange={(value) => handleInputChange('salud_id', value)}>
-                        <SelectTrigger className={errors.salud_id ? 'border-red-500' : ''}>
-                          <SelectValue placeholder="Seleccione sistema de salud" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {isapres.map((isapre) => (
-                            <SelectItem key={isapre.id} value={isapre.id}>
-                              {isapre.nombre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SelectWithSearch
+                        options={isapres.map((isapre) => ({
+                          value: isapre.id,
+                          label: isapre.nombre
+                        }))}
+                        value={formData.salud_id}
+                        onValueChange={(value) => handleInputChange('salud_id', value)}
+                        placeholder="Seleccione sistema de salud"
+                        searchPlaceholder="Buscar sistema de salud..."
+                        emptyMessage="No se encontraron sistemas de salud"
+                        className={errors.salud_id ? 'border-red-500' : ''}
+                      />
                       {errors.salud_id && <p className="text-sm text-red-500 mt-1">{errors.salud_id}</p>}
                     </div>
 
                     <div>
                       <Label htmlFor="afp">AFP *</Label>
-                      <Select value={formData.afp_id} onValueChange={(value) => handleInputChange('afp_id', value)}>
-                        <SelectTrigger className={errors.afp_id ? 'border-red-500' : ''}>
-                          <SelectValue placeholder="Seleccione AFP" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {afps.map((afp) => (
-                            <SelectItem key={afp.id} value={afp.id}>
-                              {afp.nombre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SelectWithSearch
+                        options={afps.map((afp) => ({
+                          value: afp.id,
+                          label: afp.nombre
+                        }))}
+                        value={formData.afp_id}
+                        onValueChange={(value) => handleInputChange('afp_id', value)}
+                        placeholder="Seleccione AFP"
+                        searchPlaceholder="Buscar AFP..."
+                        emptyMessage="No se encontraron AFPs"
+                        className={errors.afp_id ? 'border-red-500' : ''}
+                      />
                       {errors.afp_id && <p className="text-sm text-red-500 mt-1">{errors.afp_id}</p>}
                     </div>
                   </div>

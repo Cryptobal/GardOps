@@ -1580,6 +1580,18 @@ export default function InstalacionesPage() {
                                 const guardiasDisponibles = guardias.filter(guardia => 
                                   guardia.estado === 'Activo' && !guardiasSeleccionados.includes(guardia.id.toString())
                                 )
+
+                                // Crear opciones para el SelectWithSearch
+                                const opcionesGuardias = [
+                                  {
+                                    value: 'sin-asignar',
+                                    label: '🟡 Sin asignar (genera PPC)'
+                                  },
+                                  ...guardiasDisponibles.map((guardia) => ({
+                                    value: guardia.id.toString(),
+                                    label: `🟢 ${guardia.nombre} - ${guardia.rut}${guardia.instalacion_id_name ? ` (${guardia.instalacion_id_name})` : ''}`
+                                  }))
+                                ]
                                 
                                 return (
                                   <div key={guardiaIndex} className="flex items-center gap-3 p-3 bg-background rounded-lg border">
@@ -1588,37 +1600,17 @@ export default function InstalacionesPage() {
                                         #{guardiaIndex + 1}
                                       </span>
                                       <div className="flex-1">
-                                        <Select
+                                        <SelectWithSearch
+                                          options={opcionesGuardias}
                                           value={guardiaAsignado.guardia_id?.toString() || 'sin-asignar'}
                                           onValueChange={(guardiaId) => {
                                             updateGuardiaAsignacion(index, guardiaIndex, guardiaId === 'sin-asignar' ? '' : guardiaId)
                                           }}
-                                        >
-                                          <SelectTrigger className="w-full">
-                                            <SelectValue placeholder="Seleccionar guardia" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="sin-asignar">
-                                              <div className="flex items-center gap-2">
-                                                <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
-                                                Sin asignar (genera PPC)
-                                              </div>
-                                            </SelectItem>
-                                            {guardiasDisponibles.map((guardia) => (
-                                              <SelectItem key={guardia.id} value={guardia.id.toString()}>
-                                                <div className="flex items-center gap-2">
-                                                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                                                  {guardia.nombre} - {guardia.rut}
-                                                  {guardia.instalacion_id_name && (
-                                                    <span className="text-xs text-muted-foreground">
-                                                      {' '}({guardia.instalacion_id_name})
-                                                    </span>
-                                                  )}
-                                                </div>
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
+                                          placeholder="Seleccionar guardia"
+                                          searchPlaceholder="Buscar guardia por nombre o RUT..."
+                                          emptyMessage="No se encontraron guardias"
+                                          className="w-full"
+                                        />
                                       </div>
                                     </div>
                                     
