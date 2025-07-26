@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { UbicacionAutocomplete } from '@/components/UbicacionAutocomplete'
+import { useAlertDialog } from '@/components/ui/alert-dialog'
 import { Loader2, X, MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -153,6 +154,9 @@ export function GuardiaForm({ open, onOpenChange, editData, onSuccess }: Guardia
   const [isapres, setIsapres] = useState<Isapre[]>([])
   const [bancos, setBancos] = useState<Banco[]>([])
   const [loadingOptions, setLoadingOptions] = useState(true)
+
+  // Hook para alertas modernas
+  const { showError, showSuccess, AlertDialog } = useAlertDialog()
 
   // Opciones estáticas
   const tiposCuenta = [
@@ -322,12 +326,12 @@ export function GuardiaForm({ open, onOpenChange, editData, onSuccess }: Guardia
       // Mostrar alerta con los campos faltantes
       const errorMessages = Object.values(validationErrors).filter(Boolean)
       const firstErrors = errorMessages.slice(0, 3) // Mostrar solo los primeros 3 errores
-      const message = `Por favor, complete los siguientes campos:\n\n• ${firstErrors.join('\n• ')}`
+      let message = `Por favor, complete los siguientes campos:\n\n• ${firstErrors.join('\n• ')}`
       if (errorMessages.length > 3) {
-        alert(message + `\n\n... y ${errorMessages.length - 3} más`)
-      } else {
-        alert(message)
+        message += `\n\n... y ${errorMessages.length - 3} más`
       }
+      
+      showError(message, 'Campos obligatorios')
       return
     }
 
@@ -344,24 +348,25 @@ export function GuardiaForm({ open, onOpenChange, editData, onSuccess }: Guardia
       const result = await response.json()
 
       if (result.success) {
-        alert("Guardia creado con éxito")
+        showSuccess("Guardia creado con éxito")
         console.log("Guardia creado con éxito")
         onSuccess?.()
         onOpenChange(false)
       } else {
         console.error('Error:', result.error)
-        alert(`Error: ${result.error}`)
+        showError(`Error: ${result.error}`)
       }
     } catch (error) {
       console.error('Error al guardar guardia:', error)
-      alert('Error al guardar guardia')
+      showError('Error al guardar guardia')
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
+    <>
+      <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent side="right" className="dark:bg-black w-full sm:max-w-2xl h-full overflow-y-auto">
         <DrawerHeader className="border-b">
           <div className="flex items-center justify-between">
@@ -710,6 +715,10 @@ export function GuardiaForm({ open, onOpenChange, editData, onSuccess }: Guardia
           </div>
         </DrawerFooter>
       </DrawerContent>
-    </Drawer>
+      </Drawer>
+      
+      {/* Componente de alerta moderna */}
+      <AlertDialog />
+    </>
   )
 } 
