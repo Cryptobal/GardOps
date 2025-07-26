@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { motion } from "framer-motion"
+import { InstalacionesMap } from "@/components/instalaciones-map"
 
 export default function HomePage() {
   // Mostrar mensaje en consola al cargar la página
@@ -57,12 +58,28 @@ export default function HomePage() {
         ))}
       </motion.div>
 
+      {/* Mapa de instalaciones */}
+      <motion.div
+        className="space-y-4"
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+      >
+        <h2 className="text-2xl font-semibold capitalize-first">
+          Mapa de instalaciones
+        </h2>
+        <p className="text-muted-foreground">
+          Ubicación de todas las instalaciones con coordenadas registradas
+        </p>
+        <InstalacionesMap height="400px" />
+      </motion.div>
+
       {/* Sección de características */}
       <motion.div
         className="space-y-6"
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
       >
         <h2 className="text-2xl font-semibold capitalize-first">
           Características principales

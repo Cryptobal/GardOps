@@ -41,6 +41,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { ToastContainer } from '@/components/ui/toast'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface RolServicio {
   id: string
@@ -68,6 +69,10 @@ export default function RolesServicioPage() {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [selectedRol, setSelectedRol] = useState<RolServicio | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Estados para confirmación de eliminación
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [rolToDelete, setRolToDelete] = useState<RolServicio | null>(null)
   
   // Datos del formulario
   const [formData, setFormData] = useState({
@@ -176,13 +181,18 @@ export default function RolesServicioPage() {
     setIsFormOpen(true)
   }
 
-  const handleInactivate = async (rol: RolServicio) => {
-    if (!confirm(`¿Está seguro de que desea inactivar el rol "${rol.nombre}"?`)) {
-      return
-    }
+  const handleInactivate = (rol: RolServicio) => {
+    setRolToDelete(rol)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmInactivate = async () => {
+    if (!rolToDelete) return
 
     try {
-      const response = await fetch(`/api/table-data/roles_servicio?id=${rol.id}&action=inactivate`, {
+      setIsSubmitting(true)
+      
+      const response = await fetch(`/api/table-data/roles_servicio?id=${rolToDelete.id}&action=inactivate`, {
         method: 'PATCH',
       })
 
@@ -192,10 +202,14 @@ export default function RolesServicioPage() {
       }
 
       success('Rol inactivado exitosamente')
+      setIsDeleteDialogOpen(false)
+      setRolToDelete(null)
       handleRefresh()
     } catch (error) {
       console.error('Error inactivating rol:', error)
       showError(error instanceof Error ? error.message : 'Error al inactivar')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -622,6 +636,36 @@ export default function RolesServicioPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo de confirmación de inactivación */}
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Confirmar inactivación"
+        description={`¿Está seguro de que desea inactivar el rol "${rolToDelete?.nombre}"?`}
+        confirmText="Inactivar"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={confirmInactivate}
+        loading={isSubmitting}
+      >
+        {rolToDelete && (
+          <div className="p-3 rounded-lg bg-muted border">
+            <p className="text-sm">
+              <strong>Rol:</strong> {rolToDelete.nombre}
+            </p>
+            <p className="text-sm">
+              <strong>Días trabajo:</strong> {rolToDelete.dias_trabajo}
+            </p>
+            <p className="text-sm">
+              <strong>Días descanso:</strong> {rolToDelete.dias_descanso}
+            </p>
+            <p className="text-sm">
+              <strong>Horas turno:</strong> {rolToDelete.horas_turno}
+            </p>
+          </div>
+        )}
+      </ConfirmDialog>
     </>
   )
 } 

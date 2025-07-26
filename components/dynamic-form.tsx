@@ -21,6 +21,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Loader2, Save, X, Trash2 } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface SchemaField {
   column_name: string
@@ -55,6 +56,7 @@ export function DynamicForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   // Campos que no se deben mostrar en el formulario
   const hiddenFields = [
@@ -159,11 +161,11 @@ export function DynamicForm({
     }
   }
 
-  const handleDelete = async () => {
-    if (!confirm('¿Está seguro de que desea eliminar este registro permanentemente? Esta acción no se puede deshacer.')) {
-      return
-    }
+  const handleDelete = () => {
+    setIsDeleteDialogOpen(true)
+  }
 
+  const confirmDelete = async () => {
     try {
       setIsDeleting(true)
       setError(null)
@@ -177,6 +179,7 @@ export function DynamicForm({
         throw new Error(errorData.error || 'Error al eliminar')
       }
 
+      setIsDeleteDialogOpen(false)
       onSuccess()
       onClose()
     } catch (error) {
@@ -324,7 +327,8 @@ export function DynamicForm({
   const visibleFields = schema.filter(field => !hiddenFields.includes(field.column_name))
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="capitalize-first">
@@ -395,5 +399,18 @@ export function DynamicForm({
         )}
       </DialogContent>
     </Dialog>
+
+    <ConfirmDialog
+      open={isDeleteDialogOpen}
+      onOpenChange={setIsDeleteDialogOpen}
+      title="Confirmar eliminación"
+      description="¿Está seguro de que desea eliminar este registro permanentemente?"
+      confirmText="Eliminar definitivamente"
+      cancelText="Cancelar"
+      variant="destructive"
+      onConfirm={confirmDelete}
+      loading={isDeleting}
+    />
+    </>
   )
 } 

@@ -299,7 +299,6 @@ export async function POST(
     // Manejo estándar para otras tablas
     const columns = Object.keys(body).filter(key => key !== 'id')
     const values = columns.map(column => body[column])
-    const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ')
     
     // Agregar campos de auditoría si no están presentes
     if (!body.created_at && !columns.includes('created_at')) {
@@ -310,6 +309,9 @@ export async function POST(
       columns.push('updated_at')
       values.push(new Date())
     }
+    
+    // Generar placeholders después de agregar todos los campos
+    const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ')
 
     const sql = `
       INSERT INTO ${tableName} (${columns.join(', ')})
@@ -358,27 +360,24 @@ export async function PUT(
 
     const columns = Object.keys(body).filter(key => key !== 'id')
     const values = columns.map(column => body[column])
-    const setClause = columns.map((column, index) => `${column} = $${index + 1}`).join(', ')
     
     // Agregar updated_at si no está presente
     if (!body.updated_at && !columns.includes('updated_at')) {
       columns.push('updated_at')
       values.push(new Date())
-      const setClauseWithUpdate = setClause + (setClause ? ', ' : '') + `updated_at = $${values.length}`
     }
+
+    // Construir setClause después de agregar updated_at
+    const setClause = columns.map((column, index) => `${column} = $${index + 1}`).join(', ')
 
     const sql = `
       UPDATE ${tableName} 
-      SET ${setClause}${!columns.includes('updated_at') ? ', updated_at = $' + (values.length + 1) : ''}
-      WHERE id = $${values.length + (!columns.includes('updated_at') ? 2 : 1)}
+      SET ${setClause}
+      WHERE id = $${values.length + 1}
       RETURNING *
     `
 
-    const finalValues = [...values]
-    if (!columns.includes('updated_at')) {
-      finalValues.push(new Date())
-    }
-    finalValues.push(id)
+    const finalValues = [...values, id]
 
     const result = await query(sql, finalValues)
 

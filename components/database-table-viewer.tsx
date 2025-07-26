@@ -35,6 +35,7 @@ import {
 import { DynamicForm } from '@/components/dynamic-form'
 import { useToast } from '@/components/ui/toast'
 import { ToastContainer } from '@/components/ui/toast'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface Column {
   column_name: string
@@ -87,6 +88,11 @@ export function DatabaseTableViewer({
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [selectedRecord, setSelectedRecord] = useState<any>(null)
+  
+  // Estados para confirmación de eliminación
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [recordToDelete, setRecordToDelete] = useState<any>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const fetchTableData = async (page: number = 0, pageLimit: number = limit, includeInactive: boolean = showInactive) => {
     try {
@@ -146,13 +152,18 @@ export function DatabaseTableViewer({
     setIsFormOpen(true)
   }
 
-  const handleInactivate = async (record: any) => {
-    if (!confirm(`¿Está seguro de que desea inactivar este registro?`)) {
-      return
-    }
+  const handleInactivate = (record: any) => {
+    setRecordToDelete(record)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmInactivate = async () => {
+    if (!recordToDelete) return
 
     try {
-      const response = await fetch(`/api/table-data/${tableName}?id=${record.id}&action=inactivate`, {
+      setIsDeleting(true)
+      
+      const response = await fetch(`/api/table-data/${tableName}?id=${recordToDelete.id}&action=inactivate`, {
         method: 'PATCH',
       })
 
@@ -162,10 +173,14 @@ export function DatabaseTableViewer({
       }
 
       success('Registro inactivado exitosamente')
+      setIsDeleteDialogOpen(false)
+      setRecordToDelete(null)
       handleRefresh()
     } catch (error) {
       console.error('Error inactivating record:', error)
       showError(error instanceof Error ? error.message : 'Error al inactivar')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -768,6 +783,19 @@ export function DatabaseTableViewer({
         mode={formMode}
         initialData={selectedRecord}
         title={formMode === 'create' ? `Crear ${title || tableName}` : `Editar ${title || tableName}`}
+      />
+
+      {/* Diálogo de confirmación de inactivación */}
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Confirmar inactivación"
+        description="¿Está seguro de que desea inactivar este registro?"
+        confirmText="Inactivar"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={confirmInactivate}
+        loading={isDeleting}
       />
     </>
   )

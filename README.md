@@ -13,6 +13,8 @@ Sistema de gestión operativa profesional construido con Next.js 14, TypeScript,
 - ✅ **Componentes modernos** con shadcn/ui y lucide-react
 - ✅ **Animaciones suaves** con framer-motion
 - ✅ **ThemeProvider y Toggle** para cambio de tema
+- ✅ **Drawer lateral** para formularios con mejor UX
+- ✅ **Autocompletado de direcciones reales** con Google Places API
 
 ## 🛠️ Tecnologías
 
@@ -23,6 +25,7 @@ Sistema de gestión operativa profesional construido con Next.js 14, TypeScript,
 - **framer-motion** - Biblioteca de animaciones
 - **next-themes** - Manejo de temas
 - **lucide-react** - Iconos
+- **Google Maps API** - Autocompletado de direcciones y geolocalización
 
 ## 📁 Estructura del proyecto
 
@@ -38,7 +41,9 @@ GardApp/
 ├── components/
 │   ├── ui/
 │   │   ├── button.tsx      # Componente Button de shadcn/ui
-│   │   └── switch.tsx      # Componente Switch de shadcn/ui
+│   │   ├── switch.tsx      # Componente Switch de shadcn/ui
+│   │   └── drawer.tsx      # Componente Drawer lateral
+│   ├── address-autocomplete.tsx # Autocompletado de direcciones con Google Places
 │   ├── navbar.tsx          # Barra de navegación superior
 │   ├── sidebar.tsx         # Barra lateral de navegación
 │   ├── theme-provider.tsx  # Proveedor de temas
@@ -56,13 +61,37 @@ GardApp/
 npm install
 ```
 
-### 2. Ejecutar en modo desarrollo
+### 2. Configurar variables de entorno
+
+Copia el archivo de ejemplo y configura tus variables:
+
+```bash
+cp .env.example .env.local
+```
+
+Configura las siguientes variables en `.env.local`:
+
+```bash
+# Google Maps API para autocompletado de direcciones
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=tu_api_key_aqui
+
+# Base de datos (opcional)
+DATABASE_URL=postgresql://username:password@localhost:5432/gardapp
+```
+
+### 3. Configurar Google Maps API
+
+1. Ve a [Google Cloud Console](https://console.cloud.google.com/google/maps-apis/)
+2. Habilita las APIs: **Places API** y **Maps JavaScript API**
+3. Crea una API Key y agrégala a tu archivo `.env.local`
+
+### 4. Ejecutar en modo desarrollo
 
 ```bash
 npm run dev
 ```
 
-### 3. Abrir en el navegador
+### 5. Abrir en el navegador
 
 Visita [http://localhost:3000](http://localhost:3000) para ver la aplicación.
 
@@ -122,6 +151,93 @@ Los temas se definen en `app/globals.css` usando variables CSS. Puedes personali
 - **CSS Variables**: Para temas dinámicos
 - **Optimización**: Imágenes y fuentes optimizadas automáticamente
 - **SEO**: Metadata configurada correctamente
+
+## 🆕 Nuevos Componentes
+
+### Drawer
+
+Componente deslizable lateral que reemplaza modales para mejor UX:
+
+```tsx
+import { 
+  Drawer, 
+  DrawerContent, 
+  DrawerHeader, 
+  DrawerTitle, 
+  DrawerFooter 
+} from "@/components/ui/drawer"
+
+<Drawer open={isOpen} onOpenChange={setIsOpen}>
+  <DrawerContent>
+    <DrawerHeader>
+      <DrawerTitle>Título del formulario</DrawerTitle>
+    </DrawerHeader>
+    {/* Contenido del formulario */}
+    <DrawerFooter>
+      {/* Botones de acción */}
+    </DrawerFooter>
+  </DrawerContent>
+</Drawer>
+```
+
+### AddressAutocomplete
+
+Componente para autocompletado de direcciones reales con Google Places API:
+
+```tsx
+import { AddressAutocomplete } from "@/components/address-autocomplete"
+
+<AddressAutocomplete
+  value={direccion}
+  onChange={(address, placeDetails) => {
+    setDireccion(address)
+    // placeDetails contiene coordenadas y datos adicionales del lugar
+    if (placeDetails?.geometry?.location) {
+      const coordinates = {
+        lat: placeDetails.geometry.location.lat(),
+        lng: placeDetails.geometry.location.lng()
+      }
+    }
+  }}
+  label="Dirección"
+  placeholder="Buscar dirección real..."
+  required
+/>
+```
+
+**Características del AddressAutocomplete:**
+- 🌍 Autocompletado con direcciones reales de Google Places
+- 🇨🇱 Restringido a Chile por defecto
+- ⌨️ Navegación con teclado (flechas, Enter, Escape)
+- 🎯 Debounce para optimizar las consultas
+- 📍 Retorna coordenadas GPS del lugar seleccionado
+- 🎨 Tema oscuro/claro automático
+
+## 🛠️ Solución de Problemas
+
+### Error: API de Google Maps no funciona
+Si ves advertencias sobre AutocompleteService o PlacesService:
+- Estas son advertencias de deprecación pero **siguen funcionando**
+- Para usar las nuevas APIs (opcional):
+  ```js
+  // Cambiar a AutocompleteSuggestion (requiere actualización del código)
+  // Ver: https://developers.google.com/maps/documentation/javascript/places-migration-overview
+  ```
+
+### Error: "could not determine data type of parameter"
+Si falla al guardar instalaciones:
+- Verifica que todos los campos del formulario tengan valores válidos
+- Asegúrate de que no se envíen campos `null` o `undefined`
+
+### Warning: value prop null en input
+- Ya corregido: el componente AddressAutocomplete maneja valores seguros
+- Siempre usa cadenas vacías en lugar de `null`
+
+### Error 404 favicon.ico
+- Ya corregido: favicon embebido como SVG en el metadata
+
+### Warnings de accesibilidad en Drawer
+- Ya corregido: agregada descripción requerida para lectores de pantalla
 
 ---
 

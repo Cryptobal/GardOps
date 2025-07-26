@@ -20,6 +20,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+} from "@/components/ui/drawer"
 import { 
   Table,
   TableHeader,
@@ -48,6 +56,9 @@ import {
 import { useToast } from '@/components/ui/toast'
 import { ToastContainer } from '@/components/ui/toast'
 import { SelectWithSearch } from "@/components/ui/select-with-search"
+import { AddressAutocomplete } from "@/components/address-autocomplete"
+import { MapView } from "@/components/map-view"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 interface Instalacion {
   id: string
@@ -56,6 +67,8 @@ interface Instalacion {
   estado: string
   cliente_id: string
   cliente_id_name?: string
+  lat?: number | null
+  lng?: number | null
   created_at: string
   updated_at: string
 }
@@ -101,6 +114,7 @@ export default function InstalacionesPage() {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [selectedInstalacion, setSelectedInstalacion] = useState<Instalacion | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [viewingInstalacion, setViewingInstalacion] = useState<Instalacion | null>(null)
   
   // Estados para asignaciones operativas
   const [isAsignacionesOpen, setIsAsignacionesOpen] = useState(false)
@@ -113,7 +127,9 @@ export default function InstalacionesPage() {
     nombre: '',
     direccion: '',
     cliente_id: '',
-    estado: 'Activa'
+    estado: 'Activa',
+    lat: null as number | null,
+    lng: null as number | null
   })
 
   // Datos del formulario de asignaciones
@@ -127,6 +143,10 @@ export default function InstalacionesPage() {
   const [selectedAsignacion, setSelectedAsignacion] = useState<AsignacionOperativa | null>(null)
   const [isDeleteAsignacionOpen, setIsDeleteAsignacionOpen] = useState(false)
   const [asignacionToDelete, setAsignacionToDelete] = useState<AsignacionOperativa | null>(null)
+  
+  // Estados para confirmación de eliminación de instalaciones
+  const [isDeleteInstallationOpen, setIsDeleteInstallationOpen] = useState(false)
+  const [installationToDelete, setInstallationToDelete] = useState<Instalacion | null>(null)
   
 
   const [editAsignacionData, setEditAsignacionData] = useState({
@@ -204,7 +224,14 @@ export default function InstalacionesPage() {
   const handleCreateNew = () => {
     setFormMode('create')
     setSelectedInstalacion(null)
-    setFormData({ nombre: '', direccion: '', cliente_id: '', estado: 'Activa' })
+    setFormData({ 
+      nombre: '', 
+      direccion: '', 
+      cliente_id: '', 
+      estado: 'Activa',
+      lat: null,
+      lng: null
+    })
     setIsFormOpen(true)
   }
 
@@ -212,21 +239,28 @@ export default function InstalacionesPage() {
     setFormMode('edit')
     setSelectedInstalacion(instalacion)
     setFormData({
-      nombre: instalacion.nombre,
-      direccion: instalacion.direccion,
-      cliente_id: instalacion.cliente_id,
-      estado: instalacion.estado
+      nombre: instalacion.nombre || '',
+      direccion: instalacion.direccion || '',
+      cliente_id: instalacion.cliente_id || '',
+      estado: instalacion.estado || 'Activa',
+      lat: (instalacion as any).lat || null,
+      lng: (instalacion as any).lng || null
     })
     setIsFormOpen(true)
   }
 
-  const handleInactivate = async (instalacion: Instalacion) => {
-    if (!confirm(`¿Está seguro de que desea inactivar la instalación "${instalacion.nombre}"?`)) {
-      return
-    }
+  const handleInactivate = (instalacion: Instalacion) => {
+    setInstallationToDelete(instalacion)
+    setIsDeleteInstallationOpen(true)
+  }
+
+  const confirmInactivate = async () => {
+    if (!installationToDelete) return
 
     try {
-      const response = await fetch(`/api/table-data/instalaciones?id=${instalacion.id}&action=inactivate`, {
+      setIsSubmitting(true)
+      
+      const response = await fetch(`/api/table-data/instalaciones?id=${installationToDelete.id}&action=inactivate`, {
         method: 'PATCH',
       })
 
@@ -236,10 +270,14 @@ export default function InstalacionesPage() {
       }
 
       success('Instalación inactivada exitosamente')
+      setIsDeleteInstallationOpen(false)
+      setInstallationToDelete(null)
       handleRefresh()
     } catch (error) {
       console.error('Error inactivating instalacion:', error)
       showError(error instanceof Error ? error.message : 'Error al inactivar')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -264,6 +302,26 @@ export default function InstalacionesPage() {
     try {
       setIsSubmitting(true)
 
+      // Limpiar datos para enviar solo campos con valores válidos
+      const cleanData = Object.entries(formData).reduce((acc, [key, value]) => {
+        // Incluir campos requeridos aunque estén vacíos
+        if (['nombre', 'estado'].includes(key)) {
+          acc[key] = value
+        }
+        // Incluir coordenadas siempre (incluso si son null para limpiar valores previos)
+        else if (['lat', 'lng'].includes(key)) {
+          acc[key] = value
+        }
+        // Incluir otros campos solo si tienen valor
+        else if (value !== null && value !== '' && value !== undefined) {
+          acc[key] = value
+        }
+        return acc
+      }, {} as Record<string, any>)
+
+      console.log('🚀 Datos a enviar al API:', cleanData)
+      console.log('📝 FormData original:', formData)
+
       let response: Response
       
       if (formMode === 'create') {
@@ -272,7 +330,7 @@ export default function InstalacionesPage() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(cleanData),
         })
       } else if (selectedInstalacion) {
         response = await fetch(`/api/table-data/instalaciones?id=${selectedInstalacion.id}`, {
@@ -280,7 +338,7 @@ export default function InstalacionesPage() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(cleanData),
         })
       } else {
         throw new Error('No se encontró la instalación a editar')
@@ -775,6 +833,26 @@ export default function InstalacionesPage() {
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-1">
+                          {((instalacion as any).lat && (instalacion as any).lng) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                console.log('🗺️ Click en botón mapa:', instalacion.nombre, {
+                                  lat: (instalacion as any).lat,
+                                  lng: (instalacion as any).lng,
+                                  direccion: instalacion.direccion
+                                })
+                                setViewingInstalacion(
+                                  viewingInstalacion?.id === instalacion.id ? null : instalacion
+                                )
+                              }}
+                              className={`h-8 w-8 p-0 ${viewingInstalacion?.id === instalacion.id ? "bg-blue-100 dark:bg-blue-900 text-blue-600" : ""}`}
+                              title="Ver mapa"
+                            >
+                              <MapPin className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -816,80 +894,204 @@ export default function InstalacionesPage() {
         </motion.div>
       </div>
 
+      {/* Vista del Mapa */}
+      {viewingInstalacion && (viewingInstalacion as any).lat && (viewingInstalacion as any).lng && (
+        <motion.div 
+          className="mt-6 p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-red-500" />
+                Ubicación: {viewingInstalacion.nombre}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                📍 {viewingInstalacion.direccion}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                Coordenadas: {(viewingInstalacion as any).lat?.toFixed(6)}, {(viewingInstalacion as any).lng?.toFixed(6)}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setViewingInstalacion(null)}
+              className="text-xs"
+            >
+              ✕ Cerrar mapa
+            </Button>
+          </div>
+          <MapView
+            lat={(viewingInstalacion as any).lat}
+            lng={(viewingInstalacion as any).lng}
+            address={viewingInstalacion.direccion}
+            height="400px"
+          />
+        </motion.div>
+      )}
+
+      {/* Debug info */}
+      {process.env.NODE_ENV === 'development' && viewingInstalacion && (
+        <div className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs">
+          <strong>🐛 Debug:</strong> viewingInstalacion = {JSON.stringify({
+            id: viewingInstalacion.id,
+            nombre: viewingInstalacion.nombre,
+            lat: (viewingInstalacion as any).lat,
+            lng: (viewingInstalacion as any).lng
+          }, null, 2)}
+        </div>
+      )}
+
       {/* Formulario de Instalación */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="capitalize-first">
+      <Drawer open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DrawerContent className="max-w-lg">
+          <DrawerHeader>
+            <DrawerTitle className="capitalize-first">
               {formMode === 'create' ? 'Crear instalación' : 'Editar instalación'}
-            </DialogTitle>
-          </DialogHeader>
+            </DrawerTitle>
+            <DrawerDescription>
+              {formMode === 'create' 
+                ? 'Complete la información para crear una nueva instalación con dirección real.' 
+                : 'Modifique los datos de la instalación existente.'}
+            </DrawerDescription>
+          </DrawerHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="nombre">
-                Nombre de la instalación <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="nombre"
-                value={formData.nombre}
-                onChange={(e) => setFormData(prev => ({ ...prev, nombre: e.target.value }))}
-                placeholder="Ej: Sede Central, Sucursal Norte"
-                required
-              />
-            </div>
+          <div className="px-6 pb-6 space-y-6 overflow-y-auto max-h-[calc(100vh-120px)]">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="nombre">
+                  Nombre de la instalación <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="nombre"
+                  value={formData.nombre}
+                  onChange={(e) => setFormData(prev => ({ ...prev, nombre: e.target.value }))}
+                  placeholder="Ej: Sede Central, Sucursal Norte"
+                  required
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="direccion">
-                Dirección <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="direccion"
-                value={formData.direccion}
-                onChange={(e) => setFormData(prev => ({ ...prev, direccion: e.target.value }))}
-                placeholder="Dirección completa"
-                required
-              />
-            </div>
+              <div className="space-y-2">
+                <AddressAutocomplete
+                  label="Dirección"
+                  value={formData.direccion}
+                  onChange={(address, placeDetails) => {
+                    const newFormData = { 
+                      ...formData, 
+                      direccion: address,
+                      lat: null as number | null,
+                      lng: null as number | null
+                    }
+                    
+                    // Guardar coordenadas si están disponibles
+                    if (placeDetails?.geometry?.location) {
+                      const lat = placeDetails.geometry.location.lat()
+                      const lng = placeDetails.geometry.location.lng()
+                      newFormData.lat = lat
+                      newFormData.lng = lng
+                      console.log('✅ Coordenadas guardadas:', { lat, lng, address })
+                    } else {
+                      console.log('⚠️ Sin coordenadas disponibles - placeDetails:', !!placeDetails, 'address:', address)
+                    }
+                    
+                    setFormData(newFormData)
+                  }}
+                  placeholder="Buscar dirección real..."
+                  required
+                />
+                
+                {/* Botón de prueba para coordenadas */}
+                <div className="mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const testCoords = {
+                        lat: -33.4489,
+                        lng: -70.6693
+                      }
+                      setFormData(prev => ({
+                        ...prev,
+                        lat: testCoords.lat,
+                        lng: testCoords.lng
+                      }))
+                      console.log('🧪 Coordenadas de prueba establecidas:', testCoords)
+                    }}
+                    className="text-xs"
+                  >
+                    🧪 Probar coordenadas (Santiago)
+                  </Button>
+                  
+                  {(formData.lat && formData.lng) && (
+                    <div className="mt-1 p-2 bg-green-50 dark:bg-green-950/30 rounded border text-xs">
+                      📍 Coordenadas: {formData.lat?.toFixed(6)}, {formData.lng?.toFixed(6)}
+                    </div>
+                  )}
+                </div>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="estado">Estado</Label>
-              <Select 
-                value={formData.estado} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, estado: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Activa">Activa</SelectItem>
-                  <SelectItem value="Inactiva">Inactiva</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              {/* Mapa en el drawer */}
+              {(formData.lat && formData.lng) && (
+                <div className="space-y-2">
+                  <Label>📍 Vista previa de ubicación</Label>
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                    <MapView
+                      lat={formData.lat}
+                      lng={formData.lng}
+                      address={formData.direccion}
+                      height="200px"
+                    />
+                  </div>
+                </div>
+              )}
 
-            <DialogFooter className="gap-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setIsFormOpen(false)}
-                disabled={isSubmitting}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Cancelar
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isSubmitting}
-              >
-                {isSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                <Save className="h-4 w-4 mr-2" />
-                {formMode === 'create' ? 'Crear' : 'Actualizar'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+              <div className="space-y-2">
+                <Label htmlFor="estado">Estado</Label>
+                <Select 
+                  value={formData.estado} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, estado: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Activa">Activa</SelectItem>
+                    <SelectItem value="Inactiva">Inactiva</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <DrawerFooter className="px-0 pt-6">
+                <div className="flex gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsFormOpen(false)}
+                    disabled={isSubmitting}
+                    className="flex-1"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Cancelar
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="flex-1"
+                  >
+                    {isSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    <Save className="h-4 w-4 mr-2" />
+                    {formMode === 'create' ? 'Crear' : 'Actualizar'}
+                  </Button>
+                </div>
+              </DrawerFooter>
+            </form>
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* Formulario de Asignaciones Operativas */}
       <Dialog open={isAsignacionesOpen} onOpenChange={setIsAsignacionesOpen}>
@@ -1461,6 +1663,33 @@ export default function InstalacionesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo de confirmación de eliminación de instalación */}
+      <ConfirmDialog
+        open={isDeleteInstallationOpen}
+        onOpenChange={setIsDeleteInstallationOpen}
+        title="Confirmar inactivación"
+        description={`¿Está seguro de que desea inactivar la instalación "${installationToDelete?.nombre}"?`}
+        confirmText="Inactivar"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={confirmInactivate}
+        loading={isSubmitting}
+      >
+        {installationToDelete && (
+          <div className="p-3 rounded-lg bg-muted border">
+            <p className="text-sm">
+              <strong>Instalación:</strong> {installationToDelete.nombre}
+            </p>
+            <p className="text-sm">
+              <strong>Dirección:</strong> {installationToDelete.direccion}
+            </p>
+            <p className="text-sm">
+              <strong>Cliente:</strong> {installationToDelete.cliente_id_name}
+            </p>
+          </div>
+        )}
+      </ConfirmDialog>
     </>
   )
 } 

@@ -41,6 +41,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { ToastContainer } from '@/components/ui/toast'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 interface PuestoOperativo {
   id: string
@@ -63,6 +64,10 @@ export default function PuestosOperativosPage() {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [selectedPuesto, setSelectedPuesto] = useState<PuestoOperativo | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Estados para confirmación de eliminación
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [puestoToDelete, setPuestoToDelete] = useState<PuestoOperativo | null>(null)
   
   // Datos del formulario
   const [formData, setFormData] = useState({
@@ -113,13 +118,18 @@ export default function PuestosOperativosPage() {
     setIsFormOpen(true)
   }
 
-  const handleInactivate = async (puesto: PuestoOperativo) => {
-    if (!confirm(`¿Está seguro de que desea inactivar el puesto "${puesto.nombre}"?`)) {
-      return
-    }
+  const handleInactivate = (puesto: PuestoOperativo) => {
+    setPuestoToDelete(puesto)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmInactivate = async () => {
+    if (!puestoToDelete) return
 
     try {
-      const response = await fetch(`/api/table-data/puestos_operativos?id=${puesto.id}&action=inactivate`, {
+      setIsSubmitting(true)
+      
+      const response = await fetch(`/api/table-data/puestos_operativos?id=${puestoToDelete.id}&action=inactivate`, {
         method: 'PATCH',
       })
 
@@ -129,10 +139,14 @@ export default function PuestosOperativosPage() {
       }
 
       success('Puesto inactivado exitosamente')
+      setIsDeleteDialogOpen(false)
+      setPuestoToDelete(null)
       handleRefresh()
     } catch (error) {
       console.error('Error inactivating puesto:', error)
       showError(error instanceof Error ? error.message : 'Error al inactivar')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -418,6 +432,27 @@ export default function PuestosOperativosPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo de confirmación de inactivación */}
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Confirmar inactivación"
+        description={`¿Está seguro de que desea inactivar el puesto "${puestoToDelete?.nombre}"?`}
+        confirmText="Inactivar"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={confirmInactivate}
+        loading={isSubmitting}
+      >
+        {puestoToDelete && (
+          <div className="p-3 rounded-lg bg-muted border">
+            <p className="text-sm">
+              <strong>Puesto:</strong> {puestoToDelete.nombre}
+            </p>
+          </div>
+        )}
+      </ConfirmDialog>
     </>
   )
 } 

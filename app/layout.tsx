@@ -10,6 +10,10 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "App Operaciones",
   description: "Sistema de gestión operativa profesional",
+  icons: {
+    icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE2IDJMMiA5djE0YzAgNS41IDMuNSAxMCA4IDExdi04YzAtMi4yIDEuOC00IDQtNHM0IDEuOCA0IDR2OGM0LjUtMSA4LTUuNSA4LTExVjlMMTYgMnoiIGZpbGw9IiM2MzY2ZjEiLz4KPHJlY3QgeD0iMTQiIHk9IjE2IiB3aWR0aD0iNCIgaGVpZ2h0PSIxMiIgcng9IjEiIGZpbGw9IiMzNzMwYTMiLz4KPC9zdmc+",
+    shortcut: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE2IDJMMiA5djE0YzAgNS41IDMuNSAxMCA4IDExdi04YzAtMi4yIDEuOC00IDQtNHM0IDEuOCA0IDR2OGM0LjUtMSA4LTUuNSA4LTExVjlMMTYgMnoiIGZpbGw9IiM2MzY2ZjEiLz4KPHJlY3QgeD0iMTQiIHk9IjE2IiB3aWR0aD0iNCIgaGVpZ2h0PSIxMiIgcng9IjEiIGZpbGw9IiMzNzMwYTMiLz4KPC9zdmc+",
+  },
 }
 
 export default function RootLayout({
