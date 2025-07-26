@@ -96,17 +96,17 @@ function TopPpcChart({ data }: { data: TopPpcData[] }) {
         </div>
       </div>
       
-      <div className="h-64">
+      <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="horizontal" margin={{ top: 5, right: 30, left: 5, bottom: 5 }}>
+          <BarChart data={data} layout="horizontal" margin={{ top: 20, right: 40, left: 10, bottom: 20 }}>
             <XAxis type="number" stroke="#888888" fontSize={12} />
             <YAxis 
               type="category" 
               dataKey="instalacion_nombre" 
               stroke="#888888" 
-              fontSize={11}
-              width={120}
-              tick={{ fontSize: 10 }}
+              fontSize={12}
+              width={180}
+              tick={{ fontSize: 11 }}
             />
             <Bar dataKey="ppc_count" radius={[0, 4, 4, 0]}>
               {data.map((entry, index) => (
