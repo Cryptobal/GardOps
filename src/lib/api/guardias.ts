@@ -1,0 +1,1 @@
+// Lógica API para guardias (fetch, post, etc.) 

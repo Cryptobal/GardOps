@@ -1,0 +1,1 @@
+// Lógica API para clientes (fetch, post, etc.) 

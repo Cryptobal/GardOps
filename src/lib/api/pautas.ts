@@ -1,0 +1,1 @@
+// Lógica API para pautas (fetch, post, etc.) 

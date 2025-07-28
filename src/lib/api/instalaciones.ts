@@ -1,0 +1,1 @@
+// Lógica API para instalaciones (fetch, post, etc.) 
