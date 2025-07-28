@@ -63,6 +63,7 @@ export default function LoginPage() {
               placeholder="tu@empresa.com"
               required
               className="w-full"
+              autoComplete="email"
             />
           </div>
 
@@ -78,6 +79,7 @@ export default function LoginPage() {
               placeholder="••••••••"
               required
               className="w-full"
+              autoComplete="current-password"
             />
           </div>
 
