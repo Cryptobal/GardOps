@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { authenticateUser } from '../../../../lib/api/usuarios'
+import { validateEmail } from '../../../../lib/schemas/usuarios'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,45 +14,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Simulación de autenticación (en producción esto debería verificar contra base de datos)
-    const validUsers = [
-      { email: 'admin@gardops.com', password: 'admin123' },
-      { email: 'supervisor@gardops.com', password: 'super123' },
-      { email: 'guardia@gardops.com', password: 'guard123' }
-    ]
+    // Validar formato de email
+    if (!validateEmail(email)) {
+      return NextResponse.json(
+        { error: 'Formato de email inválido' },
+        { status: 400 }
+      )
+    }
 
-    const user = validUsers.find(u => u.email === email && u.password === password)
+    // Autenticar usuario usando la base de datos
+    const authResult = await authenticateUser({ email, password })
 
-    if (!user) {
+    if (!authResult) {
       return NextResponse.json(
         { error: 'Credenciales incorrectas' },
         { status: 401 }
       )
     }
 
-    // Crear un JWT simulado (en producción usar una librería como jsonwebtoken)
-    const now = Math.floor(Date.now() / 1000)
-    const payload = {
-      email: user.email,
-      iat: now,
-      exp: now + (24 * 60 * 60) // 24 horas de expiración
-    }
-
-    // JWT simulado (solo para testing)
-    const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
-    const payloadEncoded = btoa(JSON.stringify(payload))
-    const signature = btoa('mock-signature')
-    const access_token = `${header}.${payloadEncoded}.${signature}`
+    console.log(`✅ Login exitoso para: ${email} (${authResult.user.nombre} ${authResult.user.apellido})`)
 
     return NextResponse.json({
-      access_token,
-      user: {
-        email: user.email,
-        name: user.email.split('@')[0]
-      }
+      access_token: authResult.access_token,
+      user: authResult.user
     })
 
   } catch (error) {
+    console.error('Error en login:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

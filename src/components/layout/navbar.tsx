@@ -17,20 +17,37 @@ export function Navbar() {
     logout();
   };
 
-  // Obtener email del usuario desde el token
-  const getUserEmail = () => {
+  // Obtener información del usuario desde el token JWT
+  const getUserDisplayInfo = () => {
     const token = getToken();
-    if (!token) return null;
+    if (!token) return { displayName: 'Usuario', email: '', rol: '' };
     
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.email;
+      
+      // Verificar si tenemos el usuario completo guardado en localStorage
+      const storedUser = localStorage.getItem('current_user');
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        return {
+          displayName: `${user.nombre} ${user.apellido}`,
+          email: user.email,
+          rol: user.rol,
+        };
+      }
+      
+      // Fallback al email del token
+      return {
+        displayName: payload.email?.split('@')[0] || 'Usuario',
+        email: payload.email || '',
+        rol: payload.rol || '',
+      };
     } catch {
-      return null;
+      return { displayName: 'Usuario', email: '', rol: '' };
     }
   };
 
-  const userEmail = getUserEmail();
+  const userInfo = getUserDisplayInfo();
 
   return (
     <header className="bg-card/95 backdrop-blur-xl border-b border-border/50 p-6 animate-in fade-in slide-in-from-top-4 duration-500">
@@ -71,9 +88,14 @@ export function Navbar() {
           <div className="flex items-center gap-3 px-3 py-2 bg-background/50 rounded-lg border border-border/50">
             <div className="flex items-center gap-2">
               <User className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium hidden sm:block">
-                {userEmail || 'Usuario'}
-              </span>
+              <div className="hidden sm:block text-right">
+                <p className="text-sm font-medium text-foreground">
+                  {userInfo.displayName}
+                </p>
+                <p className="text-xs text-muted-foreground capitalize">
+                  {userInfo.rol}
+                </p>
+              </div>
             </div>
             
             <Button
