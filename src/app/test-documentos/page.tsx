@@ -61,7 +61,7 @@ export default function TestDocumentosPage() {
             <p><strong>Almacenamiento:</strong> Cloudflare R2</p>
             <p><strong>Base de datos:</strong> PostgreSQL (Neon)</p>
             <p><strong>URLs temporales:</strong> 10 minutos</p>
-            <p><strong>Módulo de prueba:</strong> "test"</p>
+            <p><strong>Módulo de prueba:</strong> &quot;test&quot;</p>
             <p><strong>ID de prueba:</strong> {testId}</p>
           </div>
         </Card>

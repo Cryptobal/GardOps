@@ -97,7 +97,7 @@ export default function InstalacionesCliente({
         <div className="text-center text-muted-foreground py-8">
           <Building className="h-12 w-12 mx-auto mb-3 opacity-50" />
           <p>No hay instalaciones asociadas a este cliente</p>
-          <p className="text-sm mt-1">Haz clic en "Agregar Instalación" para crear una nueva</p>
+          <p className="text-sm mt-1">Haz clic en &quot;Agregar Instalación&quot; para crear una nueva</p>
         </div>
       ) : (
         <div className="space-y-3">

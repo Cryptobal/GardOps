@@ -473,7 +473,7 @@ export default function TiposDocumentosPage() {
                 ¿Estás seguro?
               </h3>
               <p className="text-sm text-white/60 mb-4">
-                Vas a eliminar el tipo de documento <span className="font-medium text-white">"{tipoAEliminar?.nombre}"</span> del módulo <span className="font-medium text-white">{MODULOS.find(m => m.value === tipoAEliminar?.modulo)?.label}</span>.
+                Vas a eliminar el tipo de documento <span className="font-medium text-white">&quot;{tipoAEliminar?.nombre}&quot;</span> del módulo <span className="font-medium text-white">{MODULOS.find(m => m.value === tipoAEliminar?.modulo)?.label}</span>.
               </p>
               <p className="text-sm text-white/40">
                 Esta acción no se puede deshacer.

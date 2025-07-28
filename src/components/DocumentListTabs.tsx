@@ -384,7 +384,7 @@ export default function DocumentListTabs({
         {documentosDelTipo.length === 0 && tipoActivo && (
           <div className="text-center text-muted-foreground py-6">
             <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No hay documentos de tipo "{tipoActivo}"</p>
+            <p className="text-sm">No hay documentos de tipo &quot;{tipoActivo}&quot;</p>
           </div>
         )}
       </CardContent>

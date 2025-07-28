@@ -180,7 +180,7 @@ export default function DocumentUploader({ modulo, entidadId, onUploadSuccess }:
         
         {tiposDocumentos.length === 0 && !loadingTipos && (
           <p className="text-xs text-yellow-400">
-            ⚠️ No hay tipos de documentos configurados para el módulo "{modulo}". 
+            ⚠️ No hay tipos de documentos configurados para el módulo &quot;{modulo}&quot;. 
             Ve a Configuración → Tipos de Documentos para crearlos.
           </p>
         )}
