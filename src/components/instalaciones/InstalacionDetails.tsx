@@ -253,14 +253,14 @@ export function InstalacionDetails({
                                 Estado
                               </label>
                               <Badge
-                                variant={instalacion.estado === "Activo" ? "default" : "secondary"}
+                                variant={instalacion.activo ? "default" : "secondary"}
                                 className={
-                                  instalacion.estado === "Activo"
+                                  instalacion.activo
                                     ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                                     : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
                                 }
                               >
-                                {instalacion.estado}
+                                {instalacion.activo ? "Activo" : "Inactivo"}
                               </Badge>
                             </div>
                           </div>
