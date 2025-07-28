@@ -37,30 +37,68 @@ export function comparePassword(plainPassword: string, hashedPassword: string): 
 // Funciones del cliente (frontend)
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('auth_token');
+  
+  // Intentar obtener de cookies primero (nuevo sistema)
+  try {
+    console.log('🔍 getToken: Cookies disponibles:', document.cookie);
+    
+    const cookieValue = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('auth_token='))
+      ?.split('=')[1];
+    
+    console.log('🔍 getToken: Cookie auth_token encontrada:', cookieValue ? 'SÍ' : 'NO');
+    
+    if (cookieValue) {
+      // Decodificar si está URL-encoded
+      const decodedValue = decodeURIComponent(cookieValue);
+      console.log('🔍 getToken: Token decodificado:', decodedValue.substring(0, 20) + '...');
+      return decodedValue;
+    }
+  } catch (error) {
+    console.log('❌ getToken: Error leyendo cookie:', error);
+  }
+  
+  // Fallback a localStorage (sistema anterior)
+  const localToken = localStorage.getItem('auth_token');
+  console.log('🔍 getToken: localStorage token:', localToken ? 'SÍ' : 'NO');
+  return localToken;
 }
 
 export function logout(): void {
   if (typeof window !== 'undefined') {
+    // Limpiar localStorage (sistema anterior)
     localStorage.removeItem('auth_token');
     localStorage.removeItem('current_user');
+    
+    // Limpiar cookies (nuevo sistema)
+    document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    document.cookie = 'tenant=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    
     window.location.href = '/login';
   }
 }
 
 export function isAuthenticated(): boolean {
   const token = getToken();
+  console.log(`🔍 isAuthenticated: Token encontrado: ${token ? 'SÍ (' + token.substring(0, 20) + '...)' : 'NO'}`);
   
-  if (!token) return false;
+  if (!token) {
+    console.log(`❌ isAuthenticated: No hay token`);
+    return false;
+  }
   
   try {
     // Decodificar el JWT para verificar expiración
     const payload = JSON.parse(atob(token.split('.')[1]));
     const currentTime = Date.now() / 1000;
+    const isValid = payload.exp > currentTime;
     
-    return payload.exp > currentTime;
+    console.log(`🔍 isAuthenticated: Token expira en ${payload.exp}, tiempo actual ${currentTime}, válido: ${isValid}`);
+    return isValid;
   } catch (error) {
     // Si hay error al decodificar, consideramos el token inválido
+    console.log(`❌ isAuthenticated: Error decodificando token:`, error);
     return false;
   }
 }
@@ -107,6 +145,30 @@ export function getCurrentUser(): {
 } | null {
   if (typeof window === 'undefined') return null;
   
+  // Intentar obtener de cookies primero (nuevo sistema)
+  try {
+    const tenantCookie = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('tenant='))
+      ?.split('=')[1];
+    
+    if (tenantCookie) {
+      const decodedCookie = decodeURIComponent(tenantCookie);
+      const tenantInfo = JSON.parse(decodedCookie);
+      return {
+        id: tenantInfo.user_id,
+        email: tenantInfo.email,
+        nombre: tenantInfo.nombre,
+        apellido: '', // No está en la cookie tenant
+        rol: '', // Se puede obtener del JWT
+        tenant_id: tenantInfo.id
+      };
+    }
+  } catch (error) {
+    console.log('Error leyendo cookie tenant, intentando localStorage...');
+  }
+  
+  // Fallback a localStorage (sistema anterior)
   try {
     const storedUser = localStorage.getItem('current_user');
     return storedUser ? JSON.parse(storedUser) : null;

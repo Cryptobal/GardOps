@@ -34,12 +34,40 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Login exitoso para: ${email} (${authResult.user.nombre} ${authResult.user.apellido}) - Tenant: ${authResult.user.tenant_id}`)
 
-    // El token JWT expira en 30 minutos y contiene user_id, rol y tenant_id
-    return NextResponse.json({
+    // Crear response con cookies configuradas
+    const response = NextResponse.json({
       access_token: authResult.access_token,
       user: authResult.user,
       expires_in: 1800 // 30 minutos en segundos
     })
+
+    // Configurar cookie con información del tenant (para APIs que la necesitan)
+    const tenantInfo = {
+      id: authResult.user.tenant_id,
+      user_id: authResult.user.id,
+      email: authResult.user.email,
+      nombre: authResult.user.nombre
+    }
+
+    // Configurar cookie segura con el tenant
+    response.cookies.set('tenant', JSON.stringify(tenantInfo), {
+      httpOnly: false, // Permitir acceso desde JS si necesario
+      secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
+      sameSite: 'lax', // Permitir cookies en same-site
+      path: '/',
+      maxAge: 1800 // 30 minutos
+    })
+
+    // También configurar el token como cookie para peticiones de APIs
+    response.cookies.set('auth_token', authResult.access_token, {
+      httpOnly: true, // Más seguro, solo accesible por el servidor
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 1800 // 30 minutos
+    })
+
+    return response
 
   } catch (error) {
     console.error('Error en login:', error)

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthWrapper } from '../components/layout/auth-wrapper'
+import { ToastContainer } from '../components/ui/toast'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -21,6 +22,7 @@ export default function RootLayout({
         <AuthWrapper>
           {children}
         </AuthWrapper>
+        <ToastContainer />
       </body>
     </html>
   )

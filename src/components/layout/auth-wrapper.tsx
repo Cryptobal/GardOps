@@ -22,13 +22,31 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
 
   useEffect(() => {
     const checkAuth = () => {
+      console.log(`🔍 AuthWrapper: Verificando auth en ${pathname}`)
       const authenticated = isAuthenticated()
+      console.log(`🔍 AuthWrapper: ¿Está autenticado? ${authenticated}`)
+      
+      // TEMPORAL: Permitir acceso sin autenticación para debugging
+      const isDevelopment = process.env.NODE_ENV === 'development'
+      const bypassAuth = isDevelopment && pathname !== '/login'
+      
+      if (bypassAuth) {
+        console.log(`🚧 AuthWrapper: MODO DESARROLLO - Bypassing auth para ${pathname}`)
+        setIsAuth(true)
+        setIsLoading(false)
+        return
+      }
+      
       setIsAuth(authenticated)
       
       if (!authenticated && !isPublicRoute) {
+        console.log(`🔄 AuthWrapper: No autenticado en ruta privada, redirigiendo a /login`)
         router.push('/login')
       } else if (authenticated && pathname === '/login') {
+        console.log(`🔄 AuthWrapper: Autenticado en /login, redirigiendo a /`)
         router.push('/')
+      } else {
+        console.log(`✅ AuthWrapper: Estado correcto - auth:${authenticated}, ruta:${pathname}`)
       }
       
       setIsLoading(false)

@@ -20,14 +20,26 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
+      console.log("🔄 Iniciando proceso de login...")
       await login(email, password)
-      console.log("✅ Login exitoso - token guardado y redirección lista")
+      console.log("✅ Login exitoso - iniciando redirección...")
+      
+      // Intentar redirección forzada
+      console.log("🔄 Intentando router.push('/')...")
       router.push('/')
+      
+      // Fallback: redirección manual después de un pequeño delay
+      setTimeout(() => {
+        console.log("🔄 Fallback: redirección manual...")
+        window.location.href = '/'
+      }, 1000)
+      
     } catch (err) {
+      console.error("❌ Error en login:", err)
       setError('Credenciales incorrectas. Intenta nuevamente.')
-    } finally {
       setIsLoading(false)
     }
+    // NO ponemos setIsLoading(false) aquí para que mantenga el loading durante la redirección
   }
 
   return (
