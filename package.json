@@ -6,29 +6,43 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate": "npx ts-node scripts/migrate.ts",
+    "migrate:test": "npm run dev & sleep 3 && curl -X POST http://localhost:3000/api/migrate",
+    "create-pautas-diarias": "npx ts-node scripts/create-pautas-diarias.ts",
+    "create-ppc-turnos": "npx ts-node scripts/create-ppc-turnos-extras.ts"
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^1.16.10",
     "@radix-ui/react-slot": "^1.2.3",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
+    "@types/pg": "^8.15.4",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
+    "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
+    "dotenv": "^17.2.1",
+    "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.294.0",
     "next": "14.0.0",
+    "pg": "^8.16.3",
     "postcss": "^8",
     "react": "^18",
     "react-dom": "^18",
     "tailwind-merge": "^2.0.0",
     "tailwindcss": "^3.3.0",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5"
+    "ts-node": "^10.9.2",
+    "typescript": "^5",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/google.maps": "^3.58.1",
+    "@types/uuid": "^10.0.0",
     "eslint": "^8",
     "eslint-config-next": "14.0.0"
   }

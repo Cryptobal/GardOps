@@ -10,6 +10,7 @@ export interface Usuario {
   ultimoAcceso?: Date;
   telefono?: string;
   avatar?: string;
+  tenant_id: string; // ID del tenant/empresa
 }
 
 export interface CreateUsuarioData {
@@ -19,6 +20,7 @@ export interface CreateUsuarioData {
   apellido: string;
   rol: 'admin' | 'supervisor' | 'guardia';
   telefono?: string;
+  tenant_id: string; // ID del tenant/empresa
 }
 
 export interface LoginCredentials {
@@ -34,6 +36,7 @@ export interface AuthResponse {
     nombre: string;
     apellido: string;
     rol: string;
+    tenant_id: string;
   };
 }
 

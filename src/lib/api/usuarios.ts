@@ -1,28 +1,304 @@
 import { Usuario, CreateUsuarioData, LoginCredentials, AuthResponse } from '../schemas/usuarios';
-import crypto from 'crypto';
+import { signToken, hashPassword, comparePassword } from '../auth';
+import { query } from '../database';
 
-// Base de datos simulada en memoria (en producción sería una base de datos real)
-class UsuariosDatabase {
-  private usuarios: Usuario[] = [];
+// Funciones para manejo de usuarios en base de datos PostgreSQL
+export async function createUser(data: CreateUsuarioData): Promise<Usuario | null> {
+  try {
+    // Verificar si el email ya existe
+    const existingUser = await query('SELECT id FROM usuarios WHERE email = $1', [data.email]);
+    if (existingUser.rows.length > 0) {
+      return null;
+    }
 
-  constructor() {
-    this.initializeDefaultUsers();
+    // Hash de la contraseña
+    const hashedPassword = hashPassword(data.password);
+
+    // Insertar nuevo usuario
+    const result = await query(`
+      INSERT INTO usuarios (email, password, nombre, apellido, rol, telefono, tenant_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id, email, nombre, apellido, rol, activo, fecha_creacion, telefono, tenant_id
+    `, [data.email, hashedPassword, data.nombre, data.apellido, data.rol, data.telefono, data.tenant_id]);
+
+    const user = result.rows[0];
+    return {
+      id: user.id,
+      email: user.email,
+      password: hashedPassword,
+      nombre: user.nombre,
+      apellido: user.apellido,
+      rol: user.rol,
+      activo: user.activo,
+      fechaCreacion: user.fecha_creacion,
+      telefono: user.telefono,
+      tenant_id: user.tenant_id
+    };
+  } catch (error) {
+    console.error('Error creando usuario:', error);
+    return null;
   }
+}
 
-  private hashPassword(password: string): string {
-    return crypto.createHash('sha256').update(password).digest('hex');
+export async function authenticateUser(credentials: LoginCredentials): Promise<AuthResponse | null> {
+  try {
+    // Buscar usuario por email
+    const result = await query(`
+      SELECT id, email, password, nombre, apellido, rol, tenant_id, activo
+      FROM usuarios 
+      WHERE email = $1 AND activo = true
+    `, [credentials.email]);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const user = result.rows[0];
+
+    // Verificar contraseña
+    if (!comparePassword(credentials.password, user.password)) {
+      return null;
+    }
+
+    // Actualizar último acceso
+    await query('UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = $1', [user.id]);
+
+    // Crear JWT token con tenant_id
+    const access_token = signToken({
+      user_id: user.id,
+      email: user.email,
+      rol: user.rol,
+      tenant_id: user.tenant_id
+    });
+
+    return {
+      access_token,
+      user: {
+        id: user.id,
+        email: user.email,
+        nombre: user.nombre,
+        apellido: user.apellido,
+        rol: user.rol,
+        tenant_id: user.tenant_id
+      }
+    };
+  } catch (error) {
+    console.error('Error autenticando usuario:', error);
+    return null;
   }
+}
 
-  private comparePassword(password: string, hash: string): boolean {
-    return this.hashPassword(password) === hash;
+export async function findUserByEmail(email: string): Promise<Usuario | null> {
+  try {
+    const result = await query(`
+      SELECT id, email, password, nombre, apellido, rol, activo, fecha_creacion, ultimo_acceso, telefono, avatar, tenant_id
+      FROM usuarios 
+      WHERE email = $1 AND activo = true
+    `, [email]);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      email: row.email,
+      password: row.password,
+      nombre: row.nombre,
+      apellido: row.apellido,
+      rol: row.rol,
+      activo: row.activo,
+      fechaCreacion: row.fecha_creacion,
+      ultimoAcceso: row.ultimo_acceso,
+      telefono: row.telefono,
+      avatar: row.avatar,
+      tenant_id: row.tenant_id
+    };
+  } catch (error) {
+    console.error('Error buscando usuario por email:', error);
+    return null;
   }
+}
 
-  private generateId(): string {
-    return crypto.randomUUID();
+export async function findUserById(id: string): Promise<Usuario | null> {
+  try {
+    const result = await query(`
+      SELECT id, email, password, nombre, apellido, rol, activo, fecha_creacion, ultimo_acceso, telefono, avatar, tenant_id
+      FROM usuarios 
+      WHERE id = $1 AND activo = true
+    `, [id]);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      email: row.email,
+      password: row.password,
+      nombre: row.nombre,
+      apellido: row.apellido,
+      rol: row.rol,
+      activo: row.activo,
+      fechaCreacion: row.fecha_creacion,
+      ultimoAcceso: row.ultimo_acceso,
+      telefono: row.telefono,
+      avatar: row.avatar,
+      tenant_id: row.tenant_id
+    };
+  } catch (error) {
+    console.error('Error buscando usuario por ID:', error);
+    return null;
   }
+}
 
-  private initializeDefaultUsers() {
-    const defaultUsers: CreateUsuarioData[] = [
+export async function getAllUsers(tenantId?: string): Promise<Usuario[]> {
+  try {
+    let sql = `
+      SELECT id, email, password, nombre, apellido, rol, activo, fecha_creacion, ultimo_acceso, telefono, avatar, tenant_id
+      FROM usuarios 
+      WHERE activo = true
+    `;
+    
+    const params: any[] = [];
+    
+    if (tenantId) {
+      sql += ' AND tenant_id = $1';
+      params.push(tenantId);
+    }
+    
+    sql += ' ORDER BY fecha_creacion DESC';
+
+    const result = await query(sql, params);
+
+    return result.rows.map((row: any) => ({
+      id: row.id,
+      email: row.email,
+      password: row.password,
+      nombre: row.nombre,
+      apellido: row.apellido,
+      rol: row.rol,
+      activo: row.activo,
+      fechaCreacion: row.fecha_creacion,
+      ultimoAcceso: row.ultimo_acceso,
+      telefono: row.telefono,
+      avatar: row.avatar,
+      tenant_id: row.tenant_id
+    }));
+  } catch (error) {
+    console.error('Error obteniendo usuarios:', error);
+    return [];
+  }
+}
+
+export async function updateUser(id: string, updates: Partial<Usuario>): Promise<Usuario | null> {
+  try {
+    // No permitir actualizar ciertos campos críticos
+    const { password, id: _, fechaCreacion, tenant_id, ...safeUpdates } = updates;
+    
+    if (Object.keys(safeUpdates).length === 0) {
+      return await findUserById(id);
+    }
+
+    const setClause = Object.keys(safeUpdates)
+      .map((key, index) => `${key} = $${index + 2}`)
+      .join(', ');
+    
+    const values = [id, ...Object.values(safeUpdates)];
+
+    const result = await query(`
+      UPDATE usuarios 
+      SET ${setClause}
+      WHERE id = $1 AND activo = true
+      RETURNING id, email, password, nombre, apellido, rol, activo, fecha_creacion, ultimo_acceso, telefono, avatar, tenant_id
+    `, values);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      email: row.email,
+      password: row.password,
+      nombre: row.nombre,
+      apellido: row.apellido,
+      rol: row.rol,
+      activo: row.activo,
+      fechaCreacion: row.fecha_creacion,
+      ultimoAcceso: row.ultimo_acceso,
+      telefono: row.telefono,
+      avatar: row.avatar,
+      tenant_id: row.tenant_id
+    };
+  } catch (error) {
+    console.error('Error actualizando usuario:', error);
+    return null;
+  }
+}
+
+export async function deleteUser(id: string): Promise<boolean> {
+  try {
+    // Soft delete - marcar como inactivo
+    const result = await query(`
+      UPDATE usuarios 
+      SET activo = false 
+      WHERE id = $1
+    `, [id]);
+
+    return result.rowCount > 0;
+  } catch (error) {
+    console.error('Error eliminando usuario:', error);
+    return false;
+  }
+}
+
+export async function changeUserPassword(id: string, oldPassword: string, newPassword: string): Promise<boolean> {
+  try {
+    const user = await findUserById(id);
+    if (!user) return false;
+
+    if (!comparePassword(oldPassword, user.password)) return false;
+
+    const hashedNewPassword = hashPassword(newPassword);
+    const result = await query(`
+      UPDATE usuarios 
+      SET password = $1 
+      WHERE id = $2
+    `, [hashedNewPassword, id]);
+
+    return result.rowCount > 0;
+  } catch (error) {
+    console.error('Error cambiando contraseña:', error);
+    return false;
+  }
+}
+
+// Función para crear usuarios por defecto en la base de datos
+export async function initializeDefaultUsers(): Promise<void> {
+  try {
+    console.log('👥 Inicializando usuarios por defecto...');
+
+    // Limpiar usuarios con contraseñas temporales primero
+    await query(`
+      DELETE FROM usuarios 
+      WHERE password = 'temp123' 
+      OR email LIKE 'user%@gardops.com'
+    `);
+
+    // Obtener el tenant por defecto
+    const tenantResult = await query('SELECT id FROM tenants LIMIT 1');
+    if (tenantResult.rows.length === 0) {
+      console.error('❌ No se encontró ningún tenant');
+      return;
+    }
+
+    const defaultTenantId = tenantResult.rows[0].id;
+
+    const defaultUsers = [
       {
         email: 'admin@gardops.com',
         password: 'admin123',
@@ -49,157 +325,56 @@ class UsuariosDatabase {
       }
     ];
 
-    defaultUsers.forEach(userData => {
-      this.createUser(userData);
-    });
+    let createdCount = 0;
+    let existingCount = 0;
 
-    console.log('✅ Usuarios por defecto creados:', this.usuarios.length);
-  }
+    for (const userData of defaultUsers) {
+      try {
+        // Verificar si el usuario ya existe
+        const existing = await query('SELECT id FROM usuarios WHERE email = $1', [userData.email]);
+        
+        if (existing.rows.length > 0) {
+          existingCount++;
+          console.log(`ℹ️ Usuario ${userData.email} ya existe`);
+          continue;
+        }
 
-  createUser(data: CreateUsuarioData): Usuario | null {
-    // Verificar si el email ya existe
-    if (this.usuarios.find(u => u.email === data.email)) {
-      return null;
+        // Hash de la contraseña usando bcrypt
+        const hashedPassword = hashPassword(userData.password);
+
+        // Crear usuario
+        await query(`
+          INSERT INTO usuarios (tenant_id, email, password, nombre, apellido, rol, telefono, activo, fecha_creacion)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, true, NOW())
+        `, [defaultTenantId, userData.email, hashedPassword, userData.nombre, userData.apellido, userData.rol, userData.telefono]);
+
+        createdCount++;
+        console.log(`✅ Usuario creado: ${userData.email} (${userData.nombre} ${userData.apellido}) - Rol: ${userData.rol}`);
+
+      } catch (userError) {
+        console.error(`❌ Error creando usuario ${userData.email}:`, userError);
+      }
     }
 
-    const usuario: Usuario = {
-      id: this.generateId(),
-      email: data.email,
-      password: this.hashPassword(data.password),
-      nombre: data.nombre,
-      apellido: data.apellido,
-      rol: data.rol,
-      activo: true,
-      fechaCreacion: new Date(),
-      telefono: data.telefono,
-    };
-
-    this.usuarios.push(usuario);
-    return usuario;
-  }
-
-  findByEmail(email: string): Usuario | null {
-    return this.usuarios.find(u => u.email === email && u.activo) || null;
-  }
-
-  findById(id: string): Usuario | null {
-    return this.usuarios.find(u => u.id === id && u.activo) || null;
-  }
-
-  getAllUsers(): Usuario[] {
-    return this.usuarios.filter(u => u.activo);
-  }
-
-  authenticateUser(email: string, password: string): Usuario | null {
-    const user = this.findByEmail(email);
-    if (!user) return null;
-
-    if (this.comparePassword(password, user.password)) {
-      // Actualizar último acceso
-      user.ultimoAcceso = new Date();
-      return user;
+    if (createdCount > 0) {
+      console.log(`✅ ${createdCount} usuarios por defecto creados en base de datos`);
     }
-
-    return null;
-  }
-
-  updateUser(id: string, updates: Partial<Usuario>): Usuario | null {
-    const userIndex = this.usuarios.findIndex(u => u.id === id);
-    if (userIndex === -1) return null;
-
-    // No permitir actualizar ciertos campos críticos
-    const { password, id: _, fechaCreacion, ...safeUpdates } = updates;
     
-    this.usuarios[userIndex] = {
-      ...this.usuarios[userIndex],
-      ...safeUpdates,
-    };
-
-    return this.usuarios[userIndex];
-  }
-
-  deleteUser(id: string): boolean {
-    const userIndex = this.usuarios.findIndex(u => u.id === id);
-    if (userIndex === -1) return false;
-
-    // Soft delete - marcar como inactivo
-    this.usuarios[userIndex].activo = false;
-    return true;
-  }
-
-  // Métodos para cambio de contraseña
-  changePassword(id: string, oldPassword: string, newPassword: string): boolean {
-    const user = this.findById(id);
-    if (!user) return false;
-
-    if (!this.comparePassword(oldPassword, user.password)) return false;
-
-    user.password = this.hashPassword(newPassword);
-    return true;
-  }
-}
-
-// Instancia singleton de la base de datos
-const db = new UsuariosDatabase();
-
-// Funciones exportadas para usar en las APIs
-export async function createUser(data: CreateUsuarioData): Promise<Usuario | null> {
-  return db.createUser(data);
-}
-
-export async function authenticateUser(credentials: LoginCredentials): Promise<AuthResponse | null> {
-  const user = db.authenticateUser(credentials.email, credentials.password);
-  
-  if (!user) return null;
-
-  // Crear JWT token
-  const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    userId: user.id,
-    email: user.email,
-    rol: user.rol,
-    iat: now,
-    exp: now + (24 * 60 * 60) // 24 horas
-  };
-
-  // JWT simulado (en producción usar jsonwebtoken)
-  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const payloadEncoded = btoa(JSON.stringify(payload));
-  const signature = btoa('gardops-secret-signature');
-  const access_token = `${header}.${payloadEncoded}.${signature}`;
-
-  return {
-    access_token,
-    user: {
-      id: user.id,
-      email: user.email,
-      nombre: user.nombre,
-      apellido: user.apellido,
-      rol: user.rol,
+    if (existingCount > 0) {
+      console.log(`ℹ️ ${existingCount} usuarios ya existían en base de datos`);
     }
-  };
-}
 
-export async function findUserByEmail(email: string): Promise<Usuario | null> {
-  return db.findByEmail(email);
-}
+    if (createdCount === 0 && existingCount === 0) {
+      console.log('⚠️ No se crearon usuarios nuevos');
+    }
 
-export async function findUserById(id: string): Promise<Usuario | null> {
-  return db.findById(id);
-}
+    console.log('\n🔑 CREDENCIALES DE ACCESO:');
+    console.log('👑 Admin: admin@gardops.com / admin123');
+    console.log('👨‍💼 Supervisor: supervisor@gardops.com / super123');
+    console.log('👮 Guardia: guardia@gardops.com / guard123');
+    console.log('🌐 Accede en: http://localhost:3001/login');
 
-export async function getAllUsers(): Promise<Usuario[]> {
-  return db.getAllUsers();
-}
-
-export async function updateUser(id: string, updates: Partial<Usuario>): Promise<Usuario | null> {
-  return db.updateUser(id, updates);
-}
-
-export async function deleteUser(id: string): Promise<boolean> {
-  return db.deleteUser(id);
-}
-
-export async function changeUserPassword(id: string, oldPassword: string, newPassword: string): Promise<boolean> {
-  return db.changePassword(id, oldPassword, newPassword);
+  } catch (error) {
+    console.error('❌ Error inicializando usuarios por defecto:', error);
+  }
 } 

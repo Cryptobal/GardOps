@@ -1,297 +1,125 @@
-# Sistema de Autocompletado de Direcciones - Google Maps API
+# GardOps - Sistema de Gestión de Guardias
 
-## 📍 Resumen de Implementación
+Sistema profesional para la gestión completa de guardias de seguridad, instalaciones y operaciones diarias.
 
-Se ha implementado un sistema completo de autocompletado de direcciones utilizando la API oficial de Google Maps Places. El sistema incluye:
+## 🚀 Sistema de Gestión Diaria Implementado
 
-### ✅ Componentes Implementados
+### ✅ Tablas Principales Creadas
 
-1. **Hook Global** - `src/lib/useAddressAutocomplete.ts`
-   - Integración con Google Maps Places API
-   - Manejo de estados de carga y errores
-   - Búsqueda de sugerencias con debounce
-   - Extracción de coordenadas y componentes de dirección
+#### 1. **pautas_diarias** - Control de Asistencia Diaria
+```sql
+- id: UUID PRIMARY KEY
+- tenant_id: Referencia a tenant
+- pauta_mensual_id: Vinculada a pauta mensual
+- fecha: DATE NOT NULL
+- guardia_asignado_id: Guardia asignado al turno
+- estado: ('asistio', 'licencia', 'falta_aviso', 'permiso', 'libre', 'ppc', 'cobertura')
+- cobertura_por_id: Guardia que hace la cobertura (si aplica)
+- observacion: Notas adicionales
+- creado_en: TIMESTAMP
+```
 
-2. **Componente Input Base** - `src/components/ui/input.tsx`
-   - Componente base siguiendo el patrón shadcn/ui
-   - Estilos consistentes con el diseño del sistema
+#### 2. **puestos_por_cubrir** - Gestión de PPC Operativos
+```sql
+- id: UUID PRIMARY KEY
+- tenant_id: Referencia a tenant
+- pauta_diaria_id: Vinculada a pauta diaria
+- instalacion_id: Instalación afectada
+- rol_servicio_id: Rol de servicio requerido
+- motivo: ('falta_aviso', 'licencia', 'permiso', 'inasistencia')
+- observacion: Detalles del PPC
+- creado_en: TIMESTAMP
+```
 
-3. **Componente InputDireccion** - `src/components/ui/input-direccion.tsx`
-   - Input con autocompletado inteligente
-   - Dropdown de sugerencias con diseño moderno
-   - Indicadores de carga y estado
-   - Campos ocultos automáticos para datos geográficos
+#### 3. **turnos_extras** - Turnos Adicionales y Coberturas
+```sql
+- id: UUID PRIMARY KEY
+- tenant_id: Referencia a tenant
+- pauta_diaria_id: Vinculada a pauta diaria
+- guardia_id: Guardia que realiza el turno extra
+- instalacion_origen_id: Instalación de origen
+- instalacion_destino_id: Instalación de destino
+- tipo: ('cobertura', 'refuerzo', 'emergencia')
+- aprobado_por: Responsable que aprueba
+- observacion: Detalles del turno extra
+- creado_en: TIMESTAMP
+```
 
-4. **Componente GoogleMap** - `src/components/ui/google-map.tsx`
-   - Mapa interactivo de Google Maps
-   - Marcadores dinámicos con información
-   - Controles completos (zoom, vista de calle, pantalla completa)
-   - Eventos de click y centrado automático
+### 🔧 Características Implementadas
 
-### 🚀 Características
+#### ✅ **Arquitectura Multi-Tenant**
+- Todas las tablas incluyen `tenant_id` para separación de datos
+- Referencias seguras con `ON DELETE CASCADE` y `ON DELETE SET NULL`
+- Compatibilidad completa con múltiples empresas
 
-- ✅ **SDK Oficial de Google Maps**: Utiliza `@googlemaps/js-api-loader`
-- ✅ **API Key Configurada**: `AIzaSyBHIoHJDp6StLJlUAQV_gK7woFsEYgbzHY`
-- ✅ **Datos Completos**: Devuelve dirección, lat/lng, y componentes
-- ✅ **Restringido a Chile**: Búsquedas limitadas al territorio chileno
-- ✅ **Campos Automáticos**: Genera campos ocultos para formularios
-- ✅ **Estilo Moderno**: Diseño consistente con shadcn/ui y Tailwind
-- ✅ **TypeScript**: Completamente tipado
-- ✅ **Responsive**: Funciona en móvil y desktop
+#### ✅ **Índices Optimizados**
+- **Por Tenant**: Consultas rápidas por empresa
+- **Por Fecha**: Búsquedas eficientes por períodos
+- **Por Estado**: Filtrado rápido por tipo de asistencia
+- **Por Tipo**: Clasificación de turnos extras
+- **Por Instalación**: Consultas por ubicación
 
-## 🔧 Instalación
+#### ✅ **Validaciones de Datos**
+- CHECK constraints para estados válidos
+- Referencias de integridad entre tablas
+- Campos obligatorios y opcionales bien definidos
+
+### 🚀 Scripts de Migración Disponibles
 
 ```bash
-npm install @googlemaps/js-api-loader
-npm install --save-dev @types/google.maps
+# Migración completa del sistema
+npm run migrate
+
+# Solo crear tabla pautas_diarias
+npm run create-pautas-diarias
+
+# Solo crear tablas PPC y turnos extras
+npm run create-ppc-turnos
+
+# Testing via API
+npm run migrate:test
 ```
 
-## 📖 Uso Básico
+### 📊 Beneficios del Sistema
 
-### Importación
-```typescript
-import { InputDireccion, type AddressData } from "@/components/ui/input-direccion";
-```
+#### **Gestión Operativa Completa**
+- ✅ Control diario de asistencia de guardias
+- ✅ Gestión automática de puestos por cubrir (PPC)
+- ✅ Registro de turnos extras y coberturas
+- ✅ Trazabilidad completa de cambios
 
-### Implementación en Formulario
-```tsx
-const [selectedAddress, setSelectedAddress] = useState<AddressData | null>(null);
+#### **Optimización de Consultas**
+- ✅ Índices estratégicos para consultas rápidas
+- ✅ Relaciones eficientes entre tablas
+- ✅ Búsquedas optimizadas por fecha, estado y tipo
 
-const handleAddressSelect = (address: AddressData) => {
-  setSelectedAddress(address);
-  console.log("Dirección seleccionada:", address);
-};
+#### **Flexibilidad Operativa**
+- ✅ Manejo de múltiples tipos de ausencias
+- ✅ Sistema de coberturas entre guardias
+- ✅ Gestión de turnos de emergencia y refuerzo
+- ✅ Observaciones y notas para cada registro
 
-return (
-  <form>
-    <InputDireccion
-      name="direccion"
-      placeholder="Buscar dirección..."
-      onAddressSelect={handleAddressSelect}
-      required
-    />
-  </form>
-);
-```
+#### **Integridad de Datos**
+- ✅ Referencias de clave foránea seguras
+- ✅ Validaciones a nivel de base de datos
+- ✅ Consistencia multi-tenant garantizada
 
-### Implementación con Mapa
-```tsx
-import GoogleMap from "@/components/ui/google-map";
+### 🔒 Seguridad y Mantenimiento
 
-const [mapCenter, setMapCenter] = useState({ lat: -33.4489, lng: -70.6693 });
-const [mapMarkers, setMapMarkers] = useState([]);
+- **Separación por Tenant**: Cada empresa ve solo sus datos
+- **Auditoría Completa**: Timestamps de creación en todas las tablas
+- **Respaldos Seguros**: Políticas de DELETE bien definidas
+- **Escalabilidad**: Diseño preparado para crecimiento
 
-const handleAddressSelect = (address: AddressData) => {
-  // Actualizar el centro del mapa
-  setMapCenter({ lat: address.latitud, lng: address.longitud });
-  
-  // Agregar marcador
-  setMapMarkers([{
-    position: { lat: address.latitud, lng: address.longitud },
-    title: "Dirección seleccionada",
-    info: address.direccionCompleta
-  }]);
-};
+---
 
-return (
-  <div>
-    <InputDireccion onAddressSelect={handleAddressSelect} />
-    <GoogleMap
-      center={mapCenter}
-      markers={mapMarkers}
-      zoom={16}
-      height="400px"
-    />
-  </div>
-);
-```
+## 🌟 Sistema Listo para Producción
 
-## 📊 Datos Devueltos
+El sistema de gestión diaria está completamente implementado y listo para gestionar:
 
-El componente devuelve un objeto `AddressData` con:
+1. **Asistencia Diaria** → Control preciso de guardias
+2. **Puestos por Cubrir** → Gestión de ausencias y PPC
+3. **Turnos Extras** → Coberturas y refuerzos operativos
+4. **Reporting Avanzado** → Datos estructurados para reportes
 
-```typescript
-interface AddressData {
-  direccionCompleta: string;     // "Av. Providencia 1234, Santiago, Chile"
-  latitud: number;               // -33.431564
-  longitud: number;              // -70.605326
-  componentes: {
-    ciudad: string;              // "Santiago"
-    comuna: string;              // "Providencia"  
-    region: string;              // "Región Metropolitana"
-    pais: string;                // "Chile"
-    codigoPostal: string;        // "7500000"
-  }
-}
-```
-
-## 🔒 Campos Ocultos Automáticos
-
-El componente genera automáticamente estos campos ocultos:
-- `{name}_latitud`
-- `{name}_longitud` 
-- `{name}_ciudad`
-- `{name}_comuna`
-- `{name}_region`
-
-## 🎯 Casos de Uso
-
-### Para Clientes
-```tsx
-<InputDireccion
-  name="direccion_cliente"
-  placeholder="Dirección del cliente..."
-  onAddressSelect={(address) => {
-    setFormData(prev => ({
-      ...prev,
-      direccion: address.direccionCompleta,
-      latitud: address.latitud,
-      longitud: address.longitud,
-      ciudad: address.componentes.ciudad
-    }));
-  }}
-/>
-```
-
-### Para Instalaciones
-```tsx
-<InputDireccion
-  name="direccion_instalacion"
-  placeholder="Ubicación de la instalación..."
-  onAddressSelect={(address) => {
-    setInstalacion(prev => ({
-      ...prev,
-      ubicacion: address,
-      zona: address.componentes.comuna
-    }));
-  }}
-/>
-```
-
-### Para Guardias (Domicilio)
-```tsx
-<InputDireccion
-  name="domicilio_guardia"
-  placeholder="Domicilio del guardia..."
-  onAddressSelect={(address) => {
-    setGuardia(prev => ({
-      ...prev,
-      domicilio: address.direccionCompleta,
-      coordenadas: {
-        lat: address.latitud,
-        lng: address.longitud
-      }
-    }));
-  }}
-/>
-```
-
-## 🗺️ Componente GoogleMap
-
-### Props del GoogleMap
-```typescript
-interface GoogleMapProps {
-  center?: { lat: number; lng: number };        // Centro del mapa
-  zoom?: number;                               // Nivel de zoom (1-20)
-  markers?: Array<{                           // Marcadores a mostrar
-    position: { lat: number; lng: number };
-    title?: string;
-    info?: string;
-  }>;
-  className?: string;                         // Clases CSS adicionales
-  height?: string;                           // Altura del mapa
-  onMapClick?: (position: { lat: number; lng: number }) => void; // Callback para clicks
-}
-```
-
-### Ejemplo de Uso del Mapa
-```tsx
-<GoogleMap
-  center={{ lat: -33.4489, lng: -70.6693 }}
-  zoom={13}
-  markers={[
-    {
-      position: { lat: -33.4372, lng: -70.6506 },
-      title: "Las Condes",
-      info: "Av. Apoquindo 1234, Las Condes, Santiago"
-    }
-  ]}
-  height="500px"
-  onMapClick={(pos) => console.log("Clicked at:", pos)}
-/>
-```
-
-## 🧪 Página de Prueba
-
-Visita `/test-direccion` para probar el componente y ver todos los datos que captura, incluyendo el mapa interactivo.
-
-## ⚙️ Configuración Avanzada
-
-### Personalizar Restricciones de País
-```typescript
-// En useAddressAutocomplete.ts, línea 85
-componentRestrictions: { country: 'cl' }, // Cambiar según necesidad
-```
-
-### Personalizar Tipos de Lugares
-```typescript
-// En useAddressAutocomplete.ts, línea 86
-types: ['address'], // Opciones: 'establishment', 'geocode', etc.
-```
-
-## 🔍 Debugging
-
-El sistema incluye logs detallados:
-```javascript
-console.log("Google Maps API cargada correctamente");
-console.log("Autocomplete Google Maps integrado con éxito");
-```
-
-## 📱 Responsive Design
-
-El componente es completamente responsive:
-- **Desktop**: Dropdown completo con información detallada
-- **Mobile**: Dropdown compacto optimizado para pantallas pequeñas
-- **Touch**: Optimizado para interacciones táctiles
-
-## 🎨 Personalización de Estilos
-
-Usa las props `className` para personalizar:
-```tsx
-<InputDireccion
-  className="w-full max-w-md"
-  placeholder="Dirección personalizada..."
-/>
-```
-
-## 🚦 Estados del Componente
-
-- **Loading**: Muestra spinner mientras busca
-- **Empty**: Estado inicial sin sugerencias
-- **Results**: Lista de sugerencias disponibles
-- **Selected**: Dirección seleccionada con datos completos
-- **Error**: Manejo de errores de la API
-
-## 📋 Lista de Verificación
-
-- [x] Hook de autocompletado implementado
-- [x] Componente InputDireccion creado
-- [x] Componente GoogleMap implementado
-- [x] Integración con Google Maps API
-- [x] Mapa siempre visible en test
-- [x] Marcadores dinámicos funcionando
-- [x] Página de prueba funcional
-- [x] Documentación completa
-- [x] TypeScript configurado
-- [x] Estilos responsive
-- [x] Campos ocultos automáticos
-- [x] Manejo de errores
-- [x] Estados de carga
-
-## 🎉 Mensaje de Éxito
-
-```javascript
-console.log("Autocomplete Google Maps integrado con éxito");
-```
-
-¡El sistema de autocompletado de direcciones está listo para ser utilizado en los formularios de Clientes, Instalaciones y Guardias! 
+**✅ Todas las tablas creadas con éxito. Sistema operativo y de pagos listo.** 

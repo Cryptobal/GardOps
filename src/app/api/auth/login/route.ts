@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Autenticar usuario usando la base de datos
+    // Autenticar usuario usando JWT real con base de datos
     const authResult = await authenticateUser({ email, password })
 
     if (!authResult) {
@@ -32,11 +32,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`✅ Login exitoso para: ${email} (${authResult.user.nombre} ${authResult.user.apellido})`)
+    console.log(`✅ Login exitoso para: ${email} (${authResult.user.nombre} ${authResult.user.apellido}) - Tenant: ${authResult.user.tenant_id}`)
 
+    // El token JWT expira en 30 minutos y contiene user_id, rol y tenant_id
     return NextResponse.json({
       access_token: authResult.access_token,
-      user: authResult.user
+      user: authResult.user,
+      expires_in: 1800 // 30 minutos en segundos
     })
 
   } catch (error) {
