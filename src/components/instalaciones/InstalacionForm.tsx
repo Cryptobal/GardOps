@@ -8,11 +8,11 @@ import { Switch } from "../ui/switch";
 import { InputDireccion, type AddressData } from "../ui/input-direccion";
 import { GoogleMap } from "../ui/google-map";
 import { Building, MapPin, User, Mail, Phone, FileText, ClockIcon } from "lucide-react";
-import { Instalacion, CrearInstalacionData } from "../../lib/schemas/instalaciones";
+import { Instalacion, CrearInstalacion } from "../../lib/schemas/instalaciones";
 
 interface InstalacionFormProps {
   instalacion?: Instalacion | null;
-  formData: CrearInstalacionData;
+  formData: CrearInstalacion;
   isEditing: boolean;
   formErrors: Record<string, string>;
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
