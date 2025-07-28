@@ -100,7 +100,7 @@ export default function InstalacionesCliente({
           <p className="text-sm mt-1">Haz clic en &quot;Agregar Instalación&quot; para crear una nueva</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 max-h-[50vh] lg:max-h-96 overflow-y-auto">
           {instalaciones.map((instalacion) => (
             <div
               key={instalacion.id}
