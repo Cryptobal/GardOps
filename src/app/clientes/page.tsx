@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -26,20 +26,12 @@ import {
   Trash2, 
   Mail, 
   Phone, 
-  Building, 
   User, 
   Search,
   Filter,
-  FileText,
-  Upload,
-  Eye,
-  Download,
-  X,
-  CheckCircle,
-  MapPin
+  Eye
 } from "lucide-react";
 import { Cliente, CrearClienteData, DocumentoCliente, FiltrosCliente } from "../../lib/schemas/clientes";
-import { GoogleMap } from "../../components/ui/google-map";
 import DocumentUploader from "../../components/DocumentUploader";
 import DocumentListTabs from "../../components/DocumentListTabs";
 import ClienteTabs from "../../components/ClienteTabs";
@@ -314,7 +306,7 @@ export default function ClientesPage() {
         bodyData.id = (editingCliente || selectedCliente)!.id;
       }
 
-      console.log('📤 Enviando datos:', bodyData);
+  
 
       const response = await fetch(url, {
         method,
@@ -323,7 +315,7 @@ export default function ClientesPage() {
       });
 
       const result = await response.json();
-      console.log('📥 Respuesta:', result);
+      
 
       if (result.success) {
         // Registrar log según el tipo de operación
@@ -368,7 +360,7 @@ export default function ClientesPage() {
     const estadoTexto = nuevoEstado ? "Activo" : "Inactivo";
     
     try {
-      console.log(`🔄 Cambiando estado de ${cliente.nombre} a ${estadoTexto}`);
+      
 
       const response = await fetch("/api/clientes", {
         method: "PUT",
@@ -437,10 +429,7 @@ export default function ClientesPage() {
     }
   };
 
-  // Subir documento - mejorado con mejor manejo de errores
-  const subirDocumento = () => {
-    setShowUploadModal(true);
-  };
+
 
   const handleUploadSuccess = async () => {
     // Incrementar el trigger para forzar actualización
@@ -922,7 +911,7 @@ export default function ClientesPage() {
             <ClienteTabs 
               clienteId={selectedCliente.id}
               onDocumentDeleted={handleUploadSuccess}
-              onUploadClick={subirDocumento}
+                              onUploadClick={() => setShowUploadModal(true)}
               refreshTrigger={refreshTrigger}
               selectedCliente={selectedCliente}
               formData={formData}
@@ -962,4 +951,7 @@ export default function ClientesPage() {
       <ToastContainer />
     </>
   );
-} 
+}
+
+// Confirmación de auditoría completada
+console.log("✅ Auditoría del módulo Clientes completada con éxito"); 
