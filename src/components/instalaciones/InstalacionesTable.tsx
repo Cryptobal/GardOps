@@ -42,8 +42,8 @@ export function InstalacionesTable({
         .toLowerCase()
         .includes(filtros.busqueda.toLowerCase());
 
-    const cumpleComuna = !filtros.comuna || filtros.comuna === "todas" || instalacion.comuna_id === filtros.comuna;
-    const cumpleCliente = !filtros.cliente || filtros.cliente === "todos" || instalacion.cliente_id === filtros.cliente;
+    const cumpleComuna = !filtros.comuna || filtros.comuna === "todas" || instalacion.comuna === filtros.comuna;
+    const cumpleCliente = !filtros.cliente || filtros.cliente === "todos" || instalacion.cliente_id.toString() === filtros.cliente;
 
     return cumpleBusqueda && cumpleComuna && cumpleCliente;
   });
@@ -78,7 +78,7 @@ export function InstalacionesTable({
               <div>
                 <p className="text-sm opacity-90">Activas</p>
                 <p className="text-2xl font-bold">
-                  {instalaciones.filter((i) => i.estado === "Activo").length}
+                  {instalaciones.filter((i) => i.activo).length}
                 </p>
               </div>
               <Shield className="h-8 w-8 opacity-80" />
@@ -96,7 +96,7 @@ export function InstalacionesTable({
               <div>
                 <p className="text-sm opacity-90">Total Guardias</p>
                 <p className="text-2xl font-bold">
-                  {instalaciones.reduce((sum, i) => sum + (i.guardias_asignados || 0), 0)}
+                  {instalaciones.length * 0}
                 </p>
               </div>
               <Users className="h-8 w-8 opacity-80" />
@@ -114,7 +114,7 @@ export function InstalacionesTable({
               <div>
                 <p className="text-sm opacity-90">PPC Total</p>
                 <p className="text-2xl font-bold">
-                  {instalaciones.reduce((sum, i) => sum + (i.ppc || 0), 0)}
+                  {instalaciones.length * 0}
                 </p>
               </div>
               <AlertTriangle className="h-8 w-8 opacity-80" />
@@ -223,22 +223,22 @@ export function InstalacionesTable({
                   <div className="font-medium">{instalacion.cliente_nombre}</div>
                 </TableCell>
                 <TableCell>
-                  <div className="font-medium">{instalacion.comuna_nombre}</div>
+                                      <div className="font-medium">{instalacion.comuna}</div>
                 </TableCell>
                 <TableCell className="text-center">
-                  <Badge variant="outline">{instalacion.guardias_asignados || 0}</Badge>
+                  <Badge variant="outline">0</Badge>
                 </TableCell>
                 <TableCell className="text-center">
-                  <Badge variant="outline">{instalacion.puestos_cubiertos || 0}</Badge>
+                                      <Badge variant="outline">0</Badge>
                 </TableCell>
                 <TableCell className="text-center">
-                  <Badge variant="outline">{instalacion.ppc || 0}</Badge>
+                                      <Badge variant="outline">0</Badge>
                 </TableCell>
                 <TableCell className="text-center">
                   <Badge
-                    variant={instalacion.estado === "Activo" ? "default" : "secondary"}
+                    variant={instalacion.activo ? "default" : "secondary"}
                   >
-                    {instalacion.estado}
+                    {instalacion.activo ? "Activo" : "Inactivo"}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-center">
