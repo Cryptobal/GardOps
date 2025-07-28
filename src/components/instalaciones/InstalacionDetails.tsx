@@ -9,7 +9,34 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { DocumentManager } from "../ui/document-manager";
 import { GoogleMap } from "../ui/google-map";
-import { Instalacion, PuestoOperativo, GuardiaAsignado } from "../../lib/schemas/instalaciones";
+import { Instalacion } from "../../lib/schemas/instalaciones";
+
+// Tipos locales para datos adicionales
+interface PuestoOperativo {
+  id: string;
+  instalacion_id: string;
+  nombre: string;
+  tipo_turno: string;
+  estado: string;
+  created_at: string;
+  updated_at: string;
+  tenant_id: string;
+}
+
+interface GuardiaAsignado {
+  id: string;
+  instalacion_id: string;
+  guardia_id: string;
+  guardia_nombre: string;
+  guardia_rut: string;
+  puesto_id: string;
+  puesto_nombre: string;
+  estado: string;
+  fecha_asignacion: string;
+  created_at: string;
+  updated_at: string;
+  tenant_id: string;
+}
 
 interface InstalacionDetailsProps {
   instalacion: Instalacion | null;
@@ -39,14 +66,14 @@ export function InstalacionDetails({
     }
   }, [instalacion, isOpen]);
 
-  const cargarDatosAdicionales = async (instalacionId: string) => {
+  const cargarDatosAdicionales = async (instalacionId: number) => {
     try {
       // Aquí se cargarían los datos desde la API
       // Por ahora usamos datos de ejemplo
       setPuestosOperativos([
         {
           id: "1",
-          instalacion_id: instalacionId,
+          instalacion_id: instalacionId.toString(),
           nombre: "Puesto Principal",
           tipo_turno: "8x8",
           estado: "Activo",
@@ -59,7 +86,7 @@ export function InstalacionDetails({
       setGuardiasAsignados([
         {
           id: "1",
-          instalacion_id: instalacionId,
+          instalacion_id: instalacionId.toString(),
           guardia_id: "guardia-1",
           guardia_nombre: "Juan Pérez",
           guardia_rut: "12345678-9",
