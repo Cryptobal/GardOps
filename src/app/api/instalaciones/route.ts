@@ -118,7 +118,15 @@ export async function DELETE(request: NextRequest) {
       );
     }
     
-    await eliminarInstalacion(id);
+    const idNumber = parseInt(id, 10);
+    if (isNaN(idNumber)) {
+      return NextResponse.json(
+        { success: false, error: 'ID de instalación inválido' },
+        { status: 400 }
+      );
+    }
+    
+    await eliminarInstalacion(idNumber);
     
     return NextResponse.json({
       success: true,
