@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@googlemaps/js-api-loader": "^1.16.10",
     "@radix-ui/react-slot": "^1.2.3",
     "@types/node": "^20",
     "@types/react": "^18",
@@ -27,6 +28,7 @@
     "typescript": "^5"
   },
   "devDependencies": {
+    "@types/google.maps": "^3.58.1",
     "eslint": "^8",
     "eslint-config-next": "14.0.0"
   }

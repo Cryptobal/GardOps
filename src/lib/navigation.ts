@@ -8,7 +8,8 @@ import {
   FileText, 
   FolderOpen, 
   AlertTriangle, 
-  Settings 
+  Settings,
+  MapPin 
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -78,5 +79,11 @@ export const navigationItems: NavigationItem[] = [
     href: "/configuracion",
     icon: Settings,
     description: "Configuración del sistema"
+  },
+  {
+    name: "Test Direcciones",
+    href: "/test-direccion",
+    icon: MapPin,
+    description: "Prueba de autocompletado de direcciones"
   }
 ]; 
