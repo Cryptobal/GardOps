@@ -23,13 +23,11 @@ import {
   Users, 
   Plus, 
   Edit, 
-  Trash2, 
   Mail, 
   Phone, 
   User, 
   Search,
-  Filter,
-  Eye
+  Filter
 } from "lucide-react";
 import { Cliente, CrearClienteData, DocumentoCliente, FiltrosCliente } from "../../lib/schemas/clientes";
 import DocumentUploader from "../../components/DocumentUploader";
@@ -395,39 +393,7 @@ export default function ClientesPage() {
     }
   };
 
-  // Eliminar cliente
-  const eliminarCliente = async (cliente: Cliente) => {
-    const confirmed = await confirm({
-      title: "Eliminar Cliente",
-      message: "¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer.",
-      confirmText: "Eliminar",
-      cancelText: "Cancelar",
-      type: "danger",
-    });
 
-    if (!confirmed) return;
-
-    try {
-      const response = await fetch(`/api/clientes?id=${cliente.id}`, {
-        method: "DELETE",
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        alert("Cliente eliminado con éxito");
-        await cargarClientes();
-        if (selectedCliente?.id === cliente.id) {
-          cerrarModales();
-        }
-      } else {
-        toast.error(result.error || "Error al eliminar cliente");
-      }
-    } catch (error) {
-      console.error("Error eliminando cliente:", error);
-      toast.error("Error de conexión");
-    }
-  };
 
 
 
@@ -499,37 +465,7 @@ export default function ClientesPage() {
             </Badge>
           </div>
         </TableCell>
-        <TableCell className="text-right">
-          {/* Contenedor con ancho fijo para evitar layout shifts */}
-          <div 
-            className="flex justify-end gap-2 w-20 h-8"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <motion.div
-              className="flex gap-2"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: isHovered || isMobile ? 1 : 0 }}
-              transition={{ duration: 0.15, ease: "easeInOut" }}
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => abrirModalDetalles(cliente)}
-                className="hover:bg-blue-500/10 hover:border-blue-500/30 h-7 w-7 p-0"
-              >
-                <Eye className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => eliminarCliente(cliente)}
-                className="hover:bg-red-500/10 hover:border-red-500/30 text-red-400 hover:text-red-300 h-7 w-7 p-0"
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </motion.div>
-          </div>
-        </TableCell>
+
       </TableRow>
     );
   };
@@ -597,29 +533,16 @@ export default function ClientesPage() {
         transition={{ duration: 0.5 }}
         className="space-y-6"
       >
-        {/* Encabezado */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-              Clientes
-            </h2>
-            <p className="text-muted-foreground mt-2">
-              Gestiona la información de tus clientes ({clientesFiltrados.length} de {clientes.length} registros)
-            </p>
-          </div>
-          <Button 
-            onClick={abrirModalNuevo}
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo Cliente
-          </Button>
-        </div>
-
-        {/* Barra de búsqueda y filtros */}
-        <Card className="bg-card/50 backdrop-blur-sm border-border/50">
+        {/* Barra de búsqueda, filtros y botón nuevo cliente - Fija al scroll */}
+        <Card className="bg-card/50 backdrop-blur-sm border-border/50 sticky top-0 z-10">
           <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex flex-col gap-2">
+              {/* Contador de registros */}
+              <div className="text-sm text-muted-foreground">
+                {clientesFiltrados.length} de {clientes.length} registros
+              </div>
+              
+              <div className="flex flex-col md:flex-row gap-4 items-center">
               {/* Búsqueda */}
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -675,18 +598,22 @@ export default function ClientesPage() {
                   </div>
                 </PopoverContent>
               </Popover>
+              
+              {/* Botón Nuevo Cliente */}
+              <Button 
+                onClick={abrirModalNuevo}
+                className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 whitespace-nowrap"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Cliente
+              </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Lista de clientes */}
         <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-foreground">
-              <Users className="h-5 w-5 text-blue-500" />
-              Lista de Clientes
-            </CardTitle>
-          </CardHeader>
           <CardContent>
             {loading ? (
               <div className="flex items-center justify-center h-32">
@@ -721,7 +648,6 @@ export default function ClientesPage() {
                           <TableHead>Email</TableHead>
                           <TableHead>Teléfono</TableHead>
                           <TableHead>Estado</TableHead>
-                          <TableHead className="text-right">Acciones</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
