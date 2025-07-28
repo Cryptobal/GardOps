@@ -5,7 +5,7 @@ import {
   actualizarInstalacion, 
   eliminarInstalacion,
   obtenerComunas,
-  obtenerClientes
+  obtenerClientesParaInstalaciones
 } from '../../../lib/api/instalaciones';
 import { crearInstalacionSchema, actualizarInstalacionSchema } from '../../../lib/schemas/instalaciones';
 import { query } from '../../../lib/database';
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     // Si se solicitan clientes para filtros
     if (action === 'clientes') {
-      const clientes = await obtenerClientes();
+      const clientes = await obtenerClientesParaInstalaciones();
       return NextResponse.json({ success: true, data: clientes });
     }
 
@@ -47,8 +47,6 @@ export async function POST(request: NextRequest) {
     
     // Validar datos con Zod
     const validatedData = crearInstalacionSchema.parse(body);
-    
-    // La tabla ya existe, no necesitamos verificarla
     
     const nuevaInstalacion = await crearInstalacion(validatedData);
     
@@ -118,15 +116,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
     
-    const idNumber = parseInt(id, 10);
-    if (isNaN(idNumber)) {
-      return NextResponse.json(
-        { success: false, error: 'ID de instalación inválido' },
-        { status: 400 }
-      );
-    }
-    
-    await eliminarInstalacion(idNumber);
+    await eliminarInstalacion(id);
     
     return NextResponse.json({
       success: true,

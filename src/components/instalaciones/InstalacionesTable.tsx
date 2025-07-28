@@ -42,7 +42,7 @@ export function InstalacionesTable({
         .toLowerCase()
         .includes(filtros.busqueda.toLowerCase());
 
-    const cumpleComuna = !filtros.comuna || filtros.comuna === "todas" || instalacion.comuna_id === filtros.comuna;
+    const cumpleComuna = !filtros.comuna || filtros.comuna === "todas" || instalacion.comuna === filtros.comuna;
     const cumpleCliente = !filtros.cliente || filtros.cliente === "todos" || instalacion.cliente_id === filtros.cliente;
 
     return cumpleBusqueda && cumpleComuna && cumpleCliente;
@@ -114,7 +114,7 @@ export function InstalacionesTable({
               <div>
                 <p className="text-sm opacity-90">PPC Total</p>
                 <p className="text-2xl font-bold">
-                  {instalaciones.reduce((sum, i) => sum + (i.ppc || 0), 0)}
+                  {instalaciones.reduce((sum, i) => sum + (i.puestos_por_cubrir || 0), 0)}
                 </p>
               </div>
               <AlertTriangle className="h-8 w-8 opacity-80" />
@@ -223,7 +223,7 @@ export function InstalacionesTable({
                   <div className="font-medium">{instalacion.cliente_nombre}</div>
                 </TableCell>
                 <TableCell>
-                  <div className="font-medium">{instalacion.comuna_nombre}</div>
+                  <div className="font-medium">{instalacion.comuna}</div>
                 </TableCell>
                 <TableCell className="text-center">
                   <Badge variant="outline">{instalacion.guardias_asignados || 0}</Badge>
@@ -232,7 +232,7 @@ export function InstalacionesTable({
                   <Badge variant="outline">{instalacion.puestos_cubiertos || 0}</Badge>
                 </TableCell>
                 <TableCell className="text-center">
-                  <Badge variant="outline">{instalacion.ppc || 0}</Badge>
+                  <Badge variant="outline">{instalacion.puestos_por_cubrir || 0}</Badge>
                 </TableCell>
                 <TableCell className="text-center">
                   <Badge
