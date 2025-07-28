@@ -7,7 +7,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { useToast } from "../ui/toast";
-import { CrearInstalacionData } from "../../lib/schemas/instalaciones";
+import { CrearInstalacion } from "../../lib/schemas/instalaciones";
 
 interface CrearInstalacionModalProps {
   isOpen: boolean;
@@ -16,10 +16,14 @@ interface CrearInstalacionModalProps {
 }
 
 export function CrearInstalacionModal({ isOpen, onClose, onSuccess }: CrearInstalacionModalProps) {
-  const [formData, setFormData] = useState<Partial<CrearInstalacionData>>({
+  const [formData, setFormData] = useState<Partial<CrearInstalacion>>({
     nombre: "",
     direccion: "",
-    estado: "Activo"
+    comuna: "",
+    region: "",
+    tipo_instalacion: "",
+    capacidad: 0,
+    descripcion: ""
   });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -48,7 +52,7 @@ export function CrearInstalacionModal({ isOpen, onClose, onSuccess }: CrearInsta
         toast.success("Instalación creada correctamente");
         onSuccess();
         onClose();
-        setFormData({ nombre: "", direccion: "", estado: "Activo" });
+        setFormData({ nombre: "", direccion: "", comuna: "", region: "", tipo_instalacion: "", capacidad: 0, descripcion: "" });
       } else {
         toast.error(result.error || "Error al crear instalación");
       }
@@ -60,7 +64,7 @@ export function CrearInstalacionModal({ isOpen, onClose, onSuccess }: CrearInsta
     }
   };
 
-  const handleInputChange = (field: keyof CrearInstalacionData, value: string) => {
+  const handleInputChange = (field: keyof CrearInstalacion, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -129,20 +133,7 @@ export function CrearInstalacionModal({ isOpen, onClose, onSuccess }: CrearInsta
                     />
                   </div>
 
-                  {/* Estado */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">
-                      Estado
-                    </label>
-                    <select
-                      value={formData.estado || "Activo"}
-                      onChange={(e) => handleInputChange("estado", e.target.value)}
-                      className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    >
-                      <option value="Activo">Activo</option>
-                      <option value="Inactivo">Inactivo</option>
-                    </select>
-                  </div>
+
 
                   {/* Botones */}
                   <div className="flex gap-3 pt-4">
