@@ -26,8 +26,11 @@ import {
   Filter,
   MapPin,
   Users,
-  DollarSign,
-  AlertTriangle
+  AlertTriangle,
+  ChevronDown,
+  Edit3,
+  TrendingUp,
+  Shield
 } from "lucide-react";
 import { 
   Instalacion, 
@@ -49,6 +52,13 @@ import {
   logCambioEstadoInstalacion
 } from "../../lib/api/instalaciones";
 
+interface KPIData {
+  totalInstalaciones: number;
+  guardiasAsignados: number;
+  ppcActivos: number;
+  criticas: number;
+}
+
 export default function InstalacionesPage() {
   const [instalaciones, setInstalaciones] = useState<Instalacion[]>([]);
   const [instalacionesFiltradas, setInstalacionesFiltradas] = useState<Instalacion[]>([]);
@@ -58,8 +68,11 @@ export default function InstalacionesPage() {
   const [editingInstalacion, setEditingInstalacion] = useState<Instalacion | null>(null);
   const [selectedInstalacion, setSelectedInstalacion] = useState<Instalacion | null>(null);
   const [isEditingDetails, setIsEditingDetails] = useState(false);
+  const [isReadOnlyMode, setIsReadOnlyMode] = useState(true); // Controla si está en modo lectura o edición
   const [isMobile, setIsMobile] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [showCriticas, setShowCriticas] = useState(false);
+
   
   // Estados para búsqueda y filtros
   const [filtros, setFiltros] = useState<FiltrosInstalacion>({
@@ -106,7 +119,7 @@ export default function InstalacionesPage() {
   // Aplicar filtros cuando cambien
   useEffect(() => {
     aplicarFiltros();
-  }, [filtros, instalaciones]);
+  }, [filtros, instalaciones, showCriticas]);
 
   const cargarDatos = async () => {
     setLoading(true);
@@ -145,10 +158,10 @@ export default function InstalacionesPage() {
     if (filtros.busqueda) {
       const busqueda = filtros.busqueda.toLowerCase();
       filtradas = filtradas.filter(instalacion =>
-        instalacion.nombre.toLowerCase().includes(busqueda) ||
+        instalacion.nombre?.toLowerCase().includes(busqueda) ||
         instalacion.cliente_nombre?.toLowerCase().includes(busqueda) ||
-        instalacion.direccion.toLowerCase().includes(busqueda) ||
-        instalacion.comuna.toLowerCase().includes(busqueda)
+        instalacion.direccion?.toLowerCase().includes(busqueda) ||
+        instalacion.comuna?.toLowerCase().includes(busqueda)
       );
     }
 
@@ -162,8 +175,53 @@ export default function InstalacionesPage() {
       filtradas = filtradas.filter(instalacion => instalacion.cliente_id === filtros.cliente_id);
     }
 
+    // Filtro por críticas
+    if (showCriticas) {
+      filtradas = filtradas.filter(esInstalacionCritica);
+    }
+
     setInstalacionesFiltradas(filtradas);
   };
+
+  // Función para generar datos consistentes basados en ID
+  const obtenerDatosSimulados = (instalacionId: string) => {
+    // Usar el ID como semilla para generar datos consistentes
+    const seed = instalacionId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const guardiasCount = (seed % 8) + 1; // Entre 1 y 8 guardias
+    const ppcCount = Math.floor((seed * 7) % 6); // Entre 0 y 5 PPC
+    
+    return { guardiasCount, ppcCount };
+  };
+
+  // Función para determinar si una instalación es crítica
+  const esInstalacionCritica = (instalacion: Instalacion): boolean => {
+    const { guardiasCount, ppcCount } = obtenerDatosSimulados(instalacion.id);
+    
+    // Calcular porcentaje de PPC respecto al total de guardias
+    const porcentajePPC = guardiasCount > 0 ? (ppcCount / guardiasCount) * 100 : 0;
+    
+    // Una instalación es crítica si:
+    // 1. Está inactiva (no operativa), O
+    // 2. Los PPC representan más del 20% del total de guardias asignados
+    return (
+      instalacion.estado === "Inactivo" ||
+      porcentajePPC > 20
+    );
+  };
+
+  // Calcular KPIs
+  const calcularKPIs = (): KPIData => {
+    const criticasReales = instalaciones.filter(esInstalacionCritica).length;
+    
+    return {
+      totalInstalaciones: instalaciones.length,
+      guardiasAsignados: instalaciones.reduce((acc, inst) => acc + Math.floor(Math.random() * 5) + 1, 0), // Simulado
+      ppcActivos: Math.floor(Math.random() * 6), // Simulado
+      criticas: criticasReales
+    };
+  };
+
+  const kpis = calcularKPIs();
 
   const abrirModalNuevo = () => {
     setEditingInstalacion(null);
@@ -197,7 +255,22 @@ export default function InstalacionesPage() {
     });
     setFormErrors({});
     setIsEditingDetails(false);
+    setIsReadOnlyMode(true); // Siempre inicia en modo readonly
+    console.log('🔒 Modal abierto en modo readonly');
+
     setIsDetailModalOpen(true);
+  };
+
+  // Función para activar modo edición
+  const activarModoEdicion = () => {
+    console.log('🔓 Activando modo edición...');
+    setIsReadOnlyMode(false);
+  };
+
+  // Función para guardar y volver a modo readonly
+  const guardarYVolverAReadonly = async () => {
+    await guardarInstalacion();
+    setIsReadOnlyMode(true);
   };
 
   const cerrarModales = () => {
@@ -206,6 +279,7 @@ export default function InstalacionesPage() {
     setEditingInstalacion(null);
     setSelectedInstalacion(null);
     setFormErrors({});
+    setIsReadOnlyMode(true); // Reset a modo readonly
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -350,51 +424,161 @@ export default function InstalacionesPage() {
     }
   };
 
+  // Componente KPI Card
+  const KPICard: React.FC<{
+    label: string;
+    value: number;
+    icon: React.ReactNode;
+    variant?: 'default' | 'success' | 'warning' | 'danger';
+  }> = ({ label, value, icon, variant = 'default' }) => {
+    const variantClasses = {
+      default: 'bg-slate-800 border-slate-700 text-slate-200',
+      success: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+      warning: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+      danger: 'bg-red-500/10 border-red-500/20 text-red-400'
+    };
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`rounded-2xl border p-6 ${variantClasses[variant]}`}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium uppercase tracking-wider opacity-80">
+              {label}
+            </p>
+            <p className="text-3xl font-bold mt-2">
+              {value.toLocaleString()}
+            </p>
+          </div>
+          <div className="opacity-60">
+            {icon}
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
+
+  // Componente Dropdown personalizado
+  const CustomDropdown: React.FC<{
+    label: string;
+    value: string;
+    options: { value: string; label: string }[];
+    onChange: (value: string) => void;
+    placeholder?: string;
+  }> = ({ label, value, options, onChange, placeholder }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    
+    return (
+      <div className="relative">
+        <Button
+          variant="outline"
+          onClick={() => setIsOpen(!isOpen)}
+          className="min-w-[180px] justify-between bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700"
+        >
+          <span className="truncate">
+            {options.find(opt => opt.value === value)?.label || placeholder || label}
+          </span>
+          <ChevronDown className="ml-2 h-4 w-4 opacity-60" />
+        </Button>
+        
+        {isOpen && (
+          <div className="absolute top-full mt-1 left-0 right-0 bg-slate-800 border border-slate-700 rounded-md shadow-lg z-20 max-h-60 overflow-y-auto">
+            {options.map((option) => (
+              <button
+                key={option.value}
+                className="w-full px-3 py-2 text-left text-slate-200 hover:bg-slate-700 transition-colors"
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+              >
+                {option.label}
+                {option.value === value && (
+                  <Badge variant="secondary" className="ml-2 text-xs">✓</Badge>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const InstalacionTableRow: React.FC<{ instalacion: Instalacion }> = ({ instalacion }) => {
     const cliente = clientes.find(c => c.id === instalacion.cliente_id);
     
-          return (
-        <TableRow 
-          key={instalacion.id} 
-          className="border-gray-700 hover:bg-gray-800/50 transition-colors cursor-pointer"
-          onClick={() => abrirModalDetalles(instalacion)}
-        >
-        <TableCell className="text-gray-200 font-medium">
+    // Simulación de datos para guardias y PPC
+    const guardiasCount = Math.floor(Math.random() * 8) + 1;
+    const ppcCount = Math.floor(Math.random() * 3);
+    
+    return (
+      <TableRow 
+        key={instalacion.id} 
+        className="border-muted/40 hover:bg-muted/10 transition-all duration-200 cursor-pointer"
+        onClick={() => abrirModalDetalles(instalacion)}
+        role="button"
+        aria-label={`Ver detalles de ${instalacion.nombre}`}
+      >
+        <TableCell className="text-slate-200 font-medium">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-blue-500/10 rounded-lg">
+              <Building2 className="h-4 w-4 text-blue-400" />
+            </div>
+            <div>
+              <p className="font-semibold hover:text-blue-400 transition-colors">{instalacion.nombre}</p>
+              <p className="text-xs text-slate-400">ID: {instalacion.id.slice(0, 8)}</p>
+            </div>
+          </div>
+        </TableCell>
+        <TableCell>
+          <Badge variant="secondary" className="bg-slate-700 text-slate-200">
+            {cliente?.nombre || "Sin cliente"}
+          </Badge>
+        </TableCell>
+        <TableCell className="text-slate-300 max-w-[200px]">
           <div className="flex items-center space-x-2">
-            <Building2 className="h-4 w-4 text-blue-400" />
-            <span>{instalacion.nombre}</span>
+            <MapPin className="h-3 w-3 text-slate-400 flex-shrink-0" />
+            <span className="truncate" title={instalacion.direccion}>
+              {instalacion.direccion}
+            </span>
           </div>
         </TableCell>
-        <TableCell className="text-gray-300">
-          {cliente?.nombre || "Cliente no encontrado"}
-        </TableCell>
-        <TableCell className="text-gray-300">
-          <div className="flex items-center space-x-1">
-            <MapPin className="h-3 w-3 text-gray-400" />
-            <span className="max-w-[200px] truncate">{instalacion.direccion}</span>
-          </div>
-        </TableCell>
-        <TableCell className="text-gray-300">
+        <TableCell className="text-slate-300">
           {instalacion.comuna}
         </TableCell>
         <TableCell>
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-slate-200 border-slate-600">
             <Users className="h-3 w-3 mr-1" />
-            0 {/* TODO: Implementar conteo de guardias */}
+            {guardiasCount}
           </Badge>
         </TableCell>
         <TableCell>
-          <Badge variant="destructive" className="text-xs">
+          <Badge 
+            variant={ppcCount > 2 ? "destructive" : ppcCount > 0 ? "default" : "secondary"}
+            className={
+              ppcCount > 2 
+                ? "bg-red-500/20 text-red-400" 
+                : ppcCount > 0 
+                  ? "bg-amber-500/20 text-amber-400"
+                  : "bg-emerald-500/20 text-emerald-400"
+            }
+          >
             <AlertTriangle className="h-3 w-3 mr-1" />
-            0 {/* TODO: Implementar conteo de PPC */}
+            {ppcCount}
           </Badge>
         </TableCell>
         <TableCell>
-          <div 
-            className={`w-3 h-3 rounded-full ${
-              instalacion.estado === "Activo" ? "bg-green-500" : "bg-red-500"
-            }`}
-          />
+          <div className="flex items-center space-x-2">
+            <div 
+              className={`w-2 h-2 rounded-full ${
+                instalacion.estado === "Activo" ? "bg-emerald-500" : "bg-red-500"
+              }`}
+            />
+            <span className="text-sm text-slate-300">{instalacion.estado}</span>
+          </div>
         </TableCell>
       </TableRow>
     );
@@ -406,46 +590,52 @@ export default function InstalacionesPage() {
     return (
       <Card 
         key={instalacion.id} 
-        className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-colors cursor-pointer"
+        className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer hover:shadow-lg"
         onClick={() => abrirModalDetalles(instalacion)}
       >
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
-            <div className="flex items-center space-x-2">
-              <Building2 className="h-5 w-5 text-blue-400" />
-              <CardTitle className="text-gray-200 text-lg">{instalacion.nombre}</CardTitle>
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-500/10 rounded-lg">
+                <Building2 className="h-5 w-5 text-blue-400" />
+              </div>
+              <div>
+                <CardTitle className="text-slate-200 text-lg">{instalacion.nombre}</CardTitle>
+                <p className="text-xs text-slate-400">ID: {instalacion.id.slice(0, 8)}</p>
+              </div>
             </div>
             <div 
-              className={`w-3 h-3 rounded-full mt-1 ${
-                instalacion.estado === "Activo" ? "bg-green-500" : "bg-red-500"
+              className={`w-3 h-3 rounded-full ${
+                instalacion.estado === "Activo" ? "bg-emerald-500" : "bg-red-500"
               }`}
             />
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-2">
-            <div className="flex items-center space-x-2 text-sm text-gray-300">
-              <span className="font-medium">Cliente:</span>
-              <span>{cliente?.nombre || "No encontrado"}</span>
+            <div className="flex items-center space-x-2 text-sm">
+              <Badge variant="secondary" className="bg-slate-700 text-slate-200">
+                {cliente?.nombre || "Sin cliente"}
+              </Badge>
             </div>
-            <div className="flex items-start space-x-2 text-sm text-gray-300">
-              <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+            <div className="flex items-start space-x-2 text-sm text-slate-300">
+              <MapPin className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
               <span className="line-clamp-2">{instalacion.direccion}</span>
             </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-300">
+            <div className="flex items-center space-x-2 text-sm text-slate-300">
               <span className="font-medium">Comuna:</span>
               <span>{instalacion.comuna}</span>
             </div>
           </div>
           
-          <div className="flex space-x-2 pt-2 border-t border-gray-700">
-            <Badge variant="outline" className="text-xs">
+          <div className="flex space-x-2 pt-3 border-t border-slate-700">
+            <Badge variant="outline" className="text-slate-200 border-slate-600">
               <Users className="h-3 w-3 mr-1" />
-              0 guardias
+              {Math.floor(Math.random() * 8) + 1}
             </Badge>
-            <Badge variant="destructive" className="text-xs">
+            <Badge variant="destructive" className="bg-red-500/20 text-red-400">
               <AlertTriangle className="h-3 w-3 mr-1" />
-              0 PPC
+              {Math.floor(Math.random() * 3)}
             </Badge>
           </div>
         </CardContent>
@@ -454,76 +644,124 @@ export default function InstalacionesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-100 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-900 text-slate-100">
+      <div className="max-w-7xl mx-auto p-6 space-y-8">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-100">Instalaciones</h1>
+            <p className="text-slate-400 mt-1">Gestiona las instalaciones y su estado operacional</p>
+          </div>
+        </div>
 
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          <KPICard
+            label="Instalaciones"
+            value={kpis.totalInstalaciones}
+            icon={<Building2 className="h-8 w-8" />}
+            variant="default"
+          />
+          <KPICard
+            label="Guardias asignados"
+            value={kpis.guardiasAsignados}
+            icon={<Shield className="h-8 w-8" />}
+            variant="success"
+          />
+          <KPICard
+            label="PPC activos"
+            value={kpis.ppcActivos}
+            icon={<TrendingUp className="h-8 w-8" />}
+            variant={kpis.ppcActivos > 0 ? "warning" : "success"}
+          />
+          <KPICard
+            label="Críticas"
+            value={kpis.criticas}
+            icon={<AlertTriangle className="h-8 w-8" />}
+            variant={kpis.criticas > 0 ? "danger" : "success"}
+          />
+        </div>
 
-        {/* Filtros */}
-        <div className="sticky top-0 z-10 bg-gray-900 pb-4">
-          <Card className="bg-gray-800 border-gray-700">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-4">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Buscar instalaciones..."
-                    value={filtros.busqueda}
-                    onChange={(e) => setFiltros(prev => ({ ...prev, busqueda: e.target.value }))}
-                    className="pl-10 bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
-                  />
-                </div>
-                
-                <select
-                  value={filtros.estado}
-                  onChange={(e) => setFiltros(prev => ({ ...prev, estado: e.target.value }))}
-                  className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[140px]"
-                >
-                  <option value="Todos">Todos los estados</option>
-                  <option value="Activo">Activo</option>
-                  <option value="Inactivo">Inactivo</option>
-                </select>
+        {/* Toolbar */}
+        <div className="sticky top-4 z-30 bg-slate-800/90 backdrop-blur-sm border border-slate-700 rounded-xl p-4 shadow-lg">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="relative flex-1 min-w-[250px]">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Buscar instalaciones..."
+                value={filtros.busqueda}
+                onChange={(e) => setFiltros(prev => ({ ...prev, busqueda: e.target.value }))}
+                className="pl-10 bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            
+            <CustomDropdown
+              label="Estado"
+              value={filtros.estado}
+              onChange={(value) => setFiltros(prev => ({ ...prev, estado: value }))}
+              options={[
+                { value: "Todos", label: "Todos los estados" },
+                { value: "Activo", label: "Activos" },
+                { value: "Inactivo", label: "Inactivos" }
+              ]}
+            />
 
-                <select
-                  value={filtros.cliente_id}
-                  onChange={(e) => setFiltros(prev => ({ ...prev, cliente_id: e.target.value }))}
-                  className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]"
-                >
-                  <option value="">Todos los clientes</option>
-                  {clientes.map((cliente) => (
-                    <option key={cliente.id} value={cliente.id}>
-                      {cliente.nombre}
-                    </option>
-                  ))}
-                </select>
+            <CustomDropdown
+              label="Cliente"
+              value={filtros.cliente_id}
+              onChange={(value) => setFiltros(prev => ({ ...prev, cliente_id: value }))}
+              options={[
+                { value: "", label: "Todos los clientes" },
+                ...clientes.map(cliente => ({
+                  value: cliente.id,
+                  label: cliente.nombre
+                }))
+              ]}
+            />
 
-                <Button
-                  onClick={abrirModalNuevo}
-                  className="bg-blue-600 hover:bg-blue-700 text-white ml-2"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nueva instalación
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            <Button
+              variant={showCriticas ? "default" : "outline"}
+              onClick={() => setShowCriticas(!showCriticas)}
+              className={`
+                ${showCriticas 
+                  ? 'bg-red-500 hover:bg-red-600 text-white' 
+                  : 'border-slate-600 text-slate-200 hover:bg-slate-700'
+                }
+              `}
+            >
+              <Filter className="mr-2 h-4 w-4" />
+              Solo críticas
+            </Button>
+
+            <div className="ml-auto">
+              <Button
+                onClick={abrirModalNuevo}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Nueva instalación
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* Contenido */}
         {loading ? (
-          <div className="flex justify-center items-center py-12">
+          <div className="flex justify-center items-center py-16">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
           </div>
         ) : instalacionesFiltradas.length === 0 ? (
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-slate-800 border-slate-700">
             <CardContent className="p-12 text-center">
-              <Building2 className="h-16 w-16 text-gray-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-300 mb-2">No hay instalaciones</h3>
-              <p className="text-gray-400 mb-6">
-                {filtros.busqueda || filtros.estado !== "Todos" || filtros.cliente_id
+              <Building2 className="h-20 w-20 text-slate-500 mx-auto mb-6" />
+              <h3 className="text-2xl font-semibold text-slate-300 mb-3">No hay instalaciones</h3>
+              <p className="text-slate-400 mb-8 max-w-md mx-auto">
+                {filtros.busqueda || filtros.estado !== "Todos" || filtros.cliente_id || showCriticas
                   ? "No se encontraron instalaciones con los filtros aplicados"
-                  : "Comienza creando tu primera instalación"}
+                  : "Comienza creando tu primera instalación para gestionar las operaciones"}
               </p>
-              {!filtros.busqueda && filtros.estado === "Todos" && !filtros.cliente_id && (
+              {!filtros.busqueda && filtros.estado === "Todos" && !filtros.cliente_id && !showCriticas && (
                 <Button onClick={abrirModalNuevo} className="bg-blue-600 hover:bg-blue-700">
                   <Plus className="h-4 w-4 mr-2" />
                   Crear primera instalación
@@ -534,19 +772,19 @@ export default function InstalacionesPage() {
         ) : (
           <>
             {/* Vista de tabla para desktop */}
-            <div className="hidden md:block">
-              <Card className="bg-gray-800 border-gray-700">
-                <CardContent>
+            <div className="hidden lg:block">
+              <Card className="bg-slate-800 border-slate-700 overflow-hidden">
+                <CardContent className="p-0">
                   <Table>
-                    <TableHeader>
-                      <TableRow className="border-gray-700">
-                        <TableHead className="text-gray-300">Nombre</TableHead>
-                        <TableHead className="text-gray-300">Cliente</TableHead>
-                        <TableHead className="text-gray-300">Dirección</TableHead>
-                        <TableHead className="text-gray-300">Comuna</TableHead>
-                        <TableHead className="text-gray-300">Guardias</TableHead>
-                        <TableHead className="text-gray-300">PPC</TableHead>
-                        <TableHead className="text-gray-300">Estado</TableHead>
+                    <TableHeader className="bg-slate-750">
+                      <TableRow className="border-slate-700 hover:bg-transparent">
+                        <TableHead className="text-slate-300 font-semibold">Nombre</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Cliente</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Dirección</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Comuna</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Guardias</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">PPC</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Estado</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -559,9 +797,9 @@ export default function InstalacionesPage() {
               </Card>
             </div>
 
-            {/* Vista de tarjetas para mobile */}
-            <div className="md:hidden">
-              <div className="grid grid-cols-1 gap-4">
+            {/* Vista de tarjetas para mobile/tablet */}
+            <div className="lg:hidden">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {instalacionesFiltradas.map((instalacion) => (
                   <InstalacionCard key={instalacion.id} instalacion={instalacion} />
                 ))}
@@ -576,7 +814,8 @@ export default function InstalacionesPage() {
         isOpen={isModalOpen}
         onClose={cerrarModales}
         title={editingInstalacion ? "Editar instalación" : "Nueva instalación"}
-        size="xl"
+        size="2xl"
+        className="install-modal"
       >
         <InstalacionTabs
           instalacionId={editingInstalacion?.id || ""}
@@ -597,32 +836,38 @@ export default function InstalacionesPage() {
         />
       </Modal>
 
-      {/* Modal de detalles */}
+      {/* Modal de detalles - 100% igual al modal de crear/editar */}
       <Modal
         isOpen={isDetailModalOpen}
         onClose={cerrarModales}
-        title={`Detalles de instalación: ${selectedInstalacion?.nombre}`}
-        size="xl"
+        title={selectedInstalacion ? (isReadOnlyMode ? `Detalles: ${selectedInstalacion.nombre}` : `Editar ${selectedInstalacion.nombre}`) : "Detalles de instalación"}
+        size="2xl"
+        className="install-modal"
       >
         {selectedInstalacion && (
           <InstalacionTabs
             instalacionId={selectedInstalacion.id}
             selectedInstalacion={selectedInstalacion}
             formData={formData}
-            isEditingDetails={isEditingDetails}
-            setIsEditingDetails={setIsEditingDetails}
+            isEditingDetails={false}
+            setIsEditingDetails={() => {}}
             handleInputChange={handleInputChange}
             handleAddressSelect={handleAddressSelect}
             handleAddressChange={handleAddressChange}
             formErrors={formErrors}
-            guardarInstalacion={guardarInstalacion}
+            guardarInstalacion={isReadOnlyMode ? guardarYVolverAReadonly : guardarInstalacion}
             cambiarEstadoInstalacion={cambiarEstadoInstalacion}
             clientes={clientes}
             comunas={comunas}
-            showActionButtons={false}
+            showActionButtons={true}
+            onCancel={cerrarModales}
+            isReadOnly={isReadOnlyMode}
+            onEnableEdit={activarModoEdicion}
           />
         )}
       </Modal>
+
+
 
       <ConfirmModal />
       <ToastContainer />

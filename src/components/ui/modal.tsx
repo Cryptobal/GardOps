@@ -4,6 +4,7 @@ import * as React from "react";
 import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Button } from "./button";
+import { motion } from "framer-motion";
 
 export interface ModalProps {
   isOpen: boolean;
@@ -11,7 +12,7 @@ export interface ModalProps {
   title?: string;
   children: React.ReactNode;
   className?: string;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "2xl";
   showCloseButton?: boolean;
 }
 
@@ -20,7 +21,53 @@ const sizeClasses = {
   md: "max-w-lg",
   lg: "max-w-2xl",
   xl: "max-w-4xl",
+  "2xl": "max-w-5xl",
 };
+
+// Componente de Header personalizable
+export function ModalHeader({ 
+  title, 
+  onClose, 
+  className 
+}: { 
+  title: string; 
+  onClose: () => void; 
+  className?: string; 
+}) {
+  return (
+    <div className={cn("flex items-center justify-between px-6 py-4 bg-muted/30 border-b border-muted/30", className)}>
+      <h2 className="text-lg font-semibold text-foreground">
+        {title}
+      </h2>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onClose}
+        className="h-8 w-8 hover:bg-muted/50 opacity-70 hover:opacity-100 transition-opacity"
+      >
+        <X className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
+// Componente de Footer personalizable
+export function ModalFooter({ 
+  children, 
+  className 
+}: { 
+  children: React.ReactNode; 
+  className?: string; 
+}) {
+  return (
+    <div className={cn(
+      "sticky z-10 bottom-0 flex justify-end gap-3 px-6 py-4 bg-background/80 backdrop-blur-sm border-t border-muted/30",
+      className
+    )}>
+      {children}
+    </div>
+  );
+}
 
 export function Modal({
   isOpen,
@@ -70,9 +117,12 @@ export function Modal({
       />
 
       {/* Modal */}
-      <div
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
         className={cn(
-          "relative w-full mx-4 bg-background border border-border rounded-lg shadow-xl animate-in fade-in zoom-in-95 duration-200",
+          "relative w-full mx-4 bg-background/90 backdrop-blur-sm border border-muted/40 rounded-2xl shadow-2xl",
           sizeClasses[size],
           className
         )}
@@ -80,35 +130,19 @@ export function Modal({
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-6 border-b border-border">
-            {title && (
-              <h2 className="text-lg font-semibold text-foreground">
-                {title}
-              </h2>
-            )}
-            {showCloseButton && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-                className="h-8 w-8"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
+          <ModalHeader title={title || ""} onClose={onClose} />
         )}
 
         {/* Content */}
-        <div className="p-6">
+        <div className="px-6 py-4">
           {children}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
 
-// Hook para modal de confirmación
+// Hook para modal de confirmación (sin cambios)
 export interface ConfirmModalProps {
   title?: string;
   message: string;
@@ -170,7 +204,7 @@ export function useConfirmModal() {
             {config.message}
           </p>
           
-          <div className="flex gap-3 justify-end">
+          <ModalFooter>
             <Button
               variant="outline"
               onClick={handleCancel}
@@ -183,7 +217,7 @@ export function useConfirmModal() {
             >
               {config.confirmText || "Confirmar"}
             </Button>
-          </div>
+          </ModalFooter>
         </div>
       </Modal>
     );

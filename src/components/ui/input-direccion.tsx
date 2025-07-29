@@ -24,6 +24,7 @@ export interface InputDireccionProps {
   initialComuna?: string;
   required?: boolean;
   disabled?: boolean;
+  readOnly?: boolean;
   name?: string;
   id?: string;
   showMap?: boolean;
@@ -43,6 +44,7 @@ const InputDireccion = React.forwardRef<HTMLInputElement, InputDireccionProps>(
     initialComuna,
     required = false,
     disabled = false,
+    readOnly = false,
     name = "direccion",
     id,
     showMap = true,
@@ -250,10 +252,11 @@ const InputDireccion = React.forwardRef<HTMLInputElement, InputDireccionProps>(
             type="text"
             value={inputValue}
             onChange={handleInputChange}
-            onFocus={handleInputFocus}
-            onBlur={handleInputBlur}
+            onFocus={readOnly ? undefined : handleInputFocus}
+            onBlur={readOnly ? undefined : handleInputBlur}
             placeholder={placeholder}
             disabled={disabled || !isLoaded}
+            readOnly={readOnly}
             required={required}
             name={name}
             id={id}
