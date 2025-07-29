@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, ClockIcon, Building, MapPin, Edit, X, CheckCircle, User, Mail, Phone } from "lucide-react";
+import { FileText, ClockIcon, Building, MapPin, Edit, X, CheckCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
@@ -71,6 +71,15 @@ export default function ClienteTabs({
     }
   ];
 
+  if (!selectedCliente) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-red-500 font-medium">Error: No hay cliente seleccionado</p>
+        <p className="text-sm text-muted-foreground">Cliente ID: {clienteId}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Navegación de tabs */}
@@ -98,8 +107,8 @@ export default function ClienteTabs({
       </div>
 
       {/* Contenido de tabs */}
-      <div className="mt-4 min-h-[600px]">
-        {tabActivo === "informacion" && selectedCliente && (
+      <div className="mt-4 min-h-[400px]">
+        {tabActivo === "informacion" && (
           <div className="space-y-6">
             {/* Datos del cliente */}
             <div className="space-y-4">
@@ -267,7 +276,7 @@ export default function ClienteTabs({
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">Estado</label>
                       <div className="mt-1">
-                        <Badge variant={selectedCliente.estado === "Activo" ? "success" : "inactive"}>
+                        <Badge variant={selectedCliente.estado === "Activo" ? "default" : "secondary"}>
                           {selectedCliente.estado || "Activo"}
                         </Badge>
                       </div>
@@ -329,7 +338,7 @@ export default function ClienteTabs({
         )}
 
         {tabActivo === "instalaciones" && (
-          <div className="min-h-[600px]">
+          <div className="min-h-[400px]">
             <div className="bg-card/50 border border-border/50 rounded-lg p-6">
               <InstalacionesCliente 
                 clienteId={clienteId}
@@ -340,7 +349,7 @@ export default function ClienteTabs({
         )}
 
         {tabActivo === "documentos" && (
-          <div className="min-h-[600px]">
+          <div className="min-h-[400px]">
           <DocumentListTabs 
             modulo="clientes"
             entidadId={clienteId}
@@ -352,7 +361,7 @@ export default function ClienteTabs({
         )}
         
         {tabActivo === "logs" && (
-          <div className="min-h-[600px] bg-card/50 border border-border/50 rounded-lg p-6">
+          <div className="min-h-[400px] bg-card/50 border border-border/50 rounded-lg p-6">
             <LogsCliente 
               clienteId={clienteId}
               refreshTrigger={refreshTrigger}

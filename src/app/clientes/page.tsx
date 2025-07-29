@@ -828,16 +828,15 @@ export default function ClientesPage() {
         isOpen={isDetailModalOpen}
         onClose={cerrarModales}
         title={`Detalles - ${selectedCliente?.nombre}`}
-        className="bg-card/95 backdrop-blur-md"
         size="xl"
       >
-        {selectedCliente && (
+        {selectedCliente ? (
           <div className="space-y-6">
             {/* Pestañas principales */}
             <ClienteTabs 
               clienteId={selectedCliente.id}
               onDocumentDeleted={handleUploadSuccess}
-                              onUploadClick={() => setShowUploadModal(true)}
+              onUploadClick={() => setShowUploadModal(true)}
               refreshTrigger={refreshTrigger}
               selectedCliente={selectedCliente}
               formData={formData}
@@ -850,6 +849,10 @@ export default function ClientesPage() {
               guardarCliente={guardarCliente}
               cambiarEstadoCliente={cambiarEstadoCliente}
             />
+          </div>
+        ) : (
+          <div className="p-8 text-center">
+            <p className="text-muted-foreground">No se encontraron datos del cliente</p>
           </div>
         )}
       </Modal>
