@@ -57,6 +57,7 @@ export default function HomePage() {
   const router = useRouter();
   const [alertas, setAlertas] = useState<AlertaDocumento[]>([]);
   const [cargandoAlertas, setCargandoAlertas] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const cargarAlertas = async () => {
     try {
@@ -64,7 +65,7 @@ export default function HomePage() {
       const timestamp = new Date().getTime();
       const response = await fetch(`/api/alertas-documentos?_t=${timestamp}`, {
         method: 'GET',
-        credentials: 'include', // IMPORTANTE: Incluir cookies
+        credentials: 'include',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
@@ -85,6 +86,7 @@ export default function HomePage() {
       setAlertas([]);
     } finally {
       setCargandoAlertas(false);
+      setIsInitialLoad(false);
     }
   };
 
@@ -135,9 +137,9 @@ export default function HomePage() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-top-4 duration-700">
+    <div className="space-y-8">
       {/* Welcome Section */}
-      <div className="text-center space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">
+      <div className="text-center space-y-4">
         <h2 className="text-4xl font-bold heading-gradient">
           Bienvenido a GardOps
         </h2>
@@ -149,12 +151,8 @@ export default function HomePage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        {stats.map((stat, index) => (
-          <div
-            key={stat.title}
-            className="animate-in fade-in slide-in-from-bottom-4 duration-700"
-            style={{ animationDelay: `${index * 100}ms` }}
-          >
+        {stats.map((stat) => (
+          <div key={stat.title}>
             <Card 
               className={`card-elegant p-6 hover:scale-105 transition-all duration-300 cursor-pointer ${
                 stat.urgent ? 'border-red-500/30 bg-red-500/5' : ''
@@ -213,7 +211,7 @@ export default function HomePage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700" style={{ animationDelay: '500ms' }}>
+      <div>
         <Card className="card-elegant">
           <CardHeader>
             <CardTitle className="text-xl font-semibold flex items-center gap-2">

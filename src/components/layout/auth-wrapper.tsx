@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { isAuthenticated } from '../../lib/auth'
 import { Sidebar } from './sidebar'
 import { Navbar } from './navbar'
+import { cn } from '../../lib/utils'
 
 interface AuthWrapperProps {
   children: React.ReactNode
@@ -15,6 +16,8 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [isAuth, setIsAuth] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   // Rutas públicas que no requieren autenticación
   const publicRoutes = ['/login']
@@ -22,81 +25,74 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
 
   useEffect(() => {
     const checkAuth = () => {
-      console.log(`🔍 AuthWrapper: Verificando auth en ${pathname}`)
-      const authenticated = isAuthenticated()
-      console.log(`🔍 AuthWrapper: ¿Está autenticado? ${authenticated}`)
-      
-      // TEMPORAL: Permitir acceso sin autenticación para debugging
-      const isDevelopment = process.env.NODE_ENV === 'development'
-      const bypassAuth = isDevelopment && pathname !== '/login'
-      
-      if (bypassAuth) {
-        console.log(`🚧 AuthWrapper: MODO DESARROLLO - Bypassing auth para ${pathname}`)
-        setIsAuth(true)
-        setIsLoading(false)
-        return
-      }
-      
-      setIsAuth(authenticated)
-      
-      if (!authenticated && !isPublicRoute) {
-        console.log(`🔄 AuthWrapper: No autenticado en ruta privada, redirigiendo a /login`)
-        router.push('/login')
-      } else if (authenticated && pathname === '/login') {
-        console.log(`🔄 AuthWrapper: Autenticado en /login, redirigiendo a /`)
-        router.push('/')
-      } else {
-        console.log(`✅ AuthWrapper: Estado correcto - auth:${authenticated}, ruta:${pathname}`)
-      }
-      
+      const auth = isAuthenticated()
+      setIsAuth(auth)
       setIsLoading(false)
+
+      if (!auth && !isPublicRoute) {
+        router.push('/login')
+      }
     }
 
     checkAuth()
-  }, [pathname, isPublicRoute, router])
+  }, [pathname, router, isPublicRoute])
 
-  // Mostrar loading mientras se verifica la autenticación
+  // Cerrar menú móvil al cambiar de página
+  useEffect(() => {
+    setIsMobileMenuOpen(false)
+  }, [pathname])
+
+  const handleMobileMenuToggle = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  }
+
+  const handleMobileMenuClose = () => {
+    setIsMobileMenuOpen(false)
+  }
+
+  const handleSidebarCollapse = (collapsed: boolean) => {
+    setIsSidebarCollapsed(collapsed)
+  }
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex items-center space-x-2">
-          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <span className="text-foreground">Cargando...</span>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     )
   }
 
-  // Si es ruta pública, mostrar solo el children
   if (isPublicRoute) {
     return <>{children}</>
   }
 
-  // Si no está autenticado en ruta privada, no mostrar nada (se redirige)
-  if (!isAuth) {
-    return null
-  }
-
-  // Para rutas privadas, mostrar el layout completo
   return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <Sidebar className="hidden lg:flex lg:w-80 lg:flex-col" />
-      
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Navbar />
-        
-        {/* Page content */}
-        <main className="flex-1 overflow-auto">
-          <div className="container mx-auto p-6 space-y-6">
-            {children}
-          </div>
-        </main>
+    <div className="min-h-screen bg-background">
+      <div className="flex h-screen">
+        {/* Sidebar */}
+        <Sidebar
+          isCollapsed={isSidebarCollapsed}
+          onCollapseChange={handleSidebarCollapse}
+          isMobileOpen={isMobileMenuOpen}
+          onMobileClose={handleMobileMenuClose}
+        />
+
+        {/* Main content */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Navbar */}
+          <Navbar onMobileMenuToggle={handleMobileMenuToggle} />
+
+          {/* Page content */}
+          <main className={cn(
+            "flex-1 overflow-auto transition-all duration-500 ease-in-out",
+            isSidebarCollapsed ? "lg:ml-5" : "lg:ml-0"
+          )}>
+            <div className="container mx-auto p-6">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
-      
-      {/* Mobile sidebar */}
-      <Sidebar className="lg:hidden" />
     </div>
   )
 } 

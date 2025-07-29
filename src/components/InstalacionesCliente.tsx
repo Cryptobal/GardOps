@@ -60,17 +60,19 @@ export default function InstalacionesCliente({
 
   if (cargando) {
     return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
+      <div className="space-y-3 h-full flex flex-col">
+        <div className="flex items-center justify-between flex-shrink-0">
           <h4 className="text-sm font-medium text-white">
             Instalaciones del Cliente
           </h4>
         </div>
-        <div className="text-center text-muted-foreground py-8">
-          <div className="animate-pulse space-y-3">
-            <div className="h-4 bg-muted/20 rounded w-3/4 mx-auto"></div>
-            <div className="h-4 bg-muted/20 rounded w-1/2 mx-auto"></div>
-            <div className="h-4 bg-muted/20 rounded w-2/3 mx-auto"></div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center text-muted-foreground">
+            <div className="animate-pulse space-y-3">
+              <div className="h-4 bg-muted/20 rounded w-3/4 mx-auto"></div>
+              <div className="h-4 bg-muted/20 rounded w-1/2 mx-auto"></div>
+              <div className="h-4 bg-muted/20 rounded w-2/3 mx-auto"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -78,8 +80,8 @@ export default function InstalacionesCliente({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
+    <div className="space-y-3 h-full flex flex-col">
+      <div className="flex items-center justify-between flex-shrink-0">
         <h4 className="text-sm font-medium text-white">
           Instalaciones del Cliente ({instalaciones.length})
         </h4>
@@ -94,13 +96,15 @@ export default function InstalacionesCliente({
       </div>
 
       {instalaciones.length === 0 ? (
-        <div className="text-center text-muted-foreground py-8">
-          <Building className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p>No hay instalaciones asociadas a este cliente</p>
-          <p className="text-sm mt-1">Haz clic en &quot;Agregar Instalación&quot; para crear una nueva</p>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center text-muted-foreground">
+            <Building className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p>No hay instalaciones asociadas a este cliente</p>
+            <p className="text-sm mt-1">Haz clic en &quot;Agregar Instalación&quot; para crear una nueva</p>
+          </div>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="flex-1 overflow-y-auto space-y-3">
           {instalaciones.map((instalacion) => (
             <div
               key={instalacion.id}

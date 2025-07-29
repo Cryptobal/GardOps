@@ -4,113 +4,95 @@ import { usePathname } from "next/navigation";
 import { navigationItems } from "../../lib/navigation";
 import { logout, getToken } from "../../lib/auth";
 import { Button } from "../ui/button";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, Menu, Moon, Sun } from "lucide-react";
+import { useState } from "react";
 
-export function Navbar() {
+interface NavbarProps {
+  onMobileMenuToggle?: () => void;
+}
+
+export function Navbar({ onMobileMenuToggle }: NavbarProps) {
   const pathname = usePathname();
+  const [isDark, setIsDark] = useState(true);
   
   const currentPage = navigationItems.find(item => item.href === pathname);
   const pageTitle = currentPage?.name || "GardOps";
-  const pageDescription = currentPage?.description || "Sistema de Gestión de Guardias";
+  const pageDescription = currentPage?.description;
 
   const handleLogout = () => {
     logout();
   };
 
-  // Obtener información del usuario desde el token JWT
-  const getUserDisplayInfo = () => {
-    const token = getToken();
-    if (!token) return { displayName: 'Usuario', email: '', rol: '' };
-    
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      
-      // Verificar si tenemos el usuario completo guardado en localStorage
-      const storedUser = localStorage.getItem('current_user');
-      if (storedUser) {
-        const user = JSON.parse(storedUser);
-        return {
-          displayName: `${user.nombre} ${user.apellido}`,
-          email: user.email,
-          rol: user.rol,
-        };
-      }
-      
-      // Fallback al email del token
-      return {
-        displayName: payload.email?.split('@')[0] || 'Usuario',
-        email: payload.email || '',
-        rol: payload.rol || '',
-      };
-    } catch {
-      return { displayName: 'Usuario', email: '', rol: '' };
-    }
+  const toggleTheme = () => {
+    setIsDark(!isDark);
+    document.documentElement.classList.toggle("light");
   };
 
-  const userInfo = getUserDisplayInfo();
+  // Obtener información del usuario desde el token JWT
+  const getUserDisplayName = () => {
+    try {
+      const token = getToken();
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload.name || payload.email || "Usuario";
+      }
+    } catch (error) {
+      console.error("Error parsing token:", error);
+    }
+    return "Usuario";
+  };
 
   return (
-    <header className="bg-card/95 backdrop-blur-xl border-b border-border/50 p-6 animate-in fade-in slide-in-from-top-4 duration-500">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 key={pageTitle} className="text-3xl font-bold heading-gradient animate-in fade-in slide-in-from-left-4 duration-500">
-            {pageTitle}
-          </h1>
-          <p
-            key={pageDescription}
-            className="text-muted-foreground mt-1 animate-in fade-in slide-in-from-left-4 duration-500"
-            style={{ animationDelay: '100ms' }}
-          >
-            {pageDescription}
-          </p>
+    <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-14 max-w-screen-2xl items-center">
+        {/* Mobile menu button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onMobileMenuToggle}
+          className="lg:hidden mr-2 px-2 py-1 h-8 w-8 rounded-lg bg-accent/50 border border-border/30 hover:bg-accent/70 ml-4"
+        >
+          <Menu className="h-4 w-4" />
+        </Button>
+
+        {/* Page title and description */}
+        <div className="flex flex-col ml-4">
+          <h1 className="text-lg font-semibold text-foreground">{pageTitle}</h1>
+          {pageDescription && (
+            <p className="text-sm text-muted-foreground">{pageDescription}</p>
+          )}
         </div>
-        
-        <div className="flex items-center gap-4">
-          {/* Fecha y hora */}
-          <div className="hidden md:block text-right">
-            <p className="text-sm font-medium text-foreground">
-              {new Date().toLocaleDateString('es-ES', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {new Date().toLocaleTimeString('es-ES', {
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </p>
+
+        {/* Right side - User info and actions */}
+        <div className="ml-auto flex items-center gap-2">
+          {/* Theme toggle button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleTheme}
+            className="h-8 w-8 p-0 rounded-lg"
+          >
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
+
+          {/* User info */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent/50 border border-border/30">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">{getUserDisplayName()}</span>
           </div>
 
-          {/* Usuario y logout */}
-          <div className="flex items-center gap-3 px-3 py-2 bg-background/50 rounded-lg border border-border/50">
-            <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-muted-foreground" />
-              <div className="hidden sm:block text-right">
-                <p className="text-sm font-medium text-foreground">
-                  {userInfo.displayName}
-                </p>
-                <p className="text-xs text-muted-foreground capitalize">
-                  {userInfo.rol}
-                </p>
-              </div>
-            </div>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              className="p-2 hover:bg-destructive/10 hover:text-destructive"
-              title="Cerrar sesión"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="sr-only">Cerrar sesión</span>
-            </Button>
-          </div>
+          {/* Logout button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            className="h-8 px-3 rounded-lg hover:bg-destructive/10 hover:text-destructive"
+          >
+            <LogOut className="h-4 w-4 mr-1" />
+            <span className="hidden sm:inline">Cerrar</span>
+          </Button>
         </div>
       </div>
-    </header>
+    </nav>
   );
 } 

@@ -23,62 +23,51 @@ export const navigationItems: NavigationItem[] = [
   {
     name: "Inicio",
     href: "/",
-    icon: Home,
-    description: "Panel principal de GardOps"
+    icon: Home
   },
   {
     name: "Clientes",
     href: "/clientes",
-    icon: Users,
-    description: "Gestión de clientes"
+    icon: Users
   },
   {
     name: "Instalaciones",
     href: "/instalaciones",
-    icon: Building2,
-    description: "Gestión de instalaciones"
+    icon: Building2
   },
   {
     name: "Guardias",
     href: "/guardias",
-    icon: Shield,
-    description: "Gestión de guardias de seguridad"
+    icon: Shield
   },
   {
     name: "Pauta Mensual",
     href: "/pauta-mensual",
-    icon: Calendar,
-    description: "Planificación mensual"
+    icon: Calendar
   },
   {
     name: "Turnos Diarios",
     href: "/turnos-diarios",
-    icon: Clock,
-    description: "Gestión de turnos diarios"
+    icon: Clock
   },
   {
     name: "PPC",
     href: "/ppc",
-    icon: FileText,
-    description: "Procedimientos y protocolos"
+    icon: FileText
   },
   {
     name: "Documentos",
     href: "/documentos",
-    icon: FolderOpen,
-    description: "Gestión documental"
+    icon: FolderOpen
   },
   {
     name: "Alertas y KPIs",
     href: "/alertas",
-    icon: AlertTriangle,
-    description: "Monitoreo y indicadores"
+    icon: AlertTriangle
   },
   {
     name: "Configuración",
     href: "/configuracion",
-    icon: Settings,
-    description: "Configuración del sistema"
-  },
-
+    icon: Settings
+  }
 ]; 

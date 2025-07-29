@@ -72,9 +72,9 @@ export default function ClienteTabs({
   ];
 
   return (
-    <div className="space-y-4">
-      {/* Navegación de tabs */}
-      <div className="flex space-x-1 bg-muted/20 p-1 rounded-lg">
+    <div className="space-y-4 h-full">
+      {/* Navegación de tabs - Responsive */}
+      <div className="flex flex-wrap gap-1 bg-muted/20 p-1 rounded-lg">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
@@ -82,7 +82,7 @@ export default function ClienteTabs({
               key={tab.id}
               onClick={() => setTabActivo(tab.id)}
               className={`
-                flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all
+                flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all whitespace-nowrap
                 ${
                   tabActivo === tab.id
                     ? 'bg-blue-600 text-white shadow-sm'
@@ -90,32 +90,34 @@ export default function ClienteTabs({
                 }
               `}
             >
-              <Icon className="h-4 w-4" />
-              {tab.label}
+              <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="sm:hidden">{tab.label.charAt(0)}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Contenido de tabs */}
-      <div className="mt-4 min-h-[600px]">
+      {/* Contenido de tabs - Con scroll mejorado */}
+      <div className="flex-1 overflow-y-auto min-h-0">
         {tabActivo === "informacion" && selectedCliente && (
           <div className="space-y-6">
             {/* Datos del cliente */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h3 className="text-lg font-semibold">
                   Datos
                 </h3>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {!isEditingDetails ? (
                     <>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setIsEditingDetails(true)}
+                        className="text-xs sm:text-sm"
                       >
-                        <Edit className="h-4 w-4 mr-2" />
+                        <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                         Editar
                       </Button>
                       <div className="flex items-center gap-2">
@@ -123,7 +125,7 @@ export default function ClienteTabs({
                           checked={selectedCliente.estado === "Activo"}
                           onCheckedChange={(checked) => cambiarEstadoCliente(selectedCliente, checked)}
                         />
-                        <span className="text-sm font-medium">
+                        <span className="text-xs sm:text-sm font-medium">
                           {selectedCliente.estado === "Activo" ? "Activo" : "Inactivo"}
                         </span>
                       </div>
@@ -134,16 +136,17 @@ export default function ClienteTabs({
                         variant="outline"
                         size="sm"
                         onClick={() => setIsEditingDetails(false)}
+                        className="text-xs sm:text-sm"
                       >
-                        <X className="h-4 w-4 mr-2" />
+                        <X className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                         Cancelar
                       </Button>
                       <Button
                         size="sm"
                         onClick={guardarCliente}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm"
                       >
-                        <CheckCircle className="h-4 w-4 mr-2" />
+                        <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                         Guardar
                       </Button>
                     </>
@@ -186,6 +189,17 @@ export default function ClienteTabs({
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">
+                      Razón Social
+                    </label>
+                    <Input
+                      name="razon_social"
+                      value={formData.razon_social}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">
                       Representante Legal
                     </label>
                     <Input
@@ -205,6 +219,9 @@ export default function ClienteTabs({
                       onChange={handleInputChange}
                       className={formErrors.rut_representante ? "border-red-500" : ""}
                     />
+                    {formErrors.rut_representante && (
+                      <p className="text-sm text-red-400">{formErrors.rut_representante}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -218,6 +235,9 @@ export default function ClienteTabs({
                       onChange={handleInputChange}
                       className={formErrors.email ? "border-red-500" : ""}
                     />
+                    {formErrors.email && (
+                      <p className="text-sm text-red-400">{formErrors.email}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -230,134 +250,123 @@ export default function ClienteTabs({
                       onChange={handleInputChange}
                     />
                   </div>
-
-                  <div className="col-span-2 space-y-2">
-                    <label className="text-sm font-medium text-foreground">
-                      Dirección
-                    </label>
-                    <InputDireccion
-                      value={formData.direccion}
-                      initialLatitude={formData.latitud}
-                      initialLongitude={formData.longitud}
-                      onAddressSelect={handleAddressSelect}
-                      onAddressChange={handleAddressChange}
-                      showMap={true}
-                    />
-                  </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Información de la empresa */}
                   <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Empresa</label>
-                      <p className="text-foreground font-semibold">{selectedCliente.nombre}</p>
-                      <p className="text-sm text-muted-foreground font-mono">{selectedCliente.rut}</p>
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">Empresa</span>
                     </div>
-                    
-                    {selectedCliente.representante_legal && (
+                    <div className="space-y-2">
                       <div>
-                        <label className="text-sm font-medium text-muted-foreground">Representante Legal</label>
-                        <p className="text-foreground">{selectedCliente.representante_legal}</p>
-                        {selectedCliente.rut_representante && (
-                          <p className="text-sm text-muted-foreground font-mono">{selectedCliente.rut_representante}</p>
-                        )}
+                        <span className="text-sm text-muted-foreground">Nombre:</span>
+                        <p className="font-medium">{selectedCliente.nombre}</p>
                       </div>
-                    )}
-                    
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Estado</label>
-                      <div className="mt-1">
-                        <Badge variant={selectedCliente.estado === "Activo" ? "success" : "inactive"}>
-                          {selectedCliente.estado || "Activo"}
-                        </Badge>
+                      <div>
+                        <span className="text-sm text-muted-foreground">RUT:</span>
+                        <p className="font-mono text-sm">{selectedCliente.rut}</p>
                       </div>
+                      {selectedCliente.razon_social && (
+                        <div>
+                          <span className="text-sm text-muted-foreground">Razón Social:</span>
+                          <p className="text-sm">{selectedCliente.razon_social}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Email</label>
-                      <p className="text-foreground">{selectedCliente.email || "Sin email"}</p>
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Teléfono</label>
-                      <p className="text-foreground">{selectedCliente.telefono || "Sin teléfono"}</p>
-                    </div>
 
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Dirección</label>
-                      <p className="text-foreground mb-3">{selectedCliente.direccion || "Sin dirección"}</p>
+                  {/* Información de contacto */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">Contacto</span>
+                    </div>
+                    <div className="space-y-2">
+                      {selectedCliente.representante_legal && (
+                        <div>
+                          <span className="text-sm text-muted-foreground">Representante:</span>
+                          <p className="text-sm">{selectedCliente.representante_legal}</p>
+                          {selectedCliente.rut_representante && (
+                            <p className="font-mono text-xs text-muted-foreground">{selectedCliente.rut_representante}</p>
+                          )}
+                        </div>
+                      )}
+                      {selectedCliente.email && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-sm">{selectedCliente.email}</span>
+                        </div>
+                      )}
+                      {selectedCliente.telefono && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-sm">{selectedCliente.telefono}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* Mapa grande en la parte inferior */}
-            {selectedCliente.direccion && selectedCliente.latitud && selectedCliente.longitud && (
-              <div className="border border-border rounded-lg overflow-hidden">
-                <div className="bg-muted/50 px-4 py-3 border-b border-border">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-blue-500" />
-                    <span className="text-lg font-medium">Ubicación del Cliente</span>
+              {/* Dirección */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  Dirección
+                </label>
+                {isEditingDetails ? (
+                  <InputDireccion
+                    value={formData.direccion}
+                    initialLatitude={formData.latitud}
+                    initialLongitude={formData.longitud}
+                    onAddressSelect={handleAddressSelect}
+                    onAddressChange={handleAddressChange}
+                    placeholder="Buscar dirección con Google Maps..."
+                    showMap={true}
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    {selectedCliente.direccion ? (
+                      <p className="text-sm">{selectedCliente.direccion}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Sin dirección registrada</p>
+                    )}
+                    {selectedCliente.latitud && selectedCliente.longitud && (
+                      <div className="h-48 rounded-lg overflow-hidden border border-border/50">
+                        <GoogleMap
+                          latitude={selectedCliente.latitud}
+                          longitude={selectedCliente.longitud}
+                          zoom={15}
+                        />
+                      </div>
+                    )}
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {selectedCliente.direccion}
-                  </p>
-                </div>
-                <GoogleMap
-                  center={{
-                    lat: selectedCliente.latitud,
-                    lng: selectedCliente.longitud
-                  }}
-                  zoom={15}
-                  markers={[{
-                    position: {
-                      lat: selectedCliente.latitud,
-                      lng: selectedCliente.longitud
-                    },
-                    title: selectedCliente.nombre,
-                    info: selectedCliente.direccion
-                  }]}
-                  height="400px"
-                  className="w-full"
-                />
+                )}
               </div>
-            )}
+            </div>
           </div>
         )}
 
         {tabActivo === "instalaciones" && (
-          <div className="min-h-[600px]">
-            <div className="bg-card/50 border border-border/50 rounded-lg p-6">
-              <InstalacionesCliente 
-                clienteId={clienteId}
-                refreshTrigger={refreshTrigger}
-              />
-            </div>
-          </div>
+          <InstalacionesCliente clienteId={clienteId} />
         )}
 
         {tabActivo === "documentos" && (
-          <div className="min-h-[600px]">
-          <DocumentListTabs 
+          <DocumentListTabs
             modulo="clientes"
             entidadId={clienteId}
             onDocumentDeleted={onDocumentDeleted}
             onUploadClick={onUploadClick}
             refreshTrigger={refreshTrigger}
           />
-          </div>
         )}
-        
+
         {tabActivo === "logs" && (
-          <div className="min-h-[600px] bg-card/50 border border-border/50 rounded-lg p-6">
-            <LogsCliente 
-              clienteId={clienteId}
-              refreshTrigger={refreshTrigger}
-            />
-          </div>
+          <LogsCliente
+            clienteId={clienteId}
+            refreshTrigger={refreshTrigger}
+          />
         )}
       </div>
     </div>

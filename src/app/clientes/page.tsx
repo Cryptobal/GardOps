@@ -595,33 +595,15 @@ export default function ClientesPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="space-y-6"
+        className="h-full flex flex-col"
       >
-        {/* Encabezado */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-              Clientes
-            </h2>
-            <p className="text-muted-foreground mt-2">
-              Gestiona la información de tus clientes ({clientesFiltrados.length} de {clientes.length} registros)
-            </p>
-          </div>
-          <Button 
-            onClick={abrirModalNuevo}
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo Cliente
-          </Button>
-        </div>
-
-        {/* Barra de búsqueda y filtros */}
-        <Card className="bg-card/50 backdrop-blur-sm border-border/50">
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
+        {/* Contenedor principal con altura fija */}
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Barra de búsqueda y filtros - FIJADA */}
+          <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/50 pb-4 mb-4">
+            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
               {/* Búsqueda */}
-              <div className="relative flex-1">
+              <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por nombre de empresa o RUT..."
@@ -675,76 +657,83 @@ export default function ClientesPage() {
                   </div>
                 </PopoverContent>
               </Popover>
+
+              {/* Botón Nuevo Cliente */}
+              <Button 
+                onClick={abrirModalNuevo}
+                className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 whitespace-nowrap"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Cliente
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+            
+            {/* Información de registros */}
+            <div className="mt-2 text-sm text-muted-foreground">
+              {clientesFiltrados.length} de {clientes.length} registros
+            </div>
+          </div>
 
-        {/* Lista de clientes */}
-        <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-foreground">
-              <Users className="h-5 w-5 text-blue-500" />
-              Lista de Clientes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex items-center justify-center h-32">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              </div>
-            ) : clientesFiltrados.length === 0 ? (
-              <div className="text-center py-12">
-                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">
-                  {filtros.busqueda || filtros.estado !== "Todos" 
-                    ? "No se encontraron clientes" 
-                    : "No hay clientes registrados"
-                  }
-                </h3>
-                <p className="text-muted-foreground">
-                  {filtros.busqueda || filtros.estado !== "Todos"
-                    ? "Prueba ajustando los filtros de búsqueda"
-                    : "Comienza agregando tu primer cliente"
-                  }
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* Vista desktop - Tabla */}
-                {!isMobile && (
-                  <div className="rounded-lg border border-border/50 overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Empresa</TableHead>
-                          <TableHead>Representante Legal</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Teléfono</TableHead>
-                          <TableHead>Estado</TableHead>
-                          <TableHead className="text-right">Acciones</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {clientesFiltrados.map((cliente) => (
-                          <ClienteTableRow key={cliente.id} cliente={cliente} />
-                        ))}
-                      </TableBody>
-                    </Table>
+          {/* Contenedor de la tabla con scroll independiente */}
+          <div className="flex-1 overflow-hidden">
+            {/* Lista de clientes */}
+            <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-xl h-full">
+              <CardContent className="p-0 h-full flex flex-col">
+                {loading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                   </div>
-                )}
+                ) : clientesFiltrados.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">
+                      {filtros.busqueda || filtros.estado !== "Todos" 
+                        ? "No se encontraron clientes" 
+                        : "No hay clientes registrados"
+                      }
+                    </h3>
+                    <p className="text-muted-foreground">
+                      {filtros.busqueda || filtros.estado !== "Todos"
+                        ? "Prueba ajustando los filtros de búsqueda"
+                        : "Comienza agregando tu primer cliente"
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Vista desktop - Tabla */}
+                    <div className="hidden lg:block flex-1 overflow-auto">
+                      <Table>
+                        <TableHeader className="sticky top-0 bg-card/95 backdrop-blur-sm z-10">
+                          <TableRow>
+                            <TableHead className="font-semibold">Empresa</TableHead>
+                            <TableHead className="font-semibold">Representante Legal</TableHead>
+                            <TableHead className="font-semibold">Email</TableHead>
+                            <TableHead className="font-semibold">Teléfono</TableHead>
+                            <TableHead className="font-semibold">Estado</TableHead>
+                            <TableHead className="font-semibold text-right">Acciones</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {clientesFiltrados.map((cliente) => (
+                            <ClienteTableRow key={cliente.id} cliente={cliente} />
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
 
-                {/* Vista móvil - Cards */}
-                {isMobile && (
-                  <div className="grid gap-4">
-                    {clientesFiltrados.map((cliente) => (
-                      <ClienteCard key={cliente.id} cliente={cliente} />
-                    ))}
-                  </div>
+                    {/* Vista móvil - Cards */}
+                    <div className="lg:hidden space-y-4 p-4 overflow-auto flex-1">
+                      {clientesFiltrados.map((cliente) => (
+                        <ClienteCard key={cliente.id} cliente={cliente} />
+                      ))}
+                    </div>
+                  </>
                 )}
-              </>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </motion.div>
 
       {/* Modal de creación */}
@@ -906,7 +895,7 @@ export default function ClientesPage() {
         size="xl"
       >
         {selectedCliente && (
-          <div className="space-y-6">
+          <div className="space-y-6 max-h-[80vh] overflow-y-auto">
             {/* Pestañas principales */}
             <ClienteTabs 
               clienteId={selectedCliente.id}

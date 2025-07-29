@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "prod": "cp .env.local .env.production && npm run build && npm start",
+    "prod:check": "cp .env.local .env.production && npx tsc --noEmit && npm run build && npm start",
     "lint": "next lint",
     "migrate": "npx ts-node scripts/migrate.ts",
     "migrate:test": "npm run dev & sleep 3 && curl -X POST http://localhost:3000/api/migrate",

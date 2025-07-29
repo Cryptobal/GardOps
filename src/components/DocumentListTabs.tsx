@@ -259,52 +259,52 @@ export default function DocumentListTabs({
   }
 
   return (
-          <Card className="bg-card/50 border-border/50">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            {/* Filtros de tipos alineados a la izquierda */}
-            <div className="flex flex-wrap gap-2">
-              {tipos.map((tipo) => (
-                <button
-                  key={tipo}
-                  onClick={() => setTipoActivo(tipo)}
-                  className={`px-3 py-1.5 text-sm rounded-lg transition-all ${
-                    tipoActivo === tipo
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-muted/20 text-muted-foreground hover:bg-muted/40'
-                  }`}
-                >
-                  {tipo} ({documentosAgrupados[tipo].length})
-                </button>
-              ))}
-            </div>
-            
-            {/* Botón de subida alineado a la derecha */}
-            {onUploadClick && (
-              <Button
-                size="sm"
-                onClick={onUploadClick}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+    <Card className="bg-card/50 border-border/50 h-full flex flex-col">
+      <CardHeader className="flex-shrink-0">
+        <div className="flex items-center justify-between">
+          {/* Filtros de tipos alineados a la izquierda */}
+          <div className="flex flex-wrap gap-2">
+            {tipos.map((tipo) => (
+              <button
+                key={tipo}
+                onClick={() => setTipoActivo(tipo)}
+                className={`px-3 py-1.5 text-sm rounded-lg transition-all ${
+                  tipoActivo === tipo
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-muted/20 text-muted-foreground hover:bg-muted/40'
+                }`}
               >
-                <Upload className="h-4 w-4 mr-2" />
-                Subir Documento
-              </Button>
-            )}
+                {tipo} ({documentosAgrupados[tipo].length})
+              </button>
+            ))}
           </div>
           
-          {/* Indicador de carga */}
-          {cargando && documentos.length > 0 && (
-            <div className="mt-2">
-              <span className="text-xs text-muted-foreground animate-pulse">
-                Actualizando...
-              </span>
-            </div>
+          {/* Botón de subida alineado a la derecha */}
+          {onUploadClick && (
+            <Button
+              size="sm"
+              onClick={onUploadClick}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Subir Documento
+            </Button>
           )}
-        </CardHeader>
+        </div>
+        
+        {/* Indicador de carga */}
+        {cargando && documentos.length > 0 && (
+          <div className="mt-2">
+            <span className="text-xs text-muted-foreground animate-pulse">
+              Actualizando...
+            </span>
+          </div>
+        )}
+      </CardHeader>
 
-      <CardContent>
+      <CardContent className="flex-1 overflow-hidden">
         {/* Lista de documentos del tipo activo */}
-        <div className="max-h-96 overflow-y-auto space-y-2">
+        <div className="h-full overflow-y-auto space-y-2">
           {documentosDelTipo.map((documento) => {
             const diasRestantes = documento.fecha_vencimiento ? calcularDiasRestantes(documento.fecha_vencimiento) : null;
             const estadoVencimiento = diasRestantes !== null ? getEstadoVencimiento(diasRestantes) : null;

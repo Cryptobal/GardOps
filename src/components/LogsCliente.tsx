@@ -100,14 +100,14 @@ export default function LogsCliente({ clienteId, refreshTrigger }: LogsClientePr
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
+    <div className="space-y-3 h-full flex flex-col">
+      <div className="flex items-center justify-between flex-shrink-0">
         <h4 className="text-sm font-medium text-white">
           Actividad del Cliente ({logs.length})
         </h4>
       </div>
       
-      <div className="max-h-96 overflow-y-auto space-y-3">
+      <div className="flex-1 overflow-y-auto space-y-3">
         {logs.map((log, index) => (
           <div key={log.id} className={`
             flex items-start gap-3 p-3 rounded-lg border border-border/30 
