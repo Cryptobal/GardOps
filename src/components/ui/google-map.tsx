@@ -101,7 +101,7 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
     };
 
     initMap();
-  }, []);
+  }, [center, zoom, onMapClick]);
 
   // Actualizar centro del mapa
   useEffect(() => {
