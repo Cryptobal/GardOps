@@ -22,17 +22,12 @@ import {
 import { 
   Building2, 
   Plus, 
-  Edit, 
-  Trash2, 
   Search,
   Filter,
-  Eye,
   MapPin,
   Users,
   DollarSign,
-  AlertTriangle,
-  CheckCircle,
-  XCircle
+  AlertTriangle
 } from "lucide-react";
 import { 
   Instalacion, 
@@ -358,8 +353,12 @@ export default function InstalacionesPage() {
   const InstalacionTableRow: React.FC<{ instalacion: Instalacion }> = ({ instalacion }) => {
     const cliente = clientes.find(c => c.id === instalacion.cliente_id);
     
-    return (
-      <TableRow key={instalacion.id} className="border-gray-700 hover:bg-gray-800/50 transition-colors">
+          return (
+        <TableRow 
+          key={instalacion.id} 
+          className="border-gray-700 hover:bg-gray-800/50 transition-colors cursor-pointer"
+          onClick={() => abrirModalDetalles(instalacion)}
+        >
         <TableCell className="text-gray-200 font-medium">
           <div className="flex items-center space-x-2">
             <Building2 className="h-4 w-4 text-blue-400" />
@@ -391,59 +390,11 @@ export default function InstalacionesPage() {
           </Badge>
         </TableCell>
         <TableCell>
-          <Badge 
-            variant={instalacion.estado === "Activo" ? "default" : "secondary"}
-            className="text-xs"
-          >
-            {instalacion.estado === "Activo" ? (
-              <CheckCircle className="h-3 w-3 mr-1" />
-            ) : (
-              <XCircle className="h-3 w-3 mr-1" />
-            )}
-            {instalacion.estado}
-          </Badge>
-        </TableCell>
-        <TableCell>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => abrirModalDetalles(instalacion)}
-              className="text-blue-400 hover:text-blue-300 hover:bg-blue-400/10"
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setEditingInstalacion(instalacion);
-                setFormData({
-                  nombre: instalacion.nombre || '',
-                  cliente_id: instalacion.cliente_id || '',
-                  direccion: instalacion.direccion || '',
-                  latitud: instalacion.latitud ? Number(instalacion.latitud) : null,
-                  longitud: instalacion.longitud ? Number(instalacion.longitud) : null,
-                  ciudad: instalacion.ciudad || '',
-                  comuna: instalacion.comuna || '',
-                  valor_turno_extra: Number(instalacion.valor_turno_extra) || 0,
-                  estado: instalacion.estado || 'Activo',
-                });
-                setIsModalOpen(true);
-              }}
-              className="text-green-400 hover:text-green-300 hover:bg-green-400/10"
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => eliminarInstalacionHandler(instalacion)}
-              className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+          <div 
+            className={`w-3 h-3 rounded-full ${
+              instalacion.estado === "Activo" ? "bg-green-500" : "bg-red-500"
+            }`}
+          />
         </TableCell>
       </TableRow>
     );
@@ -453,19 +404,22 @@ export default function InstalacionesPage() {
     const cliente = clientes.find(c => c.id === instalacion.cliente_id);
     
     return (
-      <Card key={instalacion.id} className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-colors">
+      <Card 
+        key={instalacion.id} 
+        className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-colors cursor-pointer"
+        onClick={() => abrirModalDetalles(instalacion)}
+      >
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex items-center space-x-2">
               <Building2 className="h-5 w-5 text-blue-400" />
               <CardTitle className="text-gray-200 text-lg">{instalacion.nombre}</CardTitle>
             </div>
-            <Badge 
-              variant={instalacion.estado === "Activo" ? "default" : "secondary"}
-              className="text-xs"
-            >
-              {instalacion.estado}
-            </Badge>
+            <div 
+              className={`w-3 h-3 rounded-full mt-1 ${
+                instalacion.estado === "Activo" ? "bg-green-500" : "bg-red-500"
+              }`}
+            />
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -484,57 +438,15 @@ export default function InstalacionesPage() {
             </div>
           </div>
           
-          <div className="flex items-center justify-between pt-2 border-t border-gray-700">
-            <div className="flex space-x-2">
-              <Badge variant="outline" className="text-xs">
-                <Users className="h-3 w-3 mr-1" />
-                0 guardias
-              </Badge>
-              <Badge variant="destructive" className="text-xs">
-                <AlertTriangle className="h-3 w-3 mr-1" />
-                0 PPC
-              </Badge>
-            </div>
-            <div className="flex space-x-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => abrirModalDetalles(instalacion)}
-                className="text-blue-400 hover:text-blue-300 hover:bg-blue-400/10"
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setEditingInstalacion(instalacion);
-                  setFormData({
-                    nombre: instalacion.nombre || '',
-                    cliente_id: instalacion.cliente_id || '',
-                    direccion: instalacion.direccion || '',
-                    latitud: instalacion.latitud ? Number(instalacion.latitud) : null,
-                    longitud: instalacion.longitud ? Number(instalacion.longitud) : null,
-                    ciudad: instalacion.ciudad || '',
-                    comuna: instalacion.comuna || '',
-                    valor_turno_extra: Number(instalacion.valor_turno_extra) || 0,
-                    estado: instalacion.estado || 'Activo',
-                  });
-                  setIsModalOpen(true);
-                }}
-                className="text-green-400 hover:text-green-300 hover:bg-green-400/10"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => eliminarInstalacionHandler(instalacion)}
-                className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
+          <div className="flex space-x-2 pt-2 border-t border-gray-700">
+            <Badge variant="outline" className="text-xs">
+              <Users className="h-3 w-3 mr-1" />
+              0 guardias
+            </Badge>
+            <Badge variant="destructive" className="text-xs">
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              0 PPC
+            </Badge>
           </div>
         </CardContent>
       </Card>
@@ -544,60 +456,57 @@ export default function InstalacionesPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-100">Instalaciones</h1>
-            <p className="text-gray-400 mt-1">Gestiona las instalaciones de tus clientes</p>
-          </div>
-          <Button
-            onClick={abrirModalNuevo}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nueva instalación
-          </Button>
-        </div>
+
 
         {/* Filtros */}
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar instalaciones..."
-                  value={filtros.busqueda}
-                  onChange={(e) => setFiltros(prev => ({ ...prev, busqueda: e.target.value }))}
-                  className="pl-10 bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
-                />
-              </div>
-              
-              <select
-                value={filtros.estado}
-                onChange={(e) => setFiltros(prev => ({ ...prev, estado: e.target.value }))}
-                className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="Todos">Todos los estados</option>
-                <option value="Activo">Activo</option>
-                <option value="Inactivo">Inactivo</option>
-              </select>
+        <div className="sticky top-0 z-10 bg-gray-900 pb-4">
+          <Card className="bg-gray-800 border-gray-700">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Buscar instalaciones..."
+                    value={filtros.busqueda}
+                    onChange={(e) => setFiltros(prev => ({ ...prev, busqueda: e.target.value }))}
+                    className="pl-10 bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400"
+                  />
+                </div>
+                
+                <select
+                  value={filtros.estado}
+                  onChange={(e) => setFiltros(prev => ({ ...prev, estado: e.target.value }))}
+                  className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[140px]"
+                >
+                  <option value="Todos">Todos los estados</option>
+                  <option value="Activo">Activo</option>
+                  <option value="Inactivo">Inactivo</option>
+                </select>
 
-              <select
-                value={filtros.cliente_id}
-                onChange={(e) => setFiltros(prev => ({ ...prev, cliente_id: e.target.value }))}
-                className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Todos los clientes</option>
-                {clientes.map((cliente) => (
-                  <option key={cliente.id} value={cliente.id}>
-                    {cliente.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </CardContent>
-        </Card>
+                <select
+                  value={filtros.cliente_id}
+                  onChange={(e) => setFiltros(prev => ({ ...prev, cliente_id: e.target.value }))}
+                  className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]"
+                >
+                  <option value="">Todos los clientes</option>
+                  {clientes.map((cliente) => (
+                    <option key={cliente.id} value={cliente.id}>
+                      {cliente.nombre}
+                    </option>
+                  ))}
+                </select>
+
+                <Button
+                  onClick={abrirModalNuevo}
+                  className="bg-blue-600 hover:bg-blue-700 text-white ml-2"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nueva instalación
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Contenido */}
         {loading ? (
@@ -627,9 +536,6 @@ export default function InstalacionesPage() {
             {/* Vista de tabla para desktop */}
             <div className="hidden md:block">
               <Card className="bg-gray-800 border-gray-700">
-                <CardHeader>
-                  <CardTitle className="text-gray-200">Instalaciones ({instalacionesFiltradas.length})</CardTitle>
-                </CardHeader>
                 <CardContent>
                   <Table>
                     <TableHeader>
@@ -641,7 +547,6 @@ export default function InstalacionesPage() {
                         <TableHead className="text-gray-300">Guardias</TableHead>
                         <TableHead className="text-gray-300">PPC</TableHead>
                         <TableHead className="text-gray-300">Estado</TableHead>
-                        <TableHead className="text-gray-300">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
