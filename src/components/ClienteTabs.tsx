@@ -335,8 +335,7 @@ export default function ClienteTabs({
                     {selectedCliente.latitud && selectedCliente.longitud && (
                       <div className="h-48 rounded-lg overflow-hidden border border-border/50">
                         <GoogleMap
-                          latitude={selectedCliente.latitud}
-                          longitude={selectedCliente.longitud}
+                          center={{ lat: selectedCliente.latitud, lng: selectedCliente.longitud }}
                           zoom={15}
                         />
                       </div>
