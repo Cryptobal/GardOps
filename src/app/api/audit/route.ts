@@ -7,12 +7,12 @@ export async function GET() {
     
     const auditResult = {
       success: false,
-      foreignKeys: [],
-      tables: {},
-      indexes: [],
-      constraints: [],
-      tableCounts: [],
-      errors: []
+      foreignKeys: [] as any[],
+      tables: {} as { [key: string]: any[] },
+      indexes: [] as any[],
+      constraints: [] as any[],
+      tableCounts: [] as any[],
+      errors: [] as string[]
     };
 
     try {
@@ -50,7 +50,7 @@ export async function GET() {
       `);
 
       // Agrupar por tabla
-      const tablesByName = {};
+      const tablesByName: { [key: string]: any[] } = {};
       tablesAndColumns.rows.forEach((row: any) => {
         if (!tablesByName[row.table_name]) {
           tablesByName[row.table_name] = [];
@@ -94,7 +94,7 @@ export async function GET() {
 
       // 5. Conteo de registros por tabla
       const tableNames = Array.from(new Set(tablesAndColumns.rows.map((row: any) => row.table_name)));
-      const tableCounts = [];
+      const tableCounts: any[] = [];
       
       for (const tableName of tableNames) {
         try {
