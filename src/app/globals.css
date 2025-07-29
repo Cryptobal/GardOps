@@ -61,6 +61,30 @@
   html {
     @apply scroll-smooth;
   }
+
+  /* Mejoras para scrolling en móvil */
+  @media (max-width: 1024px) {
+    body {
+      /* Permitir scrolling natural en móvil */
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      /* Mejorar el rendimiento de scroll en iOS */
+      transform: translateZ(0);
+    }
+    
+    /* Mejorar el comportamiento de touch en elementos interactivos */
+    * {
+      -webkit-tap-highlight-color: transparent;
+      /* Mejorar el scroll momentum en iOS */
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Asegurar que los elementos principales tengan scroll natural */
+    main {
+      -webkit-overflow-scrolling: touch;
+      overflow-y: auto;
+    }
+  }
 }
 
 @layer components {

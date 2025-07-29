@@ -62,7 +62,7 @@ export function Modal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center lg:items-center lg:justify-center p-4 lg:p-0">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -72,7 +72,7 @@ export function Modal({
       {/* Modal */}
       <div
         className={cn(
-          "relative w-full mx-4 bg-background border border-border rounded-lg shadow-xl animate-in fade-in zoom-in-95 duration-200",
+          "relative w-full bg-background border border-border rounded-lg shadow-xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto lg:max-h-none lg:overflow-visible",
           sizeClasses[size],
           className
         )}
@@ -100,7 +100,7 @@ export function Modal({
         )}
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-4 lg:p-6 overflow-y-auto">
           {children}
         </div>
       </div>

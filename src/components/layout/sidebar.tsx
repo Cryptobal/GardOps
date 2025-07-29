@@ -24,6 +24,7 @@ export function Sidebar({ className }: SidebarProps) {
 
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
+    // No bloquear el scroll del body en móvil para el sidebar
   };
 
   return (

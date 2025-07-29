@@ -533,8 +533,8 @@ export default function ClientesPage() {
         transition={{ duration: 0.5 }}
         className="space-y-6"
       >
-        {/* Barra de búsqueda, filtros y botón nuevo cliente - Fija al scroll */}
-        <Card className="bg-card/50 backdrop-blur-sm border-border/50 sticky top-0 z-10">
+        {/* Barra de búsqueda, filtros y botón nuevo cliente - Fija al scroll en desktop */}
+        <Card className="bg-card/50 backdrop-blur-sm border-border/50 lg:sticky lg:top-0 z-10">
           <CardContent className="p-4">
             <div className="flex flex-col gap-2">
               {/* Contador de registros */}
@@ -661,7 +661,7 @@ export default function ClientesPage() {
 
                 {/* Vista móvil - Cards */}
                 {isMobile && (
-                  <div className="grid gap-4">
+                  <div className="grid gap-4 pb-20">
                     {clientesFiltrados.map((cliente) => (
                       <ClienteCard key={cliente.id} cliente={cliente} />
                     ))}
@@ -828,16 +828,15 @@ export default function ClientesPage() {
         isOpen={isDetailModalOpen}
         onClose={cerrarModales}
         title={`Detalles - ${selectedCliente?.nombre}`}
-        className="bg-card/95 backdrop-blur-md"
         size="xl"
       >
-        {selectedCliente && (
+        {selectedCliente ? (
           <div className="space-y-6">
             {/* Pestañas principales */}
             <ClienteTabs 
               clienteId={selectedCliente.id}
               onDocumentDeleted={handleUploadSuccess}
-                              onUploadClick={() => setShowUploadModal(true)}
+              onUploadClick={() => setShowUploadModal(true)}
               refreshTrigger={refreshTrigger}
               selectedCliente={selectedCliente}
               formData={formData}
@@ -850,6 +849,10 @@ export default function ClientesPage() {
               guardarCliente={guardarCliente}
               cambiarEstadoCliente={cambiarEstadoCliente}
             />
+          </div>
+        ) : (
+          <div className="p-8 text-center">
+            <p className="text-muted-foreground">No se encontraron datos del cliente</p>
           </div>
         )}
       </Modal>

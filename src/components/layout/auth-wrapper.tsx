@@ -79,16 +79,16 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
 
   // Para rutas privadas, mostrar el layout completo
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex min-h-screen bg-background lg:h-screen">
       {/* Sidebar */}
       <Sidebar className="hidden lg:flex lg:w-80 lg:flex-col" />
       
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col lg:overflow-hidden">
         <Navbar />
         
         {/* Page content */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 lg:overflow-auto">
           <div className="container mx-auto p-6 space-y-6">
             {children}
           </div>
