@@ -3,7 +3,7 @@ import pool from "@/lib/database";
 
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
+    const { searchParams } = req.nextUrl;
     const documentId = searchParams.get("id");
     const modulo = searchParams.get("modulo");
 
