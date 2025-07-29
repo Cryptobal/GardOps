@@ -19,6 +19,9 @@ export interface InputDireccionProps {
   // Nuevas props para coordenadas iniciales
   initialLatitude?: number | null;
   initialLongitude?: number | null;
+  // Nuevas props para ciudad/comuna iniciales
+  initialCiudad?: string;
+  initialComuna?: string;
   required?: boolean;
   disabled?: boolean;
   name?: string;
@@ -36,6 +39,8 @@ const InputDireccion = React.forwardRef<HTMLInputElement, InputDireccionProps>(
     defaultValue = "",
     initialLatitude,
     initialLongitude,
+    initialCiudad,
+    initialComuna,
     required = false,
     disabled = false,
     name = "direccion",
@@ -61,29 +66,38 @@ const InputDireccion = React.forwardRef<HTMLInputElement, InputDireccionProps>(
       searchAddresses,
       selectAddress,
       clearSelection,
+      setExistingAddress,
     } = useAddressAutocomplete();
 
     // Inicializar selectedAddress si tenemos coordenadas iniciales
     useEffect(() => {
       if (initialLatitude && initialLongitude && value && !selectedAddress) {
-        // Crear un AddressData ficticio con los datos existentes
-        const existingAddressData: AddressData = {
-          direccionCompleta: value,
-          latitud: initialLatitude,
-          longitud: initialLongitude,
-          componentes: {
-            ciudad: '',
-            comuna: '',
-            region: '',
-            codigoPostal: '',
-            pais: 'Chile'
-          }
-        };
+        // Convertir coordenadas a números y validar
+        const lat = Number(initialLatitude);
+        const lng = Number(initialLongitude);
         
-        // Simular la selección de dirección para activar el mapa
-        onAddressSelect?.(existingAddressData);
+        // Solo proceder si las coordenadas son números válidos
+        if (!isNaN(lat) && !isNaN(lng)) {
+          // Crear un AddressData ficticio con los datos existentes
+          const existingAddressData: AddressData = {
+            direccionCompleta: value,
+            latitud: lat,
+            longitud: lng,
+            componentes: {
+              ciudad: initialCiudad || '',
+              comuna: initialComuna || '',
+              region: '',
+              codigoPostal: '',
+              pais: 'Chile'
+            }
+          };
+          
+          // Establecer selectedAddress internamente y notificar al padre
+          setExistingAddress(existingAddressData);
+          onAddressSelect?.(existingAddressData);
+        }
       }
-    }, [initialLatitude, initialLongitude, value, selectedAddress, onAddressSelect]);
+    }, [initialLatitude, initialLongitude, value, selectedAddress, onAddressSelect, initialCiudad, initialComuna]);
 
     // Sincronizar con prop value cuando cambie (para formularios controlados)
     useEffect(() => {
@@ -172,14 +186,23 @@ const InputDireccion = React.forwardRef<HTMLInputElement, InputDireccionProps>(
     const getMapCoordinates = () => {
       if (selectedAddress) {
         return {
-          lat: selectedAddress.latitud,
-          lng: selectedAddress.longitud,
+          lat: Number(selectedAddress.latitud),
+          lng: Number(selectedAddress.longitud),
           direccion: selectedAddress.direccionCompleta
         };
       } else if (initialLatitude && initialLongitude) {
+        // Convertir a números para asegurar que Google Maps reciba coordenadas válidas
+        const lat = Number(initialLatitude);
+        const lng = Number(initialLongitude);
+        
+        // Verificar que las coordenadas sean números válidos
+        if (isNaN(lat) || isNaN(lng)) {
+          return null;
+        }
+        
         return {
-          lat: initialLatitude,
-          lng: initialLongitude,
+          lat,
+          lng,
           direccion: value || "Ubicación guardada"
         };
       }
@@ -377,12 +400,12 @@ const InputDireccion = React.forwardRef<HTMLInputElement, InputDireccionProps>(
             <input
               type="hidden"
               name={`${name}_ciudad`}
-              value={selectedAddress?.componentes.ciudad || ''}
+              value={selectedAddress?.componentes.ciudad || initialCiudad || ''}
             />
             <input
               type="hidden"
               name={`${name}_comuna`}
-              value={selectedAddress?.componentes.comuna || ''}
+              value={selectedAddress?.componentes.comuna || initialComuna || ''}
             />
             <input
               type="hidden"

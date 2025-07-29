@@ -1,9 +1,14 @@
 import { Pool } from 'pg';
 
-// Configuración de la conexión PostgreSQL
+// Configuración optimizada de la conexión PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  // Configuraciones de rendimiento
+  max: 20, // Máximo número de conexiones en el pool
+  idleTimeoutMillis: 30000, // Tiempo de inactividad antes de cerrar conexión
+  connectionTimeoutMillis: 2000, // Tiempo máximo para obtener conexión
+  maxUses: 7500, // Número máximo de veces que se puede usar una conexión
 });
 
 export default pool;
@@ -11,7 +16,15 @@ export default pool;
 export async function query(text: string, params?: any[]): Promise<any> {
   const client = await pool.connect();
   try {
+    const startTime = Date.now();
     const result = await client.query(text, params);
+    const duration = Date.now() - startTime;
+    
+    // Log solo queries lentos para debugging
+    if (duration > 500) {
+      console.log(`🐌 Query lento (${duration}ms): ${text.substring(0, 100)}...`);
+    }
+    
     return result;
   } finally {
     client.release();

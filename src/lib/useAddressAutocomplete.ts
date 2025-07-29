@@ -156,15 +156,22 @@ export const useAddressAutocomplete = () => {
       place.address_components.forEach((component) => {
         const types = component.types;
 
-        if (types.includes('locality')) {
+        // Para Chile: administrative_area_level_2 es la ciudad principal (ej: Valparaíso)
+        if (types.includes('administrative_area_level_2')) {
           components.ciudad = component.long_name;
-        } else if (types.includes('administrative_area_level_3')) {
+        } 
+        // locality es la comuna (ej: Quilpué)
+        else if (types.includes('locality')) {
           components.comuna = component.long_name;
-        } else if (types.includes('administrative_area_level_1')) {
+        } 
+        // administrative_area_level_1 es la región (ej: Valparaíso)
+        else if (types.includes('administrative_area_level_1')) {
           components.region = component.long_name;
-        } else if (types.includes('country')) {
+        } 
+        else if (types.includes('country')) {
           components.pais = component.long_name;
-        } else if (types.includes('postal_code')) {
+        } 
+        else if (types.includes('postal_code')) {
           components.codigoPostal = component.long_name;
         }
       });
@@ -184,6 +191,11 @@ export const useAddressAutocomplete = () => {
     setSuggestions([]);
   };
 
+  // Establecer dirección manualmente (para datos existentes)
+  const setExistingAddress = (addressData: AddressData) => {
+    setSelectedAddress(addressData);
+  };
+
   return {
     isLoaded,
     suggestions,
@@ -192,5 +204,6 @@ export const useAddressAutocomplete = () => {
     searchAddresses,
     selectAddress,
     clearSelection,
+    setExistingAddress,
   };
 }; 
