@@ -256,14 +256,12 @@ export default function InstalacionesPage() {
     setFormErrors({});
     setIsEditingDetails(false);
     setIsReadOnlyMode(true); // Siempre inicia en modo readonly
-    console.log('🔒 Modal abierto en modo readonly');
 
     setIsDetailModalOpen(true);
   };
 
   // Función para activar modo edición
   const activarModoEdicion = () => {
-    console.log('🔓 Activando modo edición...');
     setIsReadOnlyMode(false);
   };
 

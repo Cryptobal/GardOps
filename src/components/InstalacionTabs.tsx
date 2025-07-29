@@ -611,9 +611,6 @@ export default function InstalacionTabs({
 }: InstalacionTabsProps) {
   const [activeTab, setActiveTab] = useState('datos');
   
-  // Debug para verificar estado
-  console.log('🔍 InstalacionTabs - isReadOnly:', isReadOnly);
-  
   const [guardiasAsignados, setGuardiasAsignados] = useState<GuardiaAsignado[]>([]);
   const [puestosOperativos, setPuestosOperativos] = useState<PuestoOperativo[]>([]);
   const [documentos, setDocumentos] = useState<DocumentoInstalacion[]>([]);
@@ -742,20 +739,14 @@ export default function InstalacionTabs({
           </Button>
           {isReadOnly ? (
             <Button
-              onClick={() => {
-                console.log('🔵 Botón Actualizar clickeado, activando edición...');
-                onEnableEdit?.();
-              }}
+              onClick={onEnableEdit}
               className="bg-blue-600 hover:bg-blue-700"
             >
               Actualizar
             </Button>
           ) : (
             <Button
-              onClick={() => {
-                console.log('🟢 Botón Guardar clickeado, guardando cambios...');
-                guardarInstalacion();
-              }}
+              onClick={guardarInstalacion}
               className="bg-green-600 hover:bg-green-700"
             >
               Guardar cambios
