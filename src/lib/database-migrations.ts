@@ -917,6 +917,33 @@ async function createBasicTablesIfNeeded(): Promise<void> {
     console.log('✅ Tabla tenants creada con tenant por defecto');
   }
 
+  // Crear tabla clientes si no existe
+  const clientesExists = await checkTableExists('clientes');
+  if (!clientesExists) {
+    await query(`
+      CREATE TABLE clientes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+        nombre TEXT NOT NULL,
+        razon_social TEXT,
+        rut TEXT,
+        telefono TEXT,
+        email TEXT,
+        direccion TEXT,
+        contacto_principal TEXT,
+        activo BOOLEAN DEFAULT true,
+        creado_en TIMESTAMP DEFAULT now(),
+        actualizado_en TIMESTAMP DEFAULT now()
+      )
+    `);
+    
+    // Crear índices para clientes
+    await query(`CREATE INDEX IF NOT EXISTS idx_clientes_tenant ON clientes(tenant_id)`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_clientes_rut ON clientes(rut)`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_clientes_email ON clientes(email)`);
+    console.log('✅ Tabla clientes creada con índices');
+  }
+
   // Crear tabla instalaciones si no existe
   const instalacionesExists = await checkTableExists('instalaciones');
   if (!instalacionesExists) {
@@ -924,13 +951,27 @@ async function createBasicTablesIfNeeded(): Promise<void> {
       CREATE TABLE instalaciones (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+        cliente_id UUID REFERENCES clientes(id) ON DELETE SET NULL,
         nombre TEXT NOT NULL,
-        direccion TEXT,
+        direccion TEXT NOT NULL,
+        codigo TEXT,
+        tipo TEXT CHECK (tipo IN ('residencial', 'comercial', 'industrial', 'institucional')),
+        telefono TEXT,
+        observaciones TEXT,
+        coordenadas_lat DECIMAL(10, 8),
+        coordenadas_lng DECIMAL(11, 8),
         activo BOOLEAN DEFAULT true,
-        creado_en TIMESTAMP DEFAULT now()
+        creado_en TIMESTAMP DEFAULT now(),
+        actualizado_en TIMESTAMP DEFAULT now()
       )
     `);
-    console.log('✅ Tabla instalaciones creada');
+    
+    // Crear índices para instalaciones
+    await query(`CREATE INDEX IF NOT EXISTS idx_instalaciones_tenant ON instalaciones(tenant_id)`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_instalaciones_cliente ON instalaciones(cliente_id)`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_instalaciones_codigo ON instalaciones(codigo)`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_instalaciones_coordenadas ON instalaciones(coordenadas_lat, coordenadas_lng)`);
+    console.log('✅ Tabla instalaciones creada con índices');
   }
 
   // Crear tabla roles_servicio si no existe
