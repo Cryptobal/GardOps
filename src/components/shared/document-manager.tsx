@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -63,22 +63,7 @@ export function DocumentManager({
   // Obtener el tipo seleccionado para verificar si requiere vencimiento
   const tipoSeleccionado = tiposDocumentos.find(tipo => tipo.id === tipoDocumentoId);
 
-  // Validación: Mostrar mensaje si no hay entidad seleccionada
-  if (!entidadId || entidadId.trim() === "") {
-    return (
-      <Card className={`bg-card/50 border-border/50 ${className}`}>
-        <CardContent className="p-6">
-          <div className="text-center text-muted-foreground py-8">
-            <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p className="text-lg font-medium mb-2">Seleccione un registro</p>
-            <p className="text-sm">Para ver y gestionar documentos, primero seleccione un {modulo.slice(0, -1)} de la lista.</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const cargarDocumentos = async (forceReload: boolean = false) => {
+  const cargarDocumentos = useCallback(async (forceReload: boolean = false) => {
     const now = Date.now();
     
     // Caché de 10 segundos
@@ -119,10 +104,10 @@ export function DocumentManager({
     } finally {
       setCargando(false);
     }
-  };
+  }, [modulo, entidadId, lastLoadTime, tipoActivo]);
 
   // Cargar tipos de documentos
-  const cargarTiposDocumentos = async () => {
+  const cargarTiposDocumentos = useCallback(async () => {
     try {
       setLoadingTipos(true);
       
@@ -152,42 +137,21 @@ export function DocumentManager({
     } finally {
       setLoadingTipos(false);
     }
-  };
-
-  useEffect(() => {
-    // Solo cargar documentos si hay una entidad seleccionada
-    if (entidadId && entidadId.trim() !== "") {
-      cargarDocumentos(true);
-      cargarTiposDocumentos();
-    } else {
-      // Limpiar documentos si no hay entidad seleccionada
-      setDocumentos([]);
-      setCargando(false);
-    }
-  }, [entidadId, refreshTrigger, modulo]);
+  }, [modulo]);
 
   const handleUpload = async () => {
     if (!file || !tipoDocumentoId) {
       setUploadStatus("error");
-      console.error("❌ Archivo y tipo de documento son requeridos");
       return;
     }
 
     // Validar fecha de vencimiento si es requerida
     if (tipoSeleccionado?.requiere_vencimiento && !fechaVencimiento) {
       setUploadStatus("error");
-      console.error("❌ Fecha de vencimiento requerida para este tipo de documento");
       return;
     }
     
     setUploadStatus("uploading");
-    console.log('📤 Iniciando subida de documento:', {
-      archivo: file.name,
-      tipo_documento_id: tipoDocumentoId,
-      fecha_vencimiento: fechaVencimiento || 'sin fecha',
-      modulo,
-      entidad_id: entidadId
-    });
 
     try {
       // Crear FormData para la subida
@@ -377,6 +341,34 @@ export function DocumentManager({
 
   const tipos = Object.keys(documentosAgrupados);
   const documentosDelTipo = tipoActivo ? documentosAgrupados[tipoActivo] || [] : [];
+
+  // useEffect debe ir después de todas las funciones pero antes de los returns
+  useEffect(() => {
+    // Solo cargar documentos si hay una entidad seleccionada
+    if (entidadId && entidadId.trim() !== "") {
+      cargarDocumentos(true);
+      cargarTiposDocumentos();
+    } else {
+      // Limpiar documentos si no hay entidad seleccionada
+      setDocumentos([]);
+      setCargando(false);
+    }
+  }, [entidadId, refreshTrigger, modulo, cargarDocumentos, cargarTiposDocumentos]);
+
+  // Validación: Mostrar mensaje si no hay entidad seleccionada
+  if (!entidadId || entidadId.trim() === "") {
+    return (
+      <Card className={`bg-card/50 border-border/50 ${className}`}>
+        <CardContent className="p-6">
+          <div className="text-center text-muted-foreground py-8">
+            <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p className="text-lg font-medium mb-2">Seleccione un registro</p>
+            <p className="text-sm">Para ver y gestionar documentos, primero seleccione un {modulo.slice(0, -1)} de la lista.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (cargando && documentos.length === 0) {
     return (

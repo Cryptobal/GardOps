@@ -67,7 +67,7 @@ export default function DocumentosGlobalesPage() {
   const [tiposDocumentos, setTiposDocumentos] = useState<TipoDocumento[]>([]);
   const [cargando, setCargando] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const { addToast } = useToast();
+  const { toast } = useToast();
 
   // Estados de filtros
   const [filtros, setFiltros] = useState({
@@ -107,19 +107,11 @@ export default function DocumentosGlobalesPage() {
         console.log('✅ Documentos cargados:', { count: result.data?.length, stats: result.stats });
       } else {
         console.error('❌ Error en respuesta:', result.error);
-        addToast({
-          type: "error",
-          title: "Error",
-          message: result.error || "Error al cargar documentos"
-        });
+        toast.error(result.error || "Error al cargar documentos", "Error");
       }
     } catch (error) {
       console.error('❌ Error cargando documentos:', error);
-      addToast({
-        type: "error",
-        title: "Error",
-        message: "Error al cargar documentos"
-      });
+      toast.error("Error al cargar documentos", "Error");
     } finally {
       setCargando(false);
     }
