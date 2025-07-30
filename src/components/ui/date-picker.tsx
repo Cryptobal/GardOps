@@ -74,14 +74,6 @@ export function DatePickerComponent({
           dateFormat="dd/MM/yyyy"
           showPopperArrow={false}
           popperPlacement="bottom-start"
-          popperModifiers={[
-            {
-              name: "offset",
-              options: {
-                offset: [0, 8],
-              },
-            },
-          ]}
           customInput={
             <button
               type="button"
