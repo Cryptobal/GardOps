@@ -104,7 +104,6 @@ export function DatePickerComponent({
           }}
           monthClassName={() => "!text-slate-200"}
           yearClassName={() => "!text-slate-200"}
-          headerClassName="!bg-slate-700 !border-slate-600"
         />
         
         {showClearButton && value && !disabled && (
