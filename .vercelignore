@@ -1,13 +1,11 @@
 # Scripts de desarrollo
 scripts/
-*.ts
-!src/**/*.ts
 
-# Archivos de datos
-*.csv
-*.json
-!package.json
-!tsconfig.json
+# Archivos de datos específicos
+BBDD GGSS.csv
+latlng_guardias.csv
+audit_*.json
+audit/
 
 # Archivos de configuración local
 .env.local
@@ -19,9 +17,6 @@ scripts/
 # Archivos temporales
 *.tmp
 *.temp
-
-# Node modules (ya se excluye por defecto)
-node_modules/
 
 # Archivos de build
 .next/
