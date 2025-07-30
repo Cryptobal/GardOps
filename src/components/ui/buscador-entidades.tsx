@@ -366,5 +366,4 @@ const BuscadorEntidades = React.forwardRef<HTMLInputElement, BuscadorEntidadesPr
 
 BuscadorEntidades.displayName = "BuscadorEntidades";
 
-export { BuscadorEntidades };
-export type { EntityOption }; 
+export { BuscadorEntidades }; 
