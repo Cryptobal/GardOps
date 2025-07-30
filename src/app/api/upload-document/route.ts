@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
         tipo_documento_id,
         buffer,
         fecha_vencimiento || null,
-        new Date()
+        new Date().toISOString()
       ];
     } else if (modulo === "guardias") {
       insertQuery = `
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
         tipo_documento_id,
         buffer,
         fecha_vencimiento || null,
-        new Date()
+        new Date().toISOString()
       ];
     } else {
       return NextResponse.json({ error: "Módulo no válido" }, { status: 400 });
