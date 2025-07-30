@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
     
     return NextResponse.json(
-      { success: false, error: error.message || 'Error al crear cliente' },
+      { success: false, error: error instanceof Error ? error.message : 'Error al crear cliente' },
       { status: 500 }
     );
   }
@@ -77,7 +77,7 @@ export async function PUT(request: NextRequest) {
     }
     
     return NextResponse.json(
-      { success: false, error: error.message || 'Error al actualizar cliente' },
+      { success: false, error: error instanceof Error ? error.message : 'Error al actualizar cliente' },
       { status: 500 }
     );
   }
@@ -106,7 +106,7 @@ export async function DELETE(request: NextRequest) {
     console.error('❌ Error en DELETE /api/clientes:', error);
     
     return NextResponse.json(
-      { success: false, error: error.message || 'Error al eliminar cliente' },
+      { success: false, error: error instanceof Error ? error.message : 'Error al eliminar cliente' },
       { status: 500 }
     );
   }

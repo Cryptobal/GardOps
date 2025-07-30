@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
     console.error('❌ Error obteniendo alertas:', error);
     return NextResponse.json({ 
       success: false, 
-      error: error.message 
+      error: error instanceof Error ? error.message : 'Error desconocido'
     }, { status: 500 });
   }
 }
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
     console.error('❌ Error generando alertas:', error);
     return NextResponse.json({ 
       success: false, 
-      error: error.message 
+      error: error instanceof Error ? error.message : 'Error desconocido'
     }, { status: 500 });
   }
 }
@@ -212,7 +212,7 @@ export async function PUT(request: NextRequest) {
     console.error('❌ Error actualizando alerta:', error);
     return NextResponse.json({ 
       success: false, 
-      error: error.message 
+      error: error instanceof Error ? error.message : 'Error desconocido'
     }, { status: 500 });
   }
 } 

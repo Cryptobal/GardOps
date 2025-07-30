@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     }
     
     return NextResponse.json(
-      { success: false, error: error.message || 'Error al crear instalación' },
+      { success: false, error: error instanceof Error ? error.message : 'Error al crear instalación' },
       { status: 500 }
     );
   }
@@ -145,7 +145,7 @@ export async function PUT(request: NextRequest) {
     }
     
     return NextResponse.json(
-      { success: false, error: error.message || 'Error al actualizar instalación' },
+      { success: false, error: error instanceof Error ? error.message : 'Error al actualizar instalación' },
       { status: 500 }
     );
   }
@@ -173,7 +173,7 @@ export async function DELETE(request: NextRequest) {
   } catch (error: any) {
     console.error('❌ Error en DELETE /api/instalaciones:', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Error al eliminar instalación' },
+      { success: false, error: error instanceof Error ? error.message : 'Error al eliminar instalación' },
       { status: 500 }
     );
   }

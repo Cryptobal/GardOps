@@ -76,8 +76,8 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('❌ Error en GET /api/documentos:', error);
     console.error('❌ Detalles del error:', {
-      message: error.message,
-      stack: error.stack,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
       sql: sql,
       params: params
     });
