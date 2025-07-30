@@ -1,6 +1,6 @@
 "use client";
 
-import { DocumentManager } from "@/components/ui/document-manager";
+import { DocumentManager } from "@/components/shared/document-manager";
 import DocumentUploader from "@/components/DocumentUploader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,8 +45,8 @@ export default function TestDocumentosPage() {
           <h3 className="text-lg font-semibold mb-4">📁 Gestión Completa de Documentos</h3>
           <DocumentManager 
             modulo="test"
-            entidad_id={testId}
-            onDocumentUploaded={() => console.log("Documento subido exitosamente")}
+            entidadId={testId}
+            onDocumentDeleted={() => console.log("Documento eliminado exitosamente")}
           />
         </Card>
 
