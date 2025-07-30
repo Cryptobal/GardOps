@@ -1,0 +1,39 @@
+# Scripts de desarrollo
+scripts/
+*.ts
+!src/**/*.ts
+
+# Archivos de datos
+*.csv
+*.json
+!package.json
+!tsconfig.json
+
+# Archivos de configuración local
+.env.local
+.env.development
+
+# Logs
+*.log
+
+# Archivos temporales
+*.tmp
+*.temp
+
+# Node modules (ya se excluye por defecto)
+node_modules/
+
+# Archivos de build
+.next/
+out/
+dist/
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db 
