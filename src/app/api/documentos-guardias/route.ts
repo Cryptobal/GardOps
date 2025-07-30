@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../lib/database';
 
-// PUT /api/documentos-clientes?id=uuid - Actualizar fecha de vencimiento
+// PUT /api/documentos-guardias?id=uuid - Actualizar fecha de vencimiento
 export async function PUT(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -25,7 +25,7 @@ export async function PUT(request: NextRequest) {
 
     // Actualizar fecha de vencimiento
     const sql = `
-      UPDATE documentos_clientes 
+      UPDATE documentos_guardias 
       SET fecha_vencimiento = $1, updated_at = NOW()
       WHERE id = $2 
       RETURNING *
@@ -40,7 +40,7 @@ export async function PUT(request: NextRequest) {
       );
     }
     
-    console.log(`✅ Fecha de vencimiento actualizada para documento de cliente:`, result.rows[0]);
+    console.log(`✅ Fecha de vencimiento actualizada para documento de guardia:`, result.rows[0]);
     
     return NextResponse.json({ 
       success: true, 

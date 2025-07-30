@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface AlertaDocumento {
   id: string;
@@ -16,19 +17,22 @@ interface AlertaDocumento {
   creada_en: string;
   leida: boolean;
   documento_nombre?: string;
-  cliente_nombre?: string;
-  cliente_id?: string;
+  entidad_nombre?: string;
+  entidad_id?: string;
   fecha_vencimiento?: string;
   tipo_documento_nombre?: string;
+  modulo?: string;
 }
 
 export default function AlertasPage() {
   const [alertas, setAlertas] = useState<AlertaDocumento[]>([]);
+  const [alertasFiltradas, setAlertasFiltradas] = useState<AlertaDocumento[]>([]);
   const [cargando, setCargando] = useState(true);
   const [modalEditar, setModalEditar] = useState(false);
   const [documentoEditando, setDocumentoEditando] = useState<AlertaDocumento | null>(null);
   const [nuevaFecha, setNuevaFecha] = useState("");
   const [actualizando, setActualizando] = useState(false);
+  const [filtroModulo, setFiltroModulo] = useState<string>("todos");
   const { toast } = useToast();
 
   const cargarAlertas = async () => {
@@ -77,6 +81,15 @@ export default function AlertasPage() {
     }
   };
 
+  // Filtrar alertas según el módulo seleccionado
+  useEffect(() => {
+    if (filtroModulo === "todos") {
+      setAlertasFiltradas(alertas);
+    } else {
+      setAlertasFiltradas(alertas.filter(alerta => alerta.modulo === filtroModulo));
+    }
+  }, [alertas, filtroModulo]);
+
   useEffect(() => {
     cargarAlertas();
     // Auto-refresh cada 30 segundos
@@ -84,11 +97,11 @@ export default function AlertasPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Calcular KPIs
-  const vencidos = alertas.filter(a => a.dias_restantes < 0).length;
-  const vencenHoy = alertas.filter(a => a.dias_restantes === 0).length;
-  const criticos = alertas.filter(a => a.dias_restantes > 0 && a.dias_restantes <= 7).length;
-  const proximosVencer = alertas.filter(a => a.dias_restantes > 7 && a.dias_restantes <= 30).length;
+  // Calcular KPIs basados en alertas filtradas
+  const vencidos = alertasFiltradas.filter(a => a.dias_restantes < 0).length;
+  const vencenHoy = alertasFiltradas.filter(a => a.dias_restantes === 0).length;
+  const criticos = alertasFiltradas.filter(a => a.dias_restantes > 0 && a.dias_restantes <= 7).length;
+  const proximosVencer = alertasFiltradas.filter(a => a.dias_restantes > 7 && a.dias_restantes <= 30).length;
 
   const abrirModalEditar = (alerta: AlertaDocumento) => {
     setDocumentoEditando(alerta);
@@ -116,10 +129,28 @@ export default function AlertasPage() {
       
       console.log('🔄 Actualizando fecha de vencimiento:', {
         documento_id: documentoEditando.documento_id,
-        nueva_fecha: nuevaFecha
+        nueva_fecha: nuevaFecha,
+        modulo: documentoEditando.modulo
       });
 
-      const response = await fetch(`/api/documentos-clientes?id=${documentoEditando.documento_id}`, {
+      // Determinar el endpoint según el módulo
+      let endpoint = '';
+      switch (documentoEditando.modulo) {
+        case 'clientes':
+          endpoint = `/api/documentos-clientes?id=${documentoEditando.documento_id}`;
+          break;
+        case 'instalaciones':
+          endpoint = `/api/documentos-instalaciones?id=${documentoEditando.documento_id}`;
+          break;
+        case 'guardias':
+          endpoint = `/api/documentos-guardias?id=${documentoEditando.documento_id}`;
+          break;
+        default:
+          toast.error("Módulo no soportado");
+          return;
+      }
+
+      const response = await fetch(endpoint, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -197,6 +228,24 @@ export default function AlertasPage() {
     return "✅";
   };
 
+  const getModuloIcono = (modulo: string) => {
+    switch (modulo) {
+      case 'clientes': return '🏢';
+      case 'instalaciones': return '🏭';
+      case 'guardias': return '👤';
+      default: return '📄';
+    }
+  };
+
+  const getModuloNombre = (modulo: string) => {
+    switch (modulo) {
+      case 'clientes': return 'Cliente';
+      case 'instalaciones': return 'Instalación';
+      case 'guardias': return 'Guardia';
+      default: return 'Documento';
+    }
+  };
+
   if (cargando) {
     console.log('🔄 Renderizando estado de carga...');
     return (
@@ -239,6 +288,42 @@ export default function AlertasPage() {
           )}
         </Button>
       </div>
+
+      {/* Filtro por módulo */}
+      <Card className="bg-card/50 border-border/50">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            🔍 Filtro por Módulo
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <Select value={filtroModulo} onValueChange={setFiltroModulo}>
+              <SelectTrigger className="w-64 bg-white/5 border-white/20 text-white">
+                <SelectValue placeholder="Seleccionar módulo" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#1E293B] border-white/20">
+                <SelectItem value="todos" className="text-white hover:bg-white/10">
+                  📊 Todos los módulos ({alertas.length})
+                </SelectItem>
+                <SelectItem value="clientes" className="text-white hover:bg-white/10">
+                  🏢 Clientes ({alertas.filter(a => a.modulo === 'clientes').length})
+                </SelectItem>
+                <SelectItem value="instalaciones" className="text-white hover:bg-white/10">
+                  🏭 Instalaciones ({alertas.filter(a => a.modulo === 'instalaciones').length})
+                </SelectItem>
+                <SelectItem value="guardias" className="text-white hover:bg-white/10">
+                  👤 Guardias ({alertas.filter(a => a.modulo === 'guardias').length})
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Badge className="bg-blue-600 text-white">
+              {alertasFiltradas.length} {alertasFiltradas.length === 1 ? 'documento' : 'documentos'} filtrados
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* KPIs Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -297,12 +382,12 @@ export default function AlertasPage() {
           <CardTitle className="text-white flex items-center gap-2">
             🔔 Alertas de Vencimiento
             <Badge className="bg-blue-600 text-white ml-2">
-              {alertas.length} {alertas.length === 1 ? 'documento' : 'documentos'}
+              {alertasFiltradas.length} {alertasFiltradas.length === 1 ? 'documento' : 'documentos'}
             </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {alertas.length === 0 ? (
+          {alertasFiltradas.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-2xl">✅</span>
@@ -312,7 +397,7 @@ export default function AlertasPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {alertas.map((alerta) => (
+              {alertasFiltradas.map((alerta) => (
                 <div
                   key={alerta.id}
                   className={`border rounded-xl p-5 transition-all hover:bg-white/[0.02] ${
@@ -331,6 +416,11 @@ export default function AlertasPage() {
                         <Badge className={getBadgeColor(alerta.dias_restantes)}>
                           {getEstadoTexto(alerta.dias_restantes)}
                         </Badge>
+                        {alerta.modulo && (
+                          <Badge className="bg-purple-600/20 text-purple-400 border-purple-600/20">
+                            {getModuloIcono(alerta.modulo)} {getModuloNombre(alerta.modulo)}
+                          </Badge>
+                        )}
                         {!alerta.leida && (
                           <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
                         )}
@@ -338,8 +428,12 @@ export default function AlertasPage() {
                       
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                         <div className="flex items-center gap-2">
-                          <span className="text-white/40">👤 Cliente:</span>
-                          <span className="text-white/80 font-medium">{alerta.cliente_nombre}</span>
+                          <span className="text-white/40">
+                            {alerta.modulo === 'clientes' ? '👤 Cliente:' :
+                             alerta.modulo === 'instalaciones' ? '🏭 Instalación:' :
+                             alerta.modulo === 'guardias' ? '👤 Guardia:' : '📄 Entidad:'}
+                          </span>
+                          <span className="text-white/80 font-medium">{alerta.entidad_nombre}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-white/40">📄 Tipo:</span>
@@ -410,8 +504,13 @@ export default function AlertasPage() {
               <strong>Documento:</strong> {documentoEditando?.documento_nombre}
             </p>
             <p className="text-sm text-white/60">
-              <strong>Cliente:</strong> {documentoEditando?.cliente_nombre}
+              <strong>Entidad:</strong> {documentoEditando?.entidad_nombre}
             </p>
+            {documentoEditando?.modulo && (
+              <p className="text-sm text-white/60">
+                <strong>Módulo:</strong> {getModuloIcono(documentoEditando.modulo)} {getModuloNombre(documentoEditando.modulo)}
+              </p>
+            )}
           </div>
           
           <div>

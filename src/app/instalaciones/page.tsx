@@ -755,6 +755,7 @@ export default function InstalacionesPage() {
           modulo="instalaciones"
           entidadId={selectedInstalacion?.id || ""}
           onDocumentDeleted={() => setRefreshTrigger(prev => prev + 1)}
+          onUploadSuccess={() => setRefreshTrigger(prev => prev + 1)}
           refreshTrigger={refreshTrigger}
         />
       )

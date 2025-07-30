@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Activity, Clock, User, AlertCircle, Info, CheckCircle, XCircle } from "lucide-react";
+import { getLogs, Log } from "../../lib/api/logs";
 
 export interface LogEntry {
   id: string;
@@ -29,7 +30,7 @@ export function LogViewer({
   refreshTrigger,
   className = ""
 }: LogViewerProps) {
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logs, setLogs] = useState<Log[]>([]);
   const [cargando, setCargando] = useState(true);
   const [lastLoadTime, setLastLoadTime] = useState<number>(0);
 
@@ -43,19 +44,16 @@ export function LogViewer({
 
     try {
       setCargando(true);
+      console.log(`🔄 Cargando logs para módulo: ${modulo}, entidad: ${entidadId}`);
       
-      const response = await fetch(`/api/logs-clientes?modulo=${modulo}&entidad_id=${entidadId}`, {
-        cache: 'no-store'
-      });
+      // Usar la nueva librería unificada
+      const logsData = await getLogs(modulo, entidadId);
+      setLogs(logsData);
+      setLastLoadTime(now);
       
-      const data = await response.json();
-      
-      if (data.success) {
-        setLogs(data.data);
-        setLastLoadTime(now);
-      }
+      console.log(`✅ ${logsData.length} logs cargados para ${modulo}`);
     } catch (error) {
-      console.error("Error cargando logs:", error);
+      console.error("❌ Error cargando logs:", error);
     } finally {
       setCargando(false);
     }
@@ -63,7 +61,7 @@ export function LogViewer({
 
   useEffect(() => {
     cargarLogs(true);
-  }, [entidadId, refreshTrigger]);
+  }, [entidadId, refreshTrigger, modulo]);
 
   const formatearFecha = (fecha: string) => {
     return new Date(fecha).toLocaleDateString('es-ES', {
@@ -94,6 +92,10 @@ export function LogViewer({
         return <AlertCircle className="h-4 w-4 text-yellow-400" />;
       case 'error':
         return <XCircle className="h-4 w-4 text-red-400" />;
+      case 'manual':
+        return <User className="h-4 w-4 text-blue-400" />;
+      case 'sistema':
+        return <Activity className="h-4 w-4 text-purple-400" />;
       default:
         return <Info className="h-4 w-4 text-blue-400" />;
     }
@@ -107,8 +109,29 @@ export function LogViewer({
         return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
       case 'error':
         return 'bg-red-500/10 text-red-400 border-red-500/20';
+      case 'manual':
+        return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+      case 'sistema':
+        return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
       default:
         return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+    }
+  };
+
+  const getTipoTexto = (tipo?: string) => {
+    switch (tipo) {
+      case 'success':
+        return 'Éxito';
+      case 'warning':
+        return 'Advertencia';
+      case 'error':
+        return 'Error';
+      case 'manual':
+        return 'Manual';
+      case 'sistema':
+        return 'Sistema';
+      default:
+        return 'Info';
     }
   };
 
@@ -141,6 +164,7 @@ export function LogViewer({
           <div className="text-center text-muted-foreground py-8">
             <Activity className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p>No hay actividad registrada</p>
+            <p className="text-xs mt-2">Los logs aparecerán aquí cuando se realicen acciones</p>
           </div>
         </CardContent>
       </Card>
@@ -154,6 +178,9 @@ export function LogViewer({
           <CardTitle className="text-white flex items-center gap-2">
             <Activity className="h-5 w-5" />
             Historial de Actividad
+            <Badge className="text-xs bg-blue-600/20 text-blue-400 border-blue-600/30">
+              {logs.length}
+            </Badge>
           </CardTitle>
           
           {/* Indicador de carga */}
@@ -186,14 +213,16 @@ export function LogViewer({
                   </h4>
                   {log.tipo && (
                     <Badge className={`text-xs px-2 py-0.5 ${getTipoColor(log.tipo)}`}>
-                      {log.tipo}
+                      {getTipoTexto(log.tipo)}
                     </Badge>
                   )}
                 </div>
                 
-                <p className="text-muted-foreground text-sm mb-2">
-                  {log.detalles}
-                </p>
+                {log.detalles && (
+                  <p className="text-muted-foreground text-sm mb-2">
+                    {log.detalles}
+                  </p>
+                )}
                 
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">

@@ -814,6 +814,7 @@ export default function GuardiasPage() {
           modulo="guardias"
           entidadId={selectedGuardia?.id || ""}
           onDocumentDeleted={() => setRefreshTrigger(prev => prev + 1)}
+          onUploadSuccess={() => setRefreshTrigger(prev => prev + 1)}
           refreshTrigger={refreshTrigger}
         />
       )

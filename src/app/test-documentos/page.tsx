@@ -1,7 +1,7 @@
 "use client";
 
 import { DocumentManager } from "@/components/shared/document-manager";
-import DocumentUploader from "@/components/DocumentUploader";
+// DocumentUploader eliminado - integrado en DocumentManager
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -52,7 +52,10 @@ export default function TestDocumentosPage() {
 
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-4">📤 Subida Simple de Documentos</h3>
-          <DocumentUploader modulo="test" entidadId={testId} />
+          <p className="text-sm text-muted-foreground">
+            La funcionalidad de subida simple está ahora integrada en DocumentManager.
+            Usa el componente de arriba para subir documentos.
+          </p>
         </Card>
 
         <Card className="p-6">

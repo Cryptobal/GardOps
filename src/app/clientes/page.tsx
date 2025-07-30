@@ -24,7 +24,7 @@ import {
   Settings
 } from "lucide-react";
 import { Cliente, CrearClienteData, FiltrosCliente } from "../../lib/schemas/clientes";
-import DocumentUploader from "../../components/DocumentUploader";
+// DocumentUploader eliminado - integrado en DocumentManager
 
 // Importar componentes genéricos
 import { DataTable, Column } from "../../components/ui/data-table";
@@ -705,13 +705,13 @@ export default function ClientesPage() {
       icon: FileText,
       color: "emerald",
       content: (
-        <DocumentManager
-          modulo="clientes"
-          entidadId={selectedCliente?.id || ""}
-          onDocumentDeleted={handleUploadSuccess}
-          onUploadClick={() => setShowUploadModal(true)}
-          refreshTrigger={refreshTrigger}
-        />
+                        <DocumentManager
+                  modulo="clientes"
+                  entidadId={selectedCliente?.id || ""}
+                  onDocumentDeleted={handleUploadSuccess}
+                  onUploadSuccess={handleUploadSuccess}
+                  refreshTrigger={refreshTrigger}
+                />
       )
     },
     {
@@ -976,21 +976,7 @@ export default function ClientesPage() {
       {/* Modal de confirmación */}
       <ConfirmModal />
 
-      {/* Modal de subida de documentos */}
-      <Modal
-        isOpen={showUploadModal}
-        onClose={() => setShowUploadModal(false)}
-        title="Subir Documento"
-        size="lg"
-      >
-        <div className="p-6">
-          <DocumentUploader
-            modulo="clientes"
-            entidadId={selectedCliente?.id || ""}
-            onUploadSuccess={handleUploadSuccess}
-          />
-        </div>
-      </Modal>
+      {/* Modal de subida de documentos - Ya no necesario, integrado en DocumentManager */}
 
       {/* Contenedor de toasts */}
       <ToastContainer />
