@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/modal';
+import { Modal, ModalHeader } from '@/components/ui/modal';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -72,14 +72,12 @@ export default function GuardDetailModal({ guardia, isOpen, onClose }: GuardDeta
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Detalles del Guardia
-          </DialogTitle>
-        </DialogHeader>
+    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+      <div className="max-h-[90vh] overflow-y-auto">
+        <ModalHeader 
+          title="Detalles del Guardia"
+          onClose={onClose}
+        />
 
         <div className="space-y-6">
           {/* Información Principal */}
@@ -237,7 +235,7 @@ export default function GuardDetailModal({ guardia, isOpen, onClose }: GuardDeta
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </Modal>
   );
 } 
