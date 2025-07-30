@@ -102,8 +102,8 @@ export function DatePickerComponent({
             if (isToday) return "!bg-slate-600 !text-white";
             return "!text-slate-200 hover:!bg-slate-700";
           }}
-          monthClassName="!text-slate-200"
-          yearClassName="!text-slate-200"
+          monthClassName={() => "!text-slate-200"}
+          yearClassName={() => "!text-slate-200"}
           headerClassName="!bg-slate-700 !border-slate-600"
         />
         
