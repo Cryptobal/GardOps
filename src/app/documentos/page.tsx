@@ -243,22 +243,14 @@ export default function DocumentosGlobalesPage() {
       });
 
       if (response.ok) {
-        toast({
-          title: "Fecha actualizada",
-          description: "La fecha de vencimiento se actualizó correctamente",
-          variant: "default",
-        });
+        toast.success("La fecha de vencimiento se actualizó correctamente", "Fecha actualizada");
         cerrarEditorFecha();
         cargarDocumentos(); // Recargar la lista
       } else {
         throw new Error('Error al actualizar la fecha');
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar la fecha de vencimiento",
-        variant: "destructive",
-      });
+              toast.error("No se pudo actualizar la fecha de vencimiento", "Error");
     }
   };
 
