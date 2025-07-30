@@ -200,7 +200,7 @@ export default function DocumentListTabs({
 
   // Agrupar documentos por tipo
   const documentosAgrupados = documentos.reduce((acc, doc) => {
-    const tipo = doc.tipo_documento_nombre;
+    const tipo = doc.tipo_documento_nombre || 'Sin categoría';
     if (!acc[tipo]) {
       acc[tipo] = [];
     }
