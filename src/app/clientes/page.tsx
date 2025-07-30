@@ -2,39 +2,39 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
 import { Badge } from "../../components/ui/badge";
 import { Switch } from "../../components/ui/switch";
 import { Modal, useConfirmModal } from "../../components/ui/modal";
 import { useToast, ToastContainer } from "../../components/ui/toast";
-import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import { InputDireccion, type AddressData } from "../../components/ui/input-direccion";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table";
+import { Input } from "../../components/ui/input";
 import { 
   Users, 
   Plus, 
-  Edit, 
   Trash2, 
   Mail, 
   Phone, 
   User, 
-  Search,
-  Filter,
-  Eye
+  Eye,
+  Building2,
+  FileText,
+  Activity,
+  Settings
 } from "lucide-react";
-import { Cliente, CrearClienteData, DocumentoCliente, FiltrosCliente } from "../../lib/schemas/clientes";
+import { Cliente, CrearClienteData, FiltrosCliente } from "../../lib/schemas/clientes";
 import DocumentUploader from "../../components/DocumentUploader";
-import DocumentListTabs from "../../components/DocumentListTabs";
-import ClienteTabs from "../../components/ClienteTabs";
+
+// Importar componentes genéricos
+import { DataTable, Column } from "../../components/ui/data-table";
+import { PageHeader } from "../../components/ui/page-header";
+import { FilterBar, FilterConfig } from "../../components/ui/filter-bar";
+import { EntityModal } from "../../components/ui/entity-modal";
+import { EntityTabs, TabConfig } from "../../components/ui/entity-tabs";
+import { DocumentManager } from "../../components/shared/document-manager";
+import { LogViewer } from "../../components/shared/log-viewer";
+
 import { 
   logCambioEstado, 
   logEdicionDatos, 
@@ -46,23 +46,21 @@ export default function ClientesPage() {
   console.log("Vista de clientes cargada correctamente");
 
   const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [clientesFiltrados, setClientesFiltrados] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
-  const [documentosCliente, setDocumentosCliente] = useState<DocumentoCliente[]>([]);
   const [isEditingDetails, setIsEditingDetails] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   
-  // Estados para búsqueda y filtros
-  const [filtros, setFiltros] = useState<FiltrosCliente>({
-    busqueda: "",
-    estado: "Todos"
+  // Estados para filtros
+  const [filtros, setFiltros] = useState<Record<string, string>>({
+    search: "",
+    estado: "Todos",
+    totalCount: "0",
+    filteredCount: "0"
   });
 
   const [formData, setFormData] = useState<CrearClienteData>({
@@ -83,15 +81,19 @@ export default function ClientesPage() {
   const { toast } = useToast();
   const { confirm, ConfirmModal } = useConfirmModal();
 
-  // Detectar mobile
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  // Configuración de filtros
+  const filterConfigs: FilterConfig[] = [
+    {
+      key: "estado",
+      label: "Estado",
+      type: "select",
+      options: [
+        { value: "Todos", label: "Todos" },
+        { value: "Activo", label: "Activo" },
+        { value: "Inactivo", label: "Inactivo" }
+      ]
+    }
+  ];
 
   // Cargar clientes al montar el componente
   useEffect(() => {
@@ -101,7 +103,7 @@ export default function ClientesPage() {
   // Aplicar filtros cuando cambien
   useEffect(() => {
     aplicarFiltros();
-  }, [clientes, filtros]);
+  }, [clientes, filtros.search, filtros.estado]);
 
   const cargarClientes = async () => {
     try {
@@ -111,6 +113,10 @@ export default function ClientesPage() {
 
       if (result.success) {
         setClientes(result.data);
+        setFiltros(prev => ({
+          ...prev,
+          totalCount: result.data.length.toString()
+        }));
       } else {
         toast.error("Error al cargar clientes");
       }
@@ -125,12 +131,13 @@ export default function ClientesPage() {
   const aplicarFiltros = () => {
     let filtered = [...clientes];
 
-    // Filtro por búsqueda (startsWith)
-    if (filtros.busqueda && filtros.busqueda.trim()) {
-      const busqueda = filtros.busqueda.toLowerCase().trim();
+    // Filtro por búsqueda
+    if (filtros.search && filtros.search.trim()) {
+      const busqueda = filtros.search.toLowerCase().trim();
       filtered = filtered.filter(cliente => 
-        cliente.nombre.toLowerCase().startsWith(busqueda) ||
-        cliente.rut.startsWith(busqueda)
+        cliente.nombre.toLowerCase().includes(busqueda) ||
+        cliente.rut.includes(busqueda) ||
+        (cliente.representante_legal && cliente.representante_legal.toLowerCase().includes(busqueda))
       );
     }
 
@@ -141,27 +148,23 @@ export default function ClientesPage() {
       );
     }
 
-    setClientesFiltrados(filtered);
+    setFiltros(prev => ({
+      ...prev,
+      filteredCount: filtered.length.toString()
+    }));
   };
 
-  const cargarDocumentosCliente = async (clienteId: string) => {
-    try {
-      setIsLoadingDocuments(true);
-      const response = await fetch(`/api/documentos-clientes?cliente_id=${clienteId}`);
-      const result = await response.json();
-      
-      if (result.success) {
-        setDocumentosCliente(result.data);
-      } else {
-        console.error("Error cargando documentos:", result.error);
-        setDocumentosCliente([]);
-      }
-    } catch (error) {
-      console.error("Error cargando documentos:", error);
-      setDocumentosCliente([]);
-    } finally {
-      setIsLoadingDocuments(false);
-    }
+  const handleFilterChange = (key: string, value: string) => {
+    setFiltros(prev => ({ ...prev, [key]: value }));
+  };
+
+  const clearFilters = () => {
+    setFiltros({
+      search: "",
+      estado: "Todos",
+      totalCount: filtros.totalCount,
+      filteredCount: filtros.totalCount
+    });
   };
 
   // Abrir modal para nuevo cliente
@@ -184,9 +187,8 @@ export default function ClientesPage() {
     setIsModalOpen(true);
   };
 
-  // Abrir modal de detalles del cliente - OPTIMIZADO para apertura instantánea
+  // Abrir modal de detalles del cliente
   const abrirModalDetalles = (cliente: Cliente) => {
-    // 1. Abrir modal inmediatamente
     setSelectedCliente(cliente);
     setFormData({
       nombre: cliente.nombre,
@@ -202,11 +204,7 @@ export default function ClientesPage() {
       estado: (cliente.estado || "Activo") as "Activo" | "Inactivo",
     });
     setIsEditingDetails(false);
-    setDocumentosCliente([]); // Limpiar documentos anteriores
-    setIsDetailModalOpen(true); // Abrir modal inmediatamente
-    
-    // 2. Cargar documentos de forma asíncrona (no bloquea la apertura)
-    cargarDocumentosCliente(cliente.id);
+    setIsDetailModalOpen(true);
   };
 
   // Cerrar modales
@@ -224,7 +222,6 @@ export default function ClientesPage() {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Limpiar error cuando usuario empiece a escribir
     if (formErrors[name]) {
       setFormErrors(prev => ({ ...prev, [name]: "" }));
     }
@@ -245,7 +242,6 @@ export default function ClientesPage() {
     setFormData(prev => ({
       ...prev,
       direccion: query,
-      // Solo limpiar coordenadas si se está escribiendo manualmente
       latitud: query === prev.direccion ? prev.latitud : null,
       longitud: query === prev.direccion ? prev.longitud : null,
     }));
@@ -277,21 +273,18 @@ export default function ClientesPage() {
     return Object.keys(errors).length === 0;
   };
 
-  // Preparar datos para envío (limpiar campos vacíos)
+  // Preparar datos para envío
   const prepararDatosParaEnvio = (data: any) => {
     const cleanData = { ...data };
-    
-    // Convertir strings vacíos a null para campos opcionales
     Object.keys(cleanData).forEach(key => {
       if (typeof cleanData[key] === 'string' && cleanData[key].trim() === '') {
         cleanData[key] = null;
       }
     });
-    
     return cleanData;
   };
 
-  // Guardar cliente (crear o actualizar)
+  // Guardar cliente
   const guardarCliente = async () => {
     if (!validarFormulario()) return;
 
@@ -299,14 +292,11 @@ export default function ClientesPage() {
       const url = "/api/clientes";
       const method = editingCliente || selectedCliente ? "PUT" : "POST";
       
-      // Preparar datos para envío
       let bodyData = prepararDatosParaEnvio(formData);
       
       if (editingCliente || selectedCliente) {
         bodyData.id = (editingCliente || selectedCliente)!.id;
       }
-
-  
 
       const response = await fetch(url, {
         method,
@@ -315,15 +305,12 @@ export default function ClientesPage() {
       });
 
       const result = await response.json();
-      
 
       if (result.success) {
-        // Registrar log según el tipo de operación
         const isCreating = !editingCliente && !selectedCliente;
         if (isCreating) {
           await logClienteCreado(result.data.id);
         } else {
-          // Log de edición - determinar qué cambió
           const camposEditados = [];
           if (formData.nombre !== (editingCliente || selectedCliente)?.nombre) camposEditados.push("nombre");
           if (formData.email !== (editingCliente || selectedCliente)?.email) camposEditados.push("email");
@@ -344,7 +331,6 @@ export default function ClientesPage() {
           cerrarModales();
         }
         
-        // Refrescar logs
         setRefreshTrigger(prev => prev + 1);
       } else {
         toast.error(result.error || "Error al guardar cliente");
@@ -355,13 +341,11 @@ export default function ClientesPage() {
     }
   };
 
-  // Cambiar estado del cliente con Switch
+  // Cambiar estado del cliente
   const cambiarEstadoCliente = async (cliente: Cliente, nuevoEstado: boolean) => {
     const estadoTexto = nuevoEstado ? "Activo" : "Inactivo";
     
     try {
-      
-
       const response = await fetch("/api/clientes", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -374,7 +358,6 @@ export default function ClientesPage() {
       const result = await response.json();
 
       if (result.success) {
-        // Registrar log del cambio de estado
         await logCambioEstado(cliente.id, estadoTexto);
         
         toast.success(`Cliente ${estadoTexto.toLowerCase()} correctamente`);
@@ -384,7 +367,6 @@ export default function ClientesPage() {
           setFormData(prev => ({ ...prev, estado: estadoTexto as "Activo" | "Inactivo" }));
         }
         
-        // Refrescar logs si el modal está abierto
         setRefreshTrigger(prev => prev + 1);
       } else {
         toast.error(result.error || "Error al cambiar estado del cliente");
@@ -415,7 +397,7 @@ export default function ClientesPage() {
       const result = await response.json();
 
       if (result.success) {
-        alert("Cliente eliminado con éxito");
+        toast.success("Cliente eliminado con éxito");
         await cargarClientes();
         if (selectedCliente?.id === cliente.id) {
           cerrarModales();
@@ -429,165 +411,343 @@ export default function ClientesPage() {
     }
   };
 
-
-
   const handleUploadSuccess = async () => {
-    // Incrementar el trigger para forzar actualización
     setRefreshTrigger(prev => prev + 1);
     setShowUploadModal(false);
   };
 
-  // Componente de fila de tabla con hover
-  const ClienteTableRow: React.FC<{ cliente: Cliente }> = ({ cliente }) => {
-    const [isHovered, setIsHovered] = useState(false);
-
-    return (
-      <TableRow
-        className="cursor-pointer hover:bg-muted/50 transition-colors"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onClick={() => abrirModalDetalles(cliente)}
-      >
-        <TableCell>
+  // Configuración de columnas para DataTable
+  const columns: Column<Cliente>[] = [
+    {
+      key: "empresa",
+      label: "Empresa",
+      render: (cliente) => (
+        <div>
+          <div className="font-bold text-foreground">{cliente.nombre}</div>
+          <div className="text-xs text-muted-foreground font-mono">{cliente.rut}</div>
+        </div>
+      )
+    },
+    {
+      key: "representante",
+      label: "Representante Legal",
+      render: (cliente) => (
+        cliente.representante_legal ? (
           <div>
-            <div className="font-bold text-foreground">{cliente.nombre}</div>
-            <div className="text-xs text-muted-foreground font-mono">{cliente.rut}</div>
+            <div className="text-foreground">{cliente.representante_legal}</div>
+            {cliente.rut_representante && (
+              <div className="text-xs text-muted-foreground font-mono">
+                {cliente.rut_representante}
+              </div>
+            )}
           </div>
-        </TableCell>
-        <TableCell>
-          {cliente.representante_legal ? (
+        ) : (
+          <span className="text-muted-foreground">Sin representante</span>
+        )
+      )
+    },
+    {
+      key: "email",
+      label: "Email",
+      render: (cliente) => (
+        cliente.email ? (
+          <div className="flex items-center gap-1">
+            <Mail className="h-3 w-3 text-muted-foreground" />
+            <span className="text-sm">{cliente.email}</span>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">Sin email</span>
+        )
+      )
+    },
+    {
+      key: "telefono",
+      label: "Teléfono",
+      render: (cliente) => (
+        cliente.telefono ? (
+          <div className="flex items-center gap-1">
+            <Phone className="h-3 w-3 text-muted-foreground" />
+            <span>{cliente.telefono}</span>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">Sin teléfono</span>
+        )
+      )
+    },
+    {
+      key: "estado",
+      label: "Estado",
+      render: (cliente) => (
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={cliente.estado === "Activo"}
+            onCheckedChange={(checked) => cambiarEstadoCliente(cliente, checked)}
+          />
+          <Badge variant={cliente.estado === "Activo" ? "success" : "inactive"}>
+            {cliente.estado || "Activo"}
+          </Badge>
+        </div>
+      )
+    },
+    {
+      key: "acciones",
+      label: "Acciones",
+      render: (cliente) => (
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => abrirModalDetalles(cliente)}
+            className="hover:bg-blue-500/10 hover:border-blue-500/30 h-7 w-7 p-0"
+          >
+            <Eye className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => eliminarCliente(cliente)}
+            className="hover:bg-red-500/10 hover:border-red-500/30 text-red-400 hover:text-red-300 h-7 w-7 p-0"
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      )
+    }
+  ];
+
+  // Card para móvil
+  const mobileCard = (cliente: Cliente) => (
+    <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-card/50 backdrop-blur-sm border-border/50">
+      <CardContent className="p-4">
+        <div className="space-y-3">
+          <div className="flex items-start justify-between">
             <div>
-              <div className="text-foreground">{cliente.representante_legal}</div>
-              {cliente.rut_representante && (
-                <div className="text-xs text-muted-foreground font-mono">
-                  {cliente.rut_representante}
-                </div>
-              )}
+              <h3 className="font-bold text-foreground">{cliente.nombre}</h3>
+              <p className="text-sm text-muted-foreground font-mono">{cliente.rut}</p>
             </div>
-          ) : (
-            <span className="text-muted-foreground">Sin representante</span>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={cliente.estado === "Activo"}
+                onCheckedChange={(checked) => cambiarEstadoCliente(cliente, checked)}
+              />
+            </div>
+          </div>
+          
+          {cliente.representante_legal && (
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">{cliente.representante_legal}</span>
+            </div>
           )}
-        </TableCell>
-        <TableCell>
-          {cliente.email ? (
-            <div className="flex items-center gap-1">
-              <Mail className="h-3 w-3 text-muted-foreground" />
+          
+          {cliente.email && (
+            <div className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">{cliente.email}</span>
             </div>
-          ) : (
-            <span className="text-muted-foreground">Sin email</span>
           )}
-        </TableCell>
-        <TableCell>
-          {cliente.telefono ? (
-            <div className="flex items-center gap-1">
-              <Phone className="h-3 w-3 text-muted-foreground" />
-              <span>{cliente.telefono}</span>
+          
+          {cliente.telefono && (
+            <div className="flex items-center gap-2">
+              <Phone className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">{cliente.telefono}</span>
             </div>
-          ) : (
-            <span className="text-muted-foreground">Sin teléfono</span>
           )}
-        </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <Switch
-              checked={cliente.estado === "Activo"}
-              onCheckedChange={(checked) => cambiarEstadoCliente(cliente, checked)}
-            />
-            <Badge variant={cliente.estado === "Activo" ? "success" : "inactive"}>
-              {cliente.estado || "Activo"}
-            </Badge>
-          </div>
-        </TableCell>
-        <TableCell className="text-right">
-          {/* Contenedor con ancho fijo para evitar layout shifts */}
-          <div 
-            className="flex justify-end gap-2 w-20 h-8"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <motion.div
-              className="flex gap-2"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: isHovered || isMobile ? 1 : 0 }}
-              transition={{ duration: 0.15, ease: "easeInOut" }}
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => abrirModalDetalles(cliente)}
-                className="hover:bg-blue-500/10 hover:border-blue-500/30 h-7 w-7 p-0"
-              >
-                <Eye className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => eliminarCliente(cliente)}
-                className="hover:bg-red-500/10 hover:border-red-500/30 text-red-400 hover:text-red-300 h-7 w-7 p-0"
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </motion.div>
-          </div>
-        </TableCell>
-      </TableRow>
-    );
-  };
-
-  // Componente de card para móvil
-  const ClienteCard: React.FC<{ cliente: Cliente }> = ({ cliente }) => (
-    <motion.div
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-    >
-      <Card 
-        className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-card/50 backdrop-blur-sm border-border/50"
-        onClick={() => abrirModalDetalles(cliente)}
-      >
-        <CardContent className="p-4">
-          <div className="space-y-3">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="font-bold text-foreground">{cliente.nombre}</h3>
-                <p className="text-sm text-muted-foreground font-mono">{cliente.rut}</p>
-              </div>
-              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                <Switch
-                  checked={cliente.estado === "Activo"}
-                  onCheckedChange={(checked) => cambiarEstadoCliente(cliente, checked)}
-                />
-              </div>
-            </div>
-            
-            {cliente.representante_legal && (
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{cliente.representante_legal}</span>
-              </div>
-            )}
-            
-            {cliente.email && (
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{cliente.email}</span>
-              </div>
-            )}
-            
-            {cliente.telefono && (
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{cliente.telefono}</span>
-              </div>
-            )}
-            
-            <Button variant="outline" size="sm" className="w-full mt-2">
-              Ver detalles
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+          
+          <Button variant="outline" size="sm" className="w-full mt-2">
+            Ver detalles
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
+
+  // Configuración de tabs para EntityTabs
+  const getTabsConfig = (): TabConfig[] => [
+    {
+      key: "informacion",
+      label: "Información",
+      icon: Building2,
+      color: "blue",
+      content: (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Nombre de la Empresa *
+              </label>
+              <Input
+                name="nombre"
+                value={formData.nombre}
+                onChange={handleInputChange}
+                placeholder="Ingresa el nombre de la empresa"
+                className={formErrors.nombre ? "border-red-500" : ""}
+                disabled={!isEditingDetails}
+              />
+              {formErrors.nombre && (
+                <p className="text-sm text-red-400">{formErrors.nombre}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                RUT de la Empresa *
+              </label>
+              <Input
+                name="rut"
+                value={formData.rut}
+                onChange={handleInputChange}
+                placeholder="12345678-9"
+                className={formErrors.rut ? "border-red-500" : ""}
+                disabled={!isEditingDetails}
+              />
+              {formErrors.rut && (
+                <p className="text-sm text-red-400">{formErrors.rut}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Razón Social
+              </label>
+              <Input
+                name="razon_social"
+                value={formData.razon_social}
+                onChange={handleInputChange}
+                placeholder="Razón social (opcional)"
+                disabled={!isEditingDetails}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Representante Legal
+              </label>
+              <Input
+                name="representante_legal"
+                value={formData.representante_legal}
+                onChange={handleInputChange}
+                placeholder="Nombre del representante legal"
+                disabled={!isEditingDetails}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                RUT Representante
+              </label>
+              <Input
+                name="rut_representante"
+                value={formData.rut_representante}
+                onChange={handleInputChange}
+                placeholder="12345678-9"
+                className={formErrors.rut_representante ? "border-red-500" : ""}
+                disabled={!isEditingDetails}
+              />
+              {formErrors.rut_representante && (
+                <p className="text-sm text-red-400">{formErrors.rut_representante}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Email
+              </label>
+              <Input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="correo@empresa.cl"
+                className={formErrors.email ? "border-red-500" : ""}
+                disabled={!isEditingDetails}
+              />
+              {formErrors.email && (
+                <p className="text-sm text-red-400">{formErrors.email}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Teléfono
+              </label>
+              <Input
+                name="telefono"
+                value={formData.telefono}
+                onChange={handleInputChange}
+                placeholder="+56 9 1234 5678"
+                disabled={!isEditingDetails}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Dirección
+            </label>
+            <InputDireccion
+              value={formData.direccion}
+              initialLatitude={formData.latitud}
+              initialLongitude={formData.longitud}
+              onAddressSelect={handleAddressSelect}
+              onAddressChange={handleAddressChange}
+              placeholder="Buscar dirección con Google Maps..."
+              showMap={true}
+              disabled={!isEditingDetails}
+            />
+          </div>
+        </div>
+      )
+    },
+    {
+      key: "documentos",
+      label: "Documentos",
+      icon: FileText,
+      color: "emerald",
+      content: (
+        <DocumentManager
+          modulo="clientes"
+          entidadId={selectedCliente?.id || ""}
+          onDocumentDeleted={handleUploadSuccess}
+          onUploadClick={() => setShowUploadModal(true)}
+          refreshTrigger={refreshTrigger}
+        />
+      )
+    },
+    {
+      key: "logs",
+      label: "Actividad",
+      icon: Activity,
+      color: "violet",
+      content: (
+        <LogViewer
+          modulo="clientes"
+          entidadId={selectedCliente?.id || ""}
+          refreshTrigger={refreshTrigger}
+        />
+      )
+    }
+  ];
+
+  // Filtrar clientes según los filtros aplicados
+  const clientesFiltrados = clientes.filter(cliente => {
+    if (filtros.search && filtros.search.trim()) {
+      const busqueda = filtros.search.toLowerCase().trim();
+      if (!cliente.nombre.toLowerCase().includes(busqueda) &&
+          !cliente.rut.includes(busqueda) &&
+          !(cliente.representante_legal && cliente.representante_legal.toLowerCase().includes(busqueda))) {
+        return false;
+      }
+    }
+
+    if (filtros.estado !== "Todos") {
+      if ((cliente.estado || "Activo") !== filtros.estado) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 
   return (
     <>
@@ -597,142 +757,59 @@ export default function ClientesPage() {
         transition={{ duration: 0.5 }}
         className="h-full flex flex-col"
       >
-        {/* Contenedor principal con altura fija */}
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Barra de búsqueda y filtros - FIJADA */}
-          <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/50 pb-4 mb-4">
-            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
-              {/* Búsqueda */}
-              <div className="relative flex-1 min-w-0">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nombre de empresa o RUT..."
-                  value={filtros.busqueda}
-                  onChange={(e) => setFiltros(prev => ({ ...prev, busqueda: e.target.value }))}
-                  className="pl-10"
-                />
-              </div>
-              
-              {/* Filtros */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="whitespace-nowrap">
-                    <Filter className="h-4 w-4 mr-2" />
-                    Filtros
-                    {filtros.estado !== "Todos" && (
-                      <Badge variant="secondary" className="ml-2">
-                        1
-                      </Badge>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-64">
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-foreground">Filtros</h4>
-                    
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground">Estado</label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {["Todos", "Activo", "Inactivo"].map((estado) => (
-                          <Button
-                            key={estado}
-                            variant={filtros.estado === estado ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setFiltros(prev => ({ ...prev, estado: estado as any }))}
-                          >
-                            {estado}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setFiltros({ busqueda: "", estado: "Todos" })}
-                      className="w-full"
-                    >
-                      Limpiar filtros
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
+        {/* PageHeader con KPIs */}
+        <PageHeader
+          title="Gestión de Clientes"
+          description="Administra la información de tus clientes y sus documentos"
+          actionButton={{
+            label: "Nuevo Cliente",
+            icon: Plus,
+            onClick: abrirModalNuevo
+          }}
+          kpis={[
+            {
+              label: "Total Clientes",
+              value: clientes.length,
+              icon: Users,
+              variant: "default"
+            },
+            {
+              label: "Clientes Activos",
+              value: clientes.filter(c => c.estado === "Activo").length,
+              icon: Users,
+              variant: "success"
+            },
+            {
+              label: "Clientes Inactivos",
+              value: clientes.filter(c => c.estado === "Inactivo").length,
+              icon: Users,
+              variant: "warning"
+            }
+          ]}
+        />
 
-              {/* Botón Nuevo Cliente */}
-              <Button 
-                onClick={abrirModalNuevo}
-                className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 whitespace-nowrap"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Nuevo Cliente
-              </Button>
-            </div>
-            
-            {/* Información de registros */}
-            <div className="mt-2 text-sm text-muted-foreground">
-              {clientesFiltrados.length} de {clientes.length} registros
-            </div>
-          </div>
+        {/* FilterBar */}
+        <FilterBar
+          filters={filterConfigs}
+          values={filtros}
+          onFilterChange={handleFilterChange}
+          onClearAll={clearFilters}
+          searchPlaceholder="Buscar por nombre, RUT o representante..."
+          className="mb-6"
+        />
 
-          {/* Contenedor de la tabla con scroll independiente */}
-          <div className="flex-1 overflow-hidden">
-            {/* Lista de clientes */}
-            <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-xl h-full">
-              <CardContent className="p-0 h-full flex flex-col">
-                {loading ? (
-                  <div className="flex items-center justify-center h-32">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                  </div>
-                ) : clientesFiltrados.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">
-                      {filtros.busqueda || filtros.estado !== "Todos" 
-                        ? "No se encontraron clientes" 
-                        : "No hay clientes registrados"
-                      }
-                    </h3>
-                    <p className="text-muted-foreground">
-                      {filtros.busqueda || filtros.estado !== "Todos"
-                        ? "Prueba ajustando los filtros de búsqueda"
-                        : "Comienza agregando tu primer cliente"
-                      }
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Vista desktop - Tabla */}
-                    <div className="hidden lg:block flex-1 overflow-auto">
-                      <Table>
-                        <TableHeader className="sticky top-0 bg-card/95 backdrop-blur-sm z-10">
-                          <TableRow>
-                            <TableHead className="font-semibold">Empresa</TableHead>
-                            <TableHead className="font-semibold">Representante Legal</TableHead>
-                            <TableHead className="font-semibold">Email</TableHead>
-                            <TableHead className="font-semibold">Teléfono</TableHead>
-                            <TableHead className="font-semibold">Estado</TableHead>
-                            <TableHead className="font-semibold text-right">Acciones</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {clientesFiltrados.map((cliente) => (
-                            <ClienteTableRow key={cliente.id} cliente={cliente} />
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-
-                    {/* Vista móvil - Cards */}
-                    <div className="lg:hidden space-y-4 p-4 overflow-auto flex-1">
-                      {clientesFiltrados.map((cliente) => (
-                        <ClienteCard key={cliente.id} cliente={cliente} />
-                      ))}
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+        {/* DataTable */}
+        <div className="flex-1 min-h-0">
+          <DataTable
+            data={clientesFiltrados}
+            columns={columns}
+            loading={loading}
+            emptyMessage="No hay clientes registrados"
+            emptyIcon={Users}
+            onRowClick={abrirModalDetalles}
+            mobileCard={mobileCard}
+            className="h-full"
+          />
         </div>
       </motion.div>
 
@@ -746,7 +823,6 @@ export default function ClientesPage() {
       >
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Nombre de la empresa */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
                 Nombre de la Empresa *
@@ -763,7 +839,6 @@ export default function ClientesPage() {
               )}
             </div>
 
-            {/* RUT de la empresa */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
                 RUT de la Empresa *
@@ -780,7 +855,6 @@ export default function ClientesPage() {
               )}
             </div>
 
-            {/* Razón Social */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
                 Razón Social
@@ -793,7 +867,6 @@ export default function ClientesPage() {
               />
             </div>
 
-            {/* Representante Legal */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
                 Representante Legal
@@ -806,7 +879,6 @@ export default function ClientesPage() {
               />
             </div>
 
-            {/* RUT Representante */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
                 RUT Representante
@@ -823,7 +895,6 @@ export default function ClientesPage() {
               )}
             </div>
 
-            {/* Email */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
                 Email
@@ -841,7 +912,6 @@ export default function ClientesPage() {
               )}
             </div>
 
-            {/* Teléfono */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
                 Teléfono
@@ -855,7 +925,6 @@ export default function ClientesPage() {
             </div>
           </div>
 
-          {/* Dirección con autocompletado y mapa */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
               Dirección
@@ -871,7 +940,6 @@ export default function ClientesPage() {
             />
           </div>
 
-          {/* Botones de acción */}
           <div className="flex gap-3 justify-end pt-4 border-t border-border">
             <Button variant="outline" onClick={cerrarModales}>
               Cancelar
@@ -886,36 +954,24 @@ export default function ClientesPage() {
         </div>
       </Modal>
 
-      {/* Modal de detalles del cliente */}
-      <Modal
+      {/* Modal de detalles del cliente con EntityTabs */}
+      <EntityModal
         isOpen={isDetailModalOpen}
         onClose={cerrarModales}
         title={`Detalles - ${selectedCliente?.nombre}`}
-        className="bg-card/95 backdrop-blur-md"
-        size="xl"
+        size="2xl"
       >
         {selectedCliente && (
-          <div className="space-y-6 max-h-[80vh] overflow-y-auto">
-            {/* Pestañas principales */}
-            <ClienteTabs 
-              clienteId={selectedCliente.id}
-              onDocumentDeleted={handleUploadSuccess}
-                              onUploadClick={() => setShowUploadModal(true)}
-              refreshTrigger={refreshTrigger}
-              selectedCliente={selectedCliente}
-              formData={formData}
-              isEditingDetails={isEditingDetails}
-              setIsEditingDetails={setIsEditingDetails}
-              handleInputChange={handleInputChange}
-              handleAddressSelect={handleAddressSelect}
-              handleAddressChange={handleAddressChange}
-              formErrors={formErrors}
-              guardarCliente={guardarCliente}
-              cambiarEstadoCliente={cambiarEstadoCliente}
-            />
-          </div>
+          <EntityTabs
+            tabs={getTabsConfig()}
+            showActionButtons={true}
+            onCancel={cerrarModales}
+            onSave={guardarCliente}
+            onEdit={() => setIsEditingDetails(!isEditingDetails)}
+            isReadOnly={!isEditingDetails}
+          />
         )}
-      </Modal>
+      </EntityModal>
 
       {/* Modal de confirmación */}
       <ConfirmModal />
@@ -928,7 +984,7 @@ export default function ClientesPage() {
         size="lg"
       >
         <div className="p-6">
-                          <DocumentUploader
+          <DocumentUploader
             modulo="clientes"
             entidadId={selectedCliente?.id || ""}
             onUploadSuccess={handleUploadSuccess}
@@ -943,4 +999,4 @@ export default function ClientesPage() {
 }
 
 // Confirmación de auditoría completada
-console.log("✅ Auditoría del módulo Clientes completada con éxito"); 
+console.log("✅ Módulo Clientes refactorizado con componentes genéricos"); 

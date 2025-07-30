@@ -2,44 +2,34 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
 import { Badge } from "../../components/ui/badge";
 import { Switch } from "../../components/ui/switch";
 import { Modal, useConfirmModal } from "../../components/ui/modal";
 import { useToast, ToastContainer } from "../../components/ui/toast";
-import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import { InputDireccion, type AddressData } from "../../components/ui/input-direccion";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table";
+import { Input } from "../../components/ui/input";
 import { 
   Building2, 
   Plus, 
-  Search,
-  Filter,
   MapPin,
   Users,
   AlertTriangle,
-  ChevronDown,
-  Edit3,
+  Shield,
   TrendingUp,
-  Shield
+  Eye,
+  Trash2,
+  FileText,
+  Activity,
+  Settings
 } from "lucide-react";
 import { 
   Instalacion, 
   CrearInstalacionData, 
-  FiltrosInstalacion,
   Cliente,
   Comuna
 } from "../../lib/schemas/instalaciones";
-import InstalacionTabs from "../../components/InstalacionTabs";
 import { 
   obtenerInstalaciones,
   crearInstalacion,
@@ -52,6 +42,15 @@ import {
   logCambioEstadoInstalacion
 } from "../../lib/api/instalaciones";
 
+// Importar componentes genéricos
+import { DataTable, Column } from "../../components/ui/data-table";
+import { PageHeader } from "../../components/ui/page-header";
+import { FilterBar, FilterConfig } from "../../components/ui/filter-bar";
+import { EntityModal } from "../../components/ui/entity-modal";
+import { EntityTabs, TabConfig } from "../../components/ui/entity-tabs";
+import { DocumentManager } from "../../components/shared/document-manager";
+import { LogViewer } from "../../components/shared/log-viewer";
+
 interface KPIData {
   totalInstalaciones: number;
   guardiasAsignados: number;
@@ -61,24 +60,23 @@ interface KPIData {
 
 export default function InstalacionesPage() {
   const [instalaciones, setInstalaciones] = useState<Instalacion[]>([]);
-  const [instalacionesFiltradas, setInstalacionesFiltradas] = useState<Instalacion[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [editingInstalacion, setEditingInstalacion] = useState<Instalacion | null>(null);
   const [selectedInstalacion, setSelectedInstalacion] = useState<Instalacion | null>(null);
   const [isEditingDetails, setIsEditingDetails] = useState(false);
-  const [isReadOnlyMode, setIsReadOnlyMode] = useState(true); // Controla si está en modo lectura o edición
-  const [isMobile, setIsMobile] = useState(false);
+  const [isReadOnlyMode, setIsReadOnlyMode] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showCriticas, setShowCriticas] = useState(false);
-
   
-  // Estados para búsqueda y filtros
-  const [filtros, setFiltros] = useState<FiltrosInstalacion>({
-    busqueda: "",
+  // Estados para filtros
+  const [filtros, setFiltros] = useState<Record<string, string>>({
+    search: "",
     estado: "Todos",
-    cliente_id: ""
+    cliente_id: "",
+    totalCount: "0",
+    filteredCount: "0"
   });
 
   const [formData, setFormData] = useState<CrearInstalacionData>({
@@ -101,15 +99,31 @@ export default function InstalacionesPage() {
   const { toast } = useToast();
   const { confirm, ConfirmModal } = useConfirmModal();
 
-  // Detectar mobile
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  // Configuración de filtros
+  const filterConfigs: FilterConfig[] = [
+    {
+      key: "estado",
+      label: "Estado",
+      type: "select",
+      options: [
+        { value: "Todos", label: "Todos los estados" },
+        { value: "Activo", label: "Activos" },
+        { value: "Inactivo", label: "Inactivos" }
+      ]
+    },
+    {
+      key: "cliente_id",
+      label: "Cliente",
+      type: "select",
+      options: [
+        { value: "", label: "Todos los clientes" },
+        ...clientes.map(cliente => ({
+          value: cliente.id,
+          label: cliente.nombre
+        }))
+      ]
+    }
+  ];
 
   // Cargar datos al montar el componente
   useEffect(() => {
@@ -119,29 +133,23 @@ export default function InstalacionesPage() {
   // Aplicar filtros cuando cambien
   useEffect(() => {
     aplicarFiltros();
-  }, [filtros, instalaciones, showCriticas]);
+  }, [filtros.search, filtros.estado, filtros.cliente_id, instalaciones, showCriticas]);
 
   const cargarDatos = async () => {
     setLoading(true);
     try {
-      // Cargar clientes primero para debug
       const clientesData = await obtenerClientes();
-      
-      // Cargar instalaciones
-      let instalacionesData;
-      try {
-        instalacionesData = await obtenerInstalaciones();
-      } catch (error) {
-        console.error("❌ Error cargando instalaciones:", error);
-        throw error;
-      }
-      
-      // Cargar comunas
+      const instalacionesData = await obtenerInstalaciones();
       const comunasData = await obtenerComunas();
       
       setInstalaciones(instalacionesData);
       setClientes(clientesData);
       setComunas(comunasData);
+      
+      setFiltros(prev => ({
+        ...prev,
+        totalCount: instalacionesData.length.toString()
+      }));
       
     } catch (error) {
       console.error("❌ Error cargando datos:", error);
@@ -155,8 +163,8 @@ export default function InstalacionesPage() {
     let filtradas = [...instalaciones];
 
     // Filtro por búsqueda
-    if (filtros.busqueda) {
-      const busqueda = filtros.busqueda.toLowerCase();
+    if (filtros.search) {
+      const busqueda = filtros.search.toLowerCase();
       filtradas = filtradas.filter(instalacion =>
         instalacion.nombre?.toLowerCase().includes(busqueda) ||
         instalacion.cliente_nombre?.toLowerCase().includes(busqueda) ||
@@ -180,15 +188,32 @@ export default function InstalacionesPage() {
       filtradas = filtradas.filter(esInstalacionCritica);
     }
 
-    setInstalacionesFiltradas(filtradas);
+    setFiltros(prev => ({
+      ...prev,
+      filteredCount: filtradas.length.toString()
+    }));
+  };
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFiltros(prev => ({ ...prev, [key]: value }));
+  };
+
+  const clearFilters = () => {
+    setFiltros({
+      search: "",
+      estado: "Todos",
+      cliente_id: "",
+      totalCount: filtros.totalCount,
+      filteredCount: filtros.totalCount
+    });
+    setShowCriticas(false);
   };
 
   // Función para generar datos consistentes basados en ID
   const obtenerDatosSimulados = (instalacionId: string) => {
-    // Usar el ID como semilla para generar datos consistentes
     const seed = instalacionId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const guardiasCount = (seed % 8) + 1; // Entre 1 y 8 guardias
-    const ppcCount = Math.floor((seed * 7) % 6); // Entre 0 y 5 PPC
+    const guardiasCount = (seed % 8) + 1;
+    const ppcCount = Math.floor((seed * 7) % 6);
     
     return { guardiasCount, ppcCount };
   };
@@ -196,13 +221,8 @@ export default function InstalacionesPage() {
   // Función para determinar si una instalación es crítica
   const esInstalacionCritica = (instalacion: Instalacion): boolean => {
     const { guardiasCount, ppcCount } = obtenerDatosSimulados(instalacion.id);
-    
-    // Calcular porcentaje de PPC respecto al total de guardias
     const porcentajePPC = guardiasCount > 0 ? (ppcCount / guardiasCount) * 100 : 0;
     
-    // Una instalación es crítica si:
-    // 1. Está inactiva (no operativa), O
-    // 2. Los PPC representan más del 20% del total de guardias asignados
     return (
       instalacion.estado === "Inactivo" ||
       porcentajePPC > 20
@@ -215,8 +235,8 @@ export default function InstalacionesPage() {
     
     return {
       totalInstalaciones: instalaciones.length,
-      guardiasAsignados: instalaciones.reduce((acc, inst) => acc + Math.floor(Math.random() * 5) + 1, 0), // Simulado
-      ppcActivos: Math.floor(Math.random() * 6), // Simulado
+      guardiasAsignados: instalaciones.reduce((acc, inst) => acc + Math.floor(Math.random() * 5) + 1, 0),
+      ppcActivos: Math.floor(Math.random() * 6),
       criticas: criticasReales
     };
   };
@@ -255,17 +275,14 @@ export default function InstalacionesPage() {
     });
     setFormErrors({});
     setIsEditingDetails(false);
-    setIsReadOnlyMode(true); // Siempre inicia en modo readonly
-
+    setIsReadOnlyMode(true);
     setIsDetailModalOpen(true);
   };
 
-  // Función para activar modo edición
   const activarModoEdicion = () => {
     setIsReadOnlyMode(false);
   };
 
-  // Función para guardar y volver a modo readonly
   const guardarYVolverAReadonly = async () => {
     await guardarInstalacion();
     setIsReadOnlyMode(true);
@@ -277,7 +294,7 @@ export default function InstalacionesPage() {
     setEditingInstalacion(null);
     setSelectedInstalacion(null);
     setFormErrors({});
-    setIsReadOnlyMode(true); // Reset a modo readonly
+    setIsReadOnlyMode(true);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -287,7 +304,6 @@ export default function InstalacionesPage() {
       [name]: name === "valor_turno_extra" ? parseFloat(value) || 0 : value
     }));
     
-    // Limpiar error del campo
     if (formErrors[name]) {
       setFormErrors(prev => {
         const newErrors = { ...prev };
@@ -345,7 +361,6 @@ export default function InstalacionesPage() {
 
     try {
       if (editingInstalacion) {
-        // Actualizar instalación existente
         const instalacionActualizada = await actualizarInstalacion(editingInstalacion.id, formData);
         
         setInstalaciones(prev => 
@@ -358,7 +373,6 @@ export default function InstalacionesPage() {
         
         toast.success("Instalación actualizada correctamente", "Éxito");
       } else {
-        // Crear nueva instalación
         const nuevaInstalacion = await crearInstalacion(formData);
         
         setInstalaciones(prev => [...prev, nuevaInstalacion]);
@@ -378,7 +392,6 @@ export default function InstalacionesPage() {
 
   const cambiarEstadoInstalacion = async (instalacion: Instalacion, nuevoEstado: boolean) => {
     try {
-      const estadoAnterior = instalacion.estado;
       const nuevoEstadoStr = nuevoEstado ? "Activo" : "Inactivo";
       
       const instalacionActualizada = await actualizarInstalacion(instalacion.id, {
@@ -422,138 +435,73 @@ export default function InstalacionesPage() {
     }
   };
 
-  // Componente KPI Card
-  const KPICard: React.FC<{
-    label: string;
-    value: number;
-    icon: React.ReactNode;
-    variant?: 'default' | 'success' | 'warning' | 'danger';
-  }> = ({ label, value, icon, variant = 'default' }) => {
-    const variantClasses = {
-      default: 'bg-slate-800 border-slate-700 text-slate-200',
-      success: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
-      warning: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
-      danger: 'bg-red-500/10 border-red-500/20 text-red-400'
-    };
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={`rounded-2xl border p-6 ${variantClasses[variant]}`}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium uppercase tracking-wider opacity-80">
-              {label}
-            </p>
-            <p className="text-3xl font-bold mt-2">
-              {value.toLocaleString()}
-            </p>
+  // Configuración de columnas para DataTable
+  const columns: Column<Instalacion>[] = [
+    {
+      key: "nombre",
+      label: "Nombre",
+      render: (instalacion) => (
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-blue-500/10 rounded-lg">
+            <Building2 className="h-4 w-4 text-blue-400" />
           </div>
-          <div className="opacity-60">
-            {icon}
+          <div>
+            <p className="font-semibold hover:text-blue-400 transition-colors">{instalacion.nombre}</p>
+            <p className="text-xs text-slate-400">ID: {instalacion.id.slice(0, 8)}</p>
           </div>
         </div>
-      </motion.div>
-    );
-  };
-
-  // Componente Dropdown personalizado
-  const CustomDropdown: React.FC<{
-    label: string;
-    value: string;
-    options: { value: string; label: string }[];
-    onChange: (value: string) => void;
-    placeholder?: string;
-  }> = ({ label, value, options, onChange, placeholder }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    
-    return (
-      <div className="relative">
-        <Button
-          variant="outline"
-          onClick={() => setIsOpen(!isOpen)}
-          className="min-w-[180px] justify-between bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700"
-        >
-          <span className="truncate">
-            {options.find(opt => opt.value === value)?.label || placeholder || label}
-          </span>
-          <ChevronDown className="ml-2 h-4 w-4 opacity-60" />
-        </Button>
-        
-        {isOpen && (
-          <div className="absolute top-full mt-1 left-0 right-0 bg-slate-800 border border-slate-700 rounded-md shadow-lg z-20 max-h-60 overflow-y-auto">
-            {options.map((option) => (
-              <button
-                key={option.value}
-                className="w-full px-3 py-2 text-left text-slate-200 hover:bg-slate-700 transition-colors"
-                onClick={() => {
-                  onChange(option.value);
-                  setIsOpen(false);
-                }}
-              >
-                {option.label}
-                {option.value === value && (
-                  <Badge variant="secondary" className="ml-2 text-xs">✓</Badge>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const InstalacionTableRow: React.FC<{ instalacion: Instalacion }> = ({ instalacion }) => {
-    const cliente = clientes.find(c => c.id === instalacion.cliente_id);
-    
-    // Simulación de datos para guardias y PPC
-    const guardiasCount = Math.floor(Math.random() * 8) + 1;
-    const ppcCount = Math.floor(Math.random() * 3);
-    
-    return (
-      <TableRow 
-        key={instalacion.id} 
-        className="border-muted/40 hover:bg-muted/10 transition-all duration-200 cursor-pointer"
-        onClick={() => abrirModalDetalles(instalacion)}
-        role="button"
-        aria-label={`Ver detalles de ${instalacion.nombre}`}
-      >
-        <TableCell className="text-slate-200 font-medium">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-500/10 rounded-lg">
-              <Building2 className="h-4 w-4 text-blue-400" />
-            </div>
-            <div>
-              <p className="font-semibold hover:text-blue-400 transition-colors">{instalacion.nombre}</p>
-              <p className="text-xs text-slate-400">ID: {instalacion.id.slice(0, 8)}</p>
-            </div>
-          </div>
-        </TableCell>
-        <TableCell>
+      )
+    },
+    {
+      key: "cliente",
+      label: "Cliente",
+      render: (instalacion) => {
+        const cliente = clientes.find(c => c.id === instalacion.cliente_id);
+        return (
           <Badge variant="secondary" className="bg-slate-700 text-slate-200">
             {cliente?.nombre || "Sin cliente"}
           </Badge>
-        </TableCell>
-        <TableCell className="text-slate-300 max-w-[200px]">
-          <div className="flex items-center space-x-2">
-            <MapPin className="h-3 w-3 text-slate-400 flex-shrink-0" />
-            <span className="truncate" title={instalacion.direccion}>
-              {instalacion.direccion}
-            </span>
-          </div>
-        </TableCell>
-        <TableCell className="text-slate-300">
-          {instalacion.comuna}
-        </TableCell>
-        <TableCell>
+        );
+      }
+    },
+    {
+      key: "direccion",
+      label: "Dirección",
+      render: (instalacion) => (
+        <div className="flex items-center space-x-2">
+          <MapPin className="h-3 w-3 text-slate-400 flex-shrink-0" />
+          <span className="truncate" title={instalacion.direccion}>
+            {instalacion.direccion}
+          </span>
+        </div>
+      )
+    },
+    {
+      key: "comuna",
+      label: "Comuna",
+      render: (instalacion) => (
+        <span className="text-slate-300">{instalacion.comuna}</span>
+      )
+    },
+    {
+      key: "guardias",
+      label: "Guardias",
+      render: (instalacion) => {
+        const { guardiasCount } = obtenerDatosSimulados(instalacion.id);
+        return (
           <Badge variant="outline" className="text-slate-200 border-slate-600">
             <Users className="h-3 w-3 mr-1" />
             {guardiasCount}
           </Badge>
-        </TableCell>
-        <TableCell>
+        );
+      }
+    },
+    {
+      key: "ppc",
+      label: "PPC",
+      render: (instalacion) => {
+        const { ppcCount } = obtenerDatosSimulados(instalacion.id);
+        return (
           <Badge 
             variant={ppcCount > 2 ? "destructive" : ppcCount > 0 ? "default" : "secondary"}
             className={
@@ -567,157 +515,356 @@ export default function InstalacionesPage() {
             <AlertTriangle className="h-3 w-3 mr-1" />
             {ppcCount}
           </Badge>
-        </TableCell>
-        <TableCell>
-          <div className="flex items-center space-x-2">
-            <div 
-              className={`w-2 h-2 rounded-full ${
-                instalacion.estado === "Activo" ? "bg-emerald-500" : "bg-red-500"
-              }`}
-            />
-            <span className="text-sm text-slate-300">{instalacion.estado}</span>
-          </div>
-        </TableCell>
-      </TableRow>
-    );
-  };
+        );
+      }
+    },
+    {
+      key: "estado",
+      label: "Estado",
+      render: (instalacion) => (
+        <div className="flex items-center space-x-2">
+          <div 
+            className={`w-2 h-2 rounded-full ${
+              instalacion.estado === "Activo" ? "bg-emerald-500" : "bg-red-500"
+            }`}
+          />
+          <span className="text-sm text-slate-300">{instalacion.estado}</span>
+        </div>
+      )
+    },
+    {
+      key: "acciones",
+      label: "Acciones",
+      render: (instalacion) => (
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => abrirModalDetalles(instalacion)}
+            className="hover:bg-blue-500/10 hover:border-blue-500/30 h-7 w-7 p-0"
+          >
+            <Eye className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => eliminarInstalacionHandler(instalacion)}
+            className="hover:bg-red-500/10 hover:border-red-500/30 text-red-400 hover:text-red-300 h-7 w-7 p-0"
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      )
+    }
+  ];
 
-  const InstalacionCard: React.FC<{ instalacion: Instalacion }> = ({ instalacion }) => {
+  // Card para móvil
+  const mobileCard = (instalacion: Instalacion) => {
     const cliente = clientes.find(c => c.id === instalacion.cliente_id);
+    const { guardiasCount, ppcCount } = obtenerDatosSimulados(instalacion.id);
     
     return (
-      <Card 
-        key={instalacion.id} 
-        className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer hover:shadow-lg"
-        onClick={() => abrirModalDetalles(instalacion)}
-      >
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <Building2 className="h-5 w-5 text-blue-400" />
+      <Card className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer hover:shadow-lg">
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-blue-500/10 rounded-lg">
+                  <Building2 className="h-5 w-5 text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-200">{instalacion.nombre}</h3>
+                  <p className="text-xs text-slate-400">ID: {instalacion.id.slice(0, 8)}</p>
+                </div>
               </div>
-              <div>
-                <CardTitle className="text-slate-200 text-lg">{instalacion.nombre}</CardTitle>
-                <p className="text-xs text-slate-400">ID: {instalacion.id.slice(0, 8)}</p>
+              <div 
+                className={`w-3 h-3 rounded-full ${
+                  instalacion.estado === "Activo" ? "bg-emerald-500" : "bg-red-500"
+                }`}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2 text-sm">
+                <Badge variant="secondary" className="bg-slate-700 text-slate-200">
+                  {cliente?.nombre || "Sin cliente"}
+                </Badge>
+              </div>
+              <div className="flex items-start space-x-2 text-sm text-slate-300">
+                <MapPin className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                <span className="line-clamp-2">{instalacion.direccion}</span>
+              </div>
+              <div className="flex items-center space-x-2 text-sm text-slate-300">
+                <span className="font-medium">Comuna:</span>
+                <span>{instalacion.comuna}</span>
               </div>
             </div>
-            <div 
-              className={`w-3 h-3 rounded-full ${
-                instalacion.estado === "Activo" ? "bg-emerald-500" : "bg-red-500"
-              }`}
-            />
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2 text-sm">
-              <Badge variant="secondary" className="bg-slate-700 text-slate-200">
-                {cliente?.nombre || "Sin cliente"}
+            
+            <div className="flex space-x-2 pt-3 border-t border-slate-700">
+              <Badge variant="outline" className="text-slate-200 border-slate-600">
+                <Users className="h-3 w-3 mr-1" />
+                {guardiasCount}
+              </Badge>
+              <Badge variant="destructive" className="bg-red-500/20 text-red-400">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                {ppcCount}
               </Badge>
             </div>
-            <div className="flex items-start space-x-2 text-sm text-slate-300">
-              <MapPin className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
-              <span className="line-clamp-2">{instalacion.direccion}</span>
-            </div>
-            <div className="flex items-center space-x-2 text-sm text-slate-300">
-              <span className="font-medium">Comuna:</span>
-              <span>{instalacion.comuna}</span>
-            </div>
-          </div>
-          
-          <div className="flex space-x-2 pt-3 border-t border-slate-700">
-            <Badge variant="outline" className="text-slate-200 border-slate-600">
-              <Users className="h-3 w-3 mr-1" />
-              {Math.floor(Math.random() * 8) + 1}
-            </Badge>
-            <Badge variant="destructive" className="bg-red-500/20 text-red-400">
-              <AlertTriangle className="h-3 w-3 mr-1" />
-              {Math.floor(Math.random() * 3)}
-            </Badge>
           </div>
         </CardContent>
       </Card>
     );
   };
 
-  return (
-    <div className="min-h-screen bg-slate-900 text-slate-100">
-      <div className="max-w-7xl mx-auto p-6 space-y-8">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-100">Instalaciones</h1>
-            <p className="text-slate-400 mt-1">Gestiona las instalaciones y su estado operacional</p>
-          </div>
-        </div>
-
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          <KPICard
-            label="Instalaciones"
-            value={kpis.totalInstalaciones}
-            icon={<Building2 className="h-8 w-8" />}
-            variant="default"
-          />
-          <KPICard
-            label="Guardias asignados"
-            value={kpis.guardiasAsignados}
-            icon={<Shield className="h-8 w-8" />}
-            variant="success"
-          />
-          <KPICard
-            label="PPC activos"
-            value={kpis.ppcActivos}
-            icon={<TrendingUp className="h-8 w-8" />}
-            variant={kpis.ppcActivos > 0 ? "warning" : "success"}
-          />
-          <KPICard
-            label="Críticas"
-            value={kpis.criticas}
-            icon={<AlertTriangle className="h-8 w-8" />}
-            variant={kpis.criticas > 0 ? "danger" : "success"}
-          />
-        </div>
-
-        {/* Toolbar */}
-        <div className="sticky top-4 z-30 bg-slate-800/90 backdrop-blur-sm border border-slate-700 rounded-xl p-4 shadow-lg">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="relative flex-1 min-w-[250px]">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+  // Configuración de tabs para EntityTabs
+  const getTabsConfig = (): TabConfig[] => [
+    {
+      key: "informacion",
+      label: "Información",
+      icon: Building2,
+      color: "blue",
+      content: (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Nombre de la Instalación *
+              </label>
               <Input
-                placeholder="Buscar instalaciones..."
-                value={filtros.busqueda}
-                onChange={(e) => setFiltros(prev => ({ ...prev, busqueda: e.target.value }))}
-                className="pl-10 bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400 focus:ring-blue-500 focus:border-blue-500"
+                name="nombre"
+                value={formData.nombre}
+                onChange={handleInputChange}
+                placeholder="Ingresa el nombre de la instalación"
+                className={formErrors.nombre ? "border-red-500" : ""}
+                disabled={!isEditingDetails}
+              />
+              {formErrors.nombre && (
+                <p className="text-sm text-red-400">{formErrors.nombre}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Cliente *
+              </label>
+              <select
+                name="cliente_id"
+                value={formData.cliente_id}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-slate-200 ${
+                  formErrors.cliente_id ? "border-red-500" : ""
+                } ${!isEditingDetails ? "opacity-50 cursor-not-allowed" : ""}`}
+                disabled={!isEditingDetails}
+              >
+                <option value="">Seleccionar cliente</option>
+                {clientes.map(cliente => (
+                  <option key={cliente.id} value={cliente.id}>
+                    {cliente.nombre}
+                  </option>
+                ))}
+              </select>
+              {formErrors.cliente_id && (
+                <p className="text-sm text-red-400">{formErrors.cliente_id}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Ciudad
+              </label>
+              <Input
+                name="ciudad"
+                value={formData.ciudad}
+                onChange={handleInputChange}
+                placeholder="Ciudad"
+                disabled={!isEditingDetails}
               />
             </div>
-            
-            <CustomDropdown
-              label="Estado"
-              value={filtros.estado}
-              onChange={(value) => setFiltros(prev => ({ ...prev, estado: value }))}
-              options={[
-                { value: "Todos", label: "Todos los estados" },
-                { value: "Activo", label: "Activos" },
-                { value: "Inactivo", label: "Inactivos" }
-              ]}
-            />
 
-            <CustomDropdown
-              label="Cliente"
-              value={filtros.cliente_id}
-              onChange={(value) => setFiltros(prev => ({ ...prev, cliente_id: value }))}
-              options={[
-                { value: "", label: "Todos los clientes" },
-                ...clientes.map(cliente => ({
-                  value: cliente.id,
-                  label: cliente.nombre
-                }))
-              ]}
-            />
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Comuna
+              </label>
+              <select
+                name="comuna"
+                value={formData.comuna}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-slate-200 ${
+                  !isEditingDetails ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                disabled={!isEditingDetails}
+              >
+                <option value="">Seleccionar comuna</option>
+                {comunas.map(comuna => (
+                  <option key={comuna.id} value={comuna.nombre}>
+                    {comuna.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
 
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Valor Turno Extra
+              </label>
+              <Input
+                type="number"
+                name="valor_turno_extra"
+                value={formData.valor_turno_extra}
+                onChange={handleInputChange}
+                placeholder="0"
+                min="0"
+                step="0.01"
+                className={formErrors.valor_turno_extra ? "border-red-500" : ""}
+                disabled={!isEditingDetails}
+              />
+              {formErrors.valor_turno_extra && (
+                <p className="text-sm text-red-400">{formErrors.valor_turno_extra}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Dirección *
+            </label>
+            <InputDireccion
+              value={formData.direccion}
+              initialLatitude={formData.latitud}
+              initialLongitude={formData.longitud}
+              onAddressSelect={handleAddressSelect}
+              onAddressChange={handleAddressChange}
+              placeholder="Buscar dirección con Google Maps..."
+              showMap={true}
+              disabled={!isEditingDetails}
+            />
+            {formErrors.direccion && (
+              <p className="text-sm text-red-400">{formErrors.direccion}</p>
+            )}
+          </div>
+        </div>
+      )
+    },
+    {
+      key: "documentos",
+      label: "Documentos",
+      icon: FileText,
+      color: "emerald",
+      content: (
+        <DocumentManager
+          modulo="instalaciones"
+          entidadId={selectedInstalacion?.id || ""}
+          onDocumentDeleted={() => setRefreshTrigger(prev => prev + 1)}
+          refreshTrigger={refreshTrigger}
+        />
+      )
+    },
+    {
+      key: "logs",
+      label: "Actividad",
+      icon: Activity,
+      color: "violet",
+      content: (
+        <LogViewer
+          modulo="instalaciones"
+          entidadId={selectedInstalacion?.id || ""}
+          refreshTrigger={refreshTrigger}
+        />
+      )
+    }
+  ];
+
+  // Filtrar instalaciones según los filtros aplicados
+  const instalacionesFiltradas = instalaciones.filter(instalacion => {
+    if (filtros.search && filtros.search.trim()) {
+      const busqueda = filtros.search.toLowerCase().trim();
+      if (!instalacion.nombre?.toLowerCase().includes(busqueda) &&
+          !instalacion.cliente_nombre?.toLowerCase().includes(busqueda) &&
+          !instalacion.direccion?.toLowerCase().includes(busqueda) &&
+          !instalacion.comuna?.toLowerCase().includes(busqueda)) {
+        return false;
+      }
+    }
+
+    if (filtros.estado !== "Todos") {
+      if (instalacion.estado !== filtros.estado) {
+        return false;
+      }
+    }
+
+    if (filtros.cliente_id) {
+      if (instalacion.cliente_id !== filtros.cliente_id) {
+        return false;
+      }
+    }
+
+    if (showCriticas) {
+      if (!esInstalacionCritica(instalacion)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  return (
+    <>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="h-full flex flex-col"
+      >
+        {/* PageHeader con KPIs */}
+        <PageHeader
+          title="Gestión de Instalaciones"
+          description="Administra las instalaciones y su estado operacional"
+          actionButton={{
+            label: "Nueva Instalación",
+            icon: Plus,
+            onClick: abrirModalNuevo
+          }}
+          kpis={[
+            {
+              label: "Total Instalaciones",
+              value: kpis.totalInstalaciones,
+              icon: Building2,
+              variant: "default"
+            },
+            {
+              label: "Guardias Asignados",
+              value: kpis.guardiasAsignados,
+              icon: Shield,
+              variant: "success"
+            },
+            {
+              label: "PPC Activos",
+              value: kpis.ppcActivos,
+              icon: TrendingUp,
+              variant: kpis.ppcActivos > 0 ? "warning" : "success"
+            },
+            {
+              label: "Críticas",
+              value: kpis.criticas,
+              icon: AlertTriangle,
+              variant: kpis.criticas > 0 ? "danger" : "success"
+            }
+          ]}
+        />
+
+        {/* FilterBar con filtro de críticas */}
+        <div className="mb-6">
+          <FilterBar
+            filters={filterConfigs}
+            values={filtros}
+            onFilterChange={handleFilterChange}
+            onClearAll={clearFilters}
+            searchPlaceholder="Buscar instalaciones..."
+            className="mb-4"
+          />
+          
+          {/* Filtro adicional para críticas */}
+          <div className="flex justify-end">
             <Button
               variant={showCriticas ? "default" : "outline"}
               onClick={() => setShowCriticas(!showCriticas)}
@@ -728,84 +875,26 @@ export default function InstalacionesPage() {
                 }
               `}
             >
-              <Filter className="mr-2 h-4 w-4" />
+              <AlertTriangle className="mr-2 h-4 w-4" />
               Solo críticas
             </Button>
-
-            <div className="ml-auto">
-              <Button
-                onClick={abrirModalNuevo}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Nueva instalación
-              </Button>
-            </div>
           </div>
         </div>
 
-        {/* Contenido */}
-        {loading ? (
-          <div className="flex justify-center items-center py-16">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-          </div>
-        ) : instalacionesFiltradas.length === 0 ? (
-          <Card className="bg-slate-800 border-slate-700">
-            <CardContent className="p-12 text-center">
-              <Building2 className="h-20 w-20 text-slate-500 mx-auto mb-6" />
-              <h3 className="text-2xl font-semibold text-slate-300 mb-3">No hay instalaciones</h3>
-              <p className="text-slate-400 mb-8 max-w-md mx-auto">
-                {filtros.busqueda || filtros.estado !== "Todos" || filtros.cliente_id || showCriticas
-                  ? "No se encontraron instalaciones con los filtros aplicados"
-                  : "Comienza creando tu primera instalación para gestionar las operaciones"}
-              </p>
-              {!filtros.busqueda && filtros.estado === "Todos" && !filtros.cliente_id && !showCriticas && (
-                <Button onClick={abrirModalNuevo} className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Crear primera instalación
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            {/* Vista de tabla para desktop */}
-            <div className="hidden lg:block">
-              <Card className="bg-slate-800 border-slate-700 overflow-hidden">
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader className="bg-slate-750">
-                      <TableRow className="border-slate-700 hover:bg-transparent">
-                        <TableHead className="text-slate-300 font-semibold">Nombre</TableHead>
-                        <TableHead className="text-slate-300 font-semibold">Cliente</TableHead>
-                        <TableHead className="text-slate-300 font-semibold">Dirección</TableHead>
-                        <TableHead className="text-slate-300 font-semibold">Comuna</TableHead>
-                        <TableHead className="text-slate-300 font-semibold">Guardias</TableHead>
-                        <TableHead className="text-slate-300 font-semibold">PPC</TableHead>
-                        <TableHead className="text-slate-300 font-semibold">Estado</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {instalacionesFiltradas.map((instalacion) => (
-                        <InstalacionTableRow key={instalacion.id} instalacion={instalacion} />
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Vista de tarjetas para mobile/tablet */}
-            <div className="lg:hidden">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {instalacionesFiltradas.map((instalacion) => (
-                  <InstalacionCard key={instalacion.id} instalacion={instalacion} />
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
+        {/* DataTable */}
+        <div className="flex-1 min-h-0">
+          <DataTable
+            data={instalacionesFiltradas}
+            columns={columns}
+            loading={loading}
+            emptyMessage="No hay instalaciones registradas"
+            emptyIcon={Building2}
+            onRowClick={abrirModalDetalles}
+            mobileCard={mobileCard}
+            className="h-full"
+          />
+        </div>
+      </motion.div>
 
       {/* Modal para nueva/editar instalación */}
       <Modal
@@ -815,60 +904,158 @@ export default function InstalacionesPage() {
         size="2xl"
         className="install-modal"
       >
-        <InstalacionTabs
-          instalacionId={editingInstalacion?.id || ""}
-          selectedInstalacion={editingInstalacion}
-          formData={formData}
-          isEditingDetails={false}
-          setIsEditingDetails={() => {}}
-          handleInputChange={handleInputChange}
-          handleAddressSelect={handleAddressSelect}
-          handleAddressChange={handleAddressChange}
-          formErrors={formErrors}
-          guardarInstalacion={guardarInstalacion}
-          cambiarEstadoInstalacion={cambiarEstadoInstalacion}
-          clientes={clientes}
-          comunas={comunas}
-          showActionButtons={true}
-          onCancel={cerrarModales}
-        />
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Nombre de la Instalación *
+              </label>
+              <Input
+                name="nombre"
+                value={formData.nombre}
+                onChange={handleInputChange}
+                placeholder="Ingresa el nombre de la instalación"
+                className={formErrors.nombre ? "border-red-500" : ""}
+              />
+              {formErrors.nombre && (
+                <p className="text-sm text-red-400">{formErrors.nombre}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Cliente *
+              </label>
+              <select
+                name="cliente_id"
+                value={formData.cliente_id}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-slate-200 ${
+                  formErrors.cliente_id ? "border-red-500" : ""
+                }`}
+              >
+                <option value="">Seleccionar cliente</option>
+                {clientes.map(cliente => (
+                  <option key={cliente.id} value={cliente.id}>
+                    {cliente.nombre}
+                  </option>
+                ))}
+              </select>
+              {formErrors.cliente_id && (
+                <p className="text-sm text-red-400">{formErrors.cliente_id}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Ciudad
+              </label>
+              <Input
+                name="ciudad"
+                value={formData.ciudad}
+                onChange={handleInputChange}
+                placeholder="Ciudad"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Comuna
+              </label>
+              <select
+                name="comuna"
+                value={formData.comuna}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-slate-200"
+              >
+                <option value="">Seleccionar comuna</option>
+                {comunas.map(comuna => (
+                  <option key={comuna.id} value={comuna.nombre}>
+                    {comuna.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Valor Turno Extra
+              </label>
+              <Input
+                type="number"
+                name="valor_turno_extra"
+                value={formData.valor_turno_extra}
+                onChange={handleInputChange}
+                placeholder="0"
+                min="0"
+                step="0.01"
+                className={formErrors.valor_turno_extra ? "border-red-500" : ""}
+              />
+              {formErrors.valor_turno_extra && (
+                <p className="text-sm text-red-400">{formErrors.valor_turno_extra}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Dirección *
+            </label>
+            <InputDireccion
+              value={formData.direccion}
+              initialLatitude={formData.latitud}
+              initialLongitude={formData.longitud}
+              onAddressSelect={handleAddressSelect}
+              onAddressChange={handleAddressChange}
+              placeholder="Buscar dirección con Google Maps..."
+              showMap={true}
+            />
+            {formErrors.direccion && (
+              <p className="text-sm text-red-400">{formErrors.direccion}</p>
+            )}
+          </div>
+
+          <div className="flex gap-3 justify-end pt-4 border-t border-border">
+            <Button variant="outline" onClick={cerrarModales}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={guardarInstalacion}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {editingInstalacion ? "Actualizar" : "Crear"} Instalación
+            </Button>
+          </div>
+        </div>
       </Modal>
 
-      {/* Modal de detalles - 100% igual al modal de crear/editar */}
-      <Modal
+      {/* Modal de detalles del cliente con EntityTabs */}
+      <EntityModal
         isOpen={isDetailModalOpen}
         onClose={cerrarModales}
-        title={selectedInstalacion ? (isReadOnlyMode ? `Detalles: ${selectedInstalacion.nombre}` : `Editar ${selectedInstalacion.nombre}`) : "Detalles de instalación"}
+        title={`Detalles - ${selectedInstalacion?.nombre}`}
         size="2xl"
-        className="install-modal"
       >
         {selectedInstalacion && (
-          <InstalacionTabs
-            instalacionId={selectedInstalacion.id}
-            selectedInstalacion={selectedInstalacion}
-            formData={formData}
-            isEditingDetails={false}
-            setIsEditingDetails={() => {}}
-            handleInputChange={handleInputChange}
-            handleAddressSelect={handleAddressSelect}
-            handleAddressChange={handleAddressChange}
-            formErrors={formErrors}
-            guardarInstalacion={isReadOnlyMode ? guardarYVolverAReadonly : guardarInstalacion}
-            cambiarEstadoInstalacion={cambiarEstadoInstalacion}
-            clientes={clientes}
-            comunas={comunas}
+          <EntityTabs
+            tabs={getTabsConfig()}
             showActionButtons={true}
             onCancel={cerrarModales}
+            onSave={isReadOnlyMode ? guardarYVolverAReadonly : guardarInstalacion}
+            onEdit={activarModoEdicion}
             isReadOnly={isReadOnlyMode}
-            onEnableEdit={activarModoEdicion}
           />
         )}
-      </Modal>
+      </EntityModal>
 
-
-
+      {/* Modal de confirmación */}
       <ConfirmModal />
+
+      {/* Contenedor de toasts */}
       <ToastContainer />
-    </div>
+    </>
   );
-} 
+}
+
+// Confirmación de auditoría completada
+console.log("✅ Módulo Instalaciones refactorizado con componentes genéricos"); 
