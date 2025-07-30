@@ -125,7 +125,7 @@ export default function AsignacionesPage() {
         },
         title: referenciaSeleccionada.nombre,
         info: `Punto de referencia: ${referenciaSeleccionada.nombre}`,
-        color: 'blue'
+        color: 'blue' as const
       });
     }
 
@@ -142,7 +142,7 @@ export default function AsignacionesPage() {
           },
           title: resultado.nombre,
           info: `${resultado.nombre} - ${resultado.distancia.toFixed(1)} km`,
-          color: 'red'
+          color: 'red' as const
         });
       }
     });
@@ -255,6 +255,7 @@ export default function AsignacionesPage() {
             comuna: opcion.comuna || '',
             latitud: 0, // Se llenará desde los datos originales
             longitud: 0, // Se llenará desde los datos originales
+            tipo: opcion.tipo, // Agregar la propiedad tipo requerida
             email: opcion.email || '',
             telefono: opcion.telefono || '',
             rut: opcion.rut || '',
