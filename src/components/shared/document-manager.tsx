@@ -579,13 +579,14 @@ export function DocumentManager({
         {/* Modal de visualización de documentos */}
         {selectedDocument && (
           <DocumentViewer
-            isOpen={viewerOpen}
+            open={viewerOpen}
             onClose={() => {
               setViewerOpen(false);
               setSelectedDocument(null);
             }}
             documentId={selectedDocument.id}
             documentName={selectedDocument.nombre}
+            documentType={selectedDocument.tipo_documento_nombre || 'application/octet-stream'}
             modulo={modulo}
           />
         )}
