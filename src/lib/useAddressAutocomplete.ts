@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
+import { GOOGLE_MAPS_CONFIG } from './config/google-maps';
 
 // Tipos para los datos de dirección
 export interface AddressComponent {
@@ -26,10 +27,6 @@ export interface AddressSuggestion {
   direccionSecundaria: string;
 }
 
-// Configuración de Google Maps
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBHIoHJDp6StLJlUAQV_gK7woFsEYgbzHY';
-const GOOGLE_MAPS_LIBRARIES: ("places")[] = ['places'];
-
 // Hook principal para autocompletado de direcciones
 export const useAddressAutocomplete = () => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -46,9 +43,9 @@ export const useAddressAutocomplete = () => {
     const initializeGoogleMaps = async () => {
       try {
         const loader = new Loader({
-          apiKey: GOOGLE_MAPS_API_KEY,
+          apiKey: GOOGLE_MAPS_CONFIG.API_KEY,
           version: 'weekly',
-          libraries: GOOGLE_MAPS_LIBRARIES,
+          libraries: GOOGLE_MAPS_CONFIG.LIBRARIES,
         });
 
         await loader.load();

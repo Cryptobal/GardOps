@@ -9,6 +9,7 @@ import { Switch } from "../../components/ui/switch";
 import { Modal, useConfirmModal } from "../../components/ui/modal";
 import { useToast, ToastContainer } from "../../components/ui/toast";
 import { Input } from "../../components/ui/input";
+import { InputDireccion, type AddressData } from "../../components/ui/input-direccion";
 import { 
   Shield, 
   Plus, 
@@ -33,6 +34,7 @@ import { PageHeader } from "../../components/ui/page-header";
 import { FilterBar, FilterConfig } from "../../components/ui/filter-bar";
 import { EntityModal } from "../../components/ui/entity-modal";
 import { EntityTabs, TabConfig } from "../../components/ui/entity-tabs";
+import { LocationTab } from "../../components/ui/location-tab";
 import { DocumentManager } from "../../components/shared/document-manager";
 import { LogViewer } from "../../components/shared/log-viewer";
 
@@ -45,6 +47,11 @@ interface Guardia {
   email: string;
   telefono: string;
   direccion: string;
+  latitud?: number | null;
+  longitud?: number | null;
+  ciudad?: string | null;
+  comuna?: string | null;
+  region?: string | null;
   fecha_nacimiento: string;
   fecha_ingreso: string;
   estado: "Activo" | "Inactivo";
@@ -62,6 +69,11 @@ interface CrearGuardiaData {
   email: string;
   telefono: string;
   direccion: string;
+  latitud?: number | null;
+  longitud?: number | null;
+  ciudad?: string | null;
+  comuna?: string | null;
+  region?: string | null;
   fecha_nacimiento: string;
   fecha_ingreso: string;
   estado: "Activo" | "Inactivo";
@@ -103,6 +115,11 @@ export default function GuardiasPage() {
     email: "",
     telefono: "",
     direccion: "",
+    latitud: null,
+    longitud: null,
+    ciudad: "",
+    comuna: "",
+    region: "",
     fecha_nacimiento: "",
     fecha_ingreso: "",
     estado: "Activo",
@@ -163,6 +180,11 @@ export default function GuardiasPage() {
           email: "juan.perez@email.com",
           telefono: "+56 9 1234 5678",
           direccion: "Av. Providencia 123, Santiago",
+          latitud: -33.4489,
+          longitud: -70.6693,
+          ciudad: "Santiago",
+          comuna: "Providencia",
+          region: "Metropolitana",
           fecha_nacimiento: "1985-03-15",
           fecha_ingreso: "2020-01-15",
           estado: "Activo",
@@ -180,6 +202,11 @@ export default function GuardiasPage() {
           email: "maria.gonzalez@email.com",
           telefono: "+56 9 8765 4321",
           direccion: "Las Condes 456, Santiago",
+          latitud: -33.4167,
+          longitud: -70.5833,
+          ciudad: "Santiago",
+          comuna: "Las Condes",
+          region: "Metropolitana",
           fecha_nacimiento: "1990-07-22",
           fecha_ingreso: "2021-03-10",
           estado: "Activo",
@@ -197,6 +224,11 @@ export default function GuardiasPage() {
           email: "carlos.rodriguez@email.com",
           telefono: "+56 9 4567 8912",
           direccion: "Ñuñoa 789, Santiago",
+          latitud: -33.4569,
+          longitud: -70.6483,
+          ciudad: "Santiago",
+          comuna: "Ñuñoa",
+          region: "Metropolitana",
           fecha_nacimiento: "1988-11-08",
           fecha_ingreso: "2019-08-20",
           estado: "Inactivo",
@@ -275,6 +307,11 @@ export default function GuardiasPage() {
       email: "",
       telefono: "",
       direccion: "",
+      latitud: null,
+      longitud: null,
+      ciudad: "",
+      comuna: "",
+      region: "",
       fecha_nacimiento: "",
       fecha_ingreso: "",
       estado: "Activo",
@@ -296,6 +333,11 @@ export default function GuardiasPage() {
       email: guardia.email,
       telefono: guardia.telefono,
       direccion: guardia.direccion,
+      latitud: guardia.latitud || null,
+      longitud: guardia.longitud || null,
+      ciudad: guardia.ciudad || "",
+      comuna: guardia.comuna || "",
+      region: guardia.region || "",
       fecha_nacimiento: guardia.fecha_nacimiento,
       fecha_ingreso: guardia.fecha_ingreso,
       estado: guardia.estado,
@@ -328,6 +370,64 @@ export default function GuardiasPage() {
     if (formErrors[name]) {
       setFormErrors(prev => ({ ...prev, [name]: "" }));
     }
+  };
+
+  // Manejar selección de dirección
+  const handleAddressSelect = (addressData: AddressData) => {
+    setFormData(prev => ({
+      ...prev,
+      direccion: addressData.direccionCompleta,
+      latitud: addressData.latitud,
+      longitud: addressData.longitud,
+      ciudad: addressData.componentes.ciudad,
+      comuna: addressData.componentes.comuna,
+      region: addressData.componentes.region
+    }));
+    
+    if (formErrors.direccion) {
+      setFormErrors(prev => ({ ...prev, direccion: "" }));
+    }
+  };
+
+  // Manejar cambios en dirección
+  const handleAddressChange = (query: string) => {
+    setFormData(prev => ({ ...prev, direccion: query }));
+    
+    if (formErrors.direccion) {
+      setFormErrors(prev => ({ ...prev, direccion: "" }));
+    }
+  };
+
+  // Manejar cambio de ciudad
+  const handleCiudadChange = (ciudad: string) => {
+    setFormData(prev => ({ ...prev, ciudad }));
+  };
+
+  // Manejar cambio de comuna
+  const handleComunaChange = (comuna: string) => {
+    setFormData(prev => ({ ...prev, comuna }));
+  };
+
+  // Manejar cambio de coordenadas
+  const handleCoordinatesChange = (lat: number, lng: number) => {
+    setFormData(prev => ({
+      ...prev,
+      latitud: lat,
+      longitud: lng,
+    }));
+  };
+
+  // Limpiar ubicación
+  const handleClearLocation = () => {
+    setFormData(prev => ({
+      ...prev,
+      direccion: "",
+      latitud: null,
+      longitud: null,
+      ciudad: "",
+      comuna: "",
+      region: "",
+    }));
   };
 
   // Validar formulario
@@ -789,19 +889,31 @@ export default function GuardiasPage() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Dirección
-            </label>
-            <Input
-              name="direccion"
-              value={formData.direccion}
-              onChange={handleInputChange}
-              placeholder="Ingresa la dirección"
-              disabled={!isEditingDetails}
-            />
-          </div>
+
         </div>
+      )
+    },
+    {
+      key: "ubicacion",
+      label: "Ubicación",
+      icon: MapPin,
+      color: "amber",
+      content: (
+        <LocationTab
+          direccion={formData.direccion}
+          latitud={formData.latitud}
+          longitud={formData.longitud}
+          ciudad={formData.ciudad || ""}
+          comuna={formData.comuna || ""}
+          onAddressSelect={handleAddressSelect}
+          onAddressChange={handleAddressChange}
+          onCiudadChange={handleCiudadChange}
+          onComunaChange={handleComunaChange}
+          onCoordinatesChange={handleCoordinatesChange}
+          onClearLocation={handleClearLocation}
+          disabled={!isEditingDetails}
+          isReadOnly={!isEditingDetails}
+        />
       )
     },
     {
@@ -1082,11 +1194,17 @@ export default function GuardiasPage() {
             <label className="text-sm font-medium text-foreground">
               Dirección
             </label>
-            <Input
-              name="direccion"
+            <InputDireccion
               value={formData.direccion}
-              onChange={handleInputChange}
-              placeholder="Ingresa la dirección"
+              initialLatitude={formData.latitud || undefined}
+              initialLongitude={formData.longitud || undefined}
+              initialCiudad={formData.ciudad || undefined}
+              initialComuna={formData.comuna || undefined}
+              onAddressSelect={handleAddressSelect}
+              onAddressChange={handleAddressChange}
+              placeholder="Buscar dirección con Google Maps..."
+              showMap={true}
+              showClearButton={true}
             />
           </div>
 

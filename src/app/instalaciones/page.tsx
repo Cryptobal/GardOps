@@ -48,6 +48,7 @@ import { PageHeader } from "../../components/ui/page-header";
 import { FilterBar, FilterConfig } from "../../components/ui/filter-bar";
 import { EntityModal } from "../../components/ui/entity-modal";
 import { EntityTabs, TabConfig } from "../../components/ui/entity-tabs";
+import { LocationTab } from "../../components/ui/location-tab";
 import { DocumentManager } from "../../components/shared/document-manager";
 import { LogViewer } from "../../components/shared/log-viewer";
 
@@ -262,6 +263,7 @@ export default function InstalacionesPage() {
 
   const abrirModalDetalles = (instalacion: Instalacion) => {
     setSelectedInstalacion(instalacion);
+    setEditingInstalacion(instalacion); // Establecer la instalación que se está editando
     setFormData({
       nombre: instalacion.nombre || '',
       cliente_id: instalacion.cliente_id || '',
@@ -281,11 +283,13 @@ export default function InstalacionesPage() {
 
   const activarModoEdicion = () => {
     setIsReadOnlyMode(false);
+    setIsEditingDetails(true);
   };
 
   const guardarYVolverAReadonly = async () => {
     await guardarInstalacion();
     setIsReadOnlyMode(true);
+    setIsEditingDetails(false);
   };
 
   const cerrarModales = () => {
@@ -295,6 +299,7 @@ export default function InstalacionesPage() {
     setSelectedInstalacion(null);
     setFormErrors({});
     setIsReadOnlyMode(true);
+    setIsEditingDetails(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -331,6 +336,37 @@ export default function InstalacionesPage() {
     }));
   };
 
+  // Manejar cambio de ciudad
+  const handleCiudadChange = (ciudad: string) => {
+    setFormData(prev => ({ ...prev, ciudad }));
+  };
+
+  // Manejar cambio de comuna
+  const handleComunaChange = (comuna: string) => {
+    setFormData(prev => ({ ...prev, comuna }));
+  };
+
+  // Manejar cambio de coordenadas
+  const handleCoordinatesChange = (lat: number, lng: number) => {
+    setFormData(prev => ({
+      ...prev,
+      latitud: lat,
+      longitud: lng,
+    }));
+  };
+
+  // Limpiar ubicación
+  const handleClearLocation = () => {
+    setFormData(prev => ({
+      ...prev,
+      direccion: "",
+      latitud: null,
+      longitud: null,
+      ciudad: "",
+      comuna: "",
+    }));
+  };
+
   const validarFormulario = (): boolean => {
     const errors: Record<string, string> = {};
 
@@ -361,13 +397,10 @@ export default function InstalacionesPage() {
 
     try {
       if (editingInstalacion) {
-        const instalacionActualizada = await actualizarInstalacion(editingInstalacion.id, formData);
+        await actualizarInstalacion(editingInstalacion.id, formData);
         
-        setInstalaciones(prev => 
-          prev.map(inst => 
-            inst.id === editingInstalacion.id ? instalacionActualizada : inst
-          )
-        );
+        // Recargar datos para obtener información completa actualizada
+        await cargarDatos();
 
         await logEdicionInstalacion(editingInstalacion.id, "Datos generales actualizados");
         
@@ -375,7 +408,8 @@ export default function InstalacionesPage() {
       } else {
         const nuevaInstalacion = await crearInstalacion(formData);
         
-        setInstalaciones(prev => [...prev, nuevaInstalacion]);
+        // Recargar datos para obtener información completa (cliente_nombre, comuna_nombre, etc.)
+        await cargarDatos();
 
         await logInstalacionCreada(nuevaInstalacion.id, "Nueva instalación creada");
         
@@ -668,40 +702,7 @@ export default function InstalacionesPage() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Ciudad
-              </label>
-              <Input
-                name="ciudad"
-                value={formData.ciudad}
-                onChange={handleInputChange}
-                placeholder="Ciudad"
-                disabled={!isEditingDetails}
-              />
-            </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Comuna
-              </label>
-              <select
-                name="comuna"
-                value={formData.comuna}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-slate-200 ${
-                  !isEditingDetails ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-                disabled={!isEditingDetails}
-              >
-                <option value="">Seleccionar comuna</option>
-                {comunas.map(comuna => (
-                  <option key={comuna.id} value={comuna.nombre}>
-                    {comuna.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
@@ -724,25 +725,31 @@ export default function InstalacionesPage() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Dirección *
-            </label>
-            <InputDireccion
-              value={formData.direccion}
-              initialLatitude={formData.latitud}
-              initialLongitude={formData.longitud}
-              onAddressSelect={handleAddressSelect}
-              onAddressChange={handleAddressChange}
-              placeholder="Buscar dirección con Google Maps..."
-              showMap={true}
-              disabled={!isEditingDetails}
-            />
-            {formErrors.direccion && (
-              <p className="text-sm text-red-400">{formErrors.direccion}</p>
-            )}
-          </div>
+
         </div>
+      )
+    },
+    {
+      key: "ubicacion",
+      label: "Ubicación",
+      icon: MapPin,
+      color: "amber",
+      content: (
+        <LocationTab
+          direccion={formData.direccion}
+          latitud={formData.latitud}
+          longitud={formData.longitud}
+          ciudad={formData.ciudad || ""}
+          comuna={formData.comuna || ""}
+          onAddressSelect={handleAddressSelect}
+          onAddressChange={handleAddressChange}
+          onCiudadChange={handleCiudadChange}
+          onComunaChange={handleComunaChange}
+          onCoordinatesChange={handleCoordinatesChange}
+          onClearLocation={handleClearLocation}
+          disabled={!isEditingDetails}
+          isReadOnly={!isEditingDetails}
+        />
       )
     },
     {
@@ -1010,6 +1017,8 @@ export default function InstalacionesPage() {
               onAddressChange={handleAddressChange}
               placeholder="Buscar dirección con Google Maps..."
               showMap={true}
+              disabled={!isEditingDetails}
+              showClearButton={isEditingDetails}
             />
             {formErrors.direccion && (
               <p className="text-sm text-red-400">{formErrors.direccion}</p>
@@ -1024,7 +1033,7 @@ export default function InstalacionesPage() {
               onClick={guardarInstalacion}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              {editingInstalacion ? "Actualizar" : "Crear"} Instalación
+              {editingInstalacion ? "Editar" : "Crear"} Instalación
             </Button>
           </div>
         </div>

@@ -6,15 +6,34 @@ import { query } from '../../../lib/database';
 let tableVerified = false;
 
 // GET /api/instalaciones - Obtener todas las instalaciones
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const withCoords = searchParams.get('withCoords') === 'true';
+    
     // Verificar tabla solo una vez por sesión
     if (!tableVerified) {
       await ensureInstalacionesTable();
       tableVerified = true;
     }
     
-    // Obtener instalaciones directamente de la base de datos
+    // Si se solicita con coordenadas, devolver formato simplificado
+    if (withCoords) {
+      const result = await query(`
+        SELECT 
+          i.id,
+          i.nombre,
+          i.latitud as lat,
+          i.longitud as lng
+        FROM instalaciones i
+        WHERE i.latitud IS NOT NULL AND i.longitud IS NOT NULL
+        ORDER BY i.nombre
+      `);
+      
+      return NextResponse.json(result.rows);
+    }
+    
+    // Obtener instalaciones completas directamente de la base de datos
     const result = await query(`
       SELECT 
         i.id,
@@ -231,6 +250,18 @@ async function ensureInstalacionesTable() {
 
 // Función para crear instalación en la base de datos
 async function crearInstalacionDB(data: any) {
+  console.log('🔧 Creando instalación con datos:', {
+    nombre: data.nombre,
+    cliente_id: data.cliente_id,
+    direccion: data.direccion,
+    latitud: data.latitud,
+    longitud: data.longitud,
+    ciudad: data.ciudad,
+    comuna: data.comuna,
+    valor_turno_extra: data.valor_turno_extra,
+    estado: data.estado
+  });
+
   const result = await query(`
     INSERT INTO instalaciones (
       nombre, cliente_id, direccion, latitud, longitud, 
@@ -249,11 +280,25 @@ async function crearInstalacionDB(data: any) {
     data.estado
   ]);
 
+  console.log('✅ Instalación creada exitosamente:', result.rows[0]);
   return result.rows[0];
 }
 
 // Función para actualizar instalación en la base de datos
 async function actualizarInstalacionDB(id: string, data: any) {
+  console.log('🔧 Actualizando instalación con datos:', {
+    id,
+    nombre: data.nombre,
+    cliente_id: data.cliente_id,
+    direccion: data.direccion,
+    latitud: data.latitud,
+    longitud: data.longitud,
+    ciudad: data.ciudad,
+    comuna: data.comuna,
+    valor_turno_extra: data.valor_turno_extra,
+    estado: data.estado
+  });
+
   const result = await query(`
     UPDATE instalaciones SET
       nombre = $1,
@@ -285,6 +330,7 @@ async function actualizarInstalacionDB(id: string, data: any) {
     throw new Error('Instalación no encontrada');
   }
 
+  console.log('✅ Instalación actualizada exitosamente:', result.rows[0]);
   return result.rows[0];
 }
 

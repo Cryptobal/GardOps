@@ -28,6 +28,7 @@ export interface InputDireccionProps {
   name?: string;
   id?: string;
   showMap?: boolean;
+  showClearButton?: boolean; // Nueva prop para controlar si mostrar el botón X
 }
 
 const InputDireccion = React.forwardRef<HTMLInputElement, InputDireccionProps>(
@@ -48,6 +49,7 @@ const InputDireccion = React.forwardRef<HTMLInputElement, InputDireccionProps>(
     name = "direccion",
     id,
     showMap = true,
+    showClearButton = true, // Por defecto mostrar el botón X
     ...props 
   }, ref) => {
     // Usar value si está presente, sino defaultValue
@@ -290,7 +292,7 @@ const InputDireccion = React.forwardRef<HTMLInputElement, InputDireccionProps>(
           )}
 
           {/* Botón limpiar */}
-          {inputValue && !isLoading && (
+          {inputValue && !isLoading && showClearButton && (
             <Button
               type="button"
               variant="ghost"
@@ -343,15 +345,17 @@ const InputDireccion = React.forwardRef<HTMLInputElement, InputDireccionProps>(
                   <MapPin className="h-4 w-4 text-blue-500" />
                   <span className="text-sm font-medium">Ubicación seleccionada</span>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleMap}
-                  className="h-auto p-1"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+                {showClearButton && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleMap}
+                    className="h-auto p-1"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
               <p className="text-xs text-muted-foreground mt-1 truncate">
                 {mapCoords.direccion}

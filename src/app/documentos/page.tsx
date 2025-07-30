@@ -17,7 +17,9 @@ import {
   Shield,
   Search,
   RefreshCw,
-  X
+  X,
+  Eye,
+  CalendarDays
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
+import { DocumentViewer } from "@/components/shared/document-viewer";
+import { Modal } from "@/components/ui/modal";
 
 interface DocumentoGlobal {
   id: string;
@@ -68,6 +72,11 @@ export default function DocumentosGlobalesPage() {
   const [cargando, setCargando] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { toast } = useToast();
+  
+  // Estados para el visualizador y editor
+  const [documentoParaVer, setDocumentoParaVer] = useState<DocumentoGlobal | null>(null);
+  const [documentoParaEditar, setDocumentoParaEditar] = useState<DocumentoGlobal | null>(null);
+  const [nuevaFechaVencimiento, setNuevaFechaVencimiento] = useState('');
 
   // Estados de filtros
   const [filtros, setFiltros] = useState({
@@ -197,6 +206,60 @@ export default function DocumentosGlobalesPage() {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  // Funciones para el visualizador y editor
+  const abrirVisualizador = (documento: DocumentoGlobal) => {
+    setDocumentoParaVer(documento);
+  };
+
+  const cerrarVisualizador = () => {
+    setDocumentoParaVer(null);
+  };
+
+  const abrirEditorFecha = (documento: DocumentoGlobal) => {
+    setDocumentoParaEditar(documento);
+    setNuevaFechaVencimiento(documento.fecha_vencimiento || '');
+  };
+
+  const cerrarEditorFecha = () => {
+    setDocumentoParaEditar(null);
+    setNuevaFechaVencimiento('');
+  };
+
+  const guardarNuevaFecha = async () => {
+    if (!documentoParaEditar || !nuevaFechaVencimiento) return;
+
+    try {
+      const response = await fetch(`/api/documentos/${documentoParaEditar.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fecha_vencimiento: nuevaFechaVencimiento,
+          modulo: documentoParaEditar.modulo
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Fecha actualizada",
+          description: "La fecha de vencimiento se actualizó correctamente",
+          variant: "default",
+        });
+        cerrarEditorFecha();
+        cargarDocumentos(); // Recargar la lista
+      } else {
+        throw new Error('Error al actualizar la fecha');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar la fecha de vencimiento",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -505,7 +568,27 @@ export default function DocumentosGlobalesPage() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
+                                  onClick={() => abrirVisualizador(documento)}
+                                  title="Ver documento"
+                                  className="h-8 w-8 p-0 hover:bg-blue-600/20"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => abrirEditorFecha(documento)}
+                                  title="Editar fecha de vencimiento"
+                                  className="h-8 w-8 p-0 hover:bg-orange-600/20"
+                                >
+                                  <CalendarDays className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
                                   onClick={() => window.open(documento.url, '_blank')}
+                                  title="Descargar documento"
+                                  className="h-8 w-8 p-0 hover:bg-green-600/20"
                                 >
                                   <Download className="h-4 w-4" />
                                 </Button>
@@ -522,6 +605,64 @@ export default function DocumentosGlobalesPage() {
       </Card>
         </motion.div>
       </div>
+
+      {/* Modal para visualizar documento */}
+      {documentoParaVer && (
+        <DocumentViewer
+          open={!!documentoParaVer}
+          onClose={cerrarVisualizador}
+          documentId={documentoParaVer.id}
+          documentName={documentoParaVer.nombre}
+          documentType="application/octet-stream"
+          modulo={documentoParaVer.modulo}
+        />
+      )}
+
+      {/* Modal para editar fecha de vencimiento */}
+      {documentoParaEditar && (
+        <Modal 
+          isOpen={!!documentoParaEditar} 
+          onClose={cerrarEditorFecha}
+          title="Editar Fecha de Vencimiento"
+          size="md"
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                Documento
+              </label>
+              <p className="text-white font-medium">{documentoParaEditar.nombre}</p>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                Nueva Fecha de Vencimiento
+              </label>
+              <Input
+                type="date"
+                value={nuevaFechaVencimiento}
+                onChange={(e) => setNuevaFechaVencimiento(e.target.value)}
+                className="w-full"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={cerrarEditorFecha}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={guardarNuevaFecha}
+                disabled={!nuevaFechaVencimiento}
+              >
+                Guardar
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 } 

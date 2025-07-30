@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Modal } from "../ui/modal";
+import { DatePickerComponent } from "../ui/date-picker";
 import { Upload, FileText, Download, Eye, Trash2, X, Calendar } from "lucide-react";
-import DocumentViewer from "../DocumentViewer";
+import { DocumentViewer } from "./document-viewer";
 
 export interface Documento {
   id: string;
@@ -51,6 +52,14 @@ export function DocumentManager({
   const [selectedDocument, setSelectedDocument] = useState<Documento | null>(null);
   const [lastLoadTime, setLastLoadTime] = useState<number>(0);
   
+  // Estados para el visualizador de documentos
+  const [documentViewerOpen, setDocumentViewerOpen] = useState(false);
+  const [documentToView, setDocumentToView] = useState<{
+    id: string;
+    name: string;
+    type: string;
+  } | null>(null);
+  
   // Estados para el modal de subida
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -61,9 +70,12 @@ export function DocumentManager({
   const [loadingTipos, setLoadingTipos] = useState(true);
 
   // Obtener el tipo seleccionado para verificar si requiere vencimiento
-  const tipoSeleccionado = tiposDocumentos.find(tipo => tipo.id === tipoDocumentoId);
+  const tipoSeleccionado = React.useMemo(() => 
+    tiposDocumentos.find(tipo => tipo.id === tipoDocumentoId), 
+    [tiposDocumentos, tipoDocumentoId]
+  );
 
-  const cargarDocumentos = useCallback(async (forceReload: boolean = false) => {
+  const cargarDocumentos = async (forceReload: boolean = false) => {
     const now = Date.now();
     
     // Caché de 10 segundos
@@ -89,11 +101,7 @@ export function DocumentManager({
         setDocumentos(docsConTipo);
         setLastLoadTime(now);
         
-        // Establecer el primer tipo como activo si no hay ninguno seleccionado
-        if (!tipoActivo && docsConTipo.length > 0) {
-          const tipos = Array.from(new Set(docsConTipo.map((doc: Documento) => doc.tipo_documento_nombre))) as string[];
-          setTipoActivo(tipos[0]);
-        }
+        // No establecer tipoActivo aquí, se maneja en un useEffect separado
       } else {
         console.error("Error cargando documentos:", data.error);
         setDocumentos([]);
@@ -104,10 +112,10 @@ export function DocumentManager({
     } finally {
       setCargando(false);
     }
-  }, [modulo, entidadId, lastLoadTime, tipoActivo]);
+  };
 
   // Cargar tipos de documentos
-  const cargarTiposDocumentos = useCallback(async () => {
+  const cargarTiposDocumentos = async () => {
     try {
       setLoadingTipos(true);
       
@@ -137,9 +145,9 @@ export function DocumentManager({
     } finally {
       setLoadingTipos(false);
     }
-  }, [modulo]);
+  };
 
-  const handleUpload = async () => {
+  const handleUpload = useCallback(async () => {
     if (!file || !tipoDocumentoId) {
       setUploadStatus("error");
       return;
@@ -214,9 +222,9 @@ export function DocumentManager({
       console.error('❌ Error en subida:', error);
       setUploadStatus("error");
     }
-  };
+  }, [file, tipoDocumentoId, fechaVencimiento, modulo, entidadId, tipoSeleccionado, onUploadSuccess]);
 
-  const eliminarDocumento = async (documentoId: string) => {
+  const eliminarDocumento = useCallback(async (documentoId: string) => {
     if (!confirm("¿Estás seguro de eliminar este documento?")) return;
 
     const documento = documentos.find(doc => doc.id === documentoId);
@@ -255,9 +263,9 @@ export function DocumentManager({
       console.error("Error eliminando documento:", error);
       alert("Error al eliminar el documento");
     }
-  };
+  }, [documentos, modulo, entidadId, onDocumentDeleted]);
 
-  const descargarDocumento = async (documento: Documento) => {
+  const descargarDocumento = useCallback(async (documento: Documento) => {
     try {
       const downloadUrl = `/api/download-document?id=${documento.id}&modulo=${modulo}`;
       const response = await fetch(downloadUrl, { method: 'HEAD' });
@@ -275,74 +283,108 @@ export function DocumentManager({
     } catch (error) {
       alert("Error al descargar el documento");
     }
-  };
+  }, [modulo]);
 
-  const verDocumento = (documento: Documento) => {
+  const verDocumento = useCallback((documento: Documento) => {
     setSelectedDocument(documento);
     setViewerOpen(true);
-  };
+  }, []);
 
-  const formatearTamaño = (bytes: number) => {
+  // Funciones para el nuevo visualizador premium
+  const abrirVisualizador = useCallback((documento: Documento) => {
+    // Detectar el tipo de archivo basado en la extensión
+    const extension = documento.nombre.split('.').pop()?.toLowerCase();
+    let documentType = 'application/octet-stream';
+    
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(extension || '')) {
+      documentType = 'image';
+    } else if (extension === 'pdf') {
+      documentType = 'application/pdf';
+    } else if (['doc', 'docx'].includes(extension || '')) {
+      documentType = 'application/msword';
+    } else if (['xls', 'xlsx'].includes(extension || '')) {
+      documentType = 'application/vnd.ms-excel';
+    }
+    
+    setDocumentToView({
+      id: documento.id,
+      name: documento.nombre,
+      type: documentType
+    });
+    setDocumentViewerOpen(true);
+  }, []);
+
+  const cerrarVisualizador = useCallback(() => {
+    setDocumentViewerOpen(false);
+    setDocumentToView(null);
+  }, []);
+
+  const formatearTamaño = React.useCallback((bytes: number) => {
     if (bytes === 0) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-  };
+  }, []);
 
-  const formatearFecha = (fecha: string) => {
+  const formatearFecha = React.useCallback((fecha: string) => {
     return new Date(fecha).toLocaleDateString('es-ES', {
       day: '2-digit',
       month: '2-digit',
       year: '2-digit'
     });
-  };
+  }, []);
 
-  const formatearFechaCompleta = (fecha: string) => {
+  const formatearFechaCompleta = React.useCallback((fecha: string) => {
     return new Date(fecha).toLocaleDateString('es-ES', {
       weekday: 'short',
       day: '2-digit',
       month: 'short',
       year: '2-digit'
     });
-  };
+  }, []);
 
-  const calcularDiasRestantes = (fechaVencimiento: string) => {
+  const calcularDiasRestantes = React.useCallback((fechaVencimiento: string) => {
     const hoy = new Date();
     const vencimiento = new Date(fechaVencimiento);
     const diferencia = Math.ceil((vencimiento.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
     return diferencia;
-  };
+  }, []);
 
-  const getEstadoVencimiento = (diasRestantes: number) => {
+  const getEstadoVencimiento = React.useCallback((diasRestantes: number) => {
     if (diasRestantes < 0) return { estado: 'vencido', color: 'bg-red-500/10 text-red-400 border-red-500/20' };
     if (diasRestantes === 0) return { estado: 'vence_hoy', color: 'bg-red-500/10 text-red-400 border-red-500/20' };
     if (diasRestantes <= 7) return { estado: 'critico', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20' };
     if (diasRestantes <= 30) return { estado: 'advertencia', color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' };
     return { estado: 'vigente', color: 'bg-green-500/10 text-green-400 border-green-500/20' };
-  };
+  }, []);
 
-  const getTextoEstado = (diasRestantes: number) => {
+  const getTextoEstado = React.useCallback((diasRestantes: number) => {
     if (diasRestantes < 0) return `Vencido hace ${Math.abs(diasRestantes)} días`;
     if (diasRestantes === 0) return 'Vence hoy';
     if (diasRestantes === 1) return 'Vence mañana';
     return `${diasRestantes} días`;
-  };
+  }, []);
 
-  // Agrupar documentos por tipo
-  const documentosAgrupados = documentos.reduce((acc, doc) => {
-    const tipo = doc.tipo_documento_nombre || 'Sin categoría';
-    if (!acc[tipo]) {
-      acc[tipo] = [];
-    }
-    acc[tipo].push(doc);
-    return acc;
-  }, {} as Record<string, Documento[]>);
+  // Agrupar documentos por tipo con useMemo para optimización
+  const documentosAgrupados = React.useMemo(() => {
+    return documentos.reduce((acc, doc) => {
+      const tipo = doc.tipo_documento_nombre || 'Sin categoría';
+      if (!acc[tipo]) {
+        acc[tipo] = [];
+      }
+      acc[tipo].push(doc);
+      return acc;
+    }, {} as Record<string, Documento[]>);
+  }, [documentos]);
 
-  const tipos = Object.keys(documentosAgrupados);
-  const documentosDelTipo = tipoActivo ? documentosAgrupados[tipoActivo] || [] : [];
+  const tipos = React.useMemo(() => Object.keys(documentosAgrupados), [documentosAgrupados]);
+  const documentosDelTipo = React.useMemo(() => 
+    tipoActivo ? documentosAgrupados[tipoActivo] || [] : [], 
+    [documentosAgrupados, tipoActivo]
+  );
 
-  // useEffect debe ir después de todas las funciones pero antes de los returns
+  // useEffect para cargar datos cuando cambia la entidad o refreshTrigger
   useEffect(() => {
     // Solo cargar documentos si hay una entidad seleccionada
     if (entidadId && entidadId.trim() !== "") {
@@ -353,7 +395,17 @@ export function DocumentManager({
       setDocumentos([]);
       setCargando(false);
     }
-  }, [entidadId, refreshTrigger, modulo, cargarDocumentos, cargarTiposDocumentos]);
+  }, [entidadId, refreshTrigger, modulo]);
+
+  // useEffect separado para manejar el cambio de tipoActivo
+  useEffect(() => {
+    if (documentos.length > 0 && !tipoActivo) {
+      const tipos = Array.from(new Set(documentos.map((doc: Documento) => doc.tipo_documento_nombre))) as string[];
+      if (tipos.length > 0) {
+        setTipoActivo(tipos[0]);
+      }
+    }
+  }, [documentos, tipoActivo]);
 
   // Validación: Mostrar mensaje si no hay entidad seleccionada
   if (!entidadId || entidadId.trim() === "") {
@@ -478,7 +530,7 @@ export function DocumentManager({
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => verDocumento(documento)}
+                      onClick={() => abrirVisualizador(documento)}
                       className="h-7 w-7 p-0 hover:bg-blue-600/20"
                       title="Ver documento"
                     >
@@ -579,18 +631,40 @@ export function DocumentManager({
             {loadingTipos ? (
               <div className="text-sm text-muted-foreground">Cargando tipos...</div>
             ) : (
-              <Select value={tipoDocumentoId} onValueChange={setTipoDocumentoId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar tipo de documento" />
-                </SelectTrigger>
-                <SelectContent>
-                  {tiposDocumentos.map((tipo) => (
-                    <SelectItem key={tipo.id} value={tipo.id}>
-                      {tipo.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Select value={tipoDocumentoId} onValueChange={setTipoDocumentoId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar tipo de documento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tiposDocumentos.map((tipo) => (
+                      <SelectItem key={tipo.id} value={tipo.id}>
+                        <div className="flex items-center justify-between w-full">
+                          <span>{tipo.nombre}</span>
+                          {tipo.requiere_vencimiento && (
+                            <Calendar className="h-3 w-3 text-orange-500 ml-2" />
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {/* Indicador visual cuando se selecciona un tipo que requiere vencimiento */}
+                {tipoSeleccionado?.requiere_vencimiento && (
+                  <div className="flex items-center gap-2 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+                    <Calendar className="h-4 w-4 text-orange-500" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-orange-500">
+                        {tipoSeleccionado.nombre} requiere fecha de vencimiento
+                      </p>
+                      <p className="text-xs text-orange-400">
+                        Alarma configurada: {tipoSeleccionado.dias_antes_alarma} días antes
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
@@ -601,12 +675,13 @@ export function DocumentManager({
                 <Calendar className="h-4 w-4" />
                 Fecha de Vencimiento *
               </label>
-              <Input
-                type="date"
+              <DatePickerComponent
                 value={fechaVencimiento}
-                onChange={(e) => setFechaVencimiento(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-                className="cursor-pointer"
+                onChange={setFechaVencimiento}
+                placeholder="Seleccionar fecha de vencimiento"
+                minDate={new Date()}
+                showClearButton={true}
+                required={tipoSeleccionado?.requiere_vencimiento}
               />
               <p className="text-xs text-muted-foreground">
                 Este tipo de documento requiere fecha de vencimiento
@@ -653,6 +728,18 @@ export function DocumentManager({
           )}
         </div>
       </Modal>
+
+      {/* Visualizador Premium de Documentos */}
+      {documentToView && (
+        <DocumentViewer
+          open={documentViewerOpen}
+          onClose={cerrarVisualizador}
+          documentId={documentToView.id}
+          documentName={documentToView.name}
+          documentType={documentToView.type}
+          modulo={modulo}
+        />
+      )}
     </>
   );
 } 

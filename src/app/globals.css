@@ -150,13 +150,103 @@
   }
 
   @keyframes slide-in-from-left {
-    from { 
-      opacity: 0; 
-      transform: translateX(-1rem);
-    }
-    to { 
-      opacity: 1; 
-      transform: translateX(0);
-    }
+  from {
+    opacity: 0;
+    transform: translateX(-1rem);
   }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Estilos personalizados para react-datepicker */
+.react-datepicker {
+  @apply bg-slate-800 border border-slate-600 rounded-lg shadow-lg !important;
+}
+
+.react-datepicker__header {
+  @apply bg-slate-700 border-slate-600 !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker__day-name,
+.react-datepicker__day {
+  @apply text-slate-200 !important;
+}
+
+.react-datepicker__day-name {
+  @apply text-slate-400 !important;
+}
+
+/* Estilos para el visualizador de documentos */
+.document-viewer-modal {
+  backdrop-filter: blur(8px);
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.document-viewer-content {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Estilos para el zoom y rotación */
+.document-zoom-controls {
+  backdrop-filter: blur(12px);
+  background-color: rgba(30, 41, 59, 0.9);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+}
+
+.react-datepicker__day:hover {
+  @apply bg-slate-600 !important;
+}
+
+.react-datepicker__day--selected {
+  @apply bg-blue-600 text-white !important;
+}
+
+.react-datepicker__day--today {
+  @apply bg-slate-600 text-white !important;
+}
+
+.react-datepicker__day--keyboard-selected {
+  @apply bg-blue-600 text-white !important;
+}
+
+.react-datepicker__navigation {
+  @apply text-slate-200 !important;
+}
+
+.react-datepicker__navigation:hover {
+  @apply text-white !important;
+}
+
+.react-datepicker__month-container {
+  @apply bg-slate-800 !important;
+}
+
+.react-datepicker__year-dropdown,
+.react-datepicker__month-dropdown {
+  @apply bg-slate-700 border-slate-600 !important;
+}
+
+.react-datepicker__year-option,
+.react-datepicker__month-option {
+  @apply text-slate-200 hover:bg-slate-600 !important;
+}
+
+.react-datepicker__year-option--selected,
+.react-datepicker__month-option--selected {
+  @apply bg-blue-600 text-white !important;
+}
 } 

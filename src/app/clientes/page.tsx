@@ -21,7 +21,8 @@ import {
   Building2,
   FileText,
   Activity,
-  Settings
+  Settings,
+  MapPin
 } from "lucide-react";
 import { Cliente, CrearClienteData, FiltrosCliente } from "../../lib/schemas/clientes";
 // DocumentUploader eliminado - integrado en DocumentManager
@@ -32,6 +33,7 @@ import { PageHeader } from "../../components/ui/page-header";
 import { FilterBar, FilterConfig } from "../../components/ui/filter-bar";
 import { EntityModal } from "../../components/ui/entity-modal";
 import { EntityTabs, TabConfig } from "../../components/ui/entity-tabs";
+import { LocationTab } from "../../components/ui/location-tab";
 import { DocumentManager } from "../../components/shared/document-manager";
 import { LogViewer } from "../../components/shared/log-viewer";
 
@@ -73,6 +75,8 @@ export default function ClientesPage() {
     direccion: "",
     latitud: null,
     longitud: null,
+    ciudad: "",
+    comuna: "",
     razon_social: "",
     estado: "Activo",
   });
@@ -180,6 +184,8 @@ export default function ClientesPage() {
       direccion: "",
       latitud: null,
       longitud: null,
+      ciudad: "",
+      comuna: "",
       razon_social: "",
       estado: "Activo",
     });
@@ -200,6 +206,8 @@ export default function ClientesPage() {
       direccion: cliente.direccion || "",
       latitud: cliente.latitud || null,
       longitud: cliente.longitud || null,
+      ciudad: cliente.ciudad || "",
+      comuna: cliente.comuna || "",
       razon_social: cliente.razon_social || "",
       estado: (cliente.estado || "Activo") as "Activo" | "Inactivo",
     });
@@ -244,6 +252,37 @@ export default function ClientesPage() {
       direccion: query,
       latitud: query === prev.direccion ? prev.latitud : null,
       longitud: query === prev.direccion ? prev.longitud : null,
+    }));
+  };
+
+  // Manejar cambio de ciudad
+  const handleCiudadChange = (ciudad: string) => {
+    setFormData(prev => ({ ...prev, ciudad }));
+  };
+
+  // Manejar cambio de comuna
+  const handleComunaChange = (comuna: string) => {
+    setFormData(prev => ({ ...prev, comuna }));
+  };
+
+  // Manejar cambio de coordenadas
+  const handleCoordinatesChange = (lat: number, lng: number) => {
+    setFormData(prev => ({
+      ...prev,
+      latitud: lat,
+      longitud: lng,
+    }));
+  };
+
+  // Limpiar ubicación
+  const handleClearLocation = () => {
+    setFormData(prev => ({
+      ...prev,
+      direccion: "",
+      latitud: null,
+      longitud: null,
+      ciudad: "",
+      comuna: "",
     }));
   };
 
@@ -680,23 +719,30 @@ export default function ClientesPage() {
               />
             </div>
           </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Dirección
-            </label>
-            <InputDireccion
-              value={formData.direccion}
-              initialLatitude={formData.latitud}
-              initialLongitude={formData.longitud}
-              onAddressSelect={handleAddressSelect}
-              onAddressChange={handleAddressChange}
-              placeholder="Buscar dirección con Google Maps..."
-              showMap={true}
-              disabled={!isEditingDetails}
-            />
-          </div>
         </div>
+      )
+    },
+    {
+      key: "ubicacion",
+      label: "Ubicación",
+      icon: MapPin,
+      color: "amber",
+      content: (
+        <LocationTab
+          direccion={formData.direccion}
+          latitud={formData.latitud}
+          longitud={formData.longitud}
+          ciudad={formData.ciudad || ""}
+          comuna={formData.comuna || ""}
+          onAddressSelect={handleAddressSelect}
+          onAddressChange={handleAddressChange}
+          onCiudadChange={handleCiudadChange}
+          onComunaChange={handleComunaChange}
+          onCoordinatesChange={handleCoordinatesChange}
+          onClearLocation={handleClearLocation}
+          disabled={!isEditingDetails}
+          isReadOnly={!isEditingDetails}
+        />
       )
     },
     {
@@ -937,6 +983,7 @@ export default function ClientesPage() {
               onAddressChange={handleAddressChange}
               placeholder="Buscar dirección con Google Maps..."
               showMap={true}
+              showClearButton={true}
             />
           </div>
 

@@ -177,11 +177,12 @@ export const obtenerEstadisticasInstalacion = async (instalacionId: string) => {
 
 // Logs para instalaciones
 export const logInstalacionCreada = async (instalacionId: string, detalles: string) => {
-  await fetch("/api/logs-instalaciones", {
+  await fetch("/api/logs", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      instalacion_id: instalacionId,
+      modulo: "instalaciones",
+      entidadId: instalacionId,
       accion: "CREAR",
       detalles
     }),
@@ -189,11 +190,12 @@ export const logInstalacionCreada = async (instalacionId: string, detalles: stri
 };
 
 export const logEdicionInstalacion = async (instalacionId: string, detalles: string) => {
-  await fetch("/api/logs-instalaciones", {
+  await fetch("/api/logs", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      instalacion_id: instalacionId,
+      modulo: "instalaciones",
+      entidadId: instalacionId,
       accion: "EDITAR",
       detalles
     }),
@@ -201,11 +203,12 @@ export const logEdicionInstalacion = async (instalacionId: string, detalles: str
 };
 
 export const logCambioEstadoInstalacion = async (instalacionId: string, nuevoEstado: string) => {
-  await fetch("/api/logs-instalaciones", {
+  await fetch("/api/logs", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      instalacion_id: instalacionId,
+      modulo: "instalaciones",
+      entidadId: instalacionId,
       accion: "CAMBIAR_ESTADO",
       detalles: `Estado cambiado a: ${nuevoEstado}`
     }),

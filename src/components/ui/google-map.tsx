@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { MapPin, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { GOOGLE_MAPS_CONFIG } from '../../lib/config/google-maps';
 
 interface GoogleMapProps {
   center?: { lat: number; lng: number };
@@ -12,16 +13,15 @@ interface GoogleMapProps {
     position: { lat: number; lng: number };
     title?: string;
     info?: string;
+    color?: 'red' | 'blue' | 'green' | 'yellow' | 'purple' | 'orange';
   }>;
   className?: string;
   height?: string;
   onMapClick?: (position: { lat: number; lng: number }) => void;
 }
 
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBHIoHJDp6StLJlUAQV_gK7woFsEYgbzHY';
-
 // Centro de Santiago, Chile por defecto
-const DEFAULT_CENTER = { lat: -33.4489, lng: -70.6693 };
+const DEFAULT_CENTER = GOOGLE_MAPS_CONFIG.DEFAULT_CENTER;
 
 export const GoogleMap: React.FC<GoogleMapProps> = ({
   center = DEFAULT_CENTER,
@@ -47,9 +47,9 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
         setError(null);
 
         const loader = new Loader({
-          apiKey: GOOGLE_MAPS_API_KEY,
+          apiKey: GOOGLE_MAPS_CONFIG.API_KEY,
           version: 'weekly',
-          libraries: ['places'],
+          libraries: GOOGLE_MAPS_CONFIG.LIBRARIES,
         });
 
         await loader.load();
@@ -121,11 +121,18 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
 
     // Agregar nuevos marcadores
     markers.forEach((markerData, index) => {
+      // Configurar color del marcador
+      let iconUrl = '';
+      if (markerData.color) {
+        iconUrl = `https://maps.google.com/mapfiles/ms/icons/${markerData.color}-dot.png`;
+      }
+
       const marker = new google.maps.Marker({
         position: markerData.position,
         map: mapInstanceRef.current,
         title: markerData.title || `Ubicación ${index + 1}`,
         animation: google.maps.Animation.DROP,
+        icon: iconUrl || undefined,
       });
 
       // Agregar info window si hay información

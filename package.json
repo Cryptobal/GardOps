@@ -12,7 +12,8 @@
     "migrate": "npx ts-node scripts/migrate.ts",
     "migrate:test": "npm run dev & sleep 3 && curl -X POST http://localhost:3000/api/migrate",
     "create-pautas-diarias": "npx ts-node scripts/create-pautas-diarias.ts",
-    "create-ppc-turnos": "npx ts-node scripts/create-ppc-turnos-extras.ts"
+    "create-ppc-turnos": "npx ts-node scripts/create-ppc-turnos-extras.ts",
+    "audit:guardias": "npx ts-node scripts/audit-guardias.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.850.0",
@@ -30,11 +31,13 @@
     "@types/node": "^20",
     "@types/pg": "^8.15.4",
     "@types/react": "^18",
+    "@types/react-datepicker": "^6.2.0",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
+    "csv-parser": "^3.2.0",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.1",
     "framer-motion": "^12.23.11",
@@ -44,6 +47,7 @@
     "pg": "^8.16.3",
     "postcss": "^8",
     "react": "^18",
+    "react-datepicker": "^8.4.0",
     "react-dom": "^18",
     "tailwind-merge": "^2.0.0",
     "tailwindcss": "^3.3.0",

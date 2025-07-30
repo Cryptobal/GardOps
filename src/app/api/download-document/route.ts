@@ -22,9 +22,21 @@ export async function GET(req: NextRequest) {
         FROM documentos_clientes 
         WHERE id = $1
       `;
+    } else if (modulo === "instalaciones") {
+      query = `
+        SELECT url as archivo_url, tipo as nombre, tipo, contenido_archivo
+        FROM documentos_instalacion 
+        WHERE id = $1
+      `;
+    } else if (modulo === "guardias") {
+      query = `
+        SELECT url as archivo_url, tipo as nombre, tipo, contenido_archivo
+        FROM documentos_guardias 
+        WHERE id = $1
+      `;
     } else {
       query = `
-        SELECT url as archivo_url, nombre_original as nombre, tipo, contenido_archivo
+        SELECT url as archivo_url, url as nombre, tipo, contenido_archivo
         FROM documentos 
         WHERE id = $1
       `;
@@ -38,8 +50,12 @@ export async function GET(req: NextRequest) {
     }
 
     const documento = result.rows[0];
+    
+    // Extraer el nombre del archivo de la URL
+    const fileName = documento.archivo_url.split('/').pop() || 'documento';
+    
     console.log("📄 Documento encontrado:", { 
-      nombre: documento.nombre, 
+      nombre: fileName, 
       tieneContenido: !!documento.contenido_archivo 
     });
 
@@ -51,7 +67,7 @@ export async function GET(req: NextRequest) {
       return new NextResponse(buffer, {
         headers: {
           'Content-Type': documento.tipo || 'application/octet-stream',
-          'Content-Disposition': `attachment; filename="${documento.nombre}"`,
+          'Content-Disposition': `attachment; filename="${fileName}"`,
           'Content-Length': buffer.length.toString(),
         },
       });

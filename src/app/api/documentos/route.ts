@@ -25,71 +25,62 @@ export async function GET(request: NextRequest) {
     let sql = '';
     let params: any[] = [];
 
-    // Construir query según el módulo
-    switch (modulo) {
-      case 'clientes':
-        sql = `
-          SELECT 
-            d.id,
-            d.nombre as nombre,
-            d.tamaño,
-            d.created_at,
-            d.fecha_vencimiento,
-            td.nombre as tipo_documento_nombre
-          FROM documentos_clientes d
-          LEFT JOIN tipos_documentos td ON d.tipo_documento_id = td.id
-          WHERE d.cliente_id = $1
-          ORDER BY d.created_at DESC
-        `;
-        params = [entidadId];
-        break;
-        
-      case 'instalaciones':
-        sql = `
-          SELECT 
-            d.id,
-            d.tipo as nombre,
-            0 as tamaño,
-            d.fecha_subida as created_at,
-            d.fecha_vencimiento,
-            td.nombre as tipo_documento_nombre
-          FROM documentos_instalacion d
-          LEFT JOIN tipos_documentos td ON d.tipo_documento_id = td.id
-          WHERE d.instalacion_id = $1
-          ORDER BY d.fecha_subida DESC
-        `;
-        params = [entidadId];
-        break;
-        
-      case 'guardias':
-        sql = `
-          SELECT 
-            d.id,
-            d.tipo as nombre,
-            0 as tamaño,
-            d.fecha_subida as created_at,
-            d.fecha_vencimiento,
-            td.nombre as tipo_documento_nombre
-          FROM documentos_guardias d
-          LEFT JOIN tipos_documentos td ON d.tipo_documento_id = td.id
-          WHERE d.guardia_id = $1
-          ORDER BY d.fecha_subida DESC
-        `;
-        params = [entidadId];
-        break;
-        
-      default:
-        return NextResponse.json(
-          { success: false, error: 'Módulo no válido' },
-          { status: 400 }
-        );
+    // Determinar el campo de entidad según el módulo
+    let entidadField = "";
+    if (modulo === "instalaciones") {
+      entidadField = "instalacion_id";
+    } else if (modulo === "clientes") {
+      // Los clientes no tienen documentos directos, usar instalacion_id
+      entidadField = "instalacion_id";
+    } else if (modulo === "guardias") {
+      entidadField = "guardia_id";
+    } else {
+      return NextResponse.json(
+        { success: false, error: 'Módulo no válido' },
+        { status: 400 }
+      );
     }
 
+    // Query unificada para todos los módulos usando parámetros seguros
+    const validFields = ['instalacion_id', 'guardia_id'];
+    if (!validFields.includes(entidadField)) {
+      return NextResponse.json(
+        { success: false, error: 'Campo de entidad no válido' },
+        { status: 400 }
+      );
+    }
+    
+    sql = `
+      SELECT 
+        d.id,
+        d.url as nombre,
+        COALESCE(LENGTH(d.contenido_archivo), 0) as tamaño,
+        d.creado_en as created_at,
+        d.fecha_vencimiento,
+        td.nombre as tipo_documento_nombre
+      FROM documentos d
+      LEFT JOIN tipos_documentos td ON d.tipo_documento_id = td.id
+      WHERE d.${entidadField} = $1
+      ORDER BY d.creado_en DESC
+    `;
+    params = [entidadId];
+    
+    console.log('🔍 Query SQL:', sql);
+    console.log('📋 Parámetros:', params);
+
+    console.log('🔍 Ejecutando query...');
     const result = await query(sql, params);
+    console.log('✅ Query ejecutada exitosamente, filas:', result.rows.length);
     
     return NextResponse.json({ success: true, data: result.rows });
   } catch (error) {
     console.error('❌ Error en GET /api/documentos:', error);
+    console.error('❌ Detalles del error:', {
+      message: error.message,
+      stack: error.stack,
+      sql: sql,
+      params: params
+    });
     return NextResponse.json(
       { success: false, error: 'Error al obtener documentos' },
       { status: 500 }
@@ -97,80 +88,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/documentos - Crear nuevo documento
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { modulo, entidad_id, nombre_original, tipo, url, tipo_documento_id, fecha_vencimiento } = body;
-    
-    if (!modulo || !entidad_id || !nombre_original || !url) {
-      return NextResponse.json(
-        { success: false, error: 'Faltan campos obligatorios' },
-        { status: 400 }
-      );
-    }
 
-    let sql = '';
-    let params: any[] = [];
-
-    // Construir query según el módulo
-    switch (modulo) {
-      case 'clientes':
-        sql = `
-          INSERT INTO documentos_clientes (
-            id, cliente_id, nombre_original, tipo, url, creado_en, 
-            tipo_documento_id, fecha_vencimiento, tamaño
-          ) VALUES (
-            gen_random_uuid(), $1, $2, $3, $4, NOW(), $5, $6, $7
-          ) RETURNING *
-        `;
-        params = [entidad_id, nombre_original, tipo, url, tipo_documento_id, fecha_vencimiento || null, 0];
-        break;
-        
-      case 'instalaciones':
-        sql = `
-          INSERT INTO documentos_instalaciones (
-            id, instalacion_id, nombre_original, tipo, url, creado_en, 
-            tipo_documento_id, fecha_vencimiento, tamaño
-          ) VALUES (
-            gen_random_uuid(), $1, $2, $3, $4, NOW(), $5, $6, $7
-          ) RETURNING *
-        `;
-        params = [entidad_id, nombre_original, tipo, url, tipo_documento_id, fecha_vencimiento || null, 0];
-        break;
-        
-      case 'guardias':
-        sql = `
-          INSERT INTO documentos_guardias (
-            id, guardia_id, nombre_original, tipo, url, creado_en, 
-            tipo_documento_id, fecha_vencimiento, tamaño
-          ) VALUES (
-            gen_random_uuid(), $1, $2, $3, $4, NOW(), $5, $6, $7
-          ) RETURNING *
-        `;
-        params = [entidad_id, nombre_original, tipo, url, tipo_documento_id, fecha_vencimiento || null, 0];
-        break;
-        
-      default:
-        return NextResponse.json(
-          { success: false, error: 'Módulo no válido' },
-          { status: 400 }
-        );
-    }
-
-    const result = await query(sql, params);
-    
-    console.log(`✅ Documento creado para módulo ${modulo}:`, result.rows[0]);
-    
-    return NextResponse.json({ success: true, data: result.rows[0] });
-  } catch (error) {
-    console.error('❌ Error en POST /api/documentos:', error);
-    return NextResponse.json(
-      { success: false, error: 'Error al crear documento' },
-      { status: 500 }
-    );
-  }
-}
 
 // DELETE /api/documentos?id=uuid - Eliminar documento
 export async function DELETE(request: NextRequest) {
@@ -189,23 +107,8 @@ export async function DELETE(request: NextRequest) {
     let sql = '';
     let params: any[] = [];
 
-    // Construir query según el módulo
-    switch (modulo) {
-      case 'clientes':
-        sql = `DELETE FROM documentos_clientes WHERE id = $1 RETURNING *`;
-        break;
-      case 'instalaciones':
-        sql = `DELETE FROM documentos_instalacion WHERE id = $1 RETURNING *`;
-        break;
-      case 'guardias':
-        sql = `DELETE FROM documentos_guardias WHERE id = $1 RETURNING *`;
-        break;
-      default:
-        return NextResponse.json(
-          { success: false, error: 'Módulo no válido' },
-          { status: 400 }
-        );
-    }
+    // Query unificada para eliminar documentos
+    sql = `DELETE FROM documentos WHERE id = $1 RETURNING *`;
 
     params = [documentoId];
     const result = await query(sql, params);

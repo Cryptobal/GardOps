@@ -9,7 +9,8 @@ import {
   FolderOpen, 
   AlertTriangle, 
   Settings,
-  MapPin 
+  MapPin,
+  Target
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -64,6 +65,11 @@ export const navigationItems: NavigationItem[] = [
     name: "Alertas y KPIs",
     href: "/alertas",
     icon: AlertTriangle
+  },
+  {
+    name: "Asignaciones",
+    href: "/asignaciones",
+    icon: Target
   },
   {
     name: "Configuración",

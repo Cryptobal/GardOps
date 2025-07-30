@@ -1,4 +1,14 @@
 import { Pool } from 'pg';
+import * as dotenv from 'dotenv';
+
+// Cargar variables de entorno
+dotenv.config({ path: '.env.local' });
+
+// Verificar que DATABASE_URL esté configurada
+if (!process.env.DATABASE_URL) {
+  console.error('❌ Error: DATABASE_URL no está configurada');
+  throw new Error('DATABASE_URL no está configurada');
+}
 
 // Configuración optimizada de la conexión PostgreSQL
 const pool = new Pool({

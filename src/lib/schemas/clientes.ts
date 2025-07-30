@@ -41,6 +41,14 @@ export const crearClienteSchema = z.object({
     .optional()
     .nullable(),
     
+  ciudad: z.string()
+    .optional()
+    .or(z.literal("")),
+    
+  comuna: z.string()
+    .optional()
+    .or(z.literal("")),
+    
   razon_social: z.string()
     .optional()
     .or(z.literal("")),
@@ -93,6 +101,14 @@ export const actualizarClienteSchema = z.object({
     .optional()
     .nullable(),
     
+  ciudad: z.string()
+    .optional()
+    .nullable(),
+    
+  comuna: z.string()
+    .optional()
+    .nullable(),
+    
   razon_social: z.string()
     .optional()
     .nullable(),
@@ -124,6 +140,8 @@ export interface Cliente {
   direccion?: string;
   latitud?: number;
   longitud?: number;
+  ciudad?: string;
+  comuna?: string;
   razon_social?: string;
   estado?: string;
   created_at: string;

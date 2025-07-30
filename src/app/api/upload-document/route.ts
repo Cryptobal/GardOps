@@ -34,89 +34,79 @@ export async function POST(req: NextRequest) {
     });
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const extension = file.name.split(".").pop();
+    const fileExtension = file.name.split(".").pop();
     const uuid = randomUUID();
-    const key = `${modulo}/${uuid}.${extension}`;
+    const key = `${modulo}/${uuid}.${fileExtension}`;
 
+    // Por ahora, guardar directamente en la base de datos sin R2
     let r2Success = false;
-    // Intentar subir a R2, si falla, continuar sin R2
-    try {
-      await s3.send(new PutObjectCommand({
-        Bucket: process.env.R2_BUCKET!,
-        Key: key,
-        Body: buffer,
-        ContentType: file.type,
-      }));
-      r2Success = true;
-      console.log('✅ Archivo subido a R2:', key);
-    } catch (r2Error) {
-      console.warn("⚠️ Error subiendo a R2, guardando contenido en BD:", r2Error);
-      // Continuar sin R2, guardaremos el contenido en la base de datos
-    }
+    console.log('📁 Guardando archivo directamente en la base de datos');
 
-    // Usar la tabla correcta según el módulo
-    let tableName = "documentos";
+    // Usar la tabla documentos con la estructura actual
     let insertQuery = "";
     let insertParams: (string | number | Buffer | null)[] = [];
 
-    if (modulo === "clientes") {
-      tableName = "documentos_clientes";
-      
-      // Asegurar que la tabla tenga la columna fecha_vencimiento
-      try {
-        await pool.query(`ALTER TABLE ${tableName} ADD COLUMN IF NOT EXISTS fecha_vencimiento DATE`);
-        console.log('✅ Columna fecha_vencimiento verificada en documentos_clientes');
-      } catch (alterError) {
-        console.warn("Columna fecha_vencimiento podría ya existir:", alterError);
-      }
-
-      if (r2Success) {
-        insertQuery = `
-          INSERT INTO ${tableName} (cliente_id, nombre, tipo, archivo_url, tamaño, tipo_documento_id, fecha_vencimiento)
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
-          RETURNING id, nombre, fecha_vencimiento
-        `;
-        insertParams = [entidad_id, file.name, file.type, key, file.size, tipo_documento_id, fecha_vencimiento || null];
-      } else {
-        // Intentar agregar la columna contenido_archivo si no existe
-        try {
-          await pool.query(`ALTER TABLE ${tableName} ADD COLUMN IF NOT EXISTS contenido_archivo BYTEA`);
-        } catch (alterError) {
-          console.warn("Column contenido_archivo might already exist:", alterError);
-        }
-        
-        insertQuery = `
-          INSERT INTO ${tableName} (cliente_id, nombre, tipo, archivo_url, tamaño, tipo_documento_id, contenido_archivo, fecha_vencimiento)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-          RETURNING id, nombre, fecha_vencimiento
-        `;
-        insertParams = [entidad_id, file.name, file.type, key, file.size, tipo_documento_id, buffer, fecha_vencimiento || null];
-      }
+    // Determinar el campo de entidad según el módulo
+    let entidadField = "";
+    if (modulo === "instalaciones") {
+      entidadField = "instalacion_id";
+    } else if (modulo === "clientes") {
+      // Los clientes no tienen documentos directos, usar instalacion_id
+      entidadField = "instalacion_id";
+    } else if (modulo === "guardias") {
+      entidadField = "guardia_id";
     } else {
-      if (r2Success) {
-        insertQuery = `
-          INSERT INTO ${tableName} (modulo, entidad_id, nombre_original, tipo, url, tipo_documento_id, fecha_vencimiento)
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
-          RETURNING id, nombre_original as nombre, fecha_vencimiento
-        `;
-        insertParams = [modulo, entidad_id, file.name, file.type, key, tipo_documento_id, fecha_vencimiento || null];
-      } else {
-        // Intentar agregar la columna si no existe
-        try {
-          await pool.query(`ALTER TABLE ${tableName} ADD COLUMN IF NOT EXISTS contenido_archivo BYTEA`);
-        } catch (alterError) {
-          console.warn("Column contenido_archivo might already exist:", alterError);
-        }
-        
-        insertQuery = `
-          INSERT INTO ${tableName} (modulo, entidad_id, nombre_original, tipo, url, tipo_documento_id, contenido_archivo, fecha_vencimiento)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-          RETURNING id, nombre_original as nombre, fecha_vencimiento
-        `;
-        insertParams = [modulo, entidad_id, file.name, file.type, key, tipo_documento_id, buffer, fecha_vencimiento || null];
-      }
+      entidadField = "entidad_id";
     }
 
+    // Usar 'otros' como tipo por defecto - el tipo real se determina por el tipo_documento_id
+    // que viene del frontend, no por la extensión del archivo
+    const tipoDocumento = 'otros';
+    
+    // Construir la consulta específica según el módulo
+    if (modulo === "clientes" || modulo === "instalaciones") {
+      insertQuery = `
+        INSERT INTO documentos (
+          tipo, url, instalacion_id, tipo_documento_id, 
+          contenido_archivo, fecha_vencimiento, creado_en
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id, url as nombre, fecha_vencimiento
+      `;
+      insertParams = [
+        tipoDocumento,
+        key,
+        entidad_id,
+        tipo_documento_id,
+        buffer,
+        fecha_vencimiento || null,
+        new Date()
+      ];
+    } else if (modulo === "guardias") {
+      insertQuery = `
+        INSERT INTO documentos (
+          tipo, url, guardia_id, tipo_documento_id, 
+          contenido_archivo, fecha_vencimiento, creado_en
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id, url as nombre, fecha_vencimiento
+      `;
+      insertParams = [
+        tipoDocumento,
+        key,
+        entidad_id,
+        tipo_documento_id,
+        buffer,
+        fecha_vencimiento || null,
+        new Date()
+      ];
+    } else {
+      return NextResponse.json({ error: "Módulo no válido" }, { status: 400 });
+    }
+
+    console.log('🔍 Ejecutando query:', insertQuery);
+    console.log('📋 Parámetros:', insertParams.map(p => typeof p === 'object' ? '[Buffer]' : p));
+    
     const result = await pool.query(insertQuery, insertParams);
     const documentoCreado = result.rows[0];
 
