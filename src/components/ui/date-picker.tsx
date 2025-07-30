@@ -80,10 +80,6 @@ export function DatePickerComponent({
               options: {
                 offset: [0, 8],
               },
-              fn: ({ state }) => {
-                state.modifiersData.offset = { x: 0, y: 8 };
-                return state;
-              },
             },
           ]}
           customInput={
