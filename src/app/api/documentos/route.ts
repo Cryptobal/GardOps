@@ -3,6 +3,9 @@ import { query } from '../../../lib/database';
 
 // GET /api/documentos - Obtener documentos (específicos o globales)
 export async function GET(request: NextRequest) {
+  let sql = '';
+  let params: any[] = [];
+  
   try {
     const { searchParams } = new URL(request.url);
     const modulo = searchParams.get('modulo');
@@ -21,9 +24,6 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    let sql = '';
-    let params: any[] = [];
 
     // Determinar el campo de entidad según el módulo
     let entidadField = "";
