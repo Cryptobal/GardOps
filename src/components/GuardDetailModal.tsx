@@ -75,12 +75,7 @@ export default function GuardDetailModal({ guardia, isOpen, onClose }: GuardDeta
     <Modal isOpen={isOpen} onClose={onClose} size="2xl">
       <div className="max-h-[90vh] overflow-y-auto">
         <ModalHeader 
-          title={
-            <div className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Detalles del Guardia
-            </div>
-          }
+          title="Detalles del Guardia"
           onClose={onClose}
         />
 
