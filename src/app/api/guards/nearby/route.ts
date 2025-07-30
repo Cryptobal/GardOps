@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { sql } from '@/lib/database';
+import { query } from '@/lib/database';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -8,25 +8,29 @@ export async function GET(req: Request) {
 
   if (!id) return NextResponse.json({ error: 'installationId requerido' }, { status: 400 });
 
-  /* Haversine simplified */
-  const guards = await sql/*sql*/`
-    SELECT g.id,
-           CONCAT(g.nombre,' ',g.apellido_paterno)   AS nombre,
-           c.nombre                                   AS comuna,
-           g.lat, g.lng,
-           ST_DistanceSphere(                           -- metros
-             ST_MakePoint(g.lng, g.lat),
-             (SELECT ST_MakePoint(i.lng, i.lat) FROM instalaciones i WHERE i.id = ${id})
-           )/1000                                     AS distancia
-    FROM guardias g
-    JOIN comunas c ON c.id = g.comuna_id
-    WHERE g.lat IS NOT NULL
-      AND ST_DistanceSphere(
-            ST_MakePoint(g.lng, g.lat),
-            (SELECT ST_MakePoint(i.lng, i.lat) FROM instalaciones i WHERE i.id = ${id})
-          ) <= ${radius * 1000}
-    ORDER BY distancia;
-  `;
+  try {
+    /* Haversine simplified */
+    const result = await query(`
+      SELECT g.id,
+             CONCAT(g.nombre,' ',g.apellido_paterno)   AS nombre,
+             g.comuna,
+             g.latitud, g.longitud,
+             ST_DistanceSphere(                           -- metros
+               ST_MakePoint(g.longitud, g.latitud),
+               (SELECT ST_MakePoint(i.longitud, i.latitud) FROM instalaciones i WHERE i.id = $1)
+             )/1000                                     AS distancia
+      FROM guardias g
+      WHERE g.latitud IS NOT NULL
+        AND ST_DistanceSphere(
+              ST_MakePoint(g.longitud, g.latitud),
+              (SELECT ST_MakePoint(i.longitud, i.latitud) FROM instalaciones i WHERE i.id = $1)
+            ) <= $2
+      ORDER BY distancia
+    `, [id, radius * 1000]);
 
-  return NextResponse.json(guards);
+    return NextResponse.json(result.rows);
+  } catch (error) {
+    console.error('Error en nearby guards:', error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+  }
 } 
