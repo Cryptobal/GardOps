@@ -8,18 +8,42 @@ export interface AuthenticatedRequest extends NextRequest {
 export function requireAuth() {
   return (request: NextRequest): NextResponse | AuthenticatedRequest => {
     try {
-      // Extraer token del header Authorization
-      const authHeader = request.headers.get('authorization');
+      let token: string | null = null;
       
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      // Primero intentar extraer token del header Authorization
+      const authHeader = request.headers.get('authorization');
+      console.log('🔍 Debug - Authorization header:', authHeader);
+      
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7); // Remover "Bearer "
+        console.log('🔍 Debug - Token encontrado en Authorization header');
+      }
+      
+      // Si no hay token en el header, buscar en las cookies
+      if (!token) {
+        const cookies = request.headers.get('cookie');
+        console.log('🔍 Debug - Cookies completas:', cookies);
+        
+        if (cookies) {
+          const tokenMatch = cookies.match(/auth_token=([^;]+)/);
+          console.log('🔍 Debug - Token match:', tokenMatch);
+          
+          if (tokenMatch) {
+            token = tokenMatch[1];
+            console.log('🔍 Debug - Token encontrado en cookies');
+          }
+        }
+      }
+      
+      console.log('🔍 Debug - Token final:', token ? 'SÍ' : 'NO');
+      
+      if (!token) {
         return NextResponse.json(
           { error: 'Token de autorización requerido' },
           { status: 401 }
         );
       }
 
-      const token = authHeader.substring(7); // Remover "Bearer "
-      
       // Verificar el JWT
       const decoded = verifyToken(token);
       

@@ -447,41 +447,26 @@ export default function InstalacionesPage() {
     }
   };
 
-  const eliminarInstalacionHandler = async (instalacion: Instalacion) => {
-    const confirmed = await confirm({
-      title: "Eliminar instalación",
-      message: `¿Está seguro de que desea eliminar la instalación "${instalacion.nombre}"? Esta acción no se puede deshacer.`,
-      confirmText: "Eliminar",
-      cancelText: "Cancelar",
-    });
 
-    if (!confirmed) return;
-
-    try {
-      await eliminarInstalacion(instalacion.id);
-      
-      setInstalaciones(prev => prev.filter(inst => inst.id !== instalacion.id));
-      
-      toast.success("Instalación eliminada correctamente", "Éxito");
-    } catch (error) {
-      console.error("Error eliminando instalación:", error);
-      toast.error("No se pudo eliminar la instalación", "Error");
-    }
-  };
 
   // Configuración de columnas para DataTable
   const columns: Column<Instalacion>[] = [
     {
       key: "nombre",
-      label: "Nombre",
+      label: "Instalación",
       render: (instalacion) => (
         <div className="flex items-center space-x-3">
           <div className="p-2 bg-blue-500/10 rounded-lg">
             <Building2 className="h-4 w-4 text-blue-400" />
           </div>
-          <div>
-            <p className="font-semibold hover:text-blue-400 transition-colors">{instalacion.nombre}</p>
-            <p className="text-xs text-slate-400">ID: {instalacion.id.slice(0, 8)}</p>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold hover:text-blue-400 transition-colors truncate">{instalacion.nombre}</p>
+            <div className="flex items-center space-x-2 mt-1">
+              <MapPin className="h-3 w-3 text-slate-400 flex-shrink-0" />
+              <span className="text-xs text-slate-400 truncate" title={instalacion.direccion}>
+                {instalacion.direccion}
+              </span>
+            </div>
           </div>
         </div>
       )
@@ -492,63 +477,40 @@ export default function InstalacionesPage() {
       render: (instalacion) => {
         const cliente = clientes.find(c => c.id === instalacion.cliente_id);
         return (
-          <Badge variant="secondary" className="bg-slate-700 text-slate-200">
-            {cliente?.nombre || "Sin cliente"}
-          </Badge>
+          <div className="space-y-1">
+            <Badge variant="secondary" className="bg-slate-700 text-slate-200">
+              {cliente?.nombre || "Sin cliente"}
+            </Badge>
+            <div className="text-xs text-slate-400">{instalacion.comuna}</div>
+          </div>
         );
       }
     },
     {
-      key: "direccion",
-      label: "Dirección",
-      render: (instalacion) => (
-        <div className="flex items-center space-x-2">
-          <MapPin className="h-3 w-3 text-slate-400 flex-shrink-0" />
-          <span className="truncate" title={instalacion.direccion}>
-            {instalacion.direccion}
-          </span>
-        </div>
-      )
-    },
-    {
-      key: "comuna",
-      label: "Comuna",
-      render: (instalacion) => (
-        <span className="text-slate-300">{instalacion.comuna}</span>
-      )
-    },
-    {
-      key: "guardias",
-      label: "Guardias",
+      key: "estadisticas",
+      label: "Estadísticas",
       render: (instalacion) => {
-        const { guardiasCount } = obtenerDatosSimulados(instalacion.id);
+        const { guardiasCount, ppcCount } = obtenerDatosSimulados(instalacion.id);
         return (
-          <Badge variant="outline" className="text-slate-200 border-slate-600">
-            <Users className="h-3 w-3 mr-1" />
-            {guardiasCount}
-          </Badge>
-        );
-      }
-    },
-    {
-      key: "ppc",
-      label: "PPC",
-      render: (instalacion) => {
-        const { ppcCount } = obtenerDatosSimulados(instalacion.id);
-        return (
-          <Badge 
-            variant={ppcCount > 2 ? "destructive" : ppcCount > 0 ? "default" : "secondary"}
-            className={
-              ppcCount > 2 
-                ? "bg-red-500/20 text-red-400" 
-                : ppcCount > 0 
-                  ? "bg-amber-500/20 text-amber-400"
-                  : "bg-emerald-500/20 text-emerald-400"
-            }
-          >
-            <AlertTriangle className="h-3 w-3 mr-1" />
-            {ppcCount}
-          </Badge>
+          <div className="flex items-center space-x-2">
+            <Badge variant="outline" className="text-slate-200 border-slate-600">
+              <Users className="h-3 w-3 mr-1" />
+              {guardiasCount}
+            </Badge>
+            <Badge 
+              variant={ppcCount > 2 ? "destructive" : ppcCount > 0 ? "default" : "secondary"}
+              className={
+                ppcCount > 2 
+                  ? "bg-red-500/20 text-red-400" 
+                  : ppcCount > 0 
+                    ? "bg-amber-500/20 text-amber-400"
+                    : "bg-emerald-500/20 text-emerald-400"
+              }
+            >
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              {ppcCount}
+            </Badge>
+          </div>
         );
       }
     },
@@ -578,14 +540,6 @@ export default function InstalacionesPage() {
             className="hover:bg-blue-500/10 hover:border-blue-500/30 h-7 w-7 p-0"
           >
             <Eye className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => eliminarInstalacionHandler(instalacion)}
-            className="hover:bg-red-500/10 hover:border-red-500/30 text-red-400 hover:text-red-300 h-7 w-7 p-0"
-          >
-            <Trash2 className="h-3 w-3" />
           </Button>
         </div>
       )

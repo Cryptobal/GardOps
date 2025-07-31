@@ -416,39 +416,7 @@ export default function ClientesPage() {
     }
   };
 
-  // Eliminar cliente
-  const eliminarCliente = async (cliente: Cliente) => {
-    const confirmed = await confirm({
-      title: "Eliminar Cliente",
-      message: "¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer.",
-      confirmText: "Eliminar",
-      cancelText: "Cancelar",
-      type: "danger",
-    });
 
-    if (!confirmed) return;
-
-    try {
-      const response = await fetch(`/api/clientes?id=${cliente.id}`, {
-        method: "DELETE",
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        toast.success("Cliente eliminado con éxito");
-        await cargarClientes();
-        if (selectedCliente?.id === cliente.id) {
-          cerrarModales();
-        }
-      } else {
-        toast.error(result.error || "Error al eliminar cliente");
-      }
-    } catch (error) {
-      console.error("Error eliminando cliente:", error);
-      toast.error("Error de conexión");
-    }
-  };
 
   const handleUploadSuccess = async () => {
     setRefreshTrigger(prev => prev + 1);
@@ -540,14 +508,6 @@ export default function ClientesPage() {
             className="hover:bg-blue-500/10 hover:border-blue-500/30 h-7 w-7 p-0"
           >
             <Eye className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => eliminarCliente(cliente)}
-            className="hover:bg-red-500/10 hover:border-red-500/30 text-red-400 hover:text-red-300 h-7 w-7 p-0"
-          >
-            <Trash2 className="h-3 w-3" />
           </Button>
         </div>
       )

@@ -9,7 +9,6 @@ import { Switch } from "../../components/ui/switch";
 import { Modal, useConfirmModal } from "../../components/ui/modal";
 import { useToast, ToastContainer } from "../../components/ui/toast";
 import { Input } from "../../components/ui/input";
-import { InputDireccion, type AddressData } from "../../components/ui/input-direccion";
 import { 
   Shield, 
   Plus, 
@@ -21,116 +20,93 @@ import {
   Clock,
   Eye,
   Trash2,
-  FileText,
-  Activity,
-  Settings,
-  Building2,
-  Users
+  AlertTriangle,
+  CheckCircle,
+  XCircle
 } from "lucide-react";
 
 // Importar componentes genéricos
 import { DataTable, Column } from "../../components/ui/data-table";
 import { PageHeader } from "../../components/ui/page-header";
 import { FilterBar, FilterConfig } from "../../components/ui/filter-bar";
-import { EntityModal } from "../../components/ui/entity-modal";
-import { EntityTabs, TabConfig } from "../../components/ui/entity-tabs";
-import { LocationTab } from "../../components/ui/location-tab";
-import { DocumentManager } from "../../components/shared/document-manager";
-import { LogViewer } from "../../components/shared/log-viewer";
 
-// Interfaces para guardias
+// Interfaces para guardias con la nueva estructura
+interface RolActual {
+  nombre?: string;
+  turno?: string;
+  horario_inicio?: string;
+  horario_fin?: string;
+  dias_trabajo?: string;
+}
+
+interface AlertaOS10 {
+  dias_restantes: number | null;
+  tiene_alerta: boolean;
+  estado: 'sin_fecha' | 'vencido' | 'alerta' | 'vigente';
+}
+
 interface Guardia {
   id: string;
+  tenant_id: string;
   nombre: string;
-  apellido: string;
+  apellido_paterno: string;
+  apellido_materno?: string;
+  nombre_completo: string;
   rut: string;
-  email: string;
-  telefono: string;
-  direccion: string;
-  latitud?: number | null;
-  longitud?: number | null;
-  ciudad?: string | null;
-  comuna?: string | null;
-  region?: string | null;
-  fecha_nacimiento: string;
-  fecha_ingreso: string;
-  estado: "Activo" | "Inactivo";
-  tipo_contrato: "Indefinido" | "Plazo Fijo" | "Por Obra";
-  sueldo_base: number;
+  email?: string;
+  telefono?: string;
+  sexo?: string;
+  activo: boolean;
+  direccion?: string;
+  comuna?: string;
+  ciudad?: string;
+  nacionalidad?: string;
+  fecha_os10?: string;
+  latitud?: number;
+  longitud?: number;
   instalacion_id?: string;
   instalacion_nombre?: string;
   cliente_nombre?: string;
-}
-
-interface CrearGuardiaData {
-  nombre: string;
-  apellido: string;
-  rut: string;
-  email: string;
-  telefono: string;
-  direccion: string;
-  latitud?: number | null;
-  longitud?: number | null;
-  ciudad?: string | null;
-  comuna?: string | null;
-  region?: string | null;
-  fecha_nacimiento: string;
-  fecha_ingreso: string;
-  estado: "Activo" | "Inactivo";
-  tipo_contrato: "Indefinido" | "Plazo Fijo" | "Por Obra";
-  sueldo_base: number;
-  instalacion_id?: string;
+  created_at: string;
+  updated_at: string;
+  rol_actual: RolActual;
+  alerta_os10: AlertaOS10;
 }
 
 interface KPIData {
   totalGuardias: number;
   guardiasActivos: number;
   guardiasInactivos: number;
-  promedioSueldo: number;
+  alertasOS10: number;
 }
 
 export default function GuardiasPage() {
   const [guardias, setGuardias] = useState<Guardia[]>([]);
+  const [instalaciones, setInstalaciones] = useState<Array<{id: string, nombre: string}>>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [editingGuardia, setEditingGuardia] = useState<Guardia | null>(null);
-  const [selectedGuardia, setSelectedGuardia] = useState<Guardia | null>(null);
-  const [isEditingDetails, setIsEditingDetails] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  
-  // Estados para filtros
   const [filtros, setFiltros] = useState<Record<string, string>>({
     search: "",
     estado: "Todos",
-    tipo_contrato: "Todos",
+    instalacion: "Todas",
+    alerta_os10: "Todas",
     totalCount: "0",
     filteredCount: "0"
   });
 
-  const [formData, setFormData] = useState<CrearGuardiaData>({
-    nombre: "",
-    apellido: "",
-    rut: "",
-    email: "",
-    telefono: "",
-    direccion: "",
-    latitud: null,
-    longitud: null,
-    ciudad: "",
-    comuna: "",
-    region: "",
-    fecha_nacimiento: "",
-    fecha_ingreso: "",
-    estado: "Activo",
-    tipo_contrato: "Indefinido",
-    sueldo_base: 0,
-    instalacion_id: ""
-  });
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-
   const { toast } = useToast();
-  const { confirm, ConfirmModal } = useConfirmModal();
+
+  // Cargar instalaciones para el filtro
+  const cargarInstalaciones = async () => {
+    try {
+      const response = await fetch('/api/instalaciones');
+      if (response.ok) {
+        const data = await response.json();
+        setInstalaciones(data.data || []);
+      }
+    } catch (error) {
+      console.error("❌ Error cargando instalaciones:", error);
+    }
+  };
 
   // Configuración de filtros
   const filterConfigs: FilterConfig[] = [
@@ -145,415 +121,141 @@ export default function GuardiasPage() {
       ]
     },
     {
-      key: "tipo_contrato",
-      label: "Tipo Contrato",
+      key: "instalacion",
+      label: "Instalación",
+      type: "select-search",
+      options: [
+        { value: "Todas", label: "Todas las instalaciones" },
+        ...instalaciones.map(inst => ({
+          value: inst.id,
+          label: inst.nombre
+        }))
+      ]
+    },
+    {
+      key: "alerta_os10",
+      label: "Alerta OS10",
       type: "select",
       options: [
-        { value: "Todos", label: "Todos" },
-        { value: "Indefinido", label: "Indefinido" },
-        { value: "Plazo Fijo", label: "Plazo Fijo" },
-        { value: "Por Obra", label: "Por Obra" }
+        { value: "Todas", label: "Todas" },
+        { value: "alerta", label: "⚠️ Con Alerta" },
+        { value: "vencido", label: "❌ Vencido" },
+        { value: "vigente", label: "✅ Vigente" },
+        { value: "sin_fecha", label: "❓ Sin Fecha" }
       ]
     }
   ];
 
-  // Cargar guardias al montar el componente
+  // Cargar guardias e instalaciones al montar el componente
   useEffect(() => {
     cargarGuardias();
+    cargarInstalaciones();
   }, []);
-
-  // Aplicar filtros cuando cambien
-  useEffect(() => {
-    aplicarFiltros();
-  }, [filtros.search, filtros.estado, filtros.tipo_contrato, guardias]);
 
   const cargarGuardias = async () => {
     try {
       setLoading(true);
-      // Simular carga de datos
-      const mockGuardias: Guardia[] = [
-        {
-          id: "1",
-          nombre: "Juan",
-          apellido: "Pérez",
-          rut: "12345678-9",
-          email: "juan.perez@email.com",
-          telefono: "+56 9 1234 5678",
-          direccion: "Av. Providencia 123, Santiago",
-          latitud: -33.4489,
-          longitud: -70.6693,
-          ciudad: "Santiago",
-          comuna: "Providencia",
-          region: "Metropolitana",
-          fecha_nacimiento: "1985-03-15",
-          fecha_ingreso: "2020-01-15",
-          estado: "Activo",
-          tipo_contrato: "Indefinido",
-          sueldo_base: 450000,
-          instalacion_id: "1",
-          instalacion_nombre: "Edificio Corporativo",
-          cliente_nombre: "Empresa ABC"
-        },
-        {
-          id: "2",
-          nombre: "María",
-          apellido: "González",
-          rut: "98765432-1",
-          email: "maria.gonzalez@email.com",
-          telefono: "+56 9 8765 4321",
-          direccion: "Las Condes 456, Santiago",
-          latitud: -33.4167,
-          longitud: -70.5833,
-          ciudad: "Santiago",
-          comuna: "Las Condes",
-          region: "Metropolitana",
-          fecha_nacimiento: "1990-07-22",
-          fecha_ingreso: "2021-03-10",
-          estado: "Activo",
-          tipo_contrato: "Plazo Fijo",
-          sueldo_base: 420000,
-          instalacion_id: "2",
-          instalacion_nombre: "Centro Comercial",
-          cliente_nombre: "Empresa XYZ"
-        },
-        {
-          id: "3",
-          nombre: "Carlos",
-          apellido: "Rodríguez",
-          rut: "45678912-3",
-          email: "carlos.rodriguez@email.com",
-          telefono: "+56 9 4567 8912",
-          direccion: "Ñuñoa 789, Santiago",
-          latitud: -33.4569,
-          longitud: -70.6483,
-          ciudad: "Santiago",
-          comuna: "Ñuñoa",
-          region: "Metropolitana",
-          fecha_nacimiento: "1988-11-08",
-          fecha_ingreso: "2019-08-20",
-          estado: "Inactivo",
-          tipo_contrato: "Indefinido",
-          sueldo_base: 480000,
-          instalacion_id: "1",
-          instalacion_nombre: "Edificio Corporativo",
-          cliente_nombre: "Empresa ABC"
-        }
-      ];
+      const response = await fetch('/api/guardias');
       
-      setGuardias(mockGuardias);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log("🔍 Debug - Datos recibidos de la API:", {
+        total: data.total,
+        guardiasLength: data.guardias.length,
+        primeros3: data.guardias.slice(0, 3).map((g: any) => ({ id: g.id, nombre: g.nombre_completo }))
+      });
+      
+      setGuardias(data.guardias);
       setFiltros(prev => ({
         ...prev,
-        totalCount: mockGuardias.length.toString()
+        totalCount: data.guardias.length.toString()
       }));
+      
+      console.log("✅ Guardias cargados desde Neon:", data.guardias.length);
     } catch (error) {
-      console.error("Error cargando guardias:", error);
-      toast.error("Error al cargar guardias");
+      console.error("❌ Error cargando guardias:", error);
+      toast.error("Error al cargar guardias desde la base de datos");
     } finally {
       setLoading(false);
     }
   };
 
-  const aplicarFiltros = () => {
-    let filtered = [...guardias];
-
-    // Filtro por búsqueda
-    if (filtros.search && filtros.search.trim()) {
-      const busqueda = filtros.search.toLowerCase().trim();
-      filtered = filtered.filter(guardia => 
-        guardia.nombre.toLowerCase().includes(busqueda) ||
-        guardia.apellido.toLowerCase().includes(busqueda) ||
-        guardia.rut.includes(busqueda) ||
-        guardia.email.toLowerCase().includes(busqueda)
+  // Función para renderizar el estado de la alerta OS10
+  const renderAlertaOS10 = (alerta: AlertaOS10, fechaOS10?: string) => {
+    if (alerta.estado === 'sin_fecha') {
+      return (
+        <div className="flex items-center gap-1">
+          <XCircle className="h-3 w-3 text-gray-400" />
+          <span className="text-xs text-gray-400">Sin fecha</span>
+        </div>
       );
     }
 
-    // Filtro por estado
-    if (filtros.estado !== "Todos") {
-      filtered = filtered.filter(guardia => guardia.estado === filtros.estado);
-    }
-
-    // Filtro por tipo de contrato
-    if (filtros.tipo_contrato !== "Todos") {
-      filtered = filtered.filter(guardia => guardia.tipo_contrato === filtros.tipo_contrato);
-    }
-
-    setFiltros(prev => ({
-      ...prev,
-      filteredCount: filtered.length.toString()
-    }));
-  };
-
-  const handleFilterChange = (key: string, value: string) => {
-    setFiltros(prev => ({ ...prev, [key]: value }));
-  };
-
-  const clearFilters = () => {
-    setFiltros({
-      search: "",
-      estado: "Todos",
-      tipo_contrato: "Todos",
-      totalCount: filtros.totalCount,
-      filteredCount: filtros.totalCount
-    });
-  };
-
-  // Abrir modal para nuevo guardia
-  const abrirModalNuevo = () => {
-    setEditingGuardia(null);
-    setFormData({
-      nombre: "",
-      apellido: "",
-      rut: "",
-      email: "",
-      telefono: "",
-      direccion: "",
-      latitud: null,
-      longitud: null,
-      ciudad: "",
-      comuna: "",
-      region: "",
-      fecha_nacimiento: "",
-      fecha_ingreso: "",
-      estado: "Activo",
-      tipo_contrato: "Indefinido",
-      sueldo_base: 0,
-      instalacion_id: ""
-    });
-    setFormErrors({});
-    setIsModalOpen(true);
-  };
-
-  // Abrir modal de detalles del guardia
-  const abrirModalDetalles = (guardia: Guardia) => {
-    setSelectedGuardia(guardia);
-    setFormData({
-      nombre: guardia.nombre,
-      apellido: guardia.apellido,
-      rut: guardia.rut,
-      email: guardia.email,
-      telefono: guardia.telefono,
-      direccion: guardia.direccion,
-      latitud: guardia.latitud || null,
-      longitud: guardia.longitud || null,
-      ciudad: guardia.ciudad || "",
-      comuna: guardia.comuna || "",
-      region: guardia.region || "",
-      fecha_nacimiento: guardia.fecha_nacimiento,
-      fecha_ingreso: guardia.fecha_ingreso,
-      estado: guardia.estado,
-      tipo_contrato: guardia.tipo_contrato,
-      sueldo_base: guardia.sueldo_base,
-      instalacion_id: guardia.instalacion_id || ""
-    });
-    setIsEditingDetails(false);
-    setIsDetailModalOpen(true);
-  };
-
-  // Cerrar modales
-  const cerrarModales = () => {
-    setIsModalOpen(false);
-    setIsDetailModalOpen(false);
-    setEditingGuardia(null);
-    setSelectedGuardia(null);
-    setIsEditingDetails(false);
-    setFormErrors({});
-  };
-
-  // Manejar cambios en inputs
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: name === "sueldo_base" ? parseFloat(value) || 0 : value 
-    }));
-    
-    if (formErrors[name]) {
-      setFormErrors(prev => ({ ...prev, [name]: "" }));
-    }
-  };
-
-  // Manejar selección de dirección
-  const handleAddressSelect = (addressData: AddressData) => {
-    setFormData(prev => ({
-      ...prev,
-      direccion: addressData.direccionCompleta,
-      latitud: addressData.latitud,
-      longitud: addressData.longitud,
-      ciudad: addressData.componentes.ciudad,
-      comuna: addressData.componentes.comuna,
-      region: addressData.componentes.region
-    }));
-    
-    if (formErrors.direccion) {
-      setFormErrors(prev => ({ ...prev, direccion: "" }));
-    }
-  };
-
-  // Manejar cambios en dirección
-  const handleAddressChange = (query: string) => {
-    setFormData(prev => ({ ...prev, direccion: query }));
-    
-    if (formErrors.direccion) {
-      setFormErrors(prev => ({ ...prev, direccion: "" }));
-    }
-  };
-
-  // Manejar cambio de ciudad
-  const handleCiudadChange = (ciudad: string) => {
-    setFormData(prev => ({ ...prev, ciudad }));
-  };
-
-  // Manejar cambio de comuna
-  const handleComunaChange = (comuna: string) => {
-    setFormData(prev => ({ ...prev, comuna }));
-  };
-
-  // Manejar cambio de coordenadas
-  const handleCoordinatesChange = (lat: number, lng: number) => {
-    setFormData(prev => ({
-      ...prev,
-      latitud: lat,
-      longitud: lng,
-    }));
-  };
-
-  // Limpiar ubicación
-  const handleClearLocation = () => {
-    setFormData(prev => ({
-      ...prev,
-      direccion: "",
-      latitud: null,
-      longitud: null,
-      ciudad: "",
-      comuna: "",
-      region: "",
-    }));
-  };
-
-  // Validar formulario
-  const validarFormulario = (): boolean => {
-    const errors: Record<string, string> = {};
-
-    if (!formData.nombre.trim()) {
-      errors.nombre = "El nombre es obligatorio";
-    }
-
-    if (!formData.apellido.trim()) {
-      errors.apellido = "El apellido es obligatorio";
-    }
-
-    if (!formData.rut.trim()) {
-      errors.rut = "El RUT es obligatorio";
-    } else if (!/^[0-9]+-[0-9kK]{1}$/.test(formData.rut)) {
-      errors.rut = "Formato de RUT inválido (ej: 12345678-9)";
-    }
-
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = "Formato de email inválido";
-    }
-
-    if (formData.sueldo_base < 0) {
-      errors.sueldo_base = "El sueldo debe ser mayor o igual a 0";
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  // Guardar guardia
-  const guardarGuardia = async () => {
-    if (!validarFormulario()) return;
-
-    try {
-      if (editingGuardia) {
-        // Actualizar guardia existente
-        const guardiaActualizado = { ...editingGuardia, ...formData };
-        setGuardias(prev => 
-          prev.map(g => g.id === editingGuardia.id ? guardiaActualizado : g)
-        );
-        toast.success("Guardia actualizado correctamente");
-      } else {
-        // Crear nuevo guardia
-        const nuevoGuardia: Guardia = {
-          id: Date.now().toString(),
-          ...formData,
-          instalacion_nombre: "Sin asignar",
-          cliente_nombre: "Sin cliente"
-        };
-        setGuardias(prev => [...prev, nuevoGuardia]);
-        toast.success("Guardia creado correctamente");
-      }
-
-      cerrarModales();
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error) {
-      console.error("Error guardando guardia:", error);
-      toast.error("Error al guardar guardia");
-    }
-  };
-
-  // Cambiar estado del guardia
-  const cambiarEstadoGuardia = async (guardia: Guardia, nuevoEstado: boolean) => {
-    try {
-      const estadoTexto = nuevoEstado ? "Activo" : "Inactivo";
-      const guardiaActualizado = { ...guardia, estado: estadoTexto as "Activo" | "Inactivo" };
-      
-      setGuardias(prev => 
-        prev.map(g => g.id === guardia.id ? guardiaActualizado : g)
+    if (alerta.estado === 'vencido') {
+      return (
+        <div className="flex items-center gap-1">
+          <XCircle className="h-3 w-3 text-red-500" />
+          <span className="text-xs text-red-500 font-medium">Vencido</span>
+        </div>
       );
-      
-      toast.success(`Guardia ${estadoTexto.toLowerCase()} correctamente`);
-      
-      if (selectedGuardia?.id === guardia.id) {
-        setSelectedGuardia(guardiaActualizado);
-        setFormData(prev => ({ ...prev, estado: estadoTexto as "Activo" | "Inactivo" }));
-      }
-      
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error) {
-      console.error("Error cambiando estado del guardia:", error);
-      toast.error("Error al cambiar estado");
     }
+
+    if (alerta.estado === 'alerta') {
+      return (
+        <div className="flex items-center gap-1">
+          <AlertTriangle className="h-3 w-3 text-orange-500" />
+          <span className="text-xs text-orange-500 font-medium">
+            {alerta.dias_restantes} días
+          </span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-1">
+        <CheckCircle className="h-3 w-3 text-green-500" />
+        <span className="text-xs text-green-500 font-medium">
+          {alerta.dias_restantes} días
+        </span>
+      </div>
+    );
   };
 
-  // Eliminar guardia
-  const eliminarGuardia = async (guardia: Guardia) => {
-    const confirmed = await confirm({
-      title: "Eliminar Guardia",
-      message: "¿Estás seguro de que deseas eliminar este guardia? Esta acción no se puede deshacer.",
-      confirmText: "Eliminar",
-      cancelText: "Cancelar",
-      type: "danger",
-    });
-
-    if (!confirmed) return;
-
-    try {
-      setGuardias(prev => prev.filter(g => g.id !== guardia.id));
-      toast.success("Guardia eliminado con éxito");
-      
-      if (selectedGuardia?.id === guardia.id) {
-        cerrarModales();
-      }
-    } catch (error) {
-      console.error("Error eliminando guardia:", error);
-      toast.error("Error al eliminar guardia");
+  // Función para renderizar el rol actual
+  const renderRolActual = (rol: RolActual) => {
+    if (!rol.nombre) {
+      return <span className="text-muted-foreground text-xs">Sin asignar</span>;
     }
+
+    return (
+      <div className="space-y-1">
+        <div className="text-xs font-medium">{rol.nombre}</div>
+        {rol.turno && (
+          <div className="text-xs text-muted-foreground">
+            {rol.turno} {rol.horario_inicio && rol.horario_fin && `(${rol.horario_inicio}-${rol.horario_fin})`}
+          </div>
+        )}
+        {rol.dias_trabajo && (
+          <div className="text-xs text-muted-foreground">{rol.dias_trabajo}</div>
+        )}
+      </div>
+    );
   };
 
   // Calcular KPIs
   const calcularKPIs = (): KPIData => {
-    const activos = guardias.filter(g => g.estado === "Activo").length;
-    const inactivos = guardias.filter(g => g.estado === "Inactivo").length;
-    const promedioSueldo = guardias.length > 0 
-      ? guardias.reduce((acc, g) => acc + g.sueldo_base, 0) / guardias.length 
-      : 0;
+    const activos = guardias.filter(g => g.activo).length;
+    const inactivos = guardias.filter(g => !g.activo).length;
+    const alertasOS10 = guardias.filter(g => g.alerta_os10.tiene_alerta).length;
 
     return {
       totalGuardias: guardias.length,
       guardiasActivos: activos,
       guardiasInactivos: inactivos,
-      promedioSueldo: Math.round(promedioSueldo)
+      alertasOS10
     };
   };
 
@@ -566,7 +268,7 @@ export default function GuardiasPage() {
       label: "Nombre",
       render: (guardia) => (
         <div>
-          <div className="font-bold text-foreground">{`${guardia.nombre} ${guardia.apellido}`}</div>
+          <div className="font-bold text-foreground">{guardia.nombre_completo}</div>
           <div className="text-xs text-muted-foreground font-mono">{guardia.rut}</div>
         </div>
       )
@@ -588,49 +290,44 @@ export default function GuardiasPage() {
               <span className="text-sm">{guardia.telefono}</span>
             </div>
           )}
+          {guardia.comuna && (
+            <div className="flex items-center gap-1">
+              <MapPin className="h-3 w-3 text-muted-foreground" />
+              <span className="text-sm">{guardia.comuna}</span>
+            </div>
+          )}
         </div>
       )
     },
     {
-      key: "asignacion",
-      label: "Asignación",
+      key: "instalacion",
+      label: "Instalación",
       render: (guardia) => (
         guardia.instalacion_nombre ? (
-          <div>
-            <div className="text-foreground">{guardia.instalacion_nombre}</div>
+          <div className="space-y-1">
+            <div className="text-foreground font-medium">{guardia.instalacion_nombre}</div>
             <div className="text-xs text-muted-foreground">{guardia.cliente_nombre}</div>
+            {renderRolActual(guardia.rol_actual)}
           </div>
         ) : (
-          <span className="text-muted-foreground">Sin asignar</span>
+          <span className="text-muted-foreground text-xs">Sin asignar</span>
         )
       )
     },
     {
-      key: "contrato",
-      label: "Contrato",
+      key: "fecha_os10",
+      label: "OS10",
       render: (guardia) => (
         <div className="space-y-1">
-          <Badge variant="outline" className="text-xs">
-            {guardia.tipo_contrato}
-          </Badge>
-          <div className="text-xs text-muted-foreground">
-            ${guardia.sueldo_base.toLocaleString()}
-          </div>
-        </div>
-      )
-    },
-    {
-      key: "fechas",
-      label: "Fechas",
-      render: (guardia) => (
-        <div className="space-y-1">
+          {guardia.fecha_os10 ? (
           <div className="flex items-center gap-1">
             <Calendar className="h-3 w-3 text-muted-foreground" />
-            <span className="text-xs">{new Date(guardia.fecha_ingreso).toLocaleDateString()}</span>
+              <span className="text-xs">{new Date(guardia.fecha_os10).toLocaleDateString()}</span>
           </div>
-          <div className="text-xs text-muted-foreground">
-            {new Date(guardia.fecha_nacimiento).toLocaleDateString()}
-          </div>
+          ) : (
+            <span className="text-xs text-muted-foreground">Sin fecha</span>
+          )}
+          {renderAlertaOS10(guardia.alerta_os10, guardia.fecha_os10)}
         </div>
       )
     },
@@ -640,11 +337,14 @@ export default function GuardiasPage() {
       render: (guardia) => (
         <div className="flex items-center gap-2">
           <Switch
-            checked={guardia.estado === "Activo"}
-            onCheckedChange={(checked) => cambiarEstadoGuardia(guardia, checked)}
+            checked={guardia.activo}
+            onCheckedChange={(checked) => {
+              // Aquí iría la lógica para cambiar el estado
+              console.log(`Cambiando estado de guardia ${guardia.id} a ${checked}`);
+            }}
           />
-          <Badge variant={guardia.estado === "Activo" ? "success" : "inactive"}>
-            {guardia.estado}
+          <Badge variant={guardia.activo ? "success" : "inactive"}>
+            {guardia.activo ? "Activo" : "Inactivo"}
           </Badge>
         </div>
       )
@@ -657,18 +357,12 @@ export default function GuardiasPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => abrirModalDetalles(guardia)}
+            onClick={() => {
+              console.log(`Ver detalles de guardia ${guardia.id}`);
+            }}
             className="hover:bg-blue-500/10 hover:border-blue-500/30 h-7 w-7 p-0"
           >
             <Eye className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => eliminarGuardia(guardia)}
-            className="hover:bg-red-500/10 hover:border-red-500/30 text-red-400 hover:text-red-300 h-7 w-7 p-0"
-          >
-            <Trash2 className="h-3 w-3" />
           </Button>
         </div>
       )
@@ -682,13 +376,15 @@ export default function GuardiasPage() {
         <div className="space-y-3">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="font-bold text-foreground">{`${guardia.nombre} ${guardia.apellido}`}</h3>
+              <h3 className="font-bold text-foreground">{guardia.nombre_completo}</h3>
               <p className="text-sm text-muted-foreground font-mono">{guardia.rut}</p>
             </div>
             <div className="flex items-center gap-2">
               <Switch
-                checked={guardia.estado === "Activo"}
-                onCheckedChange={(checked) => cambiarEstadoGuardia(guardia, checked)}
+                checked={guardia.activo}
+                onCheckedChange={(checked) => {
+                  console.log(`Cambiando estado de guardia ${guardia.id} a ${checked}`);
+                }}
               />
             </div>
           </div>
@@ -709,18 +405,20 @@ export default function GuardiasPage() {
           
           {guardia.instalacion_nombre && (
             <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <MapPin className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">{guardia.instalacion_nombre}</span>
             </div>
           )}
           
+          {guardia.rol_actual.nombre && (
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
-              {guardia.tipo_contrato}
-            </Badge>
-            <span className="text-sm text-muted-foreground">
-              ${guardia.sueldo_base.toLocaleString()}
-            </span>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">{guardia.rol_actual.nombre}</span>
+            </div>
+          )}
+          
+          <div className="flex items-center gap-2">
+            {renderAlertaOS10(guardia.alerta_os10, guardia.fecha_os10)}
           </div>
           
           <Button variant="outline" size="sm" className="w-full mt-2">
@@ -731,247 +429,86 @@ export default function GuardiasPage() {
     </Card>
   );
 
-  // Configuración de tabs para EntityTabs
-  const getTabsConfig = (): TabConfig[] => [
-    {
-      key: "informacion",
-      label: "Información",
-      icon: User,
-      color: "blue",
-      content: (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Nombre *
-              </label>
-              <Input
-                name="nombre"
-                value={formData.nombre}
-                onChange={handleInputChange}
-                placeholder="Ingresa el nombre"
-                className={formErrors.nombre ? "border-red-500" : ""}
-                disabled={!isEditingDetails}
-              />
-              {formErrors.nombre && (
-                <p className="text-sm text-red-400">{formErrors.nombre}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Apellido *
-              </label>
-              <Input
-                name="apellido"
-                value={formData.apellido}
-                onChange={handleInputChange}
-                placeholder="Ingresa el apellido"
-                className={formErrors.apellido ? "border-red-500" : ""}
-                disabled={!isEditingDetails}
-              />
-              {formErrors.apellido && (
-                <p className="text-sm text-red-400">{formErrors.apellido}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                RUT *
-              </label>
-              <Input
-                name="rut"
-                value={formData.rut}
-                onChange={handleInputChange}
-                placeholder="12345678-9"
-                className={formErrors.rut ? "border-red-500" : ""}
-                disabled={!isEditingDetails}
-              />
-              {formErrors.rut && (
-                <p className="text-sm text-red-400">{formErrors.rut}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Email
-              </label>
-              <Input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder="correo@email.com"
-                className={formErrors.email ? "border-red-500" : ""}
-                disabled={!isEditingDetails}
-              />
-              {formErrors.email && (
-                <p className="text-sm text-red-400">{formErrors.email}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Teléfono
-              </label>
-              <Input
-                name="telefono"
-                value={formData.telefono}
-                onChange={handleInputChange}
-                placeholder="+56 9 1234 5678"
-                disabled={!isEditingDetails}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Tipo de Contrato
-              </label>
-              <select
-                name="tipo_contrato"
-                value={formData.tipo_contrato}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-slate-200 ${
-                  !isEditingDetails ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-                disabled={!isEditingDetails}
-              >
-                <option value="Indefinido">Indefinido</option>
-                <option value="Plazo Fijo">Plazo Fijo</option>
-                <option value="Por Obra">Por Obra</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Sueldo Base
-              </label>
-              <Input
-                type="number"
-                name="sueldo_base"
-                value={formData.sueldo_base}
-                onChange={handleInputChange}
-                placeholder="0"
-                min="0"
-                step="1000"
-                className={formErrors.sueldo_base ? "border-red-500" : ""}
-                disabled={!isEditingDetails}
-              />
-              {formErrors.sueldo_base && (
-                <p className="text-sm text-red-400">{formErrors.sueldo_base}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Fecha de Nacimiento
-              </label>
-              <Input
-                type="date"
-                name="fecha_nacimiento"
-                value={formData.fecha_nacimiento}
-                onChange={handleInputChange}
-                disabled={!isEditingDetails}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Fecha de Ingreso
-              </label>
-              <Input
-                type="date"
-                name="fecha_ingreso"
-                value={formData.fecha_ingreso}
-                onChange={handleInputChange}
-                disabled={!isEditingDetails}
-              />
-            </div>
-          </div>
-
-
-        </div>
-      )
-    },
-    {
-      key: "ubicacion",
-      label: "Ubicación",
-      icon: MapPin,
-      color: "amber",
-      content: (
-        <LocationTab
-          direccion={formData.direccion}
-          latitud={formData.latitud}
-          longitud={formData.longitud}
-          ciudad={formData.ciudad || ""}
-          comuna={formData.comuna || ""}
-          onAddressSelect={handleAddressSelect}
-          onAddressChange={handleAddressChange}
-          onCiudadChange={handleCiudadChange}
-          onComunaChange={handleComunaChange}
-          onCoordinatesChange={handleCoordinatesChange}
-          onClearLocation={handleClearLocation}
-          disabled={!isEditingDetails}
-          isReadOnly={!isEditingDetails}
-        />
-      )
-    },
-    {
-      key: "documentos",
-      label: "Documentos",
-      icon: FileText,
-      color: "emerald",
-      content: (
-        <DocumentManager
-          modulo="guardias"
-          entidadId={selectedGuardia?.id || ""}
-          onDocumentDeleted={() => setRefreshTrigger(prev => prev + 1)}
-          onUploadSuccess={() => setRefreshTrigger(prev => prev + 1)}
-          refreshTrigger={refreshTrigger}
-        />
-      )
-    },
-    {
-      key: "logs",
-      label: "Actividad",
-      icon: Activity,
-      color: "violet",
-      content: (
-        <LogViewer
-          modulo="guardias"
-          entidadId={selectedGuardia?.id || ""}
-          refreshTrigger={refreshTrigger}
-        />
-      )
-    }
-  ];
-
   // Filtrar guardias según los filtros aplicados
   const guardiasFiltrados = guardias.filter(guardia => {
     if (filtros.search && filtros.search.trim()) {
       const busqueda = filtros.search.toLowerCase().trim();
-      if (!guardia.nombre.toLowerCase().includes(busqueda) &&
-          !guardia.apellido.toLowerCase().includes(busqueda) &&
-          !guardia.rut.includes(busqueda) &&
-          !guardia.email.toLowerCase().includes(busqueda)) {
+      
+      // Debug: Log para verificar qué está pasando con la búsqueda
+      if (guardias.indexOf(guardia) < 3) { // Solo los primeros 3 guardias para no saturar
+        console.log("🔍 Debug - Búsqueda:", busqueda, "para guardia:", {
+          nombre: guardia.nombre,
+          apellido_paterno: guardia.apellido_paterno,
+          apellido_materno: guardia.apellido_materno,
+          rut: guardia.rut,
+          email: guardia.email
+        });
+      }
+      
+      // Buscar por apellidos que comiencen con las letras escritas
+      const apellidoPaternoMatch = guardia.apellido_paterno?.toLowerCase().startsWith(busqueda);
+      const apellidoMaternoMatch = guardia.apellido_materno?.toLowerCase().startsWith(busqueda);
+      
+      // Buscar por RUT que comience con los números escritos
+      const rutMatch = guardia.rut.toLowerCase().startsWith(busqueda);
+      
+      // Buscar por nombre que comience con las letras escritas
+      const nombreMatch = guardia.nombre?.toLowerCase().startsWith(busqueda);
+      
+      // Buscar por email que contenga la búsqueda
+      const emailMatch = guardia.email?.toLowerCase().includes(busqueda);
+      
+      // Debug: Log de los matches
+      if (guardias.indexOf(guardia) < 3) {
+        console.log("🔍 Debug - Matches:", {
+          apellidoPaternoMatch,
+          apellidoMaternoMatch,
+          rutMatch,
+          nombreMatch,
+          emailMatch,
+          tieneMatch: apellidoPaternoMatch || apellidoMaternoMatch || rutMatch || nombreMatch || emailMatch
+        });
+      }
+      
+      // Si no hay ningún match, excluir este guardia
+      const tieneMatch = apellidoPaternoMatch || apellidoMaternoMatch || rutMatch || nombreMatch || emailMatch;
+      
+      if (!tieneMatch) {
         return false;
       }
     }
 
     if (filtros.estado !== "Todos") {
-      if (guardia.estado !== filtros.estado) {
+      const estadoActivo = filtros.estado === "Activo";
+      if (guardia.activo !== estadoActivo) {
         return false;
       }
     }
 
-    if (filtros.tipo_contrato !== "Todos") {
-      if (guardia.tipo_contrato !== filtros.tipo_contrato) {
+    if (filtros.instalacion !== "Todas") {
+      if (guardia.instalacion_id !== filtros.instalacion) {
+        return false;
+      }
+    }
+
+    if (filtros.alerta_os10 !== "Todas") {
+      if (guardia.alerta_os10.estado !== filtros.alerta_os10) {
         return false;
       }
     }
 
     return true;
   });
+
+  // Debug: Log del filtrado
+  console.log("🔍 Debug - Filtrado:", {
+    totalGuardias: guardias.length,
+    guardiasFiltrados: guardiasFiltrados.length,
+    filtros: filtros
+  });
+
+  // Debug: Log de los KPIs
+  console.log("🔍 Debug - KPIs:", kpis);
 
   return (
     <>
@@ -988,7 +525,9 @@ export default function GuardiasPage() {
           actionButton={{
             label: "Nuevo Guardia",
             icon: Plus,
-            onClick: abrirModalNuevo
+            onClick: () => {
+              console.log("Abrir modal de nuevo guardia");
+            }
           }}
           kpis={[
             {
@@ -1010,10 +549,10 @@ export default function GuardiasPage() {
               variant: "warning"
             },
             {
-              label: "Promedio Sueldo",
-              value: kpis.promedioSueldo,
-              icon: Users,
-              variant: "default"
+              label: "Alertas OS10",
+              value: kpis.alertasOS10,
+              icon: AlertTriangle,
+              variant: "warning"
             }
           ]}
         />
@@ -1022,8 +561,15 @@ export default function GuardiasPage() {
         <FilterBar
           filters={filterConfigs}
           values={filtros}
-          onFilterChange={handleFilterChange}
-          onClearAll={clearFilters}
+          onFilterChange={(key, value) => setFiltros(prev => ({ ...prev, [key]: value }))}
+          onClearAll={() => setFiltros({
+            search: "",
+            estado: "Todos",
+            instalacion: "Todas",
+            alerta_os10: "Todas",
+            totalCount: filtros.totalCount,
+            filteredCount: filtros.totalCount
+          })}
           searchPlaceholder="Buscar por nombre, apellido, RUT o email..."
           className="mb-6"
         />
@@ -1036,213 +582,14 @@ export default function GuardiasPage() {
             loading={loading}
             emptyMessage="No hay guardias registrados"
             emptyIcon={Shield}
-            onRowClick={abrirModalDetalles}
+            onRowClick={(guardia) => {
+              console.log(`Ver detalles de guardia ${guardia.id}`);
+            }}
             mobileCard={mobileCard}
             className="h-full"
           />
         </div>
       </motion.div>
-
-      {/* Modal de creación */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={cerrarModales}
-        title="Nuevo Guardia"
-        className="bg-card/95 backdrop-blur-md"
-        size="lg"
-      >
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Nombre *
-              </label>
-              <Input
-                name="nombre"
-                value={formData.nombre}
-                onChange={handleInputChange}
-                placeholder="Ingresa el nombre"
-                className={formErrors.nombre ? "border-red-500" : ""}
-              />
-              {formErrors.nombre && (
-                <p className="text-sm text-red-400">{formErrors.nombre}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Apellido *
-              </label>
-              <Input
-                name="apellido"
-                value={formData.apellido}
-                onChange={handleInputChange}
-                placeholder="Ingresa el apellido"
-                className={formErrors.apellido ? "border-red-500" : ""}
-              />
-              {formErrors.apellido && (
-                <p className="text-sm text-red-400">{formErrors.apellido}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                RUT *
-              </label>
-              <Input
-                name="rut"
-                value={formData.rut}
-                onChange={handleInputChange}
-                placeholder="12345678-9"
-                className={formErrors.rut ? "border-red-500" : ""}
-              />
-              {formErrors.rut && (
-                <p className="text-sm text-red-400">{formErrors.rut}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Email
-              </label>
-              <Input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder="correo@email.com"
-                className={formErrors.email ? "border-red-500" : ""}
-              />
-              {formErrors.email && (
-                <p className="text-sm text-red-400">{formErrors.email}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Teléfono
-              </label>
-              <Input
-                name="telefono"
-                value={formData.telefono}
-                onChange={handleInputChange}
-                placeholder="+56 9 1234 5678"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Tipo de Contrato
-              </label>
-              <select
-                name="tipo_contrato"
-                value={formData.tipo_contrato}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-slate-200"
-              >
-                <option value="Indefinido">Indefinido</option>
-                <option value="Plazo Fijo">Plazo Fijo</option>
-                <option value="Por Obra">Por Obra</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Sueldo Base
-              </label>
-              <Input
-                type="number"
-                name="sueldo_base"
-                value={formData.sueldo_base}
-                onChange={handleInputChange}
-                placeholder="0"
-                min="0"
-                step="1000"
-                className={formErrors.sueldo_base ? "border-red-500" : ""}
-              />
-              {formErrors.sueldo_base && (
-                <p className="text-sm text-red-400">{formErrors.sueldo_base}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Fecha de Nacimiento
-              </label>
-              <Input
-                type="date"
-                name="fecha_nacimiento"
-                value={formData.fecha_nacimiento}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Fecha de Ingreso
-              </label>
-              <Input
-                type="date"
-                name="fecha_ingreso"
-                value={formData.fecha_ingreso}
-                onChange={handleInputChange}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Dirección
-            </label>
-            <InputDireccion
-              value={formData.direccion}
-              initialLatitude={formData.latitud || undefined}
-              initialLongitude={formData.longitud || undefined}
-              initialCiudad={formData.ciudad || undefined}
-              initialComuna={formData.comuna || undefined}
-              onAddressSelect={handleAddressSelect}
-              onAddressChange={handleAddressChange}
-              placeholder="Buscar dirección con Google Maps..."
-              showMap={true}
-              showClearButton={true}
-            />
-          </div>
-
-          <div className="flex gap-3 justify-end pt-4 border-t border-border">
-            <Button variant="outline" onClick={cerrarModales}>
-              Cancelar
-            </Button>
-            <Button 
-              onClick={guardarGuardia}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              Crear Guardia
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Modal de detalles del guardia con EntityTabs */}
-      <EntityModal
-        isOpen={isDetailModalOpen}
-        onClose={cerrarModales}
-        title={`Detalles - ${selectedGuardia?.nombre} ${selectedGuardia?.apellido}`}
-        size="2xl"
-      >
-        {selectedGuardia && (
-          <EntityTabs
-            tabs={getTabsConfig()}
-            showActionButtons={true}
-            onCancel={cerrarModales}
-            onSave={guardarGuardia}
-            onEdit={() => setIsEditingDetails(!isEditingDetails)}
-            isReadOnly={!isEditingDetails}
-          />
-        )}
-      </EntityModal>
-
-      {/* Modal de confirmación */}
-      <ConfirmModal />
 
       {/* Contenedor de toasts */}
       <ToastContainer />
@@ -1251,4 +598,4 @@ export default function GuardiasPage() {
 }
 
 // Confirmación de auditoría completada
-console.log("✅ Módulo Guardias implementado con componentes genéricos"); 
+console.log("✅ Módulo Guardias implementado con conexión a Neon y alertas OS10"); 
