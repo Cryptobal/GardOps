@@ -147,9 +147,9 @@ export function LocationTab({
           </label>
           <Input
             value={comuna}
-            onChange={(e) => onComunaChange?.(e.target.value)}
-            placeholder="Comuna"
-            disabled={disabled || isReadOnly}
+            placeholder="Se completa automáticamente con Google Maps"
+            disabled={true}
+            className="bg-muted/50 text-muted-foreground"
           />
         </div>
 
@@ -159,41 +159,14 @@ export function LocationTab({
           </label>
           <Input
             value={ciudad}
-            onChange={(e) => onCiudadChange?.(e.target.value)}
-            placeholder="Ciudad"
-            disabled={disabled || isReadOnly}
+            placeholder="Se completa automáticamente con Google Maps"
+            disabled={true}
+            className="bg-muted/50 text-muted-foreground"
           />
         </div>
       </div>
 
-      {/* Coordenadas GPS */}
-      {showCoordinates && (latitud || longitud) && (
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">
-            Coordenadas GPS
-          </label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Latitud</label>
-              <Input
-                value={latitud || ""}
-                placeholder="Latitud"
-                disabled={true}
-                className="font-mono text-sm"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Longitud</label>
-              <Input
-                value={longitud || ""}
-                placeholder="Longitud"
-                disabled={true}
-                className="font-mono text-sm"
-              />
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Botones de ubicación */}
       {showLocationButtons && !isReadOnly && (

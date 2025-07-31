@@ -15,54 +15,77 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Usar la tabla logs_clientes como tabla unificada para todos los módulos
-    const result = await query(`
-      SELECT 
-        id,
-        cliente_id as entidad_id,
-        accion,
-        usuario,
-        tipo,
-        contexto as detalles,
-        fecha as created_at,
-        'clientes' as modulo
-      FROM logs_clientes
-      WHERE cliente_id = $1
-      UNION ALL
-      SELECT 
-        id,
-        instalacion_id as entidad_id,
-        accion,
-        usuario,
-        tipo,
-        contexto as detalles,
-        fecha as created_at,
-        'instalaciones' as modulo
-      FROM logs_instalaciones
-      WHERE instalacion_id = $1
-      UNION ALL
-      SELECT 
-        id,
-        guardia_id as entidad_id,
-        accion,
-        usuario,
-        tipo,
-        contexto as detalles,
-        fecha as created_at,
-        'guardias' as modulo
-      FROM logs_guardias
-      WHERE guardia_id = $1
-      ORDER BY created_at DESC
-    `, [entidadId]);
+    // Consulta específica según el módulo
+    let sql = '';
+    let params: any[] = [];
     
-    // Filtrar por módulo si se especifica
-    const logsFiltrados = modulo === 'todos' 
-      ? result.rows 
-      : result.rows.filter((log: any) => log.modulo === modulo);
+    switch (modulo) {
+      case 'clientes':
+        sql = `
+          SELECT 
+            id,
+            cliente_id as entidad_id,
+            accion,
+            usuario,
+            tipo,
+            contexto as detalles,
+            fecha as created_at,
+            'clientes' as modulo
+          FROM logs_clientes
+          WHERE cliente_id = $1
+          ORDER BY fecha DESC
+        `;
+        params = [entidadId];
+        break;
+        
+      case 'instalaciones':
+        sql = `
+          SELECT 
+            id,
+            instalacion_id as entidad_id,
+            accion,
+            usuario,
+            tipo,
+            contexto as detalles,
+            fecha as created_at,
+            'instalaciones' as modulo
+          FROM logs_instalaciones
+          WHERE instalacion_id = $1
+          ORDER BY fecha DESC
+        `;
+        params = [entidadId];
+        break;
+        
+      case 'guardias':
+        sql = `
+          SELECT 
+            id,
+            guardia_id as entidad_id,
+            accion,
+            usuario,
+            tipo,
+            contexto as detalles,
+            fecha as created_at,
+            'guardias' as modulo
+          FROM logs_guardias
+          WHERE guardia_id = $1
+          ORDER BY fecha DESC
+        `;
+        params = [entidadId];
+        break;
+        
+      default:
+        return NextResponse.json(
+          { success: false, error: 'Módulo no válido' },
+          { status: 400 }
+        );
+    }
+    
+    const result = await query(sql, params);
     
     return NextResponse.json({
       success: true,
-      data: logsFiltrados
+      data: result.rows
     });
   } catch (error) {
     console.error('❌ Error en GET /api/logs:', error);

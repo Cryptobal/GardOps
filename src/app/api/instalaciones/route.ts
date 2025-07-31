@@ -127,7 +127,94 @@ export async function PUT(request: NextRequest) {
     // Validar datos con Zod
     const validatedData = actualizarInstalacionSchema.parse(body);
     
+    // Obtener datos originales ANTES de la actualización
+    const datosOriginales = await query(`
+      SELECT nombre, cliente_id, direccion, latitud, longitud, ciudad, comuna, valor_turno_extra, estado
+      FROM instalaciones WHERE id = $1
+    `, [validatedData.id]);
+    
+    const original = datosOriginales.rows[0];
+    
     const instalacionActualizada = await actualizarInstalacionDB(validatedData.id, validatedData);
+    
+    // Registrar log de actividad
+    try {
+      const cambios: string[] = [];
+      
+      // Comparar solo los campos que se enviaron explícitamente
+      const camposEnviados = Object.keys(validatedData).filter(key => key !== 'id');
+      
+      for (const campo of camposEnviados) {
+        const valorEnviado = (validatedData as any)[campo];
+        const valorOriginal = (original as any)[campo];
+        
+        // Comparar valores, manejando null/undefined
+        if (valorEnviado !== valorOriginal) {
+          switch (campo) {
+            case 'nombre':
+              cambios.push('nombre');
+              break;
+            case 'cliente_id':
+              cambios.push('cliente');
+              break;
+            case 'direccion':
+              cambios.push('dirección');
+              break;
+            case 'latitud':
+              cambios.push('latitud');
+              break;
+            case 'longitud':
+              cambios.push('longitud');
+              break;
+            case 'ciudad':
+              cambios.push('ciudad');
+              break;
+            case 'comuna':
+              cambios.push('comuna');
+              break;
+            case 'valor_turno_extra':
+              cambios.push('valor turno extra');
+              break;
+            case 'estado':
+              cambios.push('estado');
+              break;
+          }
+        }
+      }
+      
+      let accion = 'Datos actualizados';
+      let detalles = `Actualización de: ${cambios.join(', ')}`;
+      
+      // Si solo se cambió el estado, usar un mensaje más específico
+      if (cambios.length === 1 && cambios[0] === 'estado') {
+        accion = `Estado cambiado a ${validatedData.estado}`;
+        detalles = `${validatedData.estado === 'Activo' ? 'Activación' : 'Desactivación'} de la instalación`;
+      }
+      
+      // Registrar log directamente en la base de datos con zona horaria de Santiago
+      await query(`
+        INSERT INTO logs_instalaciones (instalacion_id, accion, usuario, tipo, contexto, fecha)
+        VALUES ($1, $2, $3, $4, $5, NOW() AT TIME ZONE 'America/Santiago')
+      `, [
+        validatedData.id,
+        accion,
+        'Admin',
+        'manual',
+        detalles
+      ]);
+      
+      console.log('✅ Log registrado para módulo instalaciones:', {
+        entidadId: validatedData.id,
+        accion,
+        usuario: 'Admin',
+        tipo: 'manual',
+        detalles
+      });
+    } catch (logError) {
+      console.error('⚠️ Error al registrar log:', logError);
+      console.error('⚠️ Stack trace:', (logError as Error).stack);
+      // No fallar la operación principal si el logging falla
+    }
     
     return NextResponse.json({
       success: true,
@@ -286,45 +373,88 @@ async function crearInstalacionDB(data: any) {
 
 // Función para actualizar instalación en la base de datos
 async function actualizarInstalacionDB(id: string, data: any) {
-  console.log('🔧 Actualizando instalación con datos:', {
-    id,
-    nombre: data.nombre,
-    cliente_id: data.cliente_id,
-    direccion: data.direccion,
-    latitud: data.latitud,
-    longitud: data.longitud,
-    ciudad: data.ciudad,
-    comuna: data.comuna,
-    valor_turno_extra: data.valor_turno_extra,
-    estado: data.estado
-  });
+  console.log('🔧 Actualizando instalación con datos:', data);
 
-  const result = await query(`
+  // Construir la consulta SQL dinámicamente basada en los campos proporcionados
+  const updates: string[] = [];
+  const values: any[] = [];
+  let paramIndex = 1;
+
+  // Solo incluir campos que están definidos en data
+  if (data.nombre !== undefined) {
+    updates.push(`nombre = $${paramIndex}`);
+    values.push(data.nombre);
+    paramIndex++;
+  }
+
+  if (data.cliente_id !== undefined) {
+    updates.push(`cliente_id = $${paramIndex}`);
+    values.push(data.cliente_id);
+    paramIndex++;
+  }
+
+  if (data.direccion !== undefined) {
+    updates.push(`direccion = $${paramIndex}`);
+    values.push(data.direccion);
+    paramIndex++;
+  }
+
+  if (data.latitud !== undefined) {
+    updates.push(`latitud = $${paramIndex}`);
+    values.push(data.latitud);
+    paramIndex++;
+  }
+
+  if (data.longitud !== undefined) {
+    updates.push(`longitud = $${paramIndex}`);
+    values.push(data.longitud);
+    paramIndex++;
+  }
+
+  if (data.ciudad !== undefined) {
+    updates.push(`ciudad = $${paramIndex}`);
+    values.push(data.ciudad);
+    paramIndex++;
+  }
+
+  if (data.comuna !== undefined) {
+    updates.push(`comuna = $${paramIndex}`);
+    values.push(data.comuna);
+    paramIndex++;
+  }
+
+  if (data.valor_turno_extra !== undefined) {
+    updates.push(`valor_turno_extra = $${paramIndex}`);
+    values.push(data.valor_turno_extra);
+    paramIndex++;
+  }
+
+  if (data.estado !== undefined) {
+    updates.push(`estado = $${paramIndex}`);
+    values.push(data.estado);
+    paramIndex++;
+  }
+
+  // Siempre actualizar updated_at con zona horaria de Santiago
+  updates.push(`updated_at = NOW() AT TIME ZONE 'America/Santiago'`);
+
+  if (updates.length === 0) {
+    throw new Error('No hay campos para actualizar');
+  }
+
+  const sql = `
     UPDATE instalaciones SET
-      nombre = $1,
-      cliente_id = $2,
-      direccion = $3,
-      latitud = $4,
-      longitud = $5,
-      ciudad = $6,
-      comuna = $7,
-      valor_turno_extra = $8,
-      estado = $9,
-      updated_at = NOW()
-    WHERE id = $10
+      ${updates.join(', ')}
+    WHERE id = $${paramIndex}
     RETURNING *
-  `, [
-    data.nombre,
-    data.cliente_id,
-    data.direccion,
-    data.latitud,
-    data.longitud,
-    data.ciudad,
-    data.comuna,
-    data.valor_turno_extra,
-    data.estado,
-    id
-  ]);
+  `;
+
+  values.push(id);
+
+  console.log('🔍 SQL generado:', sql);
+  console.log('📋 Parámetros:', values);
+
+  const result = await query(sql, values);
 
   if (result.rows.length === 0) {
     throw new Error('Instalación no encontrada');

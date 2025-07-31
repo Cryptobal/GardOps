@@ -33,6 +33,7 @@ export interface DataTableProps<T> {
   onRowClick?: (item: T) => void;
   mobileCard?: (item: T) => React.ReactNode;
   className?: string;
+  rowClassName?: string;
 }
 
 export function DataTable<T extends { id: string }>({
@@ -43,7 +44,8 @@ export function DataTable<T extends { id: string }>({
   emptyIcon: EmptyIcon,
   onRowClick,
   mobileCard,
-  className = ""
+  className = "",
+  rowClassName = ""
 }: DataTableProps<T>) {
   const [isMobile, setIsMobile] = useState(false);
 
@@ -106,7 +108,7 @@ export function DataTable<T extends { id: string }>({
               {data.map((item) => (
                 <TableRow
                   key={item.id}
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  className={`cursor-pointer hover:bg-muted/50 transition-colors ${rowClassName}`}
                   onClick={() => onRowClick?.(item)}
                 >
                   {columns.map((column) => (

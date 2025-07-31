@@ -25,6 +25,7 @@ import {
   Settings
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
   Instalacion, 
   CrearInstalacionData, 
@@ -61,14 +62,11 @@ interface KPIData {
 }
 
 export default function InstalacionesPage() {
+  const router = useRouter();
   const [instalaciones, setInstalaciones] = useState<Instalacion[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [editingInstalacion, setEditingInstalacion] = useState<Instalacion | null>(null);
-  const [selectedInstalacion, setSelectedInstalacion] = useState<Instalacion | null>(null);
-  const [isEditingDetails, setIsEditingDetails] = useState(false);
-  const [isReadOnlyMode, setIsReadOnlyMode] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showCriticas, setShowCriticas] = useState(false);
   
@@ -262,45 +260,10 @@ export default function InstalacionesPage() {
     setIsModalOpen(true);
   };
 
-  const abrirModalDetalles = (instalacion: Instalacion) => {
-    setSelectedInstalacion(instalacion);
-    setEditingInstalacion(instalacion); // Establecer la instalación que se está editando
-    setFormData({
-      nombre: instalacion.nombre || '',
-      cliente_id: instalacion.cliente_id || '',
-      direccion: instalacion.direccion || '',
-      latitud: instalacion.latitud ? Number(instalacion.latitud) : null,
-      longitud: instalacion.longitud ? Number(instalacion.longitud) : null,
-      ciudad: instalacion.ciudad || '',
-      comuna: instalacion.comuna || '',
-      valor_turno_extra: Number(instalacion.valor_turno_extra) || 0,
-      estado: instalacion.estado || 'Activo',
-    });
-    setFormErrors({});
-    setIsEditingDetails(false);
-    setIsReadOnlyMode(true);
-    setIsDetailModalOpen(true);
-  };
-
-  const activarModoEdicion = () => {
-    setIsReadOnlyMode(false);
-    setIsEditingDetails(true);
-  };
-
-  const guardarYVolverAReadonly = async () => {
-    await guardarInstalacion();
-    setIsReadOnlyMode(true);
-    setIsEditingDetails(false);
-  };
-
   const cerrarModales = () => {
     setIsModalOpen(false);
-    setIsDetailModalOpen(false);
     setEditingInstalacion(null);
-    setSelectedInstalacion(null);
     setFormErrors({});
-    setIsReadOnlyMode(true);
-    setIsEditingDetails(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -456,22 +419,22 @@ export default function InstalacionesPage() {
       key: "nombre",
       label: "Instalación",
       render: (instalacion) => (
-        <Link href={`/instalaciones/${instalacion.id}`} className="block">
-          <div className="flex items-center space-x-3 hover:bg-slate-800/50 rounded-lg p-2 transition-colors">
-            <div className="p-2 bg-blue-500/10 rounded-lg">
-              <Building2 className="h-4 w-4 text-blue-400" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold hover:text-blue-400 transition-colors truncate">{instalacion.nombre}</p>
-              <div className="flex items-center space-x-2 mt-1">
-                <MapPin className="h-3 w-3 text-slate-400 flex-shrink-0" />
-                <span className="text-xs text-slate-400 truncate" title={instalacion.direccion}>
-                  {instalacion.direccion}
-                </span>
-              </div>
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-blue-500/10 rounded-lg">
+            <Building2 className="h-4 w-4 text-blue-400" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <span className="font-semibold text-foreground truncate">
+              {instalacion.nombre}
+            </span>
+            <div className="flex items-center space-x-2 mt-1">
+              <MapPin className="h-3 w-3 text-slate-400 flex-shrink-0" />
+              <span className="text-xs text-slate-400 truncate" title={instalacion.direccion}>
+                {instalacion.direccion}
+              </span>
             </div>
           </div>
-        </Link>
+        </div>
       )
     },
     {
@@ -528,22 +491,6 @@ export default function InstalacionesPage() {
             }`}
           />
           <span className="text-sm text-slate-300">{instalacion.estado}</span>
-        </div>
-      )
-    },
-    {
-      key: "acciones",
-      label: "Acciones",
-      render: (instalacion) => (
-        <div className="flex justify-end gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => abrirModalDetalles(instalacion)}
-            className="hover:bg-blue-500/10 hover:border-blue-500/30 h-7 w-7 p-0"
-          >
-            <Eye className="h-3 w-3" />
-          </Button>
         </div>
       )
     }
@@ -607,137 +554,7 @@ export default function InstalacionesPage() {
     );
   };
 
-  // Configuración de tabs para EntityTabs
-  const getTabsConfig = (): TabConfig[] => [
-    {
-      key: "informacion",
-      label: "Información",
-      icon: Building2,
-      color: "blue",
-      content: (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Nombre de la Instalación *
-              </label>
-              <Input
-                name="nombre"
-                value={formData.nombre}
-                onChange={handleInputChange}
-                placeholder="Ingresa el nombre de la instalación"
-                className={formErrors.nombre ? "border-red-500" : ""}
-                disabled={!isEditingDetails}
-              />
-              {formErrors.nombre && (
-                <p className="text-sm text-red-400">{formErrors.nombre}</p>
-              )}
-            </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Cliente *
-              </label>
-              <select
-                name="cliente_id"
-                value={formData.cliente_id}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-slate-200 ${
-                  formErrors.cliente_id ? "border-red-500" : ""
-                } ${!isEditingDetails ? "opacity-50 cursor-not-allowed" : ""}`}
-                disabled={!isEditingDetails}
-              >
-                <option value="">Seleccionar cliente</option>
-                {clientes.map(cliente => (
-                  <option key={cliente.id} value={cliente.id}>
-                    {cliente.nombre}
-                  </option>
-                ))}
-              </select>
-              {formErrors.cliente_id && (
-                <p className="text-sm text-red-400">{formErrors.cliente_id}</p>
-              )}
-            </div>
-
-
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Valor Turno Extra
-              </label>
-              <Input
-                type="number"
-                name="valor_turno_extra"
-                value={formData.valor_turno_extra}
-                onChange={handleInputChange}
-                placeholder="0"
-                min="0"
-                step="0.01"
-                className={formErrors.valor_turno_extra ? "border-red-500" : ""}
-                disabled={!isEditingDetails}
-              />
-              {formErrors.valor_turno_extra && (
-                <p className="text-sm text-red-400">{formErrors.valor_turno_extra}</p>
-              )}
-            </div>
-          </div>
-
-
-        </div>
-      )
-    },
-    {
-      key: "ubicacion",
-      label: "Ubicación",
-      icon: MapPin,
-      color: "amber",
-      content: (
-        <LocationTab
-          direccion={formData.direccion}
-          latitud={formData.latitud}
-          longitud={formData.longitud}
-          ciudad={formData.ciudad || ""}
-          comuna={formData.comuna || ""}
-          onAddressSelect={handleAddressSelect}
-          onAddressChange={handleAddressChange}
-          onCiudadChange={handleCiudadChange}
-          onComunaChange={handleComunaChange}
-          onCoordinatesChange={handleCoordinatesChange}
-          onClearLocation={handleClearLocation}
-          disabled={!isEditingDetails}
-          isReadOnly={!isEditingDetails}
-        />
-      )
-    },
-    {
-      key: "documentos",
-      label: "Documentos",
-      icon: FileText,
-      color: "emerald",
-      content: (
-        <DocumentManager
-          modulo="instalaciones"
-          entidadId={selectedInstalacion?.id || ""}
-          onDocumentDeleted={() => setRefreshTrigger(prev => prev + 1)}
-          onUploadSuccess={() => setRefreshTrigger(prev => prev + 1)}
-          refreshTrigger={refreshTrigger}
-        />
-      )
-    },
-    {
-      key: "logs",
-      label: "Actividad",
-      icon: Activity,
-      color: "violet",
-      content: (
-        <LogViewer
-          modulo="instalaciones"
-          entidadId={selectedInstalacion?.id || ""}
-          refreshTrigger={refreshTrigger}
-        />
-      )
-    }
-  ];
 
   // Filtrar instalaciones según los filtros aplicados
   const instalacionesFiltradas = instalaciones.filter(instalacion => {
@@ -854,9 +671,13 @@ export default function InstalacionesPage() {
             loading={loading}
             emptyMessage="No hay instalaciones registradas"
             emptyIcon={Building2}
-            onRowClick={abrirModalDetalles}
             mobileCard={mobileCard}
             className="h-full"
+            rowClassName="hover:shadow-lg transition-shadow duration-150 cursor-pointer"
+            onRowClick={(instalacion) => {
+              console.log('🔄 Navegando a instalación:', instalacion.id);
+              router.push(`/instalaciones/${instalacion.id}`);
+            }}
           />
         </div>
       </motion.div>
@@ -974,8 +795,7 @@ export default function InstalacionesPage() {
               onAddressChange={handleAddressChange}
               placeholder="Buscar dirección con Google Maps..."
               showMap={true}
-              disabled={!isEditingDetails}
-              showClearButton={isEditingDetails}
+              showClearButton={true}
             />
             {formErrors.direccion && (
               <p className="text-sm text-red-400">{formErrors.direccion}</p>
@@ -996,24 +816,7 @@ export default function InstalacionesPage() {
         </div>
       </Modal>
 
-      {/* Modal de detalles del cliente con EntityTabs */}
-      <EntityModal
-        isOpen={isDetailModalOpen}
-        onClose={cerrarModales}
-        title={`Detalles - ${selectedInstalacion?.nombre}`}
-        size="2xl"
-      >
-        {selectedInstalacion && (
-          <EntityTabs
-            tabs={getTabsConfig()}
-            showActionButtons={true}
-            onCancel={cerrarModales}
-            onSave={isReadOnlyMode ? guardarYVolverAReadonly : guardarInstalacion}
-            onEdit={activarModoEdicion}
-            isReadOnly={isReadOnlyMode}
-          />
-        )}
-      </EntityModal>
+
 
       {/* Modal de confirmación */}
       <ConfirmModal />
@@ -1024,5 +827,5 @@ export default function InstalacionesPage() {
   );
 }
 
-// Confirmación de auditoría completada
-console.log("✅ Módulo Instalaciones refactorizado con componentes genéricos"); 
+// Confirmación de navegación directa completada
+console.log("✅ Navegación directa a instalaciones lista"); 
