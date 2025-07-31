@@ -153,17 +153,17 @@ export const useAddressAutocomplete = () => {
       place.address_components.forEach((component) => {
         const types = component.types;
 
-        // Para Chile: administrative_area_level_2 es la ciudad principal (ej: Valparaíso)
-        if (types.includes('administrative_area_level_2')) {
-          components.ciudad = component.long_name;
-        } 
-        // locality es la comuna (ej: Quilpué)
-        else if (types.includes('locality')) {
+        // Para Chile: locality es la comuna (ej: Lo Barnechea, Providencia)
+        if (types.includes('locality')) {
           components.comuna = component.long_name;
         } 
-        // administrative_area_level_1 es la región (ej: Valparaíso)
+        // administrative_area_level_1 es la región (ej: Región Metropolitana)
         else if (types.includes('administrative_area_level_1')) {
           components.region = component.long_name;
+        } 
+        // administrative_area_level_2 es la provincia (ej: Santiago)
+        else if (types.includes('administrative_area_level_2')) {
+          components.ciudad = component.long_name;
         } 
         else if (types.includes('country')) {
           components.pais = component.long_name;

@@ -4,7 +4,8 @@ import { z } from 'zod';
 export interface Guardia {
   id: string;
   nombre: string;
-  apellido: string;
+  apellido_paterno: string;
+  apellido_materno: string;
   rut: string;
   email: string;
   telefono: string;
@@ -14,14 +15,20 @@ export interface Guardia {
   ciudad: string | null;
   comuna: string | null;
   region: string | null;
-  fecha_nacimiento: string;
-  fecha_ingreso: string;
+  activo: boolean;
   estado: "Activo" | "Inactivo";
-  tipo_contrato: "Indefinido" | "Plazo Fijo" | "Por Obra";
-  sueldo_base: number;
   instalacion_id?: string;
   instalacion_nombre?: string;
   cliente_nombre?: string;
+  nombre_completo?: string;
+  fecha_os10?: string | null;
+  rol_actual?: {
+    nombre: string;
+    turno: string;
+    horario_inicio: string;
+    horario_fin: string;
+    dias_trabajo: string;
+  };
   created_at: string;
   updated_at: string;
 }
