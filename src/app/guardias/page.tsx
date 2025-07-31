@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -75,7 +75,7 @@ export default function GuardiasPage() {
   const [guardias, setGuardias] = useState<Guardia[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("activo");
   const [instalacionFilter, setInstalacionFilter] = useState<string>("all");
 
   // Hooks para modales y operaciones CRUD
@@ -148,23 +148,25 @@ export default function GuardiasPage() {
     fetchGuardias();
   }, []);
 
-  // Filtrar guardias
-  const filteredGuardias = guardias.filter((guardia: any) => {
-    const matchesSearch = 
-      guardia.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      guardia.rut?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      guardia.telefono?.includes(searchTerm) ||
-      guardia.email?.toLowerCase().includes(searchTerm.toLowerCase());
+  // Filtrar guardias (con dependencias explícitas)
+  const filteredGuardias = useMemo(() => {
+    return guardias.filter((guardia: any) => {
+      const matchesSearch = 
+        guardia.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        guardia.rut?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        guardia.telefono?.includes(searchTerm) ||
+        guardia.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === "all" || 
-      (statusFilter === "activo" && guardia.activo) ||
-      (statusFilter === "inactivo" && !guardia.activo);
+      const matchesStatus = statusFilter === "all" || 
+        (statusFilter === "activo" && guardia.activo === true) ||
+        (statusFilter === "inactivo" && guardia.activo === false);
 
-    const matchesInstalacion = instalacionFilter === "all" || 
-      guardia.instalacion_nombre === instalacionFilter;
+      const matchesInstalacion = instalacionFilter === "all" || 
+        guardia.instalacion_nombre === instalacionFilter;
 
-    return matchesSearch && matchesStatus && matchesInstalacion;
-  });
+      return matchesSearch && matchesStatus && matchesInstalacion;
+    });
+  }, [guardias, searchTerm, statusFilter, instalacionFilter]);
 
   // Columnas de la tabla
   const columns: Column<any>[] = [

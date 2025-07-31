@@ -5,20 +5,37 @@ export async function GET(request: NextRequest) {
   try {
     const result = await query(`
       SELECT 
-        id,
-        nombre,
-        CONCAT(apellido_paterno, ' ', apellido_materno) as apellidos,
-        email,
-        telefono,
-        activo as estado,
-        created_at,
-        updated_at
-      FROM guardias 
-      WHERE activo = true
-      ORDER BY nombre, apellido_paterno, apellido_materno
+        g.id,
+        g.nombre,
+        g.apellido_paterno,
+        g.apellido_materno,
+        CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, '')) as nombre_completo,
+        g.rut,
+        g.email,
+        g.telefono,
+        g.direccion,
+        g.latitud,
+        g.longitud,
+        g.ciudad,
+        g.comuna,
+        g.region,
+        g.activo,
+        g.fecha_os10,
+        g.instalacion_id,
+        i.nombre as instalacion_nombre,
+        c.nombre as cliente_nombre,
+        g.created_at,
+        g.updated_at
+      FROM guardias g
+      LEFT JOIN instalaciones i ON g.instalacion_id = i.id
+      LEFT JOIN clientes c ON i.cliente_id = c.id
+      ORDER BY g.activo DESC, g.nombre, g.apellido_paterno, g.apellido_materno
     `);
 
-    return NextResponse.json(result.rows);
+    return NextResponse.json({ 
+      success: true, 
+      guardias: result.rows 
+    });
   } catch (error) {
     console.error('Error obteniendo guardias:', error);
     return NextResponse.json(

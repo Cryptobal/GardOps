@@ -75,7 +75,7 @@ export default function InstalacionesPage() {
   // Estados para filtros
   const [filtros, setFiltros] = useState<Record<string, string>>({
     search: "",
-    estado: "Todos",
+    estado: "Activo",
     cliente_id: "",
     totalCount: "0",
     filteredCount: "0"
@@ -203,7 +203,7 @@ export default function InstalacionesPage() {
   const clearFilters = () => {
     setFiltros({
       search: "",
-      estado: "Todos",
+      estado: "Activo",
       cliente_id: "",
       totalCount: filtros.totalCount,
       filteredCount: filtros.totalCount
