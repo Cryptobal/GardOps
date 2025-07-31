@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { Settings, Save, FileText, Users, Building, Shield } from "lucide-react";
+import { Settings, Save, FileText, Users, Building, Shield, Clock } from "lucide-react";
 import Link from "next/link";
 
 export default function ConfiguracionPage() {
@@ -34,6 +34,26 @@ export default function ConfiguracionPage() {
               </p>
               <div className="mt-4 flex items-center text-blue-500 text-sm group-hover:underline">
                 Gestionar tipos →
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Roles de Servicio */}
+        <Link href="/configuracion/roles-servicio">
+          <Card className="card-elegant hover:shadow-lg transition-all duration-200 cursor-pointer group">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-green-500" />
+                Roles de Servicio
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm">
+                Configurar roles de servicio, ciclos de trabajo y horarios para turnos
+              </p>
+              <div className="mt-4 flex items-center text-green-500 text-sm group-hover:underline">
+                Gestionar roles →
               </div>
             </CardContent>
           </Card>

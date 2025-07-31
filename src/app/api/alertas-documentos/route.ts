@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
         dg.id as documento_id,
         COALESCE(td.nombre, dg.tipo) as documento_nombre,
         dg.fecha_vencimiento,
-        CONCAT(g.nombre, ' ', g.apellido) as entidad_nombre,
+        CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', g.apellido_materno) as entidad_nombre,
         g.id as entidad_id,
         td.nombre as tipo_documento_nombre,
         td.dias_antes_alarma,

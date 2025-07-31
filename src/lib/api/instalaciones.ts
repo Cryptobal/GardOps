@@ -6,7 +6,11 @@ import {
   DocumentoInstalacion,
   LogInstalacion,
   Comuna,
-  Cliente
+  Cliente,
+  TurnoInstalacionConDetalles,
+  RolServicio,
+  CrearTurnoInstalacionData,
+  TurnoInstalacion
 } from "../schemas/instalaciones";
 
 // Obtener todas las instalaciones
@@ -17,6 +21,24 @@ export const obtenerInstalaciones = async (): Promise<Instalacion[]> => {
   
   if (!result.success) {
     throw new Error(result.error || "Error al obtener instalaciones");
+  }
+  
+  return result.data;
+};
+
+// Obtener una instalación específica
+export const getInstalacion = async (id: string): Promise<Instalacion> => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+  const response = await fetch(`${baseUrl}/api/instalaciones/${id}`);
+  
+  if (!response.ok) {
+    throw new Error(`Error al obtener instalación: ${response.statusText}`);
+  }
+  
+  const result = await response.json();
+  
+  if (!result.success) {
+    throw new Error(result.error || "Error al obtener instalación");
   }
   
   return result.data;
@@ -214,3 +236,152 @@ export const logCambioEstadoInstalacion = async (instalacionId: string, nuevoEst
     }),
   });
 }; 
+
+// Funciones para turnos de instalación
+export async function getTurnosInstalacion(instalacionId: string): Promise<TurnoInstalacionConDetalles[]> {
+  try {
+    const response = await fetch(`/api/instalaciones/${instalacionId}/turnos`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error al obtener turnos: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error obteniendo turnos de instalación:', error);
+    throw error;
+  }
+}
+
+export async function getRolesServicio(): Promise<RolServicio[]> {
+  try {
+    const response = await fetch('/api/roles-servicio', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error al obtener roles de servicio: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error obteniendo roles de servicio:', error);
+    throw error;
+  }
+}
+
+export async function crearTurnoInstalacion(data: CrearTurnoInstalacionData): Promise<TurnoInstalacion> {
+  try {
+    const response = await fetch(`/api/instalaciones/${data.instalacion_id}/turnos`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error al crear turno: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error creando turno de instalación:', error);
+    throw error;
+  }
+}
+
+// Funciones para PPCs
+export async function getPPCsInstalacion(instalacionId: string): Promise<any[]> {
+  try {
+    const response = await fetch(`/api/instalaciones/${instalacionId}/ppc`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error al obtener PPCs: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error obteniendo PPCs:', error);
+    throw error;
+  }
+}
+
+export async function asignarGuardiaPPC(instalacionId: string, ppcId: string, guardiaId: string): Promise<any> {
+  try {
+    const response = await fetch(`/api/instalaciones/${instalacionId}/ppc`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ppc_id: ppcId,
+        guardia_id: guardiaId
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error al asignar guardia: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error asignando guardia:', error);
+    throw error;
+  }
+}
+
+export async function eliminarRolServicio(rolId: string): Promise<any> {
+  try {
+    const response = await fetch(`/api/roles-servicio/${rolId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Error al eliminar rol: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error eliminando rol de servicio:', error);
+    throw error;
+  }
+}
+
+export async function eliminarTurnoInstalacion(instalacionId: string, turnoId: string): Promise<any> {
+  try {
+    const response = await fetch(`/api/instalaciones/${instalacionId}/turnos/${turnoId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Error al eliminar turno: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error eliminando turno de instalación:', error);
+    throw error;
+  }
+} 

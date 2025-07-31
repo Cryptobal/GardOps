@@ -108,4 +108,44 @@ export const actualizarInstalacionSchema = z.object({
   comuna: z.string().optional(),
   valor_turno_extra: z.coerce.number().min(0, 'El valor de turno extra debe ser mayor o igual a 0').optional(),
   estado: z.enum(['Activo', 'Inactivo']).optional(),
-}); 
+});
+
+export interface RolServicio {
+  id: string;
+  nombre: string;
+  dias_trabajo: number;
+  dias_descanso: number;
+  horas_turno: number;
+  hora_inicio: string;
+  hora_termino: string;
+  estado: "Activo" | "Inactivo";
+  tenant_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TurnoInstalacion {
+  id: string;
+  instalacion_id: string;
+  rol_servicio_id: string;
+  cantidad_guardias: number;
+  estado: "Activo" | "Inactivo";
+  created_at: string;
+  updated_at: string;
+  // Campos calculados
+  rol_servicio?: RolServicio;
+  guardias_asignados?: number;
+  ppc_pendientes?: number;
+}
+
+export interface CrearTurnoInstalacionData {
+  instalacion_id: string;
+  rol_servicio_id: string;
+  cantidad_guardias: number;
+}
+
+export interface TurnoInstalacionConDetalles extends TurnoInstalacion {
+  rol_servicio: RolServicio;
+  guardias_asignados: number;
+  ppc_pendientes: number;
+} 

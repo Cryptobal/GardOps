@@ -74,6 +74,13 @@ export const navigationItems: NavigationItem[] = [
   {
     name: "Configuración",
     href: "/configuracion",
-    icon: Settings
+    icon: Settings,
+    children: [
+      {
+        name: "Roles de Servicio",
+        href: "/configuracion/roles-servicio",
+        icon: Clock
+      }
+    ]
   }
 ]; 

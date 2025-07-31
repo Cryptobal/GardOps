@@ -24,6 +24,7 @@ import {
   Activity,
   Settings
 } from "lucide-react";
+import Link from "next/link";
 import { 
   Instalacion, 
   CrearInstalacionData, 
@@ -455,20 +456,22 @@ export default function InstalacionesPage() {
       key: "nombre",
       label: "Instalación",
       render: (instalacion) => (
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-blue-500/10 rounded-lg">
-            <Building2 className="h-4 w-4 text-blue-400" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold hover:text-blue-400 transition-colors truncate">{instalacion.nombre}</p>
-            <div className="flex items-center space-x-2 mt-1">
-              <MapPin className="h-3 w-3 text-slate-400 flex-shrink-0" />
-              <span className="text-xs text-slate-400 truncate" title={instalacion.direccion}>
-                {instalacion.direccion}
-              </span>
+        <Link href={`/instalaciones/${instalacion.id}`} className="block">
+          <div className="flex items-center space-x-3 hover:bg-slate-800/50 rounded-lg p-2 transition-colors">
+            <div className="p-2 bg-blue-500/10 rounded-lg">
+              <Building2 className="h-4 w-4 text-blue-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold hover:text-blue-400 transition-colors truncate">{instalacion.nombre}</p>
+              <div className="flex items-center space-x-2 mt-1">
+                <MapPin className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                <span className="text-xs text-slate-400 truncate" title={instalacion.direccion}>
+                  {instalacion.direccion}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
+        </Link>
       )
     },
     {
