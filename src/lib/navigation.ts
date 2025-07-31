@@ -18,6 +18,7 @@ export interface NavigationItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   description?: string;
+  children?: NavigationItem[];
 }
 
 export const navigationItems: NavigationItem[] = [

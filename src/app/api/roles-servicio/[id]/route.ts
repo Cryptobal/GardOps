@@ -70,7 +70,7 @@ export async function DELETE(
       WHERE rol_servicio_id = $1
     `, [id]);
 
-    const turnosIds = turnosResult.rows.map(t => t.id);
+    const turnosIds = turnosResult.rows.map((t: { id: string }) => t.id);
 
     // Iniciar transacción para eliminar todo en orden
     await query('BEGIN');
@@ -92,7 +92,7 @@ export async function DELETE(
           WHERE rol_servicio_id = $1
         `, [id]);
 
-        const requisitosIds = requisitosResult.rows.map(r => r.id);
+        const requisitosIds = requisitosResult.rows.map((r: { id: string }) => r.id);
 
         if (requisitosIds.length > 0) {
           // 3. Eliminar puestos_por_cubrir asociados a estos requisitos
@@ -135,7 +135,7 @@ export async function DELETE(
         message: `Rol de servicio eliminado correctamente${turnosIds.length > 0 ? ` junto con ${turnosIds.length} turno${turnosIds.length > 1 ? 's' : ''} asociado${turnosIds.length > 1 ? 's' : ''}` : ''}`
       });
 
-    } catch (error) {
+    } catch (error: any) {
       await query('ROLLBACK');
       console.error('Error eliminando rol de servicio:', error);
       return NextResponse.json(

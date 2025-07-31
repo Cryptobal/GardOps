@@ -43,7 +43,7 @@ export async function DELETE(
         WHERE rol_servicio_id = $1 AND instalacion_id = $2
       `, [turno.rol_servicio_id, instalacionId]);
 
-      const requisitosIds = requisitosResult.rows.map(r => r.id);
+      const requisitosIds = requisitosResult.rows.map((r: { id: string }) => r.id);
 
       if (requisitosIds.length > 0) {
         // 3. Eliminar puestos_por_cubrir asociados a estos requisitos
