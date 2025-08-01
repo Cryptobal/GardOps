@@ -54,6 +54,8 @@ const statsBase = [
 ];
 
 export default function HomePage() {
+  console.log('🔍 HomePage: Componente iniciando...')
+  
   const router = useRouter();
   const [alertas, setAlertas] = useState<AlertaDocumento[]>([]);
   const [cargandoAlertas, setCargandoAlertas] = useState(true);
@@ -91,6 +93,7 @@ export default function HomePage() {
   };
 
   useEffect(() => {
+    console.log('🔍 HomePage: useEffect ejecutándose...')
     cargarAlertas();
     // Auto-refresh cada 2 minutos
     const interval = setInterval(cargarAlertas, 120000);
@@ -136,6 +139,8 @@ export default function HomePage() {
     router.push(href);
   };
 
+  console.log('🔍 HomePage: Renderizando página principal...')
+  
   return (
     <div className="space-y-8">
       {/* Welcome Section */}

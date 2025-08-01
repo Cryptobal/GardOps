@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../lib/database';
 
+// Configuración para evitar errores de Dynamic Server Usage
+export const dynamic = 'force-dynamic';
+
 // GET /api/documentos-global - Obtener documentos globales con filtros
 export async function GET(request: NextRequest) {
   try {

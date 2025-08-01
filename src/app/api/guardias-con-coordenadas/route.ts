@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuthAndRole, getAuthenticatedUser, AuthenticatedRequest } from '../../../middleware/auth';
 import { query } from '@/lib/database';
 
+// Configuración para evitar errores de Dynamic Server Usage
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   console.log('🔍 API Guardias - Iniciando request');
   

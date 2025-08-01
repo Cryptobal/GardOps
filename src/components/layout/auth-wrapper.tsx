@@ -25,11 +25,18 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
 
   useEffect(() => {
     const checkAuth = () => {
+      console.log('🔍 AuthWrapper: Verificando autenticación...')
+      console.log('🔍 AuthWrapper: Ruta actual:', pathname)
+      console.log('🔍 AuthWrapper: Es ruta pública:', isPublicRoute)
+      
       const auth = isAuthenticated()
+      console.log('🔍 AuthWrapper: Usuario autenticado:', auth)
+      
       setIsAuth(auth)
       setIsLoading(false)
 
       if (!auth && !isPublicRoute) {
+        console.log('🔍 AuthWrapper: Redirigiendo a login...')
         router.push('/login')
       }
     }
@@ -54,7 +61,10 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     setIsSidebarCollapsed(collapsed)
   }
 
+  console.log('🔍 AuthWrapper: Renderizando...', { isLoading, isAuth, isPublicRoute })
+
   if (isLoading) {
+    console.log('🔍 AuthWrapper: Mostrando spinner de carga...')
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
@@ -63,6 +73,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
   }
 
   if (isPublicRoute) {
+    console.log('🔍 AuthWrapper: Ruta pública, mostrando contenido sin layout...')
     return <>{children}</>
   }
 
