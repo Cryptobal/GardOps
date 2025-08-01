@@ -35,7 +35,7 @@ export default function AlertasPage() {
   const [filtroModulo, setFiltroModulo] = useState<string>("todos");
   const { toast } = useToast();
 
-  const cargarAlertas = async () => {
+  const cargarAlertas = useCallback(async () => {
     try {
       setCargando(true);
       console.log('🔔 Cargando alertas de documentos...');
@@ -79,7 +79,7 @@ export default function AlertasPage() {
       setCargando(false);
       console.log('🏁 Carga de alertas completada');
     }
-  };
+  }, [toast]);
 
   // Filtrar alertas según el módulo seleccionado
   useEffect(() => {
@@ -95,7 +95,7 @@ export default function AlertasPage() {
     // Auto-refresh cada 30 segundos
     const interval = setInterval(cargarAlertas, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [cargarAlertas]);
 
   // Calcular KPIs basados en alertas filtradas
   const vencidos = alertasFiltradas.filter(a => a.dias_restantes < 0).length;

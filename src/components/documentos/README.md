@@ -1,100 +1,23 @@
-# Sistema de Gestión de Documentos
+# DocumentManager Component
 
-## Descripción
-Sistema completo para subir, almacenar y gestionar documentos usando Cloudflare R2 como almacenamiento y PostgreSQL para metadatos.
+Componente para gestionar documentos de diferentes entidades (guardias, clientes, instalaciones).
 
-## Características
-- ✅ Subida de archivos a Cloudflare R2
-- ✅ URLs temporales para descarga (10 minutos)
-- ✅ Metadatos almacenados en PostgreSQL
-- ✅ Componente reutilizable para cualquier módulo
-- ✅ Interfaz moderna y responsive
-- ✅ Gestión completa (subir, descargar, eliminar)
+## Uso
 
-## Endpoints API
-
-### POST /api/upload-document
-Sube un documento a R2 y guarda metadatos en la base de datos.
-
-**Parámetros:**
-- `file`: Archivo a subir
-- `modulo`: Módulo del sistema (ej: "guardias", "clientes")
-- `entidad_id`: ID de la entidad relacionada
-
-**Respuesta:**
-```json
-{
-  "success": true,
-  "key": "guardias/uuid.pdf",
-  "nombre_original": "documento.pdf"
-}
-```
-
-### POST /api/document-url
-Genera una URL temporal para descargar un documento.
-
-**Body:**
-```json
-{
-  "key": "guardias/uuid.pdf"
-}
-```
-
-**Respuesta:**
-```json
-{
-  "url": "https://r2.cloudflare.com/temp-url..."
-}
-```
-
-### GET /api/documents
-Lista documentos de una entidad específica.
-
-**Query params:**
-- `modulo`: Módulo del sistema
-- `entidad_id`: ID de la entidad
-
-**Respuesta:**
-```json
-{
-  "documentos": [
-    {
-      "id": "uuid",
-      "nombre_original": "documento.pdf",
-      "tipo": "application/pdf",
-      "url": "guardias/uuid.pdf",
-      "creado_en": "2024-01-01T00:00:00Z"
-    }
-  ]
-}
-```
-
-### DELETE /api/documents
-Elimina un documento.
-
-**Query params:**
-- `id`: ID del documento
-
-## Componente DocumentManager
-
-### Uso básico
 ```tsx
-import { DocumentManager } from "@/components/ui/document-manager";
+import { DocumentManager } from '@/components/shared/document-manager';
 
-function MiComponente() {
-  return (
-    <DocumentManager 
-      modulo="guardias"
-      entidad_id="uuid-del-guardia"
-      onDocumentUploaded={() => console.log("Documento subido")}
-    />
-  );
-}
+<DocumentManager 
+  modulo="guardias" 
+  entidadId={guardia.id} 
+  onDocumentUploaded={() => console.log('Documento subido')}
+/>
 ```
 
-### Props
-- `modulo`: Módulo del sistema (string)
-- `entidad_id`: ID de la entidad (string)
+## Props
+
+- `modulo`: Tipo de entidad ("guardias", "clientes", "instalaciones")
+- `entidadId`: ID de la entidad (string)
 - `onDocumentUploaded`: Callback opcional cuando se sube un documento
 
 ## Estructura de Base de Datos
@@ -102,16 +25,24 @@ function MiComponente() {
 ```sql
 CREATE TABLE documentos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  modulo TEXT NOT NULL,
-  entidad_id UUID NOT NULL,
+  instalacion_id UUID,
+  guardia_id UUID,
+  cliente_id UUID,
   nombre_original TEXT,
   tipo TEXT,
   url TEXT,
-  creado_en TIMESTAMP DEFAULT now()
+  contenido_archivo BYTEA,
+  tamaño BIGINT,
+  tipo_documento_id UUID,
+  fecha_vencimiento DATE,
+  creado_en TIMESTAMP DEFAULT now(),
+  actualizado_en TIMESTAMP DEFAULT now()
 );
 
 -- Índices para rendimiento
-CREATE INDEX idx_documentos_modulo_entidad ON documentos(modulo, entidad_id);
+CREATE INDEX idx_documentos_instalacion ON documentos(instalacion_id);
+CREATE INDEX idx_documentos_guardia ON documentos(guardia_id);
+CREATE INDEX idx_documentos_cliente ON documentos(cliente_id);
 CREATE INDEX idx_documentos_creado_en ON documentos(creado_en DESC);
 ```
 
@@ -136,17 +67,17 @@ GET /api/migrate-documentos
 
 ### Guardias
 ```tsx
-<DocumentManager modulo="guardias" entidad_id={guardia.id} />
+<DocumentManager modulo="guardias" entidadId={guardia.id} />
 ```
 
 ### Clientes
 ```tsx
-<DocumentManager modulo="clientes" entidad_id={cliente.id} />
+<DocumentManager modulo="clientes" entidadId={cliente.id} />
 ```
 
 ### Instalaciones
 ```tsx
-<DocumentManager modulo="instalaciones" entidad_id={instalacion.id} />
+<DocumentManager modulo="instalaciones" entidadId={instalacion.id} />
 ```
 
 ## Seguridad

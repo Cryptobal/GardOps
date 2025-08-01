@@ -102,14 +102,14 @@ export default function ClientesPage() {
   // Cargar clientes al montar el componente
   useEffect(() => {
     cargarClientes();
-  }, []);
+  }, [cargarClientes]);
 
   // Aplicar filtros cuando cambien
   useEffect(() => {
     aplicarFiltros();
-  }, [clientes, filtros.search, filtros.estado]);
+  }, [clientes, filtros.search, filtros.estado, aplicarFiltros]);
 
-  const cargarClientes = async () => {
+  const cargarClientes = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch("/api/clientes");
@@ -130,9 +130,9 @@ export default function ClientesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const aplicarFiltros = () => {
+  const aplicarFiltros = useCallback(() => {
     let filtered = [...clientes];
 
     // Filtro por búsqueda
@@ -156,7 +156,7 @@ export default function ClientesPage() {
       ...prev,
       filteredCount: filtered.length.toString()
     }));
-  };
+  }, [clientes, filtros.search, filtros.estado]);
 
   const handleFilterChange = (key: string, value: string) => {
     setFiltros(prev => ({ ...prev, [key]: value }));

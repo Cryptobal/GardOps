@@ -11,12 +11,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Faltan parámetros modulo y entidad_id" }, { status: 400 });
     }
 
+    // Determinar el campo de entidad según el módulo
+    let entidadField = "";
+    if (modulo === "instalaciones") {
+      entidadField = "instalacion_id";
+    } else if (modulo === "guardias") {
+      entidadField = "guardia_id";
+    } else {
+      return NextResponse.json({ error: "Módulo no válido" }, { status: 400 });
+    }
+
     const result = await pool.query(
-      `SELECT id, modulo, entidad_id, nombre_original, tipo, url, creado_en
+      `SELECT id, nombre_original, tipo, url, creado_en, fecha_vencimiento, tipo_documento_id
        FROM documentos 
-       WHERE modulo = $1 AND entidad_id = $2
+       WHERE ${entidadField} = $1
        ORDER BY creado_en DESC`,
-      [modulo, entidad_id]
+      [entidad_id]
     );
 
     return NextResponse.json({ documentos: result.rows });

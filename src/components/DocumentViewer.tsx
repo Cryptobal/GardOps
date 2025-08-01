@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Download, X } from "lucide-react";
+import Image from "next/image";
 
 interface DocumentViewerProps {
   isOpen: boolean;
@@ -97,10 +98,13 @@ export default function DocumentViewer({
     } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension || '')) {
       return (
         <div className="flex justify-center">
-          <img
+          <Image
             src={documentUrl}
             alt={documentName}
+            width={800}
+            height={600}
             className="max-w-full max-h-96 object-contain border border-border rounded"
+            unoptimized
           />
         </div>
       );

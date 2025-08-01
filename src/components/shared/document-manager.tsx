@@ -75,7 +75,7 @@ export function DocumentManager({
     [tiposDocumentos, tipoDocumentoId]
   );
 
-  const cargarDocumentos = async (forceReload: boolean = false) => {
+  const cargarDocumentos = useCallback(async (forceReload: boolean = false) => {
     const now = Date.now();
     
     // Caché de 10 segundos
@@ -112,10 +112,10 @@ export function DocumentManager({
     } finally {
       setCargando(false);
     }
-  };
+  }, [modulo, entidadId, lastLoadTime]);
 
   // Cargar tipos de documentos
-  const cargarTiposDocumentos = async () => {
+  const cargarTiposDocumentos = useCallback(async () => {
     try {
       setLoadingTipos(true);
       
@@ -145,7 +145,7 @@ export function DocumentManager({
     } finally {
       setLoadingTipos(false);
     }
-  };
+  }, [modulo]);
 
   const handleUpload = useCallback(async () => {
     if (!file || !tipoDocumentoId) {
@@ -222,7 +222,7 @@ export function DocumentManager({
       console.error('❌ Error en subida:', error);
       setUploadStatus("error");
     }
-  }, [file, tipoDocumentoId, fechaVencimiento, modulo, entidadId, tipoSeleccionado, onUploadSuccess]);
+  }, [file, tipoDocumentoId, fechaVencimiento, modulo, entidadId, tipoSeleccionado, onUploadSuccess, cargarDocumentos]);
 
   const eliminarDocumento = useCallback(async (documentoId: string) => {
     if (!confirm("¿Estás seguro de eliminar este documento?")) return;
@@ -263,7 +263,7 @@ export function DocumentManager({
       console.error("Error eliminando documento:", error);
       alert("Error al eliminar el documento");
     }
-  }, [documentos, modulo, entidadId, onDocumentDeleted]);
+  }, [documentos, modulo, entidadId, onDocumentDeleted, cargarDocumentos]);
 
   const descargarDocumento = useCallback(async (documento: Documento) => {
     try {

@@ -17,25 +17,41 @@ export async function GET(req: NextRequest) {
     if (tableExists.rows[0].exists) {
       console.log("ℹ️ Tabla documentos ya existe");
     } else {
-      // Crear tabla documentos
+      // Crear tabla documentos con estructura corregida
       await pool.query(`
         CREATE TABLE documentos (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          modulo TEXT NOT NULL,
-          entidad_id UUID NOT NULL,
+          instalacion_id UUID,
+          guardia_id UUID,
+          cliente_id UUID,
           nombre_original TEXT,
           tipo TEXT,
           url TEXT,
-          creado_en TIMESTAMP DEFAULT now()
+          contenido_archivo BYTEA,
+          tamaño BIGINT,
+          tipo_documento_id UUID,
+          fecha_vencimiento DATE,
+          creado_en TIMESTAMP DEFAULT now(),
+          actualizado_en TIMESTAMP DEFAULT now()
         )
       `);
-      console.log("✅ Tabla documentos creada");
+      console.log("✅ Tabla documentos creada con estructura corregida");
     }
 
     // Crear índices para mejorar rendimiento
     await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_documentos_modulo_entidad 
-      ON documentos(modulo, entidad_id)
+      CREATE INDEX IF NOT EXISTS idx_documentos_instalacion 
+      ON documentos(instalacion_id)
+    `);
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_documentos_guardia 
+      ON documentos(guardia_id)
+    `);
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_documentos_cliente 
+      ON documentos(cliente_id)
     `);
 
     await pool.query(`
@@ -60,7 +76,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      message: "Migración de documentos completada",
+      message: "Migración de documentos completada con estructura corregida",
       structure: structure.rows
     });
 

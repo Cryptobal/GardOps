@@ -73,13 +73,13 @@ async function checkDatabaseStatus() {
       console.error('❌ Error listando usuarios:', error);
     }
 
-    // 7. Listar tenants existentes
+    // 7. Listar tenants existentes (corregido para usar columnas reales)
     console.log('\n7️⃣ Listando tenants existentes...');
     try {
       const tenantsResult = await query(`
-        SELECT id, nombre, descripcion, activo, fecha_creacion
+        SELECT id, nombre, activo, created_at
         FROM tenants 
-        ORDER BY fecha_creacion DESC
+        ORDER BY created_at DESC
       `);
 
       if (tenantsResult.rows.length > 0) {

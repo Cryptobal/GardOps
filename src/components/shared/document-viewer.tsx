@@ -15,6 +15,7 @@ import {
   Image as ImageIcon,
   File
 } from "lucide-react";
+import Image from "next/image";
 
 interface DocumentViewerProps {
   open: boolean;
@@ -297,11 +298,14 @@ export function DocumentViewer({
                   
                   if (isImageType) {
                     return (
-                      <img 
+                      <Image 
                         src={documentUrl} 
                         alt={documentName}
+                        width={800}
+                        height={600}
                         className="max-w-none"
                         style={{ maxHeight: '80vh' }}
+                        unoptimized
                       />
                     );
                   } else if (isPdfType) {
