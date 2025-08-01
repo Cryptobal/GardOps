@@ -385,3 +385,136 @@ export async function eliminarTurnoInstalacion(instalacionId: string, turnoId: s
     throw error;
   }
 } 
+
+// Obtener guardias disponibles (sin asignación activa)
+export async function getGuardiasDisponibles(): Promise<any[]> {
+  try {
+    const response = await fetch('/api/guardias/disponibles');
+    if (!response.ok) {
+      throw new Error('Error al obtener guardias disponibles');
+    }
+    const data = await response.json();
+    return data.guardias || [];
+  } catch (error) {
+    console.error('Error obteniendo guardias disponibles:', error);
+    return [];
+  }
+}
+
+// Desasignar guardia de un PPC
+export async function desasignarGuardiaPPC(instalacionId: string, ppcId: string): Promise<any> {
+  try {
+    const response = await fetch(`/api/instalaciones/${instalacionId}/ppc/${ppcId}/desasignar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al desasignar guardia');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error desasignando guardia:', error);
+    throw error;
+  }
+}
+
+// Eliminar PPC
+export async function eliminarPPC(instalacionId: string, ppcId: string): Promise<any> {
+  try {
+    const response = await fetch(`/api/instalaciones/${instalacionId}/ppc/${ppcId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al eliminar PPC');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error eliminando PPC:', error);
+    throw error;
+  }
+}
+
+// Agregar puestos a un turno existente
+export async function agregarPuestosARol(instalacionId: string, turnoId: string, cantidad: number): Promise<any> {
+  try {
+    const response = await fetch(`/api/instalaciones/${instalacionId}/turnos/${turnoId}/agregar-ppcs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        cantidad: cantidad
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al agregar puestos');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error agregando puestos:', error);
+    throw error;
+  }
+} 
+
+// Obtener todas las instalaciones con estadísticas optimizadas
+export const obtenerInstalacionesConEstadisticas = async (): Promise<Instalacion[]> => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+  const response = await fetch(`${baseUrl}/api/instalaciones?withStats=true`);
+  const result = await response.json();
+  
+  if (!result.success) {
+    throw new Error(result.error || "Error al obtener instalaciones");
+  }
+  
+  return result.data;
+};
+
+// Obtener todos los datos necesarios en una sola llamada (instalaciones + clientes + comunas)
+export const obtenerDatosCompletosInstalaciones = async (): Promise<{
+  instalaciones: Instalacion[];
+  clientes: Cliente[];
+  comunas: Comuna[];
+}> => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+  const response = await fetch(`${baseUrl}/api/instalaciones?withAllData=true`);
+  const result = await response.json();
+  
+  if (!result.success) {
+    throw new Error(result.error || "Error al obtener datos completos");
+  }
+  
+  return result.data;
+}; 
+
+// Obtener todos los datos de una instalación en una sola llamada optimizada
+export const obtenerDatosCompletosInstalacion = async (instalacionId: string): Promise<{
+  instalacion: Instalacion;
+  turnos: TurnoInstalacionConDetalles[];
+  ppcs: any[];
+  guardias: any[];
+  roles: RolServicio[];
+}> => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+  const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/completa`);
+  const result = await response.json();
+  
+  if (!result.success) {
+    throw new Error(result.error || "Error al obtener datos completos de la instalación");
+  }
+  
+  return result.data;
+}; 

@@ -320,7 +320,7 @@ export async function createPautasMensualesTable(): Promise<MigrationResult> {
         guardia_id UUID REFERENCES guardias(id) ON DELETE CASCADE,
         rol_servicio_id UUID REFERENCES roles_servicio(id) ON DELETE SET NULL,
         dia DATE NOT NULL,
-        tipo TEXT CHECK (tipo IN ('turno', 'libre', 'licencia', 'permiso', 'falta_aviso')) DEFAULT 'turno',
+        tipo TEXT CHECK (tipo IN ('turno', 'libre', 'licencia', 'permiso', 'falta_asignacion')) DEFAULT 'turno',
         observacion TEXT,
         creado_en TIMESTAMP DEFAULT now()
       )
@@ -403,7 +403,7 @@ export async function createPautasDiariasTable(): Promise<MigrationResult> {
         pauta_mensual_id UUID REFERENCES pautas_mensuales(id) ON DELETE CASCADE,
         fecha DATE NOT NULL,
         guardia_asignado_id UUID REFERENCES guardias(id) ON DELETE SET NULL,
-        estado TEXT CHECK (estado IN ('asistio', 'licencia', 'falta_aviso', 'permiso', 'libre', 'ppc', 'cobertura')) NOT NULL,
+        estado TEXT CHECK (estado IN ('asistio', 'licencia', 'falta_asignacion', 'permiso', 'libre', 'ppc', 'cobertura')) NOT NULL,
         cobertura_por_id UUID REFERENCES guardias(id) ON DELETE SET NULL,
         observacion TEXT,
         creado_en TIMESTAMP DEFAULT now()
@@ -493,7 +493,7 @@ export async function createPuestosPorCubrirTable(): Promise<MigrationResult> {
         pauta_diaria_id UUID REFERENCES pautas_diarias(id) ON DELETE CASCADE,
         instalacion_id UUID REFERENCES instalaciones(id) ON DELETE SET NULL,
         rol_servicio_id UUID REFERENCES roles_servicio(id) ON DELETE SET NULL,
-        motivo TEXT CHECK (motivo IN ('falta_aviso', 'licencia', 'permiso', 'inasistencia')) DEFAULT 'falta_aviso',
+        motivo TEXT CHECK (motivo IN ('falta_asignacion', 'falta_con_aviso', 'ausencia_temporal', 'renuncia')) DEFAULT 'falta_asignacion',
         observacion TEXT,
         creado_en TIMESTAMP DEFAULT now()
       )

@@ -139,6 +139,36 @@ export async function actualizarCliente(data: ActualizarClienteData): Promise<Cl
   try {
     console.log('🔄 Actualizando cliente con datos:', data);
 
+    // Validar si se está intentando inactivar el cliente
+    if (data.estado === 'Inactivo') {
+      // Verificar si el cliente tiene instalaciones activas
+      const instalacionesActivas = await query(`
+        SELECT COUNT(*) as count 
+        FROM instalaciones 
+        WHERE cliente_id = $1 AND estado = 'Activo'
+      `, [data.id]);
+
+      if (instalacionesActivas.rows[0].count > 0) {
+        // Obtener información detallada de las instalaciones
+        const instalacionesDetalle = await query(`
+          SELECT id, nombre, estado
+          FROM instalaciones 
+          WHERE cliente_id = $1
+          ORDER BY estado DESC, nombre
+        `, [data.id]);
+
+        const instalacionesActivasDetalle = instalacionesDetalle.rows.filter((i: any) => i.estado === 'Activo');
+        const instalacionesInactivasDetalle = instalacionesDetalle.rows.filter((i: any) => i.estado === 'Inactivo');
+
+        const error = new Error('No se puede inactivar el cliente porque tiene instalaciones activas. Primero debe inactivar todas las instalaciones asociadas.');
+        (error as any).instalacionesActivas = instalacionesActivasDetalle;
+        (error as any).instalacionesInactivas = instalacionesInactivasDetalle;
+        (error as any).clienteId = data.id;
+        
+        throw error;
+      }
+    }
+
     // Construir SET dinámico con todos los campos que vienen en data
     const setClauses: string[] = [];
     const values: any[] = [];
@@ -205,7 +235,7 @@ export async function actualizarCliente(data: ActualizarClienteData): Promise<Cl
     return result.rows[0];
   } catch (error) {
     console.error('❌ Error actualizando cliente:', error);
-    throw new Error('Error al actualizar cliente');
+    throw error;
   }
 }
 

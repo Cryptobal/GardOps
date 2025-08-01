@@ -11,7 +11,7 @@ export async function DELETE(
     // Verificar que el turno existe y pertenece a la instalación
     const turnoResult = await query(`
       SELECT id, rol_servicio_id, cantidad_guardias 
-      FROM turnos_instalacion 
+      FROM as_turnos_configuracion 
       WHERE id = $1 AND instalacion_id = $2
     `, [turnoId, instalacionId]);
 
@@ -30,16 +30,16 @@ export async function DELETE(
     try {
       // 1. Eliminar asignaciones de guardias (usando requisito_puesto_id)
       await query(`
-        DELETE FROM asignaciones_guardias 
+        DELETE FROM as_turnos_asignaciones 
         WHERE requisito_puesto_id IN (
-          SELECT id FROM requisitos_puesto 
+          SELECT id FROM as_turnos_requisitos 
           WHERE rol_servicio_id = $1 AND instalacion_id = $2
         )
       `, [turno.rol_servicio_id, instalacionId]);
 
       // 2. Obtener requisitos_puesto asociados al turno
       const requisitosResult = await query(`
-        SELECT id FROM requisitos_puesto 
+        SELECT id FROM as_turnos_requisitos 
         WHERE rol_servicio_id = $1 AND instalacion_id = $2
       `, [turno.rol_servicio_id, instalacionId]);
 
@@ -48,20 +48,20 @@ export async function DELETE(
       if (requisitosIds.length > 0) {
         // 3. Eliminar puestos_por_cubrir asociados a estos requisitos
         await query(`
-          DELETE FROM puestos_por_cubrir 
+          DELETE FROM as_turnos_ppc 
           WHERE requisito_puesto_id = ANY($1)
         `, [requisitosIds]);
 
         // 4. Eliminar requisitos_puesto
         await query(`
-          DELETE FROM requisitos_puesto 
+          DELETE FROM as_turnos_requisitos 
           WHERE id = ANY($1)
         `, [requisitosIds]);
       }
 
       // 5. Finalmente eliminar el turno
       await query(`
-        DELETE FROM turnos_instalacion 
+        DELETE FROM as_turnos_configuracion 
         WHERE id = $1
       `, [turnoId]);
 

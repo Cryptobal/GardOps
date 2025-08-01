@@ -12,7 +12,7 @@ import { EntityTabs } from '@/components/ui/entity-tabs';
 import { LocationTab } from '@/components/ui/location-tab';
 import { DocumentManager } from '@/components/shared/document-manager';
 import { LogViewer } from '@/components/shared/log-viewer';
-import { getInstalacion, actualizarInstalacion, obtenerClientes, obtenerComunas } from '@/lib/api/instalaciones';
+import { getInstalacion, actualizarInstalacion, obtenerClientes, obtenerComunas, obtenerDatosCompletosInstalacion } from '@/lib/api/instalaciones';
 import { Instalacion, Cliente, Comuna } from '@/lib/schemas/instalaciones';
 import TurnosInstalacion from './components/TurnosInstalacion';
 
@@ -29,6 +29,12 @@ export default function InstalacionPage() {
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Estados para datos precargados
+  const [turnosPrecargados, setTurnosPrecargados] = useState<any[]>([]);
+  const [ppcsPrecargados, setPpcsPrecargados] = useState<any[]>([]);
+  const [guardiasPrecargados, setGuardiasPrecargados] = useState<any[]>([]);
+  const [rolesPrecargados, setRolesPrecargados] = useState<any[]>([]);
 
   // Estados para edición
   const [editData, setEditData] = useState({
@@ -52,27 +58,31 @@ export default function InstalacionPage() {
   const cargarDatos = async () => {
     try {
       setLoading(true);
-      const [instalacionData, clientesData, comunasData] = await Promise.all([
-        getInstalacion(instalacionId),
-        obtenerClientes(),
-        obtenerComunas()
-      ]);
       
-      setInstalacion(instalacionData);
-      setClientes(clientesData);
-      setComunas(comunasData);
+      // Usar la nueva función optimizada que obtiene todo en una sola llamada
+      const datosCompletos = await obtenerDatosCompletosInstalacion(instalacionId);
+      
+      setInstalacion(datosCompletos.instalacion);
+      setClientes([{ id: datosCompletos.instalacion.cliente_id, nombre: datosCompletos.instalacion.cliente_nombre || 'Cliente no encontrado', rut: '', estado: 'Activo' }]);
+      setComunas([]); // Las comunas no se usan en esta página
+      
+      // Guardar datos precargados
+      setTurnosPrecargados(datosCompletos.turnos);
+      setPpcsPrecargados(datosCompletos.ppcs);
+      setGuardiasPrecargados(datosCompletos.guardias);
+      setRolesPrecargados(datosCompletos.roles);
       
       // Inicializar datos de edición
       setEditData({
-        nombre: instalacionData.nombre,
-        cliente_id: instalacionData.cliente_id || '',
-        comuna: instalacionData.comuna || '',
-        ciudad: instalacionData.ciudad || '',
-        direccion: instalacionData.direccion || '',
-        latitud: instalacionData.latitud,
-        longitud: instalacionData.longitud,
-        valor_turno_extra: instalacionData.valor_turno_extra || 0,
-        estado: instalacionData.estado || 'Activo'
+        nombre: datosCompletos.instalacion.nombre,
+        cliente_id: datosCompletos.instalacion.cliente_id || '',
+        comuna: datosCompletos.instalacion.comuna || '',
+        ciudad: datosCompletos.instalacion.ciudad || '',
+        direccion: datosCompletos.instalacion.direccion || '',
+        latitud: datosCompletos.instalacion.latitud,
+        longitud: datosCompletos.instalacion.longitud,
+        valor_turno_extra: datosCompletos.instalacion.valor_turno_extra || 0,
+        estado: datosCompletos.instalacion.estado || 'Activo'
       });
     } catch (error) {
       console.error('Error cargando datos:', error);
@@ -319,7 +329,13 @@ export default function InstalacionPage() {
       icon: Users,
       color: 'amber' as const,
       content: (
-        <TurnosInstalacion instalacionId={instalacionId} />
+        <TurnosInstalacion 
+          instalacionId={instalacionId} 
+          turnosPrecargados={turnosPrecargados} 
+          ppcsPrecargados={ppcsPrecargados} 
+          guardiasPrecargados={guardiasPrecargados} 
+          rolesPrecargados={rolesPrecargados} 
+        />
       )
     },
     {

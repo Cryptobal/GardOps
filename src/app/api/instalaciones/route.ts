@@ -5,11 +5,13 @@ import { query } from '../../../lib/database';
 // Cache para evitar verificaciones repetitivas
 let tableVerified = false;
 
-// GET /api/instalaciones - Obtener todas las instalaciones
+// GET /api/instalaciones - Obtener todas las instalaciones con estadísticas optimizadas
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const withCoords = searchParams.get('withCoords') === 'true';
+    const withStats = searchParams.get('withStats') === 'true';
+    const withAllData = searchParams.get('withAllData') === 'true';
     
     // Verificar tabla solo una vez por sesión
     if (!tableVerified) {
@@ -32,8 +34,87 @@ export async function GET(request: NextRequest) {
       
       return NextResponse.json(result.rows);
     }
+
+    // Si se solicita con todos los datos, devolver instalaciones + clientes + comunas
+    if (withAllData) {
+      const [instalacionesResult, clientesResult, comunasResult] = await Promise.all([
+        query(`
+          SELECT 
+            i.id,
+            i.nombre,
+            i.cliente_id,
+            i.direccion,
+            i.latitud,
+            i.longitud,
+            i.ciudad,
+            i.comuna,
+            i.valor_turno_extra,
+            i.estado,
+            i.created_at,
+            i.updated_at,
+            c.nombre as cliente_nombre,
+            COALESCE(stats.puestos_creados, 0) as puestos_creados,
+            COALESCE(stats.puestos_asignados, 0) as puestos_asignados,
+            COALESCE(stats.ppc_pendientes, 0) as ppc_pendientes,
+            COALESCE(stats.ppc_totales, 0) as ppc_totales,
+            COALESCE(stats.puestos_disponibles, 0) as puestos_disponibles
+          FROM instalaciones i
+          LEFT JOIN clientes c ON i.cliente_id = c.id
+          LEFT JOIN (
+            SELECT 
+              tr.instalacion_id,
+              SUM(tr.cantidad_guardias) as puestos_creados,
+              COALESCE(asignaciones.total_asignados, 0) as puestos_asignados,
+              SUM(tr.cantidad_guardias) - COALESCE(asignaciones.total_asignados, 0) as ppc_pendientes,
+              SUM(tr.cantidad_guardias) as ppc_totales,
+              SUM(tr.cantidad_guardias) - COALESCE(asignaciones.total_asignados, 0) as puestos_disponibles
+            FROM as_turnos_requisitos tr
+            LEFT JOIN (
+              SELECT 
+                tr2.instalacion_id,
+                COUNT(ta.id) as total_asignados
+              FROM as_turnos_asignaciones ta
+              INNER JOIN as_turnos_requisitos tr2 ON ta.requisito_puesto_id = tr2.id
+              WHERE ta.estado = 'Activa'
+              GROUP BY tr2.instalacion_id
+            ) asignaciones ON asignaciones.instalacion_id = tr.instalacion_id
+            GROUP BY tr.instalacion_id, asignaciones.total_asignados
+          ) stats ON stats.instalacion_id = i.id
+          ORDER BY i.nombre
+        `),
+        query(`
+          SELECT id, nombre, estado
+          FROM clientes 
+          ORDER BY nombre
+        `),
+        query(`
+          SELECT id, nombre, region 
+          FROM comunas 
+          ORDER BY nombre
+        `)
+      ]);
+
+      const instalaciones = instalacionesResult.rows.map((instalacion: any) => ({
+        ...instalacion,
+        cliente_nombre: instalacion.cliente_nombre || 'Cliente no encontrado',
+        puestos_creados: parseInt(instalacion.puestos_creados) || 0,
+        puestos_asignados: parseInt(instalacion.puestos_asignados) || 0,
+        ppc_pendientes: parseInt(instalacion.ppc_pendientes) || 0,
+        ppc_totales: parseInt(instalacion.ppc_totales) || 0,
+        puestos_disponibles: parseInt(instalacion.puestos_disponibles) || 0
+      }));
+
+      return NextResponse.json({ 
+        success: true, 
+        data: {
+          instalaciones,
+          clientes: clientesResult.rows,
+          comunas: comunasResult.rows
+        }
+      });
+    }
     
-    // Obtener instalaciones completas directamente de la base de datos
+    // Query optimizada que incluye estadísticas en una sola consulta
     const result = await query(`
       SELECT 
         i.id,
@@ -47,32 +128,53 @@ export async function GET(request: NextRequest) {
         i.valor_turno_extra,
         i.estado,
         i.created_at,
-        i.updated_at
+        i.updated_at,
+        c.nombre as cliente_nombre,
+        ${withStats ? `
+        COALESCE(stats.puestos_creados, 0) as puestos_creados,
+        COALESCE(stats.puestos_asignados, 0) as puestos_asignados,
+        COALESCE(stats.ppc_pendientes, 0) as ppc_pendientes,
+        COALESCE(stats.ppc_totales, 0) as ppc_totales,
+        COALESCE(stats.puestos_disponibles, 0) as puestos_disponibles
+        ` : ''}
       FROM instalaciones i
+      LEFT JOIN clientes c ON i.cliente_id = c.id
+      ${withStats ? `
+      LEFT JOIN (
+        SELECT 
+          tr.instalacion_id,
+          SUM(tr.cantidad_guardias) as puestos_creados,
+          COALESCE(asignaciones.total_asignados, 0) as puestos_asignados,
+          SUM(tr.cantidad_guardias) - COALESCE(asignaciones.total_asignados, 0) as ppc_pendientes,
+          SUM(tr.cantidad_guardias) as ppc_totales,
+          SUM(tr.cantidad_guardias) - COALESCE(asignaciones.total_asignados, 0) as puestos_disponibles
+        FROM as_turnos_requisitos tr
+        LEFT JOIN (
+          SELECT 
+            tr2.instalacion_id,
+            COUNT(ta.id) as total_asignados
+          FROM as_turnos_asignaciones ta
+          INNER JOIN as_turnos_requisitos tr2 ON ta.requisito_puesto_id = tr2.id
+          WHERE ta.estado = 'Activa'
+          GROUP BY tr2.instalacion_id
+        ) asignaciones ON asignaciones.instalacion_id = tr.instalacion_id
+        GROUP BY tr.instalacion_id, asignaciones.total_asignados
+      ) stats ON stats.instalacion_id = i.id
+      ` : ''}
       ORDER BY i.nombre
     `);
 
-    // Obtener nombres de clientes en una query separada para mejor rendimiento
-    const clientIds = Array.from(new Set(result.rows.map((row: any) => row.cliente_id)));
-    let clientesMap: { [key: string]: string } = {};
-    
-    if (clientIds.length > 0) {
-      const clientesResult = await query(`
-        SELECT id, nombre 
-        FROM clientes 
-        WHERE id = ANY($1)
-      `, [clientIds]);
-      
-      clientesMap = clientesResult.rows.reduce((acc: { [key: string]: string }, cliente: any) => {
-        acc[cliente.id] = cliente.nombre;
-        return acc;
-      }, {});
-    }
-
-    // Combinar los datos
     const instalaciones = result.rows.map((instalacion: any) => ({
       ...instalacion,
-      cliente_nombre: clientesMap[instalacion.cliente_id] || 'Cliente no encontrado'
+      cliente_nombre: instalacion.cliente_nombre || 'Cliente no encontrado',
+      // Convertir estadísticas a números si están presentes
+      ...(withStats && {
+        puestos_creados: parseInt(instalacion.puestos_creados) || 0,
+        puestos_asignados: parseInt(instalacion.puestos_asignados) || 0,
+        ppc_pendientes: parseInt(instalacion.ppc_pendientes) || 0,
+        ppc_totales: parseInt(instalacion.ppc_totales) || 0,
+        puestos_disponibles: parseInt(instalacion.puestos_disponibles) || 0
+      })
     }));
     
     return NextResponse.json({ success: true, data: instalaciones });

@@ -36,6 +36,7 @@ import { EntityTabs, TabConfig } from "../../components/ui/entity-tabs";
 import { LocationTab } from "../../components/ui/location-tab";
 import { DocumentManager } from "../../components/shared/document-manager";
 import { LogViewer } from "../../components/shared/log-viewer";
+import ErrorModal from "../../components/ui/error-modal";
 
 import { 
   logCambioEstado, 
@@ -44,9 +45,18 @@ import {
   obtenerUsuarioActual 
 } from "../../lib/api/logs-clientes";
 
+import { useRouter } from "next/navigation";
+
+interface KPIData {
+  totalClientes: number;
+  clientesActivos: number;
+  clientesInactivos: number;
+  criticos: number;
+}
+
 export default function ClientesPage() {
   console.log("Vista de clientes cargada correctamente");
-
+  const router = useRouter();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,6 +66,13 @@ export default function ClientesPage() {
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [showCriticas, setShowCriticas] = useState(false);
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [errorModalData, setErrorModalData] = useState<{
+    title: string;
+    message: string;
+    details?: any;
+  } | null>(null);
   
   // Estados para filtros
   const [filtros, setFiltros] = useState<Record<string, string>>({
@@ -223,6 +240,8 @@ export default function ClientesPage() {
     setSelectedCliente(null);
     setIsEditingDetails(false);
     setFormErrors({});
+    setIsErrorModalOpen(false);
+    setErrorModalData(null);
   };
 
   // Manejar cambios en inputs
@@ -362,25 +381,60 @@ export default function ClientesPage() {
         }
         
         toast.success("Cliente guardado correctamente");
-        await cargarClientes();
-        if (isDetailModalOpen) {
+        
+        // Actualizar inmediatamente el cliente seleccionado si estamos editando
+        if (isDetailModalOpen && selectedCliente) {
           setSelectedCliente(result.data);
           setIsEditingDetails(false);
         } else {
           cerrarModales();
         }
         
+        // Recargar la lista de clientes
+        await cargarClientes();
+        
         setRefreshTrigger(prev => prev + 1);
       } else {
-        toast.error(result.error || "Error al guardar cliente");
+        // Verificar si es un error de instalaciones activas
+        if (result.error && result.error.includes('instalaciones activas')) {
+          const clienteNombre = (editingCliente || selectedCliente)?.nombre || 'el cliente';
+          
+          setErrorModalData({
+            title: "No se puede inactivar el cliente",
+            message: `No se puede inactivar ${clienteNombre} porque tiene instalaciones activas.`,
+            details: {
+              instalacionesActivas: result.instalacionesActivas || [],
+              instalacionesInactivas: result.instalacionesInactivas || []
+            }
+          });
+          setIsErrorModalOpen(true);
+        } else {
+          toast.error(result.error || "Error al guardar cliente");
+        }
       }
     } catch (error) {
       console.error("Error guardando cliente:", error);
-      toast.error("Error de conexión");
+      
+      // Verificar si es un error de instalaciones activas
+      if (error instanceof Error && error.message.includes('instalaciones activas')) {
+        const clienteNombre = (editingCliente || selectedCliente)?.nombre || 'el cliente';
+        
+        setErrorModalData({
+          title: "No se puede inactivar el cliente",
+          message: `No se puede inactivar ${clienteNombre} porque tiene instalaciones activas.`,
+          details: {
+            instalacionesActivas: (error as any).instalacionesActivas || [],
+            instalacionesInactivas: (error as any).instalacionesInactivas || []
+          }
+        });
+        setIsErrorModalOpen(true);
+      } else {
+        toast.error("Error de conexión");
+      }
     }
   };
 
-  // Cambiar estado del cliente
+  // Cambiar estado del cliente (ya no se usa en la tabla principal)
   const cambiarEstadoCliente = async (cliente: Cliente, nuevoEstado: boolean) => {
     const estadoTexto = nuevoEstado ? "Activo" : "Inactivo";
     
@@ -485,15 +539,9 @@ export default function ClientesPage() {
       key: "estado",
       label: "Estado",
       render: (cliente) => (
-        <div className="flex items-center gap-2">
-          <Switch
-            checked={cliente.estado === "Activo"}
-            onCheckedChange={(checked) => cambiarEstadoCliente(cliente, checked)}
-          />
-          <Badge variant={cliente.estado === "Activo" ? "success" : "inactive"}>
-            {cliente.estado || "Activo"}
-          </Badge>
-        </div>
+        <Badge variant={cliente.estado === "Activo" ? "success" : "inactive"}>
+          {cliente.estado || "Activo"}
+        </Badge>
       )
     },
     {
@@ -524,12 +572,9 @@ export default function ClientesPage() {
               <h3 className="font-bold text-foreground">{cliente.nombre}</h3>
               <p className="text-sm text-muted-foreground font-mono">{cliente.rut}</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={cliente.estado === "Activo"}
-                onCheckedChange={(checked) => cambiarEstadoCliente(cliente, checked)}
-              />
-            </div>
+            <Badge variant={cliente.estado === "Activo" ? "success" : "inactive"}>
+              {cliente.estado || "Activo"}
+            </Badge>
           </div>
           
           {cliente.representante_legal && (
@@ -677,6 +722,27 @@ export default function ClientesPage() {
                 placeholder="+56 9 1234 5678"
                 disabled={!isEditingDetails}
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Estado
+              </label>
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={formData.estado === "Activo"}
+                  onCheckedChange={(checked) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      estado: checked ? "Activo" : "Inactivo"
+                    }));
+                  }}
+                  disabled={!isEditingDetails}
+                />
+                <Badge variant={formData.estado === "Activo" ? "success" : "inactive"}>
+                  {formData.estado || "Activo"}
+                </Badge>
+              </div>
             </div>
           </div>
         </div>
@@ -987,6 +1053,15 @@ export default function ClientesPage() {
 
       {/* Contenedor de toasts */}
       <ToastContainer />
+
+      {/* Modal de error */}
+      <ErrorModal
+        isOpen={isErrorModalOpen}
+        onClose={() => setIsErrorModalOpen(false)}
+        title={errorModalData?.title || "Error"}
+        message={errorModalData?.message || "Ha ocurrido un error inesperado."}
+        details={errorModalData?.details}
+      />
     </>
   );
 }

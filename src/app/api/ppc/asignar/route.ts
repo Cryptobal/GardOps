@@ -17,20 +17,9 @@ export async function POST(request: NextRequest) {
       SELECT 
         ppc.id,
         ppc.requisito_puesto_id,
-        rs.guardias_requeridos,
-        COALESCE(asignaciones_count.count, 0) as asignaciones_count
+        ppc.cantidad_faltante,
+        ppc.estado
       FROM as_turnos_ppc ppc
-      INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
-      INNER JOIN as_turnos_roles_servicio rs ON tr.rol_servicio_id = rs.id
-      LEFT JOIN (
-        SELECT 
-          tr_inner.rol_servicio_id,
-          COUNT(*) as count
-        FROM as_turnos_asignaciones ta
-        INNER JOIN as_turnos_requisitos tr_inner ON ta.requisito_puesto_id = tr_inner.id
-        WHERE ta.estado = 'Activa'
-        GROUP BY tr_inner.rol_servicio_id
-      ) asignaciones_count ON asignaciones_count.rol_servicio_id = rs.id
       WHERE ppc.id = $1 AND ppc.estado = 'Pendiente'
     `, [ppc_id]);
 
@@ -42,9 +31,8 @@ export async function POST(request: NextRequest) {
     }
 
     const ppc = ppcCheck.rows[0];
-    const faltantes = ppc.guardias_requeridos - ppc.asignaciones_count;
 
-    if (faltantes <= 0) {
+    if (ppc.cantidad_faltante <= 0) {
       return NextResponse.json(
         { error: 'No hay cupos disponibles en este PPC' },
         { status: 400 }
@@ -64,36 +52,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Crear registro en as_turnos_asignaciones
+    // Crear registro en as_turnos_asignaciones (sin ppc_id por ahora)
     const asignacion = await query(`
       INSERT INTO as_turnos_asignaciones (
         guardia_id,
         requisito_puesto_id,
-        ppc_id,
         tipo_asignacion,
         fecha_inicio,
         estado,
         observaciones
-      ) VALUES ($1, $2, $3, 'PPC', CURRENT_DATE, 'Activa', 'Asignación automática desde PPC')
+      ) VALUES ($1, $2, 'PPC', CURRENT_DATE, 'Activa', 'Asignación automática desde PPC')
       RETURNING *
-    `, [guardia_id, ppc.requisito_puesto_id, ppc_id]);
+    `, [guardia_id, ppc.requisito_puesto_id]);
 
-    // Verificar si el PPC ya queda completo
-    const nuevasAsignaciones = await query(`
-      SELECT COUNT(*) as count
-      FROM as_turnos_asignaciones ta
-      WHERE ta.requisito_puesto_id = $1 AND ta.estado = 'Activa'
-    `, [ppc.requisito_puesto_id]);
+    // Actualizar cantidad faltante en el PPC
+    await query(`
+      UPDATE as_turnos_ppc 
+      SET cantidad_faltante = cantidad_faltante - 1
+      WHERE id = $1
+    `, [ppc_id]);
 
-    const totalAsignaciones = parseInt(nuevasAsignaciones.rows[0].count);
-    
     // Si ya no hay cupos disponibles, actualizar estado del PPC
-    if (totalAsignaciones >= ppc.guardias_requeridos) {
+    if (ppc.cantidad_faltante <= 1) {
       await query(`
         UPDATE as_turnos_ppc 
         SET estado = 'Asignado',
-            guardia_asignado_id = $1,
-            fecha_asignacion = NOW()
+            fecha_asignacion = NOW(),
+            guardia_asignado_id = $1
         WHERE id = $2
       `, [guardia_id, ppc_id]);
     }

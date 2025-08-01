@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -39,9 +39,11 @@ import {
   eliminarInstalacion,
   obtenerClientes,
   obtenerComunas,
+  obtenerEstadisticasInstalacion,
   logInstalacionCreada,
   logEdicionInstalacion,
-  logCambioEstadoInstalacion
+  logCambioEstadoInstalacion,
+  obtenerDatosCompletosInstalaciones
 } from "../../lib/api/instalaciones";
 
 // Importar componentes genéricos
@@ -56,8 +58,8 @@ import { LogViewer } from "../../components/shared/log-viewer";
 
 interface KPIData {
   totalInstalaciones: number;
-  guardiasAsignados: number;
-  ppcActivos: number;
+  puestosAsignados: number;
+  ppcPendientes: number;
   criticas: number;
 }
 
@@ -69,6 +71,7 @@ export default function InstalacionesPage() {
   const [editingInstalacion, setEditingInstalacion] = useState<Instalacion | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showCriticas, setShowCriticas] = useState(false);
+  const [showPPCPendientes, setShowPPCPendientes] = useState(false);
   
   // Estados para filtros
   const [filtros, setFiltros] = useState<Record<string, string>>({
@@ -133,22 +136,21 @@ export default function InstalacionesPage() {
   // Aplicar filtros cuando cambien
   useEffect(() => {
     aplicarFiltros();
-  }, [filtros.search, filtros.estado, filtros.cliente_id, instalaciones, showCriticas]);
+  }, [filtros.search, filtros.estado, filtros.cliente_id, instalaciones, showCriticas, showPPCPendientes]);
 
   const cargarDatos = async () => {
     setLoading(true);
     try {
-      const clientesData = await obtenerClientes();
-      const instalacionesData = await obtenerInstalaciones();
-      const comunasData = await obtenerComunas();
+      // Usar la nueva función optimizada que obtiene todo en una sola llamada
+      const datosCompletos = await obtenerDatosCompletosInstalaciones();
       
-      setInstalaciones(instalacionesData);
-      setClientes(clientesData);
-      setComunas(comunasData);
+      setInstalaciones(datosCompletos.instalaciones);
+      setClientes(datosCompletos.clientes);
+      setComunas(datosCompletos.comunas);
       
       setFiltros(prev => ({
         ...prev,
-        totalCount: instalacionesData.length.toString()
+        totalCount: datosCompletos.instalaciones.length.toString()
       }));
       
     } catch (error) {
@@ -159,12 +161,13 @@ export default function InstalacionesPage() {
     }
   };
 
-  const aplicarFiltros = () => {
+  // Filtrar instalaciones usando useMemo para optimizar rendimiento
+  const instalacionesFiltradas = useMemo(() => {
     let filtradas = [...instalaciones];
 
     // Filtro por búsqueda
-    if (filtros.search) {
-      const busqueda = filtros.search.toLowerCase();
+    if (filtros.search && filtros.search.trim()) {
+      const busqueda = filtros.search.toLowerCase().trim();
       filtradas = filtradas.filter(instalacion =>
         instalacion.nombre?.toLowerCase().includes(busqueda) ||
         instalacion.cliente_nombre?.toLowerCase().includes(busqueda) ||
@@ -188,9 +191,21 @@ export default function InstalacionesPage() {
       filtradas = filtradas.filter(esInstalacionCritica);
     }
 
+    // Filtro por PPC pendientes
+    if (showPPCPendientes) {
+      filtradas = filtradas.filter(instalacion => {
+        const { ppcPendientes } = obtenerDatosReales(instalacion.id);
+        return ppcPendientes > 0;
+      });
+    }
+
+    return filtradas;
+  }, [instalaciones, filtros.search, filtros.estado, filtros.cliente_id, showCriticas, showPPCPendientes]);
+
+  const aplicarFiltros = () => {
     setFiltros(prev => ({
       ...prev,
-      filteredCount: filtradas.length.toString()
+      filteredCount: instalacionesFiltradas.length.toString()
     }));
   };
 
@@ -207,25 +222,40 @@ export default function InstalacionesPage() {
       filteredCount: filtros.totalCount
     });
     setShowCriticas(false);
+    setShowPPCPendientes(false);
   };
 
-  // Función para generar datos consistentes basados en ID
-  const obtenerDatosSimulados = (instalacionId: string) => {
-    const seed = instalacionId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const guardiasCount = (seed % 8) + 1;
-    const ppcCount = Math.floor((seed * 7) % 6);
+  // Función para obtener datos reales de estadísticas
+  const obtenerDatosReales = (instalacionId: string) => {
+    const instalacion = instalaciones.find(i => i.id === instalacionId);
+    if (!instalacion) {
+      return {
+        puestosCreados: 0,
+        puestosAsignados: 0,
+        ppcPendientes: 0,
+        ppcTotales: 0,
+        puestosDisponibles: 0
+      };
+    }
     
-    return { guardiasCount, ppcCount };
+    return {
+      puestosCreados: instalacion.puestos_creados || 0,
+      puestosAsignados: instalacion.puestos_asignados || 0,
+      ppcPendientes: instalacion.ppc_pendientes || 0,
+      ppcTotales: instalacion.ppc_totales || 0,
+      puestosDisponibles: instalacion.puestos_disponibles || 0
+    };
   };
 
   // Función para determinar si una instalación es crítica
   const esInstalacionCritica = (instalacion: Instalacion): boolean => {
-    const { guardiasCount, ppcCount } = obtenerDatosSimulados(instalacion.id);
-    const porcentajePPC = guardiasCount > 0 ? (ppcCount / guardiasCount) * 100 : 0;
+    const { puestosCreados, puestosAsignados, ppcPendientes } = obtenerDatosReales(instalacion.id);
+    const porcentajePPC = puestosCreados > 0 ? (ppcPendientes / puestosCreados) * 100 : 0;
     
     return (
       instalacion.estado === "Inactivo" ||
-      porcentajePPC > 20
+      porcentajePPC > 20 ||
+      ppcPendientes > 3
     );
   };
 
@@ -233,10 +263,19 @@ export default function InstalacionesPage() {
   const calcularKPIs = (): KPIData => {
     const criticasReales = instalaciones.filter(esInstalacionCritica).length;
     
+    // Calcular totales reales usando las propiedades de las instalaciones
+    const totalPuestosAsignados = instalaciones.reduce((acc, instalacion) => {
+      return acc + (instalacion.puestos_asignados || 0);
+    }, 0);
+    
+    const totalPPCActivos = instalaciones.reduce((acc, instalacion) => {
+      return acc + (instalacion.ppc_pendientes || 0);
+    }, 0);
+    
     return {
       totalInstalaciones: instalaciones.length,
-      guardiasAsignados: instalaciones.reduce((acc, inst) => acc + Math.floor(Math.random() * 5) + 1, 0),
-      ppcActivos: Math.floor(Math.random() * 6),
+      puestosAsignados: totalPuestosAsignados,
+      ppcPendientes: totalPPCActivos,
       criticas: criticasReales
     };
   };
@@ -456,26 +495,37 @@ export default function InstalacionesPage() {
       key: "estadisticas",
       label: "Estadísticas",
       render: (instalacion) => {
-        const { guardiasCount, ppcCount } = obtenerDatosSimulados(instalacion.id);
+        const { puestosCreados, ppcPendientes, ppcTotales } = obtenerDatosReales(instalacion.id);
         return (
-          <div className="flex items-center space-x-2">
-            <Badge variant="outline" className="text-slate-200 border-slate-600">
-              <Users className="h-3 w-3 mr-1" />
-              {guardiasCount}
-            </Badge>
-            <Badge 
-              variant={ppcCount > 2 ? "destructive" : ppcCount > 0 ? "default" : "secondary"}
-              className={
-                ppcCount > 2 
-                  ? "bg-red-500/20 text-red-400" 
-                  : ppcCount > 0 
-                    ? "bg-amber-500/20 text-amber-400"
-                    : "bg-emerald-500/20 text-emerald-400"
-              }
-            >
-              <AlertTriangle className="h-3 w-3 mr-1" />
-              {ppcCount}
-            </Badge>
+          <div className="group relative">
+            <div className="flex items-center space-x-2 cursor-help">
+              <span className="text-sm text-slate-400">{puestosCreados}</span>
+              <span className="text-slate-600">|</span>
+              <span className="text-sm text-red-400">{ppcPendientes}</span>
+            </div>
+            
+            {/* Tooltip hover */}
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 min-w-[200px]">
+              <div className="text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-slate-300">Total Puestos:</span>
+                  <span className="text-slate-200 font-medium">{puestosCreados}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-300">PPC Pendientes:</span>
+                  <span className="text-red-400 font-medium">{ppcPendientes}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-300">PPC Totales:</span>
+                  <span className="text-orange-400 font-medium">{ppcTotales}</span>
+                </div>
+                <div className="border-t border-slate-700 pt-1 mt-1">
+                  <span className="text-slate-400 text-xs">Haz clic para ver detalles</span>
+                </div>
+              </div>
+              {/* Flecha del tooltip */}
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900"></div>
+            </div>
           </div>
         );
       }
@@ -499,7 +549,7 @@ export default function InstalacionesPage() {
   // Card para móvil
   const mobileCard = (instalacion: Instalacion) => {
     const cliente = clientes.find(c => c.id === instalacion.cliente_id);
-    const { guardiasCount, ppcCount } = obtenerDatosSimulados(instalacion.id);
+    const { puestosCreados, ppcPendientes, ppcTotales } = obtenerDatosReales(instalacion.id);
     
     return (
       <Card className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-all duration-200 cursor-pointer hover:shadow-lg">
@@ -538,15 +588,34 @@ export default function InstalacionesPage() {
               </div>
             </div>
             
-            <div className="flex space-x-2 pt-3 border-t border-slate-700">
-              <Badge variant="outline" className="text-slate-200 border-slate-600">
-                <Users className="h-3 w-3 mr-1" />
-                {guardiasCount}
-              </Badge>
-              <Badge variant="destructive" className="bg-red-500/20 text-red-400">
-                <AlertTriangle className="h-3 w-3 mr-1" />
-                {ppcCount}
-              </Badge>
+            <div className="flex items-center space-x-2 pt-3 border-t border-slate-700">
+              <div className="group relative">
+                <div className="flex items-center space-x-2 cursor-help">
+                  <span className="text-sm text-slate-400">{puestosCreados}</span>
+                  <span className="text-slate-600">|</span>
+                  <span className="text-sm text-red-400">{ppcPendientes}</span>
+                </div>
+                
+                {/* Tooltip hover para móvil */}
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 min-w-[180px]">
+                  <div className="text-xs space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-slate-300">Total Puestos:</span>
+                      <span className="text-slate-200 font-medium">{puestosCreados}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-300">PPC Pendientes:</span>
+                      <span className="text-red-400 font-medium">{ppcPendientes}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-300">PPC Totales:</span>
+                      <span className="text-orange-400 font-medium">{ppcTotales}</span>
+                    </div>
+                  </div>
+                  {/* Flecha del tooltip */}
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900"></div>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -556,38 +625,7 @@ export default function InstalacionesPage() {
 
 
 
-  // Filtrar instalaciones según los filtros aplicados
-  const instalacionesFiltradas = instalaciones.filter(instalacion => {
-    if (filtros.search && filtros.search.trim()) {
-      const busqueda = filtros.search.toLowerCase().trim();
-      if (!instalacion.nombre?.toLowerCase().includes(busqueda) &&
-          !instalacion.cliente_nombre?.toLowerCase().includes(busqueda) &&
-          !instalacion.direccion?.toLowerCase().includes(busqueda) &&
-          !instalacion.comuna?.toLowerCase().includes(busqueda)) {
-        return false;
-      }
-    }
 
-    if (filtros.estado !== "Todos") {
-      if (instalacion.estado !== filtros.estado) {
-        return false;
-      }
-    }
-
-    if (filtros.cliente_id) {
-      if (instalacion.cliente_id !== filtros.cliente_id) {
-        return false;
-      }
-    }
-
-    if (showCriticas) {
-      if (!esInstalacionCritica(instalacion)) {
-        return false;
-      }
-    }
-
-    return true;
-  });
 
   return (
     <>
@@ -614,19 +652,19 @@ export default function InstalacionesPage() {
               variant: "default"
             },
             {
-              label: "Guardias Asignados",
-              value: kpis.guardiasAsignados,
+              label: "Puestos Asignados",
+              value: kpis.puestosAsignados,
               icon: Shield,
               variant: "success"
             },
             {
-              label: "PPC Activos",
-              value: kpis.ppcActivos,
-              icon: TrendingUp,
-              variant: kpis.ppcActivos > 0 ? "warning" : "success"
+              label: "PPC Pendientes",
+              value: kpis.ppcPendientes,
+              icon: AlertTriangle,
+              variant: kpis.ppcPendientes > 0 ? "warning" : "success"
             },
             {
-              label: "Críticas",
+              label: "Instalaciones Críticas",
               value: kpis.criticas,
               icon: AlertTriangle,
               variant: kpis.criticas > 0 ? "danger" : "success"
@@ -645,8 +683,21 @@ export default function InstalacionesPage() {
             className="mb-4"
           />
           
-          {/* Filtro adicional para críticas */}
-          <div className="flex justify-end">
+          {/* Filtros adicionales */}
+          <div className="flex justify-end space-x-2">
+            <Button
+              variant={showPPCPendientes ? "default" : "outline"}
+              onClick={() => setShowPPCPendientes(!showPPCPendientes)}
+              className={`
+                ${showPPCPendientes 
+                  ? 'bg-orange-500 hover:bg-orange-600 text-white' 
+                  : 'border-slate-600 text-slate-200 hover:bg-slate-700'
+                }
+              `}
+            >
+              <AlertTriangle className="mr-2 h-4 w-4" />
+              Solo PPC pendientes
+            </Button>
             <Button
               variant={showCriticas ? "default" : "outline"}
               onClick={() => setShowCriticas(!showCriticas)}

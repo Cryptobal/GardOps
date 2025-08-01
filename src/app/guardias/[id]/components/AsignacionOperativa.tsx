@@ -3,9 +3,21 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useToast } from '@/hooks/use-toast';
-import { AlertTriangle, CheckCircle, Clock, MapPin, User } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/components/ui/toast';
+import { 
+  AlertTriangle, 
+  CheckCircle, 
+  Clock, 
+  MapPin, 
+  User, 
+  Building2,
+  Calendar,
+  Users,
+  Loader2
+} from 'lucide-react';
 
 interface AsignacionActual {
   id: string;
@@ -34,8 +46,20 @@ interface PPCPendiente {
   instalacion_id: string;
   rol: string;
   jornada: string;
+  patron: string;
+  horario: string;
   faltantes: number;
+  guardias_requeridos: number;
   creado: string;
+  estado: string;
+}
+
+interface InstalacionConPPC {
+  id: string;
+  instalacion_nombre: string;
+  direccion: string;
+  ciudad: string;
+  comuna: string;
 }
 
 interface AsignacionData {
@@ -50,14 +74,27 @@ interface AsignacionOperativaProps {
 
 export default function AsignacionOperativa({ guardiaId }: AsignacionOperativaProps) {
   const [asignacionData, setAsignacionData] = useState<AsignacionData | null>(null);
+  const [instalaciones, setInstalaciones] = useState<InstalacionConPPC[]>([]);
   const [ppcsPendientes, setPpcsPendientes] = useState<PPCPendiente[]>([]);
+  const [instalacionSeleccionada, setInstalacionSeleccionada] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [cargandoInstalaciones, setCargandoInstalaciones] = useState(false);
+  const [cargandoPPCs, setCargandoPPCs] = useState(false);
   const [asignando, setAsignando] = useState<string | null>(null);
-  const { success, error } = useToast();
+  const [terminandoAsignacion, setTerminandoAsignacion] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     cargarDatos();
   }, [guardiaId]);
+
+  useEffect(() => {
+    if (instalacionSeleccionada) {
+      cargarPPCsDeInstalacion(instalacionSeleccionada);
+    } else {
+      setPpcsPendientes([]);
+    }
+  }, [instalacionSeleccionada]);
 
   const cargarDatos = async () => {
     try {
@@ -71,20 +108,50 @@ export default function AsignacionOperativa({ guardiaId }: AsignacionOperativaPr
       const asignacionData = await asignacionResponse.json();
       setAsignacionData(asignacionData);
 
-      // Si no tiene asignación, cargar PPCs pendientes
-      if (!asignacionData.tieneAsignacion) {
-        const ppcsResponse = await fetch('/api/ppc/pendientes');
-        if (!ppcsResponse.ok) {
-          throw new Error('Error al cargar PPCs pendientes');
-        }
-        const ppcsData = await ppcsResponse.json();
-        setPpcsPendientes(ppcsData);
-      }
+      // Cargar instalaciones con PPC activos
+      await cargarInstalacionesConPPC();
     } catch (err) {
       console.error('Error cargando datos:', err);
-      error('Error al cargar datos de asignación');
+      toast.error("Error al cargar datos de asignación");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const cargarInstalacionesConPPC = async () => {
+    try {
+      setCargandoInstalaciones(true);
+      const response = await fetch('/api/instalaciones-con-ppc-activos');
+      if (!response.ok) {
+        throw new Error('Error al cargar instalaciones');
+      }
+      const data = await response.json();
+      setInstalaciones(data);
+    } catch (err) {
+      console.error('Error cargando instalaciones:', err);
+      toast.error("Error al cargar instalaciones");
+    } finally {
+      setCargandoInstalaciones(false);
+    }
+  };
+
+  const cargarPPCsDeInstalacion = async (instalacionId: string) => {
+    try {
+      setCargandoPPCs(true);
+      // Usar la API existente de PPC pendientes y filtrar por instalación
+      const response = await fetch('/api/ppc/pendientes');
+      if (!response.ok) {
+        throw new Error('Error al cargar PPCs');
+      }
+      const allPpcs = await response.json();
+      // Filtrar PPCs de la instalación seleccionada
+      const ppcsDeInstalacion = allPpcs.filter((ppc: any) => ppc.instalacion_id === instalacionId);
+      setPpcsPendientes(ppcsDeInstalacion);
+    } catch (err) {
+      console.error('Error cargando PPCs:', err);
+      toast.error("Error al cargar PPCs de la instalación");
+    } finally {
+      setCargandoPPCs(false);
     }
   };
 
@@ -109,15 +176,60 @@ export default function AsignacionOperativa({ guardiaId }: AsignacionOperativaPr
       }
 
       const result = await response.json();
-      success('Guardia asignado correctamente al PPC');
+      toast.success("Guardia asignado correctamente al PPC");
       
-      // Recargar datos para mostrar la nueva asignación
-      await cargarDatos();
+      // Actualizar solo los datos de asignación sin activar loading general
+      const asignacionResponse = await fetch(`/api/guardias/${guardiaId}/asignacion-actual`);
+      if (asignacionResponse.ok) {
+        const asignacionData = await asignacionResponse.json();
+        setAsignacionData(asignacionData);
+      }
+      
+      // Limpiar selección
+      setInstalacionSeleccionada('');
+      setPpcsPendientes([]);
+      
+      console.log("Asignación operativa actualizada correctamente");
     } catch (err) {
       console.error('Error asignando PPC:', err);
-      error(err instanceof Error ? err.message : 'Error al asignar PPC');
+      toast.error(err instanceof Error ? err.message : 'Error al asignar PPC');
     } finally {
       setAsignando(null);
+    }
+  };
+
+  const handleTerminarAsignacion = async () => {
+    try {
+      setTerminandoAsignacion(true);
+      
+      const response = await fetch(`/api/guardias/${guardiaId}/terminar-asignacion`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al terminar asignación');
+      }
+
+      const result = await response.json();
+      toast.success('Asignación actual terminada correctamente');
+      
+      // Actualizar solo los datos de asignación sin activar loading general
+      const asignacionResponse = await fetch(`/api/guardias/${guardiaId}/asignacion-actual`);
+      if (asignacionResponse.ok) {
+        const asignacionData = await asignacionResponse.json();
+        setAsignacionData(asignacionData);
+      }
+      
+      console.log("Asignación terminada correctamente");
+    } catch (err) {
+      console.error('Error terminando asignación:', err);
+      toast.error(err instanceof Error ? err.message : 'Error al terminar asignación');
+    } finally {
+      setTerminandoAsignacion(false);
     }
   };
 
@@ -129,28 +241,17 @@ export default function AsignacionOperativa({ guardiaId }: AsignacionOperativaPr
     });
   };
 
-  const agruparPPCsPorInstalacion = (ppcs: PPCPendiente[]) => {
-    const grupos: { [key: string]: PPCPendiente[] } = {};
-    ppcs.forEach(ppc => {
-      if (!grupos[ppc.instalacion]) {
-        grupos[ppc.instalacion] = [];
-      }
-      grupos[ppc.instalacion].push(ppc);
-    });
-    return grupos;
-  };
-
   if (loading) {
     return (
       <div className="space-y-6">
-        <Card>
+        <Card className="bg-gray-900 border-gray-800">
           <CardHeader>
-            <CardTitle>Asignación Operativa</CardTitle>
+            <CardTitle className="text-gray-100">Asignación Operativa</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
-              <span className="ml-2">Cargando...</span>
+              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+              <span className="ml-2 text-gray-300">Cargando...</span>
             </div>
           </CardContent>
         </Card>
@@ -160,166 +261,396 @@ export default function AsignacionOperativa({ guardiaId }: AsignacionOperativaPr
 
   return (
     <div className="space-y-6">
-      {/* Asignación Actual */}
-      {asignacionData?.tieneAsignacion && asignacionData.asignacionActual && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              Asignación Actual
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    Instalación
-                  </label>
-                  <p className="text-lg font-semibold">{asignacionData.asignacionActual.instalacion}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                    <User className="h-4 w-4" />
-                    Rol de Servicio
-                  </label>
-                  <p className="text-lg font-semibold">{asignacionData.asignacionActual.rol}</p>
+      {/* Encabezado de Estado */}
+      {asignacionData?.tieneAsignacion && asignacionData.asignacionActual ? (
+        <Card className="bg-green-900/20 border-green-800">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="h-6 w-6 text-green-500" />
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-green-100">
+                  Asignación Operativa Activa
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-green-400" />
+                    <span className="text-green-200">{asignacionData.asignacionActual.instalacion}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-green-400" />
+                    <span className="text-green-200">{asignacionData.asignacionActual.rol}</span>
+                  </div>
                 </div>
               </div>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    Jornada y Horario
-                  </label>
-                  <p className="text-lg">{asignacionData.asignacionActual.jornada}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">ID del PPC</label>
-                  <p className="text-lg font-mono">{asignacionData.asignacionActual.ppc_id}</p>
-                </div>
+              <Button
+                onClick={handleTerminarAsignacion}
+                disabled={terminandoAsignacion}
+                variant="outline"
+                size="sm"
+                className="bg-red-600/20 border-red-600 text-red-200 hover:bg-red-600/30"
+              >
+                {terminandoAsignacion ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Terminando...
+                  </>
+                ) : (
+                  'Terminar Asignación'
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="bg-red-900/20 border-red-800">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-6 w-6 text-red-500" />
+              <div>
+                <h3 className="text-lg font-semibold text-red-100">
+                  ⚠️ Guardia sin asignación operativa
+                </h3>
+                <p className="text-red-200 text-sm mt-1">
+                  Selecciona una instalación y PPC para asignar al guardia
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Sin Asignación */}
+      {/* Selector de Instalaciones y PPCs */}
       {!asignacionData?.tieneAsignacion && (
-        <Card>
+        <Card className="bg-gray-900 border-gray-800">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
-              Sin Asignación Operativa
+            <CardTitle className="text-gray-100 flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Asignar a PPC
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
-                <p className="text-red-800 font-medium">
-                  Guardia sin asignación operativa. Selecciona un PPC disponible para asignar.
-                </p>
-              </div>
+          <CardContent className="space-y-6">
+            {/* Selector de Instalación */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-300">
+                Seleccionar Instalación
+              </label>
+              <Select 
+                value={instalacionSeleccionada} 
+                onValueChange={setInstalacionSeleccionada}
+                disabled={cargandoInstalaciones}
+              >
+                <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
+                  <SelectValue placeholder={
+                    cargandoInstalaciones 
+                      ? "Cargando instalaciones..." 
+                      : "Selecciona una instalación"
+                  } />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700">
+                  {instalaciones.map((instalacion) => (
+                    <SelectItem 
+                      key={instalacion.id} 
+                      value={instalacion.id}
+                      className="text-gray-100 hover:bg-gray-700"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium">{instalacion.instalacion_nombre}</span>
+                        <span className="text-xs text-gray-400">
+                          {instalacion.ciudad && instalacion.comuna 
+                            ? `${instalacion.ciudad}, ${instalacion.comuna}`
+                            : instalacion.ciudad || instalacion.comuna || 'Sin ubicación'
+                          }
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* PPCs Pendientes */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">PPCs Disponibles</h3>
-              {ppcsPendientes.length > 0 ? (
-                Object.entries(agruparPPCsPorInstalacion(ppcsPendientes)).map(([instalacion, ppcs]) => (
-                  <Card key={instalacion} className="border-l-4 border-l-blue-500">
-                    <CardHeader>
-                      <CardTitle className="text-lg">{instalacion}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {ppcs.map((ppc) => (
-                          <div key={ppc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-semibold">{ppc.rol}</span>
-                                <span className="text-sm text-gray-500">•</span>
-                                <span className="text-sm text-gray-600">{ppc.jornada}</span>
+            {/* Lista de PPCs */}
+            {instalacionSeleccionada && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-md font-semibold text-gray-100">PPCs Disponibles</h4>
+                  {cargandoPPCs && (
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Cargando PPCs...
+                    </div>
+                  )}
+                </div>
+                
+                {ppcsPendientes.length > 0 ? (
+                  <div className="space-y-3">
+                    {ppcsPendientes.map((ppc) => (
+                      <Card key={ppc.id} className="bg-gray-800 border-gray-700">
+                        <CardContent className="pt-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-center gap-3">
+                                <Badge variant="secondary" className="bg-blue-900/50 text-blue-200">
+                                  {ppc.rol}
+                                </Badge>
+                                <Badge variant="outline" className="border-gray-600 text-gray-300">
+                                  {ppc.jornada}
+                                </Badge>
                               </div>
-                              <div className="flex items-center gap-4 text-sm text-gray-600">
-                                <span>Guardias faltantes: {ppc.faltantes}</span>
-                                <span>•</span>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-300">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-gray-400">Patrón:</span>
+                                  <span>{ppc.patron}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-gray-400">Horario:</span>
+                                  <span>{ppc.horario}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Users className="h-4 w-4" />
+                                  <span>{ppc.faltantes} de {ppc.guardias_requeridos} cupos</span>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2 text-xs text-gray-400">
+                                <Calendar className="h-3 w-3" />
                                 <span>Creado: {formatearFecha(ppc.creado)}</span>
                               </div>
                             </div>
+                            
                             <Button
                               onClick={() => handleAsignarPPC(ppc.id)}
-                              disabled={asignando === ppc.id}
-                              className="ml-4"
+                              disabled={asignando === ppc.id || ppc.faltantes === 0}
+                              className="ml-4 bg-blue-600 hover:bg-blue-700 text-white"
                             >
-                              {asignando === ppc.id ? 'Asignando...' : 'Asignar Guardia'}
+                              {asignando === ppc.id ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                  Asignando...
+                                </>
+                              ) : (
+                                'Asignar Guardia'
+                              )}
                             </Button>
                           </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No hay PPCs pendientes disponibles</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : !cargandoPPCs ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No hay PPCs activos en esta instalación</p>
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Selector de Instalaciones y PPCs para cambio de turno */}
+      {asignacionData?.tieneAsignacion && (
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader>
+            <CardTitle className="text-gray-100 flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Cambiar a Otro PPC
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Mensaje informativo */}
+            <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-4">
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-blue-400" />
+                <div>
+                  <p className="text-blue-200 font-medium">Cambio de Turno</p>
+                  <p className="text-blue-300 text-sm">
+                    Al asignar un nuevo PPC, la asignación actual se terminará automáticamente 
+                    con fecha de hoy y se creará la nueva asignación.
+                  </p>
                 </div>
-              )}
+              </div>
+                        </div>
+
+            {/* Selector de Instalación */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-300">
+                Seleccionar Instalación
+              </label>
+              <Select 
+                value={instalacionSeleccionada} 
+                onValueChange={setInstalacionSeleccionada}
+                disabled={cargandoInstalaciones}
+              >
+                <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
+                  <SelectValue placeholder={
+                    cargandoInstalaciones 
+                      ? "Cargando instalaciones..." 
+                      : "Selecciona una instalación"
+                  } />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700">
+                  {instalaciones.map((instalacion) => (
+                    <SelectItem 
+                      key={instalacion.id} 
+                      value={instalacion.id}
+                      className="text-gray-100 hover:bg-gray-700"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium">{instalacion.instalacion_nombre}</span>
+                        <span className="text-xs text-gray-400">
+                          {instalacion.ciudad && instalacion.comuna 
+                            ? `${instalacion.ciudad}, ${instalacion.comuna}`
+                            : instalacion.ciudad || instalacion.comuna || 'Sin ubicación'
+                          }
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
+            {/* Lista de PPCs */}
+            {instalacionSeleccionada && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-md font-semibold text-gray-100">PPCs Disponibles</h4>
+                  {cargandoPPCs && (
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Cargando PPCs...
+                    </div>
+                  )}
+                </div>
+                
+                {ppcsPendientes.length > 0 ? (
+                  <div className="space-y-3">
+                    {ppcsPendientes.map((ppc) => (
+                      <Card key={ppc.id} className="bg-gray-800 border-gray-700">
+                        <CardContent className="pt-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-center gap-3">
+                                <Badge variant="secondary" className="bg-blue-900/50 text-blue-200">
+                                  {ppc.rol}
+                                </Badge>
+                                <Badge variant="outline" className="border-gray-600 text-gray-300">
+                                  {ppc.jornada}
+                                </Badge>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-300">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-gray-400">Patrón:</span>
+                                  <span>{ppc.patron}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-gray-400">Horario:</span>
+                                  <span>{ppc.horario}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Users className="h-4 w-4" />
+                                  <span>{ppc.faltantes} de {ppc.guardias_requeridos} cupos</span>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2 text-xs text-gray-400">
+                                <Calendar className="h-3 w-3" />
+                                <span>Creado: {formatearFecha(ppc.creado)}</span>
+                              </div>
+                            </div>
+                            
+                            <Button
+                              onClick={() => handleAsignarPPC(ppc.id)}
+                              disabled={asignando === ppc.id || ppc.faltantes === 0}
+                              className="ml-4 bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              {asignando === ppc.id ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                  Asignando...
+                                </>
+                              ) : (
+                                'Asignar Guardia'
+                              )}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : !cargandoPPCs ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No hay PPCs activos en esta instalación</p>
+                  </div>
+                ) : null}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
       {/* Historial de Asignaciones */}
-      <Card>
+      <Card className="bg-gray-900 border-gray-800">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="text-gray-100 flex items-center gap-2">
             <Clock className="h-5 w-5" />
             Historial de Asignaciones
           </CardTitle>
         </CardHeader>
         <CardContent>
           {asignacionData?.historial && asignacionData.historial.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Instalación</TableHead>
-                  <TableHead>Rol</TableHead>
-                  <TableHead>Fecha de Asignación</TableHead>
-                  <TableHead>Fecha de Término</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Tipo</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {asignacionData.historial.map((asignacion) => (
-                  <TableRow key={asignacion.id}>
-                    <TableCell className="font-medium">{asignacion.instalacion}</TableCell>
-                    <TableCell>{asignacion.rol}</TableCell>
-                    <TableCell>{formatearFecha(asignacion.fecha_asignacion)}</TableCell>
-                    <TableCell>
-                      {asignacion.fecha_termino ? formatearFecha(asignacion.fecha_termino) : '-'}
-                    </TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        asignacion.estado === 'Activa' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {asignacion.estado}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-gray-600">{asignacion.tipo}</span>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-gray-800 hover:bg-gray-800/50">
+                    <TableHead className="text-gray-300">Instalación</TableHead>
+                    <TableHead className="text-gray-300">Rol</TableHead>
+                    <TableHead className="text-gray-300">Fecha de Asignación</TableHead>
+                    <TableHead className="text-gray-300">Fecha de Término</TableHead>
+                    <TableHead className="text-gray-300">Estado</TableHead>
+                    <TableHead className="text-gray-300">Tipo</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {asignacionData.historial.map((asignacion) => (
+                    <TableRow key={asignacion.id} className="border-gray-800 hover:bg-gray-800/50">
+                      <TableCell className="font-medium text-gray-100">
+                        {asignacion.instalacion}
+                      </TableCell>
+                      <TableCell className="text-gray-300">{asignacion.rol}</TableCell>
+                      <TableCell className="text-gray-300">
+                        {formatearFecha(asignacion.fecha_asignacion)}
+                      </TableCell>
+                      <TableCell className="text-gray-300">
+                        {asignacion.fecha_termino ? formatearFecha(asignacion.fecha_termino) : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={asignacion.estado === 'Activa' ? 'default' : 'secondary'}
+                          className={
+                            asignacion.estado === 'Activa' 
+                              ? 'bg-green-900/50 text-green-200 border-green-700' 
+                              : 'bg-gray-900/50 text-gray-300 border-gray-700'
+                          }
+                        >
+                          {asignacion.estado}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-gray-400">{asignacion.tipo}</span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-400">
+              <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No hay historial de asignaciones</p>
             </div>
           )}

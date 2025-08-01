@@ -51,33 +51,56 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PUT /api/clientes - Actualizar cliente
+// PUT /api/clientes - Actualizar cliente existente
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    
-    // Validar datos con Zod
-    const validatedData = actualizarClienteSchema.parse(body);
-    
-    const clienteActualizado = await actualizarCliente(validatedData);
-    
-    return NextResponse.json({
-      success: true,
-      data: clienteActualizado,
-      message: 'Cliente actualizado correctamente'
-    });
-  } catch (error: any) {
-    console.error('❌ Error en PUT /api/clientes:', error);
-    
-    if (error.name === 'ZodError') {
+    console.log('🔄 API Clientes - Actualizando cliente:', body);
+
+    // Validar campos requeridos
+    if (!body.id) {
       return NextResponse.json(
-        { success: false, error: 'Datos de entrada inválidos', details: error.errors },
+        { success: false, error: 'ID del cliente es requerido' },
         { status: 400 }
       );
     }
-    
+
+    // Intentar actualizar el cliente
+    try {
+      const clienteActualizado = await actualizarCliente(body);
+      
+      return NextResponse.json({
+        success: true,
+        data: clienteActualizado,
+        message: 'Cliente actualizado correctamente'
+      });
+    } catch (error) {
+      console.error('❌ Error en actualizarCliente:', error);
+      
+      // Si es un error de instalaciones activas, devolver información detallada
+      if (error instanceof Error && error.message.includes('instalaciones activas')) {
+        return NextResponse.json({
+          success: false,
+          error: error.message,
+          instalacionesActivas: (error as any).instalacionesActivas || [],
+          instalacionesInactivas: (error as any).instalacionesInactivas || [],
+          clienteId: (error as any).clienteId
+        }, { status: 400 });
+      }
+      
+      // Para otros errores, devolver mensaje genérico
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Error al actualizar cliente' 
+        },
+        { status: 400 }
+      );
+    }
+  } catch (error) {
+    console.error('❌ Error en PUT /api/clientes:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Error al actualizar cliente' },
+      { success: false, error: 'Error interno del servidor' },
       { status: 500 }
     );
   }

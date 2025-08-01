@@ -21,10 +21,13 @@ export async function GET(
         rs.hora_inicio,
         rs.hora_termino,
         ppc.cantidad_faltante,
-        ppc.estado
+        ppc.estado,
+        ppc.guardia_asignado_id,
+        g.nombre || ' ' || g.apellido_paterno || ' ' || g.apellido_materno as guardia_nombre
       FROM as_turnos_ppc ppc
       INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
       LEFT JOIN as_turnos_roles_servicio rs ON tr.rol_servicio_id = rs.id
+      LEFT JOIN guardias g ON ppc.guardia_asignado_id = g.id
       WHERE tr.instalacion_id = $1
       ORDER BY ppc.created_at DESC
     `, [instalacionId]);

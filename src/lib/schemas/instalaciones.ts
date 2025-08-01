@@ -12,6 +12,12 @@ export interface Instalacion {
   estado: "Activo" | "Inactivo";
   created_at: string;
   updated_at: string;
+  // Propiedades de estadísticas (opcionales)
+  puestos_creados?: number;
+  puestos_asignados?: number;
+  ppc_pendientes?: number;
+  ppc_totales?: number;
+  puestos_disponibles?: number;
 }
 
 export interface CrearInstalacionData {
@@ -108,8 +114,14 @@ export const crearInstalacionSchema = z.object({
 export const actualizarInstalacionSchema = z.object({
   id: z.string().uuid('ID de instalación inválido'),
   nombre: z.string().min(1, 'El nombre es requerido').max(255, 'El nombre no puede exceder 255 caracteres').optional(),
-  cliente_id: z.string().uuid('ID de cliente inválido').optional(),
-  direccion: z.string().min(1, 'La dirección es requerida').optional(),
+  cliente_id: z.union([z.string().uuid('ID de cliente inválido'), z.string().length(0)]).nullable().optional().transform((val) => {
+    if (val === null || val === undefined || val === '') return null;
+    return val;
+  }),
+  direccion: z.union([z.string().min(1, 'La dirección es requerida'), z.string().length(0)]).nullable().optional().transform((val) => {
+    if (val === null || val === undefined || val === '') return null;
+    return val;
+  }),
   latitud: z.union([z.string(), z.number()]).nullable().optional().transform((val) => {
     if (val === null || val === undefined) return null;
     const num = typeof val === 'string' ? parseFloat(val) : val;
@@ -120,8 +132,14 @@ export const actualizarInstalacionSchema = z.object({
     const num = typeof val === 'string' ? parseFloat(val) : val;
     return isNaN(num) ? null : num;
   }),
-  ciudad: z.string().optional(),
-  comuna: z.string().optional(),
+  ciudad: z.union([z.string(), z.string().length(0)]).nullable().optional().transform((val) => {
+    if (val === null || val === undefined || val === '') return null;
+    return val;
+  }),
+  comuna: z.union([z.string(), z.string().length(0)]).nullable().optional().transform((val) => {
+    if (val === null || val === undefined || val === '') return null;
+    return val;
+  }),
   valor_turno_extra: z.coerce.number().min(0, 'El valor de turno extra debe ser mayor o igual a 0').optional(),
   estado: z.enum(['Activo', 'Inactivo']).optional(),
 });

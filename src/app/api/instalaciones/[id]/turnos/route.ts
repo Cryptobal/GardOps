@@ -44,7 +44,7 @@ export async function GET(
       LEFT JOIN (
         SELECT 
           tr.rol_servicio_id,
-          SUM(ppc.cantidad_faltante) as count
+          COUNT(*) as count
         FROM as_turnos_ppc ppc
         INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
         WHERE tr.instalacion_id = $1 AND ppc.estado = 'Pendiente'
@@ -189,7 +189,7 @@ export async function POST(
           fecha_deteccion,
           estado
         ) VALUES ($1, $2, $3, $4, CURRENT_DATE, 'Pendiente')
-      `, [requisitoId, cantidad_guardias, 'Falta asignación de guardias', 'Media']);
+      `, [requisitoId, cantidad_guardias, 'falta_asignacion', 'Media']);
       
       console.log(`✅ Generado PPC para ${cantidad_guardias} guardias del turno`);
     }
