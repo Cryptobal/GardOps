@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const result = await query(documentosVencidosQuery);
     
     // Calcular total de documentos vencidos
-    const totalDocumentosVencidos = result.rows.reduce((acc, row) => {
+    const totalDocumentosVencidos = result.rows.reduce((acc: number, row: any) => {
       return acc + parseInt(row.documentos_vencidos);
     }, 0);
 
