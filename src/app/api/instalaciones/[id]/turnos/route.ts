@@ -8,16 +8,16 @@ export async function GET(
   try {
     const instalacionId = params.id;
 
-    // Obtener turnos con detalles completos
+    // Obtener turnos con detalles completos usando las nuevas tablas ADO
     const result = await query(`
       SELECT 
-        ti.id,
-        ti.instalacion_id,
-        ti.rol_servicio_id,
-        ti.cantidad_guardias,
-        ti.estado,
-        ti.created_at,
-        ti.updated_at,
+        tc.id,
+        tc.instalacion_id,
+        tc.rol_servicio_id,
+        tc.cantidad_guardias,
+        tc.estado,
+        tc.created_at,
+        tc.updated_at,
         rs.nombre as rol_nombre,
         rs.dias_trabajo,
         rs.dias_descanso,
@@ -30,28 +30,28 @@ export async function GET(
         rs.updated_at as rol_updated_at,
         COALESCE(ag_count.count, 0) as guardias_asignados,
         COALESCE(ppc_count.count, 0) as ppc_pendientes
-      FROM turnos_instalacion ti
-      INNER JOIN roles_servicio rs ON ti.rol_servicio_id = rs.id
+      FROM as_turnos_configuracion tc
+      INNER JOIN as_turnos_roles_servicio rs ON tc.rol_servicio_id = rs.id
       LEFT JOIN (
         SELECT 
-          rp.rol_servicio_id,
+          tr.rol_servicio_id,
           COUNT(*) as count
-        FROM asignaciones_guardias ag
-        INNER JOIN requisitos_puesto rp ON ag.requisito_puesto_id = rp.id
-        WHERE rp.instalacion_id = $1 AND ag.estado = 'Activo'
-        GROUP BY rp.rol_servicio_id
-      ) ag_count ON ag_count.rol_servicio_id = ti.rol_servicio_id
+        FROM as_turnos_asignaciones ta
+        INNER JOIN as_turnos_requisitos tr ON ta.requisito_puesto_id = tr.id
+        WHERE tr.instalacion_id = $1 AND ta.estado = 'Activa'
+        GROUP BY tr.rol_servicio_id
+      ) ag_count ON ag_count.rol_servicio_id = tc.rol_servicio_id
       LEFT JOIN (
         SELECT 
-          rp.rol_servicio_id,
+          tr.rol_servicio_id,
           SUM(ppc.cantidad_faltante) as count
-        FROM puestos_por_cubrir ppc
-        INNER JOIN requisitos_puesto rp ON ppc.requisito_puesto_id = rp.id
-        WHERE rp.instalacion_id = $1 AND ppc.estado = 'Pendiente'
-        GROUP BY rp.rol_servicio_id
-      ) ppc_count ON ppc_count.rol_servicio_id = ti.rol_servicio_id
-      WHERE ti.instalacion_id = $1
-      ORDER BY rs.nombre, ti.created_at
+        FROM as_turnos_ppc ppc
+        INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
+        WHERE tr.instalacion_id = $1 AND ppc.estado = 'Pendiente'
+        GROUP BY tr.rol_servicio_id
+      ) ppc_count ON ppc_count.rol_servicio_id = tc.rol_servicio_id
+      WHERE tc.instalacion_id = $1
+      ORDER BY rs.nombre, tc.created_at
     `, [instalacionId]);
 
     // Transformar los resultados para que coincidan con la interfaz
@@ -130,7 +130,7 @@ export async function POST(
 
     // Verificar que el rol de servicio existe y está activo
     const rolCheck = await query(
-      'SELECT id FROM roles_servicio WHERE id = $1 AND estado = $2',
+      'SELECT id FROM as_turnos_roles_servicio WHERE id = $1 AND estado = $2',
       [rol_servicio_id, 'Activo']
     );
 
@@ -143,7 +143,7 @@ export async function POST(
 
     // Verificar que no existe ya un turno con el mismo rol para esta instalación
     const turnoExistente = await query(
-      'SELECT id FROM turnos_instalacion WHERE instalacion_id = $1 AND rol_servicio_id = $2 AND estado = $3',
+      'SELECT id FROM as_turnos_configuracion WHERE instalacion_id = $1 AND rol_servicio_id = $2 AND estado = $3',
       [instalacionId, rol_servicio_id, 'Activo']
     );
 
@@ -154,55 +154,34 @@ export async function POST(
       );
     }
 
-    // Crear el turno
+    // Crear el turno en as_turnos_configuracion
     const result = await query(`
-      INSERT INTO turnos_instalacion (instalacion_id, rol_servicio_id, cantidad_guardias)
-      VALUES ($1, $2, $3)
+      INSERT INTO as_turnos_configuracion (instalacion_id, rol_servicio_id, cantidad_guardias, estado)
+      VALUES ($1, $2, $3, 'Activo')
       RETURNING *
     `, [instalacionId, rol_servicio_id, cantidad_guardias]);
 
     const nuevoTurno = result.rows[0];
 
-    // Obtener o crear puesto operativo para esta instalación
-    let puestoOperativoResult = await query(`
-      SELECT id FROM puestos_operativos 
-      WHERE instalacion_id = $1 AND estado = 'Activo'
-      LIMIT 1
-    `, [instalacionId]);
-
-    let puestoOperativoId;
-    if (puestoOperativoResult.rows.length === 0) {
-      // Crear puesto operativo si no existe
-      const nuevoPuestoResult = await query(`
-        INSERT INTO puestos_operativos (instalacion_id, nombre, estado)
-        VALUES ($1, 'Puesto Principal', 'Activo')
-        RETURNING id
-      `, [instalacionId]);
-      puestoOperativoId = nuevoPuestoResult.rows[0].id;
-    } else {
-      puestoOperativoId = puestoOperativoResult.rows[0].id;
-    }
-
-    // Crear requisito de puesto para este turno
+    // Crear requisito de puesto para este turno en as_turnos_requisitos
     const requisitoResult = await query(`
-      INSERT INTO requisitos_puesto (
+      INSERT INTO as_turnos_requisitos (
         instalacion_id,
-        puesto_operativo_id,
         rol_servicio_id,
         cantidad_guardias,
         vigente_desde,
         vigente_hasta,
         estado
-      ) VALUES ($1, $2, $3, $4, CURRENT_DATE, NULL, 'Activo')
+      ) VALUES ($1, $2, $3, CURRENT_DATE, NULL, 'Activo')
       RETURNING id
-    `, [instalacionId, puestoOperativoId, rol_servicio_id, cantidad_guardias]);
+    `, [instalacionId, rol_servicio_id, cantidad_guardias]);
 
     const requisitoId = requisitoResult.rows[0].id;
 
     // Generar PPCs automáticamente basados en la cantidad de guardias requeridos
     if (cantidad_guardias > 0) {
       await query(`
-        INSERT INTO puestos_por_cubrir (
+        INSERT INTO as_turnos_ppc (
           requisito_puesto_id,
           cantidad_faltante,
           motivo,
@@ -210,12 +189,12 @@ export async function POST(
           fecha_deteccion,
           estado
         ) VALUES ($1, $2, $3, $4, CURRENT_DATE, 'Pendiente')
-      `, [requisitoId, cantidad_guardias, 'falta_asignacion', 'Media']);
+      `, [requisitoId, cantidad_guardias, 'Falta asignación de guardias', 'Media']);
       
       console.log(`✅ Generado PPC para ${cantidad_guardias} guardias del turno`);
     }
 
-    console.log('🔁 Turno de instalación creado correctamente');
+    console.log('🔁 Turno de instalación creado correctamente usando tablas ADO');
 
     return NextResponse.json(nuevoTurno, { status: 201 });
   } catch (error) {

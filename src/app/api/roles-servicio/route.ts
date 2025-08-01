@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
         tenant_id,
         created_at,
         updated_at
-      FROM roles_servicio 
+      FROM as_turnos_roles_servicio 
       ORDER BY nombre
     `);
 
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     // Verificar que no existe un rol con el mismo nombre
     const existingRole = await query(
-      'SELECT id FROM roles_servicio WHERE nombre = $1',
+      'SELECT id FROM as_turnos_roles_servicio WHERE nombre = $1',
       [nombre]
     );
 
@@ -56,12 +56,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Crear el rol
+    // Crear el rol en la nueva tabla ADO
     const result = await query(`
-      INSERT INTO roles_servicio (nombre, dias_trabajo, dias_descanso, horas_turno, hora_inicio, hora_termino, estado)
+      INSERT INTO as_turnos_roles_servicio (nombre, dias_trabajo, dias_descanso, horas_turno, hora_inicio, hora_termino, estado)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `, [nombre, dias_trabajo, dias_descanso, horas_turno, hora_inicio, hora_termino, estado]);
+
+    console.log('✅ Rol de servicio creado correctamente usando tablas ADO');
 
     return NextResponse.json(result.rows[0]);
   } catch (error) {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -99,16 +99,6 @@ export default function ClientesPage() {
     }
   ];
 
-  // Cargar clientes al montar el componente
-  useEffect(() => {
-    cargarClientes();
-  }, [cargarClientes]);
-
-  // Aplicar filtros cuando cambien
-  useEffect(() => {
-    aplicarFiltros();
-  }, [clientes, filtros.search, filtros.estado, aplicarFiltros]);
-
   const cargarClientes = useCallback(async () => {
     try {
       setLoading(true);
@@ -157,6 +147,16 @@ export default function ClientesPage() {
       filteredCount: filtered.length.toString()
     }));
   }, [clientes, filtros.search, filtros.estado]);
+
+  // Cargar clientes al montar el componente
+  useEffect(() => {
+    cargarClientes();
+  }, [cargarClientes]);
+
+  // Aplicar filtros cuando cambien
+  useEffect(() => {
+    aplicarFiltros();
+  }, [clientes, filtros.search, filtros.estado, aplicarFiltros]);
 
   const handleFilterChange = (key: string, value: string) => {
     setFiltros(prev => ({ ...prev, [key]: value }));
