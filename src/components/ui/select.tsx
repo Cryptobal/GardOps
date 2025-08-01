@@ -70,35 +70,10 @@ const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
 >(({ className, children, position = "popper", ...props }, ref) => {
-  // Manejo robusto del estado para prevenir errores de focus
-  const contentRef = React.useRef<HTMLDivElement>(null);
-  
-  React.useEffect(() => {
-    const content = contentRef.current;
-    if (!content) return;
-
-    // Limpiar cualquier focus problemático cuando el componente se desmonta
-    return () => {
-      if (content.contains(document.activeElement)) {
-        (document.activeElement as HTMLElement)?.blur();
-      }
-    };
-  }, []);
-
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
-        ref={(node) => {
-          // Manejar ambas referencias
-          if (typeof ref === 'function') {
-            ref(node);
-          } else if (ref) {
-            ref.current = node;
-          }
-          if (contentRef.current !== node) {
-            contentRef.current = node;
-          }
-        }}
+        ref={ref}
         className={cn(
           "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
           position === "popper" &&
