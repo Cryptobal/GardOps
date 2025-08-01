@@ -13,7 +13,10 @@
     "migrate:test": "npm run dev & sleep 3 && curl -X POST http://localhost:3000/api/migrate",
     "create-pautas-diarias": "npx ts-node scripts/create-pautas-diarias.ts",
     "create-ppc-turnos": "npx ts-node scripts/create-ppc-turnos-extras.ts",
-    "audit:guardias": "npx ts-node scripts/audit-guardias.ts"
+    "audit:guardias": "npx ts-node scripts/audit-guardias.ts",
+    "diagnostic": "npx ts-node scripts/diagnosticar-servidor.ts",
+    "clean": "rm -rf .next && rm -rf node_modules/.cache",
+    "reset": "npm run clean && npm install && npm run dev"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.850.0",
@@ -43,7 +46,7 @@
     "framer-motion": "^12.23.11",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.294.0",
-    "next": "14.0.0",
+    "next": "^14.2.31",
     "pg": "^8.16.3",
     "postcss": "^8",
     "react": "^18",

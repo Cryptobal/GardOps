@@ -166,7 +166,7 @@ export default function GuardDetailModal({ guardia, isOpen, onClose }: GuardDeta
                   <label className="text-sm font-medium text-gray-500">Coordenadas</label>
                   <p className="text-lg">
                     {guardia.latitud && guardia.longitud 
-                      ? `${guardia.latitud.toFixed(6)}, ${guardia.longitud.toFixed(6)}`
+                      ? `${Number(guardia.latitud).toFixed(6)}, ${Number(guardia.longitud).toFixed(6)}`
                       : 'No disponibles'
                     }
                   </p>

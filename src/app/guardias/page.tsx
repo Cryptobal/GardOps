@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   CheckCircle
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 // Importar componentes genéricos
 import { DataTable, Column } from "../../components/ui/data-table";
@@ -72,6 +73,7 @@ const KPIBox = ({
 );
 
 export default function GuardiasPage() {
+  const router = useRouter();
   const [guardias, setGuardias] = useState<Guardia[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -256,7 +258,7 @@ export default function GuardiasPage() {
             size="sm"
             onClick={() => {
               console.log("Ver detalles de guardia", guardia.id);
-              openDetail(guardia);
+              router.push(`/guardias/${guardia.id}`);
             }}
           >
             <Eye className="h-4 w-4" />
@@ -358,7 +360,7 @@ export default function GuardiasPage() {
             emptyMessage="No se encontraron guardias"
             onRowClick={(guardia) => {
               console.log("Ver detalles de guardia", guardia.id);
-              openDetail(guardia);
+              router.push(`/guardias/${guardia.id}`);
             }}
           />
         </CardContent>

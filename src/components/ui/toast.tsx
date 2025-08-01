@@ -91,14 +91,14 @@ export function Toast({ id, type = "info", title, message, duration = 5000, onRe
 export function useToast() {
   const [toasts, setToasts] = React.useState<ToastProps[]>([]);
 
-  const addToast = React.useCallback((toast: Omit<ToastProps, "id" | "onRemove">) => {
-    const id = Math.random().toString(36).substr(2, 9);
-    setToasts(prev => [...prev, { ...toast, id, onRemove: removeToast }]);
-  }, []);
-
   const removeToast = React.useCallback((id: string) => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   }, []);
+
+  const addToast = React.useCallback((toast: Omit<ToastProps, "id" | "onRemove">) => {
+    const id = Math.random().toString(36).substr(2, 9);
+    setToasts(prev => [...prev, { ...toast, id, onRemove: removeToast }]);
+  }, [removeToast]);
 
   const toast = React.useMemo(() => ({
     success: (message: string, title?: string) => addToast({ type: "success", message, title }),
