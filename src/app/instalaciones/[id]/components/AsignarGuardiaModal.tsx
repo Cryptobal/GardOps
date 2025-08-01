@@ -3,8 +3,11 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { SafeSelect } from '@/components/ui/safe-select';
+import { SelectContent, SelectItem } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
+import { Search } from 'lucide-react';
 import { asignarGuardiaPPC } from '@/lib/api/instalaciones';
 
 interface AsignarGuardiaModalProps {
@@ -27,12 +30,45 @@ export default function AsignarGuardiaModal({
   const { toast } = useToast();
   const [guardias, setGuardias] = useState<any[]>([]);
   const [guardiaSeleccionado, setGuardiaSeleccionado] = useState<string>('');
+  const [filtroGuardias, setFiltroGuardias] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [cargandoGuardias, setCargandoGuardias] = useState(true);
+  const [selectOpen, setSelectOpen] = useState(false);
 
+  // Función para filtrar guardias por nombre, apellido o RUT
+  const guardiasFiltrados = guardias.filter(guardia => {
+    if (!filtroGuardias.trim()) return true;
+    
+    const filtro = filtroGuardias.toLowerCase().trim();
+    const nombreCompleto = `${guardia.nombre} ${guardia.apellidos}`.toLowerCase();
+    const rut = guardia.rut?.toLowerCase() || '';
+    
+    // Filtrar por nombre completo (nombre + apellidos)
+    if (nombreCompleto.includes(filtro)) return true;
+    
+    // Filtrar por RUT
+    if (rut.includes(filtro)) return true;
+    
+    // Filtrar por apellidos específicos
+    const apellidos = guardia.apellidos?.toLowerCase() || '';
+    if (apellidos.includes(filtro)) return true;
+    
+    // Filtrar por nombre específico
+    const nombre = guardia.nombre?.toLowerCase() || '';
+    if (nombre.includes(filtro)) return true;
+    
+    return false;
+  });
+
+  // Limpiar estado cuando se abre/cierra el modal
   useEffect(() => {
     if (isOpen) {
       cargarGuardias();
+    } else {
+      // Limpiar estado cuando se cierra el modal
+      setGuardiaSeleccionado('');
+      setFiltroGuardias('');
+      setSelectOpen(false);
     }
   }, [isOpen]);
 
@@ -74,6 +110,14 @@ export default function AsignarGuardiaModal({
     }
   };
 
+  const handleClose = () => {
+    // Limpiar estado antes de cerrar
+    setGuardiaSeleccionado('');
+    setFiltroGuardias('');
+    setSelectOpen(false);
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -95,23 +139,50 @@ export default function AsignarGuardiaModal({
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 dark:border-white"></div>
               </div>
             ) : (
-              <Select value={guardiaSeleccionado} onValueChange={setGuardiaSeleccionado}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar guardia" />
-                </SelectTrigger>
+              <SafeSelect 
+                value={guardiaSeleccionado} 
+                onValueChange={setGuardiaSeleccionado}
+                open={selectOpen}
+                onOpenChange={setSelectOpen}
+                placeholder="Seleccionar guardia"
+              >
                 <SelectContent>
-                  {guardias.map((guardia) => (
-                    <SelectItem key={guardia.id} value={guardia.id}>
-                      {guardia.nombre} {guardia.apellidos}
-                    </SelectItem>
-                  ))}
+                  {/* Campo de filtro para guardias */}
+                  <div className="p-2 border-b">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+                      <Input
+                        placeholder="Filtrar por apellido o RUT..."
+                        value={filtroGuardias}
+                        onChange={(e) => setFiltroGuardias(e.target.value)}
+                        className="pl-8 h-8 text-xs border-0 focus-visible:ring-0"
+                        onKeyDown={(e) => {
+                          // Prevenir que el Enter cierre el select
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {guardiasFiltrados.length === 0 ? (
+                    <div className="p-2 text-xs text-gray-500">
+                      {filtroGuardias ? 'No se encontraron guardias' : 'No hay guardias disponibles'}
+                    </div>
+                  ) : (
+                    guardiasFiltrados.map((guardia) => (
+                      <SelectItem key={guardia.id} value={guardia.id}>
+                        {guardia.nombre} {guardia.apellidos}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
-              </Select>
+              </SafeSelect>
             )}
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">
-            <Button variant="outline" onClick={onClose} disabled={loading}>
+            <Button variant="outline" onClick={handleClose} disabled={loading}>
               Cancelar
             </Button>
             <Button onClick={handleAsignar} disabled={loading || !guardiaSeleccionado}>

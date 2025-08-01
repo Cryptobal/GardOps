@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SafeSelect } from '@/components/ui/safe-select';
+import { SelectContent, SelectItem } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
-import { Trash2, X, UserPlus, UserMinus } from 'lucide-react';
+import { Trash2, X, UserPlus, UserMinus, Search } from 'lucide-react';
 import { 
   getTurnosInstalacion, 
   getRolesServicio, 
@@ -74,6 +75,8 @@ export default function TurnosInstalacion({
   const [rolesServicio, setRolesServicio] = useState<RolServicio[]>(rolesPrecargados || []);
   const [ppcs, setPpcs] = useState<PPC[]>(ppcsPrecargados || []);
   const [guardiasDisponibles, setGuardiasDisponibles] = useState<GuardiaDisponible[]>(guardiasPrecargados || []);
+  const [filtrosGuardias, setFiltrosGuardias] = useState<{[key: string]: string}>({});
+  const [selectsOpen, setSelectsOpen] = useState<{[key: string]: boolean}>({});
   const [loading, setLoading] = useState(!turnosPrecargados); // Solo loading si no hay datos precargados
   const [creando, setCreando] = useState(false);
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -90,6 +93,33 @@ export default function TurnosInstalacion({
     rol_servicio_id: '',
     cantidad_guardias: 1
   });
+
+  // Función para filtrar guardias por nombre, apellido o RUT
+  const getGuardiasFiltrados = (filtro: string) => {
+    return guardiasDisponibles.filter(guardia => {
+      if (!filtro.trim()) return true;
+      
+      const filtroLower = filtro.toLowerCase().trim();
+      const nombreCompleto = guardia.nombre_completo.toLowerCase();
+      const rut = guardia.rut.toLowerCase();
+      
+      // Filtrar por nombre completo (nombre + apellidos)
+      if (nombreCompleto.includes(filtroLower)) return true;
+      
+      // Filtrar por RUT
+      if (rut.includes(filtroLower)) return true;
+      
+      // Filtrar por apellidos específicos
+      const apellidos = guardia.nombre_completo.split(' ').slice(1).join(' ').toLowerCase();
+      if (apellidos.includes(filtroLower)) return true;
+      
+      // Filtrar por nombre específico
+      const nombre = guardia.nombre_completo.split(' ')[0].toLowerCase();
+      if (nombre.includes(filtroLower)) return true;
+      
+      return false;
+    });
+  };
 
   useEffect(() => {
     // Si no hay datos precargados, cargarlos
@@ -168,6 +198,19 @@ export default function TurnosInstalacion({
     try {
       setAsignando(ppcId);
       await asignarGuardiaPPC(instalacionId, ppcId, guardiaId);
+      
+      // Limpiar filtro y cerrar select después de asignar
+      setFiltrosGuardias(prev => {
+        const newFiltros = { ...prev };
+        delete newFiltros[ppcId];
+        return newFiltros;
+      });
+      setSelectsOpen(prev => {
+        const newSelects = { ...prev };
+        delete newSelects[ppcId];
+        return newSelects;
+      });
+      
       toast.success('Guardia asignado correctamente', 'Éxito');
       await cargarDatos();
     } catch (error) {
@@ -335,6 +378,52 @@ export default function TurnosInstalacion({
           />
         )}
 
+        {/* Formulario para crear nuevo turno */}
+        <div className="border-t pt-6">
+          <h3 className="text-lg font-semibold mb-4">➕ Crear Nuevo Turno</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Rol de Servicio</label>
+              <SafeSelect
+                value={formData.rol_servicio_id}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, rol_servicio_id: value }))}
+                placeholder="Seleccionar rol"
+              >
+                <SelectContent>
+                  {rolesServicio.map((rol) => (
+                    <SelectItem key={rol.id} value={rol.id}>
+                      {rol.nombre} ({formatearCiclo(rol.dias_trabajo, rol.dias_descanso)} - {formatearHorario(rol.hora_inicio, rol.hora_termino)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </SafeSelect>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Cantidad de Guardias</label>
+              <Input
+                type="number"
+                min="1"
+                max="20"
+                value={formData.cantidad_guardias}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  cantidad_guardias: parseInt(e.target.value) || 1 
+                }))}
+                placeholder="1-20"
+              />
+            </div>
+
+            <Button 
+              onClick={handleCrearTurno}
+              disabled={creando || !formData.rol_servicio_id}
+              className="w-full"
+            >
+              {creando ? 'Creando...' : 'Crear Turno'}
+            </Button>
+          </div>
+        </div>
+
         {/* Lista de Turnos con PPCs */}
         <div className="space-y-6">
           {turnos.length === 0 ? (
@@ -451,21 +540,55 @@ export default function TurnosInstalacion({
                                 <div className="mt-3 flex gap-2">
                                   {ppc.estado === 'Pendiente' ? (
                                     <div className="flex-1">
-                                      <Select
+                                      <SafeSelect
                                         onValueChange={(guardiaId) => handleAsignarGuardiaDirecto(ppc.id, guardiaId)}
                                         disabled={asignando === ppc.id}
+                                        open={selectsOpen[ppc.id] || false}
+                                        onOpenChange={(open) => setSelectsOpen(prev => ({
+                                          ...prev,
+                                          [ppc.id]: open
+                                        }))}
+                                        placeholder="Asignar guardia"
+                                        className="h-8 text-xs"
                                       >
-                                        <SelectTrigger className="h-8 text-xs">
-                                          <SelectValue placeholder="Asignar guardia" />
-                                        </SelectTrigger>
                                         <SelectContent>
-                                          {guardiasDisponibles.map((guardia) => (
-                                            <SelectItem key={guardia.id} value={guardia.id}>
-                                              {guardia.nombre_completo} ({guardia.comuna})
-                                            </SelectItem>
-                                          ))}
+                                          {/* Campo de filtro para guardias */}
+                                          <div className="p-2 border-b">
+                                            <div className="relative">
+                                              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+                                              <Input
+                                                placeholder="Filtrar por apellido o RUT..."
+                                                value={filtrosGuardias[ppc.id] || ''}
+                                                onChange={(e) => setFiltrosGuardias(prev => ({
+                                                  ...prev,
+                                                  [ppc.id]: e.target.value
+                                                }))}
+                                                className="pl-8 h-8 text-xs border-0 focus-visible:ring-0"
+                                                onKeyDown={(e) => {
+                                                  // Prevenir que el Enter cierre el select
+                                                  if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                  }
+                                                }}
+                                              />
+                                            </div>
+                                          </div>
+                                          {(() => {
+                                            const guardiasFiltrados = getGuardiasFiltrados(filtrosGuardias[ppc.id] || '');
+                                            return guardiasFiltrados.length === 0 ? (
+                                              <div className="p-2 text-xs text-gray-500">
+                                                {filtrosGuardias[ppc.id] ? 'No se encontraron guardias' : 'No hay guardias disponibles'}
+                                              </div>
+                                            ) : (
+                                              guardiasFiltrados.map((guardia: GuardiaDisponible) => (
+                                                <SelectItem key={guardia.id} value={guardia.id}>
+                                                  {guardia.nombre_completo} ({guardia.comuna})
+                                                </SelectItem>
+                                              ))
+                                            );
+                                          })()}
                                         </SelectContent>
-                                      </Select>
+                                      </SafeSelect>
                                     </div>
                                   ) : (
                                     <Button
@@ -518,54 +641,6 @@ export default function TurnosInstalacion({
               );
             })
           )}
-        </div>
-
-        {/* Formulario para crear nuevo turno */}
-        <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold mb-4">➕ Crear Nuevo Turno</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Rol de Servicio</label>
-              <Select
-                value={formData.rol_servicio_id}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, rol_servicio_id: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar rol" />
-                </SelectTrigger>
-                <SelectContent>
-                  {rolesServicio.map((rol) => (
-                    <SelectItem key={rol.id} value={rol.id}>
-                      {rol.nombre} ({formatearCiclo(rol.dias_trabajo, rol.dias_descanso)} - {formatearHorario(rol.hora_inicio, rol.hora_termino)})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Cantidad de Guardias</label>
-              <Input
-                type="number"
-                min="1"
-                max="20"
-                value={formData.cantidad_guardias}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  cantidad_guardias: parseInt(e.target.value) || 1 
-                }))}
-                placeholder="1-20"
-              />
-            </div>
-
-            <Button 
-              onClick={handleCrearTurno}
-              disabled={creando || !formData.rol_servicio_id}
-              className="w-full"
-            >
-              {creando ? 'Creando...' : 'Crear Turno'}
-            </Button>
-          </div>
         </div>
       </CardContent>
 

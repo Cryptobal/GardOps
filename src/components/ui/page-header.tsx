@@ -11,6 +11,7 @@ export interface KPICard {
   value: number;
   icon: LucideIcon;
   variant?: 'default' | 'success' | 'warning' | 'danger';
+  onClick?: () => void;
   trend?: {
     value: number;
     isPositive: boolean;
@@ -67,7 +68,7 @@ export function PageHeader({
       </div>
 
       {/* KPIs Cards */}
-      {kpis && kpis.length > 0 && (
+      {kpis && kpis.length > 0 &&
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
           {kpis.map((kpi, index) => {
             const Icon = kpi.icon;
@@ -77,7 +78,10 @@ export function PageHeader({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className={`rounded-2xl border p-6 ${variantClasses[kpi.variant || 'default']}`}
+                className={`rounded-2xl border p-6 ${variantClasses[kpi.variant || 'default']} ${
+                  kpi.onClick ? 'cursor-pointer hover:scale-105 transition-transform duration-200 hover:shadow-lg' : ''
+                }`}
+                onClick={kpi.onClick}
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -104,7 +108,7 @@ export function PageHeader({
             );
           })}
         </div>
-      )}
+      }
     </div>
   );
 } 

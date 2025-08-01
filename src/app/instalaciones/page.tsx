@@ -22,7 +22,8 @@ import {
   Trash2,
   FileText,
   Activity,
-  Settings
+  Settings,
+  X
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -43,7 +44,8 @@ import {
   logInstalacionCreada,
   logEdicionInstalacion,
   logCambioEstadoInstalacion,
-  obtenerDatosCompletosInstalaciones
+  obtenerDatosCompletosInstalaciones,
+  obtenerDocumentosVencidosInstalaciones
 } from "../../lib/api/instalaciones";
 
 // Importar componentes genéricos
@@ -60,7 +62,7 @@ interface KPIData {
   totalInstalaciones: number;
   puestosAsignados: number;
   ppcPendientes: number;
-  criticas: number;
+  documentosVencidos: number;
 }
 
 export default function InstalacionesPage() {
@@ -72,6 +74,15 @@ export default function InstalacionesPage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showCriticas, setShowCriticas] = useState(false);
   const [showPPCPendientes, setShowPPCPendientes] = useState(false);
+  const [showDocumentosVencidos, setShowDocumentosVencidos] = useState(false);
+  const [documentosVencidos, setDocumentosVencidos] = useState<{
+    instalaciones: Array<{
+      instalacion_id: string;
+      instalacion_nombre: string;
+      documentos_vencidos: number;
+    }>;
+    total: number;
+  }>({ instalaciones: [], total: 0 });
   
   // Estados para filtros
   const [filtros, setFiltros] = useState<Record<string, string>>({
@@ -136,7 +147,7 @@ export default function InstalacionesPage() {
   // Aplicar filtros cuando cambien
   useEffect(() => {
     aplicarFiltros();
-  }, [filtros.search, filtros.estado, filtros.cliente_id, instalaciones, showCriticas, showPPCPendientes]);
+  }, [filtros.search, filtros.estado, filtros.cliente_id, instalaciones, showCriticas, showPPCPendientes, showDocumentosVencidos]);
 
   const cargarDatos = async () => {
     setLoading(true);
@@ -152,6 +163,15 @@ export default function InstalacionesPage() {
         ...prev,
         totalCount: datosCompletos.instalaciones.length.toString()
       }));
+
+      // Cargar documentos vencidos
+      try {
+        const docsVencidos = await obtenerDocumentosVencidosInstalaciones();
+        setDocumentosVencidos(docsVencidos);
+      } catch (error) {
+        console.error("❌ Error cargando documentos vencidos:", error);
+        // No mostrar error al usuario, solo log
+      }
       
     } catch (error) {
       console.error("❌ Error cargando datos:", error);
@@ -199,8 +219,16 @@ export default function InstalacionesPage() {
       });
     }
 
+    // Filtro por documentos vencidos
+    if (showDocumentosVencidos) {
+      const instalacionesConDocsVencidos = documentosVencidos.instalaciones.map(doc => doc.instalacion_id);
+      filtradas = filtradas.filter(instalacion => 
+        instalacionesConDocsVencidos.includes(instalacion.id)
+      );
+    }
+
     return filtradas;
-  }, [instalaciones, filtros.search, filtros.estado, filtros.cliente_id, showCriticas, showPPCPendientes]);
+  }, [instalaciones, filtros.search, filtros.estado, filtros.cliente_id, showCriticas, showPPCPendientes, showDocumentosVencidos, documentosVencidos]);
 
   const aplicarFiltros = () => {
     setFiltros(prev => ({
@@ -223,6 +251,7 @@ export default function InstalacionesPage() {
     });
     setShowCriticas(false);
     setShowPPCPendientes(false);
+    setShowDocumentosVencidos(false);
   };
 
   // Función para obtener datos reales de estadísticas
@@ -261,8 +290,6 @@ export default function InstalacionesPage() {
 
   // Calcular KPIs
   const calcularKPIs = (): KPIData => {
-    const criticasReales = instalaciones.filter(esInstalacionCritica).length;
-    
     // Calcular totales reales usando las propiedades de las instalaciones
     const totalPuestosAsignados = instalaciones.reduce((acc, instalacion) => {
       return acc + (instalacion.puestos_asignados || 0);
@@ -276,7 +303,7 @@ export default function InstalacionesPage() {
       totalInstalaciones: instalaciones.length,
       puestosAsignados: totalPuestosAsignados,
       ppcPendientes: totalPPCActivos,
-      criticas: criticasReales
+      documentosVencidos: documentosVencidos.total
     };
   };
 
@@ -661,18 +688,30 @@ export default function InstalacionesPage() {
               label: "PPC Pendientes",
               value: kpis.ppcPendientes,
               icon: AlertTriangle,
-              variant: kpis.ppcPendientes > 0 ? "warning" : "success"
+              variant: kpis.ppcPendientes > 0 ? "warning" : "success",
+              onClick: () => {
+                setShowPPCPendientes(true);
+                setShowCriticas(false);
+                setShowDocumentosVencidos(false);
+                toast.success('Filtrado por PPC pendientes', 'Filtro aplicado');
+              }
             },
             {
-              label: "Instalaciones Críticas",
-              value: kpis.criticas,
-              icon: AlertTriangle,
-              variant: kpis.criticas > 0 ? "danger" : "success"
+              label: "Documentos Vencidos",
+              value: kpis.documentosVencidos,
+              icon: FileText,
+              variant: kpis.documentosVencidos > 0 ? "danger" : "success",
+              onClick: () => {
+                setShowDocumentosVencidos(true);
+                setShowCriticas(false);
+                setShowPPCPendientes(false);
+                toast.success('Filtrado por documentos vencidos', 'Filtro aplicado');
+              }
             }
           ]}
         />
 
-        {/* FilterBar con filtro de críticas */}
+        {/* FilterBar */}
         <div className="mb-6">
           <FilterBar
             filters={filterConfigs}
@@ -683,35 +722,24 @@ export default function InstalacionesPage() {
             className="mb-4"
           />
           
-          {/* Filtros adicionales */}
-          <div className="flex justify-end space-x-2">
-            <Button
-              variant={showPPCPendientes ? "default" : "outline"}
-              onClick={() => setShowPPCPendientes(!showPPCPendientes)}
-              className={`
-                ${showPPCPendientes 
-                  ? 'bg-orange-500 hover:bg-orange-600 text-white' 
-                  : 'border-slate-600 text-slate-200 hover:bg-slate-700'
-                }
-              `}
-            >
-              <AlertTriangle className="mr-2 h-4 w-4" />
-              Solo PPC pendientes
-            </Button>
-            <Button
-              variant={showCriticas ? "default" : "outline"}
-              onClick={() => setShowCriticas(!showCriticas)}
-              className={`
-                ${showCriticas 
-                  ? 'bg-red-500 hover:bg-red-600 text-white' 
-                  : 'border-slate-600 text-slate-200 hover:bg-slate-700'
-                }
-              `}
-            >
-              <AlertTriangle className="mr-2 h-4 w-4" />
-              Solo críticas
-            </Button>
-          </div>
+          {/* Indicador de filtro activo */}
+          {(showPPCPendientes || showCriticas || showDocumentosVencidos) && (
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowPPCPendientes(false);
+                  setShowCriticas(false);
+                  setShowDocumentosVencidos(false);
+                  toast.success('Filtros limpiados', 'Filtro aplicado');
+                }}
+                className="border-slate-600 text-slate-200 hover:bg-slate-700"
+              >
+                <X className="mr-2 h-4 w-4" />
+                Limpiar filtros
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* DataTable */}

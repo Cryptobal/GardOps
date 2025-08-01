@@ -59,7 +59,7 @@ async function checkAndFixClientesTable() {
       `);
       
       console.log('📋 Columnas actuales:');
-      columns.rows.forEach(col => {
+      columns.rows.forEach((col: any) => {
         console.log(`  - ${col.column_name}: ${col.data_type} ${col.is_nullable === 'YES' ? '(NULL)' : '(NOT NULL)'}`);
       });
       

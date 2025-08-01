@@ -518,3 +518,23 @@ export const obtenerDatosCompletosInstalacion = async (instalacionId: string): P
   
   return result.data;
 }; 
+
+// Obtener documentos vencidos de instalaciones
+export const obtenerDocumentosVencidosInstalaciones = async (): Promise<{
+  instalaciones: Array<{
+    instalacion_id: string;
+    instalacion_nombre: string;
+    documentos_vencidos: number;
+  }>;
+  total: number;
+}> => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+  const response = await fetch(`${baseUrl}/api/instalaciones/documentos-vencidos`);
+  const result = await response.json();
+  
+  if (!result.success) {
+    throw new Error(result.error || "Error al obtener documentos vencidos");
+  }
+  
+  return result.data;
+}; 
