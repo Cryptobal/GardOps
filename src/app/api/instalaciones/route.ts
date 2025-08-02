@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Query optimizada que incluye estadísticas en una sola consulta
-    const result = await query(`
+    let querySQL = `
       SELECT 
         i.id,
         i.nombre,
@@ -169,17 +169,23 @@ export async function GET(request: NextRequest) {
         i.estado,
         i.created_at,
         i.updated_at,
-        COALESCE(c.nombre, 'Cliente no encontrado') as cliente_nombre,
-        ${withStats ? `
+        COALESCE(c.nombre, 'Cliente no encontrado') as cliente_nombre`;
+
+    if (withStats) {
+      querySQL += `,
         COALESCE(stats.puestos_creados, 0) as puestos_creados,
         COALESCE(stats.puestos_asignados, 0) as puestos_asignados,
         COALESCE(stats.ppc_pendientes, 0) as ppc_pendientes,
         COALESCE(stats.ppc_totales, 0) as ppc_totales,
-        COALESCE(stats.puestos_disponibles, 0) as puestos_disponibles
-        ` : ''}
+        COALESCE(stats.puestos_disponibles, 0) as puestos_disponibles`;
+    }
+
+    querySQL += `
       FROM instalaciones i
-      LEFT JOIN clientes c ON i.cliente_id = c.id
-      ${withStats ? `
+      LEFT JOIN clientes c ON i.cliente_id = c.id`;
+
+    if (withStats) {
+      querySQL += `
       LEFT JOIN (
         SELECT 
           tr.instalacion_id,
@@ -199,10 +205,13 @@ export async function GET(request: NextRequest) {
           GROUP BY tr2.instalacion_id
         ) asignaciones ON asignaciones.instalacion_id = tr.instalacion_id
         GROUP BY tr.instalacion_id, asignaciones.total_asignados
-      ) stats ON stats.instalacion_id = i.id
-      ` : ''}
-      ORDER BY i.nombre
-    `);
+      ) stats ON stats.instalacion_id = i.id`;
+    }
+
+    querySQL += `
+      ORDER BY i.nombre`;
+
+    const result = await query(querySQL);
 
     const instalaciones = result.rows.map((instalacion: any) => ({
       ...instalacion,
