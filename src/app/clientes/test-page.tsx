@@ -8,6 +8,7 @@ import { Badge } from "../../components/ui/badge";
 import { Modal } from "../../components/ui/modal";
 import { useToast } from "../../components/ui/toast";
 import { Plus, Eye, Mail, Phone, User } from "lucide-react";
+import ErrorModal from "../../components/ui/error-modal";
 
 interface Cliente {
   id: string;
@@ -26,6 +27,8 @@ export default function TestClientesPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorDetails, setErrorDetails] = useState<any>(null);
   const [formData, setFormData] = useState({
     nombre: "",
     rut: "",
@@ -144,7 +147,16 @@ export default function TestClientesPage() {
         toast.success(`Cliente ${estadoTexto.toLowerCase()} correctamente`);
         await cargarClientes();
       } else {
-        toast.error(result.error || "Error al cambiar estado");
+        // Si es un error de instalaciones activas, mostrar el modal de error
+        if (response.status === 400 && result.instalacionesActivas) {
+          setErrorDetails({
+            instalacionesActivas: result.instalacionesActivas,
+            instalacionesInactivas: result.instalacionesInactivas || []
+          });
+          setShowErrorModal(true);
+        } else {
+          toast.error(result.error || "Error al cambiar estado");
+        }
       }
     } catch (error) {
       console.error("Error cambiando estado:", error);
@@ -234,6 +246,15 @@ export default function TestClientesPage() {
           ))
         )}
       </div>
+
+      {/* Modal de error para instalaciones activas */}
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title="No se puede inactivar el cliente"
+        message="No se puede inactivar el cliente porque tiene instalaciones activas. Primero debe inactivar todas las instalaciones asociadas."
+        details={errorDetails}
+      />
 
       {/* Modal de creación */}
       <Modal
