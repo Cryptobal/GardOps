@@ -18,9 +18,11 @@ import {
   FileText,
   RotateCcw,
   Info,
-  Trash2
+  Trash2,
+  Save
 } from "lucide-react";
 import { obtenerInstalaciones } from "../../lib/api/instalaciones";
+import { guardarPautaMensual, obtenerPautaMensual } from "../../lib/api/pauta-mensual";
 import dayjs from "dayjs";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -82,6 +84,7 @@ interface Instalacion {
 }
 
 interface PautaGuardia {
+  id?: string;
   nombre: string;
   rol: string;
   dias: string[];
@@ -571,6 +574,10 @@ export default function PautaMensualPage() {
     nuevoEstado: string;
   }>({ isOpen: false, guardiaIndex: 0, diaIndex: 0, nuevoEstado: '' });
 
+  // Estados para guardado
+  const [guardando, setGuardando] = useState(false);
+  const [mensajeGuardado, setMensajeGuardado] = useState<string | null>(null);
+
 
 
 
@@ -646,24 +653,28 @@ export default function PautaMensualPage() {
     });
     setDiasSemana(diasSemanaInfo);
 
-    // Datos simulados de guardias
-    const datosSimulados: PautaGuardia[] = [
+    // Datos simulados de guardias con IDs
+    const datosSimulados: (PautaGuardia & { id?: string })[] = [
       {
+        id: "guardia-1",
         nombre: "Juan Soto",
         rol: "D 4x4x12 - 08:00 - 20:00",
         dias: Array.from({ length: diasEnMes }, () => "")
       },
       {
+        id: "guardia-2",
         nombre: "María González",
         rol: "N 4x4x12 - 20:00 - 08:00",
         dias: Array.from({ length: diasEnMes }, () => "")
       },
       {
+        id: "guardia-3",
         nombre: "Carlos Rodríguez",
         rol: "D 5x2x8 - 08:00 - 16:00",
         dias: Array.from({ length: diasEnMes }, () => "")
       },
       {
+        id: "guardia-4",
         nombre: "Ana Silva",
         rol: "N 5x2x8 - 16:00 - 00:00",
         dias: Array.from({ length: diasEnMes }, () => "")
@@ -946,6 +957,86 @@ export default function PautaMensualPage() {
     }
   };
 
+  // Función para guardar la pauta mensual en la base de datos
+  const guardarPauta = async () => {
+    if (!selectedInstalacion || !selectedMes || !selectedAnio) {
+      alert("Por favor selecciona todos los filtros");
+      return;
+    }
+
+    setGuardando(true);
+    setMensajeGuardado(null);
+
+    try {
+      // Preparar datos para guardar
+      const pautaParaGuardar = [];
+      
+      for (let guardiaIndex = 0; guardiaIndex < pautaData.length; guardiaIndex++) {
+        const guardia = pautaData[guardiaIndex];
+        
+        // Obtener el ID del guardia
+        const guardiaId = guardia.id || `guardia-${guardiaIndex + 1}`;
+        
+        for (let diaIndex = 0; diaIndex < guardia.dias.length; diaIndex++) {
+          const estado = guardia.dias[diaIndex];
+          
+          if (estado) { // Solo guardar días que tengan estado
+            let estadoNormalizado = '';
+            switch (estado) {
+              case 'T':
+                estadoNormalizado = 'trabajado';
+                break;
+              case 'L':
+                estadoNormalizado = 'libre';
+                break;
+              case 'P':
+                estadoNormalizado = 'permiso';
+                break;
+              default:
+                continue; // Saltar estados no reconocidos
+            }
+            
+            pautaParaGuardar.push({
+              guardia_id: guardiaId,
+              dia: diaIndex + 1,
+              estado: estadoNormalizado
+            });
+          }
+        }
+      }
+
+      if (pautaParaGuardar.length === 0) {
+        setMensajeGuardado("No hay datos para guardar");
+        return;
+      }
+
+      const resultado = await guardarPautaMensual({
+        instalacion_id: selectedInstalacion,
+        anio: parseInt(selectedAnio),
+        mes: parseInt(selectedMes),
+        pauta: pautaParaGuardar
+      });
+
+      setMensajeGuardado(`✅ Pauta guardada exitosamente: ${resultado.data.turnosGuardados} turnos`);
+      
+      // Limpiar mensaje después de 3 segundos
+      setTimeout(() => {
+        setMensajeGuardado(null);
+      }, 3000);
+
+    } catch (error) {
+      console.error('Error guardando pauta:', error);
+      setMensajeGuardado(`❌ Error al guardar: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      
+      // Limpiar mensaje de error después de 5 segundos
+      setTimeout(() => {
+        setMensajeGuardado(null);
+      }, 5000);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
   // Establecer valores por defecto
   useEffect(() => {
     if (!selectedMes) {
@@ -1135,6 +1226,15 @@ export default function PautaMensualPage() {
                     >
                       <FileText className="h-3 w-3" />
                     </Button>
+                    <Button
+                      onClick={guardarPauta}
+                      disabled={guardando}
+                      className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white"
+                      title="Guardar pauta en base de datos"
+                    >
+                      <Save className="h-3 w-3" />
+                      {guardando ? 'Guardando...' : 'Guardar'}
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -1152,6 +1252,30 @@ export default function PautaMensualPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Mensaje de estado del guardado */}
+              {mensajeGuardado && (
+                <div className={`px-3 py-2 border-l-4 ${
+                  mensajeGuardado.includes('✅') 
+                    ? 'bg-green-50 dark:bg-green-900/20 border-green-400' 
+                    : 'bg-red-50 dark:bg-red-900/20 border-red-400'
+                }`}>
+                  <div className="flex items-start gap-2">
+                    <Info className={`h-4 w-4 mt-0.5 flex-shrink-0 ${
+                      mensajeGuardado.includes('✅') 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`} />
+                    <div className={`text-xs ${
+                      mensajeGuardado.includes('✅') 
+                        ? 'text-green-800 dark:text-green-200' 
+                        : 'text-red-800 dark:text-red-200'
+                    }`}>
+                      {mensajeGuardado}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Tabla de pauta */}
               <div className="overflow-x-auto">
