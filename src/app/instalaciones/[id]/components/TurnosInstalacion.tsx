@@ -524,12 +524,12 @@ export default function TurnosInstalacion({
                         <h4 className="text-sm font-medium text-muted-foreground mb-3">
                           📋 Puestos Por Cubrir ({ppcsDelRol.length})
                         </h4>
-                        <div className="grid grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
                           {ppcsDelRol.flatMap((ppc) => 
                             Array.from({ length: ppc.cantidad_faltante }, (_, index) => (
                               <div
                                 key={`${ppc.id}-${index}`}
-                                className={`p-3 border rounded-lg transition-colors ${getPPCColor(ppc.estado)} relative`}
+                                className={`p-2 sm:p-3 border rounded-lg transition-colors ${getPPCColor(ppc.estado)} relative`}
                               >
                                 {/* Botón X para eliminar puesto */}
                                 <Button
@@ -537,40 +537,40 @@ export default function TurnosInstalacion({
                                   size="sm"
                                   onClick={() => handleEliminarPuesto(ppc.id, index)}
                                   disabled={eliminandoPuesto === ppc.id}
-                                  className="absolute top-1 right-1 h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                  className="absolute top-1 right-1 h-5 w-5 sm:h-6 sm:w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
                                   title="Eliminar puesto"
                                 >
                                   {eliminandoPuesto === ppc.id ? (
-                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600"></div>
+                                    <div className="animate-spin rounded-full h-2 w-2 sm:h-3 sm:w-3 border-b-2 border-red-600"></div>
                                   ) : (
-                                    <X className="w-3 h-3" />
+                                    <X className="w-2 h-2 sm:w-3 sm:h-3" />
                                   )}
                                 </Button>
 
-                                <div className="flex items-center justify-between pr-6">
-                                  <div>
-                                    <div className="font-medium text-sm">Puesto #{index + 1}</div>
-                                    <div className="text-xs text-muted-foreground">
+                                <div className="flex items-center justify-between pr-5 sm:pr-6">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-xs sm:text-sm truncate">Puesto #{index + 1}</div>
+                                    <div className="text-xs text-muted-foreground truncate">
                                       {ppc.estado === 'Asignado' 
                                         ? `Guardia: ${ppc.guardia_nombre || 'Sin nombre'}`
                                         : 'Pendiente de asignación'
                                       }
                                     </div>
                                   </div>
-                                  <div className={`text-xs font-medium ${getPPCStatusColor(ppc.estado)}`}>
+                                  <div className={`text-xs font-medium ${getPPCStatusColor(ppc.estado)} flex-shrink-0 ml-1`}>
                                     {ppc.estado}
                                   </div>
                                 </div>
-                                <div className="mt-2 text-xs text-muted-foreground">
+                                <div className="mt-1 sm:mt-2 text-xs text-muted-foreground">
                                   PPC: {ppc.id.slice(-4)}
                                 </div>
                                 
                                 {/* Acciones del PPC */}
-                                <div className="mt-3 flex gap-2">
+                                <div className="mt-2 sm:mt-3 flex gap-2">
                                   {ppc.estado === 'Pendiente' ? (
                                     <div className="flex-1">
                                       {/* Lista desplegable de guardias con filtro integrado */}
-                                      <div className="relative dropdown-container">
+                                      <div className="relative dropdown-container sm:relative">
                                         <Button
                                           variant="outline"
                                           size="sm"
@@ -581,31 +581,36 @@ export default function TurnosInstalacion({
                                             }));
                                           }}
                                           disabled={asignando === ppc.id}
-                                          className="flex-1 h-8 text-xs justify-between w-full"
+                                          className="flex-1 h-8 sm:h-9 text-xs sm:text-sm justify-between w-full"
                                         >
                                           {asignando === ppc.id ? (
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-1 sm:gap-2">
                                               <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
-                                              Asignando...
+                                              <span className="hidden sm:inline">Asignando...</span>
+                                              <span className="sm:hidden">...</span>
                                             </div>
                                           ) : (
                                             <>
-                                              <UserPlus className="w-3 h-3 mr-1" />
-                                              Asignar Guardia
+                                              <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                              <span className="hidden sm:inline">Asignar Guardia</span>
+                                              <span className="sm:hidden">Asignar</span>
                                             </>
                                           )}
                                         </Button>
                                         
-                                        {/* Dropdown personalizado - aparece hacia arriba */}
+                                        {/* Dropdown personalizado - responsive para móvil y desktop */}
                                         {selectsOpen[ppc.id] && (
-                                          <div className="absolute bottom-full left-0 right-0 mb-1 bg-popover border border-border rounded-md shadow-xl z-50 max-h-64 overflow-hidden backdrop-blur-sm">
+                                          <div className="absolute bottom-full left-0 right-0 mb-1 bg-popover border border-border rounded-md shadow-xl z-50 overflow-hidden backdrop-blur-sm
+                                                          sm:max-h-64 sm:bottom-full sm:mb-1
+                                                          max-h-[80vh] bottom-0 mb-0 sm:relative sm:bottom-auto sm:mb-0
+                                                          sm:min-w-[300px] w-full">
                                             {/* Campo de filtro en la parte superior */}
-                                            <div className="p-3 border-b border-border bg-card/50">
+                                            <div className="p-2 sm:p-3 border-b border-border bg-card/50 sticky top-0 z-10">
                                               <div className="relative">
                                                 <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
                                                 <input
                                                   type="text"
-                                                  placeholder="🔍 Buscar guardia por nombre o RUT..."
+                                                  placeholder="🔍 Buscar guardia..."
                                                   value={filtrosGuardias[ppc.id] || ''}
                                                   onChange={(e) => {
                                                     setFiltrosGuardias(prev => ({
@@ -613,20 +618,20 @@ export default function TurnosInstalacion({
                                                       [ppc.id]: e.target.value
                                                     }));
                                                   }}
-                                                  className="pl-8 h-9 text-xs border border-input rounded-md w-full bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                                                  className="pl-8 h-8 sm:h-9 text-xs sm:text-sm border border-input rounded-md w-full bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                                                   autoFocus
                                                 />
                                               </div>
                                             </div>
                                             
                                             {/* Lista de guardias */}
-                                            <div className="max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+                                            <div className="max-h-[calc(80vh-80px)] sm:max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
                                               {(() => {
                                                 const guardiasFiltrados = getGuardiasFiltrados(filtrosGuardias[ppc.id] || '');
                                                 return guardiasFiltrados.length === 0 ? (
-                                                  <div className="p-4 text-xs text-muted-foreground text-center">
+                                                  <div className="p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground text-center">
                                                     <div className="mb-2">🔍</div>
-                                                    {filtrosGuardias[ppc.id] ? 'No se encontraron guardias con ese criterio' : 'No hay guardias disponibles'}
+                                                    {filtrosGuardias[ppc.id] ? 'No se encontraron guardias' : 'No hay guardias disponibles'}
                                                   </div>
                                                 ) : (
                                                   guardiasFiltrados.map((guardia: GuardiaDisponible) => (
@@ -639,23 +644,39 @@ export default function TurnosInstalacion({
                                                           [ppc.id]: false
                                                         }));
                                                       }}
-                                                      className="w-full px-4 py-3 text-left text-xs hover:bg-accent hover:text-accent-foreground transition-all duration-200 border-b border-border/50 last:border-b-0 group"
+                                                      className="w-full px-3 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm hover:bg-accent hover:text-accent-foreground transition-all duration-200 border-b border-border/50 last:border-b-0 group active:bg-accent/80"
                                                     >
-                                                      <div className="flex justify-between items-start">
-                                                        <div className="flex-1">
-                                                          <div className="font-medium text-foreground group-hover:text-accent-foreground">{guardia.nombre_completo}</div>
-                                                          <div className="text-muted-foreground text-xs mt-1">
-                                                            📍 {guardia.comuna} • 🆔 {guardia.rut}
+                                                      <div className="flex justify-between items-start gap-2">
+                                                        <div className="flex-1 min-w-0">
+                                                          <div className="font-medium text-foreground group-hover:text-accent-foreground truncate">
+                                                            {guardia.nombre_completo}
+                                                          </div>
+                                                          <div className="text-muted-foreground text-xs mt-1 flex flex-col sm:flex-row sm:gap-2">
+                                                            <span className="truncate">📍 {guardia.comuna}</span>
+                                                            <span className="truncate">🆔 {guardia.rut}</span>
                                                           </div>
                                                         </div>
-                                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                                          <UserPlus className="w-3 h-3 text-muted-foreground" />
+                                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                                          <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
                                                         </div>
                                                       </div>
                                                     </button>
                                                   ))
                                                 );
                                               })()}
+                                            </div>
+                                            
+                                            {/* Botón de cerrar para móvil */}
+                                            <div className="sm:hidden p-2 border-t border-border bg-card/50">
+                                              <button
+                                                onClick={() => setSelectsOpen(prev => ({
+                                                  ...prev,
+                                                  [ppc.id]: false
+                                                }))}
+                                                className="w-full py-2 px-4 text-sm bg-muted hover:bg-muted/80 text-muted-foreground rounded-md transition-colors"
+                                              >
+                                                ✕ Cerrar
+                                              </button>
                                             </div>
                                           </div>
                                         )}
