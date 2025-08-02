@@ -75,7 +75,7 @@ export default function FiniquitoGuardia({ guardiaId }: FiniquitoGuardiaProps) {
         body: JSON.stringify({
           guardiaId,
           tipo: 'finiquito',
-          fechaInicio: formData.fechaTermino,
+          fecha: formData.fechaTermino,
           observaciones: `Motivo: ${formData.motivo}${formData.comentario ? ` - ${formData.comentario}` : ''}`
         })
       });

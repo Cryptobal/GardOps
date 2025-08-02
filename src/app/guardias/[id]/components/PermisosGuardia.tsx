@@ -76,8 +76,8 @@ export default function PermisosGuardia({ guardiaId }: PermisosGuardiaProps) {
         body: JSON.stringify({
           guardiaId,
           tipo: formData.tipo,
-          fechaInicio: formData.fechaInicio,
-          fechaFin: formData.fechaFin,
+          desde: formData.fechaInicio,
+          hasta: formData.fechaFin,
           observaciones: formData.observaciones
         })
       });
