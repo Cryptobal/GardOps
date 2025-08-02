@@ -116,21 +116,9 @@ interface ModificarPautaModalProps {
   nuevoEstado: string;
 }
 
-interface SobrescribirPatronModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  guardiaNombre: string;
-}
 
-interface SeleccionarEstadoModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: (nuevoEstado: string) => void;
-  guardiaNombre: string;
-  diaNumero: number;
-  estadoActual: string;
-}
+
+
 
 // Modal para autocompletado
 const AutocompletadoModal = ({ isOpen, onClose, onConfirm, guardiaIndex, diaIndex, diasDisponibles, turnoGuardia, diaSeleccionado, diaSemanaSeleccionado }: AutocompletadoModalProps) => {
@@ -360,51 +348,7 @@ const ModificarPautaModal = ({ isOpen, onClose, onConfirm, guardiaNombre, diaNum
   );
 };
 
-// Modal para confirmar sobrescritura de patrón
-const SobrescribirPatronModal = ({ isOpen, onClose, onConfirm, guardiaNombre }: SobrescribirPatronModalProps) => {
-  if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        className="bg-gray-900 dark:bg-gray-800 rounded-lg p-6 w-96 max-w-[90vw] border border-gray-700"
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-full bg-orange-900/20">
-            <Info className="h-5 w-5 text-orange-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-white">Sobrescribir patrón existente</h3>
-        </div>
-        
-        <div className="mb-6">
-          <p className="text-gray-300 mb-3">
-            Ya existe un patrón asignado para <strong className="text-white">{guardiaNombre}</strong>.
-          </p>
-          <p className="text-sm text-gray-400 mb-4">
-            ¿Deseas sobrescribirlo completamente con el nuevo patrón?
-          </p>
-          <div className="bg-orange-900/20 p-3 rounded-lg border border-orange-700">
-            <p className="text-xs text-orange-300">
-              ⚠️ Esta acción reemplazará toda la pauta del mes para este guardia.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={onClose} className="flex-1 bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700">
-            Cancelar
-          </Button>
-          <Button onClick={onConfirm} className="flex-1 bg-orange-600 hover:bg-orange-700">
-            Sobrescribir
-          </Button>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
 
 // Modal para confirmar eliminación de pauta
 const EliminarPautaModal = ({ isOpen, onClose, onConfirm, guardiaNombre }: EliminarPautaModalProps) => {
@@ -447,125 +391,7 @@ const EliminarPautaModal = ({ isOpen, onClose, onConfirm, guardiaNombre }: Elimi
   );
 };
 
-// Modal para seleccionar nuevo estado
-const SeleccionarEstadoModal = ({ isOpen, onClose, onConfirm, guardiaNombre, diaNumero, estadoActual }: SeleccionarEstadoModalProps) => {
-  const [estadoSeleccionado, setEstadoSeleccionado] = useState(estadoActual);
 
-  const estados = [
-    { codigo: "", nombre: "Vacío", icon: "⬜️", color: "bg-gray-50 text-gray-700 border-gray-300", hoverColor: "hover:bg-gray-100" },
-    { codigo: "T", nombre: "Trabajando", icon: "🟩", color: "bg-green-50 text-green-800 border-green-400", hoverColor: "hover:bg-green-100" },
-    { codigo: "L", nombre: "Libre", icon: "⬜️", color: "bg-gray-50 text-gray-700 border-gray-300", hoverColor: "hover:bg-gray-100" },
-    { codigo: "PPC", nombre: "Puesto por cubrir", icon: "🟥", color: "bg-red-50 text-red-800 border-red-400", hoverColor: "hover:bg-red-100" },
-    { codigo: "LIC", nombre: "Licencia", icon: "🟦", color: "bg-blue-50 text-blue-800 border-blue-400", hoverColor: "hover:bg-blue-100" },
-    { codigo: "VAC", nombre: "Vacaciones", icon: "🟨", color: "bg-yellow-50 text-yellow-800 border-yellow-400", hoverColor: "hover:bg-yellow-100" },
-    { codigo: "PGS", nombre: "Permiso con goce", icon: "🟪", color: "bg-purple-50 text-purple-800 border-purple-400", hoverColor: "hover:bg-purple-100" },
-    { codigo: "PSS", nombre: "Permiso sin goce", icon: "🟫", color: "bg-orange-50 text-orange-800 border-orange-400", hoverColor: "hover:bg-orange-100" }
-  ];
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        className="bg-white dark:bg-gray-900 rounded-xl p-8 w-[600px] max-w-[95vw] border border-gray-200 dark:border-gray-700 shadow-2xl"
-      >
-        <div className="flex items-center gap-4 mb-6">
-          <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30">
-            <Info className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Cambiar estado del día</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Selecciona el nuevo estado para este día</p>
-          </div>
-        </div>
-        
-        <div className="mb-8">
-          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-600 mb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-base font-semibold text-gray-900 dark:text-white">
-                  {guardiaNombre}
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Día {diaNumero} del mes
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Estado actual:</p>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {estados.find(e => e.codigo === estadoActual)?.nombre || "Vacío"}
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <label className="block text-base font-semibold text-gray-900 dark:text-white mb-4">
-              Selecciona el nuevo estado:
-            </label>
-            
-            <div className="grid grid-cols-2 gap-4">
-              {estados.map((estado) => (
-                <button
-                  key={estado.codigo}
-                  onClick={() => setEstadoSeleccionado(estado.codigo)}
-                  className={`
-                    p-4 rounded-lg border-2 transition-all duration-200 text-left group
-                    ${estadoSeleccionado === estado.codigo 
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md scale-105' 
-                      : `border-gray-200 dark:border-gray-600 ${estado.hoverColor} dark:hover:bg-gray-800 hover:shadow-md`
-                    }
-                    ${estado.color}
-                  `}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{estado.icon}</span>
-                    <div className="flex-1">
-                      <div className="font-semibold text-base text-gray-900 dark:text-white">
-                        {estado.nombre}
-                      </div>
-                      {estado.codigo && (
-                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium">
-                          Código: {estado.codigo}
-                        </div>
-                      )}
-                    </div>
-                    {estadoSeleccionado === estado.codigo && (
-                      <div className="p-1 rounded-full bg-blue-500">
-                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex gap-3">
-          <Button 
-            variant="outline" 
-            onClick={onClose} 
-            className="flex-1 h-12 text-base font-medium bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-          >
-            Cancelar
-          </Button>
-          <Button 
-            onClick={() => onConfirm(estadoSeleccionado)} 
-            className="flex-1 h-12 text-base font-medium bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            Cambiar Estado
-          </Button>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
 
 // Componente KPI Box (igual que en guardias)
 const KPIBox = ({ 
@@ -633,55 +459,25 @@ const DiaCell = ({
 }) => {
   // Permitir clic en todas las celdas - remover restricción de patrón asignado
   const getEstadoDisplay = () => {
-    switch (estado) {
-      case "T":
+    // Normalizar estados antiguos a nuevos
+    let estadoNormalizado = estado;
+    if (estado === "T") estadoNormalizado = "TRABAJA";
+    if (estado === "L") estadoNormalizado = "LIBRE";
+    
+    switch (estadoNormalizado) {
+      case "TRABAJA":
         return { 
           icon: "🟩", 
           text: "T", 
           className: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 border-green-300",
           tooltip: "Trabajando"
         };
-      case "L":
+      case "LIBRE":
         return { 
-          icon: "⬜️", 
+          icon: "⚪️", 
           text: "L", 
           className: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border-gray-300",
           tooltip: "Libre"
-        };
-      case "PPC":
-        return { 
-          icon: "🟥", 
-          text: "PPC", 
-          className: "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 border-red-300",
-          tooltip: "Puesto por cubrir"
-        };
-      case "LIC":
-        return { 
-          icon: "🟦", 
-          text: "LIC", 
-          className: "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 border-blue-300",
-          tooltip: "Licencia"
-        };
-      case "VAC":
-        return { 
-          icon: "🟨", 
-          text: "VAC", 
-          className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 border-yellow-300",
-          tooltip: "Vacaciones"
-        };
-      case "PGS":
-        return { 
-          icon: "🟪", 
-          text: "PGS", 
-          className: "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400 border-purple-300",
-          tooltip: "Permiso con goce de sueldo"
-        };
-      case "PSS":
-        return { 
-          icon: "🟫", 
-          text: "PSS", 
-          className: "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400 border-orange-300",
-          tooltip: "Permiso sin goce de sueldo"
         };
       default:
         return { 
@@ -775,17 +571,9 @@ export default function PautaMensualPage() {
     nuevoEstado: string;
   }>({ isOpen: false, guardiaIndex: 0, diaIndex: 0, nuevoEstado: '' });
 
-  const [sobrescribirPatronModal, setSobrescribirPatronModal] = useState<{
-    isOpen: boolean;
-    guardiaIndex: number;
-  }>({ isOpen: false, guardiaIndex: 0 });
 
-  const [seleccionarEstadoModal, setSeleccionarEstadoModal] = useState<{
-    isOpen: boolean;
-    guardiaIndex: number;
-    diaIndex: number;
-    estadoActual: string;
-  }>({ isOpen: false, guardiaIndex: 0, diaIndex: 0, estadoActual: '' });
+
+
 
   // Obtener año actual
   const anioActual = new Date().getFullYear();
@@ -905,38 +693,28 @@ export default function PautaMensualPage() {
   const cambiarEstadoDia = (guardiaIndex: number, diaIndex: number) => {
     const estadoActual = pautaData[guardiaIndex].dias[diaIndex];
     
-    // Si el día ya tiene un estado asignado, abrir modal de selección
-    if (estadoActual !== "") {
-      setSeleccionarEstadoModal({
-        isOpen: true,
-        guardiaIndex,
-        diaIndex,
-        estadoActual
-      });
+    // Convertir estados antiguos a nuevos estados
+    let estadoNormalizado = estadoActual;
+    if (estadoActual === "T" || estadoActual === "TRABAJA") {
+      estadoNormalizado = "TRABAJA";
+    } else if (estadoActual === "L" || estadoActual === "LIBRE") {
+      estadoNormalizado = "LIBRE";
     } else {
-      // Si está vacío, cambiar al siguiente estado en la secuencia
-      const estados = ["", "T", "L", "PPC", "LIC", "VAC", "PGS", "PSS"];
-      const estadoIndex = estados.indexOf(estadoActual);
-      const nuevoEstado = estados[(estadoIndex + 1) % estados.length];
-      
-      const nuevosDatos = [...pautaData];
-      nuevosDatos[guardiaIndex].dias[diaIndex] = nuevoEstado;
-      setPautaData(nuevosDatos);
-      actualizarKPIs(nuevosDatos);
+      estadoNormalizado = "";
     }
-  };
-
-  // Función para confirmar cambio de estado desde modal
-  const confirmarCambioEstado = (nuevoEstado: string) => {
-    const nuevosDatos = [...pautaData];
-    const { guardiaIndex, diaIndex } = seleccionarEstadoModal;
     
+    // Alternar entre TRABAJA y LIBRE
+    const nuevoEstado = estadoNormalizado === "TRABAJA" ? "LIBRE" : "TRABAJA";
+    
+    const nuevosDatos = [...pautaData];
     nuevosDatos[guardiaIndex].dias[diaIndex] = nuevoEstado;
     setPautaData(nuevosDatos);
     actualizarKPIs(nuevosDatos);
     
-    setSeleccionarEstadoModal({ isOpen: false, guardiaIndex: 0, diaIndex: 0, estadoActual: '' });
+    console.log("Edición de pauta mensual actualizada exitosamente");
   };
+
+
 
   // Función para confirmar modificación de pauta
   const confirmarModificacionPauta = () => {
@@ -965,22 +743,7 @@ export default function PautaMensualPage() {
 
   // Función para autocompletar pauta
   const autocompletarPauta = (diaInicio: number) => {
-    const nuevosDatos = [...pautaData];
-    const { guardiaIndex, diaSeleccionado } = autocompletadoModal;
-    
-    // Verificar si ya existe un patrón asignado para este guardia
-    const tienePatronExistente = nuevosDatos[guardiaIndex].dias.some(dia => dia === "T" || dia === "L");
-    
-    if (tienePatronExistente) {
-      // Mostrar modal de advertencia para sobrescribir
-      setSobrescribirPatronModal({
-        isOpen: true,
-        guardiaIndex
-      });
-      return;
-    }
-    
-    // Continuar con el autocompletado normal
+    // Aplicar autocompletado directamente sin verificar patrón existente
     aplicarAutocompletado(diaInicio);
   };
 
@@ -1028,15 +791,8 @@ export default function PautaMensualPage() {
       // Para 4x4: días 0,1,2,3 son trabajo, días 4,5,6,7 son libre
       const esDiaTrabajo = diaDelCiclo < patron.trabajo;
       
-      // Solo sobrescribir si está vacío o si el usuario confirma
-      if (nuevosDatos[guardiaIndex].dias[i] === "") {
-        nuevosDatos[guardiaIndex].dias[i] = esDiaTrabajo ? "T" : "L";
-      } else {
-        // Si ya tiene un valor, preguntar si sobrescribir
-        if (confirm(`¿Sobrescribir día ${i + 1} (actual: ${nuevosDatos[guardiaIndex].dias[i]})?`)) {
-          nuevosDatos[guardiaIndex].dias[i] = esDiaTrabajo ? "T" : "L";
-        }
-      }
+      // Sobrescribir directamente sin confirmación
+      nuevosDatos[guardiaIndex].dias[i] = esDiaTrabajo ? "T" : "L";
     }
     
     setPautaData(nuevosDatos);
@@ -1046,64 +802,7 @@ export default function PautaMensualPage() {
     console.log("✅ Patrón aplicado solo hacia adelante - días anteriores preservados");
   };
 
-  // Función para confirmar sobrescritura de patrón
-  const confirmarSobrescrituraPatron = () => {
-    const { guardiaIndex } = sobrescribirPatronModal;
-    const diaInicio = 1; // Usar el primer día del ciclo por defecto
-    
-    // NO limpiar todos los días - usar la misma lógica que el autocompletado normal
-    // Solo aplicar el patrón desde el día seleccionado hacia adelante
-    const nuevosDatos = [...pautaData];
-    const { diaSeleccionado } = autocompletadoModal;
-    
-    // Extraer el tipo de turno del rol de la guardia
-    const extraerTipoTurno = (rol: string): string => {
-      if (rol.includes("4x4")) return "4x4";
-      if (rol.includes("5x2")) return "5x2";
-      if (rol.includes("7x7")) return "7x7";
-      if (rol.includes("6x1")) return "6x1";
-      return "4x4"; // Por defecto
-    };
-    
-    const tipoTurno = extraerTipoTurno(pautaData[guardiaIndex].rol);
-    
-    // Definir patrones de turnos
-    const patrones = {
-      "4x4": { trabajo: 4, libre: 4 },
-      "5x2": { trabajo: 5, libre: 2 },
-      "7x7": { trabajo: 7, libre: 7 },
-      "6x1": { trabajo: 6, libre: 1 }
-    };
-    
-    const patron = patrones[tipoTurno as keyof typeof patrones];
-    const cicloCompleto = patron.trabajo + patron.libre;
-    
-    // Aplicar patrón solo desde el día seleccionado hacia adelante
-    for (let i = 0; i < nuevosDatos[guardiaIndex].dias.length; i++) {
-      // Solo procesar días desde el día seleccionado hacia adelante
-      if (i < diaSeleccionado - 1) {
-        continue; // Saltar días anteriores al seleccionado
-      }
-      
-      // Calcular la diferencia desde el día seleccionado
-      const diferenciaDesdeSeleccionado = i - (diaSeleccionado - 1);
-      
-      // Calcular qué día del ciclo corresponde
-      const diaDelCiclo = (diaInicio + diferenciaDesdeSeleccionado - 1) % cicloCompleto;
-      
-      // Para 4x4: días 0,1,2,3 son trabajo, días 4,5,6,7 son libre
-      const esDiaTrabajo = diaDelCiclo < patron.trabajo;
-      
-      // Sobrescribir todos los días desde el seleccionado hacia adelante
-      nuevosDatos[guardiaIndex].dias[i] = esDiaTrabajo ? "T" : "L";
-    }
-    
-    setPautaData(nuevosDatos);
-    setSobrescribirPatronModal({ isOpen: false, guardiaIndex: 0 });
-    actualizarKPIs(nuevosDatos);
-    
-    console.log("✅ Sobrescritura de patrón aplicada solo hacia adelante - días anteriores preservados");
-  };
+
 
   // Función para actualizar KPIs
   const actualizarKPIs = (datos: PautaGuardia[]) => {
@@ -1405,12 +1104,7 @@ export default function PautaMensualPage() {
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span>🟩 T (Trabajando)</span>
-                    <span>⬜️ L (Libre)</span>
-                    <span>🟥 PPC</span>
-                    <span>🟦 LIC (Licencia)</span>
-                    <span>🟨 VAC (Vacaciones)</span>
-                    <span>🟪 PGS (Permiso con goce)</span>
-                    <span>🟫 PSS (Permiso sin goce)</span>
+                    <span>⚪️ L (Libre)</span>
                   </div>
                   
                   <div className="flex gap-1">
@@ -1451,7 +1145,7 @@ export default function PautaMensualPage() {
                   <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div className="text-xs text-blue-800 dark:text-blue-200">
                     <p className="font-medium">Instrucciones:</p>
-                    <p>• <strong>Clic izquierdo:</strong> Cambiar estado (Vacío → T → L → PPC → LIC → VAC → PGS → PSS)</p>
+                    <p>• <strong>Clic izquierdo:</strong> Alternar entre Trabajando y Libre</p>
                     <p>• <strong>Clic derecho:</strong> Autocompletar patrón de turnos desde esa posición</p>
                     <p>• <strong>Hover:</strong> Ver detalles del guardia y día</p>
                     <p>• <strong>Patrón:</strong> Se aplica completamente (hacia atrás y adelante)</p>
@@ -1543,15 +1237,7 @@ export default function PautaMensualPage() {
         </CardContent>
       </Card>
 
-      {/* Modal de selección de estado */}
-      <SeleccionarEstadoModal
-        isOpen={seleccionarEstadoModal.isOpen}
-        onClose={() => setSeleccionarEstadoModal({ isOpen: false, guardiaIndex: 0, diaIndex: 0, estadoActual: '' })}
-        onConfirm={confirmarCambioEstado}
-        guardiaNombre={pautaData[seleccionarEstadoModal.guardiaIndex]?.nombre || ""}
-        diaNumero={seleccionarEstadoModal.diaIndex + 1}
-        estadoActual={seleccionarEstadoModal.estadoActual}
-      />
+
 
       {/* Modal de autocompletado */}
       <AutocompletadoModal
@@ -1585,13 +1271,7 @@ export default function PautaMensualPage() {
         nuevoEstado={modificarPautaModal.nuevoEstado}
       />
 
-      {/* Modal de sobrescritura de patrón */}
-      <SobrescribirPatronModal
-        isOpen={sobrescribirPatronModal.isOpen}
-        onClose={() => setSobrescribirPatronModal({ isOpen: false, guardiaIndex: 0 })}
-        onConfirm={confirmarSobrescrituraPatron}
-        guardiaNombre={pautaData[sobrescribirPatronModal.guardiaIndex]?.nombre || ""}
-      />
+
     </div>
   );
 } 
