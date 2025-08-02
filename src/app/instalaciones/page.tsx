@@ -119,9 +119,9 @@ export default function InstalacionesPage() {
 
   // Estados para KPIs
   const [kpis, setKpis] = useState({
-    total: 0,
     activos: 0,
-    inactivos: 0,
+    totalPuestos: 0,
+    totalPPC: 0,
     documentosVencidos: 0
   });
 
@@ -147,11 +147,23 @@ export default function InstalacionesPage() {
       }
       
       // Calcular KPIs
-      const total = datosCompletos.instalaciones?.length || 0;
       const activos = datosCompletos.instalaciones?.filter((i: any) => i.estado === "Activo").length || 0;
-      const inactivos = total - activos;
+      
+      // Sumar todos los puestos creados
+      const totalPuestos = datosCompletos.instalaciones?.reduce((sum: number, i: any) => {
+        const puestos = parseInt(i.puestos_creados) || 0;
+        return sum + puestos;
+      }, 0) || 0;
+      
+      // Sumar todos los PPC pendientes
+      const totalPPC = datosCompletos.instalaciones?.reduce((sum: number, i: any) => {
+        const ppc = parseInt(i.ppc_pendientes) || 0;
+        return sum + ppc;
+      }, 0) || 0;
 
-      setKpis({ total, activos, inactivos, documentosVencidos: docsVencidosCount });
+      console.log('📊 KPIs calculados:', { activos, totalPuestos, totalPPC, documentosVencidos: docsVencidosCount });
+
+      setKpis({ activos, totalPuestos, totalPPC, documentosVencidos: docsVencidosCount });
     } catch (error) {
       console.error("Error cargando instalaciones:", error);
     } finally {
@@ -223,7 +235,6 @@ export default function InstalacionesPage() {
       render: (instalacion) => {
         const puestosCreados = instalacion.puestos_creados || 0;
         const ppcPendientes = instalacion.ppc_pendientes || 0;
-        const ppcTotales = instalacion.ppc_totales || 0;
         
         return (
           <div className="space-y-1">
@@ -234,7 +245,7 @@ export default function InstalacionesPage() {
             <div className="flex items-center space-x-2">
               <span className="text-sm text-muted-foreground">PPC:</span>
               <span className={`text-sm font-medium ${ppcPendientes > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                {ppcPendientes}/{ppcTotales}
+                {ppcPendientes}
               </span>
             </div>
           </div>
@@ -289,22 +300,22 @@ export default function InstalacionesPage() {
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KPIBox
-          title="Total Instalaciones"
-          value={kpis.total}
-          icon={Building2}
-          color="blue"
-        />
-        <KPIBox
           title="Instalaciones Activas"
           value={kpis.activos}
           icon={Shield}
           color="green"
         />
         <KPIBox
-          title="Instalaciones Inactivas"
-          value={kpis.inactivos}
-          icon={Building2}
-          color="gray"
+          title="Total Puestos"
+          value={kpis.totalPuestos}
+          icon={Users}
+          color="blue"
+        />
+        <KPIBox
+          title="Total PPC"
+          value={`${kpis.totalPPC} (${kpis.totalPuestos > 0 ? Math.round((kpis.totalPPC / kpis.totalPuestos) * 100) : 0}%)`}
+          icon={Activity}
+          color="orange"
         />
         <KPIBox
           title="Documentos Vencidos"
