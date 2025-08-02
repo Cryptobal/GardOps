@@ -10,7 +10,8 @@ import {
   AlertTriangle, 
   Settings,
   MapPin,
-  Target
+  Target,
+  CalendarDays
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -48,9 +49,9 @@ export const navigationItems: NavigationItem[] = [
     icon: Calendar
   },
   {
-    name: "Turnos Diarios",
-    href: "/turnos-diarios",
-    icon: Clock
+    name: "Pauta Diaria",
+    href: "/pauta-diaria",
+    icon: CalendarDays
   },
   {
     name: "PPC",
