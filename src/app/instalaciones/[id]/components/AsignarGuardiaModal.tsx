@@ -37,10 +37,7 @@ export default function AsignarGuardiaModal({
 
   // Función para filtrar guardias por nombre, apellido o RUT
   const guardiasFiltrados = guardias.filter(guardia => {
-    if (!filtroGuardias.trim()) {
-      console.log('🔍 Sin filtro - mostrando todos los guardias:', guardias.length);
-      return true;
-    }
+    if (!filtroGuardias.trim()) return true;
     
     const filtro = filtroGuardias.toLowerCase().trim();
     const nombreCompleto = guardia.nombre_completo?.toLowerCase() || '';
@@ -64,21 +61,7 @@ export default function AsignarGuardiaModal({
     return false;
   });
 
-  // Debug: Log del filtro
-  useEffect(() => {
-    if (filtroGuardias.trim()) {
-      console.log('🔍 Filtro aplicado:', filtroGuardias);
-      console.log('📊 Guardias filtrados:', guardiasFiltrados.length);
-      
-      // Buscar nuestro guardia específico en los filtrados
-      const guardiaTestFiltrado = guardiasFiltrados.find((g: any) => g.nombre_completo?.includes('A Test 2 test'));
-      if (guardiaTestFiltrado) {
-        console.log('✅ Guardia A Test 2 test encontrado en filtro:', guardiaTestFiltrado);
-      } else {
-        console.log('❌ Guardia A Test 2 test NO encontrado en filtro');
-      }
-    }
-  }, [filtroGuardias, guardiasFiltrados]);
+
 
   // Limpiar estado cuando se abre/cierra el modal
   useEffect(() => {
@@ -103,19 +86,6 @@ export default function AsignarGuardiaModal({
       }
       const guardiasData = await response.json();
       const guardiasFinales = guardiasData.guardias || guardiasData;
-      console.log('🔍 Guardias cargados:', guardiasFinales.length);
-      console.log('📊 Respuesta completa del API:', guardiasData);
-      console.log('📊 Guardias finales:', guardiasFinales);
-      
-      // Buscar todos los guardias con "test"
-      const guardiasTest = guardiasFinales.filter((g: any) => 
-        g.nombre_completo?.toLowerCase().includes('test')
-      );
-      console.log('🔍 Guardias con "test" encontrados:', guardiasTest.length);
-      guardiasTest.forEach((g: any, i: number) => {
-        console.log(`  ${i+1}. ${g.nombre_completo} (${g.rut})`);
-      });
-      
       setGuardias(guardiasFinales);
     } catch (error) {
       console.error('Error cargando guardias:', error);
@@ -202,17 +172,11 @@ export default function AsignarGuardiaModal({
                       {filtroGuardias ? 'No se encontraron guardias' : 'No hay guardias disponibles'}
                     </div>
                   ) : (
-                    (() => {
-                      console.log('🎨 Renderizando guardias en SelectContent:', guardiasFiltrados.length);
-                      guardiasFiltrados.forEach((g, i) => {
-                        console.log(`  ${i+1}. ${g.nombre_completo} (ID: ${g.id})`);
-                      });
-                      return guardiasFiltrados.map((guardia) => (
-                        <SelectItem key={guardia.id} value={guardia.id}>
-                          {guardia.nombre_completo}
-                        </SelectItem>
-                      ));
-                    })()
+                    guardiasFiltrados.map((guardia) => (
+                      <SelectItem key={guardia.id} value={guardia.id}>
+                        {guardia.nombre_completo}
+                      </SelectItem>
+                    ))
                   )}
                 </SelectContent>
               </SafeSelect>
