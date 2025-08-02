@@ -14,47 +14,83 @@ import {
   CheckCircle,
   BarChart3,
   Filter,
-  Plus
+  Plus,
+  MapPin,
+  Calendar,
+  X,
+  Search,
+  RotateCcw,
+  TrendingUp,
+  TrendingDown,
+  Info
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  Legend
+} from 'recharts';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
 
 // Importar componentes genéricos
 import { DataTable, Column } from "../../components/ui/data-table";
 
-// Componente KPI Box
+// Componente KPI Box mejorado
 const KPIBox = ({ 
   title, 
   value, 
   icon: Icon, 
   color = "blue",
-  trend = null 
+  trend = null,
+  tooltip = ""
 }: {
   title: string;
   value: string | number;
   icon: React.ComponentType<any>;
   color?: string;
   trend?: { value: number; isPositive: boolean } | null;
+  tooltip?: string;
 }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5 }}
   >
-    <Card className="h-full">
-      <CardContent className="p-3 md:p-6 flex flex-col justify-between h-full">
+    <Card className="h-full cursor-help hover:shadow-md transition-shadow">
+      <CardContent className="p-4 flex flex-col justify-between h-full">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <p className="text-xs md:text-sm font-medium text-muted-foreground min-h-[1.5rem] flex items-center">{title}</p>
-            <p className="text-lg md:text-2xl font-bold">{value}</p>
+            <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+              {title}
+              {tooltip && <Info className="h-3 w-3" />}
+            </p>
+            <p className="text-2xl font-bold mt-1">{value}</p>
             {trend && (
-              <p className={`text-xs md:text-sm ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                {trend.isPositive ? '+' : ''}{trend.value}%
-              </p>
+              <div className="flex items-center gap-1 mt-1">
+                {trend.isPositive ? (
+                  <TrendingUp className="h-3 w-3 text-green-600" />
+                ) : (
+                  <TrendingDown className="h-3 w-3 text-red-600" />
+                )}
+                <span className={`text-xs ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                  {trend.isPositive ? '+' : ''}{trend.value}%
+                </span>
+              </div>
             )}
           </div>
-          <div className={`p-2 md:p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/20 flex-shrink-0 ml-3`}>
-            <Icon className={`h-4 w-4 md:h-6 md:w-6 text-${color}-600 dark:text-${color}-400`} />
+          <div className={`p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/20 flex-shrink-0 ml-3`}>
+            <Icon className={`h-5 w-5 text-${color}-600 dark:text-${color}-400`} />
           </div>
         </div>
       </CardContent>
@@ -62,27 +98,22 @@ const KPIBox = ({
   </motion.div>
 );
 
-// Componente Modal para Asignar Guardia
-const AsignarGuardiaModal = ({ 
-  isOpen, 
-  onClose, 
+// Componente Combobox para asignación inline
+const AsignarGuardiaCombobox = ({ 
   ppc, 
   onAsignar 
 }: {
-  isOpen: boolean;
-  onClose: () => void;
   ppc: any;
   onAsignar: (guardiaId: string) => void;
 }) => {
   const [guardias, setGuardias] = useState<any[]>([]);
-  const [selectedGuardia, setSelectedGuardia] = useState<string>("");
+  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
 
   useEffect(() => {
-    if (isOpen) {
-      fetchGuardiasDisponibles();
-    }
-  }, [isOpen]);
+    fetchGuardiasDisponibles();
+  }, []);
 
   const fetchGuardiasDisponibles = async () => {
     try {
@@ -96,9 +127,7 @@ const AsignarGuardiaModal = ({
     }
   };
 
-  const handleAsignar = async () => {
-    if (!selectedGuardia) return;
-    
+  const handleAsignar = async (guardiaId: string) => {
     setLoading(true);
     try {
       const response = await fetch("/api/ppc/asignar", {
@@ -106,13 +135,13 @@ const AsignarGuardiaModal = ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ppc_id: ppc.id,
-          guardia_id: selectedGuardia
+          guardia_id: guardiaId
         })
       });
 
       if (response.ok) {
-        onAsignar(selectedGuardia);
-        onClose();
+        onAsignar(guardiaId);
+        setOpen(false);
       }
     } catch (error) {
       console.error("Error asignando guardia:", error);
@@ -121,51 +150,64 @@ const AsignarGuardiaModal = ({
     }
   };
 
-  if (!isOpen) return null;
+  const filteredGuardias = guardias.filter(guardia =>
+    guardia.nombre_completo.toLowerCase().includes(searchValue.toLowerCase()) ||
+    guardia.rut.includes(searchValue)
+  );
 
-      return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-background rounded-lg p-4 md:p-6 w-full max-w-md mx-auto">
-        <h3 className="text-lg font-semibold mb-4">Asignar Guardia</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Selecciona un guardia para asignar al PPC de {ppc?.instalacion}
-        </p>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Guardia</label>
-            <select
-              value={selectedGuardia}
-              onChange={(e) => setSelectedGuardia(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md bg-background text-sm"
-            >
-              <option value="">Seleccionar guardia...</option>
-              {guardias.map((guardia) => (
-                <option key={guardia.id} value={guardia.id}>
-                  {guardia.nombre_completo} - {guardia.rut}
-                </option>
-              ))}
-            </select>
+  return (
+    <div className="relative">
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={loading}
+        onClick={() => setOpen(!open)}
+        className="w-full justify-start"
+      >
+        {loading ? (
+          <div className="flex items-center gap-2">
+            <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            Asignando...
           </div>
-          
-          <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              className="flex-1"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleAsignar}
-              disabled={!selectedGuardia || loading}
-              className="flex-1"
-            >
-              {loading ? "Asignando..." : "Asignar"}
-            </Button>
+        ) : (
+          <>
+            <User className="h-3 w-3 mr-2" />
+            Asignar guardia
+          </>
+        )}
+      </Button>
+      
+      {open && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-50">
+          <div className="p-2 border-b">
+            <Input
+              placeholder="Buscar guardia..."
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <div className="max-h-48 overflow-y-auto">
+            {filteredGuardias.length === 0 ? (
+              <div className="p-2 text-sm text-muted-foreground">No se encontraron guardias.</div>
+            ) : (
+              filteredGuardias.map((guardia) => (
+                <div
+                  key={guardia.id}
+                  onClick={() => handleAsignar(guardia.id)}
+                  className="p-2 hover:bg-muted cursor-pointer flex items-center gap-2"
+                >
+                  <User className="h-4 w-4" />
+                  <div>
+                    <p className="font-medium">{guardia.nombre_completo}</p>
+                    <p className="text-xs text-muted-foreground">{guardia.rut}</p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -175,17 +217,13 @@ export default function PPCPage() {
   const [ppcs, setPpcs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [metricas, setMetricas] = useState<any>(null);
-  const [modalAsignar, setModalAsignar] = useState<{ isOpen: boolean; ppc: any }>({
-    isOpen: false,
-    ppc: null
-  });
+  const [asignandoId, setAsignandoId] = useState<string | null>(null);
 
-  // Filtros
+  // Filtros mejorados
   const [filtros, setFiltros] = useState({
-    estado: "all",
+    estado: "Pendiente", // Valor por defecto "Abiertos"
     instalacion: "all",
     rol: "all",
-    prioridad: "all",
     fechaDesde: "",
     fechaHasta: ""
   });
@@ -239,12 +277,40 @@ export default function PPCPage() {
     }
   };
 
+  // Limpiar filtros
+  const limpiarFiltros = () => {
+    setFiltros({
+      estado: "Pendiente",
+      instalacion: "all",
+      rol: "all",
+      fechaDesde: "",
+      fechaHasta: ""
+    });
+  };
+
   // Filtrar PPCs
   const filteredPpcs = useMemo(() => {
     return ppcs;
   }, [ppcs]);
 
-  // Columnas de la tabla
+  // Datos para gráfico de líneas (evolución semanal)
+  const lineData = metricas?.map((item: any, index: number) => ({
+    semana: `Sem ${index + 1}`,
+    tasa: item.tasa_ppc,
+    abiertos: item.total_abiertos,
+    cubiertos: item.total_cubiertos
+  })) || [];
+
+  // Calcular días sin cubrir
+  const calcularDiasSinCubrir = (ppc: any) => {
+    if (!ppc.fecha_creacion) return 0;
+    const fechaCreacion = new Date(ppc.fecha_creacion);
+    const hoy = new Date();
+    const diffTime = Math.abs(hoy.getTime() - fechaCreacion.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  // Columnas de la tabla mejoradas
   const columns: Column<any>[] = [
     {
       key: "instalacion",
@@ -254,9 +320,15 @@ export default function PPCPage() {
           <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
             <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           </div>
-          <div>
-            <p className="font-medium">{ppc.instalacion}</p>
-            <p className="text-sm text-muted-foreground">{ppc.rol}</p>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium truncate">{ppc.instalacion}</p>
+            <p className="text-sm text-muted-foreground truncate">{ppc.rol}</p>
+            {ppc.coordenadas && (
+              <div className="flex items-center gap-1 mt-1">
+                <MapPin className="h-3 w-3 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Ubicación disponible</span>
+              </div>
+            )}
           </div>
         </div>
       ),
@@ -306,38 +378,50 @@ export default function PPCPage() {
     {
       key: "estado",
       label: "Estado",
-      render: (ppc) => (
-        <Badge variant={ppc.estado === 'Pendiente' ? 'destructive' : 'default'}>
-          {ppc.estado === 'Pendiente' ? 'Abierto' : 'Cubierto'}
-        </Badge>
-      ),
+      render: (ppc) => {
+        const diasSinCubrir = calcularDiasSinCubrir(ppc);
+        const esUrgente = diasSinCubrir > 7;
+        
+        return (
+          <div className="flex flex-col gap-1">
+            <Badge variant={ppc.estado === 'Pendiente' ? 'destructive' : 'default'}>
+              {ppc.estado === 'Pendiente' ? 'Abierto' : 'Cubierto'}
+            </Badge>
+            {ppc.estado === 'Pendiente' && esUrgente && (
+              <div className="flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3 text-red-500" />
+                <span className="text-xs text-red-500">{diasSinCubrir} días</span>
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: "acciones",
       label: "Acciones",
       render: (ppc) => (
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-col gap-2">
           {ppc.estado === 'Pendiente' ? (
-            <Button
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setModalAsignar({ isOpen: true, ppc });
+            <AsignarGuardiaCombobox
+              ppc={ppc}
+              onAsignar={(guardiaId) => {
+                setAsignandoId(ppc.id);
+                // Actualizar estado localmente
+                setPpcs(prev => prev.map(p => 
+                  p.id === ppc.id 
+                    ? { ...p, estado: 'Cubierto', guardia_asignado: { id: guardiaId, nombre: 'Guardia asignado' } }
+                    : p
+                ));
+                setAsignandoId(null);
               }}
-              className="text-xs sm:text-sm"
-            >
-              Asignar guardia
-            </Button>
+            />
           ) : (
             <Button
               size="sm"
               variant="outline"
-              onClick={(e) => {
-                e.stopPropagation();
-                // Ver detalle del PPC cubierto
-                console.log("Ver detalle PPC:", ppc.id);
-              }}
-              className="text-xs sm:text-sm"
+              onClick={() => router.push(`/ppc/${ppc.id}`)}
+              className="text-xs"
             >
               Ver detalle
             </Button>
@@ -356,153 +440,181 @@ export default function PPCPage() {
     fetchPPCs(); // Recargar datos
   };
 
-      return (
-      <div className="container mx-auto p-3 md:p-6 space-y-3 md:space-y-6">
+  return (
+    <div className="container mx-auto p-4 space-y-6">
       {/* Header */}
-      <div className="flex items-center space-x-3 md:space-x-4 mb-4 md:mb-6">
-        <div className="p-2 md:p-3 rounded-full bg-blue-100 dark:bg-blue-900/20">
-          <BarChart3 className="h-5 w-5 md:h-6 md:w-6 text-blue-600 dark:text-blue-400" />
+      <div className="flex items-center space-x-4 mb-6">
+        <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/20">
+          <BarChart3 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
         </div>
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">PPC</h1>
-          <p className="text-sm md:text-base text-muted-foreground">Gestiona los puestos por cubrir y sus asignaciones</p>
+          <h1 className="text-3xl font-bold">PPC</h1>
+          <p className="text-base text-muted-foreground">Gestiona los puestos por cubrir y sus asignaciones</p>
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
+      {/* KPIs mejorados */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KPIBox
           title="PPC Abiertos"
           value={kpis.total_abiertos}
           icon={AlertTriangle}
           color="red"
+          tooltip="Puestos por cubrir que requieren asignación inmediata"
         />
         <KPIBox
           title="PPC Cubiertos"
           value={kpis.total_cubiertos}
           icon={CheckCircle}
           color="green"
+          tooltip="Puestos por cubrir que ya tienen guardia asignado"
         />
         <KPIBox
           title="Total PPC"
           value={kpis.total_ppc}
           icon={BarChart3}
           color="blue"
+          tooltip="Número total de puestos por cubrir en el sistema"
         />
         <KPIBox
           title="Tasa PPC"
           value={`${kpis.tasa_actual}%`}
           icon={AlertTriangle}
           color="orange"
+          tooltip="Porcentaje de puestos abiertos vs total"
         />
       </div>
 
-      {/* Gráfico de Métricas */}
-      {metricas && (
-        <Card>
-          <CardContent className="p-3 md:p-6">
-            <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Evolución Tasa PPC (Últimas 6 semanas)</h3>
-            <div className="h-48 md:h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={metricas}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="semana" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="tasa_ppc" fill="#ef4444" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Filtros */}
+      {/* Gráfico de líneas */}
       <Card>
-        <CardContent className="p-3 md:p-6">
-          <div className="flex items-center space-x-2 mb-3 md:mb-4">
-            <Filter className="h-4 w-4 md:h-5 md:w-5" />
-            <h3 className="text-base md:text-lg font-semibold">Filtros</h3>
+        <CardContent className="p-6">
+          <h3 className="text-lg font-semibold mb-4">Evolución Semanal</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={lineData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="semana" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="tasa" 
+                  stroke="#ef4444" 
+                  strokeWidth={2}
+                  name="Tasa PPC (%)"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="abiertos" 
+                  stroke="#f59e0b" 
+                  strokeWidth={2}
+                  name="Abiertos"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Filtros mejorados */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <Filter className="h-5 w-5" />
+              <h3 className="text-lg font-semibold">Filtros</h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {filteredPpcs.length} resultados
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={limpiarFiltros}
+                className="flex items-center gap-2"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Limpiar
+              </Button>
+            </div>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium mb-2">Estado</label>
-              <select
+              <Select
                 value={filtros.estado}
-                onChange={(e) => setFiltros(prev => ({ ...prev, estado: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+                onValueChange={(value) => setFiltros(prev => ({ ...prev, estado: value }))}
               >
-                <option value="all">Todos los estados</option>
-                <option value="Pendiente">Abiertos</option>
-                <option value="Cubierto">Cubiertos</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los estados</SelectItem>
+                  <SelectItem value="Pendiente">Abiertos</SelectItem>
+                  <SelectItem value="Cubierto">Cubiertos</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-2">Instalación</label>
-              <select
+              <Select
                 value={filtros.instalacion}
-                onChange={(e) => setFiltros(prev => ({ ...prev, instalacion: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+                onValueChange={(value) => setFiltros(prev => ({ ...prev, instalacion: value }))}
               >
-                <option value="all">Todas las instalaciones</option>
-                {instalaciones.map((instalacion) => (
-                  <option key={instalacion} value={instalacion}>
-                    {instalacion}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las instalaciones</SelectItem>
+                  {instalaciones.map((instalacion) => (
+                    <SelectItem key={instalacion} value={instalacion}>
+                      {instalacion}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-2">Rol de Servicio</label>
-              <select
+              <Select
                 value={filtros.rol}
-                onChange={(e) => setFiltros(prev => ({ ...prev, rol: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+                onValueChange={(value) => setFiltros(prev => ({ ...prev, rol: value }))}
               >
-                <option value="all">Todos los roles</option>
-                {roles.map((rol) => (
-                  <option key={rol} value={rol}>
-                    {rol}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los roles</SelectItem>
+                  {roles.map((rol) => (
+                    <SelectItem key={rol} value={rol}>
+                      {rol}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Prioridad</label>
-              <select
-                value={filtros.prioridad}
-                onChange={(e) => setFiltros(prev => ({ ...prev, prioridad: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
-              >
-                <option value="all">Todas las prioridades</option>
-                <option value="Alta">Alta</option>
-                <option value="Media">Media</option>
-                <option value="Baja">Baja</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Fecha desde</label>
-              <Input
-                type="date"
-                value={filtros.fechaDesde}
-                onChange={(e) => setFiltros(prev => ({ ...prev, fechaDesde: e.target.value }))}
-                className="w-full"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Fecha hasta</label>
-              <Input
-                type="date"
-                value={filtros.fechaHasta}
-                onChange={(e) => setFiltros(prev => ({ ...prev, fechaHasta: e.target.value }))}
-                className="w-full"
-              />
+              <label className="block text-sm font-medium mb-2">Rango de fechas</label>
+              <div className="flex gap-2">
+                <Input
+                  type="date"
+                  value={filtros.fechaDesde}
+                  onChange={(e) => setFiltros(prev => ({ ...prev, fechaDesde: e.target.value }))}
+                  placeholder="Desde"
+                />
+                <Input
+                  type="date"
+                  value={filtros.fechaHasta}
+                  onChange={(e) => setFiltros(prev => ({ ...prev, fechaHasta: e.target.value }))}
+                  placeholder="Hasta"
+                />
+              </div>
             </div>
           </div>
         </CardContent>
@@ -517,74 +629,87 @@ export default function PPCPage() {
             loading={loading}
             emptyMessage="No se encontraron PPCs"
             onRowClick={(ppc) => {
-              console.log("Ver detalles de PPC", ppc.id);
+              router.push(`/ppc/${ppc.id}`);
             }}
             mobileCard={(ppc) => (
               <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
-                <CardContent className="p-3 md:p-4">
-                  <div className="flex items-center space-x-2 md:space-x-3 mb-2 md:mb-3">
-                    <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                      <Building2 className="h-4 w-4 md:h-5 md:w-5 text-blue-600 dark:text-blue-400" />
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                      <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm md:text-base truncate">{ppc.instalacion}</p>
-                      <p className="text-xs md:text-sm text-muted-foreground truncate">{ppc.rol}</p>
+                      <p className="font-medium truncate">{ppc.instalacion}</p>
+                      <p className="text-sm text-muted-foreground truncate">{ppc.rol}</p>
                     </div>
-                    <Badge variant={ppc.estado === 'Pendiente' ? 'destructive' : 'default'} className="text-xs">
+                    <Badge variant={ppc.estado === 'Pendiente' ? 'destructive' : 'default'}>
                       {ppc.estado === 'Pendiente' ? 'Abierto' : 'Cubierto'}
                     </Badge>
                   </div>
                   
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs md:text-sm">Jornada:</span>
-                      <Badge variant={ppc.jornada === 'N' ? 'secondary' : 'default'} className="text-xs">
+                      <span className="text-sm">Jornada:</span>
+                      <Badge variant={ppc.jornada === 'N' ? 'secondary' : 'default'}>
                         {ppc.jornada}
                       </Badge>
                     </div>
                     
                     <div className="flex items-center justify-between">
-                      <span className="text-xs md:text-sm">ROL:</span>
-                      <span className="text-xs md:text-sm font-medium truncate">{ppc.rol_tipo}</span>
+                      <span className="text-sm">ROL:</span>
+                      <span className="text-sm font-medium truncate">{ppc.rol_tipo}</span>
                     </div>
                     
                     <div className="flex items-center space-x-2">
-                      <Clock className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
-                      <span className="text-xs md:text-sm">{ppc.horario}</span>
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{ppc.horario}</span>
                     </div>
+                    
+                    {ppc.coordenadas && (
+                      <div className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Ubicación disponible</span>
+                      </div>
+                    )}
                     
                     <div className="flex items-center space-x-2 pt-2">
                       {ppc.guardia_asignado ? (
                         <>
-                          <User className="h-3 w-3 md:h-4 md:w-4 text-green-600" />
-                          <span className="text-xs md:text-sm font-medium truncate">{ppc.guardia_asignado.nombre}</span>
+                          <User className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium truncate">{ppc.guardia_asignado.nombre}</span>
                         </>
                       ) : (
-                        <span className="text-xs md:text-sm text-muted-foreground">Sin guardia asignado</span>
+                        <span className="text-sm text-muted-foreground">Sin guardia asignado</span>
                       )}
                     </div>
                     
+                    {ppc.estado === 'Pendiente' && calcularDiasSinCubrir(ppc) > 7 && (
+                      <div className="flex items-center gap-1 pt-1">
+                        <AlertTriangle className="h-3 w-3 text-red-500" />
+                        <span className="text-xs text-red-500">{calcularDiasSinCubrir(ppc)} días sin cubrir</span>
+                      </div>
+                    )}
+                    
                     <div className="pt-2">
                       {ppc.estado === 'Pendiente' ? (
-                        <Button
-                          size="sm"
-                          className="w-full text-xs"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setModalAsignar({ isOpen: true, ppc });
+                        <AsignarGuardiaCombobox
+                          ppc={ppc}
+                          onAsignar={(guardiaId) => {
+                            setAsignandoId(ppc.id);
+                            setPpcs(prev => prev.map(p => 
+                              p.id === ppc.id 
+                                ? { ...p, estado: 'Cubierto', guardia_asignado: { id: guardiaId, nombre: 'Guardia asignado' } }
+                                : p
+                            ));
+                            setAsignandoId(null);
                           }}
-                        >
-                          Asignar guardia
-                        </Button>
+                        />
                       ) : (
                         <Button
                           size="sm"
                           variant="outline"
-                          className="w-full text-xs"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            console.log("Ver detalle PPC:", ppc.id);
-                          }}
+                          className="w-full"
+                          onClick={() => router.push(`/ppc/${ppc.id}`)}
                         >
                           Ver detalle
                         </Button>
@@ -598,16 +723,11 @@ export default function PPCPage() {
         </CardContent>
       </Card>
 
-      {/* Modal Asignar Guardia */}
-      <AsignarGuardiaModal
-        isOpen={modalAsignar.isOpen}
-        onClose={() => setModalAsignar({ isOpen: false, ppc: null })}
-        ppc={modalAsignar.ppc}
-        onAsignar={handleAsignarGuardia}
-      />
-
       {/* Mensaje de éxito */}
-      {console.log("✅ Página PPC creada con éxito - 100% responsive")}
+      {(() => {
+        console.log("Vista PPC actualizada con nuevo diseño UX/UI y asignación optimizada");
+        return null;
+      })()}
     </div>
   );
 } 
