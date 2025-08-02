@@ -14,11 +14,16 @@ if (!process.env.DATABASE_URL) {
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  // Configuraciones de rendimiento
-  max: 20, // Máximo número de conexiones en el pool
-  idleTimeoutMillis: 30000, // Tiempo de inactividad antes de cerrar conexión
-  connectionTimeoutMillis: 2000, // Tiempo máximo para obtener conexión
-  maxUses: 7500, // Número máximo de veces que se puede usar una conexión
+  // Configuraciones de rendimiento optimizadas para queries complejas
+  max: 30, // Aumentar máximo número de conexiones en el pool
+  idleTimeoutMillis: 60000, // Aumentar tiempo de inactividad antes de cerrar conexión
+  connectionTimeoutMillis: 10000, // Aumentar tiempo máximo para obtener conexión
+  maxUses: 10000, // Aumentar número máximo de veces que se puede usar una conexión
+  // Configuraciones adicionales para estabilidad
+  allowExitOnIdle: false, // No cerrar el pool cuando esté inactivo
+  // Configuraciones para queries lentas
+  statement_timeout: 30000, // 30 segundos timeout para statements
+  query_timeout: 30000, // 30 segundos timeout para queries
 });
 
 export default pool;
@@ -31,11 +36,16 @@ export async function query(text: string, params?: any[]): Promise<any> {
     const duration = Date.now() - startTime;
     
     // Log solo queries lentos para debugging
-    if (duration > 500) {
+    if (duration > 1000) {
+      console.log(`🐌 Query muy lento (${duration}ms): ${text.substring(0, 100)}...`);
+    } else if (duration > 500) {
       console.log(`🐌 Query lento (${duration}ms): ${text.substring(0, 100)}...`);
     }
     
     return result;
+  } catch (error) {
+    console.error(`❌ Error en query: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    throw error;
   } finally {
     client.release();
   }

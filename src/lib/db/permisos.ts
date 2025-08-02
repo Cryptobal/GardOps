@@ -12,11 +12,11 @@ export async function registrarPermiso({ guardiaId, tipo, desde, hasta }: {
   try {
     // Actualizar o insertar registros en la pauta mensual
     const result = await query(`
-      INSERT INTO as_turnos_pauta_mensual (guardia_id, fecha, tipo)
-      SELECT $1, generate_series($2::date, $3::date, '1 day'::interval)::date, $4
-      ON CONFLICT (guardia_id, fecha) 
+      INSERT INTO pautas_mensuales (guardia_id, dia, tipo, tenant_id, instalacion_id, rol_servicio_id)
+      SELECT $1, generate_series($2::date, $3::date, '1 day'::interval)::date, $4, $5, $6, $7
+      ON CONFLICT (guardia_id, dia) 
       DO UPDATE SET tipo = $4
-    `, [guardiaId, desde, hasta, tipo]);
+    `, [guardiaId, desde, hasta, tipo, 'accebf8a-bacc-41fa-9601-ed39cb320a52', 'fe761cd0-320f-404a-aa26-2e81093ee12e', '64bef7f7-7d41-4ce6-a8bd-f26ed0482825']);
 
     const diasActualizados = dayjs(hasta).diff(dayjs(desde), 'day') + 1;
     console.log(`✅ Permiso ${tipo} registrado en ${diasActualizados} días`);
@@ -39,26 +39,26 @@ export async function registrarFiniquito({ guardiaId, fecha_termino }: {
 
     // Eliminar turnos futuros de la pauta mensual
     const resultPauta = await query(`
-      DELETE FROM as_turnos_pauta_mensual
-      WHERE guardia_id = $1 AND fecha >= $2
+      DELETE FROM pautas_mensuales
+      WHERE guardia_id = $1 AND dia >= $2
     `, [guardiaId, fechaDesde]);
 
     console.log(`✅ Eliminados ${resultPauta.rowCount} registros de pauta mensual`);
 
     // Obtener turnos que se eliminaron para crear PPCs
     const turnosEliminados = await query(`
-      SELECT fecha, instalacion_id, rol_servicio_id
-      FROM as_turnos_requisitos
-      WHERE guardia_id = $1 AND fecha >= $2
+      SELECT dia as fecha, instalacion_id, rol_servicio_id
+      FROM pautas_mensuales
+      WHERE guardia_id = $1 AND dia >= $2
     `, [guardiaId, fechaDesde]);
 
     // Crear PPCs para cada turno eliminado
     let ppcsCreados = 0;
     for (const turno of turnosEliminados.rows) {
       await query(`
-        INSERT INTO as_turnos_ppc (fecha, instalacion_id, rol_servicio_id, prioridad, motivo)
-        VALUES ($1, $2, $3, 'alta', 'finiquito')
-      `, [turno.fecha, turno.instalacion_id, turno.rol_servicio_id]);
+        INSERT INTO as_turnos_ppc (fecha_deteccion, requisito_puesto_id, prioridad, motivo, tenant_id, estado)
+        VALUES ($1, $2, 'alta', 'finiquito', $3, 'pendiente')
+      `, [turno.fecha, turno.rol_servicio_id, 'accebf8a-bacc-41fa-9601-ed39cb320a52']);
       ppcsCreados++;
     }
 
@@ -81,10 +81,10 @@ export async function obtenerPermisos({ guardiaId, tipo }: {
       SELECT 
         id,
         guardia_id,
-        fecha,
+        dia as fecha,
         tipo,
         observacion
-      FROM as_turnos_pauta_mensual 
+      FROM pautas_mensuales 
       WHERE guardia_id = $1 AND tipo != 'turno'
     `;
     

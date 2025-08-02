@@ -32,7 +32,7 @@ const motivosFiniquito = [
 ];
 
 export default function FiniquitoGuardia({ guardiaId }: FiniquitoGuardiaProps) {
-  const [finiquitos, setFiniquitos] = useState<Finiquito[]>([]);
+  const [finiquitos, setFiniquitos] = useState<Finiquito[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -51,9 +51,10 @@ export default function FiniquitoGuardia({ guardiaId }: FiniquitoGuardiaProps) {
       const response = await fetch(`/api/guardias/permisos?guardiaId=${guardiaId}&tipo=finiquito`);
       if (!response.ok) throw new Error('Error al cargar finiquitos');
       const data = await response.json();
-      setFiniquitos(data);
+      setFiniquitos(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error cargando finiquitos:', error);
+      setFiniquitos([]);
     } finally {
       setLoading(false);
     }
@@ -237,7 +238,7 @@ export default function FiniquitoGuardia({ guardiaId }: FiniquitoGuardiaProps) {
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-white"></div>
               <span className="ml-2">Cargando finiquitos...</span>
             </div>
-          ) : finiquitos.length === 0 ? (
+          ) : !finiquitos || finiquitos.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No hay finiquitos registrados</p>
