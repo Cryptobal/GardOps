@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -13,10 +13,66 @@ import {
   Play,
   Clock,
   Users,
-  TrendingUp
+  TrendingUp,
+  Download,
+  FileText,
+  RotateCcw,
+  Info,
+  Trash2
 } from "lucide-react";
 import { obtenerInstalaciones } from "../../lib/api/instalaciones";
 import dayjs from "dayjs";
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
+// Función para obtener feriados chilenos (2024-2025)
+const obtenerFeriadosChilenos = (anio: number): Date[] => {
+  const feriados = [
+    // Feriados fijos
+    new Date(anio, 0, 1),   // Año Nuevo
+    new Date(anio, 4, 1),   // Día del Trabajo
+    new Date(anio, 4, 21),  // Glorias Navales
+    new Date(anio, 5, 29),  // San Pedro y San Pablo
+    new Date(anio, 6, 16),  // Virgen del Carmen
+    new Date(anio, 7, 15),  // Asunción de la Virgen
+    new Date(anio, 8, 18),  // Independencia Nacional
+    new Date(anio, 8, 19),  // Glorias del Ejército
+    new Date(anio, 9, 12),  // Encuentro de Dos Mundos
+    new Date(anio, 10, 1),  // Día de Todos los Santos
+    new Date(anio, 10, 8),  // Inmaculada Concepción
+    new Date(anio, 11, 25), // Navidad
+  ];
+
+  // Feriados variables (aproximados para 2024-2025)
+  if (anio === 2024) {
+    feriados.push(
+      new Date(2024, 3, 1),  // Viernes Santo (aproximado)
+      new Date(2024, 3, 2),  // Sábado Santo (aproximado)
+      new Date(2024, 5, 20), // Corpus Christi (aproximado)
+      new Date(2024, 8, 20), // Fiestas Patrias (día adicional)
+    );
+  } else if (anio === 2025) {
+    feriados.push(
+      new Date(2025, 3, 18), // Viernes Santo (aproximado)
+      new Date(2025, 3, 19), // Sábado Santo (aproximado)
+      new Date(2025, 5, 12), // Corpus Christi (aproximado)
+      new Date(2025, 8, 19), // Fiestas Patrias (día adicional)
+    );
+  }
+
+  return feriados;
+};
+
+// Función para verificar si una fecha es feriado
+const esFeriado = (fecha: Date): boolean => {
+  const feriados = obtenerFeriadosChilenos(fecha.getFullYear());
+  return feriados.some(feriado => 
+    feriado.getDate() === fecha.getDate() && 
+    feriado.getMonth() === fecha.getMonth() && 
+    feriado.getFullYear() === fecha.getFullYear()
+  );
+};
 
 interface Instalacion {
   id: string;
@@ -30,6 +86,486 @@ interface PautaGuardia {
   rol: string;
   dias: string[];
 }
+
+interface AutocompletadoModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (diaInicio: number) => void;
+  guardiaIndex: number;
+  diaIndex: number;
+  diasDisponibles: number;
+  turnoGuardia: string;
+  diaSeleccionado: number;
+  diaSemanaSeleccionado: string;
+}
+
+interface EliminarPautaModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  guardiaNombre: string;
+}
+
+interface ModificarPautaModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  guardiaNombre: string;
+  diaNumero: number;
+  estadoActual: string;
+  nuevoEstado: string;
+}
+
+interface SobrescribirPatronModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  guardiaNombre: string;
+}
+
+interface SeleccionarEstadoModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (nuevoEstado: string) => void;
+  guardiaNombre: string;
+  diaNumero: number;
+  estadoActual: string;
+}
+
+// Modal para autocompletado
+const AutocompletadoModal = ({ isOpen, onClose, onConfirm, guardiaIndex, diaIndex, diasDisponibles, turnoGuardia, diaSeleccionado, diaSemanaSeleccionado }: AutocompletadoModalProps) => {
+  const [diaInicio, setDiaInicio] = useState(1);
+
+  // Extraer el tipo de turno del rol de la guardia
+  const extraerTipoTurno = (rol: string): string => {
+    if (rol.includes("4x4")) return "4x4";
+    if (rol.includes("5x2")) return "5x2";
+    if (rol.includes("7x7")) return "7x7";
+    if (rol.includes("6x1")) return "6x1";
+    return "4x4"; // Por defecto
+  };
+
+  const tipoTurno = extraerTipoTurno(turnoGuardia);
+  
+  // Definir patrones de turnos
+  const patrones = {
+    "4x4": { trabajo: 4, libre: 4, descripcion: "4 días trabajo + 4 días libre" },
+    "5x2": { trabajo: 5, libre: 2, descripcion: "5 días trabajo + 2 días libre" },
+    "7x7": { trabajo: 7, libre: 7, descripcion: "7 días trabajo + 7 días libre" },
+    "6x1": { trabajo: 6, libre: 1, descripcion: "6 días trabajo + 1 día libre" }
+  };
+
+  const patron = patrones[tipoTurno as keyof typeof patrones];
+  const cicloCompleto = patron.trabajo + patron.libre;
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className="bg-gray-900 dark:bg-gray-800 rounded-lg p-6 w-[500px] max-w-[90vw] border border-gray-700"
+      >
+        <h3 className="text-lg font-semibold mb-4 text-white">Autocompletar Pauta</h3>
+        
+        <div className="space-y-4">
+          {/* Información del turno */}
+          <div className="bg-gray-800 dark:bg-gray-700 p-3 rounded-lg border border-gray-600">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium text-gray-100">Turno de la guardia:</p>
+                <p className="text-xs text-gray-300 mt-1">{turnoGuardia}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Información del día seleccionado */}
+          <div className="bg-blue-800 dark:bg-blue-700 p-4 rounded-lg border border-blue-600">
+            <div className="flex items-center gap-3">
+              <Calendar className="h-6 w-6 text-blue-400 flex-shrink-0" />
+              <div className="text-center flex-1">
+                <p className="text-sm font-medium text-blue-200 mb-2">Día seleccionado:</p>
+                <p className="text-xl font-bold text-blue-100 mb-1">
+                  {diaSemanaSeleccionado} {diaSeleccionado}
+                </p>
+                <p className="text-xs text-blue-300">
+                  El patrón comenzará desde este día hacia adelante
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Selector visual del patrón */}
+          <div>
+            <label className="block text-sm font-medium mb-3 text-gray-100">
+              Selecciona en qué punto del ciclo comenzar:
+            </label>
+            
+            {/* Visualización del patrón clickeable */}
+            <div className="flex flex-wrap gap-2 justify-center">
+              {Array.from({ length: cicloCompleto }, (_, i) => {
+                const esDiaTrabajo = i < patron.trabajo;
+                const isSelected = diaInicio === i + 1;
+                
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setDiaInicio(i + 1)}
+                    className={`
+                      w-10 h-10 rounded-lg text-sm font-bold transition-all duration-200
+                      flex items-center justify-center border-2
+                      ${isSelected 
+                        ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-gray-900 scale-110' 
+                        : 'hover:scale-105 hover:ring-1 hover:ring-blue-300'
+                      }
+                      ${esDiaTrabajo 
+                        ? 'bg-green-600 text-white border-green-500 hover:bg-green-500' 
+                        : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
+                      }
+                    `}
+                    title={`Día ${i + 1} del ciclo - ${esDiaTrabajo ? 'Trabajando' : 'Libre'}`}
+                  >
+                    {esDiaTrabajo ? 'T' : 'L'}
+                  </button>
+                );
+              })}
+            </div>
+            
+            <p className="text-xs text-gray-400 mt-2 text-center">
+              Clic en un bloque para seleccionar el punto de inicio del patrón
+            </p>
+          </div>
+
+          {/* Información del patrón */}
+          <div className="bg-blue-900/20 border border-blue-700 p-3 rounded-lg">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-blue-200">
+                <p className="font-medium">Patrón: {tipoTurno}</p>
+                <p className="text-xs mt-1">{patron.descripcion}</p>
+                <p className="text-xs mt-2">
+                  <strong>Seleccionaste el día {diaInicio} del ciclo</strong>
+                </p>
+                <p className="text-xs mt-1">
+                  El día {diaSeleccionado} del mes será el día {diaInicio} del ciclo, y el patrón se aplicará hacia adelante
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Ejemplo de aplicación */}
+          <div className="bg-yellow-900/20 border border-yellow-700 p-3 rounded-lg">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+              <div className="text-xs text-yellow-200">
+                <p className="font-medium">Ejemplo de aplicación:</p>
+                <p>Si seleccionas el bloque {diaInicio}, el día {diaSeleccionado} del mes será el día {diaInicio} del ciclo:</p>
+                <p>Día {diaSeleccionado} del mes = Día {diaInicio} del ciclo | El patrón se aplicará desde el día {diaSeleccionado} hacia adelante</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-2 mt-6">
+          <Button variant="outline" onClick={onClose} className="flex-1 bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700">
+            Cancelar
+          </Button>
+          <Button onClick={() => onConfirm(diaInicio)} className="flex-1 bg-blue-600 hover:bg-blue-700">
+            Autocompletar
+          </Button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+// Modal para confirmar modificación de pauta asignada
+const ModificarPautaModal = ({ isOpen, onClose, onConfirm, guardiaNombre, diaNumero, estadoActual, nuevoEstado }: ModificarPautaModalProps) => {
+  if (!isOpen) return null;
+
+  const getEstadoDisplay = (estado: string) => {
+    switch (estado) {
+      case "T": return { text: "Trabajando", color: "text-green-400" };
+      case "L": return { text: "Libre", color: "text-gray-400" };
+      case "PPC": return { text: "Puesto por cubrir", color: "text-red-400" };
+      case "LIC": return { text: "Licencia", color: "text-blue-400" };
+      case "VAC": return { text: "Vacaciones", color: "text-yellow-400" };
+      case "PGS": return { text: "Permiso con goce", color: "text-purple-400" };
+      case "PSS": return { text: "Permiso sin goce", color: "text-orange-400" };
+      default: return { text: "Vacío", color: "text-gray-500" };
+    }
+  };
+
+  const estadoActualInfo = getEstadoDisplay(estadoActual);
+  const nuevoEstadoInfo = getEstadoDisplay(nuevoEstado);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className="bg-gray-900 dark:bg-gray-800 rounded-lg p-6 w-96 max-w-[90vw] border border-gray-700"
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-full bg-yellow-900/20">
+            <Info className="h-5 w-5 text-yellow-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-white">Modificar pauta asignada</h3>
+        </div>
+        
+        <div className="mb-6">
+          <p className="text-gray-300 mb-3">
+            Este turno forma parte de un patrón de turnos ya asignado. ¿Estás seguro que deseas modificarlo?
+          </p>
+          <p className="text-sm text-gray-400 mb-4">
+            Esto puede romper la consistencia del ciclo.
+          </p>
+          
+          <div className="bg-gray-800 p-3 rounded-lg border border-gray-600">
+            <p className="text-sm text-gray-300 mb-2">
+              <strong>{guardiaNombre}</strong> - Día {diaNumero}
+            </p>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">Actual:</span>
+                <span className={`text-sm font-medium ${estadoActualInfo.color}`}>
+                  {estadoActualInfo.text}
+                </span>
+              </div>
+              <div className="text-gray-500">→</div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">Nuevo:</span>
+                <span className={`text-sm font-medium ${nuevoEstadoInfo.color}`}>
+                  {nuevoEstadoInfo.text}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onClose} className="flex-1 bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700">
+            Cancelar
+          </Button>
+          <Button onClick={onConfirm} className="flex-1 bg-yellow-600 hover:bg-yellow-700">
+            Modificar de todas formas
+          </Button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+// Modal para confirmar sobrescritura de patrón
+const SobrescribirPatronModal = ({ isOpen, onClose, onConfirm, guardiaNombre }: SobrescribirPatronModalProps) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className="bg-gray-900 dark:bg-gray-800 rounded-lg p-6 w-96 max-w-[90vw] border border-gray-700"
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-full bg-orange-900/20">
+            <Info className="h-5 w-5 text-orange-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-white">Sobrescribir patrón existente</h3>
+        </div>
+        
+        <div className="mb-6">
+          <p className="text-gray-300 mb-3">
+            Ya existe un patrón asignado para <strong className="text-white">{guardiaNombre}</strong>.
+          </p>
+          <p className="text-sm text-gray-400 mb-4">
+            ¿Deseas sobrescribirlo completamente con el nuevo patrón?
+          </p>
+          <div className="bg-orange-900/20 p-3 rounded-lg border border-orange-700">
+            <p className="text-xs text-orange-300">
+              ⚠️ Esta acción reemplazará toda la pauta del mes para este guardia.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onClose} className="flex-1 bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700">
+            Cancelar
+          </Button>
+          <Button onClick={onConfirm} className="flex-1 bg-orange-600 hover:bg-orange-700">
+            Sobrescribir
+          </Button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+// Modal para confirmar eliminación de pauta
+const EliminarPautaModal = ({ isOpen, onClose, onConfirm, guardiaNombre }: EliminarPautaModalProps) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className="bg-gray-900 dark:bg-gray-800 rounded-lg p-6 w-96 max-w-[90vw] border border-gray-700"
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-full bg-red-900/20">
+            <Trash2 className="h-5 w-5 text-red-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-white">¿Eliminar pauta del guardia?</h3>
+        </div>
+        
+        <div className="mb-6">
+          <p className="text-gray-300 mb-2">
+            Esta acción eliminará toda la pauta de <strong className="text-white">{guardiaNombre}</strong> en el mes actual.
+          </p>
+          <p className="text-sm text-gray-400">
+            Se borrarán todos los valores (T, L, PPC) y la fila quedará completamente vacía.
+          </p>
+        </div>
+
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onClose} className="flex-1 bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700">
+            Cancelar
+          </Button>
+          <Button onClick={onConfirm} className="flex-1 bg-red-600 hover:bg-red-700">
+            Eliminar
+          </Button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+// Modal para seleccionar nuevo estado
+const SeleccionarEstadoModal = ({ isOpen, onClose, onConfirm, guardiaNombre, diaNumero, estadoActual }: SeleccionarEstadoModalProps) => {
+  const [estadoSeleccionado, setEstadoSeleccionado] = useState(estadoActual);
+
+  const estados = [
+    { codigo: "", nombre: "Vacío", icon: "⬜️", color: "bg-gray-50 text-gray-700 border-gray-300", hoverColor: "hover:bg-gray-100" },
+    { codigo: "T", nombre: "Trabajando", icon: "🟩", color: "bg-green-50 text-green-800 border-green-400", hoverColor: "hover:bg-green-100" },
+    { codigo: "L", nombre: "Libre", icon: "⬜️", color: "bg-gray-50 text-gray-700 border-gray-300", hoverColor: "hover:bg-gray-100" },
+    { codigo: "PPC", nombre: "Puesto por cubrir", icon: "🟥", color: "bg-red-50 text-red-800 border-red-400", hoverColor: "hover:bg-red-100" },
+    { codigo: "LIC", nombre: "Licencia", icon: "🟦", color: "bg-blue-50 text-blue-800 border-blue-400", hoverColor: "hover:bg-blue-100" },
+    { codigo: "VAC", nombre: "Vacaciones", icon: "🟨", color: "bg-yellow-50 text-yellow-800 border-yellow-400", hoverColor: "hover:bg-yellow-100" },
+    { codigo: "PGS", nombre: "Permiso con goce", icon: "🟪", color: "bg-purple-50 text-purple-800 border-purple-400", hoverColor: "hover:bg-purple-100" },
+    { codigo: "PSS", nombre: "Permiso sin goce", icon: "🟫", color: "bg-orange-50 text-orange-800 border-orange-400", hoverColor: "hover:bg-orange-100" }
+  ];
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className="bg-white dark:bg-gray-900 rounded-xl p-8 w-[600px] max-w-[95vw] border border-gray-200 dark:border-gray-700 shadow-2xl"
+      >
+        <div className="flex items-center gap-4 mb-6">
+          <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30">
+            <Info className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Cambiar estado del día</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Selecciona el nuevo estado para este día</p>
+          </div>
+        </div>
+        
+        <div className="mb-8">
+          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-600 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-base font-semibold text-gray-900 dark:text-white">
+                  {guardiaNombre}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  Día {diaNumero} del mes
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Estado actual:</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {estados.find(e => e.codigo === estadoActual)?.nombre || "Vacío"}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <label className="block text-base font-semibold text-gray-900 dark:text-white mb-4">
+              Selecciona el nuevo estado:
+            </label>
+            
+            <div className="grid grid-cols-2 gap-4">
+              {estados.map((estado) => (
+                <button
+                  key={estado.codigo}
+                  onClick={() => setEstadoSeleccionado(estado.codigo)}
+                  className={`
+                    p-4 rounded-lg border-2 transition-all duration-200 text-left group
+                    ${estadoSeleccionado === estado.codigo 
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md scale-105' 
+                      : `border-gray-200 dark:border-gray-600 ${estado.hoverColor} dark:hover:bg-gray-800 hover:shadow-md`
+                    }
+                    ${estado.color}
+                  `}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{estado.icon}</span>
+                    <div className="flex-1">
+                      <div className="font-semibold text-base text-gray-900 dark:text-white">
+                        {estado.nombre}
+                      </div>
+                      {estado.codigo && (
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium">
+                          Código: {estado.codigo}
+                        </div>
+                      )}
+                    </div>
+                    {estadoSeleccionado === estado.codigo && (
+                      <div className="p-1 rounded-full bg-blue-500">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <Button 
+            variant="outline" 
+            onClick={onClose} 
+            className="flex-1 h-12 text-base font-medium bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={() => onConfirm(estadoSeleccionado)} 
+            className="flex-1 h-12 text-base font-medium bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            Cambiar Estado
+          </Button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
 
 // Componente KPI Box (igual que en guardias)
 const KPIBox = ({ 
@@ -71,29 +607,138 @@ const KPIBox = ({
   </motion.div>
 );
 
-// Componente para renderizar el estado del día
-const DiaCell = ({ estado, onClick }: { estado: string; onClick?: () => void }) => {
+// Componente para renderizar el estado del día con edición interactiva
+const DiaCell = ({ 
+  estado, 
+  onClick, 
+  onRightClick,
+  guardiaNombre,
+  diaNumero,
+  isHovered,
+  onMouseEnter,
+  onMouseLeave,
+  diaSemana,
+  esFeriado
+}: { 
+  estado: string; 
+  onClick?: () => void;
+  onRightClick?: (e: React.MouseEvent) => void;
+  guardiaNombre: string;
+  diaNumero: number;
+  isHovered: boolean;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+  diaSemana?: string;
+  esFeriado?: boolean;
+}) => {
+  // Permitir clic en todas las celdas - remover restricción de patrón asignado
   const getEstadoDisplay = () => {
     switch (estado) {
+      case "T":
+        return { 
+          icon: "🟩", 
+          text: "T", 
+          className: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 border-green-300",
+          tooltip: "Trabajando"
+        };
+      case "L":
+        return { 
+          icon: "⬜️", 
+          text: "L", 
+          className: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border-gray-300",
+          tooltip: "Libre"
+        };
       case "PPC":
-        return { icon: "🟥", text: "PPC", className: "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400" };
-      case "OK":
-        return { icon: "🟩", text: "OK", className: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400" };
+        return { 
+          icon: "🟥", 
+          text: "PPC", 
+          className: "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 border-red-300",
+          tooltip: "Puesto por cubrir"
+        };
+      case "LIC":
+        return { 
+          icon: "🟦", 
+          text: "LIC", 
+          className: "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 border-blue-300",
+          tooltip: "Licencia"
+        };
+      case "VAC":
+        return { 
+          icon: "🟨", 
+          text: "VAC", 
+          className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 border-yellow-300",
+          tooltip: "Vacaciones"
+        };
+      case "PGS":
+        return { 
+          icon: "🟪", 
+          text: "PGS", 
+          className: "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400 border-purple-300",
+          tooltip: "Permiso con goce de sueldo"
+        };
+      case "PSS":
+        return { 
+          icon: "🟫", 
+          text: "PSS", 
+          className: "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400 border-orange-300",
+          tooltip: "Permiso sin goce de sueldo"
+        };
       default:
-        return { icon: "⬜️", text: "", className: "bg-gray-50 text-gray-400 dark:bg-gray-800 dark:text-gray-600" };
+        return { 
+          icon: "⬜️", 
+          text: "", 
+          className: "bg-gray-50 text-gray-400 dark:bg-gray-800 dark:text-gray-600 border-gray-200",
+          tooltip: "Vacío"
+        };
     }
   };
 
-  const { icon, text, className } = getEstadoDisplay();
+  const { icon, text, className, tooltip } = getEstadoDisplay();
+
+  // Determinar si es fin de semana o feriado
+  const esFinDeSemana = diaSemana === 'sáb' || diaSemana === 'dom';
+  const esDiaEspecial = esFinDeSemana || esFeriado;
+  
+  // Clases adicionales para días especiales
+  const clasesEspeciales = esDiaEspecial ? 'ring-1 ring-orange-300 dark:ring-orange-600' : '';
+  const clasesFeriado = esFeriado ? 'bg-orange-50 dark:bg-orange-900/20' : '';
+  const clasesFinDeSemana = esFinDeSemana ? 'bg-yellow-50 dark:bg-yellow-900/20' : '';
 
   return (
     <TableCell 
-      className={`text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors p-0 border-l-0 border-r-0 ${className}`}
+      className={`text-center transition-all duration-200 p-0 border-l-0 border-r-0 ${className} ${clasesEspeciales} ${clasesFeriado} ${clasesFinDeSemana} cursor-pointer ${
+        isHovered ? 'ring-2 ring-blue-300 dark:ring-blue-600 scale-105' : ''
+      }`}
       onClick={onClick}
+      onContextMenu={onRightClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      title={`${guardiaNombre} - Día ${diaNumero} (${diaSemana || ''})${esFeriado ? ' - FERIADO' : ''}: ${tooltip}`}
     >
-      <div className="flex flex-col items-center justify-center min-h-[2.5rem] py-1">
+      <div className="flex flex-col items-center justify-center min-h-[2.5rem] py-1 relative group">
+        {/* Día de la semana */}
+        {diaSemana && (
+          <span className={`text-xs font-medium leading-none mb-1 ${
+            esFeriado ? 'text-orange-600 dark:text-orange-400' : 
+            esFinDeSemana ? 'text-yellow-600 dark:text-yellow-400' : 
+            'text-gray-500 dark:text-gray-400'
+          }`}>
+            {diaSemana}
+          </span>
+        )}
+        
         <span className="text-sm leading-none">{icon}</span>
         {text && <span className="text-xs font-medium leading-none mt-0.5">{text}</span>}
+        
+        {/* Tooltip mejorado */}
+        {isHovered && (
+          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded shadow-lg z-10 whitespace-nowrap">
+            {guardiaNombre} - Día {diaNumero} ({diaSemana || ''})
+            {esFeriado && <div className="text-orange-300">FERIADO</div>}
+            <div className="text-center">{tooltip}</div>
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+          </div>
+        )}
       </div>
     </TableCell>
   );
@@ -108,6 +753,39 @@ export default function PautaMensualPage() {
   const [showPauta, setShowPauta] = useState(false);
   const [pautaData, setPautaData] = useState<PautaGuardia[]>([]);
   const [diasDelMes, setDiasDelMes] = useState<number[]>([]);
+  const [diasSemana, setDiasSemana] = useState<{dia: number, diaSemana: string, esFeriado: boolean}[]>([]);
+  const [hoveredCell, setHoveredCell] = useState<{guardiaIndex: number, diaIndex: number} | null>(null);
+  const [autocompletadoModal, setAutocompletadoModal] = useState<{
+    isOpen: boolean;
+    guardiaIndex: number;
+    diaIndex: number;
+    diaSeleccionado: number;
+    diaSemanaSeleccionado: string;
+  }>({ isOpen: false, guardiaIndex: 0, diaIndex: 0, diaSeleccionado: 1, diaSemanaSeleccionado: '' });
+
+  const [eliminarModal, setEliminarModal] = useState<{
+    isOpen: boolean;
+    guardiaIndex: number;
+  }>({ isOpen: false, guardiaIndex: 0 });
+
+  const [modificarPautaModal, setModificarPautaModal] = useState<{
+    isOpen: boolean;
+    guardiaIndex: number;
+    diaIndex: number;
+    nuevoEstado: string;
+  }>({ isOpen: false, guardiaIndex: 0, diaIndex: 0, nuevoEstado: '' });
+
+  const [sobrescribirPatronModal, setSobrescribirPatronModal] = useState<{
+    isOpen: boolean;
+    guardiaIndex: number;
+  }>({ isOpen: false, guardiaIndex: 0 });
+
+  const [seleccionarEstadoModal, setSeleccionarEstadoModal] = useState<{
+    isOpen: boolean;
+    guardiaIndex: number;
+    diaIndex: number;
+    estadoActual: string;
+  }>({ isOpen: false, guardiaIndex: 0, diaIndex: 0, estadoActual: '' });
 
   // Obtener año actual
   const anioActual = new Date().getFullYear();
@@ -167,47 +845,40 @@ export default function PautaMensualPage() {
     const dias = Array.from({ length: diasEnMes }, (_, i) => i + 1);
     setDiasDelMes(dias);
 
+    // Generar información de días de la semana y feriados
+    const diasSemanaInfo = Array.from({ length: diasEnMes }, (_, i) => {
+      const fecha = new Date(anio, mes - 1, i + 1);
+      const diaSemana = fecha.toLocaleDateString('es-CL', { weekday: 'short' });
+      const esFeriadoDia = esFeriado(fecha);
+      return {
+        dia: i + 1,
+        diaSemana: diaSemana,
+        esFeriado: esFeriadoDia
+      };
+    });
+    setDiasSemana(diasSemanaInfo);
+
     // Datos simulados de guardias
     const datosSimulados: PautaGuardia[] = [
       {
         nombre: "Juan Soto",
         rol: "D 4x4x12 - 08:00 - 20:00",
-        dias: Array.from({ length: diasEnMes }, () => {
-          const random = Math.random();
-          if (random < 0.3) return "PPC";
-          if (random < 0.7) return "OK";
-          return "";
-        })
+        dias: Array.from({ length: diasEnMes }, () => "")
       },
       {
         nombre: "María González",
         rol: "N 4x4x12 - 20:00 - 08:00",
-        dias: Array.from({ length: diasEnMes }, () => {
-          const random = Math.random();
-          if (random < 0.2) return "PPC";
-          if (random < 0.8) return "OK";
-          return "";
-        })
+        dias: Array.from({ length: diasEnMes }, () => "")
       },
       {
         nombre: "Carlos Rodríguez",
         rol: "D 5x2x8 - 08:00 - 16:00",
-        dias: Array.from({ length: diasEnMes }, () => {
-          const random = Math.random();
-          if (random < 0.1) return "PPC";
-          if (random < 0.6) return "OK";
-          return "";
-        })
+        dias: Array.from({ length: diasEnMes }, () => "")
       },
       {
         nombre: "Ana Silva",
         rol: "N 5x2x8 - 16:00 - 00:00",
-        dias: Array.from({ length: diasEnMes }, () => {
-          const random = Math.random();
-          if (random < 0.25) return "PPC";
-          if (random < 0.75) return "OK";
-          return "";
-        })
+        dias: Array.from({ length: diasEnMes }, () => "")
       }
     ];
 
@@ -232,14 +903,348 @@ export default function PautaMensualPage() {
 
   // Función para cambiar el estado de un día
   const cambiarEstadoDia = (guardiaIndex: number, diaIndex: number) => {
+    const estadoActual = pautaData[guardiaIndex].dias[diaIndex];
+    
+    // Si el día ya tiene un estado asignado, abrir modal de selección
+    if (estadoActual !== "") {
+      setSeleccionarEstadoModal({
+        isOpen: true,
+        guardiaIndex,
+        diaIndex,
+        estadoActual
+      });
+    } else {
+      // Si está vacío, cambiar al siguiente estado en la secuencia
+      const estados = ["", "T", "L", "PPC", "LIC", "VAC", "PGS", "PSS"];
+      const estadoIndex = estados.indexOf(estadoActual);
+      const nuevoEstado = estados[(estadoIndex + 1) % estados.length];
+      
+      const nuevosDatos = [...pautaData];
+      nuevosDatos[guardiaIndex].dias[diaIndex] = nuevoEstado;
+      setPautaData(nuevosDatos);
+      actualizarKPIs(nuevosDatos);
+    }
+  };
+
+  // Función para confirmar cambio de estado desde modal
+  const confirmarCambioEstado = (nuevoEstado: string) => {
     const nuevosDatos = [...pautaData];
-    const estados = ["", "PPC", "OK"];
-    const estadoActual = nuevosDatos[guardiaIndex].dias[diaIndex];
-    const estadoIndex = estados.indexOf(estadoActual);
-    const nuevoEstado = estados[(estadoIndex + 1) % estados.length];
+    const { guardiaIndex, diaIndex } = seleccionarEstadoModal;
     
     nuevosDatos[guardiaIndex].dias[diaIndex] = nuevoEstado;
     setPautaData(nuevosDatos);
+    actualizarKPIs(nuevosDatos);
+    
+    setSeleccionarEstadoModal({ isOpen: false, guardiaIndex: 0, diaIndex: 0, estadoActual: '' });
+  };
+
+  // Función para confirmar modificación de pauta
+  const confirmarModificacionPauta = () => {
+    const nuevosDatos = [...pautaData];
+    const { guardiaIndex, diaIndex, nuevoEstado } = modificarPautaModal;
+    
+    nuevosDatos[guardiaIndex].dias[diaIndex] = nuevoEstado;
+    setPautaData(nuevosDatos);
+    actualizarKPIs(nuevosDatos);
+    
+    setModificarPautaModal({ isOpen: false, guardiaIndex: 0, diaIndex: 0, nuevoEstado: '' });
+  };
+
+  // Función para manejar clic derecho
+  const handleRightClick = (e: React.MouseEvent, guardiaIndex: number, diaIndex: number) => {
+    e.preventDefault();
+    const diaInfo = diasSemana[diaIndex];
+    setAutocompletadoModal({
+      isOpen: true,
+      guardiaIndex,
+      diaIndex,
+      diaSeleccionado: diaIndex + 1,
+      diaSemanaSeleccionado: diaInfo?.diaSemana || ''
+    });
+  };
+
+  // Función para autocompletar pauta
+  const autocompletarPauta = (diaInicio: number) => {
+    const nuevosDatos = [...pautaData];
+    const { guardiaIndex, diaSeleccionado } = autocompletadoModal;
+    
+    // Verificar si ya existe un patrón asignado para este guardia
+    const tienePatronExistente = nuevosDatos[guardiaIndex].dias.some(dia => dia === "T" || dia === "L");
+    
+    if (tienePatronExistente) {
+      // Mostrar modal de advertencia para sobrescribir
+      setSobrescribirPatronModal({
+        isOpen: true,
+        guardiaIndex
+      });
+      return;
+    }
+    
+    // Continuar con el autocompletado normal
+    aplicarAutocompletado(diaInicio);
+  };
+
+  // Función para aplicar el autocompletado
+  const aplicarAutocompletado = (diaInicio: number) => {
+    const nuevosDatos = [...pautaData];
+    const { guardiaIndex, diaSeleccionado } = autocompletadoModal;
+    
+    // Extraer el tipo de turno del rol de la guardia
+    const extraerTipoTurno = (rol: string): string => {
+      if (rol.includes("4x4")) return "4x4";
+      if (rol.includes("5x2")) return "5x2";
+      if (rol.includes("7x7")) return "7x7";
+      if (rol.includes("6x1")) return "6x1";
+      return "4x4"; // Por defecto
+    };
+    
+    const tipoTurno = extraerTipoTurno(pautaData[guardiaIndex].rol);
+    
+    // Definir patrones de turnos
+    const patrones = {
+      "4x4": { trabajo: 4, libre: 4 },
+      "5x2": { trabajo: 5, libre: 2 },
+      "7x7": { trabajo: 7, libre: 7 },
+      "6x1": { trabajo: 6, libre: 1 }
+    };
+    
+    const patron = patrones[tipoTurno as keyof typeof patrones];
+    const cicloCompleto = patron.trabajo + patron.libre;
+    
+    // LÓGICA CORREGIDA: Solo aplicar patrón desde el día seleccionado hacia adelante
+    // NO borrar días anteriores
+    for (let i = 0; i < nuevosDatos[guardiaIndex].dias.length; i++) {
+      // Solo procesar días desde el día seleccionado hacia adelante
+      if (i < diaSeleccionado - 1) {
+        continue; // Saltar días anteriores al seleccionado
+      }
+      
+      // Calcular la diferencia desde el día seleccionado
+      const diferenciaDesdeSeleccionado = i - (diaSeleccionado - 1);
+      
+      // Calcular qué día del ciclo corresponde
+      const diaDelCiclo = (diaInicio + diferenciaDesdeSeleccionado - 1) % cicloCompleto;
+      
+      // Para 4x4: días 0,1,2,3 son trabajo, días 4,5,6,7 son libre
+      const esDiaTrabajo = diaDelCiclo < patron.trabajo;
+      
+      // Solo sobrescribir si está vacío o si el usuario confirma
+      if (nuevosDatos[guardiaIndex].dias[i] === "") {
+        nuevosDatos[guardiaIndex].dias[i] = esDiaTrabajo ? "T" : "L";
+      } else {
+        // Si ya tiene un valor, preguntar si sobrescribir
+        if (confirm(`¿Sobrescribir día ${i + 1} (actual: ${nuevosDatos[guardiaIndex].dias[i]})?`)) {
+          nuevosDatos[guardiaIndex].dias[i] = esDiaTrabajo ? "T" : "L";
+        }
+      }
+    }
+    
+    setPautaData(nuevosDatos);
+    setAutocompletadoModal({ isOpen: false, guardiaIndex: 0, diaIndex: 0, diaSeleccionado: 1, diaSemanaSeleccionado: '' });
+    actualizarKPIs(nuevosDatos);
+    
+    console.log("✅ Patrón aplicado solo hacia adelante - días anteriores preservados");
+  };
+
+  // Función para confirmar sobrescritura de patrón
+  const confirmarSobrescrituraPatron = () => {
+    const { guardiaIndex } = sobrescribirPatronModal;
+    const diaInicio = 1; // Usar el primer día del ciclo por defecto
+    
+    // NO limpiar todos los días - usar la misma lógica que el autocompletado normal
+    // Solo aplicar el patrón desde el día seleccionado hacia adelante
+    const nuevosDatos = [...pautaData];
+    const { diaSeleccionado } = autocompletadoModal;
+    
+    // Extraer el tipo de turno del rol de la guardia
+    const extraerTipoTurno = (rol: string): string => {
+      if (rol.includes("4x4")) return "4x4";
+      if (rol.includes("5x2")) return "5x2";
+      if (rol.includes("7x7")) return "7x7";
+      if (rol.includes("6x1")) return "6x1";
+      return "4x4"; // Por defecto
+    };
+    
+    const tipoTurno = extraerTipoTurno(pautaData[guardiaIndex].rol);
+    
+    // Definir patrones de turnos
+    const patrones = {
+      "4x4": { trabajo: 4, libre: 4 },
+      "5x2": { trabajo: 5, libre: 2 },
+      "7x7": { trabajo: 7, libre: 7 },
+      "6x1": { trabajo: 6, libre: 1 }
+    };
+    
+    const patron = patrones[tipoTurno as keyof typeof patrones];
+    const cicloCompleto = patron.trabajo + patron.libre;
+    
+    // Aplicar patrón solo desde el día seleccionado hacia adelante
+    for (let i = 0; i < nuevosDatos[guardiaIndex].dias.length; i++) {
+      // Solo procesar días desde el día seleccionado hacia adelante
+      if (i < diaSeleccionado - 1) {
+        continue; // Saltar días anteriores al seleccionado
+      }
+      
+      // Calcular la diferencia desde el día seleccionado
+      const diferenciaDesdeSeleccionado = i - (diaSeleccionado - 1);
+      
+      // Calcular qué día del ciclo corresponde
+      const diaDelCiclo = (diaInicio + diferenciaDesdeSeleccionado - 1) % cicloCompleto;
+      
+      // Para 4x4: días 0,1,2,3 son trabajo, días 4,5,6,7 son libre
+      const esDiaTrabajo = diaDelCiclo < patron.trabajo;
+      
+      // Sobrescribir todos los días desde el seleccionado hacia adelante
+      nuevosDatos[guardiaIndex].dias[i] = esDiaTrabajo ? "T" : "L";
+    }
+    
+    setPautaData(nuevosDatos);
+    setSobrescribirPatronModal({ isOpen: false, guardiaIndex: 0 });
+    actualizarKPIs(nuevosDatos);
+    
+    console.log("✅ Sobrescritura de patrón aplicada solo hacia adelante - días anteriores preservados");
+  };
+
+  // Función para actualizar KPIs
+  const actualizarKPIs = (datos: PautaGuardia[]) => {
+    let totalTurnos = 0;
+    let turnosAsignados = 0;
+    let turnosPendientes = 0;
+
+    datos.forEach(guardia => {
+      guardia.dias.forEach(dia => {
+        totalTurnos++;
+        if (dia === "T") turnosAsignados++;
+        if (dia === "PPC") turnosPendientes++;
+      });
+    });
+
+    const eficiencia = totalTurnos > 0 ? Math.round((turnosAsignados / totalTurnos) * 100) : 0;
+
+    setKpis({
+      totalTurnos,
+      turnosAsignados,
+      turnosPendientes,
+      eficiencia
+    });
+  };
+
+  // Función para exportar a Excel
+  const exportarExcel = () => {
+    const workbook = XLSX.utils.book_new();
+    
+    // Preparar datos para Excel
+    const datosExcel = [
+      // Encabezado con información de la pauta
+      [`Pauta Mensual - ${instalaciones.find(i => i.id === selectedInstalacion)?.nombre}`],
+      [`Mes: ${meses.find(m => m.value === selectedMes)?.label} ${selectedAnio}`],
+      [],
+      // Encabezados de columnas
+      ["Guardia", "Rol", ...diasDelMes.map(dia => `Día ${dia}`)]
+    ];
+
+    // Agregar datos de cada guardia
+    pautaData.forEach(guardia => {
+      const fila = [
+        guardia.nombre,
+        guardia.rol,
+        ...guardia.dias.map(estado => {
+          switch (estado) {
+            case "T": return "Trabajando";
+            case "L": return "Libre";
+            case "PPC": return "PPC";
+            case "LIC": return "Licencia";
+            case "VAC": return "Vacaciones";
+            case "PGS": return "Permiso con goce";
+            case "PSS": return "Permiso sin goce";
+            default: return "";
+          }
+        })
+      ];
+      datosExcel.push(fila);
+    });
+
+    const worksheet = XLSX.utils.aoa_to_sheet(datosExcel);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Pauta Mensual");
+    
+    // Descargar archivo
+    XLSX.writeFile(workbook, `pauta-mensual-${selectedMes}-${selectedAnio}.xlsx`);
+  };
+
+  // Función para exportar a PDF
+  const exportarPDF = () => {
+    const doc = new jsPDF();
+    
+    // Título
+    doc.setFontSize(16);
+    doc.text(`Pauta Mensual - ${instalaciones.find(i => i.id === selectedInstalacion)?.nombre}`, 14, 20);
+    doc.setFontSize(12);
+    doc.text(`${meses.find(m => m.value === selectedMes)?.label} ${selectedAnio}`, 14, 30);
+    
+    // Preparar datos para la tabla
+    const datosTabla = pautaData.map(guardia => {
+      const fila = [
+        guardia.nombre,
+        guardia.rol,
+        ...guardia.dias.map(estado => {
+          switch (estado) {
+            case "T": return "T";
+            case "L": return "L";
+            case "PPC": return "PPC";
+            case "LIC": return "LIC";
+            case "VAC": return "VAC";
+            case "PGS": return "PGS";
+            case "PSS": return "PSS";
+            default: return "";
+          }
+        })
+      ];
+      return fila;
+    });
+
+    // Encabezados
+    const headers = ["Guardia", "Rol", ...diasDelMes.map(dia => `${dia}`)];
+    
+    // Crear tabla
+    autoTable(doc, {
+      head: [headers],
+      body: datosTabla,
+      startY: 40,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [66, 139, 202] },
+      columnStyles: {
+        0: { cellWidth: 30 },
+        1: { cellWidth: 40 }
+      }
+    });
+    
+    // Descargar PDF
+    doc.save(`pauta-mensual-${selectedMes}-${selectedAnio}.pdf`);
+  };
+
+  // Función para eliminar pauta de un guardia específico
+  const eliminarPautaGuardia = () => {
+    const nuevosDatos = [...pautaData];
+    const { guardiaIndex } = eliminarModal;
+    
+    // Limpiar todos los días del guardia
+    nuevosDatos[guardiaIndex].dias = nuevosDatos[guardiaIndex].dias.map(() => "");
+    
+    setPautaData(nuevosDatos);
+    setEliminarModal({ isOpen: false, guardiaIndex: 0 });
+    actualizarKPIs(nuevosDatos);
+  };
+
+  // Función para limpiar pauta
+  const limpiarPauta = () => {
+    if (confirm("¿Estás seguro de que quieres limpiar toda la pauta?")) {
+      const nuevosDatos = pautaData.map(guardia => ({
+        ...guardia,
+        dias: guardia.dias.map(() => "")
+      }));
+      setPautaData(nuevosDatos);
+      actualizarKPIs(nuevosDatos);
+    }
   };
 
   // Establecer valores por defecto
@@ -252,7 +1257,7 @@ export default function PautaMensualPage() {
     }
   }, [selectedMes, selectedAnio, anioActual]);
 
-  console.log("✅ Página Pauta Mensual creada exitosamente");
+  console.log("✅ Selector visual de día del ciclo implementado y lógica de eliminación funcional");
 
   return (
     <div className="p-2 md:p-4 space-y-3 md:space-y-4">
@@ -373,7 +1378,7 @@ export default function PautaMensualPage() {
         <CardContent className="p-0">
           {showPauta ? (
             <div className="space-y-4">
-              {/* Encabezado con datos seleccionados */}
+              {/* Encabezado con datos seleccionados y botones de exportación */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-gray-50 dark:bg-gray-800">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <div className="flex items-center gap-1">
@@ -396,10 +1401,61 @@ export default function PautaMensualPage() {
                     <span className="text-xs text-purple-600 font-semibold">{selectedAnio}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>🟩 Asignado</span>
-                  <span>🟥 PPC</span>
-                  <span>⬜️ Vacío</span>
+                
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>🟩 T (Trabajando)</span>
+                    <span>⬜️ L (Libre)</span>
+                    <span>🟥 PPC</span>
+                    <span>🟦 LIC (Licencia)</span>
+                    <span>🟨 VAC (Vacaciones)</span>
+                    <span>🟪 PGS (Permiso con goce)</span>
+                    <span>🟫 PSS (Permiso sin goce)</span>
+                  </div>
+                  
+                  <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={limpiarPauta}
+                      className="h-7 text-xs"
+                      title="Limpiar pauta"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={exportarExcel}
+                      className="h-7 text-xs"
+                      title="Descargar Excel"
+                    >
+                      <Download className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={exportarPDF}
+                      className="h-7 text-xs"
+                      title="Descargar PDF"
+                    >
+                      <FileText className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Instrucciones */}
+              <div className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400">
+                <div className="flex items-start gap-2">
+                  <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-xs text-blue-800 dark:text-blue-200">
+                    <p className="font-medium">Instrucciones:</p>
+                    <p>• <strong>Clic izquierdo:</strong> Cambiar estado (Vacío → T → L → PPC → LIC → VAC → PGS → PSS)</p>
+                    <p>• <strong>Clic derecho:</strong> Autocompletar patrón de turnos desde esa posición</p>
+                    <p>• <strong>Hover:</strong> Ver detalles del guardia y día</p>
+                    <p>• <strong>Patrón:</strong> Se aplica completamente (hacia atrás y adelante)</p>
+                  </div>
                 </div>
               </div>
 
@@ -409,29 +1465,66 @@ export default function PautaMensualPage() {
                   <TableHeader>
                     <TableRow className="bg-gray-50 dark:bg-gray-800">
                       <TableHead className="font-semibold text-left p-3 border-r-0" style={{width: '1%', whiteSpace: 'nowrap'}}>Guardia</TableHead>
-                      {diasDelMes.map((dia) => (
-                        <TableHead key={dia} className="font-semibold text-center w-[32px] p-2 border-l-0">
-                          <div className="text-sm font-bold">{dia}</div>
-                        </TableHead>
-                      ))}
+                      {diasDelMes.map((dia) => {
+                        const diaInfo = diasSemana[dia - 1];
+                        const esFinDeSemana = diaInfo?.diaSemana === 'sáb' || diaInfo?.diaSemana === 'dom';
+                        const esFeriado = diaInfo?.esFeriado;
+                        const clasesEspeciales = esFeriado ? 'bg-orange-100 dark:bg-orange-900/30' : 
+                                               esFinDeSemana ? 'bg-yellow-100 dark:bg-yellow-900/30' : '';
+                        
+                        return (
+                          <TableHead key={dia} className={`font-semibold text-center w-[32px] p-2 border-l-0 ${clasesEspeciales}`}>
+                            <div className="text-sm font-bold">{dia}</div>
+                            {diaInfo?.diaSemana && (
+                              <div className={`text-xs mt-1 ${
+                                esFeriado ? 'text-orange-600 dark:text-orange-400' : 
+                                esFinDeSemana ? 'text-yellow-600 dark:text-yellow-400' : 
+                                'text-gray-500 dark:text-gray-400'
+                              }`}>
+                                {diaInfo.diaSemana}
+                              </div>
+                            )}
+                          </TableHead>
+                        );
+                      })}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {pautaData.map((guardia, guardiaIndex) => (
-                      <TableRow key={guardiaIndex} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                        <TableCell className="p-3 border-r-0 whitespace-nowrap">
+                      <TableRow key={guardiaIndex} className="hover:bg-gray-50 dark:hover:bg-gray-800 group">
+                        <TableCell className="p-3 border-r-0 whitespace-nowrap relative">
                           <div className="space-y-1">
                             <div className="font-medium text-sm">{guardia.nombre}</div>
                             <div className="text-xs text-muted-foreground leading-tight">{guardia.rol}</div>
                           </div>
+                          
+                          {/* Botón de eliminar pauta - aparece al hacer hover */}
+                          <button
+                            onClick={() => setEliminarModal({ isOpen: true, guardiaIndex })}
+                            className="absolute top-2 right-2 p-1 rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                            title="Eliminar pauta de este guardia"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
                         </TableCell>
-                        {guardia.dias.map((estado, diaIndex) => (
-                          <DiaCell
-                            key={diaIndex}
-                            estado={estado}
-                            onClick={() => cambiarEstadoDia(guardiaIndex, diaIndex)}
-                          />
-                        ))}
+                        {guardia.dias.map((estado, diaIndex) => {
+                          const diaInfo = diasSemana[diaIndex];
+                          return (
+                            <DiaCell
+                              key={diaIndex}
+                              estado={estado}
+                              onClick={() => cambiarEstadoDia(guardiaIndex, diaIndex)}
+                              onRightClick={(e) => handleRightClick(e, guardiaIndex, diaIndex)}
+                              guardiaNombre={guardia.nombre}
+                              diaNumero={diaIndex + 1}
+                              isHovered={hoveredCell?.guardiaIndex === guardiaIndex && hoveredCell?.diaIndex === diaIndex}
+                              onMouseEnter={() => setHoveredCell({ guardiaIndex, diaIndex })}
+                              onMouseLeave={() => setHoveredCell(null)}
+                              diaSemana={diaInfo?.diaSemana}
+                              esFeriado={diaInfo?.esFeriado}
+                            />
+                          );
+                        })}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -449,6 +1542,56 @@ export default function PautaMensualPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de selección de estado */}
+      <SeleccionarEstadoModal
+        isOpen={seleccionarEstadoModal.isOpen}
+        onClose={() => setSeleccionarEstadoModal({ isOpen: false, guardiaIndex: 0, diaIndex: 0, estadoActual: '' })}
+        onConfirm={confirmarCambioEstado}
+        guardiaNombre={pautaData[seleccionarEstadoModal.guardiaIndex]?.nombre || ""}
+        diaNumero={seleccionarEstadoModal.diaIndex + 1}
+        estadoActual={seleccionarEstadoModal.estadoActual}
+      />
+
+      {/* Modal de autocompletado */}
+      <AutocompletadoModal
+        isOpen={autocompletadoModal.isOpen}
+        onClose={() => setAutocompletadoModal({ isOpen: false, guardiaIndex: 0, diaIndex: 0, diaSeleccionado: 1, diaSemanaSeleccionado: '' })}
+        onConfirm={autocompletarPauta}
+        guardiaIndex={autocompletadoModal.guardiaIndex}
+        diaIndex={autocompletadoModal.diaIndex}
+        diasDisponibles={diasDelMes.length}
+        turnoGuardia={pautaData[autocompletadoModal.guardiaIndex]?.rol || ""}
+        diaSeleccionado={autocompletadoModal.diaSeleccionado}
+        diaSemanaSeleccionado={autocompletadoModal.diaSemanaSeleccionado}
+      />
+
+      {/* Modal de eliminación */}
+      <EliminarPautaModal
+        isOpen={eliminarModal.isOpen}
+        onClose={() => setEliminarModal({ isOpen: false, guardiaIndex: 0 })}
+        onConfirm={eliminarPautaGuardia}
+        guardiaNombre={pautaData[eliminarModal.guardiaIndex]?.nombre || ""}
+      />
+
+      {/* Modal de modificación de pauta */}
+      <ModificarPautaModal
+        isOpen={modificarPautaModal.isOpen}
+        onClose={() => setModificarPautaModal({ isOpen: false, guardiaIndex: 0, diaIndex: 0, nuevoEstado: '' })}
+        onConfirm={confirmarModificacionPauta}
+        guardiaNombre={pautaData[modificarPautaModal.guardiaIndex]?.nombre || ""}
+        diaNumero={modificarPautaModal.diaIndex + 1}
+        estadoActual={pautaData[modificarPautaModal.guardiaIndex]?.dias[modificarPautaModal.diaIndex] || ""}
+        nuevoEstado={modificarPautaModal.nuevoEstado}
+      />
+
+      {/* Modal de sobrescritura de patrón */}
+      <SobrescribirPatronModal
+        isOpen={sobrescribirPatronModal.isOpen}
+        onClose={() => setSobrescribirPatronModal({ isOpen: false, guardiaIndex: 0 })}
+        onConfirm={confirmarSobrescrituraPatron}
+        guardiaNombre={pautaData[sobrescribirPatronModal.guardiaIndex]?.nombre || ""}
+      />
     </div>
   );
 } 
