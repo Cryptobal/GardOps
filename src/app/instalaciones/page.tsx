@@ -31,6 +31,9 @@ import { useCrudOperations } from "../../hooks/useCrudOperations";
 // Importar tipos y esquemas
 import { Instalacion } from "../../lib/schemas/instalaciones";
 
+// Importar componentes
+import InstalacionModal from "../../components/instalaciones/InstalacionModal";
+
 // Importar APIs
 import { 
   obtenerInstalaciones,
@@ -122,40 +125,42 @@ export default function InstalacionesPage() {
     documentosVencidos: 0
   });
 
+  // Función para cargar datos de instalaciones
+  const fetchInstalaciones = async () => {
+    try {
+      setLoading(true);
+      
+      // Usar la función optimizada que obtiene todo en una sola llamada
+      const datosCompletos = await obtenerDatosCompletosInstalaciones();
+      
+      setInstalaciones(datosCompletos.instalaciones);
+      setClientes(datosCompletos.clientes);
+      
+      // Cargar documentos vencidos
+      let docsVencidosCount = 0;
+      try {
+        const docsVencidos = await obtenerDocumentosVencidosInstalaciones();
+        setDocumentosVencidos(docsVencidos);
+        docsVencidosCount = docsVencidos?.total || 0;
+      } catch (error) {
+        console.error("❌ Error cargando documentos vencidos:", error);
+      }
+      
+      // Calcular KPIs
+      const total = datosCompletos.instalaciones?.length || 0;
+      const activos = datosCompletos.instalaciones?.filter((i: any) => i.estado === "Activo").length || 0;
+      const inactivos = total - activos;
+
+      setKpis({ total, activos, inactivos, documentosVencidos: docsVencidosCount });
+    } catch (error) {
+      console.error("Error cargando instalaciones:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Cargar datos de instalaciones
   useEffect(() => {
-    const fetchInstalaciones = async () => {
-      try {
-        setLoading(true);
-        
-        // Usar la función optimizada que obtiene todo en una sola llamada
-        const datosCompletos = await obtenerDatosCompletosInstalaciones();
-        
-        setInstalaciones(datosCompletos.instalaciones);
-        setClientes(datosCompletos.clientes);
-        
-        // Cargar documentos vencidos
-        try {
-          const docsVencidos = await obtenerDocumentosVencidosInstalaciones();
-          setDocumentosVencidos(docsVencidos);
-        } catch (error) {
-          console.error("❌ Error cargando documentos vencidos:", error);
-        }
-        
-        // Calcular KPIs
-        const total = datosCompletos.instalaciones?.length || 0;
-        const activos = datosCompletos.instalaciones?.filter((i: any) => i.estado === "Activo").length || 0;
-        const inactivos = total - activos;
-        const docsVencidosCount = documentosVencidos?.total || 0;
-
-        setKpis({ total, activos, inactivos, documentosVencidos: docsVencidosCount });
-      } catch (error) {
-        console.error("Error cargando instalaciones:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchInstalaciones();
   }, []);
 
@@ -363,8 +368,16 @@ export default function InstalacionesPage() {
         </CardContent>
       </Card>
 
-      {/* Modal placeholder */}
-      {/* Modal editable de instalaciones se implementará en la Parte 2 */}
+      {/* Modal de instalaciones */}
+      <InstalacionModal
+        instalacion={null}
+        isOpen={isCreateOpen}
+        onClose={closeAll}
+        onSuccess={(nuevaInstalacion) => {
+          // Recargar la lista de instalaciones
+          fetchInstalaciones();
+        }}
+      />
 
       {/* Toast placeholder */}
       {/* ToastContainer se implementará en la Parte 2 */}
