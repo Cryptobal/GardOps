@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { SafeFilterInput } from '@/components/ui/safe-filter-input';
 import { SafeSelect } from '@/components/ui/safe-select';
 import { SelectContent, SelectItem } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
@@ -64,6 +64,8 @@ export default function AsignarGuardiaModal({
   useEffect(() => {
     if (isOpen) {
       cargarGuardias();
+      // Limpiar filtro al abrir
+      setFiltroGuardias('');
     } else {
       // Limpiar estado cuando se cierra el modal
       setGuardiaSeleccionado('');
@@ -118,6 +120,8 @@ export default function AsignarGuardiaModal({
     onClose();
   };
 
+
+
   if (!isOpen) return null;
 
   return (
@@ -151,17 +155,11 @@ export default function AsignarGuardiaModal({
                   <div className="p-2 border-b">
                     <div className="relative">
                       <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
-                      <Input
+                      <SafeFilterInput
                         placeholder="Filtrar por apellido o RUT..."
                         value={filtroGuardias}
-                        onChange={(e) => setFiltroGuardias(e.target.value)}
+                        onChange={setFiltroGuardias}
                         className="pl-8 h-8 text-xs border-0 focus-visible:ring-0"
-                        onKeyDown={(e) => {
-                          // Prevenir que el Enter cierre el select
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                          }
-                        }}
                       />
                     </div>
                   </div>

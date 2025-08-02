@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SafeFilterInput } from '@/components/ui/safe-filter-input';
 import { SafeSelect } from '@/components/ui/safe-select';
 import { SelectContent, SelectItem } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -128,6 +129,29 @@ export default function TurnosInstalacion({
     }
   }, [instalacionId, turnosPrecargados]);
 
+  // Limpiar estados al desmontar el componente
+  useEffect(() => {
+    return () => {
+      limpiarEstados();
+    };
+  }, []);
+
+  // Manejar clics fuera del componente para cerrar dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.dropdown-container')) {
+        setSelectsOpen({});
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+
   // Actualizar estado cuando cambien los datos precargados
   useEffect(() => {
     if (turnosPrecargados) {
@@ -199,16 +223,11 @@ export default function TurnosInstalacion({
       setAsignando(ppcId);
       await asignarGuardiaPPC(instalacionId, ppcId, guardiaId);
       
-      // Limpiar filtro y cerrar select después de asignar
+      // Limpiar filtro después de asignar
       setFiltrosGuardias(prev => {
         const newFiltros = { ...prev };
         delete newFiltros[ppcId];
         return newFiltros;
-      });
-      setSelectsOpen(prev => {
-        const newSelects = { ...prev };
-        delete newSelects[ppcId];
-        return newSelects;
       });
       
       toast.success('Guardia asignado correctamente', 'Éxito');
@@ -218,6 +237,16 @@ export default function TurnosInstalacion({
       toast.error('No se pudo asignar el guardia', 'Error');
     } finally {
       setAsignando(null);
+    }
+  };
+
+  // Función para limpiar todos los estados de filtros y selects
+  const limpiarEstados = () => {
+    setFiltrosGuardias({});
+    setSelectsOpen({});
+    // Forzar blur en cualquier elemento enfocado
+    if (document.activeElement && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
     }
   };
 
@@ -540,55 +569,97 @@ export default function TurnosInstalacion({
                                 <div className="mt-3 flex gap-2">
                                   {ppc.estado === 'Pendiente' ? (
                                     <div className="flex-1">
-                                      <SafeSelect
-                                        onValueChange={(guardiaId) => handleAsignarGuardiaDirecto(ppc.id, guardiaId)}
-                                        disabled={asignando === ppc.id}
-                                        open={selectsOpen[ppc.id] || false}
-                                        onOpenChange={(open) => setSelectsOpen(prev => ({
-                                          ...prev,
-                                          [ppc.id]: open
-                                        }))}
-                                        placeholder="Asignar guardia"
-                                        className="h-8 text-xs"
-                                      >
-                                        <SelectContent>
-                                          {/* Campo de filtro para guardias */}
-                                          <div className="p-2 border-b">
-                                            <div className="relative">
-                                              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
-                                              <Input
-                                                placeholder="Filtrar por apellido o RUT..."
-                                                value={filtrosGuardias[ppc.id] || ''}
-                                                onChange={(e) => setFiltrosGuardias(prev => ({
-                                                  ...prev,
-                                                  [ppc.id]: e.target.value
-                                                }))}
-                                                className="pl-8 h-8 text-xs border-0 focus-visible:ring-0"
-                                                onKeyDown={(e) => {
-                                                  // Prevenir que el Enter cierre el select
-                                                  if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                  }
-                                                }}
-                                              />
+                                      {/* Lista desplegable de guardias con filtro integrado */}
+                                      <div className="relative dropdown-container">
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => {
+                                            setSelectsOpen(prev => ({
+                                              ...prev,
+                                              [ppc.id]: !prev[ppc.id]
+                                            }));
+                                          }}
+                                          disabled={asignando === ppc.id}
+                                          className="flex-1 h-8 text-xs justify-between w-full"
+                                        >
+                                          {asignando === ppc.id ? (
+                                            <div className="flex items-center gap-2">
+                                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                                              Asignando...
+                                            </div>
+                                          ) : (
+                                            <>
+                                              <UserPlus className="w-3 h-3 mr-1" />
+                                              Asignar Guardia
+                                            </>
+                                          )}
+                                        </Button>
+                                        
+                                        {/* Dropdown personalizado - aparece hacia arriba */}
+                                        {selectsOpen[ppc.id] && (
+                                          <div className="absolute bottom-full left-0 right-0 mb-1 bg-popover border border-border rounded-md shadow-xl z-50 max-h-64 overflow-hidden backdrop-blur-sm">
+                                            {/* Campo de filtro en la parte superior */}
+                                            <div className="p-3 border-b border-border bg-card/50">
+                                              <div className="relative">
+                                                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                                                <input
+                                                  type="text"
+                                                  placeholder="🔍 Buscar guardia por nombre o RUT..."
+                                                  value={filtrosGuardias[ppc.id] || ''}
+                                                  onChange={(e) => {
+                                                    setFiltrosGuardias(prev => ({
+                                                      ...prev,
+                                                      [ppc.id]: e.target.value
+                                                    }));
+                                                  }}
+                                                  className="pl-8 h-9 text-xs border border-input rounded-md w-full bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                                                  autoFocus
+                                                />
+                                              </div>
+                                            </div>
+                                            
+                                            {/* Lista de guardias */}
+                                            <div className="max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+                                              {(() => {
+                                                const guardiasFiltrados = getGuardiasFiltrados(filtrosGuardias[ppc.id] || '');
+                                                return guardiasFiltrados.length === 0 ? (
+                                                  <div className="p-4 text-xs text-muted-foreground text-center">
+                                                    <div className="mb-2">🔍</div>
+                                                    {filtrosGuardias[ppc.id] ? 'No se encontraron guardias con ese criterio' : 'No hay guardias disponibles'}
+                                                  </div>
+                                                ) : (
+                                                  guardiasFiltrados.map((guardia: GuardiaDisponible) => (
+                                                    <button
+                                                      key={guardia.id}
+                                                      onClick={() => {
+                                                        handleAsignarGuardiaDirecto(ppc.id, guardia.id);
+                                                        setSelectsOpen(prev => ({
+                                                          ...prev,
+                                                          [ppc.id]: false
+                                                        }));
+                                                      }}
+                                                      className="w-full px-4 py-3 text-left text-xs hover:bg-accent hover:text-accent-foreground transition-all duration-200 border-b border-border/50 last:border-b-0 group"
+                                                    >
+                                                      <div className="flex justify-between items-start">
+                                                        <div className="flex-1">
+                                                          <div className="font-medium text-foreground group-hover:text-accent-foreground">{guardia.nombre_completo}</div>
+                                                          <div className="text-muted-foreground text-xs mt-1">
+                                                            📍 {guardia.comuna} • 🆔 {guardia.rut}
+                                                          </div>
+                                                        </div>
+                                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                          <UserPlus className="w-3 h-3 text-muted-foreground" />
+                                                        </div>
+                                                      </div>
+                                                    </button>
+                                                  ))
+                                                );
+                                              })()}
                                             </div>
                                           </div>
-                                          {(() => {
-                                            const guardiasFiltrados = getGuardiasFiltrados(filtrosGuardias[ppc.id] || '');
-                                            return guardiasFiltrados.length === 0 ? (
-                                              <div className="p-2 text-xs text-gray-500">
-                                                {filtrosGuardias[ppc.id] ? 'No se encontraron guardias' : 'No hay guardias disponibles'}
-                                              </div>
-                                            ) : (
-                                              guardiasFiltrados.map((guardia: GuardiaDisponible) => (
-                                                <SelectItem key={guardia.id} value={guardia.id}>
-                                                  {guardia.nombre_completo} ({guardia.comuna})
-                                                </SelectItem>
-                                              ))
-                                            );
-                                          })()}
-                                        </SelectContent>
-                                      </SafeSelect>
+                                        )}
+                                      </div>
                                     </div>
                                   ) : (
                                     <Button
