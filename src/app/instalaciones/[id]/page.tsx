@@ -129,7 +129,7 @@ export default function InstalacionDetallePage() {
       
       if (!response.ok) throw new Error('Error al cambiar estado');
       
-      setInstalacion({ ...instalacion, estado: pendingEstado });
+      setInstalacion({ ...instalacion, estado: pendingEstado as "Activo" | "Inactivo" });
       setShowConfirmModal(false);
       setPendingEstado(null);
       
