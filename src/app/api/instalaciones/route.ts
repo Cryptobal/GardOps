@@ -35,6 +35,46 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(result.rows);
     }
 
+    // Si se solicita formato simple para KPIs
+    const simple = searchParams.get('simple') === 'true';
+    if (simple) {
+      const result = await query(`
+        SELECT 
+          i.id,
+          i.nombre,
+          i.estado,
+          i.cliente_id,
+          COALESCE(c.nombre, 'Cliente no encontrado') as cliente_nombre,
+          COALESCE(stats.puestos_creados, 0) as puestos_creados,
+          COALESCE(stats.ppc_pendientes, 0) as ppc_pendientes
+        FROM instalaciones i
+        LEFT JOIN clientes c ON i.cliente_id = c.id
+        LEFT JOIN (
+          SELECT 
+            tr.instalacion_id,
+            SUM(tr.cantidad_guardias) as puestos_creados,
+            SUM(tr.cantidad_guardias) - COALESCE(asignaciones.total_asignados, 0) as ppc_pendientes
+          FROM as_turnos_requisitos tr
+          LEFT JOIN (
+            SELECT 
+              tr2.instalacion_id,
+              COUNT(ta.id) as total_asignados
+            FROM as_turnos_asignaciones ta
+            INNER JOIN as_turnos_requisitos tr2 ON ta.requisito_puesto_id = tr2.id
+            WHERE ta.estado = 'Activa'
+            GROUP BY tr2.instalacion_id
+          ) asignaciones ON asignaciones.instalacion_id = tr.instalacion_id
+          GROUP BY tr.instalacion_id, asignaciones.total_asignados
+        ) stats ON stats.instalacion_id = i.id
+        ORDER BY i.nombre
+      `);
+      
+      return NextResponse.json({
+        success: true,
+        data: result.rows
+      });
+    }
+
     // Si se solicita con todos los datos, devolver instalaciones + clientes + comunas
     if (withAllData) {
       const [instalacionesResult, clientesResult, comunasResult] = await Promise.all([

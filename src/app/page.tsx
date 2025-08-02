@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Shield, Users, Building2, Calendar, Clock, TrendingUp, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -12,43 +12,53 @@ interface AlertaDocumento {
 
 const statsBase = [
   {
-    title: "Guardias Activos",
-    value: "24",
-    icon: Shield,
-    description: "Personal en servicio",
-    color: "text-blue-500",
-    href: "/guardias",
-    urgent: false,
-    animate: false
-  },
-  {
-    title: "Clientes",
-    value: "12",
+    title: "Clientes Activos",
+    value: "0",
     icon: Users,
-    description: "Clientes registrados",
+    description: "Clientes operativos",
     color: "text-green-500",
     href: "/clientes",
     urgent: false,
     animate: false
   },
   {
-    title: "Instalaciones",
-    value: "18",
+    title: "Instalaciones Activas",
+    value: "0",
     icon: Building2,
-    description: "Sitios bajo vigilancia",
+    description: "Sitios operativos",
     color: "text-purple-500",
     href: "/instalaciones",
     urgent: false,
     animate: false
   },
   {
-    title: "Turnos Programados",
-    value: "96",
-    icon: Clock,
-    description: "Para esta semana",
-    color: "text-orange-500",
-    href: "/turnos-diarios",
+    title: "Puestos Activos",
+    value: "0",
+    icon: Shield,
+    description: "Puestos de trabajo",
+    color: "text-blue-500",
+    href: "/instalaciones",
     urgent: false,
+    animate: false
+  },
+  {
+    title: "Total PPC",
+    value: "0 (0%)",
+    icon: Clock,
+    description: "Pendientes de completar",
+    color: "text-orange-500",
+    href: "/instalaciones",
+    urgent: false,
+    animate: false
+  },
+  {
+    title: "Documentos Vencidos",
+    value: "0",
+    icon: AlertTriangle,
+    description: "Documentos por vencer",
+    color: "text-red-500",
+    href: "/documentos",
+    urgent: true,
     animate: false
   }
 ];
@@ -60,6 +70,64 @@ export default function HomePage() {
   const [alertas, setAlertas] = useState<AlertaDocumento[]>([]);
   const [cargandoAlertas, setCargandoAlertas] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [kpis, setKpis] = useState({
+    clientesActivos: 0,
+    instalacionesActivas: 0,
+    puestosActivos: 0,
+    totalPPC: 0,
+    documentosVencidos: 0
+  });
+
+  const cargarKPIs = async () => {
+    try {
+      // Cargar datos de clientes
+      const clientesResponse = await fetch("/api/clientes");
+      const clientesData = await clientesResponse.json();
+      const clientesActivos = clientesData.success ? 
+        clientesData.data.filter((c: any) => c.estado === "Activo").length : 0;
+
+      // Cargar datos de instalaciones con parámetro simple
+      const instalacionesResponse = await fetch("/api/instalaciones?simple=true");
+      const instalacionesData = await instalacionesResponse.json();
+      const instalacionesActivas = instalacionesData.success ? 
+        instalacionesData.data.filter((i: any) => i.estado === "Activo").length : 0;
+
+      // Calcular puestos activos y PPC
+      let puestosActivos = 0;
+      let totalPPC = 0;
+      if (instalacionesData.success) {
+        puestosActivos = instalacionesData.data.reduce((sum: number, i: any) => {
+          return sum + (parseInt(i.puestos_creados) || 0);
+        }, 0);
+        
+        totalPPC = instalacionesData.data.reduce((sum: number, i: any) => {
+          return sum + (parseInt(i.ppc_pendientes) || 0);
+        }, 0);
+      }
+
+      // Por ahora, usar un valor fijo para documentos vencidos hasta arreglar la API
+      const documentosVencidos = 0;
+
+      setKpis({
+        clientesActivos,
+        instalacionesActivas,
+        puestosActivos,
+        totalPPC,
+        documentosVencidos
+      });
+
+    } catch (error) {
+      console.error('Error cargando KPIs:', error);
+      // En caso de error, usar valores por defecto
+      setKpis({
+        clientesActivos: 0,
+        instalacionesActivas: 0,
+        puestosActivos: 0,
+        totalPPC: 0,
+        documentosVencidos: 0
+      });
+    }
+  };
 
   const cargarAlertas = async () => {
     try {
@@ -95,8 +163,12 @@ export default function HomePage() {
   useEffect(() => {
     console.log('🔍 HomePage: useEffect ejecutándose...')
     cargarAlertas();
+    cargarKPIs();
     // Auto-refresh cada 2 minutos
-    const interval = setInterval(cargarAlertas, 120000);
+    const interval = setInterval(() => {
+      cargarAlertas();
+      cargarKPIs();
+    }, 120000);
     return () => clearInterval(interval);
   }, []);
 
@@ -121,19 +193,45 @@ export default function HomePage() {
     return "Todo al día";
   };
 
-  // Crear stats dinámicos incluyendo alertas
-  const alertaStat = {
-    title: "Docs. Vencimiento",
-    value: cargandoAlertas ? "..." : totalAlertas.toString(),
-    icon: AlertTriangle,
-    description: cargandoAlertas ? "Cargando..." : getAlertaDescription(),
-    color: getAlertaColor(),
-    href: "/alertas",
-    urgent: vencidos > 0 || vencenHoy > 0,
-    animate: totalAlertas > 0
-  };
-
-  const stats = [...statsBase, alertaStat];
+  // Generar stats dinámicamente basado en datos reales
+  const stats = useMemo(() => {
+    return statsBase.map(stat => {
+      if (stat.title === "Clientes Activos") {
+        return {
+          ...stat,
+          value: kpis.clientesActivos.toString()
+        };
+      }
+      if (stat.title === "Instalaciones Activas") {
+        return {
+          ...stat,
+          value: kpis.instalacionesActivas.toString()
+        };
+      }
+      if (stat.title === "Puestos Activos") {
+        return {
+          ...stat,
+          value: kpis.puestosActivos.toString()
+        };
+      }
+      if (stat.title === "Total PPC") {
+        const porcentaje = kpis.puestosActivos > 0 ? Math.round((kpis.totalPPC / kpis.puestosActivos) * 100) : 0;
+        return {
+          ...stat,
+          value: `${kpis.totalPPC} (${porcentaje}%)`
+        };
+      }
+      if (stat.title === "Documentos Vencidos") {
+        return {
+          ...stat,
+          value: kpis.documentosVencidos.toString(),
+          urgent: kpis.documentosVencidos > 0,
+          animate: kpis.documentosVencidos > 0
+        };
+      }
+      return stat;
+    });
+  }, [kpis]);
 
   const handleCardClick = (href: string) => {
     router.push(href);
@@ -142,24 +240,24 @@ export default function HomePage() {
   console.log('🔍 HomePage: Renderizando página principal...')
   
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       {/* Welcome Section */}
       <div className="text-center space-y-4">
-        <h2 className="text-4xl font-bold heading-gradient">
+        <h2 className="text-3xl md:text-4xl font-bold heading-gradient">
           Bienvenido a GardOps
         </h2>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+        <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
           Tu plataforma integral para la gestión profesional de servicios de seguridad,
           control de guardias y supervisión de instalaciones.
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 auto-rows-fr">
         {stats.map((stat) => (
-          <div key={stat.title}>
+          <div key={stat.title} className="h-full">
             <Card 
-              className={`card-elegant p-6 hover:scale-105 transition-all duration-300 cursor-pointer ${
+              className={`card-elegant p-3 md:p-6 hover:scale-105 transition-all duration-300 cursor-pointer h-full ${
                 stat.urgent ? 'border-red-500/30 bg-red-500/5' : ''
               } ${
                 stat.animate ? 'hover:shadow-lg hover:shadow-red-500/20' : ''
@@ -168,7 +266,7 @@ export default function HomePage() {
               title={`Ir a ${stat.title}`}
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+                <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground min-h-[1.5rem] flex items-center">
                   {stat.title}
                   {stat.urgent && (
                     <span className="ml-1 inline-flex items-center">
@@ -179,15 +277,12 @@ export default function HomePage() {
                     </span>
                   )}
                 </CardTitle>
-                <stat.icon className={`h-5 w-5 ${stat.color} ${stat.animate ? 'animate-pulse' : ''}`} />
+                <stat.icon className={`h-4 w-4 md:h-5 md:w-5 ${stat.color} ${stat.animate ? 'animate-pulse' : ''} flex-shrink-0`} />
               </CardHeader>
-              <CardContent className="p-0">
-                <div className={`text-3xl font-bold text-foreground ${stat.urgent ? 'text-red-500' : ''}`}>
+              <CardContent className="p-0 flex flex-col justify-between h-full">
+                <div className={`text-xl md:text-3xl font-bold text-foreground ${stat.urgent ? 'text-red-500' : ''}`}>
                   {stat.value}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {stat.description}
-                </p>
                 {stat.title === "Docs. Vencimiento" && totalAlertas > 0 && (
                   <div className="mt-2 text-xs">
                     <div className="flex gap-2 flex-wrap">

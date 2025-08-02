@@ -70,19 +70,19 @@ const KPIBox = ({
     transition={{ duration: 0.5 }}
   >
     <Card className="h-full">
-      <CardContent className="p-6">
+      <CardContent className="p-3 md:p-6 flex flex-col justify-between h-full">
         <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-2xl font-bold">{value}</p>
+          <div className="flex-1">
+            <p className="text-xs md:text-sm font-medium text-muted-foreground min-h-[1.5rem] flex items-center">{title}</p>
+            <p className="text-lg md:text-2xl font-bold">{value}</p>
             {trend && (
-              <p className={`text-sm ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-xs md:text-sm ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
                 {trend.isPositive ? '+' : ''}{trend.value}%
               </p>
             )}
           </div>
-          <div className={`p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/20`}>
-            <Icon className={`h-6 w-6 text-${color}-600 dark:text-${color}-400`} />
+          <div className={`p-2 md:p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/20 flex-shrink-0 ml-3`}>
+            <Icon className={`h-4 w-4 md:h-6 md:w-6 text-${color}-600 dark:text-${color}-400`} />
           </div>
         </div>
       </CardContent>
@@ -285,20 +285,20 @@ export default function InstalacionesPage() {
   const clientesUnicos = Array.from(new Set(instalaciones.map(i => i.cliente_id).filter(Boolean))).sort();
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center space-x-4 mb-6">
-        <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/20">
-          <Building2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+      <div className="flex items-center space-x-3 md:space-x-4 mb-4 md:mb-6">
+        <div className="p-2 md:p-3 rounded-full bg-blue-100 dark:bg-blue-900/20">
+          <Building2 className="h-5 w-5 md:h-6 md:w-6 text-blue-600 dark:text-blue-400" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold">Instalaciones</h1>
-          <p className="text-muted-foreground">Gestiona las instalaciones y su estado operacional</p>
+          <h1 className="text-2xl md:text-3xl font-bold">Instalaciones</h1>
+          <p className="text-sm md:text-base text-muted-foreground">Gestiona las instalaciones y su estado operacional</p>
         </div>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <KPIBox
           title="Instalaciones Activas"
           value={kpis.activos}
@@ -326,41 +326,45 @@ export default function InstalacionesPage() {
       </div>
 
       {/* Filtros y Acciones */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Input
-            placeholder="Buscar instalaciones..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-64"
-          />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border rounded-md bg-background"
-          >
-            <option value="all">Todos los estados</option>
-            <option value="Activo">Activas</option>
-            <option value="Inactivo">Inactivas</option>
-          </select>
-          <select
-            value={clienteFilter}
-            onChange={(e) => setClienteFilter(e.target.value)}
-            className="px-3 py-2 border rounded-md bg-background"
-          >
-            <option value="all">Todos los clientes</option>
-            {clientes.map((cliente) => (
-              <option key={cliente.id} value={cliente.id}>
-                {cliente.nombre}
-              </option>
-            ))}
-          </select>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+            <Input
+              placeholder="Buscar instalaciones..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full sm:w-64"
+            />
+            <div className="flex gap-2 sm:gap-4">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3 py-2 border rounded-md bg-background text-sm"
+              >
+                <option value="all">Todos los estados</option>
+                <option value="Activo">Activas</option>
+                <option value="Inactivo">Inactivas</option>
+              </select>
+              <select
+                value={clienteFilter}
+                onChange={(e) => setClienteFilter(e.target.value)}
+                className="px-3 py-2 border rounded-md bg-background text-sm"
+              >
+                <option value="all">Todos los clientes</option>
+                {clientes.map((cliente) => (
+                  <option key={cliente.id} value={cliente.id}>
+                    {cliente.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          <Button onClick={openCreate} className="flex items-center space-x-2 w-full sm:w-auto">
+            <Plus className="h-4 w-4" />
+            <span>Nueva Instalación</span>
+          </Button>
         </div>
-        
-        <Button onClick={openCreate} className="flex items-center space-x-2">
-          <Plus className="h-4 w-4" />
-          <span>Nueva Instalación</span>
-        </Button>
       </div>
 
       {/* Tabla */}
@@ -375,6 +379,66 @@ export default function InstalacionesPage() {
               console.log("Ver detalles de instalación", instalacion.id);
               router.push(`/instalaciones/${instalacion.id}`);
             }}
+            mobileCard={(instalacion) => (
+              <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => router.push(`/instalaciones/${instalacion.id}`)}>
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                      <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">{instalacion.nombre}</p>
+                      <p className="text-sm text-muted-foreground">{instalacion.cliente_nombre}</p>
+                    </div>
+                    <ToggleStatus
+                      checked={instalacion.estado === "Activo"}
+                      disabled
+                      size="sm"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{instalacion.direccion}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs text-muted-foreground">
+                        {instalacion.comuna}, {instalacion.ciudad}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="flex space-x-4">
+                        <div className="text-center">
+                          <p className="text-xs text-muted-foreground">Puestos</p>
+                          <p className="text-sm font-medium">{instalacion.puestos_creados || 0}</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs text-muted-foreground">PPC</p>
+                          <p className={`text-sm font-medium ${(instalacion.ppc_pendientes || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            {instalacion.ppc_pendientes || 0}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        {(() => {
+                          const docsVencidosCount = documentosVencidos.instalaciones.find(
+                            doc => doc.instalacion_id === instalacion.id
+                          )?.documentos_vencidos || 0;
+                          
+                          if (docsVencidosCount > 0) {
+                            return <Badge variant="destructive">{docsVencidosCount} vencidos</Badge>;
+                          }
+                          return <Badge variant="default">Al día</Badge>;
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           />
         </CardContent>
       </Card>

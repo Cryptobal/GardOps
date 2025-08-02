@@ -186,7 +186,7 @@ export default function RolesServicioPage() {
           {/* Formulario para crear nuevo rol */}
           <div className="border-b pb-6 mb-6">
             <h3 className="text-lg font-semibold mb-4">➕ Crear Nuevo Rol</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Nombre del Rol</label>
                 <Input

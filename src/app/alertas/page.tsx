@@ -326,7 +326,7 @@ export default function AlertasPage() {
       </Card>
 
       {/* KPIs Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <Card className="bg-red-500/10 border-red-500/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-red-400 text-sm font-medium flex items-center gap-2">

@@ -51,19 +51,19 @@ const KPIBox = ({
     transition={{ duration: 0.5 }}
   >
     <Card className="h-full">
-      <CardContent className="p-6">
+      <CardContent className="p-3 md:p-6 flex flex-col justify-between h-full">
         <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-2xl font-bold">{value}</p>
+          <div className="flex-1">
+            <p className="text-xs md:text-sm font-medium text-muted-foreground min-h-[1.5rem] flex items-center">{title}</p>
+            <p className="text-lg md:text-2xl font-bold">{value}</p>
             {trend && (
-              <p className={`text-sm ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-xs md:text-sm ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
                 {trend.isPositive ? '+' : ''}{trend.value}%
               </p>
             )}
           </div>
-          <div className={`p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/20`}>
-            <Icon className={`h-6 w-6 text-${color}-600 dark:text-${color}-400`} />
+          <div className={`p-2 md:p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/20 flex-shrink-0 ml-3`}>
+            <Icon className={`h-4 w-4 md:h-6 md:w-6 text-${color}-600 dark:text-${color}-400`} />
           </div>
         </div>
       </CardContent>
@@ -257,37 +257,25 @@ export default function GuardiasPage() {
   const instalaciones = Array.from(new Set(guardias.map(g => g.instalacion_asignada).filter(Boolean))).sort();
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center space-x-4 mb-6">
-        <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/20">
-          <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+      <div className="flex items-center space-x-3 md:space-x-4 mb-4 md:mb-6">
+        <div className="p-2 md:p-3 rounded-full bg-blue-100 dark:bg-blue-900/20">
+          <Shield className="h-5 w-5 md:h-6 md:w-6 text-blue-600 dark:text-blue-400" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold">Guardias</h1>
-          <p className="text-muted-foreground">Gestiona el personal de seguridad y sus documentos</p>
+          <h1 className="text-2xl md:text-3xl font-bold">Guardias</h1>
+          <p className="text-sm md:text-base text-muted-foreground">Gestiona el personal de seguridad y sus documentos</p>
         </div>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <KPIBox
-          title="Total Guardias"
-          value={kpis.total}
-          icon={Users}
-          color="blue"
-        />
+      <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-6">
         <KPIBox
           title="Guardias Activos"
           value={kpis.activos}
           icon={CheckCircle}
           color="green"
-        />
-        <KPIBox
-          title="Guardias Inactivos"
-          value={kpis.inactivos}
-          icon={User}
-          color="gray"
         />
         <KPIBox
           title="Alertas OS10"
@@ -298,41 +286,45 @@ export default function GuardiasPage() {
       </div>
 
       {/* Filtros y Acciones */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Input
-            placeholder="Buscar guardias..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-64"
-          />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border rounded-md bg-background"
-          >
-            <option value="all">Todos los estados</option>
-            <option value="activo">Activos</option>
-            <option value="inactivo">Inactivos</option>
-          </select>
-          <select
-            value={instalacionFilter}
-            onChange={(e) => setInstalacionFilter(e.target.value)}
-            className="px-3 py-2 border rounded-md bg-background"
-          >
-            <option value="all">Todas las instalaciones</option>
-            {instalaciones.map((instalacion) => (
-              <option key={instalacion} value={instalacion}>
-                {instalacion}
-              </option>
-            ))}
-          </select>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+            <Input
+              placeholder="Buscar guardias..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full sm:w-64"
+            />
+            <div className="flex gap-2 sm:gap-4">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3 py-2 border rounded-md bg-background text-sm"
+              >
+                <option value="all">Todos los estados</option>
+                <option value="activo">Activos</option>
+                <option value="inactivo">Inactivos</option>
+              </select>
+              <select
+                value={instalacionFilter}
+                onChange={(e) => setInstalacionFilter(e.target.value)}
+                className="px-3 py-2 border rounded-md bg-background text-sm"
+              >
+                <option value="all">Todas las instalaciones</option>
+                {instalaciones.map((instalacion) => (
+                  <option key={instalacion} value={instalacion}>
+                    {instalacion}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          <Button onClick={openCreate} className="flex items-center space-x-2 w-full sm:w-auto">
+            <Plus className="h-4 w-4" />
+            <span>Nuevo Guardia</span>
+          </Button>
         </div>
-        
-        <Button onClick={openCreate} className="flex items-center space-x-2">
-          <Plus className="h-4 w-4" />
-          <span>Nuevo Guardia</span>
-        </Button>
       </div>
 
       {/* Tabla */}
@@ -347,6 +339,74 @@ export default function GuardiasPage() {
               console.log("Ver detalles de guardia", guardia.id);
               router.push(`/guardias/${guardia.id}`);
             }}
+            mobileCard={(guardia) => (
+              <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => router.push(`/guardias/${guardia.id}`)}>
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                      <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">{guardia.nombre_completo}</p>
+                      <p className="text-sm text-muted-foreground">{guardia.rut}</p>
+                    </div>
+                    <ToggleStatus
+                      checked={guardia.activo}
+                      disabled
+                      size="sm"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium">{guardia.telefono}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs text-muted-foreground">{guardia.email}</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 pt-2">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">
+                        {guardia.instalacion_asignada || "Sin asignar"}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between pt-2">
+                      <div>
+                        {guardia.instalacion_asignada && (
+                          <div className="flex items-center space-x-2">
+                            <User className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                              {guardia.rol_actual || "Sin rol asignado"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div>
+                        {(() => {
+                          const alerta = (guardia as any).alerta_os10;
+                          if (!alerta || alerta.estado === 'sin_fecha') {
+                            return <Badge variant="secondary">Sin OS10</Badge>;
+                          }
+
+                          if (alerta.estado === 'vencido') {
+                            return <Badge variant="destructive">Vencido</Badge>;
+                          } else if (alerta.estado === 'alerta') {
+                            return <Badge variant="outline" className="text-orange-600 border-orange-600">
+                              Por vencer ({alerta.dias_restantes} días)
+                            </Badge>;
+                          } else {
+                            return <Badge variant="default">Vigente</Badge>;
+                          }
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           />
         </CardContent>
       </Card>
