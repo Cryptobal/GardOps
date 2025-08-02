@@ -581,17 +581,17 @@ export default function TurnosInstalacion({
                                             }));
                                           }}
                                           disabled={asignando === ppc.id}
-                                          className="flex-1 h-8 sm:h-9 text-xs sm:text-sm justify-between w-full"
+                                          className="flex-1 h-8 sm:h-10 text-xs sm:text-sm justify-between w-full"
                                         >
                                           {asignando === ppc.id ? (
                                             <div className="flex items-center gap-1 sm:gap-2">
-                                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                                              <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-current"></div>
                                               <span className="hidden sm:inline">Asignando...</span>
                                               <span className="sm:hidden">...</span>
                                             </div>
                                           ) : (
                                             <>
-                                              <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                              <UserPlus className="w-3 h-3 sm:w-5 sm:h-5 mr-1" />
                                               <span className="hidden sm:inline">Asignar Guardia</span>
                                               <span className="sm:hidden">Asignar</span>
                                             </>
@@ -601,16 +601,15 @@ export default function TurnosInstalacion({
                                         {/* Dropdown personalizado - responsive para móvil y desktop */}
                                         {selectsOpen[ppc.id] && (
                                           <div className="absolute bottom-full left-0 right-0 mb-1 bg-popover border border-border rounded-md shadow-xl z-50 overflow-hidden backdrop-blur-sm
-                                                          sm:max-h-64 sm:bottom-full sm:mb-1
-                                                          max-h-[80vh] bottom-0 mb-0 sm:relative sm:bottom-auto sm:mb-0
-                                                          sm:min-w-[300px] w-full">
+                                                          sm:max-h-80 sm:bottom-full sm:mb-1 sm:min-w-[400px]
+                                                          max-h-[80vh] bottom-0 mb-0 w-full">
                                             {/* Campo de filtro en la parte superior */}
-                                            <div className="p-2 sm:p-3 border-b border-border bg-card/50 sticky top-0 z-10">
+                                            <div className="p-2 sm:p-4 border-b border-border bg-card/50 sticky top-0 z-10">
                                               <div className="relative">
-                                                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                                                 <input
                                                   type="text"
-                                                  placeholder="🔍 Buscar guardia..."
+                                                  placeholder="🔍 Buscar guardia por nombre o RUT..."
                                                   value={filtrosGuardias[ppc.id] || ''}
                                                   onChange={(e) => {
                                                     setFiltrosGuardias(prev => ({
@@ -618,20 +617,20 @@ export default function TurnosInstalacion({
                                                       [ppc.id]: e.target.value
                                                     }));
                                                   }}
-                                                  className="pl-8 h-8 sm:h-9 text-xs sm:text-sm border border-input rounded-md w-full bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                                                  className="pl-8 sm:pl-10 h-8 sm:h-10 text-xs sm:text-sm border border-input rounded-md w-full bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                                                   autoFocus
                                                 />
                                               </div>
                                             </div>
                                             
                                             {/* Lista de guardias */}
-                                            <div className="max-h-[calc(80vh-80px)] sm:max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+                                            <div className="max-h-[calc(80vh-80px)] sm:max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
                                               {(() => {
                                                 const guardiasFiltrados = getGuardiasFiltrados(filtrosGuardias[ppc.id] || '');
                                                 return guardiasFiltrados.length === 0 ? (
-                                                  <div className="p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground text-center">
-                                                    <div className="mb-2">🔍</div>
-                                                    {filtrosGuardias[ppc.id] ? 'No se encontraron guardias' : 'No hay guardias disponibles'}
+                                                  <div className="p-3 sm:p-6 text-xs sm:text-sm text-muted-foreground text-center">
+                                                    <div className="mb-2 text-lg sm:text-xl">🔍</div>
+                                                    {filtrosGuardias[ppc.id] ? 'No se encontraron guardias con ese criterio' : 'No hay guardias disponibles'}
                                                   </div>
                                                 ) : (
                                                   guardiasFiltrados.map((guardia: GuardiaDisponible) => (
@@ -644,22 +643,22 @@ export default function TurnosInstalacion({
                                                           [ppc.id]: false
                                                         }));
                                                       }}
-                                                      className="w-full px-3 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm hover:bg-accent hover:text-accent-foreground transition-all duration-200 border-b border-border/50 last:border-b-0 group active:bg-accent/80"
+                                                      className="w-full px-3 sm:px-6 py-2 sm:py-4 text-left text-xs sm:text-sm hover:bg-accent hover:text-accent-foreground transition-all duration-200 border-b border-border/50 last:border-b-0 group active:bg-accent/80"
                                                     >
-                                                      <div className="flex justify-between items-start gap-2">
-                                                        <div className="flex-1 min-w-0">
-                                                          <div className="font-medium text-foreground group-hover:text-accent-foreground truncate">
-                                                            {guardia.nombre_completo}
+                                                                                                              <div className="flex justify-between items-start gap-2 sm:gap-4">
+                                                          <div className="flex-1 min-w-0">
+                                                            <div className="font-medium text-foreground group-hover:text-accent-foreground truncate text-xs sm:text-sm">
+                                                              {guardia.nombre_completo}
+                                                            </div>
+                                                            <div className="text-muted-foreground text-xs mt-1 sm:mt-2 flex flex-col sm:flex-row sm:gap-3">
+                                                              <span className="truncate">📍 {guardia.comuna}</span>
+                                                              <span className="truncate">🆔 {guardia.rut}</span>
+                                                            </div>
                                                           </div>
-                                                          <div className="text-muted-foreground text-xs mt-1 flex flex-col sm:flex-row sm:gap-2">
-                                                            <span className="truncate">📍 {guardia.comuna}</span>
-                                                            <span className="truncate">🆔 {guardia.rut}</span>
+                                                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                                            <UserPlus className="w-3 h-3 sm:w-5 sm:h-5 text-muted-foreground" />
                                                           </div>
                                                         </div>
-                                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                                                          <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
-                                                        </div>
-                                                      </div>
                                                     </button>
                                                   ))
                                                 );
@@ -667,13 +666,13 @@ export default function TurnosInstalacion({
                                             </div>
                                             
                                             {/* Botón de cerrar para móvil */}
-                                            <div className="sm:hidden p-2 border-t border-border bg-card/50">
+                                            <div className="sm:hidden p-3 border-t border-border bg-card/50">
                                               <button
                                                 onClick={() => setSelectsOpen(prev => ({
                                                   ...prev,
                                                   [ppc.id]: false
                                                 }))}
-                                                className="w-full py-2 px-4 text-sm bg-muted hover:bg-muted/80 text-muted-foreground rounded-md transition-colors"
+                                                className="w-full py-3 px-4 text-sm bg-muted hover:bg-muted/80 text-muted-foreground rounded-md transition-colors"
                                               >
                                                 ✕ Cerrar
                                               </button>
