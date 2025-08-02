@@ -19,10 +19,12 @@ export interface Guardia {
   estado: "Activo" | "Inactivo";
   instalacion_id?: string;
   instalacion_nombre?: string;
+  instalacion_asignada?: string;
+  rol_actual?: string;
   cliente_nombre?: string;
   nombre_completo?: string;
   fecha_os10?: string | null;
-  rol_actual?: {
+  rol_actual_detalle?: {
     nombre: string;
     turno: string;
     horario_inicio: string;

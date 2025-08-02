@@ -274,12 +274,21 @@ export default function AsignacionOperativa({ guardiaId }: AsignacionOperativaPr
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-green-400" />
-                    <span className="text-green-200">{asignacionData.asignacionActual.instalacion}</span>
+                    <div>
+                      <span className="text-green-200 font-medium">Instalación:</span>
+                      <span className="text-green-100 ml-2">{asignacionData.asignacionActual.instalacion}</span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-green-400" />
-                    <span className="text-green-200">{asignacionData.asignacionActual.rol}</span>
+                    <div>
+                      <span className="text-green-200 font-medium">Rol:</span>
+                      <span className="text-green-100 ml-2">{asignacionData.asignacionActual.rol}</span>
+                    </div>
                   </div>
+                </div>
+                <div className="mt-3 text-sm text-green-300">
+                  <span className="font-medium">Asignado desde:</span> {formatearFecha(asignacionData.asignacionActual.fecha_asignacion)}
                 </div>
               </div>
               <Button

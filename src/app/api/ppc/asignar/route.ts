@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Crear registro en as_turnos_asignaciones (sin ppc_id por ahora)
+    // Crear registro en as_turnos_asignaciones
     const asignacion = await query(`
       INSERT INTO as_turnos_asignaciones (
         guardia_id,
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       WHERE id = $1
     `, [ppc_id]);
 
-    // Si ya no hay cupos disponibles, actualizar estado del PPC
+    // Si ya no hay cupos disponibles, actualizar estado del PPC a 'Asignado'
     if (ppc.cantidad_faltante <= 1) {
       await query(`
         UPDATE as_turnos_ppc 

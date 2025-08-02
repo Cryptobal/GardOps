@@ -2,32 +2,47 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Building2, MapPin, FileText, Users, Activity, Save, Edit } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/components/ui/toast';
-import { EntityTabs } from '@/components/ui/entity-tabs';
-import { LocationTab } from '@/components/ui/location-tab';
-import { DocumentManager } from '@/components/shared/document-manager';
-import { LogViewer } from '@/components/shared/log-viewer';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, Building2, MapPin, Phone, Mail, Calendar, FileText, Activity, Settings, Edit, RefreshCw } from 'lucide-react';
+import Link from 'next/link';
+import { GoogleMap } from '@/components/ui/google-map';
+import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@/lib/geocoding';
 import { getInstalacion, actualizarInstalacion, obtenerClientes, obtenerComunas, obtenerDatosCompletosInstalacion } from '@/lib/api/instalaciones';
 import { Instalacion, Cliente, Comuna } from '@/lib/schemas/instalaciones';
 import TurnosInstalacion from './components/TurnosInstalacion';
+import { DocumentManager } from '@/components/shared/document-manager';
+import { LogViewer } from '@/components/shared/log-viewer';
 
-export default function InstalacionPage() {
-  const { toast } = useToast();
-  const router = useRouter();
+interface InstalacionCompleta {
+  id: string;
+  nombre: string;
+  cliente_id: string;
+  cliente_nombre: string;
+  direccion: string;
+  latitud?: number;
+  longitud?: number;
+  ciudad: string;
+  comuna: string;
+  valor_turno_extra: number;
+  estado: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export default function InstalacionDetallePage() {
   const params = useParams();
+  const router = useRouter();
   const instalacionId = params.id as string;
-  
-  const [instalacion, setInstalacion] = useState<Instalacion | null>(null);
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [comunas, setComunas] = useState<Comuna[]>([]);
+  const [instalacion, setInstalacion] = useState<InstalacionCompleta | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+  const [activeTab, setActiveTab] = useState('informacion');
+  const [geocodingData, setGeocodingData] = useState<GeocodingResult | null>(null);
+  const [mapLoading, setMapLoading] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingEstado, setPendingEstado] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Estados para datos precargados
@@ -36,35 +51,18 @@ export default function InstalacionPage() {
   const [guardiasPrecargados, setGuardiasPrecargados] = useState<any[]>([]);
   const [rolesPrecargados, setRolesPrecargados] = useState<any[]>([]);
 
-  // Estados para edición
-  const [editData, setEditData] = useState({
-    nombre: '',
-    cliente_id: '',
-    comuna: '',
-    ciudad: '',
-    direccion: '',
-    latitud: null as number | null,
-    longitud: null as number | null,
-    valor_turno_extra: 0,
-    estado: 'Activo' as 'Activo' | 'Inactivo'
-  });
-
   useEffect(() => {
-    if (instalacionId) {
-      cargarDatos();
-    }
+    cargarInstalacion();
   }, [instalacionId]);
 
-  const cargarDatos = async () => {
+  const cargarInstalacion = async () => {
     try {
       setLoading(true);
       
-      // Usar la nueva función optimizada que obtiene todo en una sola llamada
+      // Usar la función optimizada que obtiene todo en una sola llamada
       const datosCompletos = await obtenerDatosCompletosInstalacion(instalacionId);
       
       setInstalacion(datosCompletos.instalacion);
-      setClientes([{ id: datosCompletos.instalacion.cliente_id, nombre: datosCompletos.instalacion.cliente_nombre || 'Cliente no encontrado', rut: '', estado: 'Activo' }]);
-      setComunas([]); // Las comunas no se usan en esta página
       
       // Guardar datos precargados
       setTurnosPrecargados(datosCompletos.turnos);
@@ -72,103 +70,100 @@ export default function InstalacionPage() {
       setGuardiasPrecargados(datosCompletos.guardias);
       setRolesPrecargados(datosCompletos.roles);
       
-      // Inicializar datos de edición
-      setEditData({
-        nombre: datosCompletos.instalacion.nombre,
-        cliente_id: datosCompletos.instalacion.cliente_id || '',
-        comuna: datosCompletos.instalacion.comuna || '',
-        ciudad: datosCompletos.instalacion.ciudad || '',
-        direccion: datosCompletos.instalacion.direccion || '',
-        latitud: datosCompletos.instalacion.latitud,
-        longitud: datosCompletos.instalacion.longitud,
-        valor_turno_extra: datosCompletos.instalacion.valor_turno_extra || 0,
-        estado: datosCompletos.instalacion.estado || 'Activo'
-      });
+      // Cargar datos de geocodificación si hay dirección
+      if (datosCompletos.instalacion.direccion) {
+        await cargarDatosGeograficos(datosCompletos.instalacion.direccion);
+      }
     } catch (error) {
-      console.error('Error cargando datos:', error);
-      toast.error('No se pudo cargar la información de la instalación', 'Error');
+      console.error('Error cargando instalación:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSave = async () => {
-    if (!instalacion) return;
-
+  const cargarDatosGeograficos = async (direccion: string) => {
     try {
-      setSaving(true);
+      setMapLoading(true);
+      setMapError(null);
       
-      // Crear objeto con solo los campos que cambiaron
-      const cambios: any = { id: instalacionId };
+      console.log('Iniciando geocodificación para dirección:', direccion);
       
-      if (editData.nombre !== instalacion.nombre) {
-        cambios.nombre = editData.nombre;
+      // Cargar Google Maps si no está disponible
+      const mapsLoaded = await cargarGoogleMaps();
+      if (!mapsLoaded) {
+        console.error('No se pudo cargar Google Maps');
+        setMapError('No se pudo cargar Google Maps');
+        return;
       }
-      if (editData.cliente_id !== instalacion.cliente_id) {
-        cambios.cliente_id = editData.cliente_id;
+
+      console.log('Google Maps cargado correctamente');
+
+      // Geocodificar la dirección
+      const resultado = await geocodificarDireccion(direccion);
+      if (resultado) {
+        setGeocodingData(resultado);
+        console.log('Información con mapa integrada correctamente');
+      } else {
+        console.error('No se pudo obtener la ubicación de la dirección');
+        setMapError('No se pudo obtener la ubicación de la dirección');
       }
-      if (editData.direccion !== instalacion.direccion) {
-        cambios.direccion = editData.direccion;
-      }
-      if (editData.latitud !== instalacion.latitud) {
-        cambios.latitud = editData.latitud;
-      }
-      if (editData.longitud !== instalacion.longitud) {
-        cambios.longitud = editData.longitud;
-      }
-      if (editData.ciudad !== instalacion.ciudad) {
-        cambios.ciudad = editData.ciudad;
-      }
-      if (editData.comuna !== instalacion.comuna) {
-        cambios.comuna = editData.comuna;
-      }
-      if (editData.valor_turno_extra !== instalacion.valor_turno_extra) {
-        cambios.valor_turno_extra = editData.valor_turno_extra;
-      }
-      if (editData.estado !== instalacion.estado) {
-        cambios.estado = editData.estado;
-      }
-      
-      console.log('🔍 Campos que cambiaron:', Object.keys(cambios).filter(key => key !== 'id'));
-      
-      await actualizarInstalacion(instalacionId, cambios);
-      
-      // Recargar datos
-      await cargarDatos();
-      setIsEditing(false);
-      setRefreshTrigger(prev => prev + 1);
-      
-      toast.success('Instalación actualizada correctamente', 'Éxito');
     } catch (error) {
-      console.error('Error guardando instalación:', error);
-      toast.error('No se pudo actualizar la instalación', 'Error');
+      console.error('Error al cargar datos geográficos:', error);
+      setMapError('Error al cargar la información geográfica');
     } finally {
-      setSaving(false);
+      setMapLoading(false);
     }
   };
 
-  const handleCancel = () => {
-    if (instalacion) {
-      setEditData({
-        nombre: instalacion.nombre,
-        cliente_id: instalacion.cliente_id || '',
-        comuna: instalacion.comuna || '',
-        ciudad: instalacion.ciudad || '',
-        direccion: instalacion.direccion || '',
-        latitud: instalacion.latitud,
-        longitud: instalacion.longitud,
-        valor_turno_extra: instalacion.valor_turno_extra || 0,
-        estado: instalacion.estado || 'Activo'
-      });
+  const handleEditarInstalacion = () => {
+    // Redirigir a la página de edición o abrir modal
+    router.push(`/instalaciones/${instalacionId}/editar`);
+  };
+
+  const handleReintentarGeocodificacion = () => {
+    if (instalacion?.direccion) {
+      cargarDatosGeograficos(instalacion.direccion);
     }
-    setIsEditing(false);
+  };
+
+  const handleToggleEstado = () => {
+    if (!instalacion) return;
+    const nuevoEstado = instalacion.estado === 'Activo' ? 'Inactivo' : 'Activo';
+    setPendingEstado(nuevoEstado);
+    setShowConfirmModal(true);
+  };
+
+  const confirmarCambioEstado = async () => {
+    if (!instalacion || !pendingEstado) return;
+    
+    try {
+      const response = await fetch(`/api/instalaciones/${instalacion.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: pendingEstado })
+      });
+      
+      if (!response.ok) throw new Error('Error al cambiar estado');
+      
+      setInstalacion({ ...instalacion, estado: pendingEstado });
+      setShowConfirmModal(false);
+      setPendingEstado(null);
+      
+      console.log(`Instalación ${pendingEstado === 'Activo' ? 'activada' : 'inactivada'} correctamente`);
+    } catch (e) {
+      console.error('Error al cambiar estado:', e);
+    } finally {
+      setShowConfirmModal(false);
+      setPendingEstado(null);
+    }
   };
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+          <span className="ml-2">Cargando instalación...</span>
         </div>
       </div>
     );
@@ -176,298 +171,342 @@ export default function InstalacionPage() {
 
   if (!instalacion) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-8">
         <div className="text-center py-8">
-          <h1 className="text-2xl font-bold mb-4">Instalación no encontrada</h1>
-          <Button onClick={() => router.push('/instalaciones')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver a Instalaciones
-          </Button>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Instalación no encontrada</h1>
+          <p className="text-gray-600 mb-6">La instalación que buscas no existe o ha sido eliminada.</p>
+          <Link href="/instalaciones">
+            <Button>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Volver a Instalaciones
+            </Button>
+          </Link>
         </div>
       </div>
     );
   }
 
-  // Configuración de tabs
-  const tabs = [
-    {
-      key: 'informacion',
-      label: 'Información',
-      icon: Building2,
-      color: 'blue' as const,
-      content: (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Nombre de la Instalación</label>
-                <Input
-                  value={editData.nombre}
-                  onChange={(e) => setEditData(prev => ({ ...prev, nombre: e.target.value }))}
-                  disabled={!isEditing}
-                  placeholder="Nombre de la instalación"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Cliente</label>
-                <Select
-                  value={editData.cliente_id}
-                  onValueChange={(value) => setEditData(prev => ({ ...prev, cliente_id: value }))}
-                  disabled={!isEditing}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientes.map((cliente) => (
-                      <SelectItem key={cliente.id} value={cliente.id}>
-                        {cliente.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Valor Turno Extra</label>
-                <Input
-                  type="number"
-                  value={editData.valor_turno_extra}
-                  onChange={(e) => setEditData(prev => ({ ...prev, valor_turno_extra: parseInt(e.target.value) || 0 }))}
-                  disabled={!isEditing}
-                  placeholder="0"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Estado</label>
-                <Select
-                  value={editData.estado}
-                  onValueChange={(value) => setEditData(prev => ({ ...prev, estado: value as 'Activo' | 'Inactivo' }))}
-                  disabled={!isEditing}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar estado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Activo">Activo</SelectItem>
-                    <SelectItem value="Inactivo">Inactivo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      key: 'ubicacion',
-      label: 'Ubicación',
-      icon: MapPin,
-      color: 'emerald' as const,
-      content: (
-        <LocationTab
-          direccion={editData.direccion}
-          latitud={editData.latitud}
-          longitud={editData.longitud}
-          ciudad={editData.ciudad}
-          comuna={editData.comuna}
-          onAddressSelect={(address) => {
-            setEditData(prev => ({
-              ...prev,
-              direccion: address.direccionCompleta,
-              latitud: address.latitud,
-              longitud: address.longitud,
-              ciudad: address.componentes.ciudad,
-              comuna: address.componentes.comuna
-            }));
-          }}
-          onAddressChange={(query) => {
-            setEditData(prev => ({ ...prev, direccion: query }));
-          }}
-          onCiudadChange={(ciudad) => {
-            setEditData(prev => ({ ...prev, ciudad }));
-          }}
-          onComunaChange={(comuna) => {
-            setEditData(prev => ({ ...prev, comuna }));
-          }}
-          onCoordinatesChange={(lat, lng) => {
-            setEditData(prev => ({ ...prev, latitud: lat, longitud: lng }));
-          }}
-          disabled={!isEditing}
-          isReadOnly={!isEditing}
-          showMap={true}
-          showCoordinates={true}
-          showLocationButtons={true}
-        />
-      )
-    },
-    {
-      key: 'documentos',
-      label: 'Documentos',
-      icon: FileText,
-      color: 'violet' as const,
-      content: (
-        <DocumentManager
-          modulo="instalaciones"
-          entidadId={instalacionId}
-          refreshTrigger={refreshTrigger}
-          onUploadSuccess={() => setRefreshTrigger(prev => prev + 1)}
-        />
-      )
-    },
-    {
-      key: 'turnos',
-      label: 'Turnos',
-      icon: Users,
-      color: 'amber' as const,
-      content: (
-        <TurnosInstalacion 
-          instalacionId={instalacionId} 
-          turnosPrecargados={turnosPrecargados} 
-          ppcsPrecargados={ppcsPrecargados} 
-          guardiasPrecargados={guardiasPrecargados} 
-          rolesPrecargados={rolesPrecargados} 
-        />
-      )
-    },
-    {
-      key: 'actividad',
-      label: 'Actividad',
-      icon: Activity,
-      color: 'red' as const,
-      content: (
-        <div className="space-y-6">
-          {/* Información del Sistema */}
-          <div className="bg-muted/30 rounded-lg p-4 border border-border">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Activity className="w-5 h-5" />
-              Información del Sistema
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div className="space-y-1">
-                <span className="text-muted-foreground font-medium">Creado:</span>
-                <div className="font-medium">
-                  {new Date(instalacion.created_at).toLocaleDateString('es-CL', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <span className="text-muted-foreground font-medium">Última modificación:</span>
-                <div className="font-medium">
-                  {new Date(instalacion.updated_at).toLocaleDateString('es-CL', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <span className="text-muted-foreground font-medium">Último usuario:</span>
-                <div className="font-medium text-blue-400">
-                  Sistema
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Logs de Actividad */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Historial de Actividad</h3>
-            <LogViewer
-              modulo="instalaciones"
-              entidadId={instalacionId}
-              refreshTrigger={refreshTrigger}
-            />
-          </div>
-        </div>
-      )
-    }
-  ];
-
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <div className="container mx-auto px-4 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => router.push('/instalaciones')}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver
-          </Button>
+          <Link href="/instalaciones">
+            <Button variant="outline" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Volver
+            </Button>
+          </Link>
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Building2 className="w-8 h-8" />
+            <h1 className="text-3xl font-bold text-gray-900">
               {instalacion.nombre}
             </h1>
+            <p className="text-gray-600">Cliente: {instalacion.cliente_nombre}</p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          {/* Indicador de estado con círculo */}
-          <div className="flex items-center gap-2">
-            <div className={`w-3 h-3 rounded-full ${
-              instalacion.estado === 'Activo' 
-                ? 'bg-green-500 shadow-lg shadow-green-500/50' 
-                : 'bg-red-500 shadow-lg shadow-red-500/50'
-            }`} />
-            <span className="text-sm font-medium text-muted-foreground">
-              {instalacion.estado}
-            </span>
-          </div>
-
-          {/* Botón de editar más pequeño */}
-          {isEditing ? (
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCancel}
-                disabled={saving}
-              >
-                Cancelar
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSave}
-                disabled={saving}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {saving ? 'Guardando...' : 'Guardar cambios'}
-              </Button>
-            </div>
-          ) : (
-            <Button
-              size="sm"
-              onClick={() => setIsEditing(true)}
-              className="bg-blue-600 hover:bg-blue-700"
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+            instalacion.estado === 'Activo' 
+              ? 'bg-green-100 text-green-800' 
+              : 'bg-red-100 text-red-800'
+          }`}>
+            {instalacion.estado === 'Activo' ? 'Activa' : 'Inactiva'}
+            <button
+              onClick={handleToggleEstado}
+              className="ml-2 focus:outline-none"
+              title={instalacion.estado === 'Activo' ? 'Inactivar instalación' : 'Activar instalación'}
+              style={{ background: 'none', border: 'none', cursor: 'pointer' }}
             >
-              <Edit className="w-4 h-4 mr-2" />
-              Editar
-            </Button>
-          )}
+              <span style={{
+                display: 'inline-block',
+                width: 24,
+                height: 14,
+                borderRadius: 7,
+                background: instalacion.estado === 'Activo' ? '#22c55e' : '#d1d5db',
+                position: 'relative',
+                verticalAlign: 'middle',
+                transition: 'background 0.2s'
+              }}>
+                <span style={{
+                  display: 'inline-block',
+                  width: 12,
+                  height: 12,
+                  borderRadius: '50%',
+                  background: '#fff',
+                  position: 'absolute',
+                  left: instalacion.estado === 'Activo' ? 10 : 2,
+                  top: 1,
+                  transition: 'left 0.2s'
+                }} />
+              </span>
+            </button>
+          </span>
+          <Button 
+            onClick={handleEditarInstalacion}
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <Edit className="h-4 w-4" />
+            Editar
+          </Button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <EntityTabs
-        tabs={tabs}
-        defaultTab="informacion"
-        showActionButtons={false}
-        className="min-h-[600px]"
-      />
+      {/* Pestañas */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="informacion" className="flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
+            Información
+          </TabsTrigger>
+          <TabsTrigger value="asignaciones" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Asignaciones
+          </TabsTrigger>
+          <TabsTrigger value="documentos" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Documentos
+          </TabsTrigger>
+          <TabsTrigger value="actividad" className="flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            Actividad
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Contenido de la pestaña Información */}
+        <TabsContent value="informacion" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Información de la Instalación
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Nombre de la Instalación</label>
+                    <p className="text-lg font-semibold">{instalacion.nombre}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Cliente</label>
+                    <p className="text-lg">{instalacion.cliente_nombre}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                      <MapPin className="h-4 w-4" />
+                      Dirección
+                    </label>
+                    <p className="text-lg">{instalacion.direccion}</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Valor Turno Extra</label>
+                    <p className="text-lg">${instalacion.valor_turno_extra?.toLocaleString() || 0}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      Fecha de Registro
+                    </label>
+                    <p className="text-lg">
+                      {new Date(instalacion.created_at).toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Información geográfica */}
+              {geocodingData && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {geocodingData.comuna && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Comuna</label>
+                        <p className="text-lg">{geocodingData.comuna}</p>
+                      </div>
+                    )}
+                    {geocodingData.ciudad && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Ciudad</label>
+                        <p className="text-lg">{geocodingData.ciudad}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Mapa de Google Maps */}
+              {geocodingData && (
+                <div className="space-y-4">
+                  <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                    <MapPin className="h-4 w-4" />
+                    Ubicación
+                  </label>
+                  <div className="rounded-xl shadow-md overflow-hidden">
+                    <GoogleMap
+                      center={{
+                        lat: geocodingData.latitud,
+                        lng: geocodingData.longitud
+                      }}
+                      zoom={16}
+                      markers={[{
+                        position: {
+                          lat: geocodingData.latitud,
+                          lng: geocodingData.longitud
+                        },
+                        title: instalacion.nombre,
+                        info: geocodingData.direccionCompleta
+                      }]}
+                      height="240px"
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Estado de carga del mapa */}
+              {mapLoading && (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-white"></div>
+                  <span className="ml-2 text-sm text-gray-600">Cargando mapa...</span>
+                </div>
+              )}
+
+              {/* Error del mapa */}
+              {mapError && (
+                <div className="text-center py-8">
+                  <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500 mb-4">{mapError}</p>
+                  <Button 
+                    onClick={handleReintentarGeocodificacion}
+                    variant="outline" 
+                    size="sm"
+                    className="flex items-center gap-2 mx-auto"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Reintentar
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Contenido de la pestaña Asignaciones (ex Turnos) */}
+        <TabsContent value="asignaciones" className="mt-6">
+          <TurnosInstalacion 
+            instalacionId={instalacionId} 
+            turnosPrecargados={turnosPrecargados} 
+            ppcsPrecargados={ppcsPrecargados} 
+            guardiasPrecargados={guardiasPrecargados} 
+            rolesPrecargados={rolesPrecargados} 
+          />
+        </TabsContent>
+
+        {/* Contenido de la pestaña Documentos */}
+        <TabsContent value="documentos" className="mt-6">
+          <DocumentManager
+            modulo="instalaciones"
+            entidadId={instalacionId}
+            refreshTrigger={refreshTrigger}
+            onUploadSuccess={() => setRefreshTrigger(prev => prev + 1)}
+          />
+        </TabsContent>
+
+        {/* Contenido de la pestaña Actividad (ex Logs) */}
+        <TabsContent value="actividad" className="mt-6">
+          <div className="space-y-6">
+            {/* Información del Sistema */}
+            <div className="bg-muted/30 rounded-lg p-4 border border-border">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Activity className="w-5 h-5" />
+                Información del Sistema
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="space-y-1">
+                  <span className="text-muted-foreground font-medium">Creado:</span>
+                  <div className="font-medium">
+                    {new Date(instalacion.created_at).toLocaleDateString('es-CL', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-muted-foreground font-medium">Última modificación:</span>
+                  <div className="font-medium">
+                    {new Date(instalacion.updated_at).toLocaleDateString('es-CL', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-muted-foreground font-medium">Último usuario:</span>
+                  <div className="font-medium text-blue-400">
+                    Sistema
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Logs de Actividad */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Historial de Actividad</h3>
+              <LogViewer
+                modulo="instalaciones"
+                entidadId={instalacionId}
+                refreshTrigger={refreshTrigger}
+              />
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Modal de confirmación */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-4">
+                {pendingEstado === 'Activo' ? 'Activar Instalación' : 'Inactivar Instalación'}
+              </h3>
+              <p className="text-gray-600 mb-6">
+                ¿Estás seguro de que quieres {pendingEstado === 'Activo' ? 'activar' : 'inactivar'} la instalación {instalacion?.nombre}?
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowConfirmModal(false)}
+                  className="px-4"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={confirmarCambioEstado}
+                  className={`px-4 ${
+                    pendingEstado === 'Activo' 
+                      ? 'bg-green-600 hover:bg-green-700' 
+                      : 'bg-red-600 hover:bg-red-700'
+                  }`}
+                >
+                  {pendingEstado === 'Activo' ? 'Activar' : 'Inactivar'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

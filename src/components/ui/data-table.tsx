@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "./card";
 import {
@@ -48,6 +48,7 @@ export function DataTable<T extends { id: string }>({
   rowClassName = ""
 }: DataTableProps<T>) {
   const [isMobile, setIsMobile] = useState(false);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   React.useEffect(() => {
     const handleResize = () => {
@@ -85,6 +86,10 @@ export function DataTable<T extends { id: string }>({
     );
   }
 
+  const handleRowClick = (item: T) => {
+    onRowClick?.(item);
+  };
+
   return (
     <Card className={`bg-card/50 backdrop-blur-sm border-border/50 shadow-xl h-full ${className}`}>
       <CardContent className="p-0 h-full flex flex-col">
@@ -109,7 +114,7 @@ export function DataTable<T extends { id: string }>({
                 <TableRow
                   key={item.id}
                   className={`cursor-pointer hover:bg-muted/50 transition-colors ${rowClassName}`}
-                  onClick={() => onRowClick?.(item)}
+                  onClick={() => handleRowClick(item)}
                 >
                   {columns.map((column) => (
                     <TableCell key={column.key}>

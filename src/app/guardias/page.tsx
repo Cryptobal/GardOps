@@ -11,7 +11,6 @@ import {
   Users, 
   Plus, 
   User, 
-  Eye,
   Building2,
   Shield,
   AlertTriangle,
@@ -164,7 +163,7 @@ export default function GuardiasPage() {
         (statusFilter === "inactivo" && guardia.activo === false);
 
       const matchesInstalacion = instalacionFilter === "all" || 
-        guardia.instalacion_nombre === instalacionFilter;
+        guardia.instalacion_asignada === instalacionFilter;
 
       return matchesSearch && matchesStatus && matchesInstalacion;
     });
@@ -198,20 +197,24 @@ export default function GuardiasPage() {
       ),
     },
     {
-      key: "instalacion",
-      label: "Instalación",
+      key: "instalacion_asignada",
+      label: "Instalación Asignada",
       render: (guardia) => (
         <div className="space-y-1">
           <div className="flex items-center space-x-2">
             <Building2 className="h-4 w-4 text-muted-foreground" />
-            <span>{guardia.instalacion_nombre || "Sin asignar"}</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <User className="h-3 w-3 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">
-              {guardia.rol_actual?.nombre || "Sin rol asignado"}
+            <span className="font-medium">
+              {guardia.instalacion_asignada || "Sin asignar"}
             </span>
           </div>
+          {guardia.instalacion_asignada && (
+            <div className="flex items-center space-x-2">
+              <User className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">
+                {guardia.rol_actual || "Sin rol asignado"}
+              </span>
+            </div>
+          )}
         </div>
       ),
     },
@@ -248,28 +251,10 @@ export default function GuardiasPage() {
         </div>
       ),
     },
-    {
-      key: "acciones",
-      label: "Acciones",
-      render: (guardia) => (
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              console.log("Ver detalles de guardia", guardia.id);
-              router.push(`/guardias/${guardia.id}`);
-            }}
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
-    },
   ];
 
   // Obtener instalaciones únicas para el filtro
-  const instalaciones = Array.from(new Set(guardias.map(g => g.instalacion_nombre).filter(Boolean))).sort();
+  const instalaciones = Array.from(new Set(guardias.map(g => g.instalacion_asignada).filter(Boolean))).sort();
 
   return (
     <div className="container mx-auto p-6 space-y-6">

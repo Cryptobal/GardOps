@@ -61,6 +61,23 @@
   html {
     @apply scroll-smooth;
   }
+
+  /* Asegurar que los clicks funcionen correctamente */
+  .cursor-pointer {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+  }
+
+  /* Prevenir que el hover interfiera con el click */
+  tr.cursor-pointer:hover {
+    background-color: hsl(var(--muted) / 0.5) !important;
+  }
+
+  /* Asegurar que los elementos clickeables tengan el comportamiento correcto */
+  [onClick] {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+  }
 }
 
 @layer components {

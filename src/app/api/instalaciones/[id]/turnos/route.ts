@@ -44,10 +44,10 @@ export async function GET(
       LEFT JOIN (
         SELECT 
           tr.rol_servicio_id,
-          COUNT(*) as count
+          SUM(ppc.cantidad_faltante) as count
         FROM as_turnos_ppc ppc
         INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
-        WHERE tr.instalacion_id = $1 AND ppc.estado = 'Pendiente'
+        WHERE tr.instalacion_id = $1 AND ppc.estado = 'Pendiente' AND ppc.cantidad_faltante > 0
         GROUP BY tr.rol_servicio_id
       ) ppc_count ON ppc_count.rol_servicio_id = tc.rol_servicio_id
       WHERE tc.instalacion_id = $1
