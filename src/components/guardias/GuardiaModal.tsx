@@ -414,26 +414,26 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-600">Rol</label>
-                  <p className="text-lg font-semibold">{guardia.rol_actual.nombre}</p>
+                  <p className="text-lg font-semibold">{guardia.rol_actual_detalle?.nombre || guardia.rol_actual}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Turno</label>
-                  <p className="text-lg">{guardia.rol_actual.turno || 'No especificado'}</p>
+                  <p className="text-lg">{guardia.rol_actual_detalle?.turno || 'No especificado'}</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-600">Horario</label>
                   <p className="text-lg">
-                    {guardia.rol_actual.horario_inicio && guardia.rol_actual.horario_fin 
-                      ? `${guardia.rol_actual.horario_inicio} - ${guardia.rol_actual.horario_fin}`
+                    {guardia.rol_actual_detalle?.horario_inicio && guardia.rol_actual_detalle?.horario_fin 
+                      ? `${guardia.rol_actual_detalle.horario_inicio} - ${guardia.rol_actual_detalle.horario_fin}`
                       : 'No especificado'
                     }
                   </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Días de Trabajo</label>
-                  <p className="text-lg">{guardia.rol_actual.dias_trabajo || 'No especificado'}</p>
+                  <p className="text-lg">{guardia.rol_actual_detalle?.dias_trabajo || 'No especificado'}</p>
                 </div>
               </div>
             </div>
