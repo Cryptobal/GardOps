@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
             i.estado,
             i.created_at,
             i.updated_at,
-            c.nombre as cliente_nombre,
+            COALESCE(c.nombre, 'Cliente no encontrado') as cliente_nombre,
             COALESCE(stats.puestos_creados, 0) as puestos_creados,
             COALESCE(stats.puestos_asignados, 0) as puestos_asignados,
             COALESCE(stats.ppc_pendientes, 0) as ppc_pendientes,
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
         i.estado,
         i.created_at,
         i.updated_at,
-        c.nombre as cliente_nombre,
+        COALESCE(c.nombre, 'Cliente no encontrado') as cliente_nombre,
         ${withStats ? `
         COALESCE(stats.puestos_creados, 0) as puestos_creados,
         COALESCE(stats.puestos_asignados, 0) as puestos_asignados,

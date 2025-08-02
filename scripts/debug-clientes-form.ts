@@ -14,7 +14,7 @@ async function debugClientesForm() {
     `);
     
     console.log('📋 Estructura actual:');
-    structure.rows.forEach(col => {
+    structure.rows.forEach((col: any) => {
       console.log(`  - ${col.column_name}: ${col.data_type} ${col.is_nullable === 'YES' ? '(NULL)' : '(NOT NULL)'} ${col.column_default ? `DEFAULT: ${col.column_default}` : ''}`);
     });
     
@@ -36,7 +36,7 @@ async function debugClientesForm() {
     `);
     
     console.log('📋 Restricciones:');
-    constraints.rows.forEach(constraint => {
+    constraints.rows.forEach((constraint: any) => {
       console.log(`  - ${constraint.constraint_type}: ${constraint.constraint_name} (${constraint.column_name})`);
     });
     
@@ -51,7 +51,7 @@ async function debugClientesForm() {
     `);
     
     console.log('📋 Índices:');
-    indexes.rows.forEach(index => {
+    indexes.rows.forEach((index: any) => {
       console.log(`  - ${index.indexname}: ${index.indexdef}`);
     });
     
@@ -134,7 +134,7 @@ async function debugClientesForm() {
     
     if (triggers.rows.length > 0) {
       console.log('📋 Triggers encontrados:');
-      triggers.rows.forEach(trigger => {
+      triggers.rows.forEach((trigger: any) => {
         console.log(`  - ${trigger.trigger_name}: ${trigger.event_manipulation}`);
       });
     } else {
@@ -154,7 +154,7 @@ async function debugClientesForm() {
     
     if (functions.rows.length > 0) {
       console.log('📋 Funciones relacionadas con clientes:');
-      functions.rows.forEach(func => {
+      functions.rows.forEach((func: any) => {
         console.log(`  - ${func.routine_name}: ${func.routine_type}`);
       });
     } else {
@@ -172,7 +172,7 @@ async function debugClientesForm() {
     `);
     
     console.log('📋 Permisos:');
-    permissions.rows.forEach(perm => {
+    permissions.rows.forEach((perm: any) => {
       console.log(`  - ${perm.grantee}: ${perm.privilege_type}`);
     });
     

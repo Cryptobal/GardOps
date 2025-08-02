@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         g.fecha_os10,
         g.instalacion_id,
         i.nombre as instalacion_nombre,
-        c.nombre as cliente_nombre,
+        COALESCE(c.nombre, 'Cliente no encontrado') as cliente_nombre,
         g.created_at,
         g.updated_at,
         -- Información de asignación actual

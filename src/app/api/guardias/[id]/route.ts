@@ -113,7 +113,7 @@ export async function GET(
       SELECT 
         g.*,
         i.nombre as instalacion_nombre,
-        c.nombre as cliente_nombre
+        COALESCE(c.nombre, 'Cliente no encontrado') as cliente_nombre
       FROM guardias g
       LEFT JOIN instalaciones i ON g.instalacion_id = i.id
       LEFT JOIN clientes c ON i.cliente_id = c.id

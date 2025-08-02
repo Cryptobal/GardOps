@@ -64,7 +64,7 @@ async function checkAndFixClientesTable() {
       });
       
       // Verificar si faltan columnas importantes
-      const existingColumns = columns.rows.map(col => col.column_name);
+      const existingColumns = columns.rows.map((col: any) => col.column_name);
       const requiredColumns = [
         'id', 'nombre', 'rut', 'representante_legal', 'rut_representante',
         'email', 'telefono', 'direccion', 'latitud', 'longitud',
@@ -129,7 +129,7 @@ async function checkAndFixClientesTable() {
       // Mostrar algunos ejemplos
       const sampleClients = await query('SELECT id, nombre, rut, estado FROM clientes LIMIT 3');
       console.log('📋 Ejemplos de clientes:');
-      sampleClients.rows.forEach(client => {
+      sampleClients.rows.forEach((client: any) => {
         console.log(`  - ${client.nombre} (RUT: ${client.rut}, Estado: ${client.estado || 'N/A'})`);
       });
     }

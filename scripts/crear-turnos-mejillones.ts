@@ -36,7 +36,7 @@ async function crearTurnosMejillones() {
     }
 
     console.log(`📊 Requisitos encontrados: ${requisitosResult.rows.length}`);
-    requisitosResult.rows.forEach(req => {
+    requisitosResult.rows.forEach((req: any) => {
       console.log(`   - Rol: ${req.rol_nombre} (ID: ${req.rol_servicio_id})`);
     });
     console.log('');
@@ -52,7 +52,7 @@ async function crearTurnosMejillones() {
 
     console.log(`📊 Configuraciones existentes: ${turnosExistentesResult.rows.length}`);
     if (turnosExistentesResult.rows.length > 0) {
-      turnosExistentesResult.rows.forEach(turno => {
+      turnosExistentesResult.rows.forEach((turno: any) => {
         console.log(`   - ${turno.rol_nombre}: ${turno.cantidad_guardias} guardias`);
       });
       console.log('');
@@ -64,7 +64,7 @@ async function crearTurnosMejillones() {
     for (const requisito of requisitosResult.rows) {
       // Verificar si ya existe configuración para este rol
       const existeConfiguracion = turnosExistentesResult.rows.some(
-        turno => turno.rol_servicio_id === requisito.rol_servicio_id
+        (turno: any) => turno.rol_servicio_id === requisito.rol_servicio_id
       );
 
       if (!existeConfiguracion) {
@@ -116,7 +116,7 @@ async function crearTurnosMejillones() {
     `, [instalacion.id]);
 
     console.log(`📊 Configuraciones de turnos finales: ${turnosFinalesResult.rows.length}`);
-    turnosFinalesResult.rows.forEach(turno => {
+    turnosFinalesResult.rows.forEach((turno: any) => {
       console.log(`   - ${turno.rol_nombre}: ${turno.cantidad_guardias} guardias (${turno.estado})`);
     });
     console.log('');

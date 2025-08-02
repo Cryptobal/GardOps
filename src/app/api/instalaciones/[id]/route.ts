@@ -13,7 +13,7 @@ export async function GET(
         i.id,
         i.nombre,
         i.cliente_id,
-        c.nombre as cliente_nombre,
+        COALESCE(c.nombre, 'Cliente no encontrado') as cliente_nombre,
         i.direccion,
         i.latitud,
         i.longitud,

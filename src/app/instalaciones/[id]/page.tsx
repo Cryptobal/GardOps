@@ -15,27 +15,11 @@ import TurnosInstalacion from './components/TurnosInstalacion';
 import { DocumentManager } from '@/components/shared/document-manager';
 import { LogViewer } from '@/components/shared/log-viewer';
 
-interface InstalacionCompleta {
-  id: string;
-  nombre: string;
-  cliente_id: string;
-  cliente_nombre: string;
-  direccion: string;
-  latitud?: number;
-  longitud?: number;
-  ciudad: string;
-  comuna: string;
-  valor_turno_extra: number;
-  estado: string;
-  created_at: string;
-  updated_at: string;
-}
-
 export default function InstalacionDetallePage() {
   const params = useParams();
   const router = useRouter();
   const instalacionId = params.id as string;
-  const [instalacion, setInstalacion] = useState<InstalacionCompleta | null>(null);
+  const [instalacion, setInstalacion] = useState<Instalacion | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('informacion');
   const [geocodingData, setGeocodingData] = useState<GeocodingResult | null>(null);
