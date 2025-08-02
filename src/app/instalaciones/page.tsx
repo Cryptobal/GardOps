@@ -146,7 +146,7 @@ export default function InstalacionesPage() {
         const total = datosCompletos.instalaciones?.length || 0;
         const activos = datosCompletos.instalaciones?.filter((i: any) => i.estado === "Activo").length || 0;
         const inactivos = total - activos;
-        const docsVencidosCount = docsVencidos?.total || 0;
+        const docsVencidosCount = documentosVencidos?.total || 0;
 
         setKpis({ total, activos, inactivos, documentosVencidos: docsVencidosCount });
       } catch (error) {
