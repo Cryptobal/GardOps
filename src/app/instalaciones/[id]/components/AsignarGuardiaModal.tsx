@@ -37,21 +37,25 @@ export default function AsignarGuardiaModal({
 
   // Función para filtrar guardias por nombre, apellido o RUT
   const guardiasFiltrados = guardias.filter(guardia => {
-    if (!filtroGuardias.trim()) return true;
+    if (!filtroGuardias.trim()) {
+      console.log('🔍 Sin filtro - mostrando todos los guardias:', guardias.length);
+      return true;
+    }
     
     const filtro = filtroGuardias.toLowerCase().trim();
-    const nombreCompleto = `${guardia.nombre} ${guardia.apellidos}`.toLowerCase();
+    const nombreCompleto = guardia.nombre_completo?.toLowerCase() || '';
     const rut = guardia.rut?.toLowerCase() || '';
     
-    // Filtrar por nombre completo (nombre + apellidos)
+    // Filtrar por nombre completo
     if (nombreCompleto.includes(filtro)) return true;
     
     // Filtrar por RUT
     if (rut.includes(filtro)) return true;
     
     // Filtrar por apellidos específicos
-    const apellidos = guardia.apellidos?.toLowerCase() || '';
-    if (apellidos.includes(filtro)) return true;
+    const apellidoPaterno = guardia.apellido_paterno?.toLowerCase() || '';
+    const apellidoMaterno = guardia.apellido_materno?.toLowerCase() || '';
+    if (apellidoPaterno.includes(filtro) || apellidoMaterno.includes(filtro)) return true;
     
     // Filtrar por nombre específico
     const nombre = guardia.nombre?.toLowerCase() || '';
@@ -59,6 +63,22 @@ export default function AsignarGuardiaModal({
     
     return false;
   });
+
+  // Debug: Log del filtro
+  useEffect(() => {
+    if (filtroGuardias.trim()) {
+      console.log('🔍 Filtro aplicado:', filtroGuardias);
+      console.log('📊 Guardias filtrados:', guardiasFiltrados.length);
+      
+      // Buscar nuestro guardia específico en los filtrados
+      const guardiaTestFiltrado = guardiasFiltrados.find((g: any) => g.nombre_completo?.includes('A Test 2 test'));
+      if (guardiaTestFiltrado) {
+        console.log('✅ Guardia A Test 2 test encontrado en filtro:', guardiaTestFiltrado);
+      } else {
+        console.log('❌ Guardia A Test 2 test NO encontrado en filtro');
+      }
+    }
+  }, [filtroGuardias, guardiasFiltrados]);
 
   // Limpiar estado cuando se abre/cierra el modal
   useEffect(() => {
@@ -77,12 +97,26 @@ export default function AsignarGuardiaModal({
   const cargarGuardias = async () => {
     try {
       setCargandoGuardias(true);
-      const response = await fetch('/api/guardias');
+      const response = await fetch('/api/guardias/disponibles');
       if (!response.ok) {
-        throw new Error('Error al obtener guardias');
+        throw new Error('Error al obtener guardias disponibles');
       }
       const guardiasData = await response.json();
-      setGuardias(guardiasData);
+      const guardiasFinales = guardiasData.guardias || guardiasData;
+      console.log('🔍 Guardias cargados:', guardiasFinales.length);
+      console.log('📊 Respuesta completa del API:', guardiasData);
+      console.log('📊 Guardias finales:', guardiasFinales);
+      
+      // Buscar todos los guardias con "test"
+      const guardiasTest = guardiasFinales.filter((g: any) => 
+        g.nombre_completo?.toLowerCase().includes('test')
+      );
+      console.log('🔍 Guardias con "test" encontrados:', guardiasTest.length);
+      guardiasTest.forEach((g: any, i: number) => {
+        console.log(`  ${i+1}. ${g.nombre_completo} (${g.rut})`);
+      });
+      
+      setGuardias(guardiasFinales);
     } catch (error) {
       console.error('Error cargando guardias:', error);
       toast.error('No se pudieron cargar los guardias', 'Error');
@@ -168,11 +202,17 @@ export default function AsignarGuardiaModal({
                       {filtroGuardias ? 'No se encontraron guardias' : 'No hay guardias disponibles'}
                     </div>
                   ) : (
-                    guardiasFiltrados.map((guardia) => (
-                      <SelectItem key={guardia.id} value={guardia.id}>
-                        {guardia.nombre} {guardia.apellidos}
-                      </SelectItem>
-                    ))
+                    (() => {
+                      console.log('🎨 Renderizando guardias en SelectContent:', guardiasFiltrados.length);
+                      guardiasFiltrados.forEach((g, i) => {
+                        console.log(`  ${i+1}. ${g.nombre_completo} (ID: ${g.id})`);
+                      });
+                      return guardiasFiltrados.map((guardia) => (
+                        <SelectItem key={guardia.id} value={guardia.id}>
+                          {guardia.nombre_completo}
+                        </SelectItem>
+                      ));
+                    })()
                   )}
                 </SelectContent>
               </SafeSelect>
