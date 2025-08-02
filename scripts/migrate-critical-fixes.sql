@@ -85,7 +85,7 @@ CREATE INDEX IF NOT EXISTS idx_tipos_documentos_activo ON tipos_documentos(activ
 CREATE INDEX IF NOT EXISTS idx_instalaciones_cliente_id ON instalaciones(cliente_id);
 CREATE INDEX IF NOT EXISTS idx_documentos_usuarios_tenant_id ON documentos_usuarios(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_rondas_tenant_id ON rondas(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_turnos_extra_tenant_id ON turnos_extra(tenant_id);
+-- Tabla turnos_extra eliminada - usando turnos_extras en su lugar
 CREATE INDEX IF NOT EXISTS idx_usuarios_roles_tenant_id ON usuarios_roles(tenant_id);
 
 -- Índices para fechas importantes
@@ -107,7 +107,7 @@ ALTER TABLE documentos_usuarios ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DE
 ALTER TABLE firmas ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE planillas_pago ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE rondas ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-ALTER TABLE turnos_extra ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+-- Tabla turnos_extra eliminada - usando turnos_extras en su lugar
 ALTER TABLE usuarios_permisos ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE usuarios_roles ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
@@ -157,7 +157,7 @@ FROM pg_indexes
 WHERE tablename IN (
     'clientes', 'guardias', 'usuarios', 'tenants', 
     'tipos_documentos', 'instalaciones', 'documentos_usuarios',
-    'rondas', 'turnos_extra', 'usuarios_roles'
+    'rondas', 'turnos_extras', 'usuarios_roles'
 )
 AND indexname LIKE 'idx_%'
 ORDER BY tablename, indexname;

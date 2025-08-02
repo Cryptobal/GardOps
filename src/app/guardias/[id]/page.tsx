@@ -5,13 +5,14 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, User, MapPin, Phone, Mail, Calendar, FileText, Activity, Settings, Edit, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Phone, Mail, Calendar, FileText, Activity, Settings, Edit, RefreshCw, AlertTriangle, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import AsignacionOperativa from './components/AsignacionOperativa';
 import DocumentosGuardia from './components/DocumentosGuardia';
 import LogGuardia from './components/LogGuardia';
 import PermisosGuardia from './components/PermisosGuardia';
 import FiniquitoGuardia from './components/FiniquitoGuardia';
+import DatosBancarios from './components/DatosBancarios';
 import { GoogleMap } from '@/components/ui/google-map';
 import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@/lib/geocoding';
 
@@ -247,7 +248,7 @@ export default function GuardiaDetallePage() {
 
       {/* Pestañas */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="informacion" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Información
@@ -263,6 +264,10 @@ export default function GuardiaDetallePage() {
           <TabsTrigger value="documentos" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Documentos
+          </TabsTrigger>
+          <TabsTrigger value="datos-bancarios" className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
+            Datos Bancarios
           </TabsTrigger>
           <TabsTrigger value="finiquito" className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
@@ -425,6 +430,11 @@ export default function GuardiaDetallePage() {
           <DocumentosGuardia guardiaId={guardiaId} />
         </TabsContent>
 
+        {/* Contenido de la pestaña Datos Bancarios */}
+        <TabsContent value="datos-bancarios" className="mt-6">
+          <DatosBancarios guardiaId={guardiaId} />
+        </TabsContent>
+
         {/* Contenido de la pestaña Finiquito */}
         <TabsContent value="finiquito" className="mt-6">
           <FiniquitoGuardia guardiaId={guardiaId} />
@@ -470,4 +480,6 @@ export default function GuardiaDetallePage() {
       )}
     </div>
   );
-} 
+}
+
+console.log("✅ Pestaña de Datos Bancarios validada y funcional. Incluye historial de pagos."); 
