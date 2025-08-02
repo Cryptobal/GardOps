@@ -12,27 +12,7 @@ import type { AddressData } from '@/lib/useAddressAutocomplete';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { actualizarInstalacion, obtenerDatosCompletosInstalacion } from '@/lib/api/instalaciones';
-
-interface Instalacion {
-  id: string;
-  nombre: string;
-  cliente_id: string;
-  cliente_nombre: string;
-  direccion: string;
-  latitud?: number;
-  longitud?: number;
-  ciudad: string;
-  comuna: string;
-  valor_turno_extra: number;
-  estado: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Cliente {
-  id: string;
-  nombre: string;
-}
+import { Instalacion, Cliente } from '@/lib/schemas/instalaciones';
 
 export default function EditarInstalacionPage() {
   const params = useParams();
