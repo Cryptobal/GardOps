@@ -11,7 +11,7 @@ import Link from 'next/link';
 import type { AddressData } from '@/lib/useAddressAutocomplete';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
-import { actualizarInstalacion, obtenerDatosCompletosInstalacion } from '@/lib/api/instalaciones';
+import { actualizarInstalacion, obtenerDatosCompletosInstalacion, obtenerClientes } from '@/lib/api/instalaciones';
 import { Instalacion, Cliente } from '@/lib/schemas/instalaciones';
 
 export default function EditarInstalacionPage() {
@@ -42,9 +42,10 @@ export default function EditarInstalacionPage() {
     try {
       setLoading(true);
       const datosCompletos = await obtenerDatosCompletosInstalacion(instalacionId);
+      const clientesData = await obtenerClientes();
       
       setInstalacion(datosCompletos.instalacion);
-      setClientes(datosCompletos.clientes || []);
+      setClientes(clientesData || []);
       
       setFormData({
         nombre: datosCompletos.instalacion.nombre || '',
