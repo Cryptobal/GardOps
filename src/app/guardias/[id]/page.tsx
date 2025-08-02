@@ -5,11 +5,13 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, User, MapPin, Phone, Mail, Calendar, FileText, Activity, Settings, Edit, RefreshCw } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Phone, Mail, Calendar, FileText, Activity, Settings, Edit, RefreshCw, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import AsignacionOperativa from './components/AsignacionOperativa';
 import DocumentosGuardia from './components/DocumentosGuardia';
 import LogGuardia from './components/LogGuardia';
+import PermisosGuardia from './components/PermisosGuardia';
+import FiniquitoGuardia from './components/FiniquitoGuardia';
 import { GoogleMap } from '@/components/ui/google-map';
 import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@/lib/geocoding';
 
@@ -245,7 +247,7 @@ export default function GuardiaDetallePage() {
 
       {/* Pestañas */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="informacion" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Información
@@ -254,9 +256,17 @@ export default function GuardiaDetallePage() {
             <Settings className="h-4 w-4" />
             Asignación
           </TabsTrigger>
+          <TabsTrigger value="permisos" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Permisos
+          </TabsTrigger>
           <TabsTrigger value="documentos" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Documentos
+          </TabsTrigger>
+          <TabsTrigger value="finiquito" className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            Finiquito
           </TabsTrigger>
           <TabsTrigger value="log" className="flex items-center gap-2">
             <Activity className="h-4 w-4" />
@@ -405,9 +415,19 @@ export default function GuardiaDetallePage() {
           <AsignacionOperativa guardiaId={guardiaId} />
         </TabsContent>
 
+        {/* Contenido de la pestaña Permisos */}
+        <TabsContent value="permisos" className="mt-6">
+          <PermisosGuardia guardiaId={guardiaId} />
+        </TabsContent>
+
         {/* Contenido de la pestaña Documentos */}
         <TabsContent value="documentos" className="mt-6">
           <DocumentosGuardia guardiaId={guardiaId} />
+        </TabsContent>
+
+        {/* Contenido de la pestaña Finiquito */}
+        <TabsContent value="finiquito" className="mt-6">
+          <FiniquitoGuardia guardiaId={guardiaId} />
         </TabsContent>
 
         {/* Contenido de la pestaña Log */}
