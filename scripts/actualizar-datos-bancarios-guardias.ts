@@ -65,7 +65,7 @@ async function actualizarDatosBancarios() {
       'coopeuch': '4870c49b-6be2-4f54-adb5-9783274bb467', // Coopeuch
       'tenpo prepago s.a': '36cb4f56-61ad-4d0a-9f27-fcd4643e23bd', // Tenpo Prepago S.A.
       'banco bci nova': 'd8f390a2-2466-4bc8-9032-903a0e84e85b', // Banco BCI Nova -> BCI
-      'ninguno': null, // Sin banco
+      'ninguno': '', // Sin banco
     };
 
     // Combinar mapeos

@@ -20,7 +20,11 @@ export default function InfoTurnos({
   return (
     <Card className="border-0 bg-gradient-to-r from-slate-900/50 to-slate-800/50 backdrop-blur-sm">
       <CardContent className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-sm font-medium text-slate-300">📊 Resumen de Turnos</span>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
           {/* Estado General */}
           <div className="md:col-span-1">
             <div className="flex items-center gap-3 mb-2">
@@ -75,8 +79,8 @@ export default function InfoTurnos({
 
         {/* Barra de progreso */}
         {totalPuestos > 0 && (
-          <div className="mt-4">
-            <div className="flex justify-between text-xs text-slate-400 mb-1">
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs text-slate-400">
               <span>Progreso de asignación</span>
               <span>{puestosAsignados}/{totalPuestos}</span>
             </div>
@@ -85,6 +89,10 @@ export default function InfoTurnos({
                 className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${porcentajeCompletado}%` }}
               />
+            </div>
+            <div className="text-xs text-slate-400 text-center">
+              {puestosPendientes === 0 ? '✅ Todos los puestos están asignados' : 
+               puestosAsignados > 0 ? '⚠️ Faltan puestos por asignar' : '❌ No hay puestos asignados'}
             </div>
           </div>
         )}

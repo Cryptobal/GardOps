@@ -10,9 +10,10 @@ export async function DELETE(
 
     // Verificar que el turno existe y pertenece a la instalación
     const turnoResult = await query(`
-      SELECT id, rol_servicio_id, cantidad_guardias 
-      FROM as_turnos_configuracion 
-      WHERE id = $1 AND instalacion_id = $2
+      SELECT rol_id, COUNT(*) as total_puestos
+      FROM as_turnos_puestos_operativos 
+      WHERE rol_id = $1 AND instalacion_id = $2
+      GROUP BY rol_id
     `, [turnoId, instalacionId]);
 
     if (turnoResult.rows.length === 0) {
@@ -24,7 +25,7 @@ export async function DELETE(
 
     const turno = turnoResult.rows[0];
 
-    // Eliminar en orden: asignaciones -> requisitos_puesto -> puestos_por_cubrir -> turno
+    // Eliminar en orden: asignaciones -> puestos_operativos
     await query('BEGIN');
 
     try {
@@ -35,41 +36,20 @@ export async function DELETE(
           SELECT id FROM as_turnos_requisitos 
           WHERE rol_servicio_id = $1 AND instalacion_id = $2
         )
-      `, [turno.rol_servicio_id, instalacionId]);
+      `, [turno.rol_id, instalacionId]);
 
-      // 2. Obtener requisitos_puesto asociados al turno
-      const requisitosResult = await query(`
-        SELECT id FROM as_turnos_requisitos 
-        WHERE rol_servicio_id = $1 AND instalacion_id = $2
-      `, [turno.rol_servicio_id, instalacionId]);
-
-      const requisitosIds = requisitosResult.rows.map((r: { id: string }) => r.id);
-
-      if (requisitosIds.length > 0) {
-        // 3. Eliminar puestos_por_cubrir asociados a estos requisitos
-        await query(`
-          DELETE FROM as_turnos_ppc 
-          WHERE requisito_puesto_id = ANY($1)
-        `, [requisitosIds]);
-
-        // 4. Eliminar requisitos_puesto
-        await query(`
-          DELETE FROM as_turnos_requisitos 
-          WHERE id = ANY($1)
-        `, [requisitosIds]);
-      }
-
-      // 5. Finalmente eliminar el turno
+      // 2. Eliminar puestos operativos del turno
       await query(`
-        DELETE FROM as_turnos_configuracion 
-        WHERE id = $1
-      `, [turnoId]);
+        DELETE FROM as_turnos_puestos_operativos 
+        WHERE rol_id = $1 AND instalacion_id = $2
+      `, [turnoId, instalacionId]);
 
       await query('COMMIT');
 
       return NextResponse.json({
         success: true,
-        message: 'Turno eliminado correctamente'
+        message: 'Todos los puestos del turno eliminados correctamente',
+        puestos_eliminados: parseInt(turno.total_puestos) || 0
       });
 
     } catch (error) {
@@ -78,7 +58,7 @@ export async function DELETE(
     }
 
   } catch (error: any) {
-    console.error('Error eliminando turno:', error);
+    console.error('Error eliminando puestos del turno:', error);
     return NextResponse.json(
       { error: error.message || 'Error interno del servidor' },
       { status: 500 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
-// GET: Obtener PPCs de una instalación usando las nuevas tablas ADO
+// GET: Obtener PPCs de una instalación usando el nuevo modelo de puestos operativos
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -11,25 +11,28 @@ export async function GET(
 
     const result = await query(`
       SELECT 
-        ppc.id,
-        tr.instalacion_id,
-        tr.rol_servicio_id,
-        ppc.motivo,
-        ppc.observaciones as observacion,
-        ppc.created_at as creado_en,
+        po.id,
+        po.instalacion_id,
+        po.rol_id as rol_servicio_id,
+        po.nombre_puesto,
+        po.es_ppc,
+        po.creado_en as created_at,
         rs.nombre as rol_servicio_nombre,
         rs.hora_inicio,
         rs.hora_termino,
-        ppc.cantidad_faltante,
-        ppc.estado,
-        ppc.guardia_asignado_id,
-        g.nombre || ' ' || g.apellido_paterno || ' ' || g.apellido_materno as guardia_nombre
-      FROM as_turnos_ppc ppc
-      INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
-      LEFT JOIN as_turnos_roles_servicio rs ON tr.rol_servicio_id = rs.id
-      LEFT JOIN guardias g ON ppc.guardia_asignado_id = g.id
-      WHERE tr.instalacion_id = $1
-      ORDER BY ppc.created_at DESC
+        1 as cantidad_faltante,
+        CASE 
+          WHEN po.guardia_id IS NOT NULL THEN 'Asignado'
+          WHEN po.es_ppc = true THEN 'Pendiente'
+          ELSE 'Activo'
+        END as estado,
+        po.guardia_id as guardia_asignado_id,
+        g.nombre || ' ' || g.apellido_paterno || ' ' || COALESCE(g.apellido_materno, '') as guardia_nombre
+      FROM as_turnos_puestos_operativos po
+      LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+      LEFT JOIN guardias g ON po.guardia_id = g.id
+      WHERE po.instalacion_id = $1 AND (po.es_ppc = true OR po.guardia_id IS NOT NULL)
+      ORDER BY po.creado_en DESC
     `, [instalacionId]);
 
     return NextResponse.json(result.rows);
@@ -42,7 +45,7 @@ export async function GET(
   }
 }
 
-// POST: Asignar guardia a un PPC usando las nuevas tablas ADO
+// POST: Asignar guardia a un PPC usando el nuevo modelo de puestos operativos
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -61,10 +64,9 @@ export async function POST(
 
     // Verificar que el PPC existe y pertenece a esta instalación
     const ppcCheck = await query(`
-      SELECT ppc.id 
-      FROM as_turnos_ppc ppc
-      INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
-      WHERE ppc.id = $1 AND tr.instalacion_id = $2
+      SELECT po.id, po.rol_id
+      FROM as_turnos_puestos_operativos po
+      WHERE po.id = $1 AND po.instalacion_id = $2 AND po.es_ppc = true
     `, [ppc_id, instalacionId]);
 
     if (ppcCheck.rows.length === 0) {
@@ -87,33 +89,29 @@ export async function POST(
       );
     }
 
-    // Marcar PPC como asignado y crear asignación
+    // Verificar que no hay asignación activa para este guardia
+    const asignacionExistente = await query(`
+      SELECT id FROM as_turnos_puestos_operativos
+      WHERE guardia_id = $1 AND es_ppc = false
+    `, [guardia_id]);
+
+    if (asignacionExistente.rows.length > 0) {
+      return NextResponse.json(
+        { error: 'El guardia ya tiene una asignación activa' },
+        { status: 409 }
+      );
+    }
+
+    // Asignar guardia al puesto operativo
     const result = await query(`
-      UPDATE as_turnos_ppc 
-      SET estado = 'Asignado', 
-          guardia_asignado_id = $1,
-          fecha_asignacion = NOW(),
-          observaciones = CONCAT(COALESCE(observaciones, ''), ' - Asignado guardia: ', now())
+      UPDATE as_turnos_puestos_operativos 
+      SET guardia_id = $1,
+          es_ppc = false
       WHERE id = $2
       RETURNING *
     `, [guardia_id, ppc_id]);
 
-    // Crear asignación en as_turnos_asignaciones
-    const ppcData = result.rows[0];
-    if (ppcData) {
-      await query(`
-        INSERT INTO as_turnos_asignaciones (
-          guardia_id,
-          requisito_puesto_id,
-          tipo_asignacion,
-          fecha_inicio,
-          estado,
-          observaciones
-        ) VALUES ($1, $2, $3, CURRENT_DATE, 'Activa', $4)
-      `, [guardia_id, ppcData.requisito_puesto_id, 'PPC', 'Asignación automática desde PPC']);
-    }
-
-    console.log('✅ Guardia asignado al PPC correctamente usando tablas ADO');
+    console.log(`✅ Guardia ${guardia_id} asignado al PPC ${ppc_id} correctamente`);
 
     return NextResponse.json(result.rows[0]);
   } catch (error) {

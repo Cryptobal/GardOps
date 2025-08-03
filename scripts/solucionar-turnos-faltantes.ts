@@ -30,7 +30,7 @@ async function solucionarTurnosFaltantes() {
     }
 
     console.log(`📊 Instalaciones problemáticas encontradas: ${instalacionesProblematicas.rows.length}`);
-    instalacionesProblematicas.rows.forEach(inst => {
+    instalacionesProblematicas.rows.forEach((inst: any) => {
       console.log(`   - ${inst.nombre} (${inst.cliente_nombre}): ${inst.requisitos_count} requisitos, ${inst.turnos_count} turnos`);
     });
     console.log('');
@@ -109,7 +109,7 @@ async function solucionarTurnosFaltantes() {
     `);
 
     console.log(`📊 Resumen final de instalaciones con requisitos:`);
-    instalacionesFinales.rows.forEach(inst => {
+    instalacionesFinales.rows.forEach((inst: any) => {
       const estado = inst.turnos_count > 0 ? '✅' : '❌';
       console.log(`   ${estado} ${inst.nombre} (${inst.cliente_nombre}): ${inst.requisitos_count} requisitos, ${inst.turnos_count} turnos`);
     });

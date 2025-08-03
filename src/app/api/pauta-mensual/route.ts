@@ -2,106 +2,173 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+  const timestamp = new Date().toISOString();
+  
   try {
+    console.log(`[${timestamp}] 🚀 Iniciando carga de pauta mensual`);
+    
     const { searchParams } = new URL(request.url);
     const instalacion_id = searchParams.get('instalacion_id');
     const anio = searchParams.get('anio');
     const mes = searchParams.get('mes');
 
+    console.log(`[${timestamp}] 📥 Parámetros recibidos:`, { instalacion_id, anio, mes });
+
     if (!instalacion_id || !anio || !mes) {
+      console.log(`[${timestamp}] ❌ Validación fallida: parámetros requeridos faltantes`);
       return NextResponse.json(
         { error: 'Parámetros requeridos: instalacion_id, anio, mes' },
         { status: 400 }
       );
     }
 
-    const fechaInicio = `${anio}-${mes.toString().padStart(2, '0')}-01`;
-    const fechaFin = `${anio}-${mes.toString().padStart(2, '0')}-${new Date(parseInt(anio), parseInt(mes), 0).getDate()}`;
-
     // Obtener la pauta mensual desde la base de datos
+    const pautaQueryStart = Date.now();
     const pautaResult = await query(`
       SELECT 
-        pm.id,
         pm.guardia_id,
-        g.nombre as guardia_nombre,
         pm.dia,
-        pm.tipo,
-        pm.observacion,
-        EXTRACT(DAY FROM pm.dia) as dia_numero
-      FROM pautas_mensuales pm
-      INNER JOIN guardias g ON pm.guardia_id = g.id
+        pm.estado
+      FROM as_turnos_pauta_mensual pm
       WHERE pm.instalacion_id = $1 
-        AND pm.dia >= $2 
-        AND pm.dia <= $3
-      ORDER BY g.nombre, pm.dia
-    `, [instalacion_id, fechaInicio, fechaFin]);
+        AND pm.anio = $2 
+        AND pm.mes = $3
+      ORDER BY pm.guardia_id, pm.dia
+    `, [instalacion_id, anio, mes]);
+    
+    const pautaQueryEnd = Date.now();
+    console.log(`[${timestamp}] 🐌 Query pauta mensual: ${pautaQueryEnd - pautaQueryStart}ms, ${pautaResult.rows.length} registros encontrados`);
 
-    // Obtener todos los guardias de la instalación para mostrar también los que no tienen pauta
-    const guardiasResult = await query(`
-      SELECT 
-        g.id,
-        g.nombre,
-        g.rol_servicio
-      FROM guardias g
-      INNER JOIN instalaciones i ON g.instalacion_id = i.id
-      WHERE g.instalacion_id = $1
-      ORDER BY g.nombre
-    `, [instalacion_id]);
+    // Obtener todos los guardias asignados a la instalación Y PPCs pendientes
+    const guardiasQueryStart = Date.now();
+    const [guardiasResult, ppcsResult] = await Promise.all([
+      // Guardias asignados reales
+      query(`
+        SELECT 
+          g.id,
+          g.nombre,
+          g.apellido_paterno,
+          g.apellido_materno,
+          CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, '')) as nombre_completo,
+          'asignado' as tipo
+        FROM guardias g
+        INNER JOIN as_turnos_asignaciones ta ON g.id = ta.guardia_id
+        INNER JOIN as_turnos_requisitos tr ON ta.requisito_puesto_id = tr.id
+        WHERE tr.instalacion_id = $1 
+          AND g.activo = true
+          AND ta.estado = 'Activa'
+        ORDER BY g.nombre
+      `, [instalacion_id]),
+      
+      // PPCs - incluir todos los PPCs relevantes, no solo pendientes
+      query(`
+        SELECT 
+          ppc.id || '_' || generate_series(1, ppc.cantidad_faltante) as id,
+          'PPC ' || substring(ppc.id::text, 1, 2) || 'XX' || substring(ppc.id::text, 35, 2) || ' #' || generate_series(1, ppc.cantidad_faltante) as nombre,
+          '' as apellido_paterno,
+          '' as apellido_materno,
+          'PPC ' || substring(ppc.id::text, 1, 2) || 'XX' || substring(ppc.id::text, 35, 2) || ' #' || generate_series(1, ppc.cantidad_faltante) as nombre_completo,
+          'ppc' as tipo,
+          ppc.estado as ppc_estado
+        FROM as_turnos_ppc ppc
+        INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
+        WHERE tr.instalacion_id = $1 
+          AND ppc.estado IN ('Pendiente', 'Asignado')
+        ORDER BY ppc.id, generate_series(1, ppc.cantidad_faltante)
+      `, [instalacion_id])
+    ]);
+    
+    // Combinar guardias reales y PPCs pendientes
+    const guardiasCompletos = [
+      ...guardiasResult.rows,
+      ...ppcsResult.rows
+    ];
+    
+    const guardiasQueryEnd = Date.now();
+    console.log(`[${timestamp}] 🐌 Query guardias: ${guardiasQueryEnd - guardiasQueryStart}ms, ${guardiasCompletos.length} guardias encontrados (${guardiasResult.rows.length} reales, ${ppcsResult.rows.length} PPCs)`);
 
-    // Organizar los datos por guardia
-    const pautaPorGuardia = guardiasResult.rows.map(guardia => {
-      const pautaGuardia = pautaResult.rows.filter(p => p.guardia_id === guardia.id);
-      
-      // Crear array de días del mes
-      const diasDelMes = Array.from({ length: new Date(parseInt(anio), parseInt(mes), 0).getDate() }, (_, i) => i + 1);
-      
-      const dias = diasDelMes.map(dia => {
-        const pautaDia = pautaGuardia.find(p => p.dia_numero === dia);
-        if (pautaDia) {
-          // Convertir tipo de la base de datos a estado del frontend
-          let estado = '';
-          switch (pautaDia.tipo) {
-            case 'turno':
-              estado = 'T';
-              break;
-            case 'libre':
-              estado = 'L';
-              break;
-            case 'permiso':
-              estado = 'P';
-              break;
-            case 'licencia':
-              estado = 'LIC';
-              break;
-            default:
-              estado = '';
-          }
-          return estado;
+    // Generar días del mes
+    const diasDelMes = Array.from(
+      { length: new Date(parseInt(anio), parseInt(mes), 0).getDate() }, 
+      (_, i) => i + 1
+    );
+
+    console.log(`[${timestamp}] 📅 Generando pauta para ${diasDelMes.length} días del mes`);
+
+    // Crear pauta en el formato esperado por el frontend
+    const pauta = guardiasCompletos.map((guardia: any) => {
+      // Buscar registros de pauta para este guardia específico
+      const pautaGuardia = pautaResult.rows.filter((p: any) => {
+        // Para PPCs, necesitamos manejar el ID con sufijo
+        if (guardia.tipo === 'ppc') {
+          // Los PPCs tienen IDs con sufijo (ej: "20d640b3-e6b5-4868-af91-2571a313b766_1")
+          // Buscar registros que coincidan con el ID base del PPC
+          const ppcBaseId = guardia.id.split('_')[0];
+          return p.guardia_id.startsWith(ppcBaseId);
         }
-        return '';
+        // Para guardias reales, buscar coincidencia exacta
+        return p.guardia_id === guardia.id;
+      });
+      
+      console.log(`[${timestamp}] 🔍 Guardia ${guardia.id} (${guardia.nombre_completo}): ${pautaGuardia.length} registros encontrados`);
+      
+      // Crear array de días para este guardia
+      const dias = diasDelMes.map(dia => {
+        const pautaDia = pautaGuardia.find((p: any) => p.dia === dia);
+        const estado = pautaDia?.estado || 'libre';
+        // Convertir estado de BD a formato frontend
+        switch (estado) {
+          case 'trabajado':
+            return 'T';
+          case 'libre':
+            return 'L';
+          case 'permiso':
+            return 'P';
+          default:
+            return 'L';
+        }
       });
 
       return {
-        nombre: guardia.nombre,
-        rol: guardia.rol_servicio || 'Sin rol asignado',
-        dias: dias
+        id: guardia.id,
+        nombre: guardia.nombre_completo,
+        patron_turno: '4x4', // TODO: Obtener desde la configuración
+        dias: dias,
+        tipo: guardia.tipo
       };
     });
 
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+    
+    console.log(`[${timestamp}] ✅ Pauta mensual cargada exitosamente`);
+    console.log(`[${timestamp}] 📊 Resumen: ${pauta.length} guardias, ${diasDelMes.length} días por guardia`);
+    console.log(`[${timestamp}] ⏱️ Tiempo total: ${duration}ms`);
+
     return NextResponse.json({
       success: true,
-      pauta: pautaPorGuardia,
       instalacion_id,
       anio: parseInt(anio),
       mes: parseInt(mes),
-      totalGuardias: guardiasResult.rows.length,
-      totalRegistros: pautaResult.rows.length
+      pauta: pauta,
+      metadata: {
+        total_guardias: pauta.length,
+        dias_mes: diasDelMes.length,
+        tiempo_procesamiento_ms: duration,
+        timestamp: timestamp
+      }
     });
 
   } catch (error) {
-    console.error('❌ Error obteniendo pauta mensual:', error);
+    const errorTime = new Date().toISOString();
+    console.error(`[${errorTime}] ❌ Error obteniendo pauta mensual:`, error);
     return NextResponse.json(
-      { error: 'Error interno del servidor al obtener la pauta mensual' },
+      { 
+        error: 'Error interno del servidor al obtener la pauta mensual',
+        timestamp: errorTime,
+        detalles: process.env.NODE_ENV === 'development' ? error : undefined
+      },
       { status: 500 }
     );
   }

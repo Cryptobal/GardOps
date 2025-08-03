@@ -3,38 +3,39 @@ import { query } from "@/lib/database";
 
 export async function POST(request: NextRequest) {
   try {
-    const { guardia_id, ppc_id } = await request.json();
+    const { guardia_id, puesto_operativo_id } = await request.json();
 
-    if (!guardia_id || !ppc_id) {
+    if (!guardia_id || !puesto_operativo_id) {
       return NextResponse.json(
-        { error: 'Faltan campos requeridos: guardia_id y ppc_id' },
+        { error: 'Faltan campos requeridos: guardia_id y puesto_operativo_id' },
         { status: 400 }
       );
     }
 
-    // Verificar que el PPC existe y está pendiente
-    const ppcCheck = await query(`
+    // Verificar que el puesto operativo existe y está disponible como PPC
+    const puestoCheck = await query(`
       SELECT 
-        ppc.id,
-        ppc.requisito_puesto_id,
-        ppc.cantidad_faltante,
-        ppc.estado
-      FROM as_turnos_ppc ppc
-      WHERE ppc.id = $1 AND ppc.estado = 'Pendiente'
-    `, [ppc_id]);
+        po.id,
+        po.instalacion_id,
+        po.rol_id,
+        po.es_ppc,
+        po.guardia_id
+      FROM as_turnos_puestos_operativos po
+      WHERE po.id = $1 AND po.es_ppc = true
+    `, [puesto_operativo_id]);
 
-    if (ppcCheck.rows.length === 0) {
+    if (puestoCheck.rows.length === 0) {
       return NextResponse.json(
-        { error: 'PPC no encontrado o no está pendiente' },
+        { error: 'Puesto operativo no encontrado o no está disponible como PPC' },
         { status: 404 }
       );
     }
 
-    const ppc = ppcCheck.rows[0];
+    const puesto = puestoCheck.rows[0];
 
-    if (ppc.cantidad_faltante <= 0) {
+    if (puesto.guardia_id) {
       return NextResponse.json(
-        { error: 'No hay cupos disponibles en este PPC' },
+        { error: 'El puesto ya tiene un guardia asignado' },
         { status: 400 }
       );
     }
@@ -52,45 +53,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Crear registro en as_turnos_asignaciones
-    const asignacion = await query(`
-      INSERT INTO as_turnos_asignaciones (
-        guardia_id,
-        requisito_puesto_id,
-        tipo_asignacion,
-        fecha_inicio,
-        estado,
-        observaciones
-      ) VALUES ($1, $2, 'PPC', CURRENT_DATE, 'Activa', 'Asignación automática desde PPC')
-      RETURNING *
-    `, [guardia_id, ppc.requisito_puesto_id]);
+    // Verificar si el guardia ya tiene una asignación activa
+    const asignacionExistente = await query(`
+      SELECT id, instalacion_id, rol_id
+      FROM as_turnos_puestos_operativos
+      WHERE guardia_id = $1 AND es_ppc = false
+    `, [guardia_id]);
 
-    // Actualizar cantidad faltante en el PPC
-    await query(`
-      UPDATE as_turnos_ppc 
-      SET cantidad_faltante = cantidad_faltante - 1
-      WHERE id = $1
-    `, [ppc_id]);
-
-    // Si ya no hay cupos disponibles, actualizar estado del PPC a 'Asignado'
-    if (ppc.cantidad_faltante <= 1) {
+    // Si tiene asignación activa, liberar el puesto actual (convertirlo en PPC)
+    if (asignacionExistente.rows.length > 0) {
+      const asignacionActual = asignacionExistente.rows[0];
+      console.log(`🔄 Liberando asignación actual del guardia ${guardia_id} en puesto ${asignacionActual.id}`);
+      
       await query(`
-        UPDATE as_turnos_ppc 
-        SET estado = 'Asignado',
-            fecha_asignacion = NOW(),
-            guardia_asignado_id = $1
-        WHERE id = $2
-      `, [guardia_id, ppc_id]);
+        UPDATE as_turnos_puestos_operativos 
+        SET es_ppc = true,
+            guardia_id = NULL
+        WHERE id = $1
+      `, [asignacionActual.id]);
     }
+
+    // Asignar el guardia al nuevo puesto
+    await query(`
+      UPDATE as_turnos_puestos_operativos 
+      SET es_ppc = false,
+          guardia_id = $1
+      WHERE id = $2
+    `, [guardia_id, puesto_operativo_id]);
+
+    console.log(`✅ Guardia ${guardia_id} asignado al puesto ${puesto_operativo_id}`);
 
     return NextResponse.json({
       success: true,
-      message: 'Guardia asignado correctamente al PPC',
-      asignacion: asignacion.rows[0]
+      message: 'Guardia asignado correctamente al puesto',
+      asignacion_anterior: asignacionExistente.rows[0] || null,
+      nueva_asignacion: {
+        guardia_id,
+        puesto_operativo_id,
+        instalacion_id: puesto.instalacion_id,
+        rol_id: puesto.rol_id
+      }
     });
 
   } catch (error) {
-    console.error('Error asignando guardia al PPC:', error);
+    console.error('Error asignando guardia al puesto:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

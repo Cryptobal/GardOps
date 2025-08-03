@@ -32,17 +32,16 @@ export async function GET(request: NextRequest) {
       FROM guardias g
       LEFT JOIN instalaciones i ON g.instalacion_id = i.id
       LEFT JOIN clientes c ON i.cliente_id = c.id
-      -- Left join para obtener asignación actual
+      -- Left join para obtener asignación actual usando la nueva estructura
       LEFT JOIN (
         SELECT 
-          ta.guardia_id,
+          po.guardia_id,
           i.nombre as instalacion_nombre,
           rs.nombre as rol_nombre
-        FROM as_turnos_asignaciones ta
-        INNER JOIN as_turnos_requisitos tr ON ta.requisito_puesto_id = tr.id
-        INNER JOIN as_turnos_roles_servicio rs ON tr.rol_servicio_id = rs.id
-        INNER JOIN instalaciones i ON tr.instalacion_id = i.id
-        WHERE ta.estado = 'Activa'
+        FROM as_turnos_puestos_operativos po
+        INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+        INNER JOIN instalaciones i ON po.instalacion_id = i.id
+        WHERE po.guardia_id IS NOT NULL AND po.es_ppc = false
       ) ta_asignacion ON g.id = ta_asignacion.guardia_id
       ORDER BY g.activo DESC, g.nombre, g.apellido_paterno, g.apellido_materno
     `);

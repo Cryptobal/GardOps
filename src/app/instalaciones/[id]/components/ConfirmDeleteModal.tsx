@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Trash2 } from 'lucide-react';
+import { AlertTriangle, Trash2, X } from 'lucide-react';
 
 interface ConfirmDeleteModalProps {
   isOpen: boolean;
@@ -32,57 +32,77 @@ export default function ConfirmDeleteModal({
     setIsLoading(true);
     try {
       await onConfirm();
+      // Cerrar el modal automáticamente después de completar la operación
+      handleClose();
+    } catch (error) {
+      console.error('Error en confirmación:', error);
     } finally {
       setIsLoading(false);
-      onClose();
     }
   };
 
+  const handleClose = () => {
+    onClose();
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader className="text-center pb-4">
-          <div className="mx-auto mb-4 w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
-            <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
-          </div>
-          <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            {title}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-center space-y-6">
-          <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-            {message}
-          </p>
-          <div className="flex gap-3 justify-center">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-sm mx-auto transform transition-all duration-300 ease-out">
+        <Card className="shadow-2xl border-0 bg-gradient-to-br from-white to-gray-50 rounded-xl overflow-hidden">
+          <CardHeader className="relative pb-4 bg-gradient-to-r from-red-50 to-orange-50 border-b border-red-100">
             <Button
-              variant="outline"
-              onClick={onClose}
+              variant="ghost"
+              size="sm"
+              onClick={handleClose}
               disabled={isLoading}
-              className="flex-1"
+              className="absolute right-3 top-3 h-8 w-8 p-0 hover:bg-red-100 rounded-full transition-colors"
             >
-              {cancelText}
+              <X className="h-4 w-4 text-gray-500" />
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleConfirm}
-              disabled={isLoading}
-              className="flex-1"
-            >
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Eliminando...
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Trash2 className="w-4 h-4" />
-                  {confirmText}
-                </div>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="flex items-center gap-3 pt-1">
+              <div className="w-12 h-12 bg-gradient-to-br from-red-400 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
+                <AlertTriangle className="w-6 h-6 text-white" />
+              </div>
+              <CardTitle className="text-lg font-bold text-gray-800">
+                {title}
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6 space-y-6">
+            <p className="text-gray-700 leading-relaxed font-medium">
+              {message}
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={handleClose}
+                disabled={isLoading}
+                className="flex-1 h-10 text-sm font-semibold hover:bg-gray-100 border-gray-300 hover:border-gray-400 transition-all"
+              >
+                {cancelText}
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirm}
+                disabled={isLoading}
+                className="flex-1 h-10 text-sm font-semibold bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-xl transition-all"
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <span>Eliminando...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Trash2 className="w-4 h-4" />
+                    <span>{confirmText}</span>
+                  </div>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 } 

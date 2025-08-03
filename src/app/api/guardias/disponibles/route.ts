@@ -3,7 +3,7 @@ import { query } from '@/lib/database';
 
 export async function GET(request: NextRequest) {
   try {
-    // Obtener guardias que NO tienen asignación activa
+    // Obtener guardias que NO tienen asignación activa en puestos operativos
     const result = await query(`
       SELECT 
         g.id,
@@ -20,9 +20,9 @@ export async function GET(request: NextRequest) {
       FROM guardias g
       WHERE g.activo = true
         AND g.id NOT IN (
-          SELECT DISTINCT ta.guardia_id 
-          FROM as_turnos_asignaciones ta 
-          WHERE ta.estado = 'Activa'
+          SELECT DISTINCT po.guardia_id 
+          FROM as_turnos_puestos_operativos po 
+          WHERE po.guardia_id IS NOT NULL
         )
       ORDER BY g.apellido_paterno, g.apellido_materno, g.nombre
     `);

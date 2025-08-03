@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Verificar Roles</title>
+</head>
+<body>
+    <h1>Test Verificar Roles</h1>
+    <button onclick="testVerificarRoles()">Probar Verificar Roles</button>
+    <div id="result"></div>
+
+    <script>
+        async function testVerificarRoles() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Probando...';
+            
+            try {
+                console.log('🔍 Iniciando test de verificar roles...');
+                
+                const response = await fetch('/api/pauta-mensual/verificar-roles', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84' 
+                    }),
+                });
+
+                console.log('📋 Respuesta del servidor:', response.status, response.statusText);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('❌ Error en la respuesta:', errorData);
+                    resultDiv.innerHTML = `<p style="color: red;">Error: ${errorData.error}</p>`;
+                    return;
+                }
+
+                const result = await response.json();
+                console.log('✅ Resultado de verificación:', result);
+                resultDiv.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+                
+            } catch (error) {
+                console.error('❌ Error en el test:', error);
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html> 

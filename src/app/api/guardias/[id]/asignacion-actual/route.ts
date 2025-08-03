@@ -8,42 +8,42 @@ export async function GET(
   try {
     const guardiaId = params.id;
 
-    // Obtener asignación actual activa
+    // Obtener asignación actual activa usando el nuevo modelo de puestos operativos
     const asignacionActual = await query(`
       SELECT 
-        ta.id,
-        ta.guardia_id,
-        ta.fecha_inicio,
-        ta.estado,
-        ta.tipo_asignacion,
+        po.id,
+        po.guardia_id,
+        po.creado_en as fecha_inicio,
+        'Activa' as estado,
+        'PPC' as tipo_asignacion,
         rs.nombre as rol_nombre,
         i.nombre as instalacion_nombre,
-        i.id as instalacion_id
-      FROM as_turnos_asignaciones ta
-      INNER JOIN as_turnos_requisitos tr ON ta.requisito_puesto_id = tr.id
-      INNER JOIN as_turnos_roles_servicio rs ON tr.rol_servicio_id = rs.id
-      INNER JOIN instalaciones i ON tr.instalacion_id = i.id
-      WHERE ta.guardia_id = $1 AND ta.estado = 'Activa'
-      ORDER BY ta.fecha_inicio DESC
+        i.id as instalacion_id,
+        po.nombre_puesto
+      FROM as_turnos_puestos_operativos po
+      INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+      INNER JOIN instalaciones i ON po.instalacion_id = i.id
+      WHERE po.guardia_id = $1 AND po.es_ppc = false
+      ORDER BY po.creado_en DESC
       LIMIT 1
     `, [guardiaId]);
 
-    // Obtener historial de asignaciones
+    // Obtener historial de asignaciones (por ahora vacío ya que no tenemos historial en el nuevo modelo)
     const historial = await query(`
       SELECT 
-        ta.id,
-        ta.fecha_inicio,
-        ta.fecha_termino,
-        ta.estado,
-        ta.tipo_asignacion,
+        po.id,
+        po.creado_en as fecha_inicio,
+        NULL as fecha_termino,
+        'Activa' as estado,
+        'PPC' as tipo_asignacion,
         rs.nombre as rol_nombre,
-        i.nombre as instalacion_nombre
-      FROM as_turnos_asignaciones ta
-      INNER JOIN as_turnos_requisitos tr ON ta.requisito_puesto_id = tr.id
-      INNER JOIN as_turnos_roles_servicio rs ON tr.rol_servicio_id = rs.id
-      INNER JOIN instalaciones i ON tr.instalacion_id = i.id
-      WHERE ta.guardia_id = $1
-      ORDER BY ta.fecha_inicio DESC
+        i.nombre as instalacion_nombre,
+        i.id as instalacion_id
+      FROM as_turnos_puestos_operativos po
+      INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+      INNER JOIN instalaciones i ON po.instalacion_id = i.id
+      WHERE po.guardia_id = $1 AND po.es_ppc = false
+      ORDER BY po.creado_en DESC
     `, [guardiaId]);
 
     const asignacion = asignacionActual.rows[0];
@@ -63,6 +63,7 @@ export async function GET(
         historial: historial.rows.map((item: any) => ({
           id: item.id,
           instalacion: item.instalacion_nombre,
+          instalacion_id: item.instalacion_id,
           rol: item.rol_nombre,
           fecha_asignacion: item.fecha_inicio,
           fecha_termino: item.fecha_termino,
@@ -78,6 +79,7 @@ export async function GET(
         historial: historial.rows.map((item: any) => ({
           id: item.id,
           instalacion: item.instalacion_nombre,
+          instalacion_id: item.instalacion_id,
           rol: item.rol_nombre,
           fecha_asignacion: item.fecha_inicio,
           fecha_termino: item.fecha_termino,

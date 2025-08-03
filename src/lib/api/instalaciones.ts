@@ -376,12 +376,12 @@ export async function eliminarTurnoInstalacion(instalacionId: string, turnoId: s
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || `Error al eliminar turno: ${response.statusText}`);
+      throw new Error(errorData.error || `Error al eliminar puestos: ${response.statusText}`);
     }
 
     return await response.json();
   } catch (error) {
-    console.error('Error eliminando turno de instalación:', error);
+    console.error('Error eliminando puestos del turno:', error);
     throw error;
   }
 } 

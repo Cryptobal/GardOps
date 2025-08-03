@@ -3,7 +3,7 @@ import { query } from "@/lib/database";
 
 export async function GET() {
   try {
-    // Obtener instalaciones que tienen PPC activos
+    // Obtener instalaciones que tienen puestos operativos (PPC) sin asignar
     const instalaciones = await query(`
       SELECT DISTINCT
         i.id,
@@ -12,9 +12,8 @@ export async function GET() {
         i.ciudad,
         i.comuna
       FROM instalaciones i
-      INNER JOIN as_turnos_requisitos tr ON i.id = tr.instalacion_id
-      INNER JOIN as_turnos_ppc ppc ON tr.id = ppc.requisito_puesto_id
-      WHERE ppc.estado = 'Pendiente'
+      INNER JOIN as_turnos_puestos_operativos po ON i.id = po.instalacion_id
+      WHERE po.es_ppc = true AND po.guardia_id IS NULL
       ORDER BY i.nombre
     `);
 

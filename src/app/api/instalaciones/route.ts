@@ -42,29 +42,23 @@ export async function GET(request: NextRequest) {
         SELECT 
           i.id,
           i.nombre,
+          i.direccion,
+          i.ciudad,
+          i.comuna,
           i.estado,
           i.cliente_id,
           COALESCE(c.nombre, 'Cliente no encontrado') as cliente_nombre,
-          COALESCE(stats.puestos_creados, 0) as puestos_creados,
+          COALESCE(stats.total_puestos, 0) as puestos_creados,
           COALESCE(stats.ppc_pendientes, 0) as ppc_pendientes
         FROM instalaciones i
         LEFT JOIN clientes c ON i.cliente_id = c.id
         LEFT JOIN (
           SELECT 
-            tr.instalacion_id,
-            SUM(tr.cantidad_guardias) as puestos_creados,
-            SUM(tr.cantidad_guardias) - COALESCE(asignaciones.total_asignados, 0) as ppc_pendientes
-          FROM as_turnos_requisitos tr
-          LEFT JOIN (
-            SELECT 
-              tr2.instalacion_id,
-              COUNT(ta.id) as total_asignados
-            FROM as_turnos_asignaciones ta
-            INNER JOIN as_turnos_requisitos tr2 ON ta.requisito_puesto_id = tr2.id
-            WHERE ta.estado = 'Activa'
-            GROUP BY tr2.instalacion_id
-          ) asignaciones ON asignaciones.instalacion_id = tr.instalacion_id
-          GROUP BY tr.instalacion_id, asignaciones.total_asignados
+            po.instalacion_id,
+            COUNT(*) as total_puestos,
+            COUNT(CASE WHEN po.es_ppc = true THEN 1 END) as ppc_pendientes
+          FROM as_turnos_puestos_operativos po
+          GROUP BY po.instalacion_id
         ) stats ON stats.instalacion_id = i.id
         ORDER BY i.nombre
       `);
@@ -113,30 +107,21 @@ export async function GET(request: NextRequest) {
       // Obtener estadísticas por separado para evitar JOINs complejos
       const statsResult = await query(`
         SELECT 
-          tr.instalacion_id,
-          SUM(tr.cantidad_guardias) as puestos_creados,
-          COALESCE(asignaciones.total_asignados, 0) as puestos_asignados,
-          SUM(tr.cantidad_guardias) - COALESCE(asignaciones.total_asignados, 0) as ppc_pendientes,
-          SUM(tr.cantidad_guardias) as ppc_totales,
-          SUM(tr.cantidad_guardias) - COALESCE(asignaciones.total_asignados, 0) as puestos_disponibles
-        FROM as_turnos_requisitos tr
-        LEFT JOIN (
-          SELECT 
-            tr2.instalacion_id,
-            COUNT(ta.id) as total_asignados
-          FROM as_turnos_asignaciones ta
-          INNER JOIN as_turnos_requisitos tr2 ON ta.requisito_puesto_id = tr2.id
-          WHERE ta.estado = 'Activa'
-          GROUP BY tr2.instalacion_id
-        ) asignaciones ON asignaciones.instalacion_id = tr.instalacion_id
-        GROUP BY tr.instalacion_id, asignaciones.total_asignados
+          po.instalacion_id,
+          COUNT(*) as total_puestos,
+          COUNT(CASE WHEN po.guardia_id IS NOT NULL THEN 1 END) as puestos_asignados,
+          COUNT(CASE WHEN po.es_ppc = true THEN 1 END) as ppc_pendientes,
+          COUNT(*) as ppc_totales,
+          COUNT(CASE WHEN po.guardia_id IS NULL THEN 1 END) as puestos_disponibles
+        FROM as_turnos_puestos_operativos po
+        GROUP BY po.instalacion_id
       `);
 
       // Crear mapa de estadísticas para unir con instalaciones
       const statsMap = new Map();
       statsResult.rows.forEach((stat: any) => {
         statsMap.set(stat.instalacion_id, {
-          puestos_creados: parseInt(stat.puestos_creados) || 0,
+          puestos_creados: parseInt(stat.total_puestos) || 0,
           puestos_asignados: parseInt(stat.puestos_asignados) || 0,
           ppc_pendientes: parseInt(stat.ppc_pendientes) || 0,
           ppc_totales: parseInt(stat.ppc_totales) || 0,
@@ -187,9 +172,9 @@ export async function GET(request: NextRequest) {
         i.updated_at,
         COALESCE(c.nombre, 'Cliente no encontrado') as cliente_nombre`;
 
-    if (withStats) {
+        if (withStats) {
       querySQL += `,
-        COALESCE(stats.puestos_creados, 0) as puestos_creados,
+        COALESCE(stats.total_puestos, 0) as puestos_creados,
         COALESCE(stats.puestos_asignados, 0) as puestos_asignados,
         COALESCE(stats.ppc_pendientes, 0) as ppc_pendientes,
         COALESCE(stats.ppc_totales, 0) as ppc_totales,
@@ -202,26 +187,17 @@ export async function GET(request: NextRequest) {
 
     if (withStats) {
       querySQL += `
-      LEFT JOIN (
-        SELECT 
-          tr.instalacion_id,
-          SUM(tr.cantidad_guardias) as puestos_creados,
-          COALESCE(asignaciones.total_asignados, 0) as puestos_asignados,
-          SUM(tr.cantidad_guardias) - COALESCE(asignaciones.total_asignados, 0) as ppc_pendientes,
-          SUM(tr.cantidad_guardias) as ppc_totales,
-          SUM(tr.cantidad_guardias) - COALESCE(asignaciones.total_asignados, 0) as puestos_disponibles
-        FROM as_turnos_requisitos tr
         LEFT JOIN (
           SELECT 
-            tr2.instalacion_id,
-            COUNT(ta.id) as total_asignados
-          FROM as_turnos_asignaciones ta
-          INNER JOIN as_turnos_requisitos tr2 ON ta.requisito_puesto_id = tr2.id
-          WHERE ta.estado = 'Activa'
-          GROUP BY tr2.instalacion_id
-        ) asignaciones ON asignaciones.instalacion_id = tr.instalacion_id
-        GROUP BY tr.instalacion_id, asignaciones.total_asignados
-      ) stats ON stats.instalacion_id = i.id`;
+            po.instalacion_id,
+            COUNT(*) as total_puestos,
+            COUNT(CASE WHEN po.guardia_id IS NOT NULL THEN 1 END) as puestos_asignados,
+            COUNT(CASE WHEN po.es_ppc = true THEN 1 END) as ppc_pendientes,
+            COUNT(*) as ppc_totales,
+            COUNT(CASE WHEN po.guardia_id IS NULL THEN 1 END) as puestos_disponibles
+          FROM as_turnos_puestos_operativos po
+          GROUP BY po.instalacion_id
+        ) stats ON stats.instalacion_id = i.id`;
     }
 
     querySQL += `

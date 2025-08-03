@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
+import { validate as validateUUID } from 'uuid';
 
 // GET: Obtener todos los datos de una instalación en una sola llamada optimizada
 export async function GET(
@@ -8,129 +9,104 @@ export async function GET(
 ) {
   try {
     const instalacionId = params.id;
+    if (!validateUUID(instalacionId)) {
+      return NextResponse.json({ success: false, error: 'ID de instalación inválido (no es UUID)' }, { status: 400 });
+    }
+    const startTime = Date.now();
 
-    // Ejecutar todas las consultas en paralelo para máxima eficiencia
-    const [
-      instalacionResult,
-      turnosResult,
-      ppcsResult,
-      guardiasResult,
-      rolesResult
-    ] = await Promise.all([
-      // 1. Datos básicos de la instalación
-      query(`
-        SELECT 
-          i.id,
-          i.nombre,
-          i.cliente_id,
-          COALESCE(c.nombre, 'Cliente no encontrado') as cliente_nombre,
-          i.direccion,
-          i.latitud,
-          i.longitud,
-          i.ciudad,
-          i.comuna,
-          i.valor_turno_extra,
-          i.estado,
-          i.created_at,
-          i.updated_at
-        FROM instalaciones i
-        LEFT JOIN clientes c ON i.cliente_id = c.id
-        WHERE i.id = $1
-      `, [instalacionId]),
+    console.log('🔍 Iniciando endpoint completa para instalación:', instalacionId);
 
-      // 2. Turnos con estadísticas optimizadas
-      query(`
+    // 1. Datos básicos de la instalación
+    console.log('1. Consultando instalación...');
+    const instalacionResult = await query(`
+      SELECT 
+        i.id,
+        i.nombre,
+        i.cliente_id,
+        i.direccion,
+        i.latitud,
+        i.longitud,
+        i.ciudad,
+        i.comuna,
+        i.valor_turno_extra,
+        i.estado,
+        i.created_at,
+        i.updated_at
+      FROM instalaciones i
+      WHERE i.id = $1
+    `, [instalacionId]);
+
+    // Verificar que la instalación existe
+    if (instalacionResult.rows.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Instalación no encontrada' },
+        { status: 404 }
+      );
+    }
+
+    const instalacion = instalacionResult.rows[0];
+    console.log('✅ Instalación encontrada:', instalacion.nombre);
+
+    // 2. Obtener información del cliente
+    console.log('2. Consultando cliente...');
+    let cliente_nombre = 'Cliente no encontrado';
+    if (instalacion.cliente_id) {
+      try {
+        const clienteResult = await query(`
+          SELECT nombre FROM clientes WHERE id = $1
+        `, [instalacion.cliente_id]);
+        
+        if (clienteResult.rows.length > 0) {
+          cliente_nombre = clienteResult.rows[0].nombre;
+        }
+      } catch (error) {
+        console.warn('⚠️ Error obteniendo cliente:', error);
+      }
+    }
+    instalacion.cliente_nombre = cliente_nombre;
+    console.log('✅ Cliente:', cliente_nombre);
+
+    // 3. Consultar puestos operativos
+    console.log('3. Consultando puestos operativos...');
+    let puestosOperativosResult;
+    try {
+      puestosOperativosResult = await query(`
         SELECT 
-          tc.id,
-          tc.instalacion_id,
-          tc.rol_servicio_id,
-          tc.cantidad_guardias,
-          tc.estado,
-          tc.created_at,
-          tc.updated_at,
+          po.id,
+          po.instalacion_id,
+          po.rol_id,
+          po.guardia_id,
+          po.nombre_puesto,
+          po.es_ppc,
+          po.creado_en,
+          po.tenant_id,
           rs.nombre as rol_nombre,
           rs.dias_trabajo,
           rs.dias_descanso,
           rs.horas_turno,
           rs.hora_inicio,
           rs.hora_termino,
-          rs.tenant_id as rol_tenant_id,
+          rs.estado as rol_estado,
           rs.created_at as rol_created_at,
           rs.updated_at as rol_updated_at,
-          COALESCE(ag_count.count, 0) as guardias_asignados,
-          COALESCE(ppc_count.count, 0) as ppc_pendientes
-        FROM as_turnos_configuracion tc
-        INNER JOIN as_turnos_roles_servicio rs ON tc.rol_servicio_id = rs.id
-        LEFT JOIN (
-          SELECT 
-            tr.rol_servicio_id,
-            COUNT(*) as count
-          FROM as_turnos_asignaciones ta
-          INNER JOIN as_turnos_requisitos tr ON ta.requisito_puesto_id = tr.id
-          WHERE tr.instalacion_id = $1 AND ta.estado = 'Activa'
-          GROUP BY tr.rol_servicio_id
-        ) ag_count ON ag_count.rol_servicio_id = tc.rol_servicio_id
-        LEFT JOIN (
-          SELECT 
-            tr.rol_servicio_id,
-            SUM(ppc.cantidad_faltante) as count
-          FROM as_turnos_ppc ppc
-          INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
-          WHERE tr.instalacion_id = $1 AND ppc.estado = 'Pendiente'
-          GROUP BY tr.rol_servicio_id
-        ) ppc_count ON ppc_count.rol_servicio_id = tc.rol_servicio_id
-        WHERE tc.instalacion_id = $1
-        ORDER BY rs.nombre, tc.created_at
-      `, [instalacionId]),
-
-      // 3. PPCs con información completa
-      query(`
-        SELECT 
-          ppc.id,
-          tr.instalacion_id,
-          tr.rol_servicio_id,
-          ppc.motivo,
-          ppc.observaciones as observacion,
-          ppc.created_at as creado_en,
-          rs.nombre as rol_servicio_nombre,
-          rs.hora_inicio,
-          rs.hora_termino,
-          ppc.cantidad_faltante,
-          ppc.estado,
-          ppc.guardia_asignado_id,
           g.nombre || ' ' || g.apellido_paterno || ' ' || COALESCE(g.apellido_materno, '') as guardia_nombre
-        FROM as_turnos_ppc ppc
-        INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
-        LEFT JOIN as_turnos_roles_servicio rs ON tr.rol_servicio_id = rs.id
-        LEFT JOIN guardias g ON ppc.guardia_asignado_id = g.id
-        WHERE tr.instalacion_id = $1
-        ORDER BY ppc.created_at DESC
-      `, [instalacionId]),
+        FROM as_turnos_puestos_operativos po
+        LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+        LEFT JOIN guardias g ON po.guardia_id = g.id
+        WHERE po.instalacion_id = $1
+        ORDER BY po.nombre_puesto, po.creado_en
+      `, [instalacionId]);
+      console.log(`✅ Puestos operativos encontrados: ${puestosOperativosResult.rows.length}`);
+    } catch (error) {
+      console.error('❌ Error consultando puestos operativos:', error);
+      puestosOperativosResult = { rows: [] };
+    }
 
-      // 4. Guardias disponibles (optimizado)
-      query(`
-        SELECT 
-          g.id,
-          g.nombre,
-          g.apellido_paterno,
-          g.apellido_materno,
-          CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, '')) as nombre_completo,
-          g.rut,
-          g.comuna,
-          g.region
-        FROM guardias g
-        WHERE g.activo = true
-          AND g.id NOT IN (
-            SELECT DISTINCT ta.guardia_id 
-            FROM as_turnos_asignaciones ta 
-            WHERE ta.estado = 'Activa'
-          )
-        ORDER BY g.apellido_paterno, g.apellido_materno, g.nombre
-        LIMIT 100
-      `),
-
-      // 5. Roles de servicio (cache estático)
-      query(`
+    // 4. Consultar roles de servicio
+    console.log('4. Consultando roles de servicio...');
+    let rolesResult;
+    try {
+      rolesResult = await query(`
         SELECT 
           id,
           nombre,
@@ -146,70 +122,175 @@ export async function GET(
         FROM as_turnos_roles_servicio 
         WHERE estado = 'Activo'
         ORDER BY nombre
-      `)
-    ]);
-
-    // Verificar que la instalación existe
-    if (instalacionResult.rows.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'Instalación no encontrada' },
-        { status: 404 }
-      );
+      `);
+      console.log(`✅ Roles de servicio encontrados: ${rolesResult.rows.length}`);
+    } catch (error) {
+      console.error('❌ Error consultando roles de servicio:', error);
+      rolesResult = { rows: [] };
     }
 
-    const instalacion = instalacionResult.rows[0];
+    // 5. Consultar pauta mensual
+    console.log('5. Consultando pauta mensual...');
+    let pautaMensualResult;
+    try {
+      pautaMensualResult = await query(`
+        SELECT 
+          pm.id,
+          pm.instalacion_id,
+          pm.guardia_id,
+          pm.anio,
+          pm.mes,
+          pm.dia,
+          pm.estado,
+          pm.created_at,
+          pm.updated_at,
+          g.nombre || ' ' || g.apellido_paterno || ' ' || COALESCE(g.apellido_materno, '') as guardia_nombre,
+          g.rut as guardia_rut
+        FROM as_turnos_pauta_mensual pm
+        LEFT JOIN guardias g ON pm.guardia_id = g.id
+        WHERE pm.instalacion_id = $1::uuid
+        ORDER BY pm.anio DESC, pm.mes DESC, pm.dia DESC
+        LIMIT 50
+      `, [instalacionId]);
+      console.log(`✅ Pauta mensual encontrada: ${pautaMensualResult.rows.length} registros`);
+    } catch (error) {
+      console.error('❌ Error consultando pauta mensual:', error);
+      pautaMensualResult = { rows: [] };
+    }
 
-    // Transformar turnos para que coincidan con la interfaz
-    const turnos = turnosResult.rows.map((row: any) => ({
-      id: row.id,
-      instalacion_id: row.instalacion_id,
-      rol_servicio_id: row.rol_servicio_id,
-      cantidad_guardias: row.cantidad_guardias,
-      estado: row.estado,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-      rol_servicio: {
-        id: row.rol_servicio_id,
-        nombre: row.rol_nombre,
-        descripcion: '',
-        dias_trabajo: row.dias_trabajo,
-        dias_descanso: row.dias_descanso,
-        horas_turno: row.horas_turno,
+    // Transformar datos
+    console.log('6. Transformando datos...');
+
+    // Agrupar puestos operativos por rol de servicio para crear turnos
+    const puestosPorRol = puestosOperativosResult.rows.reduce((acc: any, row: any) => {
+      const rolId = row.rol_id;
+      if (!acc[rolId]) {
+        acc[rolId] = {
+          id: rolId, // Usar el rol_id como ID del turno
+          instalacion_id: row.instalacion_id,
+          rol_servicio_id: row.rol_id,
+          cantidad_guardias: 0,
+          estado: 'Activo',
+          created_at: row.creado_en,
+          updated_at: row.creado_en,
+          rol_servicio: {
+            id: row.rol_id,
+            nombre: row.rol_nombre || 'Sin nombre',
+            descripcion: '',
+            dias_trabajo: row.dias_trabajo,
+            dias_descanso: row.dias_descanso,
+            horas_turno: row.horas_turno,
+            hora_inicio: row.hora_inicio,
+            hora_termino: row.hora_termino,
+            estado: row.rol_estado || 'Activo',
+            tenant_id: row.tenant_id,
+            created_at: row.rol_created_at,
+            updated_at: row.rol_updated_at,
+          },
+          guardias_asignados: 0,
+          ppc_pendientes: 0,
+          puestos: []
+        };
+      }
+      
+      // Agregar el puesto al rol
+      acc[rolId].puestos.push({
+        id: row.id,
+        nombre_puesto: row.nombre_puesto,
+        es_ppc: row.es_ppc,
+        guardia_asignado_id: row.guardia_id,
+        guardia_nombre: row.guardia_nombre
+      });
+      
+      // Actualizar contadores
+      acc[rolId].cantidad_guardias += 1;
+      if (row.guardia_id) {
+        acc[rolId].guardias_asignados += 1;
+      } else if (row.es_ppc) {
+        acc[rolId].ppc_pendientes += 1;
+      }
+      
+      return acc;
+    }, {});
+
+    // Convertir el objeto agrupado a array
+    const turnos = Object.values(puestosPorRol);
+
+    console.log(`📊 Turnos encontrados: ${turnos.length}`);
+
+    // Crear PPCs basados en puestos operativos sin guardia asignada
+    const ppcs = puestosOperativosResult.rows
+      .filter((row: any) => row.es_ppc && !row.guardia_id)
+      .map((row: any) => ({
+        id: row.id,
+        instalacion_id: row.instalacion_id,
+        rol_servicio_id: row.rol_id,
+        motivo: 'Puesto operativo sin asignación',
+        observacion: `PPC para puesto: ${row.nombre_puesto}`,
+        creado_en: row.creado_en,
+        rol_servicio_nombre: row.rol_nombre || 'Sin nombre',
         hora_inicio: row.hora_inicio,
         hora_termino: row.hora_termino,
-        estado: 'Activo',
-        tenant_id: row.rol_tenant_id,
-        created_at: row.rol_created_at,
-        updated_at: row.rol_updated_at,
-      },
-      guardias_asignados: parseInt(row.guardias_asignados),
-      ppc_pendientes: parseInt(row.ppc_pendientes),
+        cantidad_faltante: 1,
+        estado: 'Pendiente',
+        guardia_asignado_id: null,
+        guardia_nombre: null
+      }));
+
+    console.log(`📊 PPCs encontrados: ${ppcs.length}`);
+
+    // Crear guardias asignados basados en puestos operativos con guardia asignada
+    const guardiasAsignados = puestosOperativosResult.rows
+      .filter((row: any) => row.guardia_id)
+      .map((row: any) => ({
+        id: row.guardia_id,
+        nombre: row.guardia_nombre?.split(' ')[0] || '',
+        apellido_paterno: row.guardia_nombre?.split(' ')[1] || '',
+        apellido_materno: row.guardia_nombre?.split(' ')[2] || '',
+        nombre_completo: row.guardia_nombre || 'Sin nombre',
+        rut: '', // No disponible en esta consulta
+        comuna: '', // No disponible en esta consulta
+        region: '', // No disponible en esta consulta
+        tipo: 'asignado',
+        rol_servicio: {
+          nombre: row.rol_nombre || 'Sin nombre',
+          dias_trabajo: row.dias_trabajo,
+          dias_descanso: row.dias_descanso,
+          horas_turno: row.horas_turno,
+          hora_inicio: row.hora_inicio,
+          hora_termino: row.hora_termino
+        }
+      }));
+
+    console.log(`👥 Guardias asignados encontrados: ${guardiasAsignados.length}`);
+
+    // Crear PPCs pendientes como "guardias" virtuales
+    const ppcsPendientes = ppcs.map((ppc: any) => ({
+      id: ppc.id,
+      nombre: `PPC ${ppc.id.substring(0, 8)}`,
+      apellido_paterno: '',
+      apellido_materno: '',
+      nombre_completo: `PPC ${ppc.id.substring(0, 8)}`,
+      rut: '',
+      comuna: '',
+      region: '',
+      tipo: 'ppc',
+      rol_servicio: {
+        nombre: ppc.rol_servicio_nombre,
+        dias_trabajo: 0,
+        dias_descanso: 0,
+        horas_turno: 0,
+        hora_inicio: ppc.hora_inicio,
+        hora_termino: ppc.hora_termino
+      }
     }));
 
-    // Transformar PPCs
-    const ppcs = ppcsResult.rows.map((row: any) => ({
-      id: row.id,
-      instalacion_id: row.instalacion_id,
-      rol_servicio_id: row.rol_servicio_id,
-      motivo: row.motivo,
-      observacion: row.observacion,
-      creado_en: row.creado_en,
-      rol_servicio_nombre: row.rol_servicio_nombre,
-      hora_inicio: row.hora_inicio,
-      hora_termino: row.hora_termino,
-      cantidad_faltante: row.cantidad_faltante,
-      estado: row.estado,
-      guardia_asignado_id: row.guardia_asignado_id,
-      guardia_nombre: row.guardia_nombre
-    }));
+    console.log(`⏳ PPCs pendientes encontrados: ${ppcsPendientes.length}`);
 
-    // Transformar guardias disponibles
-    const guardias = guardiasResult.rows.map((row: any) => ({
-      id: row.id,
-      nombre_completo: row.nombre_completo,
-      rut: row.rut,
-      comuna: row.comuna
-    }));
+    // Combinar guardias y PPCs
+    const guardias = [...guardiasAsignados, ...ppcsPendientes];
+    
+    console.log(`📋 Total de guardias (asignados + PPCs): ${guardias.length}`);
 
     // Transformar roles de servicio
     const roles = rolesResult.rows.map((row: any) => ({
@@ -226,6 +307,24 @@ export async function GET(
       updated_at: row.updated_at
     }));
 
+    // Transformar pauta mensual
+    const pautaMensual = pautaMensualResult.rows.map((row: any) => ({
+      id: row.id,
+      instalacion_id: row.instalacion_id,
+      guardia_id: row.guardia_id,
+      anio: row.anio,
+      mes: row.mes,
+      dia: row.dia,
+      estado: row.estado,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      guardia_nombre: row.guardia_nombre,
+      guardia_rut: row.guardia_rut
+    }));
+
+    const endTime = Date.now();
+    console.log(`🚀 Tiempo total API instalaciones completa: ${endTime - startTime}ms`);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -233,12 +332,13 @@ export async function GET(
         turnos,
         ppcs,
         guardias,
-        roles
+        roles,
+        pautaMensual
       }
     });
 
   } catch (error) {
-    console.error('Error obteniendo datos completos de instalación:', error);
+    console.error('❌ Error en endpoint completa:', error);
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }

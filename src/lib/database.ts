@@ -10,20 +10,40 @@ if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL no está configurada');
 }
 
-// Configuración optimizada de la conexión PostgreSQL
+// Configuración optimizada de la conexión PostgreSQL para resolver timeouts
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  // Configuraciones de rendimiento optimizadas para queries complejas
-  max: 30, // Aumentar máximo número de conexiones en el pool
-  idleTimeoutMillis: 60000, // Aumentar tiempo de inactividad antes de cerrar conexión
-  connectionTimeoutMillis: 10000, // Aumentar tiempo máximo para obtener conexión
-  maxUses: 10000, // Aumentar número máximo de veces que se puede usar una conexión
+  
+  // Configuraciones optimizadas para estabilidad y rendimiento
+  max: 20, // Reducir máximo número de conexiones para evitar sobrecarga
+  idleTimeoutMillis: 30000, // Reducir tiempo de inactividad
+  connectionTimeoutMillis: 15000, // Aumentar tiempo de conexión
+  maxUses: 5000, // Reducir número máximo de usos por conexión
+  
+  // Configuraciones para queries lentas y timeouts
+  statement_timeout: 60000, // 60 segundos timeout para statements
+  query_timeout: 60000, // 60 segundos timeout para queries
+  
   // Configuraciones adicionales para estabilidad
-  allowExitOnIdle: false, // No cerrar el pool cuando esté inactivo
-  // Configuraciones para queries lentas
-  statement_timeout: 30000, // 30 segundos timeout para statements
-  query_timeout: 30000, // 30 segundos timeout para queries
+  allowExitOnIdle: false,
+  
+  // Configuraciones específicas para Neon
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000,
+});
+
+// Manejar eventos del pool para debugging
+pool.on('connect', (client) => {
+  console.log('🔌 Nueva conexión establecida');
+});
+
+pool.on('error', (err, client) => {
+  console.error('❌ Error en el pool de conexiones:', err);
+});
+
+pool.on('remove', (client) => {
+  console.log('🔌 Conexión removida del pool');
 });
 
 export default pool;
@@ -36,15 +56,19 @@ export async function query(text: string, params?: any[]): Promise<any> {
     const duration = Date.now() - startTime;
     
     // Log solo queries lentos para debugging
-    if (duration > 1000) {
+    if (duration > 2000) {
       console.log(`🐌 Query muy lento (${duration}ms): ${text.substring(0, 100)}...`);
-    } else if (duration > 500) {
+    } else if (duration > 1000) {
       console.log(`🐌 Query lento (${duration}ms): ${text.substring(0, 100)}...`);
     }
     
     return result;
   } catch (error) {
     console.error(`❌ Error en query: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    console.error(`Query: ${text.substring(0, 200)}...`);
+    if (params) {
+      console.error(`Params: ${JSON.stringify(params).substring(0, 200)}...`);
+    }
     throw error;
   } finally {
     client.release();
@@ -99,10 +123,15 @@ export async function getColumnType(tableName: string, columnName: string): Prom
 
 export async function hasData(tableName: string): Promise<boolean> {
   try {
-    const result = await query(`SELECT COUNT(*) FROM ${tableName} LIMIT 1`);
+    const result = await query(`SELECT COUNT(*) FROM ${tableName}`);
     return parseInt(result.rows[0].count) > 0;
   } catch (error) {
     console.error(`❌ Error verificando datos en ${tableName}:`, error);
     return false;
   }
+}
+
+// Función para cerrar el pool de conexiones (útil para tests)
+export async function closePool(): Promise<void> {
+  await pool.end();
 } 

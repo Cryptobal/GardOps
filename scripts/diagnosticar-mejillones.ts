@@ -60,7 +60,7 @@ async function diagnosticarMejillones() {
     `, [instalacion.id]);
 
     console.log(`📊 PPC totales encontrados: ${ppcResult.rows.length}`);
-    const ppcPendientes = ppcResult.rows.filter(ppc => ppc.estado === 'Pendiente');
+    const ppcPendientes = ppcResult.rows.filter((ppc: any) => ppc.estado === 'Pendiente');
     console.log(`📊 PPC pendientes: ${ppcPendientes.length}`);
     if (ppcResult.rows.length > 0) {
       console.log('   Detalles:', ppcResult.rows);

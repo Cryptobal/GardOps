@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
 import { Button } from "../../../components/ui/button";
-import { Trash2, Info } from "lucide-react";
+import { Trash2, Info, Calendar, Users } from "lucide-react";
+import ConfirmDeleteModal from "../../../components/ui/confirm-delete-modal";
 
 interface PautaGuardia {
   id_guardia: string;
@@ -13,6 +14,7 @@ interface PautaGuardia {
     patron_turno: string;
   };
   dias: string[];
+  tipo?: 'asignado' | 'ppc';
 }
 
 interface PautaTableProps {
@@ -21,6 +23,8 @@ interface PautaTableProps {
   diasSemana: {dia: number, diaSemana: string, esFeriado: boolean}[];
   onUpdatePauta: (guardiaIndex: number, diaIndex: number, nuevoEstado: string) => void;
   onDeleteGuardia: (guardiaIndex: number) => void;
+  modoEdicion?: boolean;
+  diasGuardados?: Set<string>; // Nuevo prop para indicar días guardados
 }
 
 interface ModalAutocompletarPautaProps {
@@ -32,6 +36,74 @@ interface ModalAutocompletarPautaProps {
   diaSeleccionado: number;
   diaSemanaSeleccionado: string;
 }
+
+// Hook para manejar el tamaño de la ventana
+const useWindowSize = () => {
+  const [windowSize, setWindowSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1200,
+    height: typeof window !== 'undefined' ? window.innerHeight : 800,
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return windowSize;
+};
+
+// Función para acortar el nombre del PPC
+const acortarNombrePPC = (nombre: string): string => {
+  if (nombre.startsWith('PPC ')) {
+    return nombre; // Ya viene acortado del backend
+  }
+  return nombre;
+};
+
+// Función para obtener feriados de Chile (2024-2025)
+const getFeriadosChile = (year: number, month: number): number[] => {
+  const feriados = {
+    2024: {
+      1: [1], // Año Nuevo
+      2: [], // No hay feriados en febrero
+      3: [29], // Viernes Santo
+      4: [1], // Domingo de Resurrección
+      5: [1], // Día del Trabajo
+      6: [7], // Glorias Navales
+      7: [16], // Virgen del Carmen
+      8: [15], // Asunción de la Virgen
+      9: [18, 19], // Fiestas Patrias
+      10: [12], // Encuentro de Dos Mundos
+      11: [1], // Día de Todos los Santos
+      12: [8, 25] // Inmaculada Concepción, Navidad
+    },
+    2025: {
+      1: [1], // Año Nuevo
+      2: [], // No hay feriados en febrero
+      3: [18, 19], // Viernes Santo, Domingo de Resurrección
+      4: [], // No hay feriados en abril
+      5: [1], // Día del Trabajo
+      6: [7], // Glorias Navales
+      7: [16], // Virgen del Carmen
+      8: [15], // Asunción de la Virgen
+      9: [18, 19], // Fiestas Patrias
+      10: [12], // Encuentro de Dos Mundos
+      11: [1], // Día de Todos los Santos
+      12: [8, 25] // Inmaculada Concepción, Navidad
+    }
+  };
+  
+  return feriados[year as keyof typeof feriados]?.[month as keyof typeof feriados[2024]] || [];
+};
 
 // Modal para autocompletar pauta
 const ModalAutocompletarPauta = ({ 
@@ -45,18 +117,16 @@ const ModalAutocompletarPauta = ({
 }: ModalAutocompletarPautaProps) => {
   const [diaInicio, setDiaInicio] = useState(1);
 
-  // Extraer el tipo de turno del patrón
   const extraerTipoTurno = (patron: string): string => {
     if (patron.includes("4x4")) return "4x4";
     if (patron.includes("5x2")) return "5x2";
     if (patron.includes("7x7")) return "7x7";
     if (patron.includes("6x1")) return "6x1";
-    return "4x4"; // Por defecto
+    return "4x4";
   };
 
   const tipoTurno = extraerTipoTurno(patron_turno);
   
-  // Definir patrones de turnos
   const patrones = {
     "4x4": { trabajo: 4, libre: 4, descripcion: "4 días trabajo + 4 días libre" },
     "5x2": { trabajo: 5, libre: 2, descripcion: "5 días trabajo + 2 días libre" },
@@ -70,48 +140,52 @@ const ModalAutocompletarPauta = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        className="bg-white dark:bg-gray-800 rounded-lg p-6 w-[500px] max-w-[90vw] border border-gray-200 dark:border-gray-700"
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="bg-white dark:bg-gray-900 rounded-xl p-6 w-full max-w-md border border-gray-200 dark:border-gray-700 shadow-2xl"
       >
-        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Autocompletar Pauta</h3>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+            <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Autocompletar Pauta</h3>
+        </div>
         
         <div className="space-y-4">
           {/* Información del patrón */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
-            <div className="flex items-start gap-2">
-              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
+            <div className="flex items-start gap-3">
+              <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
               <div className="text-sm">
-                <p className="font-medium text-gray-900 dark:text-white">Patrón: {tipoTurno}</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{patron.descripcion}</p>
+                <p className="font-semibold text-gray-900 dark:text-white">Patrón: {tipoTurno}</p>
+                <p className="text-gray-600 dark:text-gray-300 mt-1">{patron.descripcion}</p>
               </div>
             </div>
           </div>
 
           {/* Información del día seleccionado */}
-          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-700">
+          <div className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-700">
             <div className="text-center">
               <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">Día seleccionado:</p>
-              <p className="text-xl font-bold text-green-600 dark:text-green-400 mb-1">
+              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">
                 {diaSemanaSeleccionado} {diaSeleccionado}
               </p>
               <p className="text-xs text-gray-600 dark:text-gray-400">
-                El patrón comenzará desde este día hacia adelante
+                El patrón comenzará desde este día
               </p>
             </div>
           </div>
 
-          {/* Selector visual del patrón */}
+          {/* Selector visual del patrón - EN UNA LÍNEA */}
           <div>
-            <label className="block text-sm font-medium mb-3 text-gray-900 dark:text-white">
-              Selecciona en qué punto del ciclo comenzar:
+            <label className="block text-sm font-semibold mb-3 text-gray-900 dark:text-white">
+              Punto de inicio del ciclo:
             </label>
             
-            {/* Visualización del patrón clickeable */}
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex gap-1 justify-center flex-wrap">
               {Array.from({ length: cicloCompleto }, (_, i) => {
                 const esDiaTrabajo = i < patron.trabajo;
                 const isSelected = diaInicio === i + 1;
@@ -121,15 +195,15 @@ const ModalAutocompletarPauta = ({
                     key={i}
                     onClick={() => setDiaInicio(i + 1)}
                     className={`
-                      w-10 h-10 rounded-lg text-sm font-bold transition-all duration-200
-                      flex items-center justify-center border-2
+                      w-8 h-8 rounded-md text-xs font-bold transition-all duration-200
+                      flex items-center justify-center border-2 shadow-sm
                       ${isSelected 
-                        ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-white dark:ring-offset-gray-800 scale-110' 
-                        : 'hover:scale-105 hover:ring-1 hover:ring-blue-300'
+                        ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 scale-110 shadow-lg' 
+                        : 'hover:scale-105 hover:shadow-md'
                       }
                       ${esDiaTrabajo 
-                        ? 'bg-green-600 text-white border-green-500 hover:bg-green-500' 
-                        : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
+                        ? 'bg-gradient-to-br from-emerald-500 to-green-600 text-white border-emerald-400 hover:from-emerald-400 hover:to-green-500' 
+                        : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700'
                       }
                     `}
                     title={`Día ${i + 1} del ciclo - ${esDiaTrabajo ? 'Trabajando' : 'Libre'}`}
@@ -139,35 +213,14 @@ const ModalAutocompletarPauta = ({
                 );
               })}
             </div>
-            
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
-              Clic en un bloque para seleccionar el punto de inicio del patrón
-            </p>
-          </div>
-
-          {/* Información del patrón */}
-          <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
-            <div className="flex items-start gap-2">
-              <Info className="h-4 w-4 text-gray-600 dark:text-gray-400 mt-0.5 flex-shrink-0" />
-              <div className="text-sm text-gray-700 dark:text-gray-300">
-                <p className="font-medium">Patrón: {tipoTurno}</p>
-                <p className="text-xs mt-1">{patron.descripcion}</p>
-                <p className="text-xs mt-2">
-                  <strong>Seleccionaste el día {diaInicio} del ciclo</strong>
-                </p>
-                <p className="text-xs mt-1">
-                  El día {diaSeleccionado} del mes será el día {diaInicio} del ciclo, y el patrón se aplicará hacia adelante
-                </p>
-              </div>
-            </div>
           </div>
         </div>
 
-        <div className="flex gap-2 mt-6">
+        <div className="flex gap-3 mt-6">
           <Button variant="outline" onClick={onClose} className="flex-1">
             Cancelar
           </Button>
-          <Button onClick={() => onConfirm(diaInicio)} className="flex-1 bg-blue-600 hover:bg-blue-700">
+          <Button onClick={() => onConfirm(diaInicio)} className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
             Autocompletar
           </Button>
         </div>
@@ -184,7 +237,9 @@ const DiaCell = ({
   guardiaNombre,
   diaNumero,
   diaSemana,
-  esFeriado
+  esFeriado,
+  modoEdicion = false,
+  diasGuardados
 }: { 
   estado: string; 
   onClick?: () => void;
@@ -193,28 +248,33 @@ const DiaCell = ({
   diaNumero: number;
   diaSemana?: string;
   esFeriado?: boolean;
+  modoEdicion?: boolean;
+  diasGuardados?: Set<string>;
 }) => {
   const getEstadoDisplay = () => {
-    switch (estado) {
-      case "TRABAJA":
+    // Normalizar el estado para comparación
+    const estadoNormalizado = estado?.toLowerCase() || '';
+    
+    switch (estadoNormalizado) {
+      case "trabaja":
         return { 
-          icon: "🟩", 
+          icon: "🟢", 
           text: "T", 
-          className: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 border-green-300",
+          className: "bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-600",
           tooltip: "Trabajando"
         };
-      case "LIBRE":
+      case "libre":
         return { 
-          icon: "⚪️", 
+          icon: "⚪", 
           text: "L", 
-          className: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border-gray-300",
+          className: "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600",
           tooltip: "Libre"
         };
       default:
         return { 
-          icon: "⬜️", 
+          icon: "⬜", 
           text: "", 
-          className: "bg-gray-50 text-gray-400 dark:bg-gray-800 dark:text-gray-600 border-gray-200",
+          className: "bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 text-gray-400 dark:text-gray-600 border-gray-200 dark:border-gray-700",
           tooltip: "Vacío"
         };
     }
@@ -222,28 +282,44 @@ const DiaCell = ({
 
   const { icon, text, className, tooltip } = getEstadoDisplay();
 
-  // Determinar si es fin de semana o feriado
-  const esFinDeSemana = diaSemana === 'sáb' || diaSemana === 'dom';
+  const esFinDeSemana = diaSemana === 'Sáb' || diaSemana === 'Dom';
   const esDiaEspecial = esFinDeSemana || esFeriado;
+  const isDiaGuardado = diasGuardados?.has(`${guardiaNombre}-${diaNumero}`);
   
-  // Clases adicionales para días especiales
-  const clasesEspeciales = esDiaEspecial ? 'ring-1 ring-orange-300 dark:ring-orange-600' : '';
-  const clasesFeriado = esFeriado ? 'bg-orange-50 dark:bg-orange-900/20' : '';
-  const clasesFinDeSemana = esFinDeSemana ? 'bg-yellow-50 dark:bg-yellow-900/20' : '';
+  const clasesEspeciales = esDiaEspecial ? 'ring-1 ring-amber-300 dark:ring-amber-600' : '';
+  const clasesFeriado = esFeriado ? 'bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20' : '';
+  const clasesFinDeSemana = esFinDeSemana ? 'bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20' : '';
+  const clasesModoEdicion = modoEdicion ? 'cursor-pointer hover:scale-105 hover:shadow-sm' : 'cursor-default opacity-90';
+  const clasesGuardado = isDiaGuardado ? 'ring-2 ring-green-400 dark:ring-green-500 shadow-sm' : '';
+
+  const handleClick = () => {
+    console.log('👆 Clic en celda detectado:', { guardiaNombre, diaNumero, estado, isDiaGuardado });
+    if (onClick) {
+      onClick();
+    }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    console.log('🖱️ Clic derecho en celda detectado:', { guardiaNombre, diaNumero, estado, isDiaGuardado });
+    if (onRightClick) {
+      onRightClick(e);
+    }
+  };
+
+  const tooltipText = `${guardiaNombre} - Día ${diaNumero} (${diaSemana || ''})${esFeriado ? ' - FERIADO' : ''}: ${tooltip}${isDiaGuardado ? ' - ✅ Guardado en BD' : ''}${!modoEdicion ? ' - Modo solo lectura' : ''}`;
 
   return (
     <TableCell 
-      className={`text-center transition-all duration-200 p-0 border-l-0 border-r-0 ${className} ${clasesEspeciales} ${clasesFeriado} ${clasesFinDeSemana} cursor-pointer hover:scale-105`}
-      onClick={onClick}
-      onContextMenu={onRightClick}
-      title={`${guardiaNombre} - Día ${diaNumero} (${diaSemana || ''})${esFeriado ? ' - FERIADO' : ''}: ${tooltip}`}
+      className={`text-center transition-all duration-200 p-0 border-l-0 border-r-0 ${className} ${clasesEspeciales} ${clasesFeriado} ${clasesFinDeSemana} ${clasesModoEdicion} ${clasesGuardado}`}
+      onClick={handleClick}
+      onContextMenu={handleContextMenu}
+      title={tooltipText}
     >
       <div className="flex flex-col items-center justify-center min-h-[2.5rem] py-1 relative">
-        {/* Día de la semana */}
         {diaSemana && (
-          <span className={`text-xs font-medium leading-none mb-1 ${
+          <span className={`text-xs font-semibold leading-none mb-1 ${
             esFeriado ? 'text-orange-600 dark:text-orange-400' : 
-            esFinDeSemana ? 'text-yellow-600 dark:text-yellow-400' : 
+            esFinDeSemana ? 'text-amber-600 dark:text-amber-400' : 
             'text-gray-500 dark:text-gray-400'
           }`}>
             {diaSemana}
@@ -251,7 +327,13 @@ const DiaCell = ({
         )}
         
         <span className="text-sm leading-none">{icon}</span>
-        {text && <span className="text-xs font-medium leading-none mt-0.5">{text}</span>}
+        {text && <span className="text-xs font-bold leading-none mt-0.5">{text}</span>}
+        
+        {/* Indicador de día guardado */}
+        {isDiaGuardado && (
+          <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full border border-white dark:border-gray-800 shadow-sm" 
+               title="Guardado en base de datos" />
+        )}
       </div>
     </TableCell>
   );
@@ -262,7 +344,9 @@ export default function PautaTable({
   diasDelMes, 
   diasSemana, 
   onUpdatePauta, 
-  onDeleteGuardia 
+  onDeleteGuardia,
+  modoEdicion = false,
+  diasGuardados
 }: PautaTableProps) {
   const [autocompletadoModal, setAutocompletadoModal] = useState<{
     isOpen: boolean;
@@ -270,22 +354,46 @@ export default function PautaTable({
     diaIndex: number;
     diaSeleccionado: number;
     diaSemanaSeleccionado: string;
-  }>({ isOpen: false, guardiaIndex: 0, diaIndex: 0, diaSeleccionado: 1, diaSemanaSeleccionado: '' });
+  }>({
+    isOpen: false,
+    guardiaIndex: 0,
+    diaIndex: 0,
+    diaSeleccionado: 1,
+    diaSemanaSeleccionado: ''
+  });
 
-  // Función para cambiar el estado de un día (click izquierdo)
+  // Estado para el modal de confirmación de eliminación
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    guardiaIndex: number | null;
+  }>({
+    isOpen: false,
+    guardiaIndex: null
+  });
+
+  const { width } = useWindowSize();
+
+  // Obtener el año y mes actual para los feriados
+  const fechaActual = new Date();
+  const year = fechaActual.getFullYear();
+  const month = fechaActual.getMonth() + 1;
+  const feriadosChile = getFeriadosChile(year, month);
+
   const cambiarEstadoDia = (guardiaIndex: number, diaIndex: number) => {
+    if (!modoEdicion) return;
+    console.log('🔄 Cambiando estado de día:', { guardiaIndex, diaIndex });
     const estadoActual = pautaData[guardiaIndex].dias[diaIndex];
-    
-    // Alternar entre TRABAJA y LIBRE
-    const nuevoEstado = estadoActual === "TRABAJA" ? "LIBRE" : "TRABAJA";
-    
+    // Normalizar estados: convertir a mayúsculas para comparación
+    const estadoNormalizado = estadoActual?.toUpperCase() || '';
+    const nuevoEstado = estadoNormalizado === "TRABAJA" ? "libre" : "trabaja";
+    console.log('🔄 Estado actual:', estadoActual, '-> Nuevo estado:', nuevoEstado);
     onUpdatePauta(guardiaIndex, diaIndex, nuevoEstado);
-    console.log("Edición de pauta mensual actualizada exitosamente");
   };
 
-  // Función para manejar clic derecho
   const handleRightClick = (e: React.MouseEvent, guardiaIndex: number, diaIndex: number) => {
+    if (!modoEdicion) return;
     e.preventDefault();
+    console.log('🖱️ Clic derecho detectado:', { guardiaIndex, diaIndex });
     const diaInfo = diasSemana[diaIndex];
     setAutocompletadoModal({
       isOpen: true,
@@ -296,23 +404,20 @@ export default function PautaTable({
     });
   };
 
-  // Función para autocompletar pauta
   const autocompletarPauta = (diaInicio: number) => {
     const { guardiaIndex, diaSeleccionado } = autocompletadoModal;
     const guardia = pautaData[guardiaIndex];
     
-    // Extraer el tipo de turno del patrón
     const extraerTipoTurno = (patron: string): string => {
       if (patron.includes("4x4")) return "4x4";
       if (patron.includes("5x2")) return "5x2";
       if (patron.includes("7x7")) return "7x7";
       if (patron.includes("6x1")) return "6x1";
-      return "4x4"; // Por defecto
+      return "4x4";
     };
     
     const tipoTurno = extraerTipoTurno(guardia.rol_servicio.patron_turno);
     
-    // Definir patrones de turnos
     const patrones = {
       "4x4": { trabajo: 4, libre: 4 },
       "5x2": { trabajo: 5, libre: 2 },
@@ -323,68 +428,93 @@ export default function PautaTable({
     const patron = patrones[tipoTurno as keyof typeof patrones];
     const cicloCompleto = patron.trabajo + patron.libre;
     
-    // Aplicar patrón solo desde el día seleccionado hacia adelante
     for (let i = 0; i < guardia.dias.length; i++) {
-      // Solo procesar días desde el día seleccionado hacia adelante
-      if (i < diaSeleccionado - 1) {
-        continue; // Saltar días anteriores al seleccionado
-      }
+      if (i < diaSeleccionado - 1) continue;
       
-      // Calcular la diferencia desde el día seleccionado
       const diferenciaDesdeSeleccionado = i - (diaSeleccionado - 1);
-      
-      // Calcular qué día del ciclo corresponde
       const diaDelCiclo = (diaInicio + diferenciaDesdeSeleccionado - 1) % cicloCompleto;
-      
-      // Para 4x4: días 0,1,2,3 son trabajo, días 4,5,6,7 son libre
       const esDiaTrabajo = diaDelCiclo < patron.trabajo;
       
-      // Aplicar el nuevo estado
-      onUpdatePauta(guardiaIndex, i, esDiaTrabajo ? "TRABAJA" : "LIBRE");
+      onUpdatePauta(guardiaIndex, i, esDiaTrabajo ? "trabaja" : "libre");
     }
     
     setAutocompletadoModal({ isOpen: false, guardiaIndex: 0, diaIndex: 0, diaSeleccionado: 1, diaSemanaSeleccionado: '' });
-    console.log("Edición de pauta mensual actualizada exitosamente");
   };
 
-  // Función para eliminar pauta de un guardia
   const eliminarPautaGuardia = (guardiaIndex: number) => {
-    if (confirm(`¿Estás seguro de que quieres eliminar toda la pauta de ${pautaData[guardiaIndex].nombre}?`)) {
-      onDeleteGuardia(guardiaIndex);
-      console.log("Edición de pauta mensual actualizada exitosamente");
+    if (!modoEdicion) return;
+    setDeleteModal({
+      isOpen: true,
+      guardiaIndex: guardiaIndex
+    });
+  };
+
+  const confirmarEliminarPauta = async () => {
+    if (deleteModal.guardiaIndex !== null) {
+      onDeleteGuardia(deleteModal.guardiaIndex);
+      setDeleteModal({ isOpen: false, guardiaIndex: null });
     }
   };
 
+  // Calcular cuántos días mostrar por página para ajustarse a la pantalla
+  const diasPorPagina = Math.floor((width - 300) / 35); // 300px para columna guardia, 35px por día
+  const diasAMostrar = Math.min(diasDelMes.length, Math.max(7, diasPorPagina)); // Mínimo 7 días, máximo según pantalla
+
   return (
     <div className="space-y-4">
-      {/* Leyenda simplificada */}
-      <div className="flex items-center gap-4 text-xs text-muted-foreground px-3">
-        <span>🟩 = Trabajado</span>
-        <span>⚪️ = Libre</span>
+      {/* Header con estadísticas */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Pauta Mensual</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {pautaData.length} guardia{pautaData.length !== 1 ? 's' : ''} • {diasDelMes.length} días
+            </p>
+          </div>
+        </div>
+        
+        {/* Leyenda mejorada */}
+        <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 border border-emerald-300 dark:border-emerald-600 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300">Trabajando</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 border border-gray-300 dark:border-gray-600 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300">Libre</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-300 dark:border-orange-600 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300">Feriado</span>
+          </div>
+        </div>
       </div>
 
-      {/* Tabla de pauta */}
-      <div className="overflow-x-auto">
-        <Table className="border-collapse w-full">
+      {/* Tabla de pauta - Ajustada a pantalla sin scroll horizontal */}
+      <div className="border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+        <Table className="w-full">
           <TableHeader>
-            <TableRow className="bg-gray-50 dark:bg-gray-800">
-              <TableHead className="font-semibold text-left p-3 border-r-0" style={{width: '1%', whiteSpace: 'nowrap'}}>
+            <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
+              <TableHead className="font-semibold text-left p-4 border-r border-gray-200 dark:border-gray-700" style={{width: '200px', minWidth: '200px'}}>
                 Guardia
               </TableHead>
-              {diasDelMes.map((dia) => {
+              {diasDelMes.slice(0, diasAMostrar).map((dia) => {
                 const diaInfo = diasSemana[dia - 1];
-                const esFinDeSemana = diaInfo?.diaSemana === 'sáb' || diaInfo?.diaSemana === 'dom';
-                const esFeriado = diaInfo?.esFeriado;
-                const clasesEspeciales = esFeriado ? 'bg-orange-100 dark:bg-orange-900/30' : 
-                                       esFinDeSemana ? 'bg-yellow-100 dark:bg-yellow-900/30' : '';
+                const esFinDeSemana = diaInfo?.diaSemana === 'Sáb' || diaInfo?.diaSemana === 'Dom';
+                const esFeriado = diaInfo?.esFeriado || feriadosChile.includes(dia);
+                const clasesEspeciales = esFeriado ? 'bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30' : 
+                                           esFinDeSemana ? 'bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30' : '';
                 
                 return (
-                  <TableHead key={dia} className={`font-semibold text-center w-[32px] p-2 border-l-0 ${clasesEspeciales}`}>
-                    <div className="text-sm font-bold">{dia}</div>
+                  <TableHead key={dia} className={`font-semibold text-center p-2 border-l border-gray-200 dark:border-gray-700 ${clasesEspeciales}`} style={{width: '35px', minWidth: '35px'}}>
+                    <div className="text-xs font-bold text-gray-900 dark:text-white">{dia}</div>
                     {diaInfo?.diaSemana && (
-                      <div className={`text-xs mt-1 ${
+                      <div className={`text-xs mt-1 font-medium ${
                         esFeriado ? 'text-orange-600 dark:text-orange-400' : 
-                        esFinDeSemana ? 'text-yellow-600 dark:text-yellow-400' : 
+                        esFinDeSemana ? 'text-amber-600 dark:text-amber-400' : 
                         'text-gray-500 dark:text-gray-400'
                       }`}>
                         {diaInfo.diaSemana}
@@ -397,29 +527,43 @@ export default function PautaTable({
           </TableHeader>
           <TableBody>
             {pautaData.map((guardia, guardiaIndex) => (
-              <TableRow key={guardiaIndex} className="hover:bg-gray-50 dark:hover:bg-gray-800 group">
-                <TableCell className="p-3 border-r-0 whitespace-nowrap relative">
-                  <div className="flex items-center gap-2">
-                    {/* Ícono de eliminar */}
-                    <button
-                      onClick={() => eliminarPautaGuardia(guardiaIndex)}
-                      className="p-1 rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 transition-colors duration-200"
-                      title="Eliminar pauta de este guardia"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
+              <TableRow key={guardiaIndex} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 group border-b border-gray-200 dark:border-gray-700">
+                <TableCell className="p-4 border-r border-gray-200 dark:border-gray-700 whitespace-nowrap relative">
+                  <div className="flex items-center gap-3">
+                    {/* Botón eliminar */}
+                    {modoEdicion && (
+                      <button
+                        onClick={() => eliminarPautaGuardia(guardiaIndex)}
+                        className="p-1.5 rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110"
+                        title="Eliminar pauta de este guardia"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                     
                     {/* Información del guardia */}
-                    <div className="space-y-1">
-                      <div className="font-medium text-sm">{guardia.nombre}</div>
-                      <div className="text-xs text-muted-foreground leading-tight">
-                        {guardia.rol_servicio.patron_turno}
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <div className={`font-semibold text-sm truncate ${
+                        guardia.tipo === 'ppc' 
+                          ? 'text-orange-600 dark:text-orange-400' 
+                          : 'text-gray-900 dark:text-white'
+                      }`}>
+                        {guardia.tipo === 'ppc' ? acortarNombrePPC(guardia.nombre) : guardia.nombre}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight">
+                        <span className="font-medium">{guardia.rol_servicio.patron_turno}</span>
+                        {guardia.tipo === 'ppc' && (
+                          <span className="ml-2 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full text-xs font-medium">
+                            PPC
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
                 </TableCell>
-                {guardia.dias.map((estado, diaIndex) => {
+                {guardia.dias.slice(0, diasAMostrar).map((estado, diaIndex) => {
                   const diaInfo = diasSemana[diaIndex];
+                  const esFeriado = diaInfo?.esFeriado || feriadosChile.includes(diaIndex + 1);
                   return (
                     <DiaCell
                       key={diaIndex}
@@ -429,7 +573,9 @@ export default function PautaTable({
                       guardiaNombre={guardia.nombre}
                       diaNumero={diaIndex + 1}
                       diaSemana={diaInfo?.diaSemana}
-                      esFeriado={diaInfo?.esFeriado}
+                      esFeriado={esFeriado}
+                      modoEdicion={modoEdicion}
+                      diasGuardados={diasGuardados}
                     />
                   );
                 })}
@@ -437,6 +583,34 @@ export default function PautaTable({
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Instrucciones */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
+        <div className="flex items-start gap-3">
+          <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-gray-700 dark:text-gray-300">
+            <p className="font-medium text-gray-900 dark:text-white mb-1">
+              {modoEdicion ? 'Instrucciones (Modo Edición):' : 'Instrucciones (Modo Solo Lectura):'}
+            </p>
+            <ul className="space-y-1 text-xs">
+              {modoEdicion ? (
+                <>
+                  <li>• <strong>Clic izquierdo:</strong> Cambiar entre Trabajando/Libre</li>
+                  <li>• <strong>Clic derecho:</strong> Autocompletar patrón desde ese día</li>
+                  <li>• <strong>Fines de semana:</strong> Resaltados en amarillo</li>
+                  <li>• <strong>Feriados Chile:</strong> Resaltados en naranja</li>
+                </>
+              ) : (
+                <>
+                  <li>• <strong>Presiona "Editar Pauta"</strong> para habilitar la edición</li>
+                  <li>• <strong>Fines de semana:</strong> Resaltados en amarillo</li>
+                  <li>• <strong>Feriados Chile:</strong> Resaltados en naranja</li>
+                </>
+              )}
+            </ul>
+          </div>
+        </div>
       </div>
 
       {/* Modal de autocompletado */}
@@ -449,6 +623,15 @@ export default function PautaTable({
         diaSeleccionado={autocompletadoModal.diaSeleccionado}
         diaSemanaSeleccionado={autocompletadoModal.diaSemanaSeleccionado}
       />
+
+              {/* Modal de confirmación de eliminación */}
+        <ConfirmDeleteModal
+          isOpen={deleteModal.isOpen}
+          onClose={() => setDeleteModal({ isOpen: false, guardiaIndex: null })}
+          onConfirm={confirmarEliminarPauta}
+          title="Eliminar Turnos Asignados"
+          message={`¿Estás seguro de que quieres eliminar todos los turnos asignados de ${deleteModal.guardiaIndex !== null ? pautaData[deleteModal.guardiaIndex]?.nombre : ''}? Esta acción limpiará la programación pero mantendrá al guardia en la lista.`}
+        />
     </div>
   );
 } 

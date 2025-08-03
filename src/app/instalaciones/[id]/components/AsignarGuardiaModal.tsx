@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { SafeFilterInput } from '@/components/ui/safe-filter-input';
+// import { UltraSimpleInput } from '@/components/ui/ultra-simple-input';
 import { SafeSelect } from '@/components/ui/safe-select';
 import { SelectContent, SelectItem } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
@@ -60,8 +60,6 @@ export default function AsignarGuardiaModal({
     
     return false;
   });
-
-
 
   // Limpiar estado cuando se abre/cierra el modal
   useEffect(() => {
@@ -124,8 +122,6 @@ export default function AsignarGuardiaModal({
     onClose();
   };
 
-
-
   if (!isOpen) return null;
 
   return (
@@ -159,11 +155,12 @@ export default function AsignarGuardiaModal({
                   <div className="p-2 border-b">
                     <div className="relative">
                       <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
-                      <SafeFilterInput
-                        placeholder="Filtrar por apellido o RUT..."
+                      <input
+                        type="text"
                         value={filtroGuardias}
-                        onChange={setFiltroGuardias}
-                        className="pl-8 h-8 text-xs border-0 focus-visible:ring-0"
+                        onChange={(e) => setFiltroGuardias(e.target.value)}
+                        placeholder="Filtrar por apellido o RUT..."
+                        className="w-full pl-8 h-8 text-xs border-0 focus-visible:ring-0 bg-transparent placeholder:text-gray-400 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-0 focus:border-0"
                       />
                     </div>
                   </div>
