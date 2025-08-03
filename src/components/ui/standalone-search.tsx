@@ -22,7 +22,6 @@ const StandaloneSearch = React.forwardRef<HTMLInputElement, StandaloneSearchProp
       // Prevenir cualquier propagación de eventos
       e.preventDefault();
       e.stopPropagation();
-      e.stopImmediatePropagation();
       
       // Actualizar el valor directamente
       const newValue = e.target.value;
@@ -34,7 +33,6 @@ const StandaloneSearch = React.forwardRef<HTMLInputElement, StandaloneSearchProp
       // Prevenir cualquier propagación de eventos
       e.preventDefault();
       e.stopPropagation();
-      e.stopImmediatePropagation();
     }, []);
 
     // Manejar focus de forma completamente independiente
@@ -42,7 +40,6 @@ const StandaloneSearch = React.forwardRef<HTMLInputElement, StandaloneSearchProp
       // Prevenir cualquier propagación de eventos
       e.preventDefault();
       e.stopPropagation();
-      e.stopImmediatePropagation();
     }, []);
 
     // Manejar blur de forma completamente independiente
@@ -50,7 +47,6 @@ const StandaloneSearch = React.forwardRef<HTMLInputElement, StandaloneSearchProp
       // Prevenir cualquier propagación de eventos
       e.preventDefault();
       e.stopPropagation();
-      e.stopImmediatePropagation();
     }, []);
 
     // Auto focus si se solicita

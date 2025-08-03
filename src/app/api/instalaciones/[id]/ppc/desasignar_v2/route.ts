@@ -60,9 +60,7 @@ export async function POST(
       UPDATE as_turnos_puestos_operativos 
       SET es_ppc = true,
           guardia_id = NULL,
-          fecha_asignacion = NULL,
-          observaciones = CONCAT(COALESCE(observaciones, ''), ' - Desasignado guardia: ', now()),
-          updated_at = NOW()
+          fecha_asignacion = NULL
       WHERE id = $1
       RETURNING *
     `, [puesto_operativo_id]);

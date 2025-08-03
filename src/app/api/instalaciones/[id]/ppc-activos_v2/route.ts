@@ -19,7 +19,6 @@ export async function GET(
         po.nombre_puesto,
         po.es_ppc,
         po.creado_en as created_at,
-        po.observaciones,
         rs.nombre as rol_nombre,
         rs.hora_inicio,
         rs.hora_termino,
@@ -46,8 +45,7 @@ export async function GET(
         guardias_requeridos: 1,
         creado: ppc.created_at,
         estado: 'Pendiente',
-        nombre_puesto: ppc.nombre_puesto,
-        observaciones: ppc.observaciones
+        nombre_puesto: ppc.nombre_puesto
       };
     });
 

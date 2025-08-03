@@ -8,15 +8,14 @@ async function migrarDatosHistoricos() {
     console.log('📊 Migrando asignaciones activas...');
     
     const migracionAsignaciones = await query(`
-      INSERT INTO as_turnos_puestos_operativos (instalacion_id, rol_id, guardia_id, es_ppc, nombre_puesto, creado_en, observaciones)
+      INSERT INTO as_turnos_puestos_operativos (instalacion_id, rol_id, guardia_id, es_ppc, nombre_puesto, creado_en)
       SELECT 
         tr.instalacion_id, 
         tr.rol_servicio_id, 
         ta.guardia_id, 
         false as es_ppc,
         CONCAT(rs.nombre, ' - Puesto ', ROW_NUMBER() OVER (PARTITION BY tr.instalacion_id, tr.rol_servicio_id ORDER BY ta.id)) as nombre_puesto,
-        ta.created_at as creado_en,
-        CONCAT('Migrado desde asignación histórica - ', ta.observaciones) as observaciones
+        ta.created_at as creado_en
       FROM as_turnos_asignaciones ta
       INNER JOIN as_turnos_requisitos tr ON ta.requisito_puesto_id = tr.id
       INNER JOIN as_turnos_roles_servicio rs ON tr.rol_servicio_id = rs.id
@@ -30,15 +29,14 @@ async function migrarDatosHistoricos() {
     console.log('📊 Creando PPCs para puestos sin asignación...');
     
     const migracionPPCs = await query(`
-      INSERT INTO as_turnos_puestos_operativos (instalacion_id, rol_id, guardia_id, es_ppc, nombre_puesto, creado_en, observaciones)
+      INSERT INTO as_turnos_puestos_operativos (instalacion_id, rol_id, guardia_id, es_ppc, nombre_puesto, creado_en)
       SELECT 
         tr.instalacion_id, 
         tr.rol_servicio_id, 
         NULL as guardia_id, 
         true as es_ppc,
         CONCAT(rs.nombre, ' - PPC ', ROW_NUMBER() OVER (PARTITION BY tr.instalacion_id, tr.rol_servicio_id ORDER BY tr.id)) as nombre_puesto,
-        NOW() as creado_en,
-        'PPC creado durante migración histórica' as observaciones
+        NOW() as creado_en
       FROM as_turnos_requisitos tr
       INNER JOIN as_turnos_roles_servicio rs ON tr.rol_servicio_id = rs.id
       WHERE NOT EXISTS (

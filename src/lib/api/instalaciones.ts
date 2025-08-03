@@ -240,7 +240,7 @@ export const logCambioEstadoInstalacion = async (instalacionId: string, nuevoEst
 // Funciones para turnos de instalación
 export async function getTurnosInstalacion(instalacionId: string): Promise<TurnoInstalacionConDetalles[]> {
   try {
-    const response = await fetch(`/api/instalaciones/${instalacionId}/turnos`, {
+    const response = await fetch(`/api/instalaciones/${instalacionId}/turnos_v2`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -278,23 +278,27 @@ export async function getRolesServicio(): Promise<RolServicio[]> {
   }
 }
 
-export async function crearTurnoInstalacion(data: CrearTurnoInstalacionData): Promise<TurnoInstalacion> {
+export async function crearTurnoInstalacion(data: CrearTurnoInstalacionData): Promise<any> {
   try {
-    const response = await fetch(`/api/instalaciones/${data.instalacion_id}/turnos`, {
+    const response = await fetch(`/api/instalaciones/${data.instalacion_id}/turnos_v2`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        rol_servicio_id: data.rol_servicio_id,
+        cantidad_guardias: data.cantidad_guardias
+      }),
     });
 
     if (!response.ok) {
-      throw new Error(`Error al crear turno: ${response.statusText}`);
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al crear turno');
     }
 
     return await response.json();
   } catch (error) {
-    console.error('Error creando turno de instalación:', error);
+    console.error('Error creando turno:', error);
     throw error;
   }
 }
@@ -367,7 +371,7 @@ export async function eliminarRolServicio(rolId: string): Promise<any> {
 
 export async function eliminarTurnoInstalacion(instalacionId: string, turnoId: string): Promise<any> {
   try {
-    const response = await fetch(`/api/instalaciones/${instalacionId}/turnos/${turnoId}`, {
+    const response = await fetch(`/api/instalaciones/${instalacionId}/turnos/${turnoId}/eliminar_turno_v2`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -376,12 +380,12 @@ export async function eliminarTurnoInstalacion(instalacionId: string, turnoId: s
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || `Error al eliminar puestos: ${response.statusText}`);
+      throw new Error(errorData.error || 'Error al eliminar turno');
     }
 
     return await response.json();
   } catch (error) {
-    console.error('Error eliminando puestos del turno:', error);
+    console.error('Error eliminando turno:', error);
     throw error;
   }
 } 
@@ -401,10 +405,26 @@ export async function getGuardiasDisponibles(): Promise<any[]> {
   }
 }
 
+// Obtener PPCs activos de una instalación
+export async function getPPCsActivosInstalacion(instalacionId: string): Promise<any[]> {
+  try {
+    const response = await fetch(`/api/instalaciones/${instalacionId}/ppc-activos_v2`);
+    
+    if (!response.ok) {
+      throw new Error(`Error al obtener PPCs activos: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error obteniendo PPCs activos:', error);
+    throw error;
+  }
+}
+
 // Desasignar guardia de un PPC
 export async function desasignarGuardiaPPC(instalacionId: string, ppcId: string): Promise<any> {
   try {
-    const response = await fetch(`/api/instalaciones/${instalacionId}/ppc/${ppcId}/desasignar`, {
+    const response = await fetch(`/api/instalaciones/${instalacionId}/ppc/${ppcId}/desasignar_v2`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
