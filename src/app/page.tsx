@@ -173,9 +173,9 @@ export default function HomePage() {
   }, []);
 
   // Calcular estadísticas de vencimientos
-  const vencidos = alertas.filter(a => a.dias_restantes < 0).length;
-  const vencenHoy = alertas.filter(a => a.dias_restantes === 0).length;
-  const criticos = alertas.filter(a => a.dias_restantes > 0 && a.dias_restantes <= 7).length;
+  const vencidos = alertas.filter((a: AlertaDocumento) => a.dias_restantes < 0).length;
+  const vencenHoy = alertas.filter((a: AlertaDocumento) => a.dias_restantes === 0).length;
+  const criticos = alertas.filter((a: AlertaDocumento) => a.dias_restantes > 0 && a.dias_restantes <= 7).length;
   const totalAlertas = alertas.length;
 
   const getAlertaColor = () => {

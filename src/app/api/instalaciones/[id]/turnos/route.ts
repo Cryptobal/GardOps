@@ -162,7 +162,7 @@ export async function POST(
       message: 'Turno creado exitosamente',
       puestos: puestosCreados.rows,
       total_puestos: puestosCreados.rows.length,
-      ppcs_activos: puestosCreados.rows.filter(p => p.es_ppc).length
+      ppcs_activos: puestosCreados.rows.filter((p: any) => p.es_ppc).length
     }, { status: 201 });
   } catch (error) {
     console.error('Error creando turno de instalación:', error);

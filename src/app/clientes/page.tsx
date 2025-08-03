@@ -122,8 +122,8 @@ export default function ClientesPage() {
   // Calcular KPIs
   const kpis = useMemo(() => {
     const total = clientes.length;
-    const activos = clientes.filter(c => c.estado === "Activo").length;
-    const inactivos = clientes.filter(c => c.estado === "Inactivo").length;
+    const activos = clientes.filter((c: Cliente) => c.estado === "Activo").length;
+    const inactivos = clientes.filter((c: Cliente) => c.estado === "Inactivo").length;
 
     return {
       total,

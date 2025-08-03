@@ -98,10 +98,10 @@ export default function AlertasPage() {
   }, [cargarAlertas]);
 
   // Calcular KPIs basados en alertas filtradas
-  const vencidos = alertasFiltradas.filter(a => a.dias_restantes < 0).length;
-  const vencenHoy = alertasFiltradas.filter(a => a.dias_restantes === 0).length;
-  const criticos = alertasFiltradas.filter(a => a.dias_restantes > 0 && a.dias_restantes <= 7).length;
-  const proximosVencer = alertasFiltradas.filter(a => a.dias_restantes > 7 && a.dias_restantes <= 30).length;
+  const vencidos = alertasFiltradas.filter((a: AlertaDocumento) => a.dias_restantes < 0).length;
+  const vencenHoy = alertasFiltradas.filter((a: AlertaDocumento) => a.dias_restantes === 0).length;
+  const criticos = alertasFiltradas.filter((a: AlertaDocumento) => a.dias_restantes > 0 && a.dias_restantes <= 7).length;
+  const proximosVencer = alertasFiltradas.filter((a: AlertaDocumento) => a.dias_restantes > 7 && a.dias_restantes <= 30).length;
 
   const abrirModalEditar = (alerta: AlertaDocumento) => {
     setDocumentoEditando(alerta);

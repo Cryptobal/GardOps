@@ -17,12 +17,12 @@ export function useToast() {
 
     // Auto remove after 5 seconds
     setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
+      setToasts(prev => prev.filter((t: Toast) => t.id !== id));
     }, 5000);
   }, []);
 
   const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
+    setToasts(prev => prev.filter((t: Toast) => t.id !== id));
   }, []);
 
   const success = useCallback((title: string, description?: string) => {

@@ -301,10 +301,10 @@ export default function CrearPautaMensualPage() {
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-blue-600" />
                 <span className="text-sm">
-                  {instalacion.guardias.filter(g => g.tipo === 'asignado').length} guardias asignados
-                  {instalacion.guardias.filter(g => g.tipo === 'ppc').length > 0 && (
+                  {instalacion.guardias.filter((g: Guardia) => g.tipo === 'asignado').length} guardias asignados
+                  {instalacion.guardias.filter((g: Guardia) => g.tipo === 'ppc').length > 0 && (
                     <span className="text-orange-600 dark:text-orange-400">
-                      {' '}+ {instalacion.guardias.filter(g => g.tipo === 'ppc').length} PPCs
+                      {' '}+ {instalacion.guardias.filter((g: Guardia) => g.tipo === 'ppc').length} PPCs
                     </span>
                   )}
                 </span>

@@ -39,7 +39,7 @@ export function FilterBar({
 }: FilterBarProps) {
   const [openPopover, setOpenPopover] = useState<string | null>(null);
 
-  const activeFiltersCount = Object.values(values).filter(v => v && v !== "" && v !== "Todos").length;
+  const activeFiltersCount = Object.values(values).filter((v: string) => v && v !== "" && v !== "Todos").length;
 
   const handleFilterChange = (key: string, value: string) => {
     onFilterChange(key, value);
