@@ -62,8 +62,8 @@ export async function GET(request: NextRequest) {
     });
 
     // Separar instalaciones con y sin pauta
-    const instalacionesConPauta = [];
-    const instalacionesSinPauta = [];
+    const instalacionesConPauta: any[] = [];
+    const instalacionesSinPauta: any[] = [];
 
     instalacionesResult.rows.forEach((instalacion: any) => {
       if (instalacionesConPautaMap.has(instalacion.id)) {
