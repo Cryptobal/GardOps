@@ -46,11 +46,11 @@ export async function PUT(request: NextRequest) {
       success: true, 
       data: result.rows[0] 
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Error actualizando fecha de vencimiento:', error);
     return NextResponse.json({ 
       success: false, 
-      error: error.message 
+      error: error instanceof Error ? error.message : 'Error desconocido'
     }, { status: 500 });
   }
 } 

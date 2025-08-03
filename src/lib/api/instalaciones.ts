@@ -187,7 +187,7 @@ export const obtenerComunas = async (): Promise<Comuna[]> => {
 
 // Obtener estadísticas de instalación
 export const obtenerEstadisticasInstalacion = async (instalacionId: string) => {
-  const response = await fetch(`/api/instalaciones/${instalacionId}/estadisticas`);
+  const response = await fetch(`/api/instalaciones/${instalacionId}/estadisticas_v2`);
   const result = await response.json();
   
   if (!result.success) {

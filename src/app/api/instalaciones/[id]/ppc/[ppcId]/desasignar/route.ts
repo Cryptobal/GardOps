@@ -5,6 +5,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string; ppcId: string } }
 ) {
+  console.log("🔁 Endpoint activo: /api/instalaciones/[id]/ppc/[ppcId]/desasignar");
+  
   try {
     const instalacionId = params.id;
     const ppcId = params.ppcId;

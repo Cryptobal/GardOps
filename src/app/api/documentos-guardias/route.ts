@@ -40,11 +40,11 @@ export async function GET(request: NextRequest) {
       success: true, 
       data: result.rows 
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Error obteniendo documentos del guardia:', error);
     return NextResponse.json({ 
       success: false, 
-      error: error.message 
+      error: error instanceof Error ? error.message : 'Error desconocido'
     }, { status: 500 });
   }
 }
@@ -94,11 +94,11 @@ export async function PUT(request: NextRequest) {
       success: true, 
       data: result.rows[0] 
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Error actualizando fecha de vencimiento:', error);
     return NextResponse.json({ 
       success: false, 
-      error: error.message 
+      error: error instanceof Error ? error.message : 'Error desconocido'
     }, { status: 500 });
   }
 } 
