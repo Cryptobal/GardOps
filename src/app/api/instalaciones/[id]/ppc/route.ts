@@ -31,7 +31,9 @@ export async function GET(
       FROM as_turnos_puestos_operativos po
       LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       LEFT JOIN guardias g ON po.guardia_id = g.id
-      WHERE po.instalacion_id = $1 AND (po.es_ppc = true OR po.guardia_id IS NOT NULL)
+      WHERE po.instalacion_id = $1 
+        AND (po.es_ppc = true OR po.guardia_id IS NOT NULL)
+        AND po.activo = true
       ORDER BY po.creado_en DESC
     `, [instalacionId]);
 
@@ -66,7 +68,7 @@ export async function POST(
     const ppcCheck = await query(`
       SELECT po.id, po.rol_id
       FROM as_turnos_puestos_operativos po
-      WHERE po.id = $1 AND po.instalacion_id = $2 AND po.es_ppc = true
+      WHERE po.id = $1 AND po.instalacion_id = $2 AND po.es_ppc = true AND po.activo = true
     `, [ppc_id, instalacionId]);
 
     if (ppcCheck.rows.length === 0) {
@@ -92,7 +94,7 @@ export async function POST(
     // Verificar que no hay asignación activa para este guardia
     const asignacionExistente = await query(`
       SELECT id FROM as_turnos_puestos_operativos
-      WHERE guardia_id = $1 AND es_ppc = false
+      WHERE guardia_id = $1 AND es_ppc = false AND activo = true
     `, [guardia_id]);
 
     if (asignacionExistente.rows.length > 0) {

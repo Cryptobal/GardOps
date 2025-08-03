@@ -25,18 +25,20 @@ export async function DELETE(
 
     const turno = turnoResult.rows[0];
 
-    // Eliminar en orden: asignaciones -> puestos_operativos
+    // Eliminar puestos operativos del turno
+    // Migrado al nuevo modelo as_turnos_puestos_operativos
     await query('BEGIN');
 
     try {
-      // 1. Eliminar asignaciones de guardias (usando requisito_puesto_id)
+      // 1. Desasignar guardias de los puestos del turno
       await query(`
-        DELETE FROM as_turnos_asignaciones 
-        WHERE requisito_puesto_id IN (
-          SELECT id FROM as_turnos_requisitos 
-          WHERE rol_servicio_id = $1 AND instalacion_id = $2
-        )
-      `, [turno.rol_id, instalacionId]);
+        UPDATE as_turnos_puestos_operativos 
+        SET es_ppc = true,
+            guardia_id = NULL,
+            actualizado_en = CURRENT_DATE,
+            observaciones = CONCAT(COALESCE(observaciones, ''), ' - Turno eliminado: ', now())
+        WHERE rol_id = $1 AND instalacion_id = $2 AND es_ppc = false
+      `, [turnoId, instalacionId]);
 
       // 2. Eliminar puestos operativos del turno
       await query(`

@@ -9,13 +9,14 @@ export async function POST(
     const guardiaId = params.id;
 
     // Terminar la asignación actual activa
+    // Migrado al nuevo modelo as_turnos_puestos_operativos
     const result = await query(`
-      UPDATE as_turnos_asignaciones 
+      UPDATE as_turnos_puestos_operativos 
       SET 
-        estado = 'Finalizada',
-        fecha_termino = CURRENT_DATE,
-        motivo_termino = 'Cambio de asignación'
-      WHERE guardia_id = $1 AND estado = 'Activa'
+        es_ppc = true,
+        guardia_id = NULL,
+        actualizado_en = CURRENT_DATE
+      WHERE guardia_id = $1 AND es_ppc = false
       RETURNING *
     `, [guardiaId]);
 

@@ -52,14 +52,33 @@ export async function registrarFiniquito({ guardiaId, fecha_termino }: {
       WHERE guardia_id = $1 AND dia >= $2
     `, [guardiaId, fechaDesde]);
 
-    // Crear PPCs para cada turno eliminado
+    // Crear PPCs para cada turno eliminado usando el nuevo modelo
     let ppcsCreados = 0;
     for (const turno of turnosEliminados.rows) {
-      await query(`
-        INSERT INTO as_turnos_ppc (fecha_deteccion, requisito_puesto_id, prioridad, motivo, tenant_id, estado)
-        VALUES ($1, $2, 'alta', 'finiquito', $3, 'pendiente')
-      `, [turno.fecha, turno.rol_servicio_id, 'accebf8a-bacc-41fa-9601-ed39cb320a52']);
-      ppcsCreados++;
+      // Buscar puestos operativos disponibles para esta instalación y rol
+      const puestosDisponibles = await query(`
+        SELECT id, nombre_puesto
+        FROM as_turnos_puestos_operativos
+        WHERE instalacion_id = $1 
+          AND rol_id = $2 
+          AND guardia_id IS NULL
+          AND es_ppc = true
+        LIMIT 1
+      `, [turno.instalacion_id, turno.rol_servicio_id]);
+
+      if (puestosDisponibles.rows.length > 0) {
+        // Marcar el puesto como PPC pendiente
+        await query(`
+          UPDATE as_turnos_puestos_operativos
+          SET es_ppc = true, guardia_id = NULL
+          WHERE id = $1
+        `, [puestosDisponibles.rows[0].id]);
+        
+        ppcsCreados++;
+        console.log(`✅ PPC creado para puesto ${puestosDisponibles.rows[0].nombre_puesto} en ${turno.fecha}`);
+      } else {
+        console.log(`⚠️ No se encontró puesto operativo disponible para ${turno.instalacion_id} - ${turno.rol_servicio_id}`);
+      }
     }
 
     console.log(`✅ Creados ${ppcsCreados} PPCs por finiquito`);

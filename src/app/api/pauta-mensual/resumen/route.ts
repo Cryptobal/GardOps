@@ -82,34 +82,36 @@ export async function GET(request: NextRequest) {
     const instalacionesSinPautaDetalladas = await Promise.all(
       instalacionesSinPauta.map(async (instalacion) => {
         // Obtener roles de servicio
+        // Migrado al nuevo modelo as_turnos_puestos_operativos
         const rolesResult = await query(`
           SELECT 
             rs.id,
             rs.nombre as rol_nombre,
-            tc.cantidad_guardias
-          FROM as_turnos_configuracion tc
-          INNER JOIN as_turnos_roles_servicio rs ON tc.rol_servicio_id = rs.id
-          WHERE tc.instalacion_id = $1 AND tc.estado = 'Activo'
+            COUNT(*) as cantidad_guardias
+          FROM as_turnos_puestos_operativos po
+          INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+          WHERE po.instalacion_id = $1
+          GROUP BY rs.id, rs.nombre
           ORDER BY rs.nombre
         `, [instalacion.id]);
 
         // Obtener guardias asignados
+        // Migrado al nuevo modelo as_turnos_puestos_operativos
         const guardiasResult = await query(`
           SELECT COUNT(DISTINCT g.id) as cantidad_guardias
           FROM guardias g
-          INNER JOIN as_turnos_asignaciones ta ON g.id = ta.guardia_id
-          INNER JOIN as_turnos_requisitos tr ON ta.requisito_puesto_id = tr.id
-          WHERE tr.instalacion_id = $1 
+          INNER JOIN as_turnos_puestos_operativos po ON g.id = po.guardia_id
+          WHERE po.instalacion_id = $1 
             AND g.activo = true 
-            AND ta.estado = 'Activa'
+            AND po.es_ppc = false
         `, [instalacion.id]);
 
         // Obtener PPCs activos
+        // Migrado al nuevo modelo as_turnos_puestos_operativos
         const ppcsResult = await query(`
           SELECT COUNT(*) as cantidad_ppcs
-          FROM as_turnos_ppc ppc
-          INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
-          WHERE tr.instalacion_id = $1 AND ppc.estado = 'Pendiente'
+          FROM as_turnos_puestos_operativos po
+          WHERE po.instalacion_id = $1 AND po.es_ppc = true AND po.estado = 'Pendiente'
         `, [instalacion.id]);
 
         return {

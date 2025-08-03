@@ -11,14 +11,16 @@ export async function GET(request: Request) {
     const fechaDesde = searchParams.get('fechaDesde');
     const fechaHasta = searchParams.get('fechaHasta');
 
-    let whereConditions = [];
+    let whereConditions = ['po.es_ppc = true']; // Siempre filtrar por PPC
     let params: any[] = [];
     let paramIndex = 1;
 
     if (estado && estado !== 'all') {
-      whereConditions.push(`ppc.estado = $${paramIndex}`);
-      params.push(estado);
-      paramIndex++;
+      if (estado === 'Pendiente') {
+        whereConditions.push(`po.guardia_id IS NULL`);
+      } else if (estado === 'Cubierto') {
+        whereConditions.push(`po.guardia_id IS NOT NULL`);
+      }
     }
 
     if (instalacion && instalacion !== 'all') {
@@ -33,51 +35,41 @@ export async function GET(request: Request) {
       paramIndex++;
     }
 
-    if (prioridad && prioridad !== 'all') {
-      whereConditions.push(`ppc.prioridad = $${paramIndex}`);
-      params.push(prioridad);
-      paramIndex++;
-    }
+    // Prioridad no existe en la tabla actual, se omite
 
     if (fechaDesde) {
-      whereConditions.push(`ppc.created_at >= $${paramIndex}`);
+      whereConditions.push(`po.creado_en >= $${paramIndex}`);
       params.push(fechaDesde);
       paramIndex++;
     }
 
     if (fechaHasta) {
-      whereConditions.push(`ppc.created_at <= $${paramIndex}`);
+      whereConditions.push(`po.creado_en <= $${paramIndex}`);
       params.push(fechaHasta);
       paramIndex++;
     }
 
-    const whereClause = whereConditions.length > 0 
-      ? `WHERE ${whereConditions.join(' AND ')}` 
-      : '';
+    const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
 
+    // Migrado al nuevo modelo as_turnos_puestos_operativos
     const ppcs = await query(`
       SELECT 
-        ppc.id,
-        ppc.estado,
-        ppc.created_at,
-        ppc.cantidad_faltante,
-        ppc.prioridad,
-        ppc.guardia_asignado_id,
-        rs.nombre as rol_nombre,
+        po.id,
+        po.creado_en as created_at,
+        po.guardia_id as guardia_asignado_id,
         rs.nombre as rol_nombre,
         rs.hora_inicio,
         rs.hora_termino,
         i.nombre as instalacion_nombre,
         i.id as instalacion_id,
-        CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, '')) as guardia_nombre,
+        g.nombre || ' ' || g.apellido_paterno as guardia_nombre,
         g.rut as guardia_rut
-      FROM as_turnos_ppc ppc
-      INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
-      INNER JOIN as_turnos_roles_servicio rs ON tr.rol_servicio_id = rs.id
-      INNER JOIN instalaciones i ON tr.instalacion_id = i.id
-      LEFT JOIN guardias g ON ppc.guardia_asignado_id = g.id
+      FROM as_turnos_puestos_operativos po
+      INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+      INNER JOIN instalaciones i ON po.instalacion_id = i.id
+      LEFT JOIN guardias g ON po.guardia_id = g.id
       ${whereClause}
-      ORDER BY i.nombre, rs.nombre, ppc.created_at DESC
+      ORDER BY i.nombre, rs.nombre, po.creado_en DESC
     `, params);
 
     const result = ppcs.rows.map((ppc: any) => {
@@ -89,9 +81,7 @@ export async function GET(request: Request) {
         jornada: ppc.rol_nombre?.includes('Noche') ? 'N' : 'D',
         rol_tipo: ppc.rol_nombre || '4x4',
         horario: `${ppc.hora_inicio || '08:00'} - ${ppc.hora_termino || '20:00'}`,
-        estado: ppc.estado,
-        prioridad: ppc.prioridad || 'Media',
-        faltantes: ppc.cantidad_faltante,
+        estado: ppc.guardia_asignado_id ? 'Cubierto' : 'Pendiente',
         creado: ppc.created_at,
         guardia_asignado: ppc.guardia_asignado_id ? {
           id: ppc.guardia_asignado_id,

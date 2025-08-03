@@ -23,7 +23,7 @@ export async function GET(
       FROM as_turnos_puestos_operativos po
       INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       INNER JOIN instalaciones i ON po.instalacion_id = i.id
-      WHERE po.guardia_id = $1 AND po.es_ppc = false
+      WHERE po.guardia_id = $1 AND po.activo = true
       ORDER BY po.creado_en DESC
       LIMIT 1
     `, [guardiaId]);
@@ -42,7 +42,7 @@ export async function GET(
       FROM as_turnos_puestos_operativos po
       INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       INNER JOIN instalaciones i ON po.instalacion_id = i.id
-      WHERE po.guardia_id = $1 AND po.es_ppc = false
+      WHERE po.guardia_id = $1 AND po.activo = true
       ORDER BY po.creado_en DESC
     `, [guardiaId]);
 

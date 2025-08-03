@@ -9,19 +9,15 @@ export async function GET(
   
   try {
     const instalacionId = params.id;
+    console.log("🔍 Buscando turnos para instalación:", instalacionId);
 
     // Obtener turnos usando exclusivamente as_turnos_puestos_operativos
+    console.log("🔍 Ejecutando consulta SQL...");
+    
     const result = await query(`
       SELECT 
         rs.id as rol_id,
         rs.nombre as rol_nombre,
-        rs.dias_trabajo,
-        rs.dias_descanso,
-        rs.horas_turno,
-        rs.hora_inicio,
-        rs.hora_termino,
-        rs.descripcion as rol_descripcion,
-        rs.tenant_id as rol_tenant_id,
         rs.created_at as rol_created_at,
         rs.updated_at as rol_updated_at,
         COUNT(*) as total_puestos,
@@ -30,10 +26,11 @@ export async function GET(
       FROM as_turnos_puestos_operativos po
       INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       WHERE po.instalacion_id = $1
-      GROUP BY rs.id, rs.nombre, rs.dias_trabajo, rs.dias_descanso, rs.horas_turno, 
-               rs.hora_inicio, rs.hora_termino, rs.descripcion, rs.tenant_id, rs.created_at, rs.updated_at
+      GROUP BY rs.id, rs.nombre, rs.created_at, rs.updated_at
       ORDER BY rs.nombre
     `, [instalacionId]);
+
+    console.log("📊 Resultados obtenidos:", result.rows.length);
 
     // Transformar los resultados para el nuevo modelo
     const turnos = result.rows.map((row: any) => ({
@@ -47,14 +44,14 @@ export async function GET(
       rol_servicio: {
         id: row.rol_id,
         nombre: row.rol_nombre,
-        descripcion: row.rol_descripcion || '',
-        dias_trabajo: row.dias_trabajo,
-        dias_descanso: row.dias_descanso,
-        horas_turno: row.horas_turno,
-        hora_inicio: row.hora_inicio,
-        hora_termino: row.hora_termino,
+        descripcion: '', // No disponible en la nueva consulta
+        dias_trabajo: 0, // No disponible en la nueva consulta
+        dias_descanso: 0, // No disponible en la nueva consulta
+        horas_turno: 0, // No disponible en la nueva consulta
+        hora_inicio: '', // No disponible en la nueva consulta
+        hora_termino: '', // No disponible en la nueva consulta
         estado: 'Activo',
-        tenant_id: row.rol_tenant_id,
+        tenant_id: '', // No disponible en la nueva consulta
         created_at: row.rol_created_at,
         updated_at: row.rol_updated_at,
       },
@@ -63,9 +60,10 @@ export async function GET(
       total_puestos: parseInt(row.total_puestos) || 0,
     }));
 
+    console.log("✅ Turnos procesados:", turnos.length);
     return NextResponse.json(turnos);
   } catch (error) {
-    console.error('Error obteniendo turnos de instalación v2:', error);
+    console.error('❌ Error obteniendo turnos de instalación v2:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

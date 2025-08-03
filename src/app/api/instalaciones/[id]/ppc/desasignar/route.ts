@@ -45,14 +45,14 @@ export async function POST(
     }
 
     // Finalizar asignación activa del guardia
+    // Migrado al nuevo modelo as_turnos_puestos_operativos
     const finalizarAsignacion = await query(`
-      UPDATE as_turnos_asignaciones
-      SET estado = 'Finalizada',
-          fecha_termino = CURRENT_DATE,
-          motivo_termino = 'Desasignación manual',
-          observaciones = CONCAT(COALESCE(observaciones, ''), ' - Desasignado: ', now()),
-          updated_at = NOW()
-      WHERE guardia_id = $1 AND puesto_operativo_id = $2 AND estado = 'Activa'
+      UPDATE as_turnos_puestos_operativos
+      SET es_ppc = true,
+          guardia_id = NULL,
+          actualizado_en = CURRENT_DATE,
+          observaciones = CONCAT(COALESCE(observaciones, ''), ' - Desasignado: ', now())
+      WHERE guardia_id = $1 AND id = $2 AND es_ppc = false
     `, [guardiaId, puesto_operativo_id]);
 
     // Marcar puesto como PPC nuevamente

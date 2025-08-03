@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
+import { getUserInfo } from '@/lib/auth';
 
 export async function DELETE(
   request: NextRequest,
@@ -7,10 +8,14 @@ export async function DELETE(
 ) {
   try {
     const { id: instalacionId, ppcId } = params;
+    
+    // Obtener información del usuario que está realizando la acción
+    const userInfo = getUserInfo();
+    const userId = userInfo?.user_id || null;
 
     // Verificar que el puesto operativo existe y pertenece a esta instalación
     const puestoCheck = await query(`
-      SELECT id, instalacion_id, rol_id, guardia_id, nombre_puesto, es_ppc
+      SELECT id, instalacion_id, rol_id, guardia_id, nombre_puesto, es_ppc, activo
       FROM as_turnos_puestos_operativos
       WHERE id = $1 AND instalacion_id = $2
     `, [ppcId, instalacionId]);
@@ -24,21 +29,71 @@ export async function DELETE(
 
     const puesto = puestoCheck.rows[0];
 
+    // Verificar si tiene historial operativo
+    const historialCheck = await query(`
+      SELECT 
+        (SELECT COUNT(*) FROM as_turnos_pauta_mensual WHERE instalacion_id = $1) as pauta_count,
+        (SELECT COUNT(*) FROM as_turnos_puestos_operativos WHERE id = $2 AND guardia_id IS NOT NULL) as guardia_asignada
+    `, [instalacionId, ppcId]);
+
+    const { pauta_count, guardia_asignada } = historialCheck.rows[0];
+    const tieneHistorial = pauta_count > 0 || guardia_asignada > 0;
+
     // Iniciar transacción
     await query('BEGIN');
 
     try {
-      // Eliminar directamente el puesto operativo
-      await query(`
-        DELETE FROM as_turnos_puestos_operativos 
-        WHERE id = $1
-      `, [ppcId]);
+      let resultado = {
+        fueEliminado: false,
+        fueInactivado: false,
+        mensaje: ''
+      };
+
+      if (!tieneHistorial) {
+        // Eliminar definitivamente si no tiene historial
+        await query(`
+          DELETE FROM as_turnos_puestos_operativos 
+          WHERE id = $1
+        `, [ppcId]);
+
+        resultado = {
+          fueEliminado: true,
+          fueInactivado: false,
+          mensaje: '✅ Puesto eliminado correctamente'
+        };
+      } else {
+        // Inactivar si tiene historial
+        await query(`
+          UPDATE as_turnos_puestos_operativos 
+          SET activo = false, 
+              eliminado_en = NOW(),
+              eliminado_por = $2
+          WHERE id = $1
+        `, [ppcId, userId]);
+
+        resultado = {
+          fueEliminado: false,
+          fueInactivado: true,
+          mensaje: '⚠️ Puesto inactivado por historial operativo'
+        };
+      }
 
       await query('COMMIT');
 
+      // Log para debugging
+      console.log("🔍 Resultado eliminación de puesto", {
+        puesto_id: ppcId,
+        fueEliminado: resultado.fueEliminado,
+        fueInactivado: resultado.fueInactivado,
+        tieneHistorial,
+        pauta_count,
+        guardia_asignada,
+        usuario_id: userId
+      });
+
       return NextResponse.json({
         success: true,
-        message: 'Puesto operativo eliminado correctamente'
+        ...resultado
       });
 
     } catch (error) {

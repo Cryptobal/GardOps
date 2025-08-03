@@ -144,19 +144,9 @@ export default function TurnosInstalacion({
   };
 
   useEffect(() => {
-    // Si no hay datos precargados, cargarlos
-    if (!turnosPrecargados) {
-      cargarDatos();
-    } else {
-      // Si hay datos precargados, usarlos pero también cargar datos frescos
-      setTurnos(turnosPrecargados);
-      setPpcs(ppcsPrecargados || []);
-      setGuardiasDisponibles(guardiasPrecargados || []);
-      setRolesServicio(rolesPrecargados || []);
-      // Cargar datos frescos en segundo plano
-      cargarDatos();
-    }
-  }, [instalacionId, turnosPrecargados, ppcsPrecargados, guardiasPrecargados, rolesPrecargados]);
+    // Siempre cargar datos frescos para asegurar que tenemos la información más actualizada
+    cargarDatos();
+  }, [instalacionId]);
 
   // Limpiar estados al desmontar el componente
   useEffect(() => {
@@ -351,18 +341,28 @@ export default function TurnosInstalacion({
   };
 
   const handleEliminarPuesto = (ppcId: string, puestoIndex: number) => {
+    console.log('🔍 handleEliminarPuesto llamado:', { ppcId, puestoIndex });
     setShowDeleteConfirm({ ppcId, puestoIndex });
   };
 
   const confirmarEliminarPuesto = async () => {
+    console.log('🔍 confirmarEliminarPuesto llamado:', showDeleteConfirm);
     if (!showDeleteConfirm) return;
 
     try {
       setEliminandoPuesto(showDeleteConfirm.ppcId);
-      // Por ahora eliminamos el PPC completo
-      // TODO: Implementar lógica para eliminar solo un puesto específico
-      await eliminarPPC(instalacionId, showDeleteConfirm.ppcId);
-      toast.success('Puesto eliminado correctamente', 'Éxito');
+      
+      console.log('🔍 Llamando a eliminarPPC:', { instalacionId, ppcId: showDeleteConfirm.ppcId });
+      const resultado = await eliminarPPC(instalacionId, showDeleteConfirm.ppcId);
+      
+      console.log('🔍 Resultado de eliminarPPC:', resultado);
+      
+      // Mostrar mensaje según el resultado
+      if (resultado.fueEliminado) {
+        toast.success(resultado.mensaje, 'Éxito');
+      } else if (resultado.fueInactivado) {
+        toast.warning(resultado.mensaje, 'Aviso');
+      }
       
       // Recargar datos de forma más robusta
       try {
@@ -773,10 +773,10 @@ export default function TurnosInstalacion({
                                   )}
                                 </Button>
 
-                                <div className="flex items-center justify-between pr-5 sm:pr-6">
+                                <div className="flex items-start justify-between pr-5 sm:pr-6">
                                   <div className="flex-1 min-w-0">
-                                    <div className="font-medium text-xs sm:text-sm truncate text-green-800 dark:text-green-200">Puesto #{index + 1}</div>
-                                    <div className="text-xs text-green-600 dark:text-green-400 truncate">
+                                    <div className="font-medium text-xs sm:text-sm text-green-800 dark:text-green-200">Puesto #{index + 1}</div>
+                                    <div className="text-xs text-green-600 dark:text-green-400 break-words">
                                       Guardia: 
                                       {ppc.guardia_asignado_id ? (
                                         <button
@@ -794,7 +794,7 @@ export default function TurnosInstalacion({
                                       )}
                                     </div>
                                   </div>
-                                  <div className="text-xs font-medium text-green-600 flex-shrink-0 ml-1">
+                                  <div className="text-xs font-medium text-green-600 flex-shrink-0 ml-2">
                                     Asignado
                                   </div>
                                 </div>
@@ -854,7 +854,10 @@ export default function TurnosInstalacion({
       {/* Modal de confirmación para eliminar puesto */}
       <ConfirmDeleteModal
         isOpen={showDeleteConfirm !== null}
-        onClose={() => setShowDeleteConfirm(null)}
+        onClose={() => {
+          console.log('🔍 Cerrando modal de eliminar puesto');
+          setShowDeleteConfirm(null);
+        }}
         onConfirm={confirmarEliminarPuesto}
         title="Eliminar Puesto"
         message={`¿Estás seguro de que quieres eliminar el puesto #${showDeleteConfirm?.puestoIndex ? showDeleteConfirm.puestoIndex + 1 : ''}? Esta acción no se puede deshacer.`}

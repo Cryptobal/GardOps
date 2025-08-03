@@ -11,26 +11,26 @@ export async function GET(
     const instalacionId = params.id;
 
     // Obtener PPC pendientes de la instalación (versión simplificada)
+    // Migrado al nuevo modelo as_turnos_puestos_operativos
     const ppcs = await query(`
       SELECT 
-        ppc.id,
-        ppc.estado,
-        ppc.created_at,
-        ppc.cantidad_faltante,
-        ppc.patron_turnos,
-        ppc.horario_inicio,
-        ppc.horario_fin,
+        po.id,
+        po.estado,
+        po.creado_en as created_at,
+        po.cantidad_faltante,
+        po.patron_turnos,
+        po.horario_inicio,
+        po.horario_fin,
         rs.nombre as rol_nombre,
         rs.guardias_requeridos,
         rs.jornada,
         i.nombre as instalacion_nombre,
         i.id as instalacion_id
-      FROM as_turnos_ppc ppc
-      INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
-      INNER JOIN as_turnos_roles_servicio rs ON tr.rol_servicio_id = rs.id
-      INNER JOIN instalaciones i ON tr.instalacion_id = i.id
-      WHERE i.id = $1 AND ppc.estado = 'Pendiente'
-      ORDER BY rs.nombre, ppc.created_at DESC
+      FROM as_turnos_puestos_operativos po
+      INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+      INNER JOIN instalaciones i ON po.instalacion_id = i.id
+      WHERE i.id = $1 AND po.es_ppc = true AND po.estado = 'Pendiente'
+      ORDER BY rs.nombre, po.creado_en DESC
     `, [instalacionId]);
 
     const result = ppcs.rows.map((ppc: any) => {

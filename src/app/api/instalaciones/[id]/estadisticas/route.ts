@@ -11,41 +11,51 @@ export async function GET(
     const instalacionId = params.id;
 
     // Obtener estadísticas reales de la instalación
+    // Migrado al nuevo modelo as_turnos_puestos_operativos
     const result = await query(`
       SELECT 
-        -- Puestos creados (suma de cantidad_guardias de requisitos)
-        COALESCE(puestos_creados.count, 0) as puestos_creados,
+        -- Puestos totales (todos los puestos operativos)
+        COALESCE(puestos_totales.count, 0) as puestos_creados,
         
-        -- Puestos asignados (asignaciones activas)
+        -- Puestos asignados (puestos con guardia asignado)
         COALESCE(puestos_asignados.count, 0) as puestos_asignados,
         
-        -- PPC pendientes (puestos - asignaciones)
-        COALESCE(puestos_creados.count, 0) - COALESCE(puestos_asignados.count, 0) as ppc_pendientes,
+        -- PPC pendientes (puestos sin asignar)
+        COALESCE(ppc_pendientes.count, 0) as ppc_pendientes,
         
-        -- PPC totales (puestos - asignaciones)
-        COALESCE(puestos_creados.count, 0) - COALESCE(puestos_asignados.count, 0) as ppc_totales
+        -- PPC totales (puestos sin asignar)
+        COALESCE(ppc_pendientes.count, 0) as ppc_totales
         
       FROM instalaciones i
       
-      -- Puestos creados (suma de cantidad_guardias de requisitos)
+      -- Puestos totales
       LEFT JOIN (
         SELECT 
-          tr.instalacion_id,
-          SUM(tr.cantidad_guardias) as count
-        FROM as_turnos_requisitos tr
-        GROUP BY tr.instalacion_id
-      ) puestos_creados ON puestos_creados.instalacion_id = i.id
+          po.instalacion_id,
+          COUNT(*) as count
+        FROM as_turnos_puestos_operativos po
+        GROUP BY po.instalacion_id
+      ) puestos_totales ON puestos_totales.instalacion_id = i.id
       
-      -- Puestos asignados (asignaciones activas)
+      -- Puestos asignados (con guardia asignado)
       LEFT JOIN (
         SELECT 
-          tr.instalacion_id,
-          SUM(ta.cantidad_guardias) as count
-        FROM as_turnos_asignaciones ta
-        INNER JOIN as_turnos_requisitos tr ON ta.requisito_puesto_id = tr.id
-        WHERE ta.estado = 'Activa'
-        GROUP BY tr.instalacion_id
+          po.instalacion_id,
+          COUNT(*) as count
+        FROM as_turnos_puestos_operativos po
+        WHERE po.es_ppc = false AND po.guardia_id IS NOT NULL
+        GROUP BY po.instalacion_id
       ) puestos_asignados ON puestos_asignados.instalacion_id = i.id
+      
+      -- PPC pendientes (puestos sin asignar)
+      LEFT JOIN (
+        SELECT 
+          po.instalacion_id,
+          COUNT(*) as count
+        FROM as_turnos_puestos_operativos po
+        WHERE po.es_ppc = true
+        GROUP BY po.instalacion_id
+      ) ppc_pendientes ON ppc_pendientes.instalacion_id = i.id
       
       WHERE i.id = $1
     `, [instalacionId]);

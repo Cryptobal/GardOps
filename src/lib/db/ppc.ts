@@ -43,46 +43,28 @@ export async function procesarFiniquitoYGenerarPPC({
         WHERE id = $1
       `, [dia.id]);
 
-      // Obtener el requisito de puesto correspondiente
-      const requisito = await query(`
-        SELECT tr.id as requisito_puesto_id
-        FROM as_turnos_requisitos tr
-        WHERE tr.instalacion_id = $1 
-          AND tr.rol_servicio_id = $2
-          AND tr.estado = 'Activo'
+      // Buscar puestos operativos disponibles para esta instalación y rol
+      const puestosDisponibles = await query(`
+        SELECT id, nombre_puesto
+        FROM as_turnos_puestos_operativos
+        WHERE instalacion_id = $1 
+          AND rol_id = $2 
+          AND guardia_id IS NULL
         LIMIT 1
       `, [dia.instalacion_id, dia.rol_servicio_id]);
 
-      if (requisito.rows.length > 0) {
-        // Crear nuevo PPC en esa fecha
+      if (puestosDisponibles.rows.length > 0) {
+        // Marcar el puesto como PPC pendiente
         await query(`
-          INSERT INTO as_turnos_ppc (
-            requisito_puesto_id,
-            motivo,
-            observaciones,
-            cantidad_faltante,
-            prioridad,
-            fecha_deteccion,
-            estado,
-            created_at,
-            updated_at
-          ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, NOW(), NOW()
-          )
-        `, [
-          requisito.rows[0].requisito_puesto_id,
-          'renuncia', // motivo del finiquito
-          `PPC generado por finiquito del guardia ${guardiaId} en ${fechaFiniquito}`,
-          1, // cantidad_faltante
-          'Alta', // prioridad alta por finiquito
-          dia.dia, // fecha_deteccion
-          'Pendiente' // estado
-        ]);
+          UPDATE as_turnos_puestos_operativos
+          SET es_ppc = true, guardia_id = NULL
+          WHERE id = $1
+        `, [puestosDisponibles.rows[0].id]);
 
         ppcsCreados++;
         console.log(`✅ PPC creado para ${dia.instalacion_nombre} - ${dia.rol_servicio_nombre} en ${dia.dia}`);
       } else {
-        console.log(`⚠️ No se encontró requisito de puesto para ${dia.instalacion_nombre} - ${dia.rol_servicio_id}`);
+        console.log(`⚠️ No se encontró puesto operativo disponible para ${dia.instalacion_nombre} - ${dia.rol_servicio_id}`);
       }
     }
 
@@ -105,24 +87,24 @@ export async function obtenerPPCsPendientes({
   fechaHasta?: string;
 }) {
   try {
-    let whereConditions = ["ppc.estado = 'Pendiente'"];
+    let whereConditions = ["po.es_ppc = true AND po.guardia_id IS NULL"];
     let params: any[] = [];
     let paramIndex = 1;
 
     if (instalacionId) {
-      whereConditions.push(`tr.instalacion_id = $${paramIndex}`);
+      whereConditions.push(`po.instalacion_id = $${paramIndex}`);
       params.push(instalacionId);
       paramIndex++;
     }
 
     if (fechaDesde) {
-      whereConditions.push(`ppc.fecha_deteccion >= $${paramIndex}`);
+      whereConditions.push(`po.creado_en >= $${paramIndex}`);
       params.push(fechaDesde);
       paramIndex++;
     }
 
     if (fechaHasta) {
-      whereConditions.push(`ppc.fecha_deteccion <= $${paramIndex}`);
+      whereConditions.push(`po.creado_en <= $${paramIndex}`);
       params.push(fechaHasta);
       paramIndex++;
     }
@@ -133,25 +115,21 @@ export async function obtenerPPCsPendientes({
 
     const result = await query(`
       SELECT 
-        ppc.id,
-        ppc.motivo,
-        ppc.observaciones,
-        ppc.cantidad_faltante,
-        ppc.prioridad,
-        ppc.fecha_deteccion,
-        ppc.estado,
+        po.id,
+        po.nombre_puesto,
+        po.instalacion_id,
+        po.rol_id,
+        po.creado_en as fecha_deteccion,
         i.nombre as instalacion_nombre,
-        rs.nombre as rol_servicio_nombre,
-        rs.hora_inicio,
-        rs.hora_termino
-      FROM as_turnos_ppc ppc
-      INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
-      INNER JOIN instalaciones i ON tr.instalacion_id = i.id
-      INNER JOIN as_turnos_roles_servicio rs ON tr.rol_servicio_id = rs.id
+        rs.nombre as rol_servicio_nombre
+      FROM as_turnos_puestos_operativos po
+      INNER JOIN instalaciones i ON po.instalacion_id = i.id
+      INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       ${whereClause}
-      ORDER BY ppc.prioridad DESC, ppc.fecha_deteccion ASC
+      ORDER BY po.creado_en DESC
     `, params);
 
+    console.log(`✅ Obtenidos ${result.rows.length} PPCs pendientes`);
     return result.rows;
   } catch (error) {
     console.error("❌ Error obteniendo PPCs pendientes:", error);
@@ -159,7 +137,7 @@ export async function obtenerPPCsPendientes({
   }
 }
 
-// Asignar un guardia a un PPC
+// Asignar guardia a un PPC
 export async function asignarGuardiaAPPC({
   ppcId,
   guardiaId,
@@ -168,22 +146,28 @@ export async function asignarGuardiaAPPC({
   guardiaId: string;
 }) {
   try {
+    console.log(`🔧 Asignando guardia ${guardiaId} al PPC ${ppcId}`);
+
+    // Verificar que el PPC existe y está disponible
+    const ppc = await query(`
+      SELECT id, instalacion_id, rol_id, nombre_puesto
+      FROM as_turnos_puestos_operativos
+      WHERE id = $1 AND es_ppc = true AND guardia_id IS NULL
+    `, [ppcId]);
+
+    if (ppc.rows.length === 0) {
+      throw new Error(`PPC ${ppcId} no encontrado o ya no está disponible`);
+    }
+
+    // Asignar el guardia al puesto
     const result = await query(`
-      UPDATE as_turnos_ppc 
-      SET 
-        guardia_asignado_id = $1,
-        estado = 'Asignado',
-        fecha_asignacion = NOW(),
-        updated_at = NOW()
+      UPDATE as_turnos_puestos_operativos
+      SET guardia_id = $1, es_ppc = false
       WHERE id = $2
     `, [guardiaId, ppcId]);
 
-    if (result.rowCount > 0) {
-      console.log(`✅ Guardia ${guardiaId} asignado al PPC ${ppcId}`);
-      return { success: true };
-    } else {
-      throw new Error(`PPC ${ppcId} no encontrado`);
-    }
+    console.log(`✅ Guardia ${guardiaId} asignado al puesto ${ppc.rows[0].nombre_puesto}`);
+    return { success: true, puesto: ppc.rows[0] };
   } catch (error) {
     console.error("❌ Error asignando guardia a PPC:", error);
     throw error;

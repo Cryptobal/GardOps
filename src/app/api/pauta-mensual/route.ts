@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
     const guardiasQueryStart = Date.now();
     const [guardiasResult, ppcsResult] = await Promise.all([
       // Guardias asignados reales
+      // Migrado al nuevo modelo as_turnos_puestos_operativos
       query(`
         SELECT 
           g.id,
@@ -53,29 +54,29 @@ export async function GET(request: NextRequest) {
           CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, '')) as nombre_completo,
           'asignado' as tipo
         FROM guardias g
-        INNER JOIN as_turnos_asignaciones ta ON g.id = ta.guardia_id
-        INNER JOIN as_turnos_requisitos tr ON ta.requisito_puesto_id = tr.id
-        WHERE tr.instalacion_id = $1 
+        INNER JOIN as_turnos_puestos_operativos po ON g.id = po.guardia_id
+        WHERE po.instalacion_id = $1 
           AND g.activo = true
-          AND ta.estado = 'Activa'
+          AND po.es_ppc = false
         ORDER BY g.nombre
       `, [instalacion_id]),
       
       // PPCs - incluir todos los PPCs relevantes, no solo pendientes
+      // Migrado al nuevo modelo as_turnos_puestos_operativos
       query(`
         SELECT 
-          ppc.id || '_' || generate_series(1, ppc.cantidad_faltante) as id,
-          'PPC ' || substring(ppc.id::text, 1, 2) || 'XX' || substring(ppc.id::text, 35, 2) || ' #' || generate_series(1, ppc.cantidad_faltante) as nombre,
+          po.id || '_' || generate_series(1, po.cantidad_faltante) as id,
+          'PPC ' || substring(po.id::text, 1, 2) || 'XX' || substring(po.id::text, 35, 2) || ' #' || generate_series(1, po.cantidad_faltante) as nombre,
           '' as apellido_paterno,
           '' as apellido_materno,
-          'PPC ' || substring(ppc.id::text, 1, 2) || 'XX' || substring(ppc.id::text, 35, 2) || ' #' || generate_series(1, ppc.cantidad_faltante) as nombre_completo,
+          'PPC ' || substring(po.id::text, 1, 2) || 'XX' || substring(po.id::text, 35, 2) || ' #' || generate_series(1, po.cantidad_faltante) as nombre_completo,
           'ppc' as tipo,
-          ppc.estado as ppc_estado
-        FROM as_turnos_ppc ppc
-        INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
-        WHERE tr.instalacion_id = $1 
-          AND ppc.estado IN ('Pendiente', 'Asignado')
-        ORDER BY ppc.id, generate_series(1, ppc.cantidad_faltante)
+          po.estado as ppc_estado
+        FROM as_turnos_puestos_operativos po
+        WHERE po.instalacion_id = $1 
+          AND po.es_ppc = true
+          AND po.estado IN ('Pendiente', 'Asignado')
+        ORDER BY po.id, generate_series(1, po.cantidad_faltante)
       `, [instalacion_id])
     ]);
     

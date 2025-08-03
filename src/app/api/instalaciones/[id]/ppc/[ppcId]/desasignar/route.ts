@@ -12,19 +12,20 @@ export async function POST(
     const ppcId = params.ppcId;
 
     // Verificar que el PPC existe y pertenece a esta instalación
+    // Migrado al nuevo modelo as_turnos_puestos_operativos
     const ppcCheck = await query(`
       SELECT 
-        ppc.id,
-        ppc.guardia_asignado_id,
-        ppc.requisito_puesto_id
-      FROM as_turnos_ppc ppc
-      INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
-      WHERE ppc.id = $1 AND tr.instalacion_id = $2 AND ppc.estado = 'Asignado'
+        po.id,
+        po.guardia_id,
+        po.rol_id,
+        po.instalacion_id
+      FROM as_turnos_puestos_operativos po
+      WHERE po.id = $1 AND po.instalacion_id = $2 AND po.es_ppc = false
     `, [ppcId, instalacionId]);
 
     if (ppcCheck.rows.length === 0) {
       return NextResponse.json(
-        { error: 'PPC no encontrado o no está asignado' },
+        { error: 'Puesto operativo no encontrado o no está asignado' },
         { status: 404 }
       );
     }
@@ -32,26 +33,27 @@ export async function POST(
     const ppc = ppcCheck.rows[0];
 
     // Terminar la asignación activa del guardia
-    if (ppc.guardia_asignado_id) {
+    if (ppc.guardia_id) {
       await query(`
-        UPDATE as_turnos_asignaciones 
+        UPDATE as_turnos_puestos_operativos 
         SET 
-          estado = 'Finalizada',
-          fecha_termino = CURRENT_DATE,
-          motivo_termino = 'Desasignación desde PPC'
+          es_ppc = true,
+          guardia_id = NULL,
+          actualizado_en = CURRENT_DATE,
+          observaciones = CONCAT(COALESCE(observaciones, ''), ' - Desasignado desde PPC: ', now())
         WHERE guardia_id = $1 
-          AND requisito_puesto_id = $2 
-          AND estado = 'Activa'
-      `, [ppc.guardia_asignado_id, ppc.requisito_puesto_id]);
+          AND id = $2 
+          AND es_ppc = false
+      `, [ppc.guardia_id, ppcId]);
     }
 
-    // Marcar PPC como pendiente nuevamente
+    // Marcar puesto como PPC nuevamente
     const result = await query(`
-      UPDATE as_turnos_ppc 
+      UPDATE as_turnos_puestos_operativos 
       SET 
-        estado = 'Pendiente',
-        guardia_asignado_id = NULL,
-        fecha_asignacion = NULL,
+        es_ppc = true,
+        guardia_id = NULL,
+        actualizado_en = CURRENT_DATE,
         observaciones = CONCAT(COALESCE(observaciones, ''), ' - Desasignado: ', now())
       WHERE id = $1
       RETURNING *

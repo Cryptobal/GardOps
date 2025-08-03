@@ -7,15 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
-import { Plus, Edit, Trash2, Save, X } from 'lucide-react';
+import { Plus, Edit, Save, X } from 'lucide-react';
 import { 
   getRolesServicio, 
   crearRolServicio, 
-  actualizarRolServicio, 
-  eliminarRolServicio 
+  actualizarRolServicio
 } from '@/lib/api/roles-servicio';
 import { RolServicio, CrearRolServicioData } from '@/lib/schemas/roles-servicio';
-import ConfirmDeleteModal from '@/components/ui/confirm-delete-modal';
 
 export default function RolesServicioPage() {
   const { toast } = useToast();
@@ -23,8 +21,6 @@ export default function RolesServicioPage() {
   const [loading, setLoading] = useState(true);
   const [editando, setEditando] = useState<string | null>(null);
   const [creando, setCreando] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [rolToDelete, setRolToDelete] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<CrearRolServicioData>({
     nombre: '',
@@ -127,27 +123,6 @@ export default function RolesServicioPage() {
 
   const handleCancelarEdicion = () => {
     setEditando(null);
-  };
-
-  const handleEliminarRol = (rolId: string) => {
-    setRolToDelete(rolId);
-    setDeleteModalOpen(true);
-  };
-
-  const confirmarEliminar = async () => {
-    try {
-      if (rolToDelete) {
-        await eliminarRolServicio(rolToDelete);
-        toast.success('Rol de servicio eliminado correctamente', 'Éxito');
-        await cargarRoles();
-      }
-    } catch (error) {
-      console.error('Error eliminando rol:', error);
-      toast.error(error instanceof Error ? error.message : 'No se pudo eliminar el rol', 'Error');
-    } finally {
-      setDeleteModalOpen(false);
-      setRolToDelete(null);
-    }
   };
 
   const formatearHorario = (horaInicio: string, horaTermino: string) => {
@@ -430,14 +405,6 @@ export default function RolesServicioPage() {
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEliminarRol(rol.id)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
                           </div>
                         )}
                       </TableCell>
@@ -449,20 +416,6 @@ export default function RolesServicioPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Modal de confirmación para eliminar */}
-      <ConfirmDeleteModal
-        isOpen={deleteModalOpen}
-        onClose={() => {
-          setDeleteModalOpen(false);
-          setRolToDelete(null);
-        }}
-        onConfirm={confirmarEliminar}
-        title="Eliminar Rol de Servicio"
-        message="¿Estás seguro de que quieres eliminar este rol de servicio? Esta acción no se puede deshacer."
-        confirmText="Eliminar Rol"
-        cancelText="Cancelar"
-      />
     </div>
   );
 } 

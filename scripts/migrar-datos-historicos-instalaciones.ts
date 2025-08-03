@@ -20,7 +20,6 @@ async function migrarDatosHistoricos() {
       INNER JOIN as_turnos_requisitos tr ON ta.requisito_puesto_id = tr.id
       INNER JOIN as_turnos_roles_servicio rs ON tr.rol_servicio_id = rs.id
       WHERE ta.estado = 'Activa'
-      ON CONFLICT (instalacion_id, rol_id, guardia_id) DO NOTHING
     `);
     
     console.log(`✅ Migradas ${migracionAsignaciones.rowCount} asignaciones activas`);
@@ -44,7 +43,6 @@ async function migrarDatosHistoricos() {
         WHERE po.instalacion_id = tr.instalacion_id 
         AND po.rol_id = tr.rol_servicio_id
       )
-      ON CONFLICT (instalacion_id, rol_id, guardia_id) DO NOTHING
     `);
     
     console.log(`✅ Creados ${migracionPPCs.rowCount} PPCs`);

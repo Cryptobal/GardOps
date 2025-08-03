@@ -30,15 +30,16 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. PRIMERO: Verificar si hay roles de servicio creados para la instalación
+    // Migrado al nuevo modelo as_turnos_puestos_operativos
     const rolesResult = await query(`
       SELECT 
-        tc.id,
-        tc.rol_servicio_id,
+        rs.id as rol_servicio_id,
         rs.nombre as rol_nombre,
-        tc.cantidad_guardias
-      FROM as_turnos_configuracion tc
-      INNER JOIN as_turnos_roles_servicio rs ON tc.rol_servicio_id = rs.id
-      WHERE tc.instalacion_id = $1 AND tc.estado = 'Activo'
+        COUNT(*) as cantidad_guardias
+      FROM as_turnos_puestos_operativos po
+      INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+      WHERE po.instalacion_id = $1
+      GROUP BY rs.id, rs.nombre
       ORDER BY rs.nombre
     `, [instalacion_id]);
 
@@ -53,16 +54,16 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. SEGUNDO: Verificar si hay PPCs activos generados por esos roles
+    // Migrado al nuevo modelo as_turnos_puestos_operativos
     const ppcsResult = await query(`
       SELECT 
-        ppc.id,
-        ppc.estado,
+        po.id,
+        po.estado,
         rs.nombre as rol_servicio_nombre,
-        ppc.cantidad_faltante
-      FROM as_turnos_ppc ppc
-      INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
-      LEFT JOIN as_turnos_roles_servicio rs ON tr.rol_servicio_id = rs.id
-      WHERE tr.instalacion_id = $1 AND ppc.estado = 'Pendiente'
+        po.cantidad_faltante
+      FROM as_turnos_puestos_operativos po
+      INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+      WHERE po.instalacion_id = $1 AND po.es_ppc = true AND po.estado = 'Pendiente'
       ORDER BY rs.nombre
     `, [instalacion_id]);
 
@@ -78,17 +79,17 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. TERCERO: Verificar si hay guardias asignados a los PPCs
+    // Migrado al nuevo modelo as_turnos_puestos_operativos
     const guardiasResult = await query(`
       SELECT 
         g.id::text as id,
         g.nombre,
         CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, '')) as nombre_completo
       FROM guardias g
-      INNER JOIN as_turnos_asignaciones ta ON g.id = ta.guardia_id
-      INNER JOIN as_turnos_requisitos tr ON ta.requisito_puesto_id = tr.id
-      WHERE tr.instalacion_id = $1 
+      INNER JOIN as_turnos_puestos_operativos po ON g.id = po.guardia_id
+      WHERE po.instalacion_id = $1 
         AND g.activo = true 
-        AND ta.estado = 'Activa'
+        AND po.es_ppc = false
       ORDER BY g.nombre
     `, [instalacion_id]);
 

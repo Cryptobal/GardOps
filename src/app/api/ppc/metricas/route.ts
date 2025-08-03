@@ -15,13 +15,14 @@ export async function GET() {
         SELECT 
           s.semana_inicio,
           s.semana_fin,
-          COUNT(CASE WHEN ppc.estado = 'Pendiente' THEN 1 END) as ppc_abiertos,
-          COUNT(CASE WHEN ppc.estado = 'Cubierto' THEN 1 END) as ppc_cubiertos,
+          COUNT(CASE WHEN po.guardia_id IS NULL THEN 1 END) as ppc_abiertos,
+          COUNT(CASE WHEN po.guardia_id IS NOT NULL THEN 1 END) as ppc_cubiertos,
           COUNT(*) as total_ppc
         FROM semanas s
-        LEFT JOIN as_turnos_ppc ppc ON 
-          ppc.created_at >= s.semana_inicio AND 
-          ppc.created_at <= s.semana_fin
+        LEFT JOIN as_turnos_puestos_operativos po ON 
+          po.es_ppc = true AND
+          po.creado_en >= s.semana_inicio AND 
+          po.creado_en <= s.semana_fin
         GROUP BY s.semana_inicio, s.semana_fin
       )
       SELECT 
@@ -39,12 +40,14 @@ export async function GET() {
     `);
 
     // Obtener estadísticas generales
+    // Migrado al nuevo modelo as_turnos_puestos_operativos
     const stats = await query(`
       SELECT 
-        COUNT(CASE WHEN estado = 'Pendiente' THEN 1 END) as total_abiertos,
-        COUNT(CASE WHEN estado = 'Cubierto' THEN 1 END) as total_cubiertos,
+        COUNT(CASE WHEN guardia_id IS NULL THEN 1 END) as total_abiertos,
+        COUNT(CASE WHEN guardia_id IS NOT NULL THEN 1 END) as total_cubiertos,
         COUNT(*) as total_ppc
-      FROM as_turnos_ppc
+      FROM as_turnos_puestos_operativos
+      WHERE es_ppc = true
     `);
 
     const estadisticas = stats.rows[0];

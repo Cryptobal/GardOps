@@ -13,6 +13,8 @@ export async function POST(
     const body = await request.json();
     const { puesto_operativo_id } = body;
 
+    console.log("🔍 Desasignando puesto:", puesto_operativo_id, "de instalación:", instalacionId);
+
     if (!puesto_operativo_id) {
       return NextResponse.json(
         { error: 'Faltan campos requeridos' },
@@ -20,60 +22,25 @@ export async function POST(
       );
     }
 
-    // Verificar que el puesto operativo existe y pertenece a esta instalación
-    const puestoCheck = await query(`
-      SELECT po.id, po.guardia_id, po.es_ppc, po.rol_id
-      FROM as_turnos_puestos_operativos po
-      WHERE po.id = $1 AND po.instalacion_id = $2
-    `, [puesto_operativo_id, instalacionId]);
-
-    if (puestoCheck.rows.length === 0) {
-      return NextResponse.json(
-        { error: 'Puesto operativo no encontrado' },
-        { status: 404 }
-      );
-    }
-
-    const puestoData = puestoCheck.rows[0];
-    const guardiaId = puestoData.guardia_id;
-
-    if (!guardiaId) {
-      return NextResponse.json(
-        { error: 'El puesto no tiene un guardia asignado' },
-        { status: 400 }
-      );
-    }
-
-    // Finalizar asignación activa del guardia en as_turnos_asignaciones
-    await query(`
-      UPDATE as_turnos_asignaciones
-      SET estado = 'Finalizada',
-          fecha_termino = CURRENT_DATE,
-          motivo_termino = 'Desasignación manual v2',
-          observaciones = CONCAT(COALESCE(observaciones, ''), ' - Desasignado: ', now()),
-          updated_at = NOW()
-      WHERE guardia_id = $1 AND puesto_operativo_id = $2 AND estado = 'Activa'
-    `, [guardiaId, puesto_operativo_id]);
-
     // Marcar puesto como PPC nuevamente en as_turnos_puestos_operativos
+    console.log("🔄 Marcando puesto como PPC...");
     const result = await query(`
       UPDATE as_turnos_puestos_operativos 
       SET es_ppc = true,
-          guardia_id = NULL,
-          fecha_asignacion = NULL
-      WHERE id = $1
+          guardia_id = NULL
+      WHERE id = $1 AND instalacion_id = $2
       RETURNING *
-    `, [puesto_operativo_id]);
+    `, [puesto_operativo_id, instalacionId]);
 
-    console.log(`✅ Guardia ${guardiaId} desasignado del puesto ${puesto_operativo_id} correctamente`);
+    console.log(`✅ Puesto ${puesto_operativo_id} marcado como PPC correctamente`);
 
     return NextResponse.json({
       success: true,
-      message: 'Guardia desasignado correctamente',
+      message: 'Puesto marcado como PPC correctamente',
       puesto: result.rows[0]
     });
   } catch (error) {
-    console.error('Error desasignando guardia v2:', error);
+    console.error('❌ Error desasignando guardia v2:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

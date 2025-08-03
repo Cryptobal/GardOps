@@ -148,7 +148,7 @@ export async function GET(
           g.rut as guardia_rut
         FROM as_turnos_pauta_mensual pm
         LEFT JOIN guardias g ON pm.guardia_id = g.id
-        WHERE pm.instalacion_id = $1::uuid
+        WHERE pm.instalacion_id = $1
         ORDER BY pm.anio DESC, pm.mes DESC, pm.dia DESC
         LIMIT 50
       `, [instalacionId]);
@@ -218,23 +218,23 @@ export async function GET(
 
     console.log(`📊 Turnos encontrados: ${turnos.length}`);
 
-    // Crear PPCs basados en puestos operativos sin guardia asignada
+    // Crear PPCs basados en puestos operativos (tanto pendientes como asignados)
     const ppcs = puestosOperativosResult.rows
-      .filter((row: any) => row.es_ppc && !row.guardia_id)
+      .filter((row: any) => row.es_ppc) // Incluir todos los PPCs, tanto pendientes como asignados
       .map((row: any) => ({
         id: row.id,
         instalacion_id: row.instalacion_id,
         rol_servicio_id: row.rol_id,
-        motivo: 'Puesto operativo sin asignación',
+        motivo: row.guardia_id ? 'Puesto operativo asignado' : 'Puesto operativo sin asignación',
         observacion: `PPC para puesto: ${row.nombre_puesto}`,
         creado_en: row.creado_en,
         rol_servicio_nombre: row.rol_nombre || 'Sin nombre',
         hora_inicio: row.hora_inicio,
         hora_termino: row.hora_termino,
         cantidad_faltante: 1,
-        estado: 'Pendiente',
-        guardia_asignado_id: null,
-        guardia_nombre: null
+        estado: row.guardia_id ? 'Asignado' : 'Pendiente',
+        guardia_asignado_id: row.guardia_id,
+        guardia_nombre: row.guardia_nombre
       }));
 
     console.log(`📊 PPCs encontrados: ${ppcs.length}`);
