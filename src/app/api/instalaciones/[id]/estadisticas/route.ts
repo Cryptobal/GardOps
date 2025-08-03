@@ -5,6 +5,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  console.log("🔁 Endpoint activo: /api/instalaciones/[id]/estadisticas");
+  
   try {
     const instalacionId = params.id;
 

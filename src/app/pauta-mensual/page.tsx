@@ -165,7 +165,7 @@ const InstalacionCard = ({
                   {instalacionSinPauta.roles.length > 0 ? (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Shield className="h-3 w-3" />
-                      <span>Roles: {instalacionSinPauta.roles.map(r => r.nombre).join(', ')}</span>
+                      <span>Roles: {instalacionSinPauta.roles.map((r: RolServicio) => r.nombre).join(', ')}</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-xs text-red-600">

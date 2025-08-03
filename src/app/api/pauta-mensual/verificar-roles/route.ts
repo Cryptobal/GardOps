@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     const response = {
       tiene_roles: true,
       puede_generar_pauta: ppcsResult.rows.length > 0 && guardiasResult.rows.length > 0,
-      roles: rolesResult.rows.map(row => ({
+      roles: rolesResult.rows.map((row: any) => ({
         id: row.id,
         nombre: row.rol_nombre,
         cantidad_guardias: parseInt(row.cantidad_guardias)

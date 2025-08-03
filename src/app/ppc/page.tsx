@@ -432,8 +432,8 @@ export default function PPCPage() {
   ];
 
   // Obtener opciones para filtros
-  const instalaciones = Array.from(new Set(ppcs.map(p => p.instalacion))).sort();
-  const roles = Array.from(new Set(ppcs.map(p => p.rol))).sort();
+  const instalaciones = Array.from(new Set(ppcs.map((p: any) => p.instalacion))).sort();
+  const roles = Array.from(new Set(ppcs.map((p: any) => p.rol))).sort();
 
   const handleAsignarGuardia = (guardiaId: string) => {
     console.log("✅ Guardia asignado exitosamente:", guardiaId);

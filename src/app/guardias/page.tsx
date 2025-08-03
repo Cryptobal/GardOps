@@ -254,7 +254,7 @@ export default function GuardiasPage() {
   ];
 
   // Obtener instalaciones únicas para el filtro
-  const instalaciones = Array.from(new Set(guardias.map(g => g.instalacion_asignada).filter(Boolean))).sort();
+  const instalaciones = Array.from(new Set(guardias.map((g: any) => g.instalacion_asignada).filter(Boolean))).sort();
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
