@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
     // Crear mapas para facilitar la búsqueda
     const instalacionesConPautaMap = new Map();
-    instalacionesConPautaResult.rows.forEach(row => {
+    instalacionesConPautaResult.rows.forEach((row: any) => {
       instalacionesConPautaMap.set(row.instalacion_id, {
         id: row.instalacion_id,
         nombre: row.instalacion_nombre,
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     const instalacionesConPauta = [];
     const instalacionesSinPauta = [];
 
-    instalacionesResult.rows.forEach(instalacion => {
+    instalacionesResult.rows.forEach((instalacion: any) => {
       if (instalacionesConPautaMap.has(instalacion.id)) {
         instalacionesConPauta.push(instalacionesConPautaMap.get(instalacion.id));
       } else {
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
 
         return {
           ...instalacion,
-          roles: rolesResult.rows.map(row => ({
+          roles: rolesResult.rows.map((row: any) => ({
             id: row.id,
             nombre: row.rol_nombre,
             cantidad_guardias: parseInt(row.cantidad_guardias)

@@ -54,7 +54,7 @@ async function migrarIdsNumericosAUUID() {
     }));
 
     console.log('\n🔄 Mapeo de IDs:');
-    mapeoIds.forEach(m => {
+    mapeoIds.forEach((m: MapeoId) => {
       console.log(`   ${m.idViejo} → ${m.idNuevo} (${m.nombre})`);
     });
 

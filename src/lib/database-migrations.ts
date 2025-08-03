@@ -210,8 +210,8 @@ export async function fixGuardiasTable(): Promise<MigrationResult> {
       result.errors.push(`❌ No se puede proceder automáticamente. Tabla guardias tiene datos con id tipo '${idType}'`);
       result.success = false;
       
-      result.warnings.forEach(w => console.log(w));
-      result.errors.forEach(e => console.log(e));
+      result.warnings.forEach((w: string) => console.log(w));
+      result.errors.forEach((e: string) => console.log(e));
       
       return result;
     }
@@ -237,7 +237,7 @@ export async function fixGuardiasTable(): Promise<MigrationResult> {
     result.success = true;
     result.message = '✅ Tabla guardias recreada con campo id UUID';
     
-    result.warnings.forEach(w => console.log(w));
+    result.warnings.forEach((w: string) => console.log(w));
     console.log(result.message);
     
     return result;
@@ -284,7 +284,7 @@ export async function validateOtherTablesUUID(): Promise<MigrationResult> {
     });
     result.errors.push('   Estas tablas deben tener campo id UUID antes de continuar.');
     
-    result.errors.forEach(e => console.log(e));
+    result.errors.forEach((e: string) => console.log(e));
   } else {
     result.message = '✅ Todas las tablas requeridas tienen campo id UUID correcto';
     console.log(result.message);
