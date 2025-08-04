@@ -59,13 +59,15 @@ interface InstalacionInfo {
 }
 
 interface PautaGuardia {
-  id_guardia: string;
+  id: string;
   nombre: string;
-  rol_servicio: {
-    patron_turno: string;
-  };
+  nombre_puesto: string;
+  patron_turno: string;
   dias: string[];
-  tipo?: 'asignado' | 'ppc';
+  tipo?: 'asignado' | 'ppc' | 'sin_asignar';
+  es_ppc?: boolean;
+  guardia_id?: string;
+  rol_nombre?: string;
 }
 
 interface DiaSemana {
@@ -226,13 +228,15 @@ export default function EditarPautaMensualPage() {
             const guardiaInfo = instalacionInfo.guardias.find(g => g.id === guardiaPauta.id);
             
             return {
-              id_guardia: guardiaPauta.id,
+              id: guardiaPauta.id,
               nombre: guardiaPauta.nombre,
-              rol_servicio: {
-                patron_turno: guardiaPauta.patron_turno
-              },
+              nombre_puesto: guardiaPauta.nombre_puesto,
+              patron_turno: guardiaPauta.patron_turno,
               dias: guardiaPauta.dias,
-              tipo: guardiaInfo?.tipo
+              tipo: guardiaInfo?.tipo,
+              es_ppc: guardiaPauta.es_ppc,
+              guardia_id: guardiaPauta.guardia_id,
+              rol_nombre: guardiaInfo?.rol_servicio?.nombre
             };
           });
           
@@ -291,7 +295,7 @@ export default function EditarPautaMensualPage() {
       
       // Transformar los datos al formato esperado por la API
       const pautaParaGuardar = pautaData.map(guardia => ({
-        guardia_id: guardia.id_guardia,
+        guardia_id: guardia.id,
         dias: guardia.dias.map(estado => {
           // Convertir estados del frontend a estados de la base de datos
           switch (estado) {

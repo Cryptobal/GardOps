@@ -52,13 +52,15 @@ interface InstalacionInfo {
 }
 
 interface PautaGuardia {
-  id_guardia: string;
+  id: string;
   nombre: string;
-  rol_servicio: {
-    patron_turno: string;
-  };
+  nombre_puesto: string;
+  patron_turno: string;
   dias: string[];
-  tipo?: 'asignado' | 'ppc'; // Nuevo campo para identificar el tipo
+  tipo?: 'asignado' | 'ppc' | 'sin_asignar';
+  es_ppc?: boolean;
+  guardia_id?: string;
+  rol_nombre?: string;
 }
 
 interface DiaSemana {
@@ -142,13 +144,15 @@ export default function CrearPautaMensualPage() {
                 : guardia.nombre_completo;
               
               return {
-                id_guardia: guardia.id,
+                id: guardia.id, // Assuming 'id' is the guardia's ID
                 nombre: nombreMostrar,
-                rol_servicio: {
-                  patron_turno: patronTurno
-                },
+                nombre_puesto: guardia.nombre_completo, // Assuming 'nombre_puesto' is the full name
+                patron_turno: patronTurno,
                 dias: Array.from({ length: diasEnMes }, () => 'LIBRE'),
-                tipo: guardia.tipo // 'asignado' o 'ppc'
+                tipo: guardia.tipo, // 'asignado' o 'ppc'
+                es_ppc: guardia.tipo === 'ppc',
+                guardia_id: guardia.id,
+                rol_nombre: guardia.nombre_completo
               };
             });
             setPautaData(pautaInicial);

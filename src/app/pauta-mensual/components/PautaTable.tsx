@@ -33,7 +33,7 @@ interface ModalAutocompletarPautaProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (diaInicio: number) => void;
-  id_guardia: string;
+  id: string;
   patron_turno: string;
   diaSeleccionado: number;
   diaSemanaSeleccionado: string;
@@ -112,7 +112,7 @@ const ModalAutocompletarPauta = ({
   isOpen, 
   onClose, 
   onConfirm, 
-  id_guardia, 
+  id, 
   patron_turno, 
   diaSeleccionado, 
   diaSemanaSeleccionado 
@@ -620,7 +620,7 @@ export default function PautaTable({
         isOpen={autocompletadoModal.isOpen}
         onClose={() => setAutocompletadoModal({ isOpen: false, guardiaIndex: 0, diaIndex: 0, diaSeleccionado: 1, diaSemanaSeleccionado: '' })}
         onConfirm={autocompletarPauta}
-        id_guardia={pautaData[autocompletadoModal.guardiaIndex]?.id || ""}
+        id={pautaData[autocompletadoModal.guardiaIndex]?.id || ""}
         patron_turno={pautaData[autocompletadoModal.guardiaIndex]?.patron_turno || ""}
         diaSeleccionado={autocompletadoModal.diaSeleccionado}
         diaSemanaSeleccionado={autocompletadoModal.diaSemanaSeleccionado}

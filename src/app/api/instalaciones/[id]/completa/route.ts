@@ -155,7 +155,6 @@ export async function GET(
       pautaMensualResult = await query(`
         SELECT 
           pm.id,
-          pm.instalacion_id,
           pm.guardia_id,
           pm.anio,
           pm.mes,
@@ -167,7 +166,11 @@ export async function GET(
           g.rut as guardia_rut
         FROM as_turnos_pauta_mensual pm
         LEFT JOIN guardias g ON pm.guardia_id = g.id
-        WHERE pm.instalacion_id = $1
+        WHERE pm.guardia_id IN (
+          SELECT DISTINCT po.guardia_id 
+          FROM as_turnos_puestos_operativos po 
+          WHERE po.instalacion_id = $1 AND po.guardia_id IS NOT NULL
+        )
         ORDER BY pm.anio DESC, pm.mes DESC, pm.dia DESC
         LIMIT 50
       `, [instalacionId]);

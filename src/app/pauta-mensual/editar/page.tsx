@@ -19,12 +19,15 @@ import {
 import PautaTable from "../components/PautaTable";
 
 interface PautaGuardia {
-  id_guardia: string;
+  id: string;
   nombre: string;
-  rol_servicio: {
-    patron_turno: string;
-  };
+  nombre_puesto: string;
+  patron_turno: string;
   dias: string[];
+  tipo?: 'asignado' | 'ppc' | 'sin_asignar';
+  es_ppc?: boolean;
+  guardia_id?: string;
+  rol_nombre?: string;
 }
 
 interface DiaSemana {
@@ -106,11 +109,10 @@ export default function EditarPautaMensualPage() {
       if (data.success && data.pauta) {
         // Convertir datos de la API al formato esperado por PautaTable
         const pautaFormateada: PautaGuardia[] = data.pauta.map((guardia: any) => ({
-          id_guardia: guardia.id || '',
+          id: guardia.id || '',
           nombre: guardia.nombre,
-          rol_servicio: {
-            patron_turno: guardia.patron_turno || '4x4'
-          },
+          nombre_puesto: guardia.nombre_puesto || '',
+          patron_turno: guardia.patron_turno || '4x4',
           dias: guardia.dias.map((dia: string) => {
             switch (dia) {
               case 'T': return 'TRABAJA';
@@ -119,7 +121,11 @@ export default function EditarPautaMensualPage() {
               case 'LIC': return 'LICENCIA';
               default: return '';
             }
-          })
+          }),
+          tipo: guardia.tipo || 'asignado',
+          es_ppc: guardia.es_ppc,
+          guardia_id: guardia.guardia_id,
+          rol_nombre: guardia.rol_nombre
         }));
         
         setPautaData(pautaFormateada);
@@ -154,7 +160,7 @@ export default function EditarPautaMensualPage() {
 
       // Convertir datos al formato esperado por la API
       const pautaParaGuardar = pautaData.map(guardia => ({
-        guardia_id: guardia.id_guardia,
+        guardia_id: guardia.guardia_id || guardia.id, // Usar guardia_id si existe, de lo contrario usar el ID de la pauta
         dias: guardia.dias.map(dia => {
           switch (dia) {
             case 'TRABAJA': return 'T';
