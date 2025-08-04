@@ -25,11 +25,21 @@ export async function GET(request: NextRequest) {
 
     console.log(`🔍 Consultando pauta diaria para: ${fecha} (${anio}-${mes}-${dia})`);
 
-    // Consulta simple que funciona
+    // Consulta corregida con JOIN para obtener instalacion_id
     const pautaDiaria = await query(`
-      SELECT id, instalacion_id, guardia_id, dia, estado
-      FROM as_turnos_pauta_mensual 
-      WHERE anio = $1 AND mes = $2 AND dia = $3
+      SELECT 
+        pm.id, 
+        po.instalacion_id, 
+        pm.guardia_id, 
+        pm.dia, 
+        pm.estado,
+        po.nombre_puesto,
+        po.es_ppc
+      FROM as_turnos_pauta_mensual pm
+      INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
+      WHERE pm.anio = $1 AND pm.mes = $2 AND pm.dia = $3
+        AND po.activo = true
+      ORDER BY po.instalacion_id, po.nombre_puesto
     `, [anio, mes, dia]);
 
     console.log(`📊 Pauta diaria para ${fecha}: ${pautaDiaria.rows.length} registros`);
