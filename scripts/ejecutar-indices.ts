@@ -38,7 +38,7 @@ async function ejecutarIndices() {
         await query(indices[i]);
         console.log(`✅ Índice ${i + 1} creado`);
       } catch (error) {
-        console.log(`⚠️ Índice ${i + 1} ya existe o error:`, error.message);
+        console.log(`⚠️ Índice ${i + 1} ya existe o error:`, error instanceof Error ? error.message : 'Error desconocido');
       }
     }
     

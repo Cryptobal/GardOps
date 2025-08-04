@@ -185,7 +185,12 @@ export default function InstalacionDetallePage() {
             <h1 className="text-3xl font-bold text-gray-900">
               {instalacion.nombre}
             </h1>
-            <p className="text-gray-600">Cliente: {instalacion.cliente_nombre}</p>
+            <p className="text-gray-600">
+              Cliente: {(() => { 
+                console.log('🔍 cliente_nombre:', instalacion.cliente_nombre, typeof instalacion.cliente_nombre); 
+                return instalacion.cliente_nombre?.toString().trim(); 
+              })()}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -306,10 +311,10 @@ export default function InstalacionDetallePage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Roles de Servicio</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {rolesPrecargados.length}
+                    {turnosPrecargados.length}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {rolesPrecargados.filter((r: any) => r.estado === 'Activo').length} activos
+                    {turnosPrecargados.length} activos
                   </p>
                 </div>
               </div>

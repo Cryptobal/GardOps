@@ -18,6 +18,11 @@ export async function GET(
       SELECT 
         rs.id as rol_id,
         rs.nombre as rol_nombre,
+        rs.dias_trabajo,
+        rs.dias_descanso,
+        rs.hora_inicio,
+        rs.hora_termino,
+        rs.estado as rol_estado,
         rs.created_at as rol_created_at,
         rs.updated_at as rol_updated_at,
         COUNT(*) as total_puestos,
@@ -26,7 +31,7 @@ export async function GET(
       FROM as_turnos_puestos_operativos po
       INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       WHERE po.instalacion_id = $1 AND po.activo = true
-      GROUP BY rs.id, rs.nombre, rs.created_at, rs.updated_at
+      GROUP BY rs.id, rs.nombre, rs.dias_trabajo, rs.dias_descanso, rs.hora_inicio, rs.hora_termino, rs.estado, rs.created_at, rs.updated_at
       ORDER BY rs.nombre
     `, [instalacionId]);
 
@@ -45,12 +50,12 @@ export async function GET(
         id: row.rol_id,
         nombre: row.rol_nombre,
         descripcion: '', // No disponible en la nueva consulta
-        dias_trabajo: 0, // No disponible en la nueva consulta
-        dias_descanso: 0, // No disponible en la nueva consulta
+        dias_trabajo: parseInt(row.dias_trabajo) || 0,
+        dias_descanso: parseInt(row.dias_descanso) || 0,
         horas_turno: 0, // No disponible en la nueva consulta
-        hora_inicio: '', // No disponible en la nueva consulta
-        hora_termino: '', // No disponible en la nueva consulta
-        estado: 'Activo',
+        hora_inicio: row.hora_inicio || '',
+        hora_termino: row.hora_termino || '',
+        estado: row.rol_estado || 'Activo',
         tenant_id: '', // No disponible en la nueva consulta
         created_at: row.rol_created_at,
         updated_at: row.rol_updated_at,

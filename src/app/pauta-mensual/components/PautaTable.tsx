@@ -232,6 +232,62 @@ const ModalAutocompletarPauta = ({
   );
 };
 
+// Función centralizada para obtener el display del estado
+const getEstadoDisplay = (estado: string) => {
+  // Normalizar el estado para comparación
+  const estadoNormalizado = estado?.toLowerCase() || '';
+  
+  switch (estadoNormalizado) {
+    case "trabaja":
+    case "t":
+      return { 
+        icon: "🟢", 
+        text: "T", 
+        className: "bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 text-emerald-800 dark:text-emerald-300 border-0 outline-0",
+        tooltip: "Trabajando"
+      };
+    case "libre":
+    case "l":
+      return { 
+        icon: "⚪", 
+        text: "L", 
+        className: "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 text-gray-600 dark:text-gray-400 border-0 outline-0",
+        tooltip: "Libre"
+      };
+    case "permiso":
+    case "p":
+      return { 
+        icon: "🔵", 
+        text: "P", 
+        className: "bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 text-blue-800 dark:text-blue-300 border-0 outline-0",
+        tooltip: "Permiso"
+      };
+    case "vacaciones":
+    case "v":
+      return { 
+        icon: "🟡", 
+        text: "V", 
+        className: "bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-900/30 dark:to-amber-900/30 text-yellow-800 dark:text-yellow-300 border-0 outline-0",
+        tooltip: "Vacaciones"
+      };
+    case "licencia":
+    case "m":
+      return { 
+        icon: "🟦", 
+        text: "M", 
+        className: "bg-gradient-to-br from-cyan-100 to-blue-100 dark:from-cyan-900/30 dark:to-blue-900/30 text-cyan-800 dark:text-cyan-300 border-0 outline-0",
+        tooltip: "Licencia Médica"
+      };
+    default:
+      return { 
+        icon: "⬜", 
+        text: "", 
+        className: "bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 text-gray-400 dark:text-gray-600 border-0 outline-0",
+        tooltip: "Vacío"
+      };
+  }
+};
+
 // Componente para renderizar el estado del día
 const DiaCell = ({ 
   estado, 
@@ -254,36 +310,7 @@ const DiaCell = ({
   modoEdicion?: boolean;
   diasGuardados?: Set<string>;
 }) => {
-  const getEstadoDisplay = () => {
-    // Normalizar el estado para comparación
-    const estadoNormalizado = estado?.toLowerCase() || '';
-    
-    switch (estadoNormalizado) {
-      case "trabaja":
-        return { 
-          icon: "🟢", 
-          text: "T", 
-          className: "bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 text-emerald-800 dark:text-emerald-300 border-0 outline-0",
-          tooltip: "Trabajando"
-        };
-      case "libre":
-        return { 
-          icon: "⚪", 
-          text: "L", 
-          className: "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 text-gray-600 dark:text-gray-400 border-0 outline-0",
-          tooltip: "Libre"
-        };
-      default:
-        return { 
-          icon: "⬜", 
-          text: "", 
-          className: "bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 text-gray-400 dark:text-gray-600 border-0 outline-0",
-          tooltip: "Vacío"
-        };
-    }
-  };
-
-  const { icon, text, className, tooltip } = getEstadoDisplay();
+  const { icon, text, className, tooltip } = getEstadoDisplay(estado);
 
   const esFinDeSemana = diaSemana === 'Sáb' || diaSemana === 'Dom';
   const esDiaEspecial = esFinDeSemana || esFeriado;
@@ -311,14 +338,14 @@ const DiaCell = ({
 
   const tooltipText = `${guardiaNombre} - Día ${diaNumero} (${diaSemana || ''})${esFeriado ? ' - FERIADO' : ''}: ${tooltip}${isDiaGuardado ? ' - ✅ Guardado en BD' : ''}${!modoEdicion ? ' - Modo solo lectura' : ''}`;
 
-      return (
-      <TableCell 
-        className={`text-center transition-all duration-200 p-0 border-0 !border-b-0 ${className} ${clasesEspeciales} ${clasesFeriado} ${clasesFinDeSemana} ${clasesModoEdicion} ${clasesGuardado}`}
-        style={{ border: 'none', outline: 'none', borderWidth: '0px', borderStyle: 'none', borderBottom: 'none' }}
-        onClick={handleClick}
-        onContextMenu={handleContextMenu}
-        title={tooltipText}
-      >
+  return (
+    <TableCell 
+      className={`text-center transition-all duration-200 p-0 border-0 !border-b-0 ${className} ${clasesEspeciales} ${clasesFeriado} ${clasesFinDeSemana} ${clasesModoEdicion} ${clasesGuardado}`}
+      style={{ border: 'none', outline: 'none', borderWidth: '0px', borderStyle: 'none', borderBottom: 'none' }}
+      onClick={handleClick}
+      onContextMenu={handleContextMenu}
+      title={tooltipText}
+    >
       <div className="flex flex-col items-center justify-center min-h-[2.5rem] py-1 relative">
         {diaSemana && (
           <span className={`text-xs font-semibold leading-none mb-1 ${
@@ -491,7 +518,7 @@ export default function PautaTable({
         </div>
         
         {/* Leyenda mejorada */}
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-4 text-sm flex-wrap">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 border border-emerald-300 dark:border-emerald-600 rounded"></div>
             <span className="text-gray-700 dark:text-gray-300">Trabajando</span>
@@ -499,6 +526,18 @@ export default function PautaTable({
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 border border-gray-300 dark:border-gray-600 rounded"></div>
             <span className="text-gray-700 dark:text-gray-300">Libre</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-300 dark:border-blue-600 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300">Permiso</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-900/30 dark:to-amber-900/30 border border-yellow-300 dark:border-yellow-600 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300">Vacaciones</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-gradient-to-br from-cyan-100 to-blue-100 dark:from-cyan-900/30 dark:to-blue-900/30 border border-cyan-300 dark:border-cyan-600 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300">Licencia</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/30 border border-red-300 dark:border-red-600 rounded"></div>

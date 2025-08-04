@@ -21,7 +21,7 @@ async function testClientesAPI() {
     `);
     
     console.log('📋 Estructura actual:');
-    structure.rows.forEach(col => {
+    structure.rows.forEach((col: any) => {
       console.log(`  - ${col.column_name}: ${col.data_type} ${col.is_nullable === 'YES' ? '(NULL)' : '(NOT NULL)'}`);
     });
     
@@ -92,7 +92,7 @@ async function testClientesAPI() {
     `);
     
     console.log('✅ Últimos 5 clientes:');
-    allClients.rows.forEach((cliente, index) => {
+    allClients.rows.forEach((cliente: any, index: number) => {
       console.log(`  ${index + 1}. ${cliente.nombre} (${cliente.rut}) - ${cliente.estado}`);
     });
     

@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../../components/ui/card";
-import { Button } from "../../../../components/ui/button";
-import { Badge } from "../../../../components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Button } from "../../../components/ui/button";
+import { Badge } from "../../../components/ui/badge";
 import { 
   Calendar, 
   Building2, 
@@ -19,11 +19,13 @@ import {
   Eye,
   Database,
   Clock,
-  ExternalLink
+  ExternalLink,
+  Plus,
+  FileText
 } from "lucide-react";
-import { obtenerPautaMensual, guardarPautaMensual } from "../../../../lib/api/pauta-mensual";
-import { useToast } from "../../../../hooks/use-toast";
-import PautaTable from "../../components/PautaTable";
+import { obtenerPautaMensual, guardarPautaMensual, crearPautaMensualAutomatica } from "../../../lib/api/pauta-mensual";
+import { useToast } from "../../../hooks/use-toast";
+import PautaTable from "../components/PautaTable";
 
 interface Guardia {
   id: string;
@@ -76,7 +78,7 @@ interface DiaSemana {
   esFeriado: boolean;
 }
 
-export default function EditarPautaMensualPage() {
+export default function PautaMensualUnificadaPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -94,6 +96,8 @@ export default function EditarPautaMensualPage() {
   const [guardando, setGuardando] = useState(false);
   const [editando, setEditando] = useState(false);
   const [diasGuardados, setDiasGuardados] = useState<Set<string>>(new Set());
+  const [pautaExiste, setPautaExiste] = useState(false);
+  const [generando, setGenerando] = useState(false);
 
   // Seguimiento del estado de edición
   useEffect(() => {
@@ -121,7 +125,7 @@ export default function EditarPautaMensualPage() {
     actualizarDiasGuardados();
   }, [pautaData, actualizarDiasGuardados]);
 
-  // Cargar datos iniciales solo una vez
+  // Cargar datos iniciales
   useEffect(() => {
     const cargarDatosIniciales = async () => {
       try {
@@ -136,7 +140,6 @@ export default function EditarPautaMensualPage() {
           console.log('📥 Datos de instalación recibidos:', responseData);
           
           if (responseData.success && responseData.data) {
-            // Extraer los datos correctamente de la respuesta
             instalacionInfo = {
               id: responseData.data.instalacion.id,
               nombre: responseData.data.instalacion.nombre,
@@ -149,99 +152,113 @@ export default function EditarPautaMensualPage() {
             console.log('🏢 Información de instalación procesada:', {
               nombre: instalacionInfo.nombre,
               guardias: instalacionInfo.guardias.length,
-              ppcs: instalacionInfo.ppcs.length,
-              ppcsPendientes: instalacionInfo.ppcs.filter((p: any) => p.estado === 'Pendiente').length
+              ppcs: instalacionInfo.ppcs.length
             });
             
             setInstalacion(instalacionInfo);
           }
         }
 
-        // Cargar pauta mensual
-        const pautaResponse = await obtenerPautaMensual(instalacionId, anio, mes);
-        
-        // Transformar los datos de la pauta al formato esperado por PautaTable
-        if (pautaResponse && instalacionInfo) {
-          const diasDelMesArray = Array.from(
-            { length: new Date(anio, mes, 0).getDate() }, 
-            (_, i) => i + 1
-          );
-          setDiasDelMes(diasDelMesArray);
-
-          // Función para obtener feriados de Chile (2024-2025)
-          const getFeriadosChile = (year: number, month: number): number[] => {
-            const feriados = {
-              2024: {
-                1: [1], // Año Nuevo
-                2: [], // No hay feriados en febrero
-                3: [29], // Viernes Santo
-                4: [1], // Domingo de Resurrección
-                5: [1], // Día del Trabajo
-                6: [7], // Glorias Navales
-                7: [16], // Virgen del Carmen
-                8: [15], // Asunción de la Virgen
-                9: [18, 19], // Fiestas Patrias
-                10: [12], // Encuentro de Dos Mundos
-                11: [1], // Día de Todos los Santos
-                12: [8, 25] // Inmaculada Concepción, Navidad
-              },
-              2025: {
-                1: [1], // Año Nuevo
-                2: [], // No hay feriados en febrero
-                3: [18, 19], // Viernes Santo, Domingo de Resurrección
-                4: [], // No hay feriados en abril
-                5: [1], // Día del Trabajo
-                6: [7], // Glorias Navales
-                7: [16], // Virgen del Carmen
-                8: [15], // Asunción de la Virgen
-                9: [18, 19], // Fiestas Patrias
-                10: [12], // Encuentro de Dos Mundos
-                11: [1], // Día de Todos los Santos
-                12: [8, 25] // Inmaculada Concepción, Navidad
-              }
-            };
-            
-            return feriados[year as keyof typeof feriados]?.[month as keyof typeof feriados[2024]] || [];
-          };
-
-          // Crear array de días de la semana con información de feriados
-          const feriadosChile = getFeriadosChile(anio, mes);
-          const diasSemanaArray = diasDelMesArray.map(dia => {
-            const fecha = new Date(anio, mes - 1, dia);
-            const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-            const diaSemana = diasSemana[fecha.getDay()];
-            
-            // Verificar si es feriado
-            const esFeriado = feriadosChile.includes(dia);
-            
-            return {
-              dia,
-              diaSemana,
-              esFeriado
-            };
-          });
-          setDiasSemana(diasSemanaArray);
-
-          // Transformar la pauta al formato esperado
-          const pautaTransformada = pautaResponse.pauta.map((guardiaPauta: any) => {
-            // Buscar el guardia correspondiente en instalacionInfo.guardias
-            const guardiaInfo = instalacionInfo.guardias.find(g => g.id === guardiaPauta.id);
-            
-            return {
-              id: guardiaPauta.id,
-              nombre: guardiaPauta.nombre,
-              nombre_puesto: guardiaPauta.nombre_puesto,
-              patron_turno: guardiaPauta.patron_turno,
-              dias: guardiaPauta.dias,
-              tipo: guardiaInfo?.tipo,
-              es_ppc: guardiaPauta.es_ppc,
-              guardia_id: guardiaPauta.guardia_id,
-              rol_nombre: guardiaInfo?.rol_servicio?.nombre
-            };
-          });
+        // Intentar cargar pauta existente
+        try {
+          const pautaResponse = await obtenerPautaMensual(instalacionId, anio, mes);
           
-          setPautaData(pautaTransformada);
-          console.log('✅ Datos iniciales cargados');
+          if (pautaResponse && instalacionInfo) {
+            setPautaExiste(true);
+            
+            const diasDelMesArray = Array.from(
+              { length: new Date(anio, mes, 0).getDate() }, 
+              (_, i) => i + 1
+            );
+            setDiasDelMes(diasDelMesArray);
+
+            // Función para obtener feriados de Chile
+            const getFeriadosChile = (year: number, month: number): number[] => {
+              const feriados = {
+                2024: {
+                  1: [1], 2: [], 3: [29], 4: [1], 5: [1], 6: [7],
+                  7: [16], 8: [15], 9: [18, 19], 10: [12], 11: [1], 12: [8, 25]
+                },
+                2025: {
+                  1: [1], 2: [], 3: [18, 19], 4: [], 5: [1], 6: [7],
+                  7: [16], 8: [15], 9: [18, 19], 10: [12], 11: [1], 12: [8, 25]
+                }
+              };
+              
+              return feriados[year as keyof typeof feriados]?.[month as keyof typeof feriados[2024]] || [];
+            };
+
+            const feriadosChile = getFeriadosChile(anio, mes);
+            const diasSemanaArray = diasDelMesArray.map(dia => {
+              const fecha = new Date(anio, mes - 1, dia);
+              const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+              const diaSemana = diasSemana[fecha.getDay()];
+              const esFeriado = feriadosChile.includes(dia);
+              
+              return { dia, diaSemana, esFeriado };
+            });
+            setDiasSemana(diasSemanaArray);
+
+            // Transformar la pauta al formato esperado
+            const pautaTransformada = pautaResponse.pauta.map((guardiaPauta: any) => {
+              const guardiaInfo = instalacionInfo.guardias.find(g => g.id === guardiaPauta.id);
+              
+              return {
+                id: guardiaPauta.id,
+                nombre: guardiaPauta.nombre,
+                nombre_puesto: guardiaPauta.nombre_puesto,
+                patron_turno: guardiaPauta.patron_turno,
+                dias: guardiaPauta.dias,
+                tipo: guardiaInfo?.tipo,
+                es_ppc: guardiaPauta.es_ppc,
+                guardia_id: guardiaPauta.guardia_id,
+                rol_nombre: guardiaInfo?.rol_servicio?.nombre
+              };
+            });
+            
+            setPautaData(pautaTransformada);
+            console.log('✅ Pauta existente cargada');
+          }
+        } catch (error) {
+          console.log('ℹ️ No existe pauta, se creará una nueva');
+          setPautaExiste(false);
+          
+          // Crear pauta inicial con todos los días como "LIBRE"
+          if (instalacionInfo) {
+            const diasEnMes = new Date(anio, mes - 1, 0).getDate();
+            const diasArray = Array.from({ length: diasEnMes }, (_, i) => i + 1);
+            setDiasDelMes(diasArray);
+
+            const diasSemanaArray: DiaSemana[] = diasArray.map(dia => {
+              const fecha = new Date(anio, mes - 1, dia);
+              const diaSemana = fecha.toLocaleDateString('es-ES', { weekday: 'short' });
+              return { dia, diaSemana, esFeriado: false };
+            });
+            setDiasSemana(diasSemanaArray);
+
+            const pautaInicial: PautaGuardia[] = instalacionInfo.guardias.map((guardia: any) => {
+              const diasTrabajo = guardia.rol_servicio?.dias_trabajo || 4;
+              const diasDescanso = guardia.rol_servicio?.dias_descanso || 4;
+              const patronTurno = `${diasTrabajo}x${diasDescanso}`;
+              
+              const nombreMostrar = guardia.tipo === 'ppc' 
+                ? `${guardia.nombre_completo} (PPC)` 
+                : guardia.nombre_completo;
+              
+              return {
+                id: guardia.id,
+                nombre: nombreMostrar,
+                nombre_puesto: guardia.nombre_completo,
+                patron_turno: patronTurno,
+                dias: Array.from({ length: diasEnMes }, () => 'LIBRE'),
+                tipo: guardia.tipo,
+                es_ppc: guardia.tipo === 'ppc',
+                guardia_id: guardia.id,
+                rol_nombre: guardia.nombre_completo
+              };
+            });
+            setPautaData(pautaInicial);
+          }
         }
 
       } catch (error) {
@@ -255,31 +272,33 @@ export default function EditarPautaMensualPage() {
     if (instalacionId) {
       cargarDatosIniciales();
     }
-  }, [instalacionId, anio, mes]); // Removí toast de las dependencias
+  }, [instalacionId, anio, mes]);
 
-  // Función para verificar que los datos se guardaron correctamente
-  const verificarGuardado = async (): Promise<boolean> => {
+  const generarPauta = async () => {
+    if (!instalacion) return;
+
+    setGenerando(true);
     try {
-      console.log('🔍 Verificando guardado...');
-      const response = await fetch(`/api/pauta-mensual?instalacion_id=${instalacionId}&mes=${mes}&anio=${anio}`);
-      
-      if (!response.ok) {
-        console.error('❌ Error verificando guardado:', response.status);
-        return false;
-      }
-      
-      const datosGuardados = await response.json();
-      
-      console.log('🔍 Verificación post-guardado:', {
-        datos_enviados: pautaData.length,
-        datos_guardados: datosGuardados.pauta?.length || 0,
-        coinciden: pautaData.length === (datosGuardados.pauta?.length || 0)
+      const response = await crearPautaMensualAutomatica({
+        instalacion_id: instalacionId,
+        anio,
+        mes
       });
       
-      return pautaData.length === (datosGuardados.pauta?.length || 0);
-    } catch (error) {
-      console.error('❌ Error en verificación:', error);
-      return false;
+      if (response.success) {
+        toast.success('Pauta creada', 'La pauta mensual se ha creado exitosamente');
+        setPautaExiste(true);
+        
+        // Recargar la página para mostrar la pauta creada
+        window.location.reload();
+      } else {
+        toast.error('Error', response.error || 'Error al crear la pauta mensual');
+      }
+    } catch (error: any) {
+      console.error('❌ Error generando pauta:', error);
+      toast.error('Error', error.message || 'Error al generar la pauta mensual');
+    } finally {
+      setGenerando(false);
     }
   };
 
@@ -293,38 +312,22 @@ export default function EditarPautaMensualPage() {
     try {
       console.log(`[${timestamp}] 🚀 Iniciando guardado de pauta`);
       
-      // Transformar los datos al formato esperado por la API
       const pautaParaGuardar = pautaData.map(guardia => ({
         guardia_id: guardia.id,
         dias: guardia.dias.map(estado => {
-          // Convertir estados del frontend a estados de la base de datos
           switch (estado) {
-            case 'T':
-              return 'T';
-            case 'L':
-              return 'L';
-            case 'P':
-              return 'P';
-            case 'LIC':
-              return 'LIC';
-            default:
-              return 'L';
+            case 'T': return 'T';
+            case 'L': return 'L';
+            case 'P': return 'P';
+            case 'LIC': return 'LIC';
+            default: return 'L';
           }
         })
       }));
 
-      console.log(`[${timestamp}] 📤 Enviando pauta al servidor:`, {
-        instalacion_id: instalacionId,
-        anio: parseInt(anio.toString()),
-        mes: parseInt(mes.toString()),
-        total_guardias: pautaParaGuardar.length
-      });
-
       const response = await fetch('/api/pauta-mensual/guardar', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           instalacion_id: instalacionId,
           anio: parseInt(anio.toString()),
@@ -339,28 +342,14 @@ export default function EditarPautaMensualPage() {
       }
 
       const result = await response.json();
-      const endTime = Date.now();
-      const duration = endTime - startTime;
-      
       console.log(`[${timestamp}] ✅ Pauta guardada exitosamente:`, result);
-      console.log(`[${timestamp}] ⏱️ Tiempo total de guardado: ${duration}ms`);
 
-      // Verificar que se guardó correctamente
-      const verificacionExitosa = await verificarGuardado();
-      if (verificacionExitosa) {
-        console.log(`[${timestamp}] ✅ Verificación post-guardado exitosa`);
-        toast.success('Pauta guardada', 'Los cambios se han guardado exitosamente y verificado');
-      } else {
-        console.warn(`[${timestamp}] ⚠️ Verificación post-guardado falló`);
-        toast.warning('Pauta guardada', 'Los cambios se guardaron pero la verificación falló. Revise los datos.');
-      }
-
+      toast.success('Pauta guardada', 'Los cambios se han guardado exitosamente');
       setEditando(false);
-      actualizarDiasGuardados(); // Actualizar indicadores visuales
+      actualizarDiasGuardados();
 
     } catch (error: any) {
-      const errorTime = new Date().toISOString();
-      console.error(`[${errorTime}] ❌ Error guardando pauta:`, error);
+      console.error(`[${new Date().toISOString()}] ❌ Error guardando pauta:`, error);
       toast.error('Error', error.message || 'Error al guardar la pauta');
     } finally {
       setGuardando(false);
@@ -372,22 +361,18 @@ export default function EditarPautaMensualPage() {
   };
 
   const actualizarPauta = (guardiaIndex: number, diaIndex: number, nuevoEstado: string) => {
-    if (!editando) {
-      return;
-    }
+    if (!editando) return;
+    
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] 🔄 actualizarPauta:`, { guardiaIndex, diaIndex, nuevoEstado });
     
     const nuevaPautaData = [...pautaData];
     nuevaPautaData[guardiaIndex].dias[diaIndex] = nuevoEstado;
     setPautaData(nuevaPautaData);
-    
-    console.log(`[${timestamp}] ✅ Estado actualizado:`, nuevaPautaData[guardiaIndex].dias[diaIndex]);
   };
 
   const eliminarGuardia = (guardiaIndex: number) => {
     const nuevaPautaData = [...pautaData];
-    // Limpiar todos los días asignados (TRABAJA/LIBRE) pero mantener al guardia
     nuevaPautaData[guardiaIndex].dias = nuevaPautaData[guardiaIndex].dias.map(() => "");
     setPautaData(nuevaPautaData);
   };
@@ -465,11 +450,21 @@ export default function EditarPautaMensualPage() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver
           </Button>
-          <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/20">
-            <Calendar className="h-6 w-6 text-green-600 dark:text-green-400" />
+          <div className={`p-3 rounded-full ${
+            pautaExiste 
+              ? "bg-green-100 dark:bg-green-900/20" 
+              : "bg-orange-100 dark:bg-orange-900/20"
+          }`}>
+            <Calendar className={`h-6 w-6 ${
+              pautaExiste 
+                ? "text-green-600 dark:text-green-400" 
+                : "text-orange-600 dark:text-orange-400"
+            }`} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Editar Pauta Mensual</h1>
+            <h1 className="text-2xl font-bold">
+              {pautaExiste ? "Ver Pauta Mensual" : "Crear Pauta Mensual"}
+            </h1>
             <p className="text-sm text-muted-foreground">
               <Link 
                 href={`/instalaciones/${instalacion.id}`}
@@ -484,30 +479,51 @@ export default function EditarPautaMensualPage() {
         </div>
         
         <div className="flex space-x-2">
-          {!editando ? (
-            <Button onClick={() => setEditando(true)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Editar Pauta
-            </Button>
-          ) : (
+          {pautaExiste ? (
             <>
-              <Button variant="outline" onClick={() => setEditando(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={guardarPauta} disabled={guardando}>
-                {guardando ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Guardando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Guardar
-                  </>
-                )}
-              </Button>
+              {!editando ? (
+                <Button onClick={() => setEditando(true)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar Pauta
+                </Button>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => setEditando(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={guardarPauta} disabled={guardando}>
+                    {guardando ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Guardando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Guardar
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
             </>
+          ) : (
+            <Button 
+              onClick={generarPauta} 
+              disabled={generando || pautaData.length === 0}
+            >
+              {generando ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generando...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Generar Pauta
+                </>
+              )}
+            </Button>
           )}
         </div>
       </div>
@@ -529,6 +545,11 @@ export default function EditarPautaMensualPage() {
             <p className="text-sm text-muted-foreground">
               {instalacion?.direccion}
             </p>
+            {instalacion?.cliente_nombre && (
+              <p className="text-xs text-muted-foreground">
+                Cliente: {instalacion.cliente_nombre}
+              </p>
+            )}
           </CardHeader>
         </Card>
 
@@ -564,6 +585,24 @@ export default function EditarPautaMensualPage() {
           </Card>
         )}
       </div>
+
+      {/* Estado de la pauta */}
+      {!pautaExiste && (
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <FileText className="h-8 w-8 text-orange-600" />
+              <div>
+                <h3 className="font-semibold">Pauta no creada</h3>
+                <p className="text-sm text-muted-foreground">
+                  Esta instalación aún no tiene una pauta mensual para {mes}/{anio}. 
+                  Haz clic en "Generar Pauta" para crear la primera pauta.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Calendario de la pauta */}
       <PautaTable
