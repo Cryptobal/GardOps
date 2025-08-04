@@ -763,22 +763,6 @@ export default function PautaDiariaPage() {
 
             {/* Botones adicionales para estados específicos */}
             
-            {/* Botón de deshacer para turnos ya marcados */}
-            {(turno.estado === 'trabajado' || turno.estado === 'inasistencia') && (
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="text-xs px-2 py-1 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
-                onClick={() => {
-                  console.log('🔄 Deshaciendo marcado para:', turno);
-                  actualizarAsistencia(turno, 'deshacer');
-                }}
-                title="Deshacer marcado"
-              >
-                Deshacer
-              </Button>
-            )}
-
             {/* Botón de asignar reemplazo para inasistencias */}
             {turno.guardia_id && turno.estado === 'inasistencia' && turno.tipo_cobertura !== 'reemplazo' && (
               <Popover open={popoverReemplazo === turno.id} onOpenChange={(open) => {
@@ -880,8 +864,8 @@ export default function PautaDiariaPage() {
               </Popover>
             )}
 
-            {/* Botón de eliminar guardia para turnos con guardia asignado */}
-            {turno.guardia_id && turno.estado !== 'sin_marcar' && (
+            {/* Botón de eliminar guardia para turnos con guardia asignado y ya marcados */}
+            {turno.guardia_id && (turno.estado === 'trabajado' || turno.estado === 'inasistencia') && (
               <Button 
                 size="sm" 
                 variant="outline" 

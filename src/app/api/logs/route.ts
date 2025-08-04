@@ -21,10 +21,10 @@ export async function GET(request: NextRequest) {
     // Por ahora usar un tenant_id fijo para testing
     const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
 
-    // Construir la consulta base
-    let whereConditions = ['tenant_id = $1'];
-    let params: any[] = [tenantId];
-    let paramIndex = 2;
+    // Construir la consulta base - solo para tablas que tienen tenant_id
+    let whereConditions = [];
+    let params: any[] = [];
+    let paramIndex = 1;
 
     // Aplicar filtros
     if (modulo && modulo !== 'todos') {
@@ -78,19 +78,30 @@ export async function GET(request: NextRequest) {
       FROM (
         SELECT 'guardias' as modulo, guardia_id as entidad_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id
         FROM logs_guardias
-        WHERE ${whereClause}
         UNION ALL
-        SELECT 'pauta_mensual' as modulo, pauta_id as entidad_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id
+        SELECT 'pauta_mensual' as modulo, pauta_mensual_id as entidad_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id
         FROM logs_pauta_mensual
-        WHERE ${whereClause}
         UNION ALL
-        SELECT 'pauta_diaria' as modulo, pauta_id as entidad_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id
+        SELECT 'pauta_diaria' as modulo, pauta_diaria_id as entidad_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id
         FROM logs_pauta_diaria
-        WHERE ${whereClause}
         UNION ALL
         SELECT 'turnos_extras' as modulo, turno_extra_id as entidad_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id
         FROM logs_turnos_extras
-        WHERE ${whereClause}
+        UNION ALL
+        SELECT 'puestos_operativos' as modulo, puesto_operativo_id as entidad_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id
+        FROM logs_puestos_operativos
+        UNION ALL
+        SELECT 'documentos' as modulo, documento_id as entidad_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id
+        FROM logs_documentos
+        UNION ALL
+        SELECT 'usuarios' as modulo, usuario_id as entidad_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id
+        FROM logs_usuarios
+        UNION ALL
+        SELECT 'instalaciones' as modulo, instalacion_id as entidad_id, accion, usuario, tipo, contexto, null as datos_anteriores, null as datos_nuevos, fecha, null as tenant_id
+        FROM logs_instalaciones
+        UNION ALL
+        SELECT 'clientes' as modulo, cliente_id as entidad_id, accion, usuario, tipo, contexto, null as datos_anteriores, null as datos_nuevos, fecha, null as tenant_id
+        FROM logs_clientes
       ) combined_logs
     `;
 
@@ -125,12 +136,11 @@ export async function GET(request: NextRequest) {
           fecha, 
           tenant_id
         FROM logs_guardias
-        WHERE ${whereClause}
         UNION ALL
         SELECT 
           id,
           'pauta_mensual' as modulo, 
-          pauta_id as entidad_id, 
+          pauta_mensual_id as entidad_id, 
           accion, 
           usuario, 
           tipo, 
@@ -140,12 +150,11 @@ export async function GET(request: NextRequest) {
           fecha, 
           tenant_id
         FROM logs_pauta_mensual
-        WHERE ${whereClause}
         UNION ALL
         SELECT 
           id,
           'pauta_diaria' as modulo, 
-          pauta_id as entidad_id, 
+          pauta_diaria_id as entidad_id, 
           accion, 
           usuario, 
           tipo, 
@@ -155,7 +164,6 @@ export async function GET(request: NextRequest) {
           fecha, 
           tenant_id
         FROM logs_pauta_diaria
-        WHERE ${whereClause}
         UNION ALL
         SELECT 
           id,
@@ -170,7 +178,76 @@ export async function GET(request: NextRequest) {
           fecha, 
           tenant_id
         FROM logs_turnos_extras
-        WHERE ${whereClause}
+        UNION ALL
+        SELECT 
+          id,
+          'puestos_operativos' as modulo, 
+          puesto_operativo_id as entidad_id, 
+          accion, 
+          usuario, 
+          tipo, 
+          contexto, 
+          datos_anteriores, 
+          datos_nuevos, 
+          fecha, 
+          tenant_id
+        FROM logs_puestos_operativos
+        UNION ALL
+        SELECT 
+          id,
+          'documentos' as modulo, 
+          documento_id as entidad_id, 
+          accion, 
+          usuario, 
+          tipo, 
+          contexto, 
+          datos_anteriores, 
+          datos_nuevos, 
+          fecha, 
+          tenant_id
+        FROM logs_documentos
+        UNION ALL
+        SELECT 
+          id,
+          'usuarios' as modulo, 
+          usuario_id as entidad_id, 
+          accion, 
+          usuario, 
+          tipo, 
+          contexto, 
+          datos_anteriores, 
+          datos_nuevos, 
+          fecha, 
+          tenant_id
+        FROM logs_usuarios
+        UNION ALL
+        SELECT 
+          id,
+          'instalaciones' as modulo, 
+          instalacion_id as entidad_id, 
+          accion, 
+          usuario, 
+          tipo, 
+          contexto, 
+          null as datos_anteriores,
+          null as datos_nuevos,
+          fecha,
+          null as tenant_id
+        FROM logs_instalaciones
+        UNION ALL
+        SELECT 
+          id,
+          'clientes' as modulo, 
+          cliente_id as entidad_id, 
+          accion, 
+          usuario, 
+          tipo, 
+          contexto, 
+          null as datos_anteriores,
+          null as datos_nuevos,
+          fecha,
+          null as tenant_id
+        FROM logs_clientes
       ) combined_logs
       ORDER BY fecha DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -275,7 +352,7 @@ export async function POST(request: NextRequest) {
         
       case 'pauta_mensual':
         sql = `
-          INSERT INTO logs_pauta_mensual (pauta_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id)
+          INSERT INTO logs_pauta_mensual (pauta_mensual_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id)
           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8)
           RETURNING *
         `;
@@ -284,7 +361,7 @@ export async function POST(request: NextRequest) {
         
       case 'pauta_diaria':
         sql = `
-          INSERT INTO logs_pauta_diaria (pauta_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id)
+          INSERT INTO logs_pauta_diaria (pauta_diaria_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id)
           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8)
           RETURNING *
         `;
