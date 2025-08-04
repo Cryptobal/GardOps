@@ -283,7 +283,7 @@ const getEstadoDisplay = (estado: string) => {
         icon: "⬜", 
         text: "", 
         className: "bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 text-gray-400 dark:text-gray-600 border-0 outline-0",
-        tooltip: "Vacío"
+        tooltip: "Sin asignar"
       };
   }
 };
@@ -298,7 +298,8 @@ const DiaCell = ({
   diaSemana,
   esFeriado,
   modoEdicion = false,
-  diasGuardados
+  diasGuardados,
+  esPPC = false
 }: { 
   estado: string; 
   onClick?: () => void;
@@ -309,6 +310,7 @@ const DiaCell = ({
   esFeriado?: boolean;
   modoEdicion?: boolean;
   diasGuardados?: Set<string>;
+  esPPC?: boolean;
 }) => {
   const { icon, text, className, tooltip } = getEstadoDisplay(estado);
 
@@ -319,28 +321,31 @@ const DiaCell = ({
   const clasesEspeciales = ''; // Eliminado el ring amber
   const clasesFeriado = esFeriado ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/30' : '';
   const clasesFinDeSemana = esFinDeSemana ? 'bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20' : '';
-  const clasesModoEdicion = modoEdicion ? 'cursor-pointer hover:scale-105 hover:shadow-sm' : 'cursor-default opacity-90';
-  const clasesGuardado = isDiaGuardado ? 'ring-2 ring-green-400 dark:ring-green-500 shadow-sm' : '';
+  
+  // Clases específicas para PPCs (solo lectura)
+  const clasesPPC = esPPC ? 'cursor-not-allowed opacity-60 select-none' : '';
+  const clasesModoEdicion = modoEdicion && !esPPC ? 'cursor-pointer hover:scale-105 hover:shadow-sm' : 'cursor-default opacity-90';
+  const clasesGuardado = '';
 
   const handleClick = () => {
-    console.log('👆 Clic en celda detectado:', { guardiaNombre, diaNumero, estado, isDiaGuardado });
-    if (onClick) {
+    console.log('👆 Clic en celda detectado:', { guardiaNombre, diaNumero, estado, isDiaGuardado, esPPC });
+    if (onClick && !esPPC) {
       onClick();
     }
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
-    console.log('🖱️ Clic derecho en celda detectado:', { guardiaNombre, diaNumero, estado, isDiaGuardado });
-    if (onRightClick) {
+    console.log('🖱️ Clic derecho en celda detectado:', { guardiaNombre, diaNumero, estado, isDiaGuardado, esPPC });
+    if (onRightClick && !esPPC) {
       onRightClick(e);
     }
   };
 
-  const tooltipText = `${guardiaNombre} - Día ${diaNumero} (${diaSemana || ''})${esFeriado ? ' - FERIADO' : ''}: ${tooltip}${isDiaGuardado ? ' - ✅ Guardado en BD' : ''}${!modoEdicion ? ' - Modo solo lectura' : ''}`;
+  const tooltipText = `${guardiaNombre} - Día ${diaNumero} (${diaSemana || ''})${esFeriado ? ' - FERIADO' : ''}: ${tooltip}${isDiaGuardado ? ' - ✅ Guardado en BD' : ''}${esPPC ? ' - 🔒 Solo lectura (PPC)' : ''}${!modoEdicion ? ' - Modo solo lectura' : ''}`;
 
   return (
     <TableCell 
-      className={`text-center transition-all duration-200 p-0 border-0 !border-b-0 ${className} ${clasesEspeciales} ${clasesFeriado} ${clasesFinDeSemana} ${clasesModoEdicion} ${clasesGuardado}`}
+      className={`text-center transition-all duration-200 p-0 border-0 !border-b-0 ${className} ${clasesEspeciales} ${clasesFeriado} ${clasesFinDeSemana} ${clasesModoEdicion} ${clasesGuardado} ${clasesPPC}`}
       style={{ border: 'none', outline: 'none', borderWidth: '0px', borderStyle: 'none', borderBottom: 'none' }}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
@@ -360,10 +365,9 @@ const DiaCell = ({
         <span className="text-sm leading-none">{icon}</span>
         {text && <span className="text-xs font-bold leading-none mt-0.5">{text}</span>}
         
-        {/* Indicador de día guardado */}
-        {isDiaGuardado && (
-          <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full border border-white dark:border-gray-800 shadow-sm" 
-               title="Guardado en base de datos" />
+        {/* Indicador visual para PPCs */}
+        {esPPC && (
+          <div className="absolute top-0 right-0 w-2 h-2 bg-red-400 rounded-full opacity-60"></div>
         )}
       </div>
     </TableCell>
@@ -422,17 +426,41 @@ export default function PautaTable({
 
   const cambiarEstadoDia = (guardiaIndex: number, diaIndex: number) => {
     if (!modoEdicion) return;
+    
+    const guardiaOrdenada = pautaDataOrdenada[guardiaIndex];
+    
+    // Bloquear edición para PPCs
+    if (guardiaOrdenada.es_ppc) {
+      console.log('🚫 Intento de editar PPC bloqueado:', { guardiaIndex, diaIndex });
+      return;
+    }
+    
     console.log('🔄 Cambiando estado de día:', { guardiaIndex, diaIndex });
-    const estadoActual = pautaDataOrdenada[guardiaIndex].dias[diaIndex];
+    const estadoActual = guardiaOrdenada.dias[diaIndex];
+    
+    // Encontrar el índice original en pautaData
+    const indiceOriginal = pautaData.findIndex(g => g.id === guardiaOrdenada.id);
+    
     // Normalizar estados: convertir a mayúsculas para comparación
     const estadoNormalizado = estadoActual?.toUpperCase() || '';
     const nuevoEstado = estadoNormalizado === "TRABAJA" ? "libre" : "trabaja";
     console.log('🔄 Estado actual:', estadoActual, '-> Nuevo estado:', nuevoEstado);
-    onUpdatePauta(guardiaIndex, diaIndex, nuevoEstado);
+    console.log('🔄 Índice ordenado:', guardiaIndex, '-> Índice original:', indiceOriginal);
+    onUpdatePauta(indiceOriginal, diaIndex, nuevoEstado);
   };
 
   const handleRightClick = (e: React.MouseEvent, guardiaIndex: number, diaIndex: number) => {
     if (!modoEdicion) return;
+    
+    const guardiaOrdenada = pautaDataOrdenada[guardiaIndex];
+    
+    // Bloquear clic derecho para PPCs
+    if (guardiaOrdenada.es_ppc) {
+      console.log('🚫 Intento de clic derecho en PPC bloqueado:', { guardiaIndex, diaIndex });
+      e.preventDefault();
+      return;
+    }
+    
     e.preventDefault();
     console.log('🖱️ Clic derecho detectado:', { guardiaIndex, diaIndex });
     const diaInfo = diasSemana[diaIndex];
@@ -448,6 +476,9 @@ export default function PautaTable({
   const autocompletarPauta = (diaInicio: number) => {
     const { guardiaIndex, diaSeleccionado } = autocompletadoModal;
     const guardia = pautaDataOrdenada[guardiaIndex];
+    
+    // Encontrar el índice original en pautaData
+    const indiceOriginal = pautaData.findIndex(g => g.id === guardia.id);
     
     const extraerTipoTurno = (patron: string): string => {
       if (patron.includes("4x4")) return "4x4";
@@ -476,7 +507,7 @@ export default function PautaTable({
       const diaDelCiclo = (diaInicio + diferenciaDesdeSeleccionado - 1) % cicloCompleto;
       const esDiaTrabajo = diaDelCiclo < patron.trabajo;
       
-      onUpdatePauta(guardiaIndex, i, esDiaTrabajo ? "T" : "L");
+      onUpdatePauta(indiceOriginal, i, esDiaTrabajo ? "T" : "L");
     }
     
     setAutocompletadoModal({ isOpen: false, guardiaIndex: 0, diaIndex: 0, diaSeleccionado: 1, diaSemanaSeleccionado: '' });
@@ -484,9 +515,19 @@ export default function PautaTable({
 
   const eliminarPautaGuardia = (guardiaIndex: number) => {
     if (!modoEdicion) return;
+    
+    const guardiaOrdenada = pautaDataOrdenada[guardiaIndex];
+    
+    // Bloquear eliminación para PPCs
+    if (guardiaOrdenada.es_ppc) {
+      console.log('🚫 Intento de eliminar PPC bloqueado:', { guardiaIndex });
+      return;
+    }
+    
+    const indiceOriginal = pautaData.findIndex(g => g.id === guardiaOrdenada.id);
     setDeleteModal({
       isOpen: true,
-      guardiaIndex: guardiaIndex
+      guardiaIndex: indiceOriginal
     });
   };
 
@@ -528,6 +569,10 @@ export default function PautaTable({
             <span className="text-gray-700 dark:text-gray-300">Libre</span>
           </div>
           <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border border-gray-300 dark:border-gray-600 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300">Sin asignar</span>
+          </div>
+          <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-300 dark:border-blue-600 rounded"></div>
             <span className="text-gray-700 dark:text-gray-300">Permiso</span>
           </div>
@@ -543,6 +588,12 @@ export default function PautaTable({
             <div className="w-4 h-4 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/30 border border-red-300 dark:border-red-600 rounded"></div>
             <span className="text-gray-700 dark:text-gray-300">Feriado</span>
           </div>
+          {modoEdicion && (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-800/30 border border-red-300 dark:border-red-600 rounded"></div>
+              <span className="text-gray-700 dark:text-gray-300">PPC (Solo lectura)</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -580,11 +631,18 @@ export default function PautaTable({
           </TableHeader>
           <TableBody>
             {pautaDataOrdenada.map((guardia, guardiaIndex) => (
-                              <TableRow key={guardiaIndex} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 group border-0">
+              <TableRow 
+                key={guardiaIndex} 
+                className={`group border-0 ${
+                  guardia.es_ppc 
+                    ? 'bg-gradient-to-r from-red-50/30 to-red-100/30 dark:from-red-900/10 dark:to-red-800/10 hover:from-red-50/50 hover:to-red-100/50 dark:hover:from-red-900/20 dark:hover:to-red-800/20' 
+                    : 'hover:bg-gray-50/50 dark:hover:bg-gray-800/50'
+                }`}
+              >
                 <TableCell className="p-4 border-0 whitespace-nowrap relative">
                   <div className="flex items-center gap-3">
                     {/* Botón eliminar */}
-                    {modoEdicion && (
+                    {modoEdicion && !guardia.es_ppc && (
                       <button
                         onClick={() => eliminarPautaGuardia(guardiaIndex)}
                         className="p-1.5 rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110"
@@ -610,11 +668,7 @@ export default function PautaTable({
                         </Link>
                       </div>
                       <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight">
-                        {guardia.rol_nombre ? (
-                          <span className="font-medium">{guardia.rol_nombre}</span>
-                        ) : (
-                          <span className="font-medium">{guardia.patron_turno}</span>
-                        )}
+                        <span className="font-medium">{guardia.rol_nombre || guardia.patron_turno}</span>
                         {guardia.es_ppc && (
                           <span className="ml-2 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-xs font-medium">
                             PPC
@@ -639,6 +693,7 @@ export default function PautaTable({
                       esFeriado={esFeriado}
                       modoEdicion={modoEdicion}
                       diasGuardados={diasGuardados}
+                      esPPC={guardia.es_ppc}
                     />
                   );
                 })}

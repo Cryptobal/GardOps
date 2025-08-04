@@ -3,21 +3,36 @@ import { query } from '@/lib/database';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔍 Iniciando verificación de roles de servicio...');
     const body = await request.json();
     const { instalacion_id } = body;
 
-    console.log('📋 Parámetros recibidos:', { instalacion_id });
-
     if (!instalacion_id) {
-      console.log('❌ Error: instalacion_id no proporcionado');
       return NextResponse.json(
         { error: 'Parámetros requeridos: instalacion_id' },
         { status: 400 }
       );
     }
 
-    console.log('🔍 Ejecutando consulta de roles de servicio...');
+    // Primero, verificar si la instalación existe
+    const instalacionResult = await query(`
+      SELECT id, nombre FROM instalaciones WHERE id = $1
+    `, [instalacion_id]);
+    
+    if (instalacionResult.rows.length === 0) {
+      return NextResponse.json({
+        tiene_roles: false,
+        mensaje: 'Instalación no encontrada',
+        roles: []
+      });
+    }
+    
+    // Verificar si hay puestos operativos para esta instalación
+    const puestosResult = await query(`
+      SELECT id, nombre_puesto, activo, es_ppc
+      FROM as_turnos_puestos_operativos 
+      WHERE instalacion_id = $1
+    `, [instalacion_id]);
+    
     // Verificar si hay roles de servicio creados para la instalación
     const rolesResult = await query(`
       SELECT 
@@ -31,10 +46,7 @@ export async function POST(request: NextRequest) {
       ORDER BY rs.nombre
     `, [instalacion_id]);
 
-    console.log('✅ Consulta de roles ejecutada. Resultados:', rolesResult.rows.length);
-
     if (rolesResult.rows.length === 0) {
-      console.log('❌ No se encontraron roles de servicio para la instalación');
       return NextResponse.json({
         tiene_roles: false,
         mensaje: 'Instalación sin rol de servicio creado. Para generar pauta, primero crea un rol de servicio en el módulo de Asignaciones.',
@@ -42,7 +54,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log('✅ Roles encontrados, verificando PPCs...');
     // Si tiene roles, verificar PPCs activos
     const ppcsResult = await query(`
       SELECT 
@@ -54,9 +65,6 @@ export async function POST(request: NextRequest) {
       ORDER BY rs.nombre
     `, [instalacion_id]);
 
-    console.log('✅ Consulta de PPCs ejecutada. Resultados:', ppcsResult.rows.length);
-
-    console.log('🔍 Verificando guardias asignados...');
     // Verificar guardias asignados
     const guardiasResult = await query(`
       SELECT 
@@ -72,11 +80,9 @@ export async function POST(request: NextRequest) {
       ORDER BY g.nombre
     `, [instalacion_id]);
 
-    console.log('✅ Consulta de guardias ejecutada. Resultados:', guardiasResult.rows.length);
-
     const response = {
       tiene_roles: true,
-      puede_generar_pauta: ppcsResult.rows.length > 0 && guardiasResult.rows.length > 0,
+      puede_generar_pauta: ppcsResult.rows.length > 0, // Solo verificar que hay PPCs activos
       roles: rolesResult.rows.map((row: any) => ({
         id: row.rol_servicio_id,
         nombre: row.rol_nombre,
@@ -86,16 +92,13 @@ export async function POST(request: NextRequest) {
       guardias_asignados: guardiasResult.rows.length,
       mensaje: ppcsResult.rows.length === 0 
         ? 'Roles de servicio creados pero sin PPCs activos. Verifica la configuración de los roles.'
-        : guardiasResult.rows.length === 0
-        ? 'Hay PPCs pendientes pero no hay guardias asignados. Asigna guardias antes de crear la pauta.'
         : 'Instalación lista para generar pauta mensual.'
     };
 
-    console.log('✅ Respuesta final:', response);
     return NextResponse.json(response);
 
   } catch (error) {
-    console.error('❌ Error verificando roles de servicio:', error);
+    console.error('Error verificando roles de servicio:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor al verificar roles de servicio' },
       { status: 500 }

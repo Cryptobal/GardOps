@@ -15,10 +15,12 @@ export async function DELETE(request: NextRequest) {
 
     // Eliminar todos los registros de la pauta mensual para la instalación, año y mes especificados
     const result = await query(`
-      DELETE FROM as_turnos_pauta_mensual 
-      WHERE instalacion_id = $1 
-        AND anio = $2 
-        AND mes = $3
+      DELETE FROM as_turnos_pauta_mensual pm
+      USING as_turnos_puestos_operativos po
+      WHERE pm.puesto_id = po.id 
+        AND po.instalacion_id = $1 
+        AND pm.anio = $2 
+        AND pm.mes = $3
     `, [instalacion_id, anio, mes]);
 
     console.log(`🗑️ Pauta mensual eliminada para instalación ${instalacion_id}, ${mes}/${anio} (${result.rowCount} registros)`);

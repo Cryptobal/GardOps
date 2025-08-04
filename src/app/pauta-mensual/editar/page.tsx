@@ -144,13 +144,28 @@ export default function EditarPautaMensualPage() {
   const actualizarPauta = (guardiaIndex: number, diaIndex: number, nuevoEstado: string) => {
     setPautaData(prevData => {
       const newData = [...prevData];
+      
+      // Verificar si es un PPC y bloquear la edición
+      if (newData[guardiaIndex].es_ppc) {
+        console.log('🚫 Intento de editar PPC bloqueado en actualizarPauta');
+        return prevData; // No hacer cambios
+      }
+      
       newData[guardiaIndex].dias[diaIndex] = nuevoEstado;
       return newData;
     });
   };
 
   const eliminarGuardia = (guardiaIndex: number) => {
-    setPautaData(prevData => prevData.filter((_, index) => index !== guardiaIndex));
+    setPautaData(prevData => {
+      // Verificar si es un PPC y bloquear la eliminación
+      if (prevData[guardiaIndex].es_ppc) {
+        console.log('🚫 Intento de eliminar PPC bloqueado');
+        return prevData; // No hacer cambios
+      }
+      
+      return prevData.filter((_, index) => index !== guardiaIndex);
+    });
   };
 
   const guardarPauta = async () => {
@@ -160,7 +175,7 @@ export default function EditarPautaMensualPage() {
 
       // Convertir datos al formato esperado por la API
       const pautaParaGuardar = pautaData.map(guardia => ({
-        guardia_id: guardia.guardia_id || guardia.id, // Usar guardia_id si existe, de lo contrario usar el ID de la pauta
+        guardia_id: guardia.es_ppc ? guardia.id : (guardia.guardia_id || guardia.id), // Para PPCs usar el ID del puesto, para guardias usar guardia_id
         dias: guardia.dias.map(dia => {
           switch (dia) {
             case 'TRABAJA': return 'T';
@@ -316,6 +331,7 @@ export default function EditarPautaMensualPage() {
               diasSemana={diasSemana}
               onUpdatePauta={actualizarPauta}
               onDeleteGuardia={eliminarGuardia}
+              modoEdicion={true}
             />
           </CardContent>
         </Card>

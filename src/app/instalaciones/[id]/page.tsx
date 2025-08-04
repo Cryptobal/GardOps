@@ -46,6 +46,13 @@ export default function InstalacionDetallePage() {
       // Usar la función optimizada que obtiene todo en una sola llamada
       const datosCompletos = await obtenerDatosCompletosInstalacion(instalacionId);
       
+      console.log('🔍 Datos recibidos del endpoint:', {
+        turnos: datosCompletos.turnos.length,
+        ppcs: datosCompletos.ppcs.length,
+        guardias: datosCompletos.guardias.length,
+        roles: datosCompletos.roles.length
+      });
+      
       setInstalacion(datosCompletos.instalacion);
       
       // Guardar datos precargados
@@ -257,7 +264,11 @@ export default function InstalacionDetallePage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Puestos Operativos</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {turnosPrecargados.reduce((total, turno) => total + turno.cantidad_guardias, 0)}
+                    {(() => {
+                      const total = turnosPrecargados.reduce((total, turno) => total + turno.cantidad_guardias, 0);
+                      console.log('🔍 Puestos operativos calculados:', total, 'de', turnosPrecargados.length, 'turnos');
+                      return total;
+                    })()}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     {turnosPrecargados.length} turnos • {ppcsPrecargados.filter((ppc: any) => ppc.estado === 'Pendiente').length} PPCs
@@ -275,7 +286,11 @@ export default function InstalacionDetallePage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Guardias Asignados</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {guardiasPrecargados.filter((g: any) => g.tipo === 'asignado').length}
+                    {(() => {
+                      const asignados = guardiasPrecargados.filter((g: any) => g.tipo === 'asignado').length;
+                      console.log('🔍 Guardias asignados calculados:', asignados, 'de', guardiasPrecargados.length, 'total');
+                      return asignados;
+                    })()}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     {guardiasPrecargados.filter((g: any) => g.tipo === 'asignado' && g.activo).length} activos
@@ -293,7 +308,11 @@ export default function InstalacionDetallePage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">PPCs</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {ppcsPrecargados.filter((ppc: any) => ppc.estado === 'Pendiente').length}
+                    {(() => {
+                      const pendientes = ppcsPrecargados.filter((ppc: any) => ppc.estado === 'Pendiente').length;
+                      console.log('🔍 PPCs pendientes calculados:', pendientes, 'de', ppcsPrecargados.length, 'total');
+                      return pendientes;
+                    })()}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     {ppcsPrecargados.filter((ppc: any) => ppc.estado === 'Pendiente').length} pendientes
@@ -311,7 +330,10 @@ export default function InstalacionDetallePage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Roles de Servicio</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {turnosPrecargados.length}
+                    {(() => {
+                      console.log('🔍 Roles de servicio calculados:', turnosPrecargados.length, 'activos');
+                      return turnosPrecargados.length;
+                    })()}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     {turnosPrecargados.length} activos

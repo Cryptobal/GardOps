@@ -90,6 +90,7 @@ export default function PautaMensualUnificadaPage() {
 
   const [instalacion, setInstalacion] = useState<InstalacionInfo | null>(null);
   const [pautaData, setPautaData] = useState<PautaGuardia[]>([]);
+  const [pautaDataOriginal, setPautaDataOriginal] = useState<PautaGuardia[]>([]);
   const [diasDelMes, setDiasDelMes] = useState<number[]>([]);
   const [diasSemana, setDiasSemana] = useState<DiaSemana[]>([]);
   const [loading, setLoading] = useState(true);
@@ -217,13 +218,14 @@ export default function PautaMensualUnificadaPage() {
             });
             
             setPautaData(pautaTransformada);
+            setPautaDataOriginal(JSON.parse(JSON.stringify(pautaTransformada)));
             console.log('✅ Pauta existente cargada');
           }
         } catch (error) {
           console.log('ℹ️ No existe pauta, se creará una nueva');
           setPautaExiste(false);
           
-          // Crear pauta inicial con todos los días como "LIBRE"
+          // Crear estructura inicial sin pauta - se creará automáticamente al guardar
           if (instalacionInfo) {
             const diasEnMes = new Date(anio, mes - 1, 0).getDate();
             const diasArray = Array.from({ length: diasEnMes }, (_, i) => i + 1);
@@ -236,6 +238,7 @@ export default function PautaMensualUnificadaPage() {
             });
             setDiasSemana(diasSemanaArray);
 
+            // Crear estructura inicial con días vacíos - se llenará automáticamente
             const pautaInicial: PautaGuardia[] = instalacionInfo.guardias.map((guardia: any) => {
               const diasTrabajo = guardia.rol_servicio?.dias_trabajo || 4;
               const diasDescanso = guardia.rol_servicio?.dias_descanso || 4;
@@ -250,14 +253,15 @@ export default function PautaMensualUnificadaPage() {
                 nombre: nombreMostrar,
                 nombre_puesto: guardia.nombre_completo,
                 patron_turno: patronTurno,
-                dias: Array.from({ length: diasEnMes }, () => 'LIBRE'),
+                dias: Array.from({ length: diasEnMes }, () => ''), // Días vacíos por defecto
                 tipo: guardia.tipo,
                 es_ppc: guardia.tipo === 'ppc',
                 guardia_id: guardia.id,
-                rol_nombre: guardia.nombre_completo
+                rol_nombre: guardia.rol_servicio?.nombre || ''
               };
             });
             setPautaData(pautaInicial);
+            setPautaDataOriginal(JSON.parse(JSON.stringify(pautaInicial)));
           }
         }
 
@@ -313,14 +317,14 @@ export default function PautaMensualUnificadaPage() {
       console.log(`[${timestamp}] 🚀 Iniciando guardado de pauta`);
       
       const pautaParaGuardar = pautaData.map(guardia => ({
-        guardia_id: guardia.id,
+        guardia_id: guardia.es_ppc ? guardia.id : (guardia.guardia_id || guardia.id), // Para PPCs usar el ID del puesto, para guardias usar guardia_id
         dias: guardia.dias.map(estado => {
           switch (estado) {
             case 'T': return 'T';
             case 'L': return 'L';
             case 'P': return 'P';
             case 'LIC': return 'LIC';
-            default: return 'L';
+            default: return '';
           }
         })
       }));
@@ -488,7 +492,10 @@ export default function PautaMensualUnificadaPage() {
                 </Button>
               ) : (
                 <>
-                  <Button variant="outline" onClick={() => setEditando(false)}>
+                  <Button variant="outline" onClick={() => {
+                    setEditando(false);
+                    setPautaData(JSON.parse(JSON.stringify(pautaDataOriginal)));
+                  }}>
                     Cancelar
                   </Button>
                   <Button onClick={guardarPauta} disabled={guardando}>

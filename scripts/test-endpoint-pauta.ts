@@ -1,36 +1,44 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/database';
+import { query } from '../src/lib/database';
 
-export async function POST(request: NextRequest) {
+async function testEndpointPauta() {
   try {
-    const body = await request.json();
-    const { instalacion_id, anio, mes } = body;
+    console.log('🧪 Probando endpoint de crear pauta mensual...\n');
 
-    if (!instalacion_id || !anio || !mes) {
-      return NextResponse.json(
-        { error: 'Parámetros requeridos: instalacion_id, anio, mes' },
-        { status: 400 }
-      );
+    // 1. Buscar la instalación "A Test"
+    console.log('1. Buscando instalación "A Test"...');
+    const instalacionResult = await query(`
+      SELECT id, nombre, estado FROM instalaciones 
+      WHERE nombre ILIKE '%A Test%'
+    `);
+    
+    if (instalacionResult.rows.length === 0) {
+      console.log('❌ No se encontró la instalación "A Test"');
+      return;
     }
+    
+    const instalacion = instalacionResult.rows[0];
+    console.log(`✅ Instalación encontrada: ${instalacion.nombre} (${instalacion.id})`);
 
-    // Verificar si ya existe pauta para esta instalación en este mes
-    const pautaExistente = await query(`
-      SELECT COUNT(*) as count
-      FROM as_turnos_pauta_mensual pm
-      INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
-      WHERE po.instalacion_id = $1 
-        AND pm.anio = $2 
-        AND pm.mes = $3
-    `, [instalacion_id, anio, mes]);
+    // 2. Eliminar pauta existente si existe
+    console.log('\n2. Eliminando pauta existente si existe...');
+    await query(`
+      DELETE FROM as_turnos_pauta_mensual pm
+      WHERE pm.puesto_id IN (
+        SELECT po.id 
+        FROM as_turnos_puestos_operativos po 
+        WHERE po.instalacion_id = $1
+      ) AND pm.anio = $2 AND pm.mes = $3
+    `, [instalacion.id, 2025, 8]);
 
-    if (parseInt(pautaExistente.rows[0].count) > 0) {
-      return NextResponse.json(
-        { error: 'Ya existe una pauta mensual para esta instalación en el mes especificado' },
-        { status: 409 }
-      );
-    }
+    console.log('✅ Pauta existente eliminada');
 
-    // 1. PRIMERO: Verificar si hay puestos operativos activos para la instalación
+    // 3. Simular la lógica del endpoint
+    console.log('\n3. Ejecutando lógica del endpoint...');
+    
+    const anio = 2025;
+    const mes = 8;
+    
+    // Verificar puestos operativos
     const puestosResult = await query(`
       SELECT 
         po.id as puesto_id,
@@ -49,37 +57,35 @@ export async function POST(request: NextRequest) {
       WHERE po.instalacion_id = $1 
         AND po.activo = true
       ORDER BY po.nombre_puesto
-    `, [instalacion_id]);
+    `, [instalacion.id]);
 
-    if (puestosResult.rows.length === 0) {
-      return NextResponse.json(
-        { 
-          error: 'Instalación sin puestos operativos activos. Por favor, crea puestos operativos desde el módulo de asignaciones en la instalación.',
-          tipo: 'sin_puestos'
-        },
-        { status: 400 }
-      );
-    }
-
+    console.log(`📊 Puestos encontrados: ${puestosResult.rows.length}`);
+    
     // Generar días del mes
     const diasDelMes = Array.from(
-      { length: new Date(parseInt(anio), parseInt(mes), 0).getDate() }, 
+      { length: new Date(anio, mes, 0).getDate() }, 
       (_, i) => i + 1
     );
+
+    console.log(`📅 Días del mes: ${diasDelMes.length}`);
 
     // Crear pauta base para cada puesto operativo
     const pautasParaInsertar = [];
     
     for (const puesto of puestosResult.rows) {
+      console.log(`\n🔄 Procesando puesto: ${puesto.nombre_puesto} (PPC: ${puesto.es_ppc})`);
+      
       // Solo crear pauta para puestos que tengan guardia asignado o sean PPCs
       if (puesto.guardia_id || puesto.es_ppc) {
+        console.log(`   ✅ Procesando puesto: ${puesto.nombre_puesto} (PPC: ${puesto.es_ppc})`);
+        
         for (const dia of diasDelMes) {
           // Aplicar patrón de turno automáticamente
           let estado = '';
           
           if (puesto.guardia_id && puesto.patron_turno) {
             // Aplicar lógica de patrón de turno
-            estado = aplicarPatronTurno(puesto.patron_turno, dia, parseInt(anio), parseInt(mes));
+            estado = aplicarPatronTurno(puesto.patron_turno, dia, anio, mes);
           }
           
           // Para PPCs sin guardia asignada, establecer estado como 'libre' por defecto
@@ -97,10 +103,18 @@ export async function POST(request: NextRequest) {
             });
           }
         }
+      } else {
+        console.log(`   ❌ Omitiendo puesto: ${puesto.nombre_puesto} (sin guardia y no es PPC)`);
       }
     }
 
-    // Insertar todas las pautas
+    console.log(`\n📊 Resumen de pautas a crear:`);
+    console.log(`   - Total registros: ${pautasParaInsertar.length}`);
+    console.log(`   - Puestos procesados: ${puestosResult.rows.filter((p: any) => p.guardia_id || p.es_ppc).length}`);
+    console.log(`   - Puestos omitidos: ${puestosResult.rows.filter((p: any) => !p.guardia_id && !p.es_ppc).length}`);
+
+    // 4. Insertar todas las pautas
+    console.log('\n4. Insertando pautas en la base de datos...');
     const insertPromises = pautasParaInsertar.map(pauta => 
       query(`
         INSERT INTO as_turnos_pauta_mensual (puesto_id, guardia_id, anio, mes, dia, estado)
@@ -110,27 +124,35 @@ export async function POST(request: NextRequest) {
 
     await Promise.all(insertPromises);
 
-    console.log(`✅ Pauta mensual creada automáticamente para instalación ${instalacion_id} en ${mes}/${anio}`);
+    console.log(`✅ Pauta mensual creada automáticamente para instalación ${instalacion.id} en ${mes}/${anio}`);
     console.log(`📊 Resumen: ${pautasParaInsertar.length} registros creados para ${puestosResult.rows.length} puestos`);
     console.log(`🔍 Puestos con guardia: ${puestosResult.rows.filter((p: any) => p.guardia_id).length}, PPCs: ${puestosResult.rows.filter((p: any) => p.es_ppc).length}`);
 
-    return NextResponse.json({
-      success: true,
-      message: 'Pauta mensual creada exitosamente',
-      instalacion_id,
-      anio: parseInt(anio),
-      mes: parseInt(mes),
-      puestos_procesados: puestosResult.rows.length,
-      registros_creados: pautasParaInsertar.length,
-      dias_del_mes: diasDelMes.length
-    });
+    // 5. Verificar que se insertaron correctamente
+    console.log('\n5. Verificando inserción...');
+    const verificacionResult = await query(`
+      SELECT 
+        COUNT(*) as total_registros,
+        COUNT(DISTINCT pm.puesto_id) as puestos_unicos,
+        COUNT(DISTINCT pm.guardia_id) as guardias_unicas
+      FROM as_turnos_pauta_mensual pm
+      INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
+      WHERE po.instalacion_id = $1 
+        AND pm.anio = $2 
+        AND pm.mes = $3
+    `, [instalacion.id, anio, mes]);
+
+    const verificacion = verificacionResult.rows[0];
+    console.log(`   - Total registros insertados: ${verificacion.total_registros}`);
+    console.log(`   - Puestos únicos: ${verificacion.puestos_unicos}`);
+    console.log(`   - Guardias únicas: ${verificacion.guardias_unicas}`);
+
+    console.log('\n✅ Prueba del endpoint completada exitosamente');
 
   } catch (error) {
-    console.error('❌ Error creando pauta mensual automática:', error);
-    return NextResponse.json(
-      { error: 'Error interno del servidor al crear la pauta mensual' },
-      { status: 500 }
-    );
+    console.error('❌ Error en la prueba del endpoint:', error);
+  } finally {
+    process.exit(0);
   }
 }
 
@@ -168,4 +190,6 @@ function aplicarPatronTurno(rolCompleto: string, dia: number, anio: number, mes:
   
   // Por defecto, días sin asignar
   return '';
-} 
+}
+
+testEndpointPauta(); 

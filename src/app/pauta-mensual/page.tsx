@@ -26,7 +26,7 @@ import {
   Trash2
 } from "lucide-react";
 import { obtenerResumenPautasMensuales, crearPautaMensualAutomatica, verificarRolesServicio, eliminarPautaMensual } from "../../lib/api/pauta-mensual";
-import { useToast } from "../../hooks/use-toast";
+import { useToast } from "../../components/ui/toast";
 import { useRouter } from "next/navigation";
 import ConfirmDeleteModal from "../../components/ui/confirm-delete-modal";
 import InstalacionCard from "./components/InstalacionCard";
@@ -108,7 +108,7 @@ const KPIBox = ({
 
 export default function PautaMensualPage() {
   const router = useRouter();
-  const toast = useToast();
+  const { toast } = useToast();
   const [selectedMes, setSelectedMes] = useState<string>("");
   const [selectedAnio, setSelectedAnio] = useState<string>("");
   const [resumen, setResumen] = useState<ResumenPautas | null>(null);
@@ -183,7 +183,10 @@ export default function PautaMensualPage() {
   };
 
   const generarPautaAutomatica = async (instalacionId: string) => {
-    if (!selectedMes || !selectedAnio) return;
+    if (!selectedMes || !selectedAnio) {
+      toast.error('Por favor selecciona un mes y año', 'Error');
+      return;
+    }
 
     setLoadingInstalacion(instalacionId);
     setMensaje(null);
@@ -194,8 +197,8 @@ export default function PautaMensualPage() {
       
       if (!verificacionRoles.tiene_roles) {
         toast.error(
-          "Instalación sin rol de servicio",
-          "¿Deseas ir a la instalación para crear un rol de servicio?"
+          "¿Deseas ir a la instalación para crear un rol de servicio?",
+          "Instalación sin rol de servicio"
         );
         
         // Mostrar confirmación con botón
@@ -207,8 +210,8 @@ export default function PautaMensualPage() {
 
       if (!verificacionRoles.puede_generar_pauta) {
         toast.error(
-          "No se puede generar pauta",
-          verificacionRoles.mensaje
+          verificacionRoles.mensaje,
+          "No se puede generar pauta"
         );
         return;
       }
@@ -219,8 +222,8 @@ export default function PautaMensualPage() {
     } catch (error: any) {
       console.error('Error verificando roles:', error);
       toast.error(
-        "Error",
-        error.message || 'Error al verificar roles de servicio'
+        error.message || 'Error al verificar roles de servicio',
+        "Error"
       );
     } finally {
       setLoadingInstalacion(null);
@@ -260,14 +263,14 @@ export default function PautaMensualPage() {
         mes: parseInt(selectedMes)
       });
       
-      toast.success('Pauta eliminada', 'La pauta mensual ha sido eliminada exitosamente');
+      toast.success('La pauta mensual ha sido eliminada exitosamente', 'Pauta eliminada');
       
       // Recargar el resumen
       await cargarResumen();
       
     } catch (error) {
       console.error('Error eliminando pauta:', error);
-      toast.error('Error', 'No se pudo eliminar la pauta mensual');
+      toast.error('No se pudo eliminar la pauta mensual', 'Error');
     } finally {
       setLoadingInstalacion(null);
       cerrarModalEliminar();

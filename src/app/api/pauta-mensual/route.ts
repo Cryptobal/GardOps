@@ -65,10 +65,10 @@ export async function GET(request: NextRequest) {
         g.apellido_paterno,
         g.apellido_materno,
         rs.nombre as rol_nombre,
-        CONCAT(rs.dias_trabajo, 'x', rs.dias_descanso) as patron_turno,
+        rs.nombre as patron_turno,
         CASE 
           WHEN po.guardia_id IS NOT NULL THEN 
-            CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, ''), ' (', rs.nombre, ')')
+            CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, ''))
           WHEN po.es_ppc = true THEN 
             'PPC ' || substring(po.id::text, 1, 8) || '...'
           ELSE 
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
       // Crear array de días para este puesto
       const dias = diasDelMes.map(dia => {
         const pautaDia = pautaPuesto.find((p: any) => p.dia === dia);
-        const estado = pautaDia?.estado || 'libre';
+        const estado = pautaDia?.estado || '';
         // Convertir estado de BD a formato frontend
         switch (estado) {
           case 'trabajado':
@@ -120,9 +120,9 @@ export async function GET(request: NextRequest) {
           case 'vacaciones':
             return 'V';
           case 'licencia':
-            return 'L';
+            return 'M';
           default:
-            return 'L';
+            return '';
         }
       });
 

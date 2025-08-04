@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { motion } from "framer-motion";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -8,15 +9,102 @@ import {
   Building2, 
   Plus,
   Users,
-  AlertTriangle
+  AlertTriangle,
+  CheckCircle,
+  FileText,
+  Shield
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+
+// Componente KPI Box
+const KPIBox = ({ 
+  title, 
+  value, 
+  icon: Icon, 
+  color = "blue",
+  trend = null 
+}: {
+  title: string;
+  value: string | number;
+  icon: React.ComponentType<any>;
+  color?: string;
+  trend?: { value: number; isPositive: boolean } | null;
+}) => {
+  // Mapear colores a clases CSS específicas
+  const getColorClasses = (color: string) => {
+    switch (color) {
+      case 'green':
+        return {
+          bg: 'bg-green-100 dark:bg-green-900/20',
+          text: 'text-green-600 dark:text-green-400'
+        };
+      case 'blue':
+        return {
+          bg: 'bg-blue-100 dark:bg-blue-900/20',
+          text: 'text-blue-600 dark:text-blue-400'
+        };
+      case 'purple':
+        return {
+          bg: 'bg-purple-100 dark:bg-purple-900/20',
+          text: 'text-purple-600 dark:text-purple-400'
+        };
+      case 'red':
+        return {
+          bg: 'bg-red-100 dark:bg-red-900/20',
+          text: 'text-red-600 dark:text-red-400'
+        };
+      default:
+        return {
+          bg: 'bg-blue-100 dark:bg-blue-900/20',
+          text: 'text-blue-600 dark:text-blue-400'
+        };
+    }
+  };
+
+  const colorClasses = getColorClasses(color);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <Card className="h-full">
+        <CardContent className="p-3 md:p-6 flex flex-col justify-between h-full">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-xs md:text-sm font-medium text-muted-foreground min-h-[1.5rem] flex items-center">{title}</p>
+              <p className="text-lg md:text-2xl font-bold">{value}</p>
+              {trend && (
+                <p className={`text-xs md:text-sm ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                  {trend.isPositive ? '+' : ''}{trend.value}%
+                </p>
+              )}
+            </div>
+            <div className={`p-2 md:p-3 rounded-full ${colorClasses.bg} flex-shrink-0 ml-3`}>
+              <Icon className={`h-4 w-4 md:h-6 md:w-6 ${colorClasses.text}`} />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
 
 export default function InstalacionesPage() {
   const router = useRouter();
   const [instalaciones, setInstalaciones] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("activo");
+
+  // Estados para KPIs
+  const [kpis, setKpis] = useState({
+    instalaciones_activas: 0,
+    puestos_activos: 0,
+    ppc_activos: 0,
+    documentos_vencidos: 0
+  });
 
   // Función para cargar datos de instalaciones con estadísticas
   const fetchInstalaciones = async () => {
@@ -41,21 +129,51 @@ export default function InstalacionesPage() {
     }
   };
 
-  // Cargar datos de instalaciones
+  // Función para cargar KPIs
+  const fetchKPIs = async () => {
+    try {
+      console.log('🔍 Cargando KPIs de instalaciones...');
+      const response = await fetch('/api/instalaciones/kpis');
+      const data = await response.json();
+      
+      if (data.success) {
+        console.log('✅ KPIs cargados exitosamente:', data.data);
+        setKpis(data.data);
+      } else {
+        console.error("Error cargando KPIs:", data.error);
+      }
+    } catch (error) {
+      console.error("Error cargando KPIs:", error);
+    }
+  };
+
+  // Cargar datos de instalaciones y KPIs
   useEffect(() => {
     fetchInstalaciones();
+    fetchKPIs();
   }, []);
 
-  // Filtrar instalaciones
-  const filteredInstalaciones = instalaciones.filter((instalacion: any) => {
-    const matchesSearch = 
-      instalacion.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      instalacion.cliente_nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      instalacion.comuna?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      instalacion.ciudad?.toLowerCase().includes(searchTerm.toLowerCase());
+  // Log para debuggear KPIs
+  useEffect(() => {
+    console.log('🎯 KPIs actuales:', kpis);
+  }, [kpis]);
 
-    return matchesSearch;
-  });
+  // Filtrar instalaciones
+  const filteredInstalaciones = useMemo(() => {
+    return instalaciones.filter((instalacion: any) => {
+      const matchesSearch = 
+        instalacion.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        instalacion.cliente_nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        instalacion.comuna?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        instalacion.ciudad?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesStatus = statusFilter === "all" || 
+        (statusFilter === "activo" && instalacion.estado === 'Activo') ||
+        (statusFilter === "inactivo" && instalacion.estado === 'Inactivo');
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [instalaciones, searchTerm, statusFilter]);
 
   const handleRowClick = (instalacion: any) => {
     router.push(`/instalaciones/${instalacion.id}`);
@@ -74,6 +192,34 @@ export default function InstalacionesPage() {
         </div>
       </div>
 
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+        <KPIBox
+          title="Instalaciones Activas"
+          value={kpis.instalaciones_activas}
+          icon={CheckCircle}
+          color="green"
+        />
+        <KPIBox
+          title="Puestos Activos"
+          value={kpis.puestos_activos}
+          icon={Users}
+          color="blue"
+        />
+        <KPIBox
+          title="PPC Activos"
+          value={kpis.ppc_activos}
+          icon={Shield}
+          color="purple"
+        />
+        <KPIBox
+          title="Documentos Vencidos"
+          value={kpis.documentos_vencidos}
+          icon={AlertTriangle}
+          color="red"
+        />
+      </div>
+
       {/* Filtros y Acciones */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between">
@@ -84,6 +230,15 @@ export default function InstalacionesPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full sm:w-64"
             />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 border rounded-md bg-background text-sm"
+            >
+              <option value="activo">Instalaciones Activas</option>
+              <option value="all">Todas las instalaciones</option>
+              <option value="inactivo">Instalaciones Inactivas</option>
+            </select>
           </div>
           
           <Button className="flex items-center space-x-2 w-full sm:w-auto">
