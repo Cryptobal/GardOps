@@ -33,7 +33,7 @@ export async function DELETE(
     const historialCheck = await query(`
       SELECT 
         (SELECT COUNT(*) FROM as_turnos_pauta_mensual WHERE instalacion_id = $1) as pauta_count,
-        (SELECT COUNT(*) FROM as_turnos_puestos_operativos WHERE id = $2 AND guardia_id IS NOT NULL) as guardia_asignada
+        (SELECT COUNT(*) FROM as_turnos_puestos_operativos WHERE id = $2 AND guardia_id IS NOT NULL AND activo = true) as guardia_asignada
     `, [instalacionId, ppcId]);
 
     const { pauta_count, guardia_asignada } = historialCheck.rows[0];

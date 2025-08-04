@@ -29,7 +29,7 @@ export async function GET(
         COUNT(CASE WHEN guardia_id IS NULL THEN 1 END) as puestos_disponibles
         
       FROM as_turnos_puestos_operativos po
-      WHERE po.instalacion_id = $1
+      WHERE po.instalacion_id = $1 AND po.activo = true
     `, [instalacionId]);
 
     if (result.rows.length === 0) {

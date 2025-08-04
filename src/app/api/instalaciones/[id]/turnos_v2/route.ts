@@ -25,7 +25,7 @@ export async function GET(
         COUNT(CASE WHEN po.es_ppc = true THEN 1 END) as ppc_pendientes
       FROM as_turnos_puestos_operativos po
       INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-      WHERE po.instalacion_id = $1
+      WHERE po.instalacion_id = $1 AND po.activo = true
       GROUP BY rs.id, rs.nombre, rs.created_at, rs.updated_at
       ORDER BY rs.nombre
     `, [instalacionId]);
@@ -123,9 +123,9 @@ export async function POST(
       );
     }
 
-    // Verificar que no existe ya un turno con el mismo rol para esta instalación
+    // Verificar que no existe ya un turno activo con el mismo rol para esta instalación
     const turnoExistente = await query(
-      'SELECT rol_id FROM as_turnos_puestos_operativos WHERE instalacion_id = $1 AND rol_id = $2 LIMIT 1',
+      'SELECT rol_id FROM as_turnos_puestos_operativos WHERE instalacion_id = $1 AND rol_id = $2 AND activo = true LIMIT 1',
       [instalacionId, rol_servicio_id]
     );
 

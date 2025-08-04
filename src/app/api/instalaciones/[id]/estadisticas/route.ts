@@ -28,32 +28,33 @@ export async function GET(
         
       FROM instalaciones i
       
-      -- Puestos totales
+      -- Puestos totales (solo activos)
       LEFT JOIN (
         SELECT 
           po.instalacion_id,
           COUNT(*) as count
         FROM as_turnos_puestos_operativos po
+        WHERE po.activo = true
         GROUP BY po.instalacion_id
       ) puestos_totales ON puestos_totales.instalacion_id = i.id
       
-      -- Puestos asignados (con guardia asignado)
+      -- Puestos asignados (con guardia asignado, solo activos)
       LEFT JOIN (
         SELECT 
           po.instalacion_id,
           COUNT(*) as count
         FROM as_turnos_puestos_operativos po
-        WHERE po.es_ppc = false AND po.guardia_id IS NOT NULL
+        WHERE po.es_ppc = false AND po.guardia_id IS NOT NULL AND po.activo = true
         GROUP BY po.instalacion_id
       ) puestos_asignados ON puestos_asignados.instalacion_id = i.id
       
-      -- PPC pendientes (puestos sin asignar)
+      -- PPC pendientes (puestos sin asignar, solo activos)
       LEFT JOIN (
         SELECT 
           po.instalacion_id,
           COUNT(*) as count
         FROM as_turnos_puestos_operativos po
-        WHERE po.es_ppc = true
+        WHERE po.es_ppc = true AND po.activo = true
         GROUP BY po.instalacion_id
       ) ppc_pendientes ON ppc_pendientes.instalacion_id = i.id
       

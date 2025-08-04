@@ -93,7 +93,7 @@ export async function GET(
         FROM as_turnos_puestos_operativos po
         LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
         LEFT JOIN guardias g ON po.guardia_id = g.id
-        WHERE po.instalacion_id = $1
+        WHERE po.instalacion_id = $1 AND po.activo = true
         ORDER BY po.nombre_puesto, po.creado_en
       `, [instalacionId]);
       console.log(`✅ Puestos operativos encontrados: ${puestosOperativosResult.rows.length}`);

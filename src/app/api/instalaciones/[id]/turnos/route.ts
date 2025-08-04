@@ -10,7 +10,7 @@ export async function GET(
   try {
     const instalacionId = params.id;
 
-    // Obtener turnos usando el nuevo modelo centralizado
+    // Obtener turnos usando el nuevo modelo centralizado (solo puestos activos)
     const result = await query(`
       SELECT 
         rs.id as rol_id,
@@ -29,7 +29,7 @@ export async function GET(
         COUNT(CASE WHEN po.es_ppc = true THEN 1 END) as ppc_pendientes
       FROM as_turnos_puestos_operativos po
       INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-      WHERE po.instalacion_id = $1
+      WHERE po.instalacion_id = $1 AND po.activo = true
       GROUP BY rs.id, rs.nombre, rs.dias_trabajo, rs.dias_descanso, rs.horas_turno, 
                rs.hora_inicio, rs.hora_termino, rs.tenant_id, rs.created_at, rs.updated_at
       ORDER BY rs.nombre
@@ -123,9 +123,9 @@ export async function POST(
       );
     }
 
-    // Verificar que no existe ya un turno con el mismo rol para esta instalación
+    // Verificar que no existe ya un turno activo con el mismo rol para esta instalación
     const turnoExistente = await query(
-      'SELECT rol_id FROM as_turnos_puestos_operativos WHERE instalacion_id = $1 AND rol_id = $2 LIMIT 1',
+      'SELECT rol_id FROM as_turnos_puestos_operativos WHERE instalacion_id = $1 AND rol_id = $2 AND activo = true LIMIT 1',
       [instalacionId, rol_servicio_id]
     );
 
@@ -153,7 +153,7 @@ export async function POST(
         rs.nombre as rol_nombre
       FROM as_turnos_puestos_operativos po
       INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-      WHERE po.instalacion_id = $1 AND po.rol_id = $2
+      WHERE po.instalacion_id = $1 AND po.rol_id = $2 AND po.activo = true
       ORDER BY po.nombre_puesto
     `, [instalacionId, rol_servicio_id]);
 

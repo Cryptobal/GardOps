@@ -21,6 +21,7 @@ export async function GET() {
         FROM semanas s
         LEFT JOIN as_turnos_puestos_operativos po ON 
           po.es_ppc = true AND
+          po.activo = true AND
           po.creado_en >= s.semana_inicio AND 
           po.creado_en <= s.semana_fin
         GROUP BY s.semana_inicio, s.semana_fin
@@ -47,7 +48,7 @@ export async function GET() {
         COUNT(CASE WHEN guardia_id IS NOT NULL THEN 1 END) as total_cubiertos,
         COUNT(*) as total_ppc
       FROM as_turnos_puestos_operativos
-      WHERE es_ppc = true
+      WHERE es_ppc = true AND activo = true
     `);
 
     const estadisticas = stats.rows[0];

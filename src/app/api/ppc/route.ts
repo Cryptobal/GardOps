@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const fechaDesde = searchParams.get('fechaDesde');
     const fechaHasta = searchParams.get('fechaHasta');
 
-    let whereConditions = ['po.es_ppc = true']; // Siempre filtrar por PPC
+    let whereConditions = ['po.es_ppc = true', 'po.activo = true']; // Siempre filtrar por PPC y puestos activos
     let params: any[] = [];
     let paramIndex = 1;
 

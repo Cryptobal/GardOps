@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
             COUNT(*) as total_puestos,
             COUNT(CASE WHEN po.es_ppc = true THEN 1 END) as ppc_pendientes
           FROM as_turnos_puestos_operativos po
+          WHERE po.activo = true
           GROUP BY po.instalacion_id
         ) stats ON stats.instalacion_id = i.id
         ORDER BY i.nombre
@@ -104,7 +105,7 @@ export async function GET(request: NextRequest) {
         `)
       ]);
 
-      // Obtener estadísticas por separado para evitar JOINs complejos
+      // Obtener estadísticas por separado para evitar JOINs complejos (solo puestos activos)
       const statsResult = await query(`
         SELECT 
           po.instalacion_id,
@@ -114,6 +115,7 @@ export async function GET(request: NextRequest) {
           COUNT(*) as ppc_totales,
           COUNT(CASE WHEN po.guardia_id IS NULL THEN 1 END) as puestos_disponibles
         FROM as_turnos_puestos_operativos po
+        WHERE po.activo = true
         GROUP BY po.instalacion_id
       `);
 

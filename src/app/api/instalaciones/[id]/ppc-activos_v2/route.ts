@@ -26,7 +26,7 @@ export async function GET(
       FROM as_turnos_puestos_operativos po
       INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       INNER JOIN instalaciones i ON po.instalacion_id = i.id
-      WHERE po.instalacion_id = $1 AND po.es_ppc = true
+      WHERE po.instalacion_id = $1 AND po.es_ppc = true AND po.activo = true
       ORDER BY rs.nombre, po.creado_en DESC
     `, [instalacionId]);
 
