@@ -326,19 +326,20 @@ export async function getPPCsInstalacion(instalacionId: string): Promise<any[]> 
 
 export async function asignarGuardiaPPC(instalacionId: string, ppcId: string, guardiaId: string): Promise<any> {
   try {
-    const response = await fetch(`/api/instalaciones/${instalacionId}/ppc`, {
+    const response = await fetch('/api/ppc/asignar', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        ppc_id: ppcId,
+        puesto_operativo_id: ppcId,
         guardia_id: guardiaId
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`Error al asignar guardia: ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Error al asignar guardia: ${errorData.error || response.statusText}`);
     }
 
     return await response.json();

@@ -10,6 +10,8 @@ interface Guardia {
   activo: boolean;
   instalacion_id: string;
   instalacion_nombre: string;
+  instalacion_actual_id: string | null;
+  instalacion_actual_nombre: string | null;
   tiene_turno_asignado: boolean;
 }
 
@@ -69,12 +71,26 @@ export function useGuardiasSearch({
   }, [searchTerm, searchGuardias, debounceMs]);
 
   // Convertir guardias a opciones para el combobox
-  const guardiasOptions = guardias.map(guardia => ({
-    value: guardia.id,
-    label: guardia.nombre_completo,
-    description: `RUT: ${guardia.rut}${guardia.instalacion_nombre ? ` - ${guardia.instalacion_nombre}` : ''}${guardia.tiene_turno_asignado ? ' (Ya tiene turno asignado)' : ''}`,
-    disabled: false // En la pauta diaria permitimos asignar guardias incluso si ya tienen turno
-  }));
+  const guardiasOptions = guardias.map(guardia => {
+    let description = `RUT: ${guardia.rut}`;
+    
+    // Agregar información de instalación actual si existe
+    if (guardia.instalacion_actual_nombre) {
+      description += ` - Asignado a ${guardia.instalacion_actual_nombre}`;
+    }
+    
+    // Agregar información de turno asignado
+    if (guardia.tiene_turno_asignado) {
+      description += ' (Ya tiene turno asignado)';
+    }
+    
+    return {
+      value: guardia.id,
+      label: guardia.nombre_completo,
+      description,
+      disabled: false // En la pauta diaria permitimos asignar guardias incluso si ya tienen turno
+    };
+  });
 
   return {
     searchTerm,

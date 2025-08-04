@@ -4,7 +4,8 @@ import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, X, User } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Search, X, User, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Guardia {
@@ -14,6 +15,9 @@ interface Guardia {
   apellido_paterno?: string;
   apellido_materno?: string;
   nombre?: string;
+  instalacion_actual_id?: string;
+  instalacion_actual_nombre?: string;
+  puesto_actual_nombre?: string;
 }
 
 interface GuardiaSearchModalProps {
@@ -24,6 +28,8 @@ interface GuardiaSearchModalProps {
   loading?: boolean;
   className?: string;
   title?: string;
+  instalacionId?: string;
+  instalacionNombre?: string;
 }
 
 const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
@@ -33,9 +39,13 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
   guardias,
   loading = false,
   className,
-  title = "Buscar Guardia"
+  title = "Buscar Guardia",
+  instalacionId,
+  instalacionNombre
 }) => {
   const [searchTerm, setSearchTerm] = React.useState("");
+  const [showWarning, setShowWarning] = React.useState(false);
+  const [guardiaConAdvertencia, setGuardiaConAdvertencia] = React.useState<Guardia | null>(null);
 
   // Filtrar guardias
   const filteredGuardias = guardias.filter(guardia => {
@@ -67,14 +77,40 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
   React.useEffect(() => {
     if (!isOpen) {
       setSearchTerm("");
+      setShowWarning(false);
+      setGuardiaConAdvertencia(null);
     }
   }, [isOpen]);
 
   // Manejar selección de guardia
-  const handleSelectGuardia = (guardiaId: string) => {
-    onSelectGuardia(guardiaId);
-    setSearchTerm("");
-    onClose();
+  const handleSelectGuardia = (guardia: Guardia) => {
+    if (guardia.instalacion_actual_id && guardia.instalacion_actual_id !== instalacionId) {
+      // Guardia ya asignado a otra instalación
+      setGuardiaConAdvertencia(guardia);
+      setShowWarning(true);
+    } else {
+      // Guardia disponible o ya asignado a esta instalación
+      onSelectGuardia(guardia.id);
+      setSearchTerm("");
+      onClose();
+    }
+  };
+
+  // Confirmar asignación con advertencia
+  const handleConfirmarAsignacion = () => {
+    if (guardiaConAdvertencia) {
+      onSelectGuardia(guardiaConAdvertencia.id);
+      setSearchTerm("");
+      setShowWarning(false);
+      setGuardiaConAdvertencia(null);
+      onClose();
+    }
+  };
+
+  // Cancelar asignación con advertencia
+  const handleCancelarAsignacion = () => {
+    setShowWarning(false);
+    setGuardiaConAdvertencia(null);
   };
 
   if (!isOpen) return null;
@@ -108,6 +144,18 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
             />
           </div>
 
+          {/* Advertencia cuando se selecciona un guardia ya asignado */}
+          {showWarning && guardiaConAdvertencia && (
+            <Alert className="border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950">
+              <AlertTriangle className="h-4 w-4 text-orange-600" />
+              <AlertDescription className="text-orange-800 dark:text-orange-200">
+                <strong>Advertencia:</strong> Este guardia ya está asignado a{' '}
+                <strong>{guardiaConAdvertencia.instalacion_actual_nombre}</strong>.
+                Al asignarlo a esta instalación, se cambiará su asignación actual.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Lista de guardias */}
           <div className="max-h-64 overflow-y-auto border rounded-md">
             {loading ? (
@@ -121,28 +169,62 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
               </div>
             ) : (
               <div className="p-2 space-y-1">
-                {filteredGuardias.map((guardia) => (
-                  <div
-                    key={guardia.id}
-                    onClick={() => handleSelectGuardia(guardia.id)}
-                    className="flex items-center gap-3 p-3 rounded-md cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    <User className="h-4 w-4 text-gray-400" />
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{guardia.nombre_completo}</p>
-                      <p className="text-xs text-gray-500">RUT: {guardia.rut}</p>
+                {filteredGuardias.map((guardia) => {
+                  const estaAsignado = guardia.instalacion_actual_id && guardia.instalacion_actual_id !== instalacionId;
+                  console.log('🔍 Debug modal:', {
+                    nombre: guardia.nombre_completo,
+                    instalacion_actual_id: guardia.instalacion_actual_id,
+                    instalacionId,
+                    estaAsignado
+                  });
+                  
+                  return (
+                    <div
+                      key={guardia.id}
+                      onClick={() => handleSelectGuardia(guardia)}
+                      className="flex items-center gap-3 p-3 rounded-md cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      {estaAsignado ? (
+                        <AlertTriangle className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                      ) : (
+                        <User className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">
+                          {guardia.nombre_completo}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          RUT: {guardia.rut}
+                          {estaAsignado && (
+                            <span className="text-orange-600 ml-2">
+                              • Asignado a {guardia.instalacion_actual_nombre}
+                            </span>
+                          )}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
 
           {/* Botones */}
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={onClose}>
-              Cancelar
-            </Button>
+            {showWarning ? (
+              <>
+                <Button variant="outline" onClick={handleCancelarAsignacion}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleConfirmarAsignacion} className="bg-orange-600 hover:bg-orange-700">
+                  Confirmar Asignación
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" onClick={onClose}>
+                Cancelar
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

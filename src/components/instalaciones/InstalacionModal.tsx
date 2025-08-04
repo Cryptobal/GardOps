@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ToggleStatus } from '@/components/ui/toggle-status';
 import SimpleInputDireccion from './SimpleInputDireccion';
 import { DocumentManager } from '@/components/shared/document-manager';
-import { LogViewer } from '@/components/shared/log-viewer';
+
 import { GoogleMap } from '@/components/ui/google-map';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
@@ -23,7 +23,6 @@ import {
   Loader2,
   FileText,
   History,
-  Activity,
   User
 } from 'lucide-react';
 
@@ -370,28 +369,7 @@ function InstalacionModal({ instalacion, isOpen, onClose, onSuccess }: Instalaci
     </div>
   );
 
-  // Sección de logs (solo para instalaciones existentes)
-  const InstalacionLogsSection = () => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Logs
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {instalacion?.id ? (
-            <LogViewer modulo="instalaciones" entidadId={instalacion.id} />
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-gray-500">Guarda la instalación para ver los logs</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
+
 
   // Componente wrapper para contenido seguro
   const SafeTabContent = ({ children }: { children: React.ReactNode }) => {
@@ -425,13 +403,7 @@ function InstalacionModal({ instalacion, isOpen, onClose, onSuccess }: Instalaci
       color: 'amber' as const,
       content: <SafeTabContent><InstalacionDocumentsSection /></SafeTabContent>
     },
-    {
-      key: 'logs',
-      label: 'Logs',
-      icon: Activity,
-      color: 'slate' as const,
-      content: <SafeTabContent><InstalacionLogsSection /></SafeTabContent>
-    }
+
   ];
 
   console.log('🔍 InstalacionModal renderizando, isOpen:', isOpen);

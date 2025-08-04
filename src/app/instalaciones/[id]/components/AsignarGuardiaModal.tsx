@@ -3,11 +3,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-// import { UltraSimpleInput } from '@/components/ui/ultra-simple-input';
-import { SafeSelect } from '@/components/ui/safe-select';
-import { SelectContent, SelectItem } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/components/ui/toast';
-import { Search } from 'lucide-react';
+import { Search, AlertTriangle, User, UserCheck } from 'lucide-react';
 import { asignarGuardiaPPC } from '@/lib/api/instalaciones';
 
 interface AsignarGuardiaModalProps {
@@ -16,6 +15,7 @@ interface AsignarGuardiaModalProps {
   instalacionId: string;
   ppcId: string;
   rolServicioNombre: string;
+  instalacionNombre: string;
   onAsignacionCompletada: () => void;
 }
 
@@ -25,6 +25,7 @@ export default function AsignarGuardiaModal({
   instalacionId,
   ppcId,
   rolServicioNombre,
+  instalacionNombre,
   onAsignacionCompletada
 }: AsignarGuardiaModalProps) {
   const { toast } = useToast();
@@ -33,7 +34,8 @@ export default function AsignarGuardiaModal({
   const [filtroGuardias, setFiltroGuardias] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [cargandoGuardias, setCargandoGuardias] = useState(true);
-  const [selectOpen, setSelectOpen] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+  const [guardiaConAdvertencia, setGuardiaConAdvertencia] = useState<any>(null);
 
   // Función para filtrar guardias por nombre, apellido o RUT
   const guardiasFiltrados = guardias.filter(guardia => {
@@ -67,18 +69,21 @@ export default function AsignarGuardiaModal({
       cargarGuardias();
       // Limpiar filtro al abrir
       setFiltroGuardias('');
+      setShowWarning(false);
+      setGuardiaConAdvertencia(null);
     } else {
       // Limpiar estado cuando se cierra el modal
       setGuardiaSeleccionado('');
       setFiltroGuardias('');
-      setSelectOpen(false);
+      setShowWarning(false);
+      setGuardiaConAdvertencia(null);
     }
   }, [isOpen]);
 
   const cargarGuardias = async () => {
     try {
       setCargandoGuardias(true);
-      const response = await fetch('/api/guardias/disponibles');
+      const response = await fetch(`/api/guardias/disponibles?instalacionId=${instalacionId}`);
       if (!response.ok) {
         throw new Error('Error al obtener guardias disponibles');
       }
@@ -91,6 +96,21 @@ export default function AsignarGuardiaModal({
     } finally {
       setCargandoGuardias(false);
     }
+  };
+
+  const handleGuardiaSeleccionado = (value: string) => {
+    const guardia = guardias.find(g => g.id === value);
+    
+    if (guardia && guardia.instalacion_actual_id && guardia.instalacion_actual_id !== instalacionId) {
+      // Guardia ya asignado a otra instalación
+      setGuardiaConAdvertencia(guardia);
+      setShowWarning(true);
+    } else {
+      setShowWarning(false);
+      setGuardiaConAdvertencia(null);
+    }
+    
+    setGuardiaSeleccionado(value);
   };
 
   const handleAsignar = async () => {
@@ -118,7 +138,8 @@ export default function AsignarGuardiaModal({
     // Limpiar estado antes de cerrar
     setGuardiaSeleccionado('');
     setFiltroGuardias('');
-    setSelectOpen(false);
+    setShowWarning(false);
+    setGuardiaConAdvertencia(null);
     onClose();
   };
 
@@ -128,7 +149,7 @@ export default function AsignarGuardiaModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <Card className="w-full max-w-md mx-4">
         <CardHeader>
-          <CardTitle>Asignar Guardia</CardTitle>
+          <CardTitle>Seleccionar Guardia</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -143,13 +164,10 @@ export default function AsignarGuardiaModal({
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 dark:border-white"></div>
               </div>
             ) : (
-              <SafeSelect 
-                value={guardiaSeleccionado} 
-                onValueChange={setGuardiaSeleccionado}
-                open={selectOpen}
-                onOpenChange={setSelectOpen}
-                placeholder="Seleccionar guardia"
-              >
+              <Select value={guardiaSeleccionado} onValueChange={handleGuardiaSeleccionado}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar guardia" />
+                </SelectTrigger>
                 <SelectContent>
                   {/* Campo de filtro para guardias */}
                   <div className="p-2 border-b">
@@ -159,7 +177,7 @@ export default function AsignarGuardiaModal({
                         type="text"
                         value={filtroGuardias}
                         onChange={(e) => setFiltroGuardias(e.target.value)}
-                        placeholder="Filtrar por apellido o RUT..."
+                        placeholder="Buscar por nombre o RUT..."
                         className="w-full pl-8 h-8 text-xs border-0 focus-visible:ring-0 bg-transparent placeholder:text-gray-400 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-0 focus:border-0"
                       />
                     </div>
@@ -169,16 +187,51 @@ export default function AsignarGuardiaModal({
                       {filtroGuardias ? 'No se encontraron guardias' : 'No hay guardias disponibles'}
                     </div>
                   ) : (
-                    guardiasFiltrados.map((guardia) => (
-                      <SelectItem key={guardia.id} value={guardia.id}>
-                        {guardia.nombre_completo}
-                      </SelectItem>
-                    ))
+                    guardiasFiltrados.map((guardia) => {
+                      const estaAsignado = guardia.instalacion_actual_id && guardia.instalacion_actual_id !== instalacionId;
+                      
+                      return (
+                        <SelectItem key={guardia.id} value={guardia.id}>
+                          <div className="flex items-center gap-2 w-full">
+                            {estaAsignado ? (
+                              <AlertTriangle className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                            ) : (
+                              <User className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium truncate">
+                                {guardia.nombre_completo || `${guardia.nombre} ${guardia.apellido_paterno}`}
+                              </div>
+                              <div className="text-xs text-gray-500 truncate">
+                                RUT: {guardia.rut}
+                                {estaAsignado && (
+                                  <span className="text-orange-600 ml-2">
+                                    • Asignado a {guardia.instalacion_actual_nombre}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      );
+                    })
                   )}
                 </SelectContent>
-              </SafeSelect>
+              </Select>
             )}
           </div>
+
+          {/* Advertencia cuando se selecciona un guardia ya asignado */}
+          {showWarning && guardiaConAdvertencia && (
+            <Alert className="border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950">
+              <AlertTriangle className="h-4 w-4 text-orange-600" />
+              <AlertDescription className="text-orange-800 dark:text-orange-200">
+                <strong>Advertencia:</strong> Este guardia ya está asignado a{' '}
+                <strong>{guardiaConAdvertencia.instalacion_actual_nombre}</strong>.
+                Al asignarlo a esta instalación, se cambiará su asignación actual.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="flex justify-end space-x-2 pt-4">
             <Button variant="outline" onClick={handleClose} disabled={loading}>

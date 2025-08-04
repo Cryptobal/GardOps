@@ -108,38 +108,7 @@ export default function GuardiasPage() {
     showToast("Funcionalidad en desarrollo", "info");
   };
 
-  const eliminarGuardia = async (guardia: any) => {
-    if (!confirm(`¿Estás seguro de que quieres eliminar el guardia "${guardia.nombre_completo}"?`)) {
-      return;
-    }
 
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/guardias/${guardia.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Error al eliminar el guardia');
-      }
-
-      console.log('✅ Guardia eliminado exitosamente:', result);
-      showToast("Guardia eliminado exitosamente", "success");
-      
-      // Recargar la lista de guardias
-      window.location.reload();
-    } catch (error) {
-      console.error('Error eliminando guardia:', error);
-      showToast(error instanceof Error ? error.message : 'Error al eliminar el guardia', "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const showToast = (message: string, type: string = "info") => {
     console.log(`Toast [${type}]:`, message);
@@ -287,37 +256,7 @@ export default function GuardiasPage() {
         </div>
       ),
     },
-    {
-      key: "acciones",
-      label: "Acciones",
-      render: (guardia) => (
-        <div className="flex items-center space-x-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={(e) => {
-              e.stopPropagation();
-              router.push(`/guardias/${guardia.id}`);
-            }}
-            title="Ver detalles"
-          >
-            Ver
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-            onClick={(e) => {
-              e.stopPropagation();
-              eliminarGuardia(guardia);
-            }}
-            title="Eliminar guardia"
-          >
-            Eliminar
-          </Button>
-        </div>
-      ),
-    },
+
   ];
 
   // Obtener instalaciones únicas para el filtro
@@ -507,17 +446,6 @@ export default function GuardiasPage() {
                       }}
                     >
                       Ver
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        eliminarGuardia(guardia);
-                      }}
-                    >
-                      Eliminar
                     </Button>
                   </div>
                 </CardContent>

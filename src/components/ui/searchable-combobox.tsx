@@ -99,7 +99,7 @@ export function SearchableCombobox({
                     className={cn(
                       "flex items-center px-2 py-2 rounded-md cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors",
                       value === option.value && "bg-accent text-accent-foreground",
-                      option.description?.includes('Ya tiene turno asignado') && "bg-yellow-50 dark:bg-yellow-900/20"
+                      option.description?.includes('Asignado a') && "bg-orange-50 dark:bg-orange-900/20 border-l-2 border-orange-500"
                     )}
                   >
                     <Check
@@ -110,15 +110,17 @@ export function SearchableCombobox({
                     />
                     <div className="flex flex-col">
                       <span className={cn(
-                        option.description?.includes('Ya tiene turno asignado') && "font-medium"
+                        option.description?.includes('Asignado a') && "font-medium text-orange-700 dark:text-orange-300"
                       )}>
                         {option.label}
                       </span>
                       {option.description && (
                         <span className={cn(
                           "text-xs",
-                          option.description.includes('Ya tiene turno asignado') 
-                            ? "text-orange-600 dark:text-orange-400" 
+                          option.description.includes('Asignado a') 
+                            ? "text-orange-600 dark:text-orange-400 font-medium" 
+                            : option.description.includes('Ya tiene turno asignado')
+                            ? "text-yellow-600 dark:text-yellow-400"
                             : "text-muted-foreground"
                         )}>
                           {option.description}

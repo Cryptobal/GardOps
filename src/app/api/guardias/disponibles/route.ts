@@ -3,13 +3,11 @@ import { query } from '@/lib/database';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🚀 Obteniendo guardias disponibles para reemplazos');
-    
     const { searchParams } = new URL(request.url);
     const fecha = searchParams.get('fecha');
     const instalacionId = searchParams.get('instalacionId');
 
-    // Obtener guardias activos que no estén asignados en la fecha especificada
+    // Consulta para obtener guardias activos con información de instalación actual
     let sqlQuery = `
       SELECT 
         g.id,
@@ -17,47 +15,36 @@ export async function GET(request: NextRequest) {
         g.apellido_paterno,
         g.apellido_materno,
         g.rut,
-        g.activo
+        g.activo,
+        CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, '')) as nombre_completo,
+        po.instalacion_id as instalacion_actual_id,
+        i.nombre as instalacion_actual_nombre
       FROM guardias g
+      LEFT JOIN as_turnos_puestos_operativos po ON g.id = po.guardia_id
+      LEFT JOIN instalaciones i ON po.instalacion_id = i.id
       WHERE g.activo = true 
     `;
 
     const params: any[] = [];
 
     if (fecha) {
-      // Excluir guardias que ya tienen turno en esa fecha
+      // Excluir guardias que ya tienen turno en esa fecha específica
       sqlQuery += `
         AND g.id NOT IN (
-          SELECT DISTINCT pm.guardia_id
-          FROM as_turnos_pauta_mensual pm
-          WHERE pm.anio = EXTRACT(YEAR FROM $1::date)
-            AND pm.mes = EXTRACT(MONTH FROM $1::date)
-            AND pm.dia = EXTRACT(DAY FROM $1::date)
-            AND pm.guardia_id IS NOT NULL
+          SELECT DISTINCT pm2.guardia_id
+          FROM as_turnos_pauta_mensual pm2
+          WHERE pm2.anio = EXTRACT(YEAR FROM $1::date)
+            AND pm2.mes = EXTRACT(MONTH FROM $1::date)
+            AND pm2.dia = EXTRACT(DAY FROM $1::date)
+            AND pm2.guardia_id IS NOT NULL
         )
       `;
       params.push(fecha);
     }
 
-    if (instalacionId) {
-      // Opcional: filtrar por instalación si se especifica
-      sqlQuery += `
-        AND g.id IN (
-          SELECT DISTINCT g2.id
-          FROM guardias g2
-          INNER JOIN as_turnos_pauta_mensual pm ON g2.id = pm.guardia_id
-          INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
-          WHERE po.instalacion_id = $${params.length + 1}
-        )
-      `;
-      params.push(instalacionId);
-    }
-
     sqlQuery += ` ORDER BY g.nombre, g.apellido_paterno, g.apellido_materno`;
 
     const guardias = await query(sqlQuery, params);
-
-    console.log(`📊 Guardias disponibles: ${guardias.rows.length}`);
 
     return NextResponse.json(guardias.rows);
 

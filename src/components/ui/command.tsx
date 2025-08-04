@@ -9,16 +9,39 @@ import { cn } from "../../lib/utils"
 const Command = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive>
->(({ className, ...props }, ref) => (
-  <CommandPrimitive
-    ref={ref}
-    className={cn(
-      "flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground",
-      className
-    )}
-    {...props}
-  />
-))
+>(({ className, ...props }, ref) => {
+  // Fix para el problema de RovingFocusGroup con cmdk 1.1.1
+  // Envolver en un useEffect para asegurar el montaje correcto
+  const [isMounted, setIsMounted] = React.useState(false)
+  
+  React.useEffect(() => {
+    setIsMounted(true)
+  }, [])
+  
+  if (!isMounted) {
+    return (
+      <div className={cn(
+        "flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground",
+        className
+      )}>
+        <div className="flex items-center justify-center p-4">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-300"></div>
+        </div>
+      </div>
+    )
+  }
+  
+  return (
+    <CommandPrimitive
+      ref={ref}
+      className={cn(
+        "flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground",
+        className
+      )}
+      {...props}
+    />
+  )
+})
 Command.displayName = CommandPrimitive.displayName
 
 const CommandInput = React.forwardRef<

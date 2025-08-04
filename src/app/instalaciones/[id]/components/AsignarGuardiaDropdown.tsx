@@ -11,6 +11,7 @@ interface AsignarGuardiaDropdownProps {
   instalacionId: string;
   ppcId: string;
   rolServicioNombre: string;
+  instalacionNombre: string;
   onAsignacionCompletada: () => void;
   className?: string;
 }
@@ -19,6 +20,7 @@ export default function AsignarGuardiaDropdown({
   instalacionId,
   ppcId,
   rolServicioNombre,
+  instalacionNombre,
   onAsignacionCompletada,
   className = ""
 }: AsignarGuardiaDropdownProps) {
@@ -38,12 +40,13 @@ export default function AsignarGuardiaDropdown({
   const cargarGuardias = async () => {
     try {
       setCargandoGuardias(true);
-      const response = await fetch('/api/guardias/disponibles');
+      const response = await fetch(`/api/guardias/disponibles?instalacionId=${instalacionId}`);
       if (!response.ok) {
         throw new Error('Error al obtener guardias disponibles');
       }
       const guardiasData = await response.json();
       const guardiasFinales = guardiasData.guardias || guardiasData;
+      console.log('🔍 Debug AsignarGuardiaDropdown - guardias cargados:', guardiasFinales.slice(0, 3));
       setGuardias(guardiasFinales);
     } catch (error) {
       console.error('Error cargando guardias:', error);
@@ -97,6 +100,8 @@ export default function AsignarGuardiaDropdown({
         guardias={guardias}
         loading={cargandoGuardias}
         title="Seleccionar Guardia"
+        instalacionId={instalacionId}
+        instalacionNombre={instalacionNombre}
       />
     </>
   );

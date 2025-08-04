@@ -3,33 +3,30 @@ import { query } from '@/lib/database';
 import { logCRUD } from '@/lib/logging';
 
 // Función de validación de integridad de datos
-const validarAsignaciones = (asignaciones: any[]): string[] => {
+const validarActualizaciones = (actualizaciones: any[]): string[] => {
   const errores: string[] = [];
   
-  if (!Array.isArray(asignaciones)) {
-    errores.push('Las asignaciones deben ser un array');
+  if (!Array.isArray(actualizaciones)) {
+    errores.push('Las actualizaciones deben ser un array');
     return errores;
   }
   
-  asignaciones.forEach((asignacion, index) => {
-    if (!asignacion || typeof asignacion !== 'object') {
-      errores.push(`Asignación ${index}: debe ser un objeto válido`);
+  actualizaciones.forEach((actualizacion, index) => {
+    if (!actualizacion || typeof actualizacion !== 'object') {
+      errores.push(`Actualización ${index}: debe ser un objeto válido`);
       return;
     }
     
-    if (!asignacion.guardia_id) {
-      errores.push(`Asignación ${index}: guardia_id es requerido`);
+    if (!actualizacion.puesto_id) {
+      errores.push(`Actualización ${index}: puesto_id es requerido`);
     }
     
-    if (!Array.isArray(asignacion.dias)) {
-      errores.push(`Asignación ${index}: dias debe ser un array`);
-    } else {
-      asignacion.dias.forEach((dia: any, diaIndex: number) => {
-        if (dia !== undefined && dia !== null && dia !== '' && 
-            !['T', 'L', 'P', 'LIC', 'trabajado', 'libre', 'permiso'].includes(dia)) {
-          errores.push(`Asignación ${index}, día ${diaIndex + 1}: estado inválido "${dia}"`);
-        }
-      });
+    if (!actualizacion.anio || !actualizacion.mes || !actualizacion.dia) {
+      errores.push(`Actualización ${index}: anio, mes y dia son requeridos`);
+    }
+    
+    if (!['trabajado', 'libre'].includes(actualizacion.estado)) {
+      errores.push(`Actualización ${index}: estado debe ser 'trabajado' o 'libre'`);
     }
   });
   
@@ -44,7 +41,7 @@ export async function POST(request: NextRequest) {
     console.log(`[${timestamp}] 🚀 Iniciando guardado de pauta mensual`);
     
     const body = await request.json();
-    const { instalacion_id, anio, mes, pauta } = body;
+    const { instalacion_id, anio, mes, actualizaciones } = body;
     
     // Por ahora usar un tenant_id fijo para testing
     const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
@@ -54,7 +51,7 @@ export async function POST(request: NextRequest) {
       instalacion_id, 
       anio, 
       mes, 
-      total_asignaciones: pauta?.length || 0 
+      total_actualizaciones: actualizaciones?.length || 0 
     });
 
     // Validación de parámetros básicos
@@ -66,17 +63,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validación de estructura de pauta
-    if (!pauta || !Array.isArray(pauta) || pauta.length === 0) {
-      console.log(`[${timestamp}] ❌ Validación fallida: pauta inválida`);
+    // Validación de estructura de actualizaciones
+    if (!actualizaciones || !Array.isArray(actualizaciones) || actualizaciones.length === 0) {
+      console.log(`[${timestamp}] ❌ Validación fallida: actualizaciones inválidas`);
       return NextResponse.json(
-        { error: 'La pauta debe ser un array válido con datos de guardias' },
+        { error: 'Las actualizaciones deben ser un array válido con datos de turnos' },
         { status: 400 }
       );
     }
 
     // Validación de integridad de datos
-    const erroresValidacion = validarAsignaciones(pauta);
+    const erroresValidacion = validarActualizaciones(actualizaciones);
     if (erroresValidacion.length > 0) {
       console.log(`[${timestamp}] ❌ Errores de validación:`, erroresValidacion);
       return NextResponse.json(
@@ -97,125 +94,54 @@ export async function POST(request: NextRequest) {
         AND pm.mes = $3
     `, [instalacion_id, anio, mes]);
 
-    // No necesitamos verificar pauta a nivel global, lo haremos por puesto individual
-    console.log(`[${timestamp}] 🔍 Verificando pauta por puesto individual...`);
+    console.log(`[${timestamp}] 🔍 Procesando ${actualizaciones.length} actualizaciones...`);
 
-    // Obtener todos los puestos operativos de la instalación (incluyendo PPCs)
-    const todosLosPuestos = await query(`
-      SELECT po.id as puesto_id, po.guardia_id, po.nombre_puesto, po.es_ppc
-      FROM as_turnos_puestos_operativos po
-      WHERE po.instalacion_id = $1 AND po.activo = true
-      ORDER BY po.nombre_puesto
-    `, [instalacion_id]);
-
-    console.log(`[${timestamp}] 📋 Total puestos en instalación: ${todosLosPuestos.rows.length} (incluyendo PPCs)`);
-
-    // Crear un mapa de los datos del frontend para acceso rápido
-    const pautaFrontend = new Map();
-    for (const guardiaPauta of pauta) {
-      if (guardiaPauta && guardiaPauta.guardia_id && Array.isArray(guardiaPauta.dias)) {
-        pautaFrontend.set(guardiaPauta.guardia_id, guardiaPauta.dias);
-      }
-    }
-
-    // Procesar cada puesto operativo (incluyendo PPCs)
+    // Procesar cada actualización
     const operaciones = [];
     let totalOperaciones = 0;
     
-    for (const puesto of todosLosPuestos.rows) {
-      const puestoId = puesto.puesto_id;
-      const esPPC = puesto.es_ppc;
-      const guardiaId = puesto.guardia_id || puestoId; // Para PPCs usar el puesto_id como guardia_id
+    for (const actualizacion of actualizaciones) {
+      const { puesto_id, guardia_id, anio: anioAct, mes: mesAct, dia, estado } = actualizacion;
       
-      console.log(`[${timestamp}] 🔄 Procesando puesto: ${puesto.nombre_puesto} (PPC: ${esPPC})`);
+      console.log(`[${timestamp}] 🔄 Procesando actualización:`, { puesto_id, guardia_id, dia, estado });
       
-      // Verificar si este puesto específico tiene registros existentes
-      const pautaPuestoExistente = await query(`
+      // Verificar si existe un registro para este puesto, día y mes
+      const registroExistente = await query(`
         SELECT COUNT(*) as count
         FROM as_turnos_pauta_mensual pm
         WHERE pm.puesto_id = $1 
           AND pm.anio = $2 
-          AND pm.mes = $3
-      `, [puestoId, anio, mes]);
+          AND pm.mes = $3 
+          AND pm.dia = $4
+      `, [puesto_id, anioAct, mesAct, dia]);
 
-      const tienePautaPuesto = parseInt(pautaPuestoExistente.rows[0].count) > 0;
-      console.log(`[${timestamp}] 📊 Puesto ${puesto.nombre_puesto}: ${tienePautaPuesto ? 'tiene registros existentes' : 'no tiene registros'} (${pautaPuestoExistente.rows[0].count} registros)`);
+      const existeRegistro = parseInt(registroExistente.rows[0].count) > 0;
       
-      // Obtener los días del frontend o usar días vacíos para PPCs
-      let dias = pautaFrontend.get(guardiaId);
-      if (!dias) {
-        if (esPPC) {
-          // Para PPCs sin datos en frontend, crear días con estado 'libre'
-          const diasDelMes = new Date(parseInt(anio), parseInt(mes), 0).getDate();
-          dias = Array.from({ length: diasDelMes }, () => 'L');
-        } else {
-          console.warn(`[${timestamp}] ⚠️ No se encontraron datos para guardia ${guardiaId}`);
-          continue;
-        }
+      if (existeRegistro) {
+        // Actualizar registro existente
+        operaciones.push(
+          query(`
+            UPDATE as_turnos_pauta_mensual 
+            SET estado = $1, 
+                guardia_id = $2,
+                updated_at = NOW()
+            WHERE puesto_id = $3 
+              AND anio = $4 
+              AND mes = $5 
+              AND dia = $6
+          `, [estado, guardia_id, puesto_id, anioAct, mesAct, dia])
+        );
+      } else {
+        // Insertar nuevo registro
+        operaciones.push(
+          query(`
+            INSERT INTO as_turnos_pauta_mensual 
+            (puesto_id, guardia_id, anio, mes, dia, estado, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+          `, [puesto_id, guardia_id, anioAct, mesAct, dia, estado])
+        );
       }
-      
-      for (let diaIndex = 0; diaIndex < dias.length; diaIndex++) {
-        const dia = diaIndex + 1;
-        const estado = dias[diaIndex];
-        
-        // Validar que el estado sea válido
-        if (estado === undefined || estado === null) {
-          console.warn(`[${timestamp}] ⚠️ Estado inválido para guardia ${guardiaId}, día ${dia}:`, estado);
-          continue;
-        }
-      
-        // Convertir estado del frontend a formato de base de datos
-        let tipoDB = 'libre';
-        switch (estado) {
-          case 'T':
-          case 'turno':
-          case 'trabajado':
-            tipoDB = 'trabajado';
-            break;
-          case 'L':
-          case 'libre':
-            tipoDB = 'libre';
-            break;
-          case 'P':
-          case 'permiso':
-            tipoDB = 'permiso';
-            break;
-          case 'LIC':
-          case 'licencia':
-            tipoDB = 'permiso'; // Usar permiso para licencias
-            break;
-          default:
-            tipoDB = 'libre';
-        }
-        
-        console.log(`[${timestamp}] 🔄 Procesando guardia ${guardiaId} (puesto: ${puestoId}), día ${dia}: ${estado} -> ${tipoDB}`);
-        
-        if (tienePautaPuesto) {
-          // Actualizar registro existente para este puesto específico
-          operaciones.push(
-            query(`
-              UPDATE as_turnos_pauta_mensual 
-              SET estado = $1, 
-                  updated_at = NOW()
-              WHERE puesto_id = $2 
-                AND guardia_id = $3 
-                AND anio = $4 
-                AND mes = $5 
-                AND dia = $6
-            `, [tipoDB, puestoId, guardiaId, anio, mes, dia])
-          );
-        } else {
-          // Insertar nuevo registro para este puesto específico
-          operaciones.push(
-            query(`
-              INSERT INTO as_turnos_pauta_mensual 
-              (puesto_id, guardia_id, anio, mes, dia, estado, created_at, updated_at)
-              VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-            `, [puestoId, guardiaId, anio, mes, dia, tipoDB])
-          );
-        }
-        totalOperaciones++;
-      }
+      totalOperaciones++;
     }
 
     console.log(`[${timestamp}] ⏳ Ejecutando ${totalOperaciones} operaciones en paralelo...`);
@@ -263,7 +189,7 @@ export async function POST(request: NextRequest) {
     const duration = endTime - startTime;
     
     console.log(`[${timestamp}] ✅ Pauta mensual actualizada exitosamente`);
-    console.log(`[${timestamp}] 📊 Resumen: ${pauta.length} guardias, ${totalOperaciones} días actualizados`);
+    console.log(`[${timestamp}] 📊 Resumen: ${actualizaciones.length} actualizaciones, ${totalOperaciones} operaciones`);
     console.log(`[${timestamp}] ⏱️ Tiempo total: ${duration}ms`);
 
     return NextResponse.json({
@@ -273,7 +199,7 @@ export async function POST(request: NextRequest) {
       anio,
       mes,
       metadata: {
-        total_guardias: pauta.length,
+        total_actualizaciones: actualizaciones.length,
         total_operaciones: totalOperaciones,
         tiempo_procesamiento_ms: duration,
         timestamp: timestamp

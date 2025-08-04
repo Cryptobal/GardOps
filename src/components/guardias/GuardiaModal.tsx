@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ToggleStatus } from '@/components/ui/toggle-status';
 import { InputDireccion } from '@/components/ui/input-direccion';
 import { DocumentManager } from '@/components/shared/document-manager';
-import { LogViewer } from '@/components/shared/log-viewer';
+
 import { GoogleMap } from '@/components/ui/google-map';
 import { DatePickerComponent } from '@/components/ui/date-picker';
 import { 
@@ -25,8 +25,7 @@ import {
   X,
   Loader2,
   FileText,
-  History,
-  Activity
+  History
 } from 'lucide-react';
 
 // Importar tipos
@@ -528,23 +527,7 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
       color: 'violet' as const,
       content: <SafeTabContent><GuardOperationalSection guardia={guardia} /></SafeTabContent>
     },
-    {
-      key: 'logs',
-      label: 'Logs',
-      icon: Activity,
-      color: 'slate' as const,
-      content: guardia?.id ? (
-        <SafeTabContent>
-          <LogViewer modulo="guardias" entidadId={guardia.id} />
-        </SafeTabContent>
-      ) : (
-        <SafeTabContent>
-          <div className="text-center py-8">
-            <p className="text-gray-500">Guarda el guardia para ver los logs</p>
-          </div>
-        </SafeTabContent>
-      )
-    }
+
   ];
 
   console.log('🔍 GuardiaModal - Tabs configuradas:', tabs.map(t => t.key));

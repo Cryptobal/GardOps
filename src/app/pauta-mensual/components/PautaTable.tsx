@@ -232,19 +232,19 @@ const ModalAutocompletarPauta = ({
   );
 };
 
-// Función centralizada para obtener el display del estado
+// Función centralizada para obtener el display del estado - SOLO T y L
 const getEstadoDisplay = (estado: string) => {
   // Normalizar el estado para comparación
   const estadoNormalizado = estado?.toLowerCase() || '';
   
   switch (estadoNormalizado) {
-    case "trabaja":
+    case "trabajado":
     case "t":
       return { 
         icon: "🟢", 
         text: "T", 
         className: "bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 text-emerald-800 dark:text-emerald-300 border-0 outline-0",
-        tooltip: "Trabajando"
+        tooltip: "Turno"
       };
     case "libre":
     case "l":
@@ -253,30 +253,6 @@ const getEstadoDisplay = (estado: string) => {
         text: "L", 
         className: "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 text-gray-600 dark:text-gray-400 border-0 outline-0",
         tooltip: "Libre"
-      };
-    case "permiso":
-    case "p":
-      return { 
-        icon: "🔵", 
-        text: "P", 
-        className: "bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 text-blue-800 dark:text-blue-300 border-0 outline-0",
-        tooltip: "Permiso"
-      };
-    case "vacaciones":
-    case "v":
-      return { 
-        icon: "🟡", 
-        text: "V", 
-        className: "bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-900/30 dark:to-amber-900/30 text-yellow-800 dark:text-yellow-300 border-0 outline-0",
-        tooltip: "Vacaciones"
-      };
-    case "licencia":
-    case "m":
-      return { 
-        icon: "🟦", 
-        text: "M", 
-        className: "bg-gradient-to-br from-cyan-100 to-blue-100 dark:from-cyan-900/30 dark:to-blue-900/30 text-cyan-800 dark:text-cyan-300 border-0 outline-0",
-        tooltip: "Licencia Médica"
       };
     default:
       return { 
@@ -322,30 +298,29 @@ const DiaCell = ({
   const clasesFeriado = esFeriado ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/30' : '';
   const clasesFinDeSemana = esFinDeSemana ? 'bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20' : '';
   
-  // Clases específicas para PPCs (solo lectura)
-  const clasesPPC = esPPC ? 'cursor-not-allowed opacity-60 select-none' : '';
-  const clasesModoEdicion = modoEdicion && !esPPC ? 'cursor-pointer hover:scale-105 hover:shadow-sm' : 'cursor-default opacity-90';
+  // Clases para edición - ahora PPCs también son editables
+  const clasesModoEdicion = modoEdicion ? 'cursor-pointer hover:scale-105 hover:shadow-sm' : 'cursor-default opacity-90';
   const clasesGuardado = '';
 
   const handleClick = () => {
     console.log('👆 Clic en celda detectado:', { guardiaNombre, diaNumero, estado, isDiaGuardado, esPPC });
-    if (onClick && !esPPC) {
+    if (onClick) {
       onClick();
     }
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
     console.log('🖱️ Clic derecho en celda detectado:', { guardiaNombre, diaNumero, estado, isDiaGuardado, esPPC });
-    if (onRightClick && !esPPC) {
+    if (onRightClick) {
       onRightClick(e);
     }
   };
 
-  const tooltipText = `${guardiaNombre} - Día ${diaNumero} (${diaSemana || ''})${esFeriado ? ' - FERIADO' : ''}: ${tooltip}${isDiaGuardado ? ' - ✅ Guardado en BD' : ''}${esPPC ? ' - 🔒 Solo lectura (PPC)' : ''}${!modoEdicion ? ' - Modo solo lectura' : ''}`;
+  const tooltipText = `${guardiaNombre} - Día ${diaNumero} (${diaSemana || ''})${esFeriado ? ' - FERIADO' : ''}: ${tooltip}${isDiaGuardado ? ' - ✅ Guardado en BD' : ''}${esPPC ? ' - PPC' : ''}${!modoEdicion ? ' - Modo solo lectura' : ''}`;
 
   return (
     <TableCell 
-      className={`text-center transition-all duration-200 p-0 border-0 !border-b-0 ${className} ${clasesEspeciales} ${clasesFeriado} ${clasesFinDeSemana} ${clasesModoEdicion} ${clasesGuardado} ${clasesPPC}`}
+      className={`text-center transition-all duration-200 p-0 border-0 !border-b-0 ${className} ${clasesEspeciales} ${clasesFeriado} ${clasesFinDeSemana} ${clasesModoEdicion} ${clasesGuardado}`}
       style={{ border: 'none', outline: 'none', borderWidth: '0px', borderStyle: 'none', borderBottom: 'none' }}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
@@ -364,11 +339,6 @@ const DiaCell = ({
         
         <span className="text-sm leading-none">{icon}</span>
         {text && <span className="text-xs font-bold leading-none mt-0.5">{text}</span>}
-        
-        {/* Indicador visual para PPCs */}
-        {esPPC && (
-          <div className="absolute top-0 right-0 w-2 h-2 bg-red-400 rounded-full opacity-60"></div>
-        )}
       </div>
     </TableCell>
   );
@@ -429,21 +399,14 @@ export default function PautaTable({
     
     const guardiaOrdenada = pautaDataOrdenada[guardiaIndex];
     
-    // Bloquear edición para PPCs
-    if (guardiaOrdenada.es_ppc) {
-      console.log('🚫 Intento de editar PPC bloqueado:', { guardiaIndex, diaIndex });
-      return;
-    }
-    
     console.log('🔄 Cambiando estado de día:', { guardiaIndex, diaIndex });
     const estadoActual = guardiaOrdenada.dias[diaIndex];
     
     // Encontrar el índice original en pautaData
     const indiceOriginal = pautaData.findIndex(g => g.id === guardiaOrdenada.id);
     
-    // Normalizar estados: convertir a mayúsculas para comparación
-    const estadoNormalizado = estadoActual?.toUpperCase() || '';
-    const nuevoEstado = estadoNormalizado === "TRABAJA" ? "libre" : "trabaja";
+    // Solo permitir alternar entre T y L
+    const nuevoEstado = estadoActual === "T" ? "L" : "T";
     console.log('🔄 Estado actual:', estadoActual, '-> Nuevo estado:', nuevoEstado);
     console.log('🔄 Índice ordenado:', guardiaIndex, '-> Índice original:', indiceOriginal);
     onUpdatePauta(indiceOriginal, diaIndex, nuevoEstado);
@@ -451,15 +414,6 @@ export default function PautaTable({
 
   const handleRightClick = (e: React.MouseEvent, guardiaIndex: number, diaIndex: number) => {
     if (!modoEdicion) return;
-    
-    const guardiaOrdenada = pautaDataOrdenada[guardiaIndex];
-    
-    // Bloquear clic derecho para PPCs
-    if (guardiaOrdenada.es_ppc) {
-      console.log('🚫 Intento de clic derecho en PPC bloqueado:', { guardiaIndex, diaIndex });
-      e.preventDefault();
-      return;
-    }
     
     e.preventDefault();
     console.log('🖱️ Clic derecho detectado:', { guardiaIndex, diaIndex });
@@ -518,12 +472,6 @@ export default function PautaTable({
     
     const guardiaOrdenada = pautaDataOrdenada[guardiaIndex];
     
-    // Bloquear eliminación para PPCs
-    if (guardiaOrdenada.es_ppc) {
-      console.log('🚫 Intento de eliminar PPC bloqueado:', { guardiaIndex });
-      return;
-    }
-    
     const indiceOriginal = pautaData.findIndex(g => g.id === guardiaOrdenada.id);
     setDeleteModal({
       isOpen: true,
@@ -554,27 +502,17 @@ export default function PautaTable({
           </div>
         </div>
         
-        {/* Leyenda mejorada - Responsive */}
+        {/* Leyenda mejorada - Solo T y L */}
         <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm flex-wrap">
           <div className="flex items-center gap-1 sm:gap-2">
             <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 border border-emerald-300 dark:border-emerald-600 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300 hidden sm:inline">Trabajando</span>
+            <span className="text-gray-700 dark:text-gray-300 hidden sm:inline">Turno</span>
             <span className="text-gray-700 dark:text-gray-300 sm:hidden">T</span>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
             <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 border border-gray-300 dark:border-gray-600 rounded"></div>
             <span className="text-gray-700 dark:text-gray-300 hidden sm:inline">Libre</span>
             <span className="text-gray-700 dark:text-gray-300 sm:hidden">L</span>
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-300 dark:border-blue-600 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300 hidden sm:inline">Permiso</span>
-            <span className="text-gray-700 dark:text-gray-300 sm:hidden">P</span>
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-900/30 dark:to-amber-900/30 border border-yellow-300 dark:border-yellow-600 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300 hidden sm:inline">Vacaciones</span>
-            <span className="text-gray-700 dark:text-gray-300 sm:hidden">V</span>
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
             <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/30 border border-red-300 dark:border-red-600 rounded"></div>
@@ -646,8 +584,8 @@ export default function PautaTable({
                   >
                     <TableCell className="p-4 border-0 whitespace-nowrap relative sticky left-0 bg-white dark:bg-gray-900 z-10">
                       <div className="flex items-center gap-3">
-                        {/* Botón eliminar */}
-                        {modoEdicion && !guardia.es_ppc && (
+                        {/* Botón eliminar - ahora disponible para PPCs también */}
+                        {modoEdicion && (
                           <button
                             onClick={() => eliminarPautaGuardia(guardiaIndex)}
                             className="p-1.5 rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110"
@@ -673,7 +611,7 @@ export default function PautaTable({
                             </Link>
                           </div>
                           <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight">
-                            <span className="font-medium">{guardia.rol_nombre || guardia.patron_turno}</span>
+                            <span className="font-medium">{guardia.rol_nombre || guardia.nombre_puesto}</span>
                             {guardia.es_ppc && (
                               <span className="ml-2 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-xs font-medium">
                                 PPC

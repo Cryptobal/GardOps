@@ -287,7 +287,7 @@ export async function GET(
     const guardiasAsignados = puestosOperativosResult.rows
       .filter((row: any) => row.guardia_id)
       .map((row: any) => ({
-        id: row.guardia_id,
+        id: row.id, // Usar el ID del puesto operativo, no del guardia
         nombre: row.guardia_nombre?.split(' ')[0] || '',
         apellido_paterno: row.guardia_nombre?.split(' ')[1] || '',
         apellido_materno: row.guardia_nombre?.split(' ')[2] || '',
@@ -312,26 +312,31 @@ export async function GET(
     // Crear PPCs pendientes como "guardias" virtuales
     const ppcsPendientes = ppcs
       .filter((ppc: any) => ppc.estado === 'Pendiente') // Solo PPCs pendientes
-      .map((ppc: any) => ({
-        id: ppc.id,
-        nombre: `PPC ${ppc.id.substring(0, 8)}`,
-        apellido_paterno: '',
-        apellido_materno: '',
-        nombre_completo: `PPC ${ppc.id.substring(0, 8)}`,
-        rut: '',
-        comuna: '',
-        region: '',
-        tipo: 'ppc',
-        activo: false,
-        rol_servicio: {
-          nombre: ppc.rol_servicio_nombre,
-          dias_trabajo: 0,
-          dias_descanso: 0,
-          horas_turno: 0,
-          hora_inicio: ppc.hora_inicio,
-          hora_termino: ppc.hora_termino
-        }
-      }));
+      .map((ppc: any) => {
+        // Buscar la información del rol de servicio desde puestosOperativosResult
+        const puestoOperativo = puestosOperativosResult.rows.find((row: any) => row.id === ppc.id);
+        
+        return {
+          id: ppc.id,
+          nombre: `PPC ${ppc.id.substring(0, 8)}`,
+          apellido_paterno: '',
+          apellido_materno: '',
+          nombre_completo: `PPC ${ppc.id.substring(0, 8)}`,
+          rut: '',
+          comuna: '',
+          region: '',
+          tipo: 'ppc',
+          activo: false,
+          rol_servicio: {
+            nombre: ppc.rol_servicio_nombre,
+            dias_trabajo: puestoOperativo?.dias_trabajo || 4,
+            dias_descanso: puestoOperativo?.dias_descanso || 4,
+            horas_turno: puestoOperativo?.horas_turno || 12,
+            hora_inicio: puestoOperativo?.hora_inicio || '08:00',
+            hora_termino: puestoOperativo?.hora_termino || '20:00'
+          }
+        };
+      });
 
     console.log(`⏳ PPCs pendientes encontrados: ${ppcsPendientes.length}`);
 

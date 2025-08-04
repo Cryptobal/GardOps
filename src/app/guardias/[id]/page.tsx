@@ -5,11 +5,11 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, User, MapPin, Phone, Mail, Calendar, FileText, Activity, Settings, Edit, RefreshCw, AlertTriangle, CreditCard } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Phone, Mail, Calendar, FileText, Settings, Edit, RefreshCw, AlertTriangle, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import AsignacionOperativa from './components/AsignacionOperativa';
 import DocumentosGuardia from './components/DocumentosGuardia';
-import LogGuardia from './components/LogGuardia';
+
 import PermisosGuardia from './components/PermisosGuardia';
 import FiniquitoGuardia from './components/FiniquitoGuardia';
 import DatosBancarios from './components/DatosBancarios';
@@ -285,11 +285,6 @@ export default function GuardiaDetallePage() {
                 <span className="hidden sm:inline truncate">Finiquito</span>
                 <span className="sm:hidden">Fin</span>
               </TabsTrigger>
-              <TabsTrigger value="log" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap flex-1 min-w-0">
-                <Activity className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span className="hidden sm:inline truncate">Log</span>
-                <span className="sm:hidden">Log</span>
-              </TabsTrigger>
               {/* Espacio vacío para balance visual */}
               <div className="flex-1 min-w-0"></div>
             </div>
@@ -456,10 +451,7 @@ export default function GuardiaDetallePage() {
           <FiniquitoGuardia guardiaId={guardiaId} />
         </TabsContent>
 
-        {/* Contenido de la pestaña Log */}
-        <TabsContent value="log" className="mt-6">
-          <LogGuardia guardiaId={guardiaId} />
-        </TabsContent>
+
         </Tabs>
       {showConfirmModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

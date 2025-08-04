@@ -32,7 +32,13 @@ export function DatePickerComponent({
 }: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   
-  const selectedDate = value ? new Date(value) : null;
+  const selectedDate = value ? new Date(value + 'T00:00:00') : null;
+  
+  // Debug para el DatePicker (solo si hay problemas)
+  if (value && value.includes('2025-08-04')) {
+    console.log('🗓️ DatePicker - value recibido:', value);
+    console.log('🗓️ DatePicker - selectedDate calculado:', selectedDate);
+  }
   
   const handleDateChange = (date: Date | null) => {
     if (date) {
@@ -50,12 +56,21 @@ export function DatePickerComponent({
 
   const formatDisplayDate = (dateString: string) => {
     if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', {
+    const date = new Date(dateString + 'T00:00:00');
+    const formatted = date.toLocaleDateString('es-ES', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
     });
+    
+    // Debug para formatDisplayDate (solo si hay problemas)
+    if (dateString.includes('2025-08-04')) {
+      console.log('📅 formatDisplayDate - dateString:', dateString);
+      console.log('📅 formatDisplayDate - date creado:', date);
+      console.log('📅 formatDisplayDate - formatted:', formatted);
+    }
+    
+    return formatted;
   };
 
   return (

@@ -15,7 +15,6 @@ import {
   Mail, 
   User, 
   FileText, 
-  Activity, 
   Edit, 
   Save,
   X,
@@ -24,7 +23,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { DocumentManager } from '@/components/shared/document-manager';
-import { LogViewer } from '@/components/shared/log-viewer';
+
 import { GoogleMap } from '@/components/ui/google-map';
 import { InputDireccion, type AddressData } from '@/components/ui/input-direccion';
 import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@/lib/geocoding';
@@ -402,7 +401,7 @@ export default function ClienteDetallePage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="informacion" className="flex items-center space-x-2">
             <Building2 className="h-4 w-4" />
             <span>Información</span>
@@ -410,10 +409,6 @@ export default function ClienteDetallePage() {
           <TabsTrigger value="documentos" className="flex items-center space-x-2">
             <FileText className="h-4 w-4" />
             <span>Documentos</span>
-          </TabsTrigger>
-          <TabsTrigger value="logs" className="flex items-center space-x-2">
-            <Activity className="h-4 w-4" />
-            <span>Actividad</span>
           </TabsTrigger>
         </TabsList>
 
@@ -699,23 +694,7 @@ export default function ClienteDetallePage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="logs" className="flex-1 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Activity className="h-5 w-5" />
-                <span>Actividad del Cliente</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <LogViewer
-                modulo="clientes"
-                entidadId={clienteId}
-                refreshTrigger={refreshTrigger}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
+
       </Tabs>
     </div>
   );

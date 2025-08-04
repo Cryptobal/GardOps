@@ -77,9 +77,28 @@ interface Instalacion {
 }
 
 export default function PautaDiariaPage() {
-  const [fechaSeleccionada, setFechaSeleccionada] = useState<string>(
-    format(new Date(), 'yyyy-MM-dd')
-  );
+  // Inicializar directamente con la fecha actual
+  const fechaInicial = (() => {
+    const ahora = new Date();
+    const fechaLocal = format(ahora, 'yyyy-MM-dd');
+    console.log('🕐 Inicializando con fecha:', fechaLocal, 'Hora:', ahora.toLocaleTimeString());
+    return fechaLocal;
+  })();
+
+  const [fechaSeleccionada, setFechaSeleccionada] = useState<string>(fechaInicial);
+
+  // Función helper para obtener la fecha actual
+  const obtenerFechaActual = () => {
+    const ahora = new Date();
+    const fechaLocal = format(ahora, 'yyyy-MM-dd');
+    console.log('🕐 Fecha actual del cliente:', fechaLocal, 'Hora:', ahora.toLocaleTimeString());
+    return fechaLocal;
+  };
+
+  // Debug: Log cuando cambia fechaSeleccionada
+  useEffect(() => {
+    console.log('📅 fechaSeleccionada cambió a:', fechaSeleccionada);
+  }, [fechaSeleccionada]);
   const [instalaciones, setInstalaciones] = useState<Instalacion[]>([]);
   const [loading, setLoading] = useState(false);
   const [cambiosPendientes, setCambiosPendientes] = useState(false);
@@ -180,7 +199,10 @@ export default function PautaDiariaPage() {
   };
 
   useEffect(() => {
-    cargarPautaDiaria(fechaSeleccionada);
+    if (fechaSeleccionada) {
+      console.log('📅 Cargando pauta para fecha:', fechaSeleccionada);
+      cargarPautaDiaria(fechaSeleccionada);
+    }
   }, [fechaSeleccionada]);
 
   // Navegación de fechas
@@ -204,7 +226,10 @@ export default function PautaDiariaPage() {
       }
       setCambiosPendientes(false);
     }
-    setFechaSeleccionada(format(new Date(), 'yyyy-MM-dd'));
+    // Siempre usar la fecha actual del momento del clic
+    const fechaFormateada = obtenerFechaActual();
+    console.log('🔄 Navegando a hoy:', fechaFormateada);
+    setFechaSeleccionada(fechaFormateada);
   };
 
   // Actualizar estado de asistencia
@@ -878,7 +903,7 @@ export default function PautaDiariaPage() {
                   });
                   showConfirmModal(
                     'Eliminar Guardia',
-                    `¿Estás seguro de que quieres eliminar el guardia "${turno.guardia_actual_nombre}" del puesto "${turno.nombre_puesto}"?`,
+                    `¿Estás seguro de que quieres eliminar el guardia "${turno.guardia_actual_nombre}" del puesto "${generarIdCortoPuesto(turno.puesto_id)}"?`,
                     () => {
                       console.log('✅ Confirmación aceptada, eliminando guardia...');
                       actualizarAsistencia(turno, 'eliminar_guardia', undefined, undefined, 'Guardia eliminado');
@@ -1104,7 +1129,7 @@ export default function PautaDiariaPage() {
                 });
                 showConfirmModal(
                   'Eliminar Cobertura PPC',
-                  `¿Estás seguro de que quieres eliminar la cobertura del PPC "${turno.nombre_puesto}"?`,
+                  `¿Estás seguro de que quieres eliminar la cobertura del PPC "${generarIdCortoPuesto(turno.puesto_id)}"?`,
                   () => {
                     console.log('✅ Confirmación aceptada, eliminando PPC...');
                     actualizarAsistencia(turno, 'eliminar_ppc', undefined, undefined, 'Cobertura eliminada');
@@ -1317,6 +1342,12 @@ export default function PautaDiariaPage() {
     });
   };
 
+  // Función helper para generar ID corto del puesto
+  const generarIdCortoPuesto = (puestoId: string) => {
+    // Tomar los últimos 4 caracteres del UUID y convertirlos a mayúsculas
+    return `P-${puestoId.slice(-4).toUpperCase()}`;
+  };
+
   console.log("Pauta Diaria actualizada: turnos ahora se marcan manualmente, PPCs se cubren, todo editable.");
 
   return (
@@ -1372,10 +1403,11 @@ export default function PautaDiariaPage() {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="default"
                   size="sm"
                   onClick={irAHoy}
-                  className="h-8 px-3"
+                  className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white"
+                  title="Ir al día de hoy"
                 >
                   Hoy
                 </Button>
@@ -1389,19 +1421,26 @@ export default function PautaDiariaPage() {
                 </Button>
               </div>
               
-              <div className={cn(
-                "text-xs sm:text-sm text-center sm:text-left w-full sm:w-auto",
-                fechaSeleccionada === format(new Date(), 'yyyy-MM-dd') 
-                  ? "text-green-500 font-medium" 
-                  : "text-muted-foreground"
-              )}>
-                {format(new Date(fechaSeleccionada), 'EEEE, d \'de\' MMMM \'de\' yyyy', { locale: es })}
-                {fechaSeleccionada === format(new Date(), 'yyyy-MM-dd') && (
-                  <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full dark:bg-green-900 dark:text-green-200">
-                    Hoy
-                  </span>
-                )}
-              </div>
+              {fechaSeleccionada && (
+                <div className={cn(
+                  "text-xs sm:text-sm text-center sm:text-left w-full sm:w-auto",
+                  fechaSeleccionada === obtenerFechaActual() 
+                    ? "text-green-500 font-medium" 
+                    : "text-muted-foreground"
+                )}>
+                  {(() => {
+                    const fechaConHora = new Date(fechaSeleccionada + 'T00:00:00');
+                    const textoFormateado = format(fechaConHora, 'EEEE, d \'de\' MMMM \'de\' yyyy', { locale: es });
+                    console.log('📅 Formateando texto fecha:', fechaSeleccionada, '->', fechaConHora, '->', textoFormateado);
+                    return textoFormateado;
+                  })()}
+                  {fechaSeleccionada === obtenerFechaActual() && (
+                    <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full dark:bg-green-900 dark:text-green-200">
+                      Hoy
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -1453,7 +1492,7 @@ export default function PautaDiariaPage() {
                                 <div className="min-w-0 flex-1">
                                   <span className="font-medium text-sm">{turno.turno_nombre}</span>
                                   <div className="text-xs text-muted-foreground mt-1">
-                                    {turno.nombre_puesto}
+                                    {generarIdCortoPuesto(turno.puesto_id)}
                                   </div>
                                   {turno.rol_nombre && (
                                     <div className="text-xs text-blue-600 mt-1">
@@ -1491,9 +1530,9 @@ export default function PautaDiariaPage() {
                                           PPC Cubierto
                                         </Badge>
                                       </div>
-                                      <div className="text-xs text-muted-foreground">
-                                        PPC: {turno.nombre_puesto}
-                                      </div>
+                                                                              <div className="text-xs text-muted-foreground">
+                                          PPC: {generarIdCortoPuesto(turno.puesto_id)}
+                                        </div>
                                     </div>
                                   ) : (
                                     <span className="font-medium truncate">{turno.guardia_actual_nombre || turno.guardia_nombre}</span>
@@ -1517,7 +1556,7 @@ export default function PautaDiariaPage() {
                                   <span className="font-medium text-sm">{turno.turno_nombre}</span>
                                 </div>
                                 <div className="text-xs text-muted-foreground mt-1">
-                                  {turno.nombre_puesto}
+                                  {generarIdCortoPuesto(turno.puesto_id)}
                                 </div>
                                 {turno.rol_nombre && (
                                   <div className="text-xs text-blue-600 mt-1">
@@ -1557,7 +1596,7 @@ export default function PautaDiariaPage() {
                                 )}
                                 {turno.tipo_cobertura === 'ppc_cubierto' && (
                                   <div className="text-xs text-muted-foreground mt-1">
-                                    PPC: {turno.nombre_puesto}
+                                    PPC: {generarIdCortoPuesto(turno.puesto_id)}
                                   </div>
                                 )}
                               </div>

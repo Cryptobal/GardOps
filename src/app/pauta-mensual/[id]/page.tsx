@@ -49,6 +49,14 @@ interface PPC {
   nombre: string;
   estado: string;
   cantidad_faltante?: number;
+  rol_servicio?: {
+    nombre: string;
+    dias_trabajo: number;
+    dias_descanso: number;
+    horas_turno: number;
+    hora_inicio: string;
+    hora_termino: string;
+  };
 }
 
 interface InstalacionInfo {
@@ -202,7 +210,15 @@ export default function PautaMensualUnificadaPage() {
 
             // Transformar la pauta al formato esperado
             const pautaTransformada = pautaResponse.pauta.map((guardiaPauta: any) => {
-              const guardiaInfo = instalacionInfo.guardias.find(g => g.id === guardiaPauta.id);
+              // Buscar el puesto operativo correspondiente
+              const puestoOperativo = instalacionInfo.guardias.find(g => g.id === guardiaPauta.id);
+              
+              // Generar el turno completo basado en el rol del puesto
+              let turnoCompleto = guardiaPauta.nombre_puesto; // fallback
+              if (puestoOperativo?.rol_servicio) {
+                const { dias_trabajo, dias_descanso, horas_turno, hora_inicio, hora_termino } = puestoOperativo.rol_servicio;
+                turnoCompleto = `Día ${dias_trabajo}x${dias_descanso}x${horas_turno} / ${hora_inicio} ${hora_termino}`;
+              }
               
               return {
                 id: guardiaPauta.id,
@@ -210,10 +226,10 @@ export default function PautaMensualUnificadaPage() {
                 nombre_puesto: guardiaPauta.nombre_puesto,
                 patron_turno: guardiaPauta.patron_turno,
                 dias: guardiaPauta.dias,
-                tipo: guardiaInfo?.tipo,
+                tipo: puestoOperativo?.tipo,
                 es_ppc: guardiaPauta.es_ppc,
                 guardia_id: guardiaPauta.guardia_id,
-                rol_nombre: guardiaInfo?.rol_servicio?.nombre
+                rol_nombre: turnoCompleto
               };
             });
             
@@ -239,27 +255,34 @@ export default function PautaMensualUnificadaPage() {
             setDiasSemana(diasSemanaArray);
 
             // Crear estructura inicial con días vacíos - se llenará automáticamente
-            const pautaInicial: PautaGuardia[] = instalacionInfo.guardias.map((guardia: any) => {
-              const diasTrabajo = guardia.rol_servicio?.dias_trabajo || 4;
-              const diasDescanso = guardia.rol_servicio?.dias_descanso || 4;
-              const patronTurno = `${diasTrabajo}x${diasDescanso}`;
+            const pautaInicial: PautaGuardia[] = [];
+            
+            // Procesar todos los puestos (guardias y PPCs)
+            instalacionInfo.guardias.forEach((puesto: any) => {
+              // Generar el turno completo basado en el rol del puesto
+              let turnoCompleto = puesto.nombre_completo; // fallback
+              if (puesto.rol_servicio) {
+                const { dias_trabajo, dias_descanso, horas_turno, hora_inicio, hora_termino } = puesto.rol_servicio;
+                turnoCompleto = `Día ${dias_trabajo}x${dias_descanso}x${horas_turno} / ${hora_inicio} ${hora_termino}`;
+              }
               
-              const nombreMostrar = guardia.tipo === 'ppc' 
-                ? `${guardia.nombre_completo} (PPC)` 
-                : guardia.nombre_completo;
+              const nombreMostrar = puesto.tipo === 'ppc' 
+                ? `${puesto.nombre_completo} (PPC)` 
+                : puesto.nombre_completo;
               
-              return {
-                id: guardia.id,
+              pautaInicial.push({
+                id: puesto.id,
                 nombre: nombreMostrar,
-                nombre_puesto: guardia.nombre_completo,
-                patron_turno: patronTurno,
+                nombre_puesto: puesto.nombre_completo,
+                patron_turno: puesto.rol_servicio ? `${puesto.rol_servicio.dias_trabajo}x${puesto.rol_servicio.dias_descanso}` : '4x4',
                 dias: Array.from({ length: diasEnMes }, () => ''), // Días vacíos por defecto
-                tipo: guardia.tipo,
-                es_ppc: guardia.tipo === 'ppc',
-                guardia_id: guardia.id,
-                rol_nombre: guardia.rol_servicio?.nombre || ''
-              };
+                tipo: puesto.tipo,
+                es_ppc: puesto.tipo === 'ppc',
+                guardia_id: puesto.id,
+                rol_nombre: turnoCompleto
+              });
             });
+            
             setPautaData(pautaInicial);
             setPautaDataOriginal(JSON.parse(JSON.stringify(pautaInicial)));
           }
@@ -316,18 +339,30 @@ export default function PautaMensualUnificadaPage() {
     try {
       console.log(`[${timestamp}] 🚀 Iniciando guardado de pauta`);
       
-      const pautaParaGuardar = pautaData.map(guardia => ({
-        guardia_id: guardia.es_ppc ? guardia.id : (guardia.guardia_id || guardia.id), // Para PPCs usar el ID del puesto, para guardias usar guardia_id
-        dias: guardia.dias.map(estado => {
-          switch (estado) {
-            case 'T': return 'T';
-            case 'L': return 'L';
-            case 'P': return 'P';
-            case 'LIC': return 'LIC';
-            default: return '';
+      // Preparar datos para el nuevo formato de guardado
+      const actualizaciones = [];
+      
+      for (const guardia of pautaData) {
+        for (let diaIndex = 0; diaIndex < guardia.dias.length; diaIndex++) {
+          const estado = guardia.dias[diaIndex];
+          if (estado && estado !== '') {
+            // Convertir estado a formato de base de datos
+            let estadoDB = 'libre';
+            if (estado === 'T') {
+              estadoDB = 'trabajado';
+            }
+            
+            actualizaciones.push({
+              puesto_id: guardia.id, // Para PPCs y guardias, usar el ID del puesto
+              guardia_id: guardia.es_ppc ? null : (guardia.guardia_id || guardia.id), // null para PPCs
+              anio: parseInt(anio.toString()),
+              mes: parseInt(mes.toString()),
+              dia: diaIndex + 1,
+              estado: estadoDB
+            });
           }
-        })
-      }));
+        }
+      }
 
       const response = await fetch('/api/pauta-mensual/guardar', {
         method: 'POST',
@@ -336,7 +371,7 @@ export default function PautaMensualUnificadaPage() {
           instalacion_id: instalacionId,
           anio: parseInt(anio.toString()),
           mes: parseInt(mes.toString()),
-          pauta: pautaParaGuardar
+          actualizaciones: actualizaciones
         }),
       });
 
@@ -351,6 +386,9 @@ export default function PautaMensualUnificadaPage() {
       toast.success('Pauta guardada', 'Los cambios se han guardado exitosamente');
       setEditando(false);
       actualizarDiasGuardados();
+
+      // Resumen final en consola
+      console.log("✅ Pauta mensual actualizada: ahora incluye PPCs con turnos planificables (T/L).");
 
     } catch (error: any) {
       console.error(`[${new Date().toISOString()}] ❌ Error guardando pauta:`, error);
@@ -369,6 +407,12 @@ export default function PautaMensualUnificadaPage() {
     
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] 🔄 actualizarPauta:`, { guardiaIndex, diaIndex, nuevoEstado });
+    
+    // Solo permitir estados T y L
+    if (nuevoEstado !== 'T' && nuevoEstado !== 'L') {
+      console.log('🚫 Estado no permitido:', nuevoEstado);
+      return;
+    }
     
     const nuevaPautaData = [...pautaData];
     nuevaPautaData[guardiaIndex].dias[diaIndex] = nuevoEstado;

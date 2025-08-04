@@ -33,6 +33,7 @@ import InfoTurnos from './InfoTurnos';
 
 interface TurnosInstalacionProps {
   instalacionId: string;
+  instalacionNombre: string;
   // Props opcionales para datos precargados
   turnosPrecargados?: TurnoInstalacionConDetalles[];
   ppcsPrecargados?: PPC[];
@@ -65,6 +66,7 @@ interface GuardiaDisponible {
 
 export default function TurnosInstalacion({ 
   instalacionId, 
+  instalacionNombre, 
   turnosPrecargados,
   ppcsPrecargados,
   guardiasPrecargados,
@@ -625,7 +627,7 @@ export default function TurnosInstalacion({
                                 <div className="flex items-center justify-between pr-6">
                                   <div className="flex-1 min-w-0">
                                     <div className="font-medium text-xs truncate text-red-800 dark:text-red-200">
-                                      Puesto #{index + 1}
+                                      P-{ppc.id.slice(-4).toUpperCase()}
                                     </div>
                                     <div className="text-xs text-red-600 dark:text-red-400 truncate">
                                       {ppc.rol_servicio_nombre}
@@ -637,6 +639,7 @@ export default function TurnosInstalacion({
                                 <div className="mt-3">
                                   <AsignarGuardiaDropdown
                                     instalacionId={instalacionId}
+                                    instalacionNombre={instalacionNombre}
                                     ppcId={ppc.id}
                                     rolServicioNombre={ppc.rol_servicio_nombre}
                                     onAsignacionCompletada={handleAsignacionCompletada}
@@ -680,7 +683,7 @@ export default function TurnosInstalacion({
 
                                 <div className="flex items-start justify-between pr-6">
                                   <div className="flex-1 min-w-0">
-                                    <div className="font-medium text-xs text-green-800 dark:text-green-200">Puesto #{index + 1}</div>
+                                    <div className="font-medium text-xs text-green-800 dark:text-green-200">P-{ppc.id.slice(-4).toUpperCase()}</div>
                                     <div className="text-xs text-green-600 dark:text-green-400 break-words">
                                       Guardia: 
                                       {ppc.guardia_asignado_id ? (

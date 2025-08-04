@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Building2, MapPin, Phone, Mail, Calendar, FileText, Activity, Settings, Edit, RefreshCw, Users, Clock, Shield } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, Phone, Mail, Calendar, FileText, Settings, Edit, RefreshCw, Users, Clock, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { GoogleMap } from '@/components/ui/google-map';
 import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@/lib/geocoding';
@@ -13,7 +13,7 @@ import { getInstalacion, actualizarInstalacion, obtenerClientes, obtenerComunas,
 import { Instalacion, Cliente, Comuna } from '@/lib/schemas/instalaciones';
 import TurnosInstalacion from './components/TurnosInstalacion';
 import { DocumentManager } from '@/components/shared/document-manager';
-import { LogViewer } from '@/components/shared/log-viewer';
+
 
 export default function InstalacionDetallePage() {
   const params = useParams();
@@ -348,7 +348,7 @@ export default function InstalacionDetallePage() {
 
       {/* Pestañas optimizadas para móviles */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto">
+        <TabsList className="grid w-full grid-cols-3 h-auto">
           <TabsTrigger value="informacion" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
             <Building2 className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Información</span>
@@ -363,11 +363,6 @@ export default function InstalacionDetallePage() {
             <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Documentos</span>
             <span className="sm:hidden">Docs</span>
-          </TabsTrigger>
-          <TabsTrigger value="actividad" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
-            <Activity className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Actividad</span>
-            <span className="sm:hidden">Act</span>
           </TabsTrigger>
         </TabsList>
 
@@ -501,6 +496,7 @@ export default function InstalacionDetallePage() {
         <TabsContent value="asignaciones" className="mt-4 sm:mt-6">
           <TurnosInstalacion 
             instalacionId={instalacionId} 
+            instalacionNombre={instalacion?.nombre || 'Instalación'}
             turnosPrecargados={turnosPrecargados} 
             ppcsPrecargados={ppcsPrecargados} 
             guardiasPrecargados={guardiasPrecargados} 
@@ -518,56 +514,7 @@ export default function InstalacionDetallePage() {
           />
         </TabsContent>
 
-        {/* Contenido de la pestaña Actividad (ex Logs) optimizado para móviles */}
-        <TabsContent value="actividad" className="mt-4 sm:mt-6">
-          <div className="space-y-4 sm:space-y-6">
-            {/* Información del Sistema */}
-            <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
-              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
-                <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
-                Información del Sistema
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm">
-                <div className="space-y-1">
-                  <span className="text-muted-foreground font-medium">Creado:</span>
-                  <div className="font-medium">
-                    {new Date(instalacion.created_at).toLocaleDateString('es-CL', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-muted-foreground font-medium">Última modificación:</span>
-                  <div className="font-medium">
-                    {new Date(instalacion.updated_at).toLocaleDateString('es-CL', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-muted-foreground font-medium">Último usuario:</span>
-                  <div className="font-medium text-blue-400">
-                    Sistema
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* Logs de Actividad */}
-            <div>
-              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Historial de Actividad</h3>
-              <LogViewer
-                modulo="instalaciones"
-                entidadId={instalacionId}
-                refreshTrigger={refreshTrigger}
-              />
-            </div>
-          </div>
-        </TabsContent>
       </Tabs>
 
       {/* Modal de confirmación optimizado para móviles */}

@@ -8,8 +8,6 @@ export async function GET(request: NextRequest) {
     const instalacionId = searchParams.get('instalacion_id');
     const fecha = searchParams.get('fecha');
 
-    console.log('🔍 Buscando guardias:', { search, instalacionId, fecha });
-
     let whereConditions = ['g.activo = true'];
     let params: any[] = [];
     let paramIndex = 1;
@@ -50,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     const whereClause = whereConditions.join(' AND ');
 
-    // Construir la consulta SQL dinámicamente según si hay fecha o no
+    // Consulta con información de instalación actual (copiada del endpoint que funciona)
     let sqlQuery = `
       SELECT 
         g.id,
@@ -60,34 +58,13 @@ export async function GET(request: NextRequest) {
         CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, '')) as nombre_completo,
         g.rut,
         g.activo,
-        g.instalacion_id,
-        i.nombre as instalacion_nombre,
-        CASE 
-          WHEN pm.guardia_id IS NOT NULL THEN true 
-          ELSE false 
-        END as tiene_turno_asignado
+        po.instalacion_id as instalacion_actual_id,
+        i.nombre as instalacion_actual_nombre,
+        false as tiene_turno_asignado
       FROM guardias g
-      LEFT JOIN instalaciones i ON g.instalacion_id = i.id
+      LEFT JOIN as_turnos_puestos_operativos po ON g.id = po.guardia_id AND po.es_ppc = false
+      LEFT JOIN instalaciones i ON po.instalacion_id = i.id
     `;
-
-    if (fecha && fechaParams.length === 3) {
-      sqlQuery += `
-        LEFT JOIN (
-          SELECT DISTINCT guardia_id 
-          FROM as_turnos_pauta_mensual 
-          WHERE anio = $${params.length - 2} AND mes = $${params.length - 1} AND dia = $${params.length}
-          AND guardia_id IS NOT NULL
-        ) pm ON g.id = pm.guardia_id
-      `;
-    } else {
-      sqlQuery += `
-        LEFT JOIN (
-          SELECT DISTINCT guardia_id 
-          FROM as_turnos_pauta_mensual 
-          WHERE 1=0
-        ) pm ON g.id = pm.guardia_id
-      `;
-    }
 
     sqlQuery += `
       WHERE ${whereClause}
@@ -96,8 +73,6 @@ export async function GET(request: NextRequest) {
     `;
 
     const result = await query(sqlQuery, params);
-
-    console.log(`✅ Encontrados ${result.rows.length} guardias disponibles`);
 
     return NextResponse.json({
       success: true,
