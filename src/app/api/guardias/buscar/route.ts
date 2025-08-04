@@ -4,63 +4,108 @@ import { query } from '@/lib/database';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const searchQuery = searchParams.get('q');
+    const search = searchParams.get('search') || '';
+    const instalacionId = searchParams.get('instalacion_id');
+    const fecha = searchParams.get('fecha');
 
-    if (!searchQuery || searchQuery.length < 1) {
-      return NextResponse.json([]);
+    console.log('🔍 Buscando guardias:', { search, instalacionId, fecha });
+
+    let whereConditions = ['g.activo = true'];
+    let params: any[] = [];
+    let paramIndex = 1;
+
+    // Filtro de búsqueda por nombre o RUT
+    if (search.trim()) {
+      whereConditions.push(`(
+        LOWER(g.nombre) LIKE LOWER($${paramIndex}) OR 
+        LOWER(g.apellido_paterno) LIKE LOWER($${paramIndex}) OR 
+        LOWER(g.apellido_materno) LIKE LOWER($${paramIndex}) OR 
+        LOWER(g.rut) LIKE LOWER($${paramIndex}) OR
+        LOWER(CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, ''))) LIKE LOWER($${paramIndex})
+      )`);
+      params.push(`%${search}%`);
+      paramIndex++;
     }
 
-    // Verificar si la tabla existe
-    const tableCheck = await query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'guardias'
-      );
-    `);
-
-    if (!tableCheck.rows[0].exists) {
-      console.log('Tabla guardias no existe');
-      return NextResponse.json([]);
+    // Filtro por instalación si se especifica
+    if (instalacionId) {
+      whereConditions.push(`g.instalacion_id = $${paramIndex}`);
+      params.push(instalacionId);
+      paramIndex++;
     }
 
-    // Obtener estructura de columnas para debug
-    const columnsCheck = await query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'guardias' 
-      AND table_schema = 'public'
-      ORDER BY ordinal_position
-    `);
-    
-    console.log('Columnas disponibles:', columnsCheck.rows.map((r: any) => r.column_name));
+    // Filtro por fecha para verificar disponibilidad
+    let fechaParams = [];
+    if (fecha) {
+      const fechaObj = new Date(fecha + 'T00:00:00.000Z');
+      const anio = fechaObj.getUTCFullYear();
+      const mes = fechaObj.getUTCMonth() + 1;
+      const dia = fechaObj.getUTCDate();
 
-    // Buscar guardias en la base de datos real
-    const result = await query(`
+      // En la pauta diaria, permitimos asignar guardias incluso si ya tienen turno
+      // porque pueden hacer turnos extras. Solo marcamos para información.
+      fechaParams = [anio, mes, dia];
+      params.push(...fechaParams);
+    }
+
+    const whereClause = whereConditions.join(' AND ');
+
+    // Construir la consulta SQL dinámicamente según si hay fecha o no
+    let sqlQuery = `
       SELECT 
-        id,
-        nombre,
-        apellido_paterno,
-        apellido_materno,
-        rut,
-        email,
-        telefono,
-        activo
-      FROM guardias 
-      WHERE 
-        (LOWER(nombre) LIKE LOWER($1) OR 
-         LOWER(apellido_paterno) LIKE LOWER($1) OR
-         LOWER(apellido_materno) LIKE LOWER($1) OR
-         LOWER(CONCAT(nombre, ' ', apellido_paterno, ' ', apellido_materno)) LIKE LOWER($1) OR
-         rut LIKE $1) AND
-        activo = true
-      ORDER BY nombre, apellido_paterno, apellido_materno
-      LIMIT 10
-    `, [`%${searchQuery}%`]);
+        g.id,
+        g.nombre,
+        g.apellido_paterno,
+        g.apellido_materno,
+        CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, '')) as nombre_completo,
+        g.rut,
+        g.activo,
+        g.instalacion_id,
+        i.nombre as instalacion_nombre,
+        CASE 
+          WHEN pm.guardia_id IS NOT NULL THEN true 
+          ELSE false 
+        END as tiene_turno_asignado
+      FROM guardias g
+      LEFT JOIN instalaciones i ON g.instalacion_id = i.id
+    `;
 
-    return NextResponse.json(result.rows);
+    if (fecha && fechaParams.length === 3) {
+      sqlQuery += `
+        LEFT JOIN (
+          SELECT DISTINCT guardia_id 
+          FROM as_turnos_pauta_mensual 
+          WHERE anio = $${params.length - 2} AND mes = $${params.length - 1} AND dia = $${params.length}
+          AND guardia_id IS NOT NULL
+        ) pm ON g.id = pm.guardia_id
+      `;
+    } else {
+      sqlQuery += `
+        LEFT JOIN (
+          SELECT DISTINCT guardia_id 
+          FROM as_turnos_pauta_mensual 
+          WHERE 1=0
+        ) pm ON g.id = pm.guardia_id
+      `;
+    }
+
+    sqlQuery += `
+      WHERE ${whereClause}
+      ORDER BY g.nombre, g.apellido_paterno, g.apellido_materno
+      LIMIT 20
+    `;
+
+    const result = await query(sqlQuery, params);
+
+    console.log(`✅ Encontrados ${result.rows.length} guardias disponibles`);
+
+    return NextResponse.json({
+      success: true,
+      guardias: result.rows
+    });
+
   } catch (error) {
-    console.error('Error buscando guardias:', error);
+    console.error('❌ Error buscando guardias:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

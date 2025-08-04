@@ -217,3 +217,31 @@ export async function searchGuardias(searchTerm: string, tenantId: string): Prom
     return [];
   }
 } 
+
+// Eliminar guardia completamente (hard delete)
+export async function eliminarGuardiaCompleto(id: string, tenantId: string): Promise<boolean> {
+  try {
+    // Verificar si el guardia tiene asignaciones activas
+    const asignacionesResult = await query(`
+      SELECT COUNT(*) as total_asignaciones
+      FROM as_turnos_puestos_operativos 
+      WHERE guardia_id = $1 AND activo = true
+    `, [id]);
+
+    const totalAsignaciones = parseInt(asignacionesResult.rows[0].total_asignaciones);
+
+    if (totalAsignaciones > 0) {
+      throw new Error(`No se puede eliminar el guardia porque tiene ${totalAsignaciones} asignación(es) activa(s)`);
+    }
+
+    const result = await query(`
+      DELETE FROM guardias 
+      WHERE id = $1 AND tenant_id = $2
+    `, [id, tenantId]);
+
+    return result.rowCount > 0;
+  } catch (error) {
+    console.error('Error eliminando guardia completamente:', error);
+    throw error;
+  }
+} 

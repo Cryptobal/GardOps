@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
+import { logCRUD, logError } from '@/lib/logging';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { instalacion_id, anio, mes } = body;
+    
+    // Por ahora usar un tenant_id fijo para testing
+    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
 
     if (!instalacion_id || !anio || !mes) {
       return NextResponse.json(
@@ -110,6 +115,28 @@ export async function POST(request: NextRequest) {
 
     await Promise.all(insertPromises);
 
+    // Crear un ID único para la pauta mensual (combinación de instalación, año y mes)
+    const pautaId = `${instalacion_id}_${anio}_${mes}`;
+    
+    // Log de creación de pauta mensual
+    await logCRUD(
+      'pauta_mensual',
+      pautaId,
+      'CREATE',
+      usuario,
+      null, // No hay datos anteriores en creación
+      {
+        instalacion_id,
+        anio: parseInt(anio),
+        mes: parseInt(mes),
+        puestos_procesados: puestosResult.rows.length,
+        registros_creados: pautasParaInsertar.length,
+        dias_del_mes: diasDelMes.length,
+        pautas_creadas: pautasParaInsertar
+      },
+      tenantId
+    );
+
     console.log(`✅ Pauta mensual creada automáticamente para instalación ${instalacion_id} en ${mes}/${anio}`);
     console.log(`📊 Resumen: ${pautasParaInsertar.length} registros creados para ${puestosResult.rows.length} puestos`);
     console.log(`🔍 Puestos con guardia: ${puestosResult.rows.filter((p: any) => p.guardia_id).length}, PPCs: ${puestosResult.rows.filter((p: any) => p.es_ppc).length}`);
@@ -127,6 +154,17 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Error creando pauta mensual automática:', error);
+    
+    // Log del error usando logError específico
+    await logError(
+      'pauta_mensual',
+      'NEW',
+      'admin@test.com',
+      error,
+      { endpoint: '/api/pauta-mensual/crear', method: 'POST' },
+      'accebf8a-bacc-41fa-9601-ed39cb320a52'
+    );
+    
     return NextResponse.json(
       { error: 'Error interno del servidor al crear la pauta mensual' },
       { status: 500 }

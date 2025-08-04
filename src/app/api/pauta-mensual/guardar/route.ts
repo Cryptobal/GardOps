@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
+import { logCRUD } from '@/lib/logging';
 
 // Función de validación de integridad de datos
 const validarAsignaciones = (asignaciones: any[]): string[] => {
@@ -44,6 +45,10 @@ export async function POST(request: NextRequest) {
     
     const body = await request.json();
     const { instalacion_id, anio, mes, pauta } = body;
+    
+    // Por ahora usar un tenant_id fijo para testing
+    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
 
     console.log(`[${timestamp}] 📥 Datos recibidos:`, { 
       instalacion_id, 
@@ -81,6 +86,16 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`[${timestamp}] ✅ Validación exitosa, procediendo con guardado`);
+
+    // Obtener datos anteriores para el log
+    const pautaAnterior = await query(`
+      SELECT pm.*, po.nombre_puesto
+      FROM as_turnos_pauta_mensual pm
+      INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
+      WHERE po.instalacion_id = $1 
+        AND pm.anio = $2 
+        AND pm.mes = $3
+    `, [instalacion_id, anio, mes]);
 
     // No necesitamos verificar pauta a nivel global, lo haremos por puesto individual
     console.log(`[${timestamp}] 🔍 Verificando pauta por puesto individual...`);
@@ -139,16 +154,16 @@ export async function POST(request: NextRequest) {
         }
       }
       
-              for (let diaIndex = 0; diaIndex < dias.length; diaIndex++) {
-          const dia = diaIndex + 1;
-          const estado = dias[diaIndex];
-          
-          // Validar que el estado sea válido
-          if (estado === undefined || estado === null) {
-            console.warn(`[${timestamp}] ⚠️ Estado inválido para guardia ${guardiaId}, día ${dia}:`, estado);
-            continue;
-          }
+      for (let diaIndex = 0; diaIndex < dias.length; diaIndex++) {
+        const dia = diaIndex + 1;
+        const estado = dias[diaIndex];
         
+        // Validar que el estado sea válido
+        if (estado === undefined || estado === null) {
+          console.warn(`[${timestamp}] ⚠️ Estado inválido para guardia ${guardiaId}, día ${dia}:`, estado);
+          continue;
+        }
+      
         // Convertir estado del frontend a formato de base de datos
         let tipoDB = 'libre';
         switch (estado) {
@@ -206,6 +221,44 @@ export async function POST(request: NextRequest) {
     console.log(`[${timestamp}] ⏳ Ejecutando ${totalOperaciones} operaciones en paralelo...`);
     await Promise.all(operaciones);
 
+    // Obtener datos después de la actualización para el log
+    const pautaDespues = await query(`
+      SELECT pm.*, po.nombre_puesto
+      FROM as_turnos_pauta_mensual pm
+      INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
+      WHERE po.instalacion_id = $1 
+        AND pm.anio = $2 
+        AND pm.mes = $3
+    `, [instalacion_id, anio, mes]);
+
+    // Crear un ID único para la pauta mensual
+    const pautaId = `${instalacion_id}_${anio}_${mes}`;
+    
+    // Log de actualización de pauta mensual
+    await logCRUD(
+      'pauta_mensual',
+      pautaId,
+      'UPDATE',
+      usuario,
+      {
+        instalacion_id,
+        anio: parseInt(anio),
+        mes: parseInt(mes),
+        registros_anteriores: pautaAnterior.rows.length,
+        pauta_anterior: pautaAnterior.rows
+      },
+      {
+        instalacion_id,
+        anio: parseInt(anio),
+        mes: parseInt(mes),
+        registros_despues: pautaDespues.rows.length,
+        pauta_despues: pautaDespues.rows,
+        total_operaciones,
+        tiempo_procesamiento_ms: Date.now() - startTime
+      },
+      tenantId
+    );
+
     const endTime = Date.now();
     const duration = endTime - startTime;
     
@@ -230,6 +283,23 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const errorTime = new Date().toISOString();
     console.error(`[${errorTime}] ❌ Error guardando pauta mensual:`, error);
+    
+    // Log del error
+    await logCRUD(
+      'pauta_mensual',
+      'ERROR',
+      'ERROR',
+      'admin@test.com',
+      null,
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        endpoint: '/api/pauta-mensual/guardar',
+        method: 'POST'
+      },
+      'accebf8a-bacc-41fa-9601-ed39cb320a52'
+    );
+    
     return NextResponse.json(
       { 
         error: 'Error interno del servidor al guardar la pauta mensual',

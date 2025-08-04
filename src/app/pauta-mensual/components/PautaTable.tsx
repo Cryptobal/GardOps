@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
 import { Button } from "../../../components/ui/button";
-import { Trash2, Info, Calendar, Users, ExternalLink } from "lucide-react";
+import { Trash2, Info, Calendar, Users, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import ConfirmDeleteModal from "../../../components/ui/confirm-delete-modal";
 import Link from "next/link";
 
@@ -538,10 +538,6 @@ export default function PautaTable({
     }
   };
 
-  // Calcular cuántos días mostrar por página para ajustarse a la pantalla
-  const diasPorPagina = Math.floor((width - 300) / 35); // 300px para columna guardia, 35px por día
-  const diasAMostrar = Math.min(diasDelMes.length, Math.max(7, diasPorPagina)); // Mínimo 7 días, máximo según pantalla
-
   return (
     <div className="space-y-4">
       {/* Header con estadísticas */}
@@ -558,149 +554,160 @@ export default function PautaTable({
           </div>
         </div>
         
-        {/* Leyenda mejorada */}
-        <div className="flex items-center gap-4 text-sm flex-wrap">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 border border-emerald-300 dark:border-emerald-600 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300">Trabajando</span>
+        {/* Leyenda mejorada - Responsive */}
+        <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm flex-wrap">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 border border-emerald-300 dark:border-emerald-600 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300 hidden sm:inline">Trabajando</span>
+            <span className="text-gray-700 dark:text-gray-300 sm:hidden">T</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 border border-gray-300 dark:border-gray-600 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300">Libre</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 border border-gray-300 dark:border-gray-600 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300 hidden sm:inline">Libre</span>
+            <span className="text-gray-700 dark:text-gray-300 sm:hidden">L</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border border-gray-300 dark:border-gray-600 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300">Sin asignar</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-300 dark:border-blue-600 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300 hidden sm:inline">Permiso</span>
+            <span className="text-gray-700 dark:text-gray-300 sm:hidden">P</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-300 dark:border-blue-600 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300">Permiso</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-900/30 dark:to-amber-900/30 border border-yellow-300 dark:border-yellow-600 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300 hidden sm:inline">Vacaciones</span>
+            <span className="text-gray-700 dark:text-gray-300 sm:hidden">V</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-900/30 dark:to-amber-900/30 border border-yellow-300 dark:border-yellow-600 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300">Vacaciones</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gradient-to-br from-cyan-100 to-blue-100 dark:from-cyan-900/30 dark:to-blue-900/30 border border-cyan-300 dark:border-cyan-600 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300">Licencia</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/30 border border-red-300 dark:border-red-600 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300">Feriado</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/30 border border-red-300 dark:border-red-600 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300 hidden sm:inline">Feriado</span>
+            <span className="text-gray-700 dark:text-gray-300 sm:hidden">F</span>
           </div>
           {modoEdicion && (
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-800/30 border border-red-300 dark:border-red-600 rounded"></div>
-              <span className="text-gray-700 dark:text-gray-300">PPC (Solo lectura)</span>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-800/30 border border-red-300 dark:border-red-600 rounded"></div>
+              <span className="text-gray-700 dark:text-gray-300 hidden sm:inline">PPC</span>
+              <span className="text-gray-700 dark:text-gray-300 sm:hidden">PPC</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Tabla de pauta - Ajustada a pantalla sin scroll horizontal */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
-        <Table className="w-full">
-          <TableHeader>
-            <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
-              <TableHead className="font-semibold text-left p-4 border-0" style={{width: '200px', minWidth: '200px'}}>
-                Guardia
-              </TableHead>
-              {diasDelMes.slice(0, diasAMostrar).map((dia) => {
-                const diaInfo = diasSemana[dia - 1];
-                const esFinDeSemana = diaInfo?.diaSemana === 'Sáb' || diaInfo?.diaSemana === 'Dom';
-                const esFeriado = diaInfo?.esFeriado || feriadosChile.includes(dia);
-                const clasesEspeciales = esFeriado ? 'bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-900/40' : 
-                                           esFinDeSemana ? 'bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30' : '';
-                
-                return (
-                  <TableHead key={dia} className={`font-semibold text-center p-2 border-0 ${clasesEspeciales}`} style={{width: '35px', minWidth: '35px'}}>
-                    <div className="text-xs font-bold text-gray-900 dark:text-white">{dia}</div>
-                    {diaInfo?.diaSemana && (
-                      <div className={`text-xs mt-1 font-medium ${
-                        esFeriado ? 'text-red-600 dark:text-red-400' : 
-                        esFinDeSemana ? 'text-amber-600 dark:text-amber-400' : 
-                        'text-gray-500 dark:text-gray-400'
-                      }`}>
-                        {diaInfo.diaSemana}
-                      </div>
-                    )}
+      {/* Contenedor con scroll horizontal para móviles */}
+      <div className="relative">
+        {/* Indicador de scroll en móviles */}
+        <div className="sm:hidden mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+          <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-300">
+            <Info className="h-3 w-3" />
+            <span>Desliza horizontalmente para ver todos los días del mes</span>
+          </div>
+        </div>
+
+        {/* Tabla con scroll horizontal */}
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-x-auto">
+          <div className="min-w-max">
+            <Table className="w-full">
+              <TableHeader>
+                <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
+                  <TableHead className="font-semibold text-left p-4 border-0 sticky left-0 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 z-10" style={{width: '200px', minWidth: '200px'}}>
+                    Guardia
                   </TableHead>
-                );
-              })}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {pautaDataOrdenada.map((guardia, guardiaIndex) => (
-              <TableRow 
-                key={guardiaIndex} 
-                className={`group border-0 ${
-                  guardia.es_ppc 
-                    ? 'bg-gradient-to-r from-red-50/30 to-red-100/30 dark:from-red-900/10 dark:to-red-800/10 hover:from-red-50/50 hover:to-red-100/50 dark:hover:from-red-900/20 dark:hover:to-red-800/20' 
-                    : 'hover:bg-gray-50/50 dark:hover:bg-gray-800/50'
-                }`}
-              >
-                <TableCell className="p-4 border-0 whitespace-nowrap relative">
-                  <div className="flex items-center gap-3">
-                    {/* Botón eliminar */}
-                    {modoEdicion && !guardia.es_ppc && (
-                      <button
-                        onClick={() => eliminarPautaGuardia(guardiaIndex)}
-                        className="p-1.5 rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110"
-                        title="Eliminar pauta de este guardia"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
+                  {diasDelMes.map((dia) => {
+                    const diaInfo = diasSemana[dia - 1];
+                    const esFinDeSemana = diaInfo?.diaSemana === 'Sáb' || diaInfo?.diaSemana === 'Dom';
+                    const esFeriado = diaInfo?.esFeriado || feriadosChile.includes(dia);
+                    const clasesEspeciales = esFeriado ? 'bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-900/40' : 
+                                               esFinDeSemana ? 'bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30' : '';
                     
-                    {/* Información del guardia */}
-                    <div className="space-y-1 flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <Link 
-                          href={guardia.es_ppc ? `/ppc` : `/guardias/${guardia.guardia_id || guardia.id}`}
-                          className={`font-semibold text-sm truncate hover:underline transition-colors ${
-                            guardia.es_ppc 
-                              ? 'text-red-600 dark:text-red-400' 
-                              : 'text-gray-900 dark:text-white'
-                          }`}
-                        >
-                          {guardia.es_ppc ? acortarNombrePPC(guardia.nombre) : guardia.nombre}
-                          <ExternalLink className="inline-block h-3 w-3 ml-1 opacity-60" />
-                        </Link>
-                      </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight">
-                        <span className="font-medium">{guardia.rol_nombre || guardia.patron_turno}</span>
-                        {guardia.es_ppc && (
-                          <span className="ml-2 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-xs font-medium">
-                            PPC
-                          </span>
+                    return (
+                      <TableHead key={dia} className={`font-semibold text-center p-2 border-0 ${clasesEspeciales}`} style={{width: '35px', minWidth: '35px'}}>
+                        <div className="text-xs font-bold text-gray-900 dark:text-white">{dia}</div>
+                        {diaInfo?.diaSemana && (
+                          <div className={`text-xs mt-1 font-medium ${
+                            esFeriado ? 'text-red-600 dark:text-red-400' : 
+                            esFinDeSemana ? 'text-amber-600 dark:text-amber-400' : 
+                            'text-gray-500 dark:text-gray-400'
+                          }`}>
+                            {diaInfo.diaSemana}
+                          </div>
                         )}
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pautaDataOrdenada.map((guardia, guardiaIndex) => (
+                  <TableRow 
+                    key={guardiaIndex} 
+                    className={`group border-0 ${
+                      guardia.es_ppc 
+                        ? 'bg-gradient-to-r from-red-50/30 to-red-100/30 dark:from-red-900/10 dark:to-red-800/10 hover:from-red-50/50 hover:to-red-100/50 dark:hover:from-red-900/20 dark:hover:to-red-800/20' 
+                        : 'hover:bg-gray-50/50 dark:hover:bg-gray-800/50'
+                    }`}
+                  >
+                    <TableCell className="p-4 border-0 whitespace-nowrap relative sticky left-0 bg-white dark:bg-gray-900 z-10">
+                      <div className="flex items-center gap-3">
+                        {/* Botón eliminar */}
+                        {modoEdicion && !guardia.es_ppc && (
+                          <button
+                            onClick={() => eliminarPautaGuardia(guardiaIndex)}
+                            className="p-1.5 rounded-full bg-red-100 hover:bg-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 transition-all duration-200 hover:scale-110"
+                            title="Eliminar pauta de este guardia"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        
+                        {/* Información del guardia */}
+                        <div className="space-y-1 flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Link 
+                              href={guardia.es_ppc ? `/ppc` : `/guardias/${guardia.guardia_id || guardia.id}`}
+                              className={`font-semibold text-sm truncate hover:underline transition-colors ${
+                                guardia.es_ppc 
+                                  ? 'text-red-600 dark:text-red-400' 
+                                  : 'text-gray-900 dark:text-white'
+                              }`}
+                            >
+                              {guardia.es_ppc ? acortarNombrePPC(guardia.nombre) : guardia.nombre}
+                              <ExternalLink className="inline-block h-3 w-3 ml-1 opacity-60" />
+                            </Link>
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight">
+                            <span className="font-medium">{guardia.rol_nombre || guardia.patron_turno}</span>
+                            {guardia.es_ppc && (
+                              <span className="ml-2 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-xs font-medium">
+                                PPC
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                </TableCell>
-                {guardia.dias.slice(0, diasAMostrar).map((estado, diaIndex) => {
-                  const diaInfo = diasSemana[diaIndex];
-                  const esFeriado = diaInfo?.esFeriado || feriadosChile.includes(diaIndex + 1);
-                  return (
-                    <DiaCell
-                      key={diaIndex}
-                      estado={estado}
-                      onClick={() => cambiarEstadoDia(guardiaIndex, diaIndex)}
-                      onRightClick={(e) => handleRightClick(e, guardiaIndex, diaIndex)}
-                      guardiaNombre={guardia.nombre}
-                      diaNumero={diaIndex + 1}
-                      diaSemana={diaInfo?.diaSemana}
-                      esFeriado={esFeriado}
-                      modoEdicion={modoEdicion}
-                      diasGuardados={diasGuardados}
-                      esPPC={guardia.es_ppc}
-                    />
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                    </TableCell>
+                    {guardia.dias.map((estado, diaIndex) => {
+                      const diaInfo = diasSemana[diaIndex];
+                      const esFeriado = diaInfo?.esFeriado || feriadosChile.includes(diaIndex + 1);
+                      return (
+                        <DiaCell
+                          key={diaIndex}
+                          estado={estado}
+                          onClick={() => cambiarEstadoDia(guardiaIndex, diaIndex)}
+                          onRightClick={(e) => handleRightClick(e, guardiaIndex, diaIndex)}
+                          guardiaNombre={guardia.nombre}
+                          diaNumero={diaIndex + 1}
+                          diaSemana={diaInfo?.diaSemana}
+                          esFeriado={esFeriado}
+                          modoEdicion={modoEdicion}
+                          diasGuardados={diasGuardados}
+                          esPPC={guardia.es_ppc}
+                        />
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       </div>
 
       {/* Modal de autocompletado */}

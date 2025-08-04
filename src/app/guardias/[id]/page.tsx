@@ -248,36 +248,52 @@ export default function GuardiaDetallePage() {
 
       {/* Pestañas */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="informacion" className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Información
-          </TabsTrigger>
-          <TabsTrigger value="asignacion" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Asignación
-          </TabsTrigger>
-          <TabsTrigger value="permisos" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Permisos
-          </TabsTrigger>
-          <TabsTrigger value="documentos" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Documentos
-          </TabsTrigger>
-          <TabsTrigger value="datos-bancarios" className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
-            Datos Bancarios
-          </TabsTrigger>
-          <TabsTrigger value="finiquito" className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            Finiquito
-          </TabsTrigger>
-          <TabsTrigger value="log" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Log
-          </TabsTrigger>
-        </TabsList>
+          <div className="bg-muted/30 p-1 rounded-lg">
+            {/* Primera fila de pestañas */}
+            <div className="flex flex-wrap gap-1 mb-1">
+              <TabsTrigger value="informacion" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap flex-1 min-w-0">
+                <User className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="hidden sm:inline truncate">Información</span>
+                <span className="sm:hidden">Info</span>
+              </TabsTrigger>
+              <TabsTrigger value="asignacion" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap flex-1 min-w-0">
+                <Settings className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="hidden sm:inline truncate">Asignación</span>
+                <span className="sm:hidden">Asign</span>
+              </TabsTrigger>
+              <TabsTrigger value="permisos" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap flex-1 min-w-0">
+                <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="hidden sm:inline truncate">Permisos</span>
+                <span className="sm:hidden">Perm</span>
+              </TabsTrigger>
+              <TabsTrigger value="documentos" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap flex-1 min-w-0">
+                <FileText className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="hidden sm:inline truncate">Documentos</span>
+                <span className="sm:hidden">Docs</span>
+              </TabsTrigger>
+            </div>
+            
+            {/* Segunda fila de pestañas */}
+            <div className="flex flex-wrap gap-1">
+              <TabsTrigger value="datos-bancarios" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap flex-1 min-w-0">
+                <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="hidden sm:inline truncate">Datos Bancarios</span>
+                <span className="sm:hidden">Banc</span>
+              </TabsTrigger>
+              <TabsTrigger value="finiquito" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap flex-1 min-w-0">
+                <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="hidden sm:inline truncate">Finiquito</span>
+                <span className="sm:hidden">Fin</span>
+              </TabsTrigger>
+              <TabsTrigger value="log" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap flex-1 min-w-0">
+                <Activity className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="hidden sm:inline truncate">Log</span>
+                <span className="sm:hidden">Log</span>
+              </TabsTrigger>
+              {/* Espacio vacío para balance visual */}
+              <div className="flex-1 min-w-0"></div>
+            </div>
+          </div>
 
         {/* Contenido de la pestaña Información */}
         <TabsContent value="informacion" className="mt-6">
@@ -444,7 +460,7 @@ export default function GuardiaDetallePage() {
         <TabsContent value="log" className="mt-6">
           <LogGuardia guardiaId={guardiaId} />
         </TabsContent>
-      </Tabs>
+        </Tabs>
       {showConfirmModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">

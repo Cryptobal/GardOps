@@ -68,7 +68,7 @@ interface ResumenPautas {
   anio: number;
 }
 
-// Componente KPI Box
+// Componente KPI Box optimizado para móviles
 const KPIBox = ({ 
   title, 
   value, 
@@ -88,17 +88,17 @@ const KPIBox = ({
     transition={{ duration: 0.5 }}
   >
     <Card className="h-full">
-      <CardContent className="p-4 flex flex-col justify-between h-full">
+      <CardContent className="p-3 sm:p-4 md:p-6 flex flex-col justify-between h-full">
         <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-2xl font-bold">{value}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground leading-tight">{title}</p>
+            <p className="text-lg sm:text-xl md:text-2xl font-bold truncate">{value}</p>
             {subtitle && (
-              <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+              <p className="text-xs text-muted-foreground mt-1 truncate">{subtitle}</p>
             )}
           </div>
-          <div className={`p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/20 flex-shrink-0 ml-3`}>
-            <Icon className={`h-6 w-6 text-${color}-600 dark:text-${color}-400`} />
+          <div className={`p-2 sm:p-2.5 md:p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/20 flex-shrink-0 ml-2 sm:ml-3`}>
+            <Icon className={`h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-${color}-600 dark:text-${color}-400`} />
           </div>
         </div>
       </CardContent>
@@ -287,32 +287,32 @@ export default function PautaMensualPage() {
   }, [resumen]);
 
   return (
-    <div className="p-4 space-y-6">
-      {/* Header */}
-      <div className="flex items-center space-x-4">
-        <div className="p-3 rounded-full bg-orange-100 dark:bg-orange-900/20">
-          <Calendar className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+      {/* Header optimizado para móviles */}
+      <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4">
+        <div className="p-2 sm:p-2.5 md:p-3 rounded-full bg-orange-100 dark:bg-orange-900/20 flex-shrink-0">
+          <Calendar className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-orange-600 dark:text-orange-400" />
         </div>
-        <div>
-          <h1 className="text-2xl font-bold">Pauta Mensual</h1>
-          <p className="text-sm text-muted-foreground">Gestión y planificación mensual de turnos</p>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold truncate">Pauta Mensual</h1>
+          <p className="text-xs sm:text-sm md:text-base text-muted-foreground truncate">Gestión y planificación mensual de turnos</p>
         </div>
       </div>
 
-      {/* Selector de Mes y Año */}
+      {/* Selector de Mes y Año optimizado para móviles */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
+        <CardHeader className="pb-3 sm:pb-4">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+            <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
             Seleccionar Período
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Mes</label>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <div className="space-y-2 flex-1">
+              <label className="text-xs sm:text-sm font-medium">Mes</label>
               <Select value={selectedMes} onValueChange={setSelectedMes}>
-                <SelectTrigger className="w-full sm:w-48">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Seleccionar mes" />
                 </SelectTrigger>
                 <SelectContent>
@@ -325,8 +325,8 @@ export default function PautaMensualPage() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Año</label>
+            <div className="space-y-2 flex-1 sm:flex-none">
+              <label className="text-xs sm:text-sm font-medium">Año</label>
               <Select value={selectedAnio} onValueChange={setSelectedAnio}>
                 <SelectTrigger className="w-full sm:w-32">
                   <SelectValue placeholder="Año" />
@@ -344,9 +344,9 @@ export default function PautaMensualPage() {
         </CardContent>
       </Card>
 
-      {/* KPIs */}
+      {/* KPIs optimizados para móviles */}
       {resumen && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
           <KPIBox
             title="Total Instalaciones"
             value={resumen.total_instalaciones}
@@ -375,24 +375,24 @@ export default function PautaMensualPage() {
         </div>
       )}
 
-      {/* Barra de Progreso */}
+      {/* Barra de Progreso optimizada para móviles */}
       {resumen && (
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Progreso del mes</span>
-              <span className="text-sm text-muted-foreground">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 space-y-2 sm:space-y-0">
+              <span className="text-xs sm:text-sm font-medium">Progreso del mes</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">
                 {resumen.instalaciones_con_pauta_count} de {resumen.total_instalaciones} instalaciones
               </span>
             </div>
-            <Progress value={porcentajeProgreso} className="h-3" />
-            <div className="flex items-center gap-4 mt-4 text-sm text-muted-foreground">
+            <Progress value={porcentajeProgreso} className="h-2 sm:h-3" />
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-3 sm:mt-4 text-xs sm:text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
-                <CheckCircle className="h-4 w-4 text-green-600" />
+                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
                 <span>Con pauta creada</span>
               </div>
               <div className="flex items-center gap-1">
-                <AlertCircle className="h-4 w-4 text-orange-600" />
+                <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
                 <span>Pendiente de crear</span>
               </div>
             </div>
@@ -400,12 +400,12 @@ export default function PautaMensualPage() {
         </Card>
       )}
 
-      {/* Mensaje de estado */}
+      {/* Mensaje de estado optimizado para móviles */}
       {mensaje && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`p-4 rounded-lg border-l-4 ${
+          className={`p-3 sm:p-4 rounded-lg border-l-4 ${
             mensaje.includes('✅') 
               ? 'bg-green-50 dark:bg-green-900/20 border-green-400' 
               : mensaje.includes('⚠️')
@@ -417,15 +417,15 @@ export default function PautaMensualPage() {
         >
           <div className="flex items-start gap-2">
             {mensaje.includes('✅') ? (
-              <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
+              <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
             ) : mensaje.includes('⚠️') ? (
-              <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
+              <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
             ) : mensaje.includes('ℹ️') ? (
-              <Info className="h-4 w-4 text-blue-600 mt-0.5" />
+              <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
             ) : (
-              <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
+              <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
             )}
-            <span className={`text-sm ${
+            <span className={`text-xs sm:text-sm ${
               mensaje.includes('✅') 
                 ? 'text-green-800 dark:text-green-200' 
                 : mensaje.includes('⚠️')
@@ -440,19 +440,19 @@ export default function PautaMensualPage() {
         </motion.div>
       )}
 
-      {/* Contenido principal */}
+      {/* Contenido principal optimizado para móviles */}
       {loading ? (
         <Card>
-          <CardContent className="p-12">
+          <CardContent className="p-8 sm:p-12">
             <div className="flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-              <span className="ml-2 text-sm">Cargando resumen...</span>
+              <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-blue-600" />
+              <span className="ml-2 text-xs sm:text-sm">Cargando resumen...</span>
             </div>
           </CardContent>
         </Card>
       ) : resumen ? (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-3 sm:space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {/* Mostrar todas las instalaciones, con o sin pauta */}
             {[
               ...resumen.instalaciones_con_pauta.map(inst => ({ ...inst, tipo: 'con_pauta' })),
@@ -479,10 +479,10 @@ export default function PautaMensualPage() {
         </div>
       ) : (
         <Card>
-          <CardContent className="p-8 text-center">
-            <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">Selecciona un período</h3>
-            <p className="text-sm text-muted-foreground">
+          <CardContent className="p-6 sm:p-8 text-center">
+            <Calendar className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+            <h3 className="text-base sm:text-lg font-medium mb-2">Selecciona un período</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Elige un mes y año para ver el resumen de pautas mensuales.
             </p>
           </CardContent>

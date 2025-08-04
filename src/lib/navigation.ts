@@ -11,7 +11,8 @@ import {
   Settings,
   MapPin,
   Target,
-  CalendarDays
+  CalendarDays,
+  Activity
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -84,5 +85,11 @@ export const navigationItems: NavigationItem[] = [
         icon: Clock
       }
     ]
+  },
+  {
+    name: "Logs del Sistema",
+    href: "/logs",
+    icon: Activity,
+    description: "Auditoría y seguimiento de actividades"
   }
 ]; 

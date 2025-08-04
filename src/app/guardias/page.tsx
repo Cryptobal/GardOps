@@ -14,7 +14,9 @@ import {
   Building2,
   Shield,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Search,
+  Filter
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -31,7 +33,7 @@ import { Guardia } from "../../lib/schemas/guardias";
 // Importar el modal editable
 import GuardiaModal from "../../components/guardias/GuardiaModal";
 
-// Componente KPI Box
+// Componente KPI Box optimizado para móviles
 const KPIBox = ({ 
   title, 
   value, 
@@ -51,19 +53,19 @@ const KPIBox = ({
     transition={{ duration: 0.5 }}
   >
     <Card className="h-full">
-      <CardContent className="p-3 md:p-6 flex flex-col justify-between h-full">
+      <CardContent className="p-3 sm:p-4 md:p-6 flex flex-col justify-between h-full">
         <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="text-xs md:text-sm font-medium text-muted-foreground min-h-[1.5rem] flex items-center">{title}</p>
-            <p className="text-lg md:text-2xl font-bold">{value}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground min-h-[1.2rem] sm:min-h-[1.5rem] flex items-center leading-tight">{title}</p>
+            <p className="text-base sm:text-lg md:text-2xl font-bold truncate">{value}</p>
             {trend && (
-              <p className={`text-xs md:text-sm ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-xs sm:text-sm ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
                 {trend.isPositive ? '+' : ''}{trend.value}%
               </p>
             )}
           </div>
-          <div className={`p-2 md:p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/20 flex-shrink-0 ml-3`}>
-            <Icon className={`h-4 w-4 md:h-6 md:w-6 text-${color}-600 dark:text-${color}-400`} />
+          <div className={`p-2 sm:p-2.5 md:p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/20 flex-shrink-0 ml-2 sm:ml-3`}>
+            <Icon className={`h-3 w-3 sm:h-4 sm:w-4 md:h-6 md:w-6 text-${color}-600 dark:text-${color}-400`} />
           </div>
         </div>
       </CardContent>
@@ -78,6 +80,7 @@ export default function GuardiasPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("activo");
   const [instalacionFilter, setInstalacionFilter] = useState<string>("all");
+  const [showFilters, setShowFilters] = useState(false);
 
   // Hooks para modales y operaciones CRUD
   const { 
@@ -103,6 +106,39 @@ export default function GuardiasPage() {
   const deleteEntity = async (id: string) => {
     console.log("Eliminar guardia:", id);
     showToast("Funcionalidad en desarrollo", "info");
+  };
+
+  const eliminarGuardia = async (guardia: any) => {
+    if (!confirm(`¿Estás seguro de que quieres eliminar el guardia "${guardia.nombre_completo}"?`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/guardias/${guardia.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al eliminar el guardia');
+      }
+
+      console.log('✅ Guardia eliminado exitosamente:', result);
+      showToast("Guardia eliminado exitosamente", "success");
+      
+      // Recargar la lista de guardias
+      window.location.reload();
+    } catch (error) {
+      console.error('Error eliminando guardia:', error);
+      showToast(error instanceof Error ? error.message : 'Error al eliminar el guardia', "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const showToast = (message: string, type: string = "info") => {
@@ -251,26 +287,57 @@ export default function GuardiasPage() {
         </div>
       ),
     },
+    {
+      key: "acciones",
+      label: "Acciones",
+      render: (guardia) => (
+        <div className="flex items-center space-x-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/guardias/${guardia.id}`);
+            }}
+            title="Ver detalles"
+          >
+            Ver
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+            onClick={(e) => {
+              e.stopPropagation();
+              eliminarGuardia(guardia);
+            }}
+            title="Eliminar guardia"
+          >
+            Eliminar
+          </Button>
+        </div>
+      ),
+    },
   ];
 
   // Obtener instalaciones únicas para el filtro
   const instalaciones = Array.from(new Set(guardias.map((g: any) => g.instalacion_asignada).filter(Boolean))).sort();
 
   return (
-    <div className="container mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
-      {/* Header */}
-      <div className="flex items-center space-x-3 md:space-x-4 mb-4 md:mb-6">
-        <div className="p-2 md:p-3 rounded-full bg-blue-100 dark:bg-blue-900/20">
-          <Shield className="h-5 w-5 md:h-6 md:w-6 text-blue-600 dark:text-blue-400" />
+    <div className="container mx-auto p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6">
+      {/* Header optimizado para móviles */}
+      <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4 mb-3 sm:mb-4 md:mb-6">
+        <div className="p-2 sm:p-2.5 md:p-3 rounded-full bg-blue-100 dark:bg-blue-900/20 flex-shrink-0">
+          <Shield className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-blue-600 dark:text-blue-400" />
         </div>
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Guardias</h1>
-          <p className="text-sm md:text-base text-muted-foreground">Gestiona el personal de seguridad y sus documentos</p>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold truncate">Guardias</h1>
+          <p className="text-xs sm:text-sm md:text-base text-muted-foreground truncate">Gestiona el personal de seguridad y sus documentos</p>
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-6">
+      {/* KPIs optimizados para móviles */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
         <KPIBox
           title="Guardias Activos"
           value={kpis.activos}
@@ -285,21 +352,49 @@ export default function GuardiasPage() {
         />
       </div>
 
-      {/* Filtros y Acciones */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+      {/* Filtros y Acciones optimizados para móviles */}
+      <div className="space-y-3 sm:space-y-4">
+        {/* Barra de búsqueda y botón principal */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar guardias..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full sm:w-64"
+              className="pl-10 w-full"
             />
-            <div className="flex gap-2 sm:gap-4">
+          </div>
+          
+          <Button 
+            onClick={() => setShowFilters(!showFilters)}
+            variant="outline" 
+            className="flex items-center gap-2 sm:w-auto"
+          >
+            <Filter className="h-4 w-4" />
+            <span className="hidden sm:inline">Filtros</span>
+          </Button>
+          
+          <Button onClick={openCreate} className="flex items-center space-x-2 w-full sm:w-auto">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Nuevo Guardia</span>
+            <span className="sm:hidden">Nuevo</span>
+          </Button>
+        </div>
+
+        {/* Filtros expandibles */}
+        {showFilters && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-muted/30 rounded-lg p-3 sm:p-4"
+          >
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border rounded-md bg-background text-sm"
+                className="px-3 py-2 border rounded-md bg-background text-sm w-full sm:w-48"
               >
                 <option value="all">Todos los estados</option>
                 <option value="activo">Activos</option>
@@ -308,7 +403,7 @@ export default function GuardiasPage() {
               <select
                 value={instalacionFilter}
                 onChange={(e) => setInstalacionFilter(e.target.value)}
-                className="px-3 py-2 border rounded-md bg-background text-sm"
+                className="px-3 py-2 border rounded-md bg-background text-sm w-full sm:w-48"
               >
                 <option value="all">Todas las instalaciones</option>
                 {instalaciones.map((instalacion) => (
@@ -318,16 +413,11 @@ export default function GuardiasPage() {
                 ))}
               </select>
             </div>
-          </div>
-          
-          <Button onClick={openCreate} className="flex items-center space-x-2 w-full sm:w-auto">
-            <Plus className="h-4 w-4" />
-            <span>Nuevo Guardia</span>
-          </Button>
-        </div>
+          </motion.div>
+        )}
       </div>
 
-      {/* Tabla */}
+      {/* Tabla optimizada para móviles */}
       <Card>
         <CardContent className="p-0">
           <DataTable
@@ -340,15 +430,15 @@ export default function GuardiasPage() {
               router.push(`/guardias/${guardia.id}`);
             }}
             mobileCard={(guardia) => (
-              <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => router.push(`/guardias/${guardia.id}`)}>
+              <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-3 mb-3">
                     <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
                       <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium">{guardia.nombre_completo}</p>
-                      <p className="text-sm text-muted-foreground">{guardia.rut}</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-sm truncate">{guardia.nombre_completo}</h3>
+                      <p className="text-xs text-muted-foreground truncate">{guardia.rut}</p>
                     </div>
                     <ToggleStatus
                       checked={guardia.activo}
@@ -362,47 +452,73 @@ export default function GuardiasPage() {
                       <span className="text-sm font-medium">{guardia.telefono}</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-xs text-muted-foreground">{guardia.email}</span>
+                      <span className="text-xs text-muted-foreground truncate">{guardia.email}</span>
                     </div>
                     
                     <div className="flex items-center space-x-2 pt-2">
-                      <Building2 className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
+                      <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-sm truncate">
                         {guardia.instalacion_asignada || "Sin asignar"}
                       </span>
                     </div>
                     
                     <div className="flex items-center justify-between pt-2">
-                      <div>
+                      <div className="flex-1 min-w-0">
                         {guardia.instalacion_asignada && (
                           <div className="flex items-center space-x-2">
-                            <User className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">
+                            <User className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                            <span className="text-xs text-muted-foreground truncate">
                               {guardia.rol_actual || "Sin rol asignado"}
                             </span>
                           </div>
                         )}
                       </div>
                       
-                      <div>
+                      <div className="flex-shrink-0 ml-2">
                         {(() => {
                           const alerta = (guardia as any).alerta_os10;
                           if (!alerta || alerta.estado === 'sin_fecha') {
-                            return <Badge variant="secondary">Sin OS10</Badge>;
+                            return <Badge variant="secondary" className="text-xs">Sin OS10</Badge>;
                           }
 
                           if (alerta.estado === 'vencido') {
-                            return <Badge variant="destructive">Vencido</Badge>;
+                            return <Badge variant="destructive" className="text-xs">Vencido</Badge>;
                           } else if (alerta.estado === 'alerta') {
-                            return <Badge variant="outline" className="text-orange-600 border-orange-600">
+                            return <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs">
                               Por vencer ({alerta.dias_restantes} días)
                             </Badge>;
                           } else {
-                            return <Badge variant="default">Vigente</Badge>;
+                            return <Badge variant="default" className="text-xs">Vigente</Badge>;
                           }
                         })()}
                       </div>
                     </div>
+                  </div>
+                  
+                  {/* Botones de acción para móvil */}
+                  <div className="flex items-center space-x-2 pt-3 mt-3 border-t">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/guardias/${guardia.id}`);
+                      }}
+                    >
+                      Ver
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        eliminarGuardia(guardia);
+                      }}
+                    >
+                      Eliminar
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

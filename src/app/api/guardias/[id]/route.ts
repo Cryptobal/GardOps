@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../../lib/database';
+import { logCRUD } from '@/lib/logging';
 
 // PUT /api/guardias/[id] - Actualizar un guardia específico
 export async function PUT(
@@ -14,8 +15,23 @@ export async function PUT(
     
     // Por ahora usar un tenant_id fijo para testing
     const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
     
     console.log('✅ API Guardias - Actualizando con datos:', body);
+
+    // Obtener datos anteriores para el log
+    const oldDataResult = await query(`
+      SELECT * FROM guardias WHERE id = $1 AND tenant_id = $2
+    `, [guardiaId, tenantId]);
+
+    if (oldDataResult.rows.length === 0) {
+      return NextResponse.json(
+        { error: 'Guardia no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    const datosAnteriores = oldDataResult.rows[0];
 
     // Separar apellidos si vienen en un solo campo
     let apellidoPaterno = '';
@@ -66,6 +82,17 @@ export async function PUT(
     const guardiaActualizado = result.rows[0];
     console.log('✅ Guardia actualizado exitosamente');
 
+    // Log de actualización
+    await logCRUD(
+      'guardias',
+      guardiaId,
+      'UPDATE',
+      usuario,
+      datosAnteriores,
+      guardiaActualizado,
+      tenantId
+    );
+
     // Formatear la respuesta para que coincida con el frontend
     const guardiaFormateado = {
       id: guardiaActualizado.id,
@@ -89,6 +116,23 @@ export async function PUT(
 
   } catch (error) {
     console.error('❌ Error actualizando guardia:', error);
+    
+    // Log del error
+    await logCRUD(
+      'guardias',
+      params.id,
+      'ERROR',
+      'admin@test.com',
+      null,
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        endpoint: '/api/guardias/[id]',
+        method: 'PUT'
+      },
+      'accebf8a-bacc-41fa-9601-ed39cb320a52'
+    );
+    
     return NextResponse.json(
       { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -108,6 +152,7 @@ export async function GET(
     
     // Por ahora usar un tenant_id fijo para testing
     const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const usuario = 'admin@test.com';
 
     const result = await query(`
       SELECT 
@@ -129,6 +174,17 @@ export async function GET(
 
     const guardia = result.rows[0];
     console.log('✅ Guardia obtenido exitosamente');
+
+    // Log de lectura (opcional)
+    await logCRUD(
+      'guardias',
+      guardiaId,
+      'READ',
+      usuario,
+      null, // No hay datos anteriores en lectura
+      guardia,
+      tenantId
+    );
 
     // Transformar los datos para que coincidan con la interfaz del frontend
     const guardiaFormateado = {
@@ -152,6 +208,23 @@ export async function GET(
 
   } catch (error) {
     console.error('❌ Error obteniendo guardia:', error);
+    
+    // Log del error
+    await logCRUD(
+      'guardias',
+      params.id,
+      'ERROR',
+      'admin@test.com',
+      null,
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        endpoint: '/api/guardias/[id]',
+        method: 'GET'
+      },
+      'accebf8a-bacc-41fa-9601-ed39cb320a52'
+    );
+    
     return NextResponse.json(
       { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -172,6 +245,7 @@ export async function PATCH(
     
     // Por ahora usar un tenant_id fijo para testing
     const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const usuario = 'admin@test.com';
     
     console.log('✅ API Guardias - Actualizando estado con datos:', body);
 
@@ -182,6 +256,20 @@ export async function PATCH(
         { status: 400 }
       );
     }
+
+    // Obtener datos anteriores para el log
+    const oldDataResult = await query(`
+      SELECT * FROM guardias WHERE id = $1 AND tenant_id = $2
+    `, [guardiaId, tenantId]);
+
+    if (oldDataResult.rows.length === 0) {
+      return NextResponse.json(
+        { error: 'Guardia no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    const datosAnteriores = oldDataResult.rows[0];
 
     // Convertir estado a booleano para la base de datos
     const activo = body.estado === 'activo';
@@ -206,6 +294,17 @@ export async function PATCH(
     const guardiaActualizado = result.rows[0];
     console.log('✅ Estado del guardia actualizado exitosamente');
 
+    // Log de actualización
+    await logCRUD(
+      'guardias',
+      guardiaId,
+      'UPDATE',
+      usuario,
+      datosAnteriores,
+      guardiaActualizado,
+      tenantId
+    );
+
     // Formatear la respuesta para que coincida con el frontend
     const guardiaFormateado = {
       id: guardiaActualizado.id,
@@ -229,6 +328,132 @@ export async function PATCH(
 
   } catch (error) {
     console.error('❌ Error actualizando estado del guardia:', error);
+    
+    // Log del error
+    await logCRUD(
+      'guardias',
+      params.id,
+      'ERROR',
+      'admin@test.com',
+      null,
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        endpoint: '/api/guardias/[id]',
+        method: 'PATCH'
+      },
+      'accebf8a-bacc-41fa-9601-ed39cb320a52'
+    );
+    
+    return NextResponse.json(
+      { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/guardias/[id] - Eliminar un guardia específico
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  console.log('🔍 API Guardias - Eliminando guardia:', params.id);
+  
+  try {
+    const guardiaId = params.id;
+    
+    // Por ahora usar un tenant_id fijo para testing
+    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const usuario = 'admin@test.com';
+    
+    console.log('✅ API Guardias - Eliminando guardia con ID:', guardiaId);
+
+    // Obtener datos anteriores para el log
+    const oldDataResult = await query(`
+      SELECT * FROM guardias WHERE id = $1 AND tenant_id = $2
+    `, [guardiaId, tenantId]);
+
+    if (oldDataResult.rows.length === 0) {
+      return NextResponse.json(
+        { error: 'Guardia no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    const datosAnteriores = oldDataResult.rows[0];
+
+    // Verificar si el guardia tiene asignaciones activas
+    const asignacionesResult = await query(`
+      SELECT COUNT(*) as total_asignaciones
+      FROM as_turnos_puestos_operativos 
+      WHERE guardia_id = $1 AND activo = true
+    `, [guardiaId]);
+
+    const totalAsignaciones = parseInt(asignacionesResult.rows[0].total_asignaciones);
+
+    if (totalAsignaciones > 0) {
+      return NextResponse.json(
+        { 
+          error: 'No se puede eliminar el guardia porque tiene asignaciones activas',
+          details: `El guardia tiene ${totalAsignaciones} asignación(es) activa(s)`
+        },
+        { status: 400 }
+      );
+    }
+
+    // Query para eliminar el guardia
+    const result = await query(`
+      DELETE FROM guardias 
+      WHERE id = $1 AND tenant_id = $2
+      RETURNING *
+    `, [guardiaId, tenantId]);
+
+    if (result.rows.length === 0) {
+      return NextResponse.json(
+        { error: 'Guardia no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    const guardiaEliminado = result.rows[0];
+    console.log('✅ Guardia eliminado exitosamente');
+
+    // Log de eliminación
+    await logCRUD(
+      'guardias',
+      guardiaId,
+      'DELETE',
+      usuario,
+      datosAnteriores,
+      null, // No hay datos posteriores en eliminación
+      tenantId
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: 'Guardia eliminado exitosamente',
+      guardia: guardiaEliminado
+    });
+
+  } catch (error) {
+    console.error('❌ Error eliminando guardia:', error);
+    
+    // Log del error
+    await logCRUD(
+      'guardias',
+      params.id,
+      'ERROR',
+      'admin@test.com',
+      null,
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        endpoint: '/api/guardias/[id]',
+        method: 'DELETE'
+      },
+      'accebf8a-bacc-41fa-9601-ed39cb320a52'
+    );
+    
     return NextResponse.json(
       { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

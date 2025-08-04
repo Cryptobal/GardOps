@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
+import { logCRUD } from '@/lib/logging';
 
 export async function GET(request: NextRequest) {
   try {
@@ -46,12 +47,32 @@ export async function GET(request: NextRequest) {
       ORDER BY g.activo DESC, g.nombre, g.apellido_paterno, g.apellido_materno
     `);
 
+    // Log de lectura (opcional, para auditoría completa)
+    // await logCRUD('guardias', 'ALL', 'READ', 'system', null, { total_guardias: result.rows.length }, 'accebf8a-bacc-41fa-9601-ed39cb320a52');
+
     return NextResponse.json({ 
       success: true, 
       guardias: result.rows 
     });
   } catch (error) {
     console.error('Error obteniendo guardias:', error);
+    
+    // Log del error
+    await logCRUD(
+      'guardias',
+      'ALL',
+      'ERROR',
+      'admin@test.com',
+      null,
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        endpoint: '/api/guardias',
+        method: 'GET'
+      },
+      'accebf8a-bacc-41fa-9601-ed39cb320a52'
+    );
+    
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
@@ -68,6 +89,7 @@ export async function POST(request: NextRequest) {
     
     // Por ahora usar un tenant_id fijo para testing
     const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
     
     console.log('✅ API Guardias - Creando con datos:', body);
 
@@ -102,23 +124,50 @@ export async function POST(request: NextRequest) {
       body.direccion,
       body.ciudad,
       body.comuna,
-      body.estado === 'Activo',
+      body.activo !== false, // Por defecto activo
       body.latitud,
-      body.longitud
+      body.longitud,
     ]);
 
     const nuevoGuardia = result.rows[0];
-    console.log('✅ Guardia creado exitosamente');
 
-    return NextResponse.json({
-      guardia: nuevoGuardia,
-      success: true
-    }, { status: 201 });
+    // Log de creación
+    await logCRUD(
+      'guardias',
+      nuevoGuardia.id,
+      'CREATE',
+      usuario,
+      null, // No hay datos anteriores en creación
+      nuevoGuardia,
+      tenantId
+    );
 
+    return NextResponse.json({ 
+      success: true, 
+      guardia: nuevoGuardia 
+    });
   } catch (error) {
-    console.error('❌ Error creando guardia:', error);
+    console.error('Error creando guardia:', error);
+    
+    // Log del error
+    await logCRUD(
+      'guardias',
+      'NEW',
+      'ERROR',
+      usuario,
+      null,
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        endpoint: '/api/guardias',
+        method: 'POST',
+        body
+      },
+      tenantId
+    );
+    
     return NextResponse.json(
-      { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Error interno del servidor' },
       { status: 500 }
     );
   }

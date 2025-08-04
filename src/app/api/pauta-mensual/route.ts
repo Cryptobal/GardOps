@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
+import { logCRUD } from '@/lib/logging';
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
@@ -12,6 +13,10 @@ export async function GET(request: NextRequest) {
     const instalacion_id = searchParams.get('instalacion_id');
     const anio = searchParams.get('anio');
     const mes = searchParams.get('mes');
+
+    // Por ahora usar un tenant_id fijo para testing
+    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
 
     console.log(`[${timestamp}] 📥 Parámetros recibidos:`, { instalacion_id, anio, mes });
 
@@ -53,42 +58,26 @@ export async function GET(request: NextRequest) {
     console.log(`[${timestamp}] 🐌 Query pauta mensual: ${pautaQueryEnd - pautaQueryStart}ms, ${pautaResult.rows.length} registros encontrados`);
 
     // Obtener todos los puestos operativos de la instalación (con y sin guardia asignado)
-    const puestosQueryStart = Date.now();
     const puestosResult = await query(`
       SELECT 
         po.id as puesto_id,
         po.nombre_puesto,
-        po.es_ppc,
         po.guardia_id,
+        po.es_ppc,
         po.activo,
+        rs.nombre as rol_nombre,
+        CONCAT(rs.dias_trabajo, 'x', rs.dias_descanso) as patron_turno,
         g.nombre as guardia_nombre,
         g.apellido_paterno,
         g.apellido_materno,
-        rs.nombre as rol_nombre,
-        rs.nombre as patron_turno,
-        CASE 
-          WHEN po.guardia_id IS NOT NULL THEN 
-            CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, ''))
-          WHEN po.es_ppc = true THEN 
-            'PPC ' || substring(po.id::text, 1, 8) || '...'
-          ELSE 
-            'Sin asignar'
-        END as nombre_completo,
-        CASE 
-          WHEN po.guardia_id IS NOT NULL THEN 'asignado'
-          WHEN po.es_ppc = true THEN 'ppc'
-          ELSE 'sin_asignar'
-        END as tipo
+        CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, '')) as nombre_completo
       FROM as_turnos_puestos_operativos po
-      LEFT JOIN guardias g ON po.guardia_id = g.id
       LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+      LEFT JOIN guardias g ON po.guardia_id = g.id
       WHERE po.instalacion_id = $1 
         AND po.activo = true
       ORDER BY po.nombre_puesto
     `, [instalacion_id]);
-    
-    const puestosQueryEnd = Date.now();
-    console.log(`[${timestamp}] 🐌 Query puestos operativos: ${puestosQueryEnd - puestosQueryStart}ms, ${puestosResult.rows.length} puestos encontrados`);
 
     // Generar días del mes
     const diasDelMes = Array.from(
@@ -142,6 +131,29 @@ export async function GET(request: NextRequest) {
     const endTime = Date.now();
     const duration = endTime - startTime;
     
+    // Crear un ID único para la pauta mensual
+    const pautaId = `${instalacion_id}_${anio}_${mes}`;
+    
+    // Log de lectura de pauta mensual
+    await logCRUD(
+      'pauta_mensual',
+      pautaId,
+      'READ',
+      usuario,
+      null, // No hay datos anteriores en lectura
+      {
+        instalacion_id,
+        anio: parseInt(anio),
+        mes: parseInt(mes),
+        total_puestos: pauta.length,
+        dias_mes: diasDelMes.length,
+        registros_encontrados: pautaResult.rows.length,
+        tiempo_procesamiento_ms: duration,
+        timestamp: timestamp
+      },
+      tenantId
+    );
+    
     console.log(`[${timestamp}] ✅ Pauta mensual cargada exitosamente`);
     console.log(`[${timestamp}] 📊 Resumen: ${pauta.length} puestos, ${diasDelMes.length} días por puesto`);
     console.log(`[${timestamp}] ⏱️ Tiempo total: ${duration}ms`);
@@ -163,6 +175,24 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const errorTime = new Date().toISOString();
     console.error(`[${errorTime}] ❌ Error obteniendo pauta mensual:`, error);
+    
+    // Log del error
+    await logCRUD(
+      'pauta_mensual',
+      'ERROR',
+      'ERROR',
+      'admin@test.com',
+      null,
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        endpoint: '/api/pauta-mensual',
+        method: 'GET',
+        timestamp: errorTime
+      },
+      'accebf8a-bacc-41fa-9601-ed39cb320a52'
+    );
+    
     return NextResponse.json(
       { 
         error: 'Error interno del servidor al obtener la pauta mensual',

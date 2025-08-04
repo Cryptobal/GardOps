@@ -76,14 +76,56 @@
   }
 
   /* Prevenir que el hover interfiera con el click */
-  tr.cursor-pointer:hover {
-    background-color: hsl(var(--muted) / 0.5) !important;
+  .hover\:scale-105:hover {
+    transform: scale(1.05) !important;
   }
 
-  /* Asegurar que los elementos clickeables tengan el comportamiento correcto */
-  [onClick] {
-    cursor: pointer !important;
-    pointer-events: auto !important;
+  /* Mejorar el scroll horizontal en móviles */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 3px;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(156, 163, 175, 0.7);
+  }
+
+  /* Mejorar la experiencia táctil en móviles */
+  @media (max-width: 640px) {
+    .overflow-x-auto {
+      scroll-snap-type: x mandatory;
+    }
+    
+    .overflow-x-auto > div {
+      scroll-snap-align: start;
+    }
+  }
+
+  /* Asegurar que las celdas sticky funcionen correctamente */
+  .sticky {
+    position: sticky !important;
+  }
+
+  /* Mejorar la legibilidad en móviles */
+  @media (max-width: 640px) {
+    .text-xs {
+      font-size: 0.75rem;
+      line-height: 1rem;
+    }
   }
 }
 

@@ -446,30 +446,30 @@ export default function PautaMensualUnificadaPage() {
   }
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="p-2 sm:p-4 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" size="sm" onClick={volver}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          <Button variant="outline" size="sm" onClick={volver} className="flex-shrink-0">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver
+            <span className="hidden sm:inline">Volver</span>
           </Button>
-          <div className={`p-3 rounded-full ${
+          <div className={`p-2 sm:p-3 rounded-full ${
             pautaExiste 
               ? "bg-green-100 dark:bg-green-900/20" 
               : "bg-orange-100 dark:bg-orange-900/20"
           }`}>
-            <Calendar className={`h-6 w-6 ${
+            <Calendar className={`h-5 w-5 sm:h-6 sm:w-6 ${
               pautaExiste 
                 ? "text-green-600 dark:text-green-400" 
                 : "text-orange-600 dark:text-orange-400"
             }`} />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg sm:text-2xl font-bold truncate">
               {pautaExiste ? "Ver Pauta Mensual" : "Crear Pauta Mensual"}
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground truncate">
               <Link 
                 href={`/instalaciones/${instalacion.id}`}
                 className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline flex items-center gap-1"
@@ -482,32 +482,35 @@ export default function PautaMensualUnificadaPage() {
           </div>
         </div>
         
-        <div className="flex space-x-2">
+        <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2">
           {pautaExiste ? (
             <>
               {!editando ? (
-                <Button onClick={() => setEditando(true)}>
+                <Button onClick={() => setEditando(true)} className="w-full sm:w-auto">
                   <Edit className="h-4 w-4 mr-2" />
-                  Editar Pauta
+                  <span className="hidden sm:inline">Editar Pauta</span>
+                  <span className="sm:hidden">Editar</span>
                 </Button>
               ) : (
                 <>
                   <Button variant="outline" onClick={() => {
                     setEditando(false);
                     setPautaData(JSON.parse(JSON.stringify(pautaDataOriginal)));
-                  }}>
+                  }} className="w-full sm:w-auto">
                     Cancelar
                   </Button>
-                  <Button onClick={guardarPauta} disabled={guardando}>
+                  <Button onClick={guardarPauta} disabled={guardando} className="w-full sm:w-auto">
                     {guardando ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Guardando...
+                        <span className="hidden sm:inline">Guardando...</span>
+                        <span className="sm:hidden">Guardando</span>
                       </>
                     ) : (
                       <>
                         <Save className="h-4 w-4 mr-2" />
-                        Guardar
+                        <span className="hidden sm:inline">Guardar</span>
+                        <span className="sm:hidden">Guardar</span>
                       </>
                     )}
                   </Button>
@@ -518,16 +521,19 @@ export default function PautaMensualUnificadaPage() {
             <Button 
               onClick={generarPauta} 
               disabled={generando || pautaData.length === 0}
+              className="w-full sm:w-auto"
             >
               {generando ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generando...
+                  <span className="hidden sm:inline">Generando...</span>
+                  <span className="sm:hidden">Generando</span>
                 </>
               ) : (
                 <>
                   <Plus className="h-4 w-4 mr-2" />
-                  Generar Pauta
+                  <span className="hidden sm:inline">Generar Pauta</span>
+                  <span className="sm:hidden">Generar</span>
                 </>
               )}
             </Button>
@@ -536,24 +542,24 @@ export default function PautaMensualUnificadaPage() {
       </div>
 
       {/* Información de la instalación */}
-      <div className="flex flex-col lg:flex-row gap-4 mb-6">
+      <div className="flex flex-col lg:flex-row gap-4 mb-4 sm:mb-6">
         <Card className="flex-1">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <Building2 className="h-4 w-4 sm:h-5 sm:w-5" />
               <Link 
                 href={`/instalaciones/${instalacion.id}`}
-                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline flex items-center gap-1"
+                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline flex items-center gap-1 truncate"
               >
                 {instalacion?.nombre}
-                <ExternalLink className="h-3 w-3" />
+                <ExternalLink className="h-3 w-3 flex-shrink-0" />
               </Link>
             </CardTitle>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground truncate">
               {instalacion?.direccion}
             </p>
             {instalacion?.cliente_nombre && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground truncate">
                 Cliente: {instalacion.cliente_nombre}
               </p>
             )}
@@ -564,28 +570,29 @@ export default function PautaMensualUnificadaPage() {
         {stats && (
           <Card className="flex-1">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                Estadísticas de Pauta
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                <Database className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">Estadísticas de Pauta</span>
+                <span className="sm:hidden">Estadísticas</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-blue-500" />
-                  <span>{stats.totalGuardias} guardias</span>
+              <div className="grid grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 flex-shrink-0" />
+                  <span className="truncate">{stats.totalGuardias} guardias</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-green-500" />
-                  <span>{stats.totalDias} días</span>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
+                  <span className="truncate">{stats.totalDias} días</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-emerald-500" />
-                  <span>{stats.diasConAsignaciones} días con asignaciones</span>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 flex-shrink-0" />
+                  <span className="truncate">{stats.diasConAsignaciones} asignados</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-orange-500" />
-                  <span>{stats.porcentajeCobertura}% cobertura</span>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500 flex-shrink-0" />
+                  <span className="truncate">{stats.porcentajeCobertura}% cobertura</span>
                 </div>
               </div>
             </CardContent>
@@ -596,12 +603,12 @@ export default function PautaMensualUnificadaPage() {
       {/* Estado de la pauta */}
       {!pautaExiste && (
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center gap-3">
-              <FileText className="h-8 w-8 text-orange-600" />
-              <div>
-                <h3 className="font-semibold">Pauta no creada</h3>
-                <p className="text-sm text-muted-foreground">
+              <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-orange-600 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-sm sm:text-base">Pauta no creada</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Esta instalación aún no tiene una pauta mensual para {mes}/{anio}. 
                   Haz clic en "Generar Pauta" para crear la primera pauta.
                 </p>

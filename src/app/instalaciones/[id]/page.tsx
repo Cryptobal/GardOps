@@ -151,10 +151,10 @@ export default function InstalacionDetallePage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
-          <span className="ml-2">Cargando instalación...</span>
+          <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-gray-900 dark:border-white"></div>
+          <span className="ml-2 text-xs sm:text-sm">Cargando instalación...</span>
         </div>
       </div>
     );
@@ -162,13 +162,13 @@ export default function InstalacionDetallePage() {
 
   if (!instalacion) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <div className="text-center py-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Instalación no encontrada</h1>
-          <p className="text-gray-600 mb-6">La instalación que buscas no existe o ha sido eliminada.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">Instalación no encontrada</h1>
+          <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">La instalación que buscas no existe o ha sido eliminada.</p>
           <Link href="/instalaciones">
-            <Button>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+            <Button className="text-xs sm:text-sm">
+              <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
               Volver a Instalaciones
             </Button>
           </Link>
@@ -178,21 +178,21 @@ export default function InstalacionDetallePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
+    <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
+      {/* Header optimizado para móviles */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 gap-4 sm:gap-6">
+        <div className="flex items-center gap-3 sm:gap-4">
           <Link href="/instalaciones">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+              <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
               Volver
             </Button>
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">
               {instalacion.nombre}
             </h1>
-            <p className="text-gray-600">
+            <p className="text-xs sm:text-sm text-gray-600 truncate">
               Cliente: {(() => { 
                 console.log('🔍 cliente_nombre:', instalacion.cliente_nombre, typeof instalacion.cliente_nombre); 
                 return instalacion.cliente_nombre?.toString().trim(); 
@@ -200,8 +200,8 @@ export default function InstalacionDetallePage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+        <div className="flex items-center gap-2 sm:gap-3">
+          <span className={`inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium ${
             instalacion.estado === 'Activo' 
               ? 'bg-green-100 text-green-800' 
               : 'bg-red-100 text-red-800'
@@ -215,9 +215,9 @@ export default function InstalacionDetallePage() {
             >
               <span style={{
                 display: 'inline-block',
-                width: 24,
-                height: 14,
-                borderRadius: 7,
+                width: 20,
+                height: 12,
+                borderRadius: 6,
                 background: instalacion.estado === 'Activo' ? '#22c55e' : '#d1d5db',
                 position: 'relative',
                 verticalAlign: 'middle',
@@ -225,12 +225,12 @@ export default function InstalacionDetallePage() {
               }}>
                 <span style={{
                   display: 'inline-block',
-                  width: 12,
-                  height: 12,
+                  width: 10,
+                  height: 10,
                   borderRadius: '50%',
                   background: '#fff',
                   position: 'absolute',
-                  left: instalacion.estado === 'Activo' ? 10 : 2,
+                  left: instalacion.estado === 'Activo' ? 8 : 2,
                   top: 1,
                   transition: 'left 0.2s'
                 }} />
@@ -241,29 +241,30 @@ export default function InstalacionDetallePage() {
             onClick={handleEditarInstalacion}
             variant="outline" 
             size="sm"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 text-xs sm:text-sm"
           >
-            <Edit className="h-4 w-4" />
-            Editar
+            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Editar</span>
+            <span className="sm:hidden">Editar</span>
           </Button>
         </div>
       </div>
 
-      {/* Cuadro de Resumen */}
-      <div className="mb-6">
+      {/* Cuadro de Resumen optimizado para móviles */}
+      <div className="mb-4 sm:mb-6">
         <Card className="border-0 shadow-sm bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <CardContent className="p-4 sm:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {/* Puestos Operativos */}
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3 sm:space-x-4">
                 <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                    <Building2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                    <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Puestos Operativos</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Puestos Operativos</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                     {(() => {
                       const total = turnosPrecargados.reduce((total, turno) => total + turno.cantidad_guardias, 0);
                       console.log('🔍 Puestos operativos calculados:', total, 'de', turnosPrecargados.length, 'turnos');
@@ -277,15 +278,15 @@ export default function InstalacionDetallePage() {
               </div>
 
               {/* Guardias Asignados */}
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3 sm:space-x-4">
                 <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
-                    <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
+                    <Users className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Guardias Asignados</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Guardias Asignados</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                     {(() => {
                       const asignados = guardiasPrecargados.filter((g: any) => g.tipo === 'asignado').length;
                       console.log('🔍 Guardias asignados calculados:', asignados, 'de', guardiasPrecargados.length, 'total');
@@ -299,15 +300,15 @@ export default function InstalacionDetallePage() {
               </div>
 
               {/* PPCs */}
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3 sm:space-x-4">
                 <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
-                    <Shield className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
+                    <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 dark:text-orange-400" />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">PPCs</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">PPCs</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                     {(() => {
                       const pendientes = ppcsPrecargados.filter((ppc: any) => ppc.estado === 'Pendiente').length;
                       console.log('🔍 PPCs pendientes calculados:', pendientes, 'de', ppcsPrecargados.length, 'total');
@@ -321,15 +322,15 @@ export default function InstalacionDetallePage() {
               </div>
 
               {/* Roles de Servicio */}
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3 sm:space-x-4">
                 <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-                    <Clock className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
+                    <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Roles de Servicio</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Roles de Servicio</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                     {(() => {
                       console.log('🔍 Roles de servicio calculados:', turnosPrecargados.length, 'activos');
                       return turnosPrecargados.length;
@@ -345,66 +346,70 @@ export default function InstalacionDetallePage() {
         </Card>
       </div>
 
-      {/* Pestañas */}
+      {/* Pestañas optimizadas para móviles */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="informacion" className="flex items-center gap-2">
-            <Building2 className="h-4 w-4" />
-            Información
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto">
+          <TabsTrigger value="informacion" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
+            <Building2 className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Información</span>
+            <span className="sm:hidden">Info</span>
           </TabsTrigger>
-          <TabsTrigger value="asignaciones" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Asignaciones
+          <TabsTrigger value="asignaciones" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
+            <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Asignaciones</span>
+            <span className="sm:hidden">Asign</span>
           </TabsTrigger>
-          <TabsTrigger value="documentos" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Documentos
+          <TabsTrigger value="documentos" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
+            <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Documentos</span>
+            <span className="sm:hidden">Docs</span>
           </TabsTrigger>
-          <TabsTrigger value="actividad" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Actividad
+          <TabsTrigger value="actividad" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
+            <Activity className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Actividad</span>
+            <span className="sm:hidden">Act</span>
           </TabsTrigger>
         </TabsList>
 
-        {/* Contenido de la pestaña Información */}
-        <TabsContent value="informacion" className="mt-6">
+        {/* Contenido de la pestaña Información optimizado para móviles */}
+        <TabsContent value="informacion" className="mt-4 sm:mt-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
+            <CardHeader className="pb-3 sm:pb-4">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                <Building2 className="h-4 w-4 sm:h-5 sm:w-5" />
                 Información de la Instalación
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
+            <CardContent className="space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-3 sm:space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Nombre de la Instalación</label>
-                    <p className="text-lg font-semibold">{instalacion.nombre}</p>
+                    <label className="text-xs sm:text-sm font-medium text-gray-600">Nombre de la Instalación</label>
+                    <p className="text-sm sm:text-lg font-semibold">{instalacion.nombre}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Cliente</label>
-                    <p className="text-lg">{instalacion.cliente_nombre}</p>
+                    <label className="text-xs sm:text-sm font-medium text-gray-600">Cliente</label>
+                    <p className="text-sm sm:text-lg">{instalacion.cliente_nombre}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                      <MapPin className="h-4 w-4" />
+                    <label className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-1">
+                      <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
                       Dirección
                     </label>
-                    <p className="text-lg">{instalacion.direccion}</p>
+                    <p className="text-sm sm:text-lg">{instalacion.direccion}</p>
                   </div>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Valor Turno Extra</label>
-                    <p className="text-lg">${instalacion.valor_turno_extra?.toLocaleString() || 0}</p>
+                    <label className="text-xs sm:text-sm font-medium text-gray-600">Valor Turno Extra</label>
+                    <p className="text-sm sm:text-lg">${instalacion.valor_turno_extra?.toLocaleString() || 0}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
+                    <label className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-1">
+                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
                       Fecha de Registro
                     </label>
-                    <p className="text-lg">
+                    <p className="text-sm sm:text-lg">
                       {new Date(instalacion.created_at).toLocaleDateString('es-ES', {
                         year: 'numeric',
                         month: 'long',
@@ -417,29 +422,29 @@ export default function InstalacionDetallePage() {
 
               {/* Información geográfica */}
               {geocodingData && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     {geocodingData.comuna && (
                       <div>
-                        <label className="text-sm font-medium text-gray-600">Comuna</label>
-                        <p className="text-lg">{geocodingData.comuna}</p>
+                        <label className="text-xs sm:text-sm font-medium text-gray-600">Comuna</label>
+                        <p className="text-sm sm:text-lg">{geocodingData.comuna}</p>
                       </div>
                     )}
                     {geocodingData.ciudad && (
                       <div>
-                        <label className="text-sm font-medium text-gray-600">Ciudad</label>
-                        <p className="text-lg">{geocodingData.ciudad}</p>
+                        <label className="text-xs sm:text-sm font-medium text-gray-600">Ciudad</label>
+                        <p className="text-sm sm:text-lg">{geocodingData.ciudad}</p>
                       </div>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* Mapa de Google Maps */}
+              {/* Mapa de Google Maps optimizado para móviles */}
               {geocodingData && (
-                <div className="space-y-4">
-                  <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
+                <div className="space-y-3 sm:space-y-4">
+                  <label className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-1">
+                    <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
                     Ubicación
                   </label>
                   <div className="rounded-xl shadow-md overflow-hidden">
@@ -457,33 +462,33 @@ export default function InstalacionDetallePage() {
                         title: instalacion.nombre,
                         info: geocodingData.direccionCompleta
                       }]}
-                      height="240px"
+                      height="200px"
                       className="w-full"
                     />
                   </div>
                 </div>
               )}
 
-              {/* Estado de carga del mapa */}
+              {/* Estado de carga del mapa optimizado para móviles */}
               {mapLoading && (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-white"></div>
-                  <span className="ml-2 text-sm text-gray-600">Cargando mapa...</span>
+                <div className="flex items-center justify-center py-6 sm:py-8">
+                  <div className="animate-spin rounded-full h-5 w-5 sm:h-6 sm:w-6 border-b-2 border-gray-900 dark:border-white"></div>
+                  <span className="ml-2 text-xs sm:text-sm text-gray-600">Cargando mapa...</span>
                 </div>
               )}
 
-              {/* Error del mapa */}
+              {/* Error del mapa optimizado para móviles */}
               {mapError && (
-                <div className="text-center py-8">
-                  <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 mb-4">{mapError}</p>
+                <div className="text-center py-6 sm:py-8">
+                  <MapPin className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                  <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">{mapError}</p>
                   <Button 
                     onClick={handleReintentarGeocodificacion}
                     variant="outline" 
                     size="sm"
-                    className="flex items-center gap-2 mx-auto"
+                    className="flex items-center gap-2 mx-auto text-xs sm:text-sm"
                   >
-                    <RefreshCw className="h-4 w-4" />
+                    <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4" />
                     Reintentar
                   </Button>
                 </div>
@@ -493,7 +498,7 @@ export default function InstalacionDetallePage() {
         </TabsContent>
 
         {/* Contenido de la pestaña Asignaciones (ex Turnos) */}
-        <TabsContent value="asignaciones" className="mt-6">
+        <TabsContent value="asignaciones" className="mt-4 sm:mt-6">
           <TurnosInstalacion 
             instalacionId={instalacionId} 
             turnosPrecargados={turnosPrecargados} 
@@ -504,7 +509,7 @@ export default function InstalacionDetallePage() {
         </TabsContent>
 
         {/* Contenido de la pestaña Documentos */}
-        <TabsContent value="documentos" className="mt-6">
+        <TabsContent value="documentos" className="mt-4 sm:mt-6">
           <DocumentManager
             modulo="instalaciones"
             entidadId={instalacionId}
@@ -513,16 +518,16 @@ export default function InstalacionDetallePage() {
           />
         </TabsContent>
 
-        {/* Contenido de la pestaña Actividad (ex Logs) */}
-        <TabsContent value="actividad" className="mt-6">
-          <div className="space-y-6">
+        {/* Contenido de la pestaña Actividad (ex Logs) optimizado para móviles */}
+        <TabsContent value="actividad" className="mt-4 sm:mt-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Información del Sistema */}
-            <div className="bg-muted/30 rounded-lg p-4 border border-border">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Activity className="w-5 h-5" />
+            <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
+              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+                <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
                 Información del Sistema
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm">
                 <div className="space-y-1">
                   <span className="text-muted-foreground font-medium">Creado:</span>
                   <div className="font-medium">
@@ -554,7 +559,7 @@ export default function InstalacionDetallePage() {
 
             {/* Logs de Actividad */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Historial de Actividad</h3>
+              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Historial de Actividad</h3>
               <LogViewer
                 modulo="instalaciones"
                 entidadId={instalacionId}
@@ -565,28 +570,28 @@ export default function InstalacionDetallePage() {
         </TabsContent>
       </Tabs>
 
-      {/* Modal de confirmación */}
+      {/* Modal de confirmación optimizado para móviles */}
       {showConfirmModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
             <div className="text-center">
-              <h3 className="text-lg font-semibold mb-4">
+              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
                 {pendingEstado === 'Activo' ? 'Activar Instalación' : 'Inactivar Instalación'}
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">
                 ¿Estás seguro de que quieres {pendingEstado === 'Activo' ? 'activar' : 'inactivar'} la instalación {instalacion?.nombre}?
               </p>
-              <div className="flex gap-3 justify-center">
+              <div className="flex gap-2 sm:gap-3 justify-center">
                 <Button
                   variant="outline"
                   onClick={() => setShowConfirmModal(false)}
-                  className="px-4"
+                  className="px-3 sm:px-4 text-xs sm:text-sm"
                 >
                   Cancelar
                 </Button>
                 <Button
                   onClick={confirmarCambioEstado}
-                  className={`px-4 ${
+                  className={`px-3 sm:px-4 text-xs sm:text-sm ${
                     pendingEstado === 'Activo' 
                       ? 'bg-green-600 hover:bg-green-700' 
                       : 'bg-red-600 hover:bg-red-700'
