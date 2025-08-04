@@ -94,9 +94,28 @@ export async function GET(
         LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
         LEFT JOIN guardias g ON po.guardia_id = g.id
         WHERE po.instalacion_id = $1 AND po.activo = true
-        ORDER BY po.nombre_puesto, po.creado_en
+        ORDER BY po.rol_id, po.nombre_puesto, po.creado_en
       `, [instalacionId]);
       console.log(`✅ Puestos operativos encontrados: ${puestosOperativosResult.rows.length}`);
+      
+      // Verificar si hay duplicados por rol
+      const puestosPorRol: { [key: string]: any[] } = {};
+      puestosOperativosResult.rows.forEach((row: any) => {
+        if (!puestosPorRol[row.rol_id]) {
+          puestosPorRol[row.rol_id] = [];
+        }
+        puestosPorRol[row.rol_id].push(row);
+      });
+      
+      console.log(`📊 Puestos por rol:`);
+      Object.keys(puestosPorRol).forEach(rolId => {
+        const puestos = puestosPorRol[rolId];
+        console.log(`   Rol ${rolId}: ${puestos.length} puestos`);
+        puestos.forEach((puesto: any, index: number) => {
+          console.log(`     ${index + 1}. ${puesto.nombre_puesto} - PPC: ${puesto.es_ppc} - Guardia: ${puesto.guardia_id ? 'Sí' : 'No'}`);
+        });
+      });
+      
     } catch (error) {
       console.error('❌ Error consultando puestos operativos:', error);
       puestosOperativosResult = { rows: [] };
@@ -217,6 +236,13 @@ export async function GET(
     const turnos = Object.values(puestosPorRol);
 
     console.log(`📊 Turnos encontrados: ${turnos.length}`);
+    
+    // Calcular totales para verificación
+    const totalPuestos = turnos.reduce((sum: number, turno: any) => sum + turno.cantidad_guardias, 0);
+    const totalAsignados = turnos.reduce((sum: number, turno: any) => sum + turno.guardias_asignados, 0);
+    const totalPendientes = turnos.reduce((sum: number, turno: any) => sum + turno.ppc_pendientes, 0);
+    
+    console.log(`📊 Total puestos: ${totalPuestos}, Asignados: ${totalAsignados}, Pendientes: ${totalPendientes}`);
 
     // Crear PPCs basados en puestos operativos (tanto pendientes como asignados)
     const ppcs = puestosOperativosResult.rows
@@ -252,6 +278,7 @@ export async function GET(
         comuna: '', // No disponible en esta consulta
         region: '', // No disponible en esta consulta
         tipo: 'asignado',
+        activo: true,
         rol_servicio: {
           nombre: row.rol_nombre || 'Sin nombre',
           dias_trabajo: row.dias_trabajo,
@@ -265,29 +292,32 @@ export async function GET(
     console.log(`👥 Guardias asignados encontrados: ${guardiasAsignados.length}`);
 
     // Crear PPCs pendientes como "guardias" virtuales
-    const ppcsPendientes = ppcs.map((ppc: any) => ({
-      id: ppc.id,
-      nombre: `PPC ${ppc.id.substring(0, 8)}`,
-      apellido_paterno: '',
-      apellido_materno: '',
-      nombre_completo: `PPC ${ppc.id.substring(0, 8)}`,
-      rut: '',
-      comuna: '',
-      region: '',
-      tipo: 'ppc',
-      rol_servicio: {
-        nombre: ppc.rol_servicio_nombre,
-        dias_trabajo: 0,
-        dias_descanso: 0,
-        horas_turno: 0,
-        hora_inicio: ppc.hora_inicio,
-        hora_termino: ppc.hora_termino
-      }
-    }));
+    const ppcsPendientes = ppcs
+      .filter((ppc: any) => ppc.estado === 'Pendiente') // Solo PPCs pendientes
+      .map((ppc: any) => ({
+        id: ppc.id,
+        nombre: `PPC ${ppc.id.substring(0, 8)}`,
+        apellido_paterno: '',
+        apellido_materno: '',
+        nombre_completo: `PPC ${ppc.id.substring(0, 8)}`,
+        rut: '',
+        comuna: '',
+        region: '',
+        tipo: 'ppc',
+        activo: false,
+        rol_servicio: {
+          nombre: ppc.rol_servicio_nombre,
+          dias_trabajo: 0,
+          dias_descanso: 0,
+          horas_turno: 0,
+          hora_inicio: ppc.hora_inicio,
+          hora_termino: ppc.hora_termino
+        }
+      }));
 
     console.log(`⏳ PPCs pendientes encontrados: ${ppcsPendientes.length}`);
 
-    // Combinar guardias y PPCs
+    // Combinar guardias asignados y PPCs pendientes
     const guardias = [...guardiasAsignados, ...ppcsPendientes];
     
     console.log(`📋 Total de guardias (asignados + PPCs): ${guardias.length}`);

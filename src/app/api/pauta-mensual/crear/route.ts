@@ -16,10 +16,11 @@ export async function POST(request: NextRequest) {
     // Verificar si ya existe pauta para esta instalación en este mes
     const pautaExistente = await query(`
       SELECT COUNT(*) as count
-      FROM as_turnos_pauta_mensual
-      WHERE instalacion_id = $1 
-        AND anio = $2 
-        AND mes = $3
+      FROM as_turnos_pauta_mensual pm
+      INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
+      WHERE po.instalacion_id = $1 
+        AND pm.anio = $2 
+        AND pm.mes = $3
     `, [instalacion_id, anio, mes]);
 
     if (parseInt(pautaExistente.rows[0].count) > 0) {
@@ -29,76 +30,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. PRIMERO: Verificar si hay roles de servicio creados para la instalación
-    // Migrado al nuevo modelo as_turnos_puestos_operativos
-    const rolesResult = await query(`
+    // 1. PRIMERO: Verificar si hay puestos operativos activos para la instalación
+    const puestosResult = await query(`
       SELECT 
-        rs.id as rol_servicio_id,
+        po.id as puesto_id,
+        po.nombre_puesto,
+        po.guardia_id,
+        po.es_ppc,
+        po.activo,
         rs.nombre as rol_nombre,
-        COUNT(*) as cantidad_guardias
+        CONCAT(rs.dias_trabajo, 'x', rs.dias_descanso) as patron_turno,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno,
+        g.apellido_materno
       FROM as_turnos_puestos_operativos po
-      INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-      WHERE po.instalacion_id = $1
-      GROUP BY rs.id, rs.nombre
-      ORDER BY rs.nombre
-    `, [instalacion_id]);
-
-    if (rolesResult.rows.length === 0) {
-      return NextResponse.json(
-        { 
-          error: 'Instalación sin rol de servicio creado. Por favor, crea un rol de servicio desde el módulo de asignaciones en la instalación.',
-          tipo: 'sin_roles'
-        },
-        { status: 400 }
-      );
-    }
-
-    // 2. SEGUNDO: Verificar si hay PPCs activos generados por esos roles
-    // Migrado al nuevo modelo as_turnos_puestos_operativos
-    const ppcsResult = await query(`
-      SELECT 
-        po.id,
-        po.estado,
-        rs.nombre as rol_servicio_nombre,
-        po.cantidad_faltante
-      FROM as_turnos_puestos_operativos po
-      INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-      WHERE po.instalacion_id = $1 AND po.es_ppc = true AND po.estado = 'Pendiente'
-      ORDER BY rs.nombre
-    `, [instalacion_id]);
-
-    if (ppcsResult.rows.length === 0) {
-      return NextResponse.json(
-        { 
-          error: 'Roles de servicio creados pero sin PPCs activos. Por favor, verifica la configuración de los roles.',
-          tipo: 'roles_sin_ppcs',
-          roles_creados: rolesResult.rows.length
-        },
-        { status: 400 }
-      );
-    }
-
-    // 3. TERCERO: Verificar si hay guardias asignados a los PPCs
-    // Migrado al nuevo modelo as_turnos_puestos_operativos
-    const guardiasResult = await query(`
-      SELECT 
-        g.id::text as id,
-        g.nombre,
-        CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, '')) as nombre_completo
-      FROM guardias g
-      INNER JOIN as_turnos_puestos_operativos po ON g.id = po.guardia_id
+      LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+      LEFT JOIN guardias g ON po.guardia_id = g.id
       WHERE po.instalacion_id = $1 
-        AND g.activo = true 
-        AND po.es_ppc = false
-      ORDER BY g.nombre
+        AND po.activo = true
+      ORDER BY po.nombre_puesto
     `, [instalacion_id]);
 
-    if (guardiasResult.rows.length === 0) {
+    if (puestosResult.rows.length === 0) {
       return NextResponse.json(
         { 
-          error: 'Hay PPCs pendientes pero no hay guardias asignados. Por favor, asigna guardias a los PPCs pendientes antes de crear la pauta.',
-          tipo: 'ppcs_sin_guardias',
-          ppcs_pendientes: ppcsResult.rows.length
+          error: 'Instalación sin puestos operativos activos. Por favor, crea puestos operativos desde el módulo de asignaciones en la instalación.',
+          tipo: 'sin_puestos'
         },
         { status: 400 }
       );
@@ -110,34 +67,44 @@ export async function POST(request: NextRequest) {
       (_, i) => i + 1
     );
 
-    // Crear pauta base para cada guardia
+    // Crear pauta base para cada puesto operativo
     const pautasParaInsertar = [];
     
-    for (const guardia of guardiasResult.rows) {
-      for (const dia of diasDelMes) {
-        // Por defecto, todos los días como "libre"
-        pautasParaInsertar.push({
-          instalacion_id: instalacion_id.toString(),
-          guardia_id: guardia.id,
-          dia: parseInt(dia.toString()),
-          tipo: 'libre'
-        });
+    for (const puesto of puestosResult.rows) {
+      // Solo crear pauta para puestos que tengan guardia asignado o sean PPCs
+      if (puesto.guardia_id || puesto.es_ppc) {
+        for (const dia of diasDelMes) {
+          // Aplicar patrón de turno automáticamente
+          let estado = 'libre';
+          
+          if (puesto.guardia_id && puesto.patron_turno) {
+            // Aplicar lógica de patrón de turno
+            estado = aplicarPatronTurno(puesto.patron_turno, dia, parseInt(anio), parseInt(mes));
+          }
+          
+          pautasParaInsertar.push({
+            puesto_id: puesto.puesto_id,
+            guardia_id: puesto.guardia_id || puesto.puesto_id, // Para PPCs, usar el puesto_id como guardia_id
+            dia: parseInt(dia.toString()),
+            estado: estado
+          });
+        }
       }
     }
 
     // Insertar todas las pautas
     const insertPromises = pautasParaInsertar.map(pauta => 
       query(`
-        INSERT INTO as_turnos_pauta_mensual (instalacion_id, guardia_id, anio, mes, dia, estado)
+        INSERT INTO as_turnos_pauta_mensual (puesto_id, guardia_id, anio, mes, dia, estado)
         VALUES ($1, $2, $3, $4, $5, $6)
-      `, [pauta.instalacion_id, pauta.guardia_id, anio, mes, pauta.dia, pauta.tipo])
+      `, [pauta.puesto_id, pauta.guardia_id, anio, mes, pauta.dia, pauta.estado])
     );
 
     await Promise.all(insertPromises);
 
     console.log(`✅ Pauta mensual creada automáticamente para instalación ${instalacion_id} en ${mes}/${anio}`);
-    console.log(`📊 Resumen: ${pautasParaInsertar.length} registros creados para ${guardiasResult.rows.length} guardias`);
-    console.log(`🔍 Roles de servicio: ${rolesResult.rows.length}, PPCs activos: ${ppcsResult.rows.length}`);
+    console.log(`📊 Resumen: ${pautasParaInsertar.length} registros creados para ${puestosResult.rows.length} puestos`);
+    console.log(`🔍 Puestos con guardia: ${puestosResult.rows.filter((p: any) => p.guardia_id).length}, PPCs: ${puestosResult.rows.filter((p: any) => p.es_ppc).length}`);
 
     return NextResponse.json({
       success: true,
@@ -145,9 +112,7 @@ export async function POST(request: NextRequest) {
       instalacion_id,
       anio: parseInt(anio),
       mes: parseInt(mes),
-      roles_servicio: rolesResult.rows.length,
-      ppcs_activos: ppcsResult.rows.length,
-      guardias_procesados: guardiasResult.rows.length,
+      puestos_procesados: puestosResult.rows.length,
       registros_creados: pautasParaInsertar.length,
       dias_del_mes: diasDelMes.length
     });
@@ -159,4 +124,36 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Función para aplicar patrón de turno automáticamente
+function aplicarPatronTurno(patron: string, dia: number, anio: number, mes: number): string {
+  const fecha = new Date(anio, mes - 1, dia);
+  const diaSemana = fecha.getDay(); // 0 = Domingo, 1 = Lunes, etc.
+  
+  // Patrón 4x4 (4 días trabajando, 4 días libres)
+  if (patron === '4x4') {
+    const diaDelCiclo = ((dia - 1) % 8) + 1;
+    return diaDelCiclo <= 4 ? 'trabajado' : 'libre';
+  }
+  
+  // Patrón 5x2 (5 días trabajando, 2 días libres)
+  if (patron === '5x2') {
+    const diaDelCiclo = ((dia - 1) % 7) + 1;
+    return diaDelCiclo <= 5 ? 'trabajado' : 'libre';
+  }
+  
+  // Patrón 6x1 (6 días trabajando, 1 día libre)
+  if (patron === '6x1') {
+    const diaDelCiclo = ((dia - 1) % 7) + 1;
+    return diaDelCiclo <= 6 ? 'trabajado' : 'libre';
+  }
+  
+  // Patrón L-V (Lunes a Viernes)
+  if (patron === 'L-V') {
+    return (diaSemana >= 1 && diaSemana <= 5) ? 'trabajado' : 'libre';
+  }
+  
+  // Por defecto, todos los días libres
+  return 'libre';
 } 

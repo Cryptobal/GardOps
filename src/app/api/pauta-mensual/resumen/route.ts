@@ -14,10 +14,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    console.log(`🔍 Obteniendo resumen para mes: ${mes}, año: ${anio}`);
+
     const fechaInicio = `${anio}-${mes.toString().padStart(2, '0')}-01`;
     const fechaFin = `${anio}-${mes.toString().padStart(2, '0')}-${new Date(parseInt(anio), parseInt(mes), 0).getDate()}`;
 
     // Obtener todas las instalaciones activas con información del cliente
+    console.log('📋 Consultando instalaciones activas...');
     const instalacionesResult = await query(`
       SELECT 
         i.id,
@@ -31,23 +34,30 @@ export async function GET(request: NextRequest) {
       ORDER BY i.nombre
     `);
 
+    console.log(`✅ Encontradas ${instalacionesResult.rows.length} instalaciones activas`);
+
     // Obtener instalaciones que tienen pauta mensual para el mes/año especificado
+    console.log('📋 Consultando instalaciones con pauta...');
     const instalacionesConPautaResult = await query(`
       SELECT DISTINCT
-        pm.instalacion_id,
+        po.instalacion_id,
         i.nombre as instalacion_nombre,
         i.direccion,
         c.nombre as cliente_nombre,
-        COUNT(DISTINCT pm.guardia_id) as guardias_asignados
+        COUNT(DISTINCT pm.puesto_id) as puestos_con_pauta
       FROM as_turnos_pauta_mensual pm
-      INNER JOIN instalaciones i ON pm.instalacion_id::uuid = i.id
+      INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
+      INNER JOIN instalaciones i ON po.instalacion_id = i.id
       LEFT JOIN clientes c ON i.cliente_id = c.id
       WHERE pm.anio = $1 
         AND pm.mes = $2
         AND i.estado = 'Activo'
-      GROUP BY pm.instalacion_id, i.nombre, i.direccion, c.nombre
+        AND po.activo = true
+      GROUP BY po.instalacion_id, i.nombre, i.direccion, c.nombre
       ORDER BY i.nombre
     `, [anio, mes]);
+
+    console.log(`✅ Encontradas ${instalacionesConPautaResult.rows.length} instalaciones con pauta`);
 
     // Crear mapas para facilitar la búsqueda
     const instalacionesConPautaMap = new Map();
@@ -57,7 +67,7 @@ export async function GET(request: NextRequest) {
         nombre: row.instalacion_nombre,
         direccion: row.direccion,
         cliente_nombre: row.cliente_nombre,
-        guardias_asignados: parseInt(row.guardias_asignados)
+        puestos_con_pauta: parseInt(row.puestos_con_pauta)
       });
     });
 
@@ -78,51 +88,60 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Obtener información detallada para instalaciones sin pauta
+    console.log(`📊 Resumen: ${instalacionesConPauta.length} con pauta, ${instalacionesSinPauta.length} sin pauta`);
+
+    // Obtener información detallada para instalaciones sin pauta (limitado a las primeras 10 para mejorar rendimiento)
+    console.log('📋 Obteniendo detalles de instalaciones sin pauta...');
     const instalacionesSinPautaDetalladas = await Promise.all(
-      instalacionesSinPauta.map(async (instalacion) => {
-        // Obtener roles de servicio
-        // Migrado al nuevo modelo as_turnos_puestos_operativos
-        const rolesResult = await query(`
+      instalacionesSinPauta.slice(0, 10).map(async (instalacion) => {
+        // Obtener puestos operativos activos
+        const puestosResult = await query(`
           SELECT 
-            rs.id,
+            po.id as puesto_id,
+            po.nombre_puesto,
+            po.es_ppc,
+            po.guardia_id,
             rs.nombre as rol_nombre,
-            COUNT(*) as cantidad_guardias
+            CONCAT(rs.dias_trabajo, 'x', rs.dias_descanso) as patron_turno,
+            g.nombre as guardia_nombre,
+            g.apellido_paterno,
+            g.apellido_materno
           FROM as_turnos_puestos_operativos po
-          INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-          WHERE po.instalacion_id = $1
-          GROUP BY rs.id, rs.nombre
-          ORDER BY rs.nombre
-        `, [instalacion.id]);
-
-        // Obtener guardias asignados
-        // Migrado al nuevo modelo as_turnos_puestos_operativos
-        const guardiasResult = await query(`
-          SELECT COUNT(DISTINCT g.id) as cantidad_guardias
-          FROM guardias g
-          INNER JOIN as_turnos_puestos_operativos po ON g.id = po.guardia_id
+          LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+          LEFT JOIN guardias g ON po.guardia_id = g.id
           WHERE po.instalacion_id = $1 
-            AND g.activo = true 
-            AND po.es_ppc = false
+            AND po.activo = true
+          ORDER BY po.nombre_puesto
         `, [instalacion.id]);
 
-        // Obtener PPCs activos
-        // Migrado al nuevo modelo as_turnos_puestos_operativos
-        const ppcsResult = await query(`
-          SELECT COUNT(*) as cantidad_ppcs
-          FROM as_turnos_puestos_operativos po
-          WHERE po.instalacion_id = $1 AND po.es_ppc = true AND po.estado = 'Pendiente'
-        `, [instalacion.id]);
+        // Contar puestos por tipo
+        const puestosConGuardia = puestosResult.rows.filter((p: any) => p.guardia_id && !p.es_ppc).length;
+        const ppcs = puestosResult.rows.filter((p: any) => p.es_ppc).length;
+        const puestosSinAsignar = puestosResult.rows.filter((p: any) => !p.guardia_id && !p.es_ppc).length;
+
+        // Agrupar por roles de servicio
+        const rolesPorServicio = puestosResult.rows.reduce((acc: any, puesto: any) => {
+          const rolNombre = puesto.rol_nombre || 'Sin rol';
+          if (!acc[rolNombre]) {
+            acc[rolNombre] = {
+              nombre: rolNombre,
+              cantidad_guardias: 0,
+              patron_turno: puesto.patron_turno || '4x4'
+            };
+          }
+          if (puesto.guardia_id && !puesto.es_ppc) {
+            acc[rolNombre].cantidad_guardias++;
+          }
+          return acc;
+        }, {});
 
         return {
           ...instalacion,
-          roles: rolesResult.rows.map((row: any) => ({
-            id: row.id,
-            nombre: row.rol_nombre,
-            cantidad_guardias: parseInt(row.cantidad_guardias)
-          })),
-          cantidad_guardias: parseInt(guardiasResult.rows[0]?.cantidad_guardias || '0'),
-          cantidad_ppcs: parseInt(ppcsResult.rows[0]?.cantidad_ppcs || '0')
+          roles: Object.values(rolesPorServicio),
+          cantidad_guardias: puestosConGuardia,
+          cantidad_ppcs: ppcs,
+          puestos_sin_asignar: puestosSinAsignar,
+          total_puestos: puestosResult.rows.length
         };
       })
     );
@@ -132,7 +151,7 @@ export async function GET(request: NextRequest) {
     const instalacionesConPautaCount = instalacionesConPauta.length;
     const progreso = totalInstalaciones > 0 ? instalacionesConPautaCount / totalInstalaciones : 0;
 
-    return NextResponse.json({
+    const resultado = {
       success: true,
       instalaciones_con_pauta: instalacionesConPauta,
       instalaciones_sin_pauta: instalacionesSinPautaDetalladas,
@@ -141,7 +160,10 @@ export async function GET(request: NextRequest) {
       instalaciones_con_pauta_count: instalacionesConPautaCount,
       mes: parseInt(mes),
       anio: parseInt(anio)
-    });
+    };
+
+    console.log('✅ Resumen generado exitosamente');
+    return NextResponse.json(resultado);
 
   } catch (error) {
     console.error('❌ Error obteniendo resumen de pautas mensuales:', error);

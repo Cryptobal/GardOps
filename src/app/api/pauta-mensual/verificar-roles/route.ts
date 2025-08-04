@@ -19,7 +19,6 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 Ejecutando consulta de roles de servicio...');
     // Verificar si hay roles de servicio creados para la instalación
-    // Migrado al nuevo modelo as_turnos_puestos_operativos
     const rolesResult = await query(`
       SELECT 
         rs.id as rol_servicio_id,
@@ -27,7 +26,7 @@ export async function POST(request: NextRequest) {
         COUNT(*) as cantidad_guardias
       FROM as_turnos_puestos_operativos po
       INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-      WHERE po.instalacion_id = $1
+      WHERE po.instalacion_id = $1 AND po.activo = true
       GROUP BY rs.id, rs.nombre
       ORDER BY rs.nombre
     `, [instalacion_id]);
@@ -45,16 +44,13 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Roles encontrados, verificando PPCs...');
     // Si tiene roles, verificar PPCs activos
-    // Migrado al nuevo modelo as_turnos_puestos_operativos
     const ppcsResult = await query(`
       SELECT 
         po.id,
-        po.estado,
-        rs.nombre as rol_servicio_nombre,
-        po.cantidad_faltante
+        rs.nombre as rol_servicio_nombre
       FROM as_turnos_puestos_operativos po
       INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-      WHERE po.instalacion_id = $1 AND po.es_ppc = true AND po.estado = 'Pendiente'
+      WHERE po.instalacion_id = $1 AND po.es_ppc = true AND po.activo = true
       ORDER BY rs.nombre
     `, [instalacion_id]);
 
@@ -62,7 +58,6 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 Verificando guardias asignados...');
     // Verificar guardias asignados
-    // Migrado al nuevo modelo as_turnos_puestos_operativos
     const guardiasResult = await query(`
       SELECT 
         g.id::text as id,
@@ -73,6 +68,7 @@ export async function POST(request: NextRequest) {
       WHERE po.instalacion_id = $1 
         AND g.activo = true 
         AND po.es_ppc = false
+        AND po.activo = true
       ORDER BY g.nombre
     `, [instalacion_id]);
 
@@ -82,7 +78,7 @@ export async function POST(request: NextRequest) {
       tiene_roles: true,
       puede_generar_pauta: ppcsResult.rows.length > 0 && guardiasResult.rows.length > 0,
       roles: rolesResult.rows.map((row: any) => ({
-        id: row.id,
+        id: row.rol_servicio_id,
         nombre: row.rol_nombre,
         cantidad_guardias: parseInt(row.cantidad_guardias)
       })),

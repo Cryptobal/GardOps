@@ -34,6 +34,7 @@ interface RolServicio {
   id: string;
   nombre: string;
   cantidad_guardias: number;
+  patron_turno?: string;
 }
 
 interface InstalacionConPauta {
@@ -41,7 +42,7 @@ interface InstalacionConPauta {
   nombre: string;
   direccion: string;
   cliente_nombre?: string;
-  guardias_asignados: number;
+  puestos_con_pauta: number;
 }
 
 interface InstalacionSinPauta {
@@ -52,6 +53,8 @@ interface InstalacionSinPauta {
   roles: RolServicio[];
   cantidad_guardias: number;
   cantidad_ppcs: number;
+  puestos_sin_asignar: number;
+  total_puestos: number;
 }
 
 interface ResumenPautas {
@@ -157,7 +160,7 @@ const InstalacionCard = ({
               {isConPauta ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Users className="h-3 w-3" />
-                  <span>{instalacionConPauta.guardias_asignados} guardias asignados</span>
+                  <span>{instalacionConPauta.puestos_con_pauta} puestos con pauta</span>
                 </div>
               ) : (
                 <div className="space-y-2">

@@ -23,71 +23,72 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Obtener la pauta mensual desde la base de datos
+    // Obtener la pauta mensual desde la base de datos usando el nuevo modelo
     const pautaQueryStart = Date.now();
     const pautaResult = await query(`
       SELECT 
+        pm.puesto_id,
         pm.guardia_id,
         pm.dia,
-        pm.estado
+        pm.estado,
+        po.nombre_puesto,
+        po.es_ppc,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno,
+        g.apellido_materno,
+        rs.nombre as rol_nombre,
+        CONCAT(rs.dias_trabajo, 'x', rs.dias_descanso) as patron_turno
       FROM as_turnos_pauta_mensual pm
-      WHERE pm.instalacion_id = $1 
+      INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
+      LEFT JOIN guardias g ON pm.guardia_id = g.id
+      LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+      WHERE po.instalacion_id = $1 
         AND pm.anio = $2 
         AND pm.mes = $3
-      ORDER BY pm.guardia_id, pm.dia
+        AND po.activo = true
+      ORDER BY po.nombre_puesto, pm.dia
     `, [instalacion_id, anio, mes]);
     
     const pautaQueryEnd = Date.now();
     console.log(`[${timestamp}] 🐌 Query pauta mensual: ${pautaQueryEnd - pautaQueryStart}ms, ${pautaResult.rows.length} registros encontrados`);
 
-    // Obtener todos los guardias asignados a la instalación Y PPCs pendientes
-    const guardiasQueryStart = Date.now();
-    const [guardiasResult, ppcsResult] = await Promise.all([
-      // Guardias asignados reales
-      // Migrado al nuevo modelo as_turnos_puestos_operativos
-      query(`
-        SELECT 
-          g.id,
-          g.nombre,
-          g.apellido_paterno,
-          g.apellido_materno,
-          CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, '')) as nombre_completo,
-          'asignado' as tipo
-        FROM guardias g
-        INNER JOIN as_turnos_puestos_operativos po ON g.id = po.guardia_id
-        WHERE po.instalacion_id = $1 
-          AND g.activo = true
-          AND po.es_ppc = false
-        ORDER BY g.nombre
-      `, [instalacion_id]),
-      
-      // PPCs - incluir todos los PPCs relevantes, no solo pendientes
-      // Migrado al nuevo modelo as_turnos_puestos_operativos
-      query(`
-        SELECT 
-          po.id || '_' || generate_series(1, po.cantidad_faltante) as id,
-          'PPC ' || substring(po.id::text, 1, 2) || 'XX' || substring(po.id::text, 35, 2) || ' #' || generate_series(1, po.cantidad_faltante) as nombre,
-          '' as apellido_paterno,
-          '' as apellido_materno,
-          'PPC ' || substring(po.id::text, 1, 2) || 'XX' || substring(po.id::text, 35, 2) || ' #' || generate_series(1, po.cantidad_faltante) as nombre_completo,
-          'ppc' as tipo,
-          po.estado as ppc_estado
-        FROM as_turnos_puestos_operativos po
-        WHERE po.instalacion_id = $1 
-          AND po.es_ppc = true
-          AND po.estado IN ('Pendiente', 'Asignado')
-        ORDER BY po.id, generate_series(1, po.cantidad_faltante)
-      `, [instalacion_id])
-    ]);
+    // Obtener todos los puestos operativos de la instalación (con y sin guardia asignado)
+    const puestosQueryStart = Date.now();
+    const puestosResult = await query(`
+      SELECT 
+        po.id as puesto_id,
+        po.nombre_puesto,
+        po.es_ppc,
+        po.guardia_id,
+        po.activo,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno,
+        g.apellido_materno,
+        rs.nombre as rol_nombre,
+        CONCAT(rs.dias_trabajo, 'x', rs.dias_descanso) as patron_turno,
+        CASE 
+          WHEN po.guardia_id IS NOT NULL THEN 
+            CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, ''))
+          WHEN po.es_ppc = true THEN 
+            'PPC ' || substring(po.id::text, 1, 8) || '...'
+          ELSE 
+            'Sin asignar'
+        END as nombre_completo,
+        CASE 
+          WHEN po.guardia_id IS NOT NULL THEN 'asignado'
+          WHEN po.es_ppc = true THEN 'ppc'
+          ELSE 'sin_asignar'
+        END as tipo
+      FROM as_turnos_puestos_operativos po
+      LEFT JOIN guardias g ON po.guardia_id = g.id
+      LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+      WHERE po.instalacion_id = $1 
+        AND po.activo = true
+      ORDER BY po.nombre_puesto
+    `, [instalacion_id]);
     
-    // Combinar guardias reales y PPCs pendientes
-    const guardiasCompletos = [
-      ...guardiasResult.rows,
-      ...ppcsResult.rows
-    ];
-    
-    const guardiasQueryEnd = Date.now();
-    console.log(`[${timestamp}] 🐌 Query guardias: ${guardiasQueryEnd - guardiasQueryStart}ms, ${guardiasCompletos.length} guardias encontrados (${guardiasResult.rows.length} reales, ${ppcsResult.rows.length} PPCs)`);
+    const puestosQueryEnd = Date.now();
+    console.log(`[${timestamp}] 🐌 Query puestos operativos: ${puestosQueryEnd - puestosQueryStart}ms, ${puestosResult.rows.length} puestos encontrados`);
 
     // Generar días del mes
     const diasDelMes = Array.from(
@@ -98,25 +99,15 @@ export async function GET(request: NextRequest) {
     console.log(`[${timestamp}] 📅 Generando pauta para ${diasDelMes.length} días del mes`);
 
     // Crear pauta en el formato esperado por el frontend
-    const pauta = guardiasCompletos.map((guardia: any) => {
-      // Buscar registros de pauta para este guardia específico
-      const pautaGuardia = pautaResult.rows.filter((p: any) => {
-        // Para PPCs, necesitamos manejar el ID con sufijo
-        if (guardia.tipo === 'ppc') {
-          // Los PPCs tienen IDs con sufijo (ej: "20d640b3-e6b5-4868-af91-2571a313b766_1")
-          // Buscar registros que coincidan con el ID base del PPC
-          const ppcBaseId = guardia.id.split('_')[0];
-          return p.guardia_id.startsWith(ppcBaseId);
-        }
-        // Para guardias reales, buscar coincidencia exacta
-        return p.guardia_id === guardia.id;
-      });
+    const pauta = puestosResult.rows.map((puesto: any) => {
+      // Buscar registros de pauta para este puesto específico
+      const pautaPuesto = pautaResult.rows.filter((p: any) => p.puesto_id === puesto.puesto_id);
       
-      console.log(`[${timestamp}] 🔍 Guardia ${guardia.id} (${guardia.nombre_completo}): ${pautaGuardia.length} registros encontrados`);
+      console.log(`[${timestamp}] 🔍 Puesto ${puesto.puesto_id} (${puesto.nombre_puesto}): ${pautaPuesto.length} registros encontrados`);
       
-      // Crear array de días para este guardia
+      // Crear array de días para este puesto
       const dias = diasDelMes.map(dia => {
-        const pautaDia = pautaGuardia.find((p: any) => p.dia === dia);
+        const pautaDia = pautaPuesto.find((p: any) => p.dia === dia);
         const estado = pautaDia?.estado || 'libre';
         // Convertir estado de BD a formato frontend
         switch (estado) {
@@ -126,17 +117,25 @@ export async function GET(request: NextRequest) {
             return 'L';
           case 'permiso':
             return 'P';
+          case 'vacaciones':
+            return 'V';
+          case 'licencia':
+            return 'L';
           default:
             return 'L';
         }
       });
 
       return {
-        id: guardia.id,
-        nombre: guardia.nombre_completo,
-        patron_turno: '4x4', // TODO: Obtener desde la configuración
+        id: puesto.puesto_id,
+        nombre: puesto.nombre_completo,
+        nombre_puesto: puesto.nombre_puesto,
+        patron_turno: puesto.patron_turno || '4x4',
         dias: dias,
-        tipo: guardia.tipo
+        tipo: puesto.tipo,
+        es_ppc: puesto.es_ppc,
+        guardia_id: puesto.guardia_id,
+        rol_nombre: puesto.rol_nombre
       };
     });
 
@@ -144,7 +143,7 @@ export async function GET(request: NextRequest) {
     const duration = endTime - startTime;
     
     console.log(`[${timestamp}] ✅ Pauta mensual cargada exitosamente`);
-    console.log(`[${timestamp}] 📊 Resumen: ${pauta.length} guardias, ${diasDelMes.length} días por guardia`);
+    console.log(`[${timestamp}] 📊 Resumen: ${pauta.length} puestos, ${diasDelMes.length} días por puesto`);
     console.log(`[${timestamp}] ⏱️ Tiempo total: ${duration}ms`);
 
     return NextResponse.json({
@@ -154,7 +153,7 @@ export async function GET(request: NextRequest) {
       mes: parseInt(mes),
       pauta: pauta,
       metadata: {
-        total_guardias: pauta.length,
+        total_puestos: pauta.length,
         dias_mes: diasDelMes.length,
         tiempo_procesamiento_ms: duration,
         timestamp: timestamp

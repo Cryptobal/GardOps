@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../../components/ui/card";
 import { Button } from "../../../../components/ui/button";
 import { Badge } from "../../../../components/ui/badge";
@@ -17,7 +18,8 @@ import {
   Edit,
   Eye,
   Database,
-  Clock
+  Clock,
+  ExternalLink
 } from "lucide-react";
 import { obtenerPautaMensual, guardarPautaMensual } from "../../../../lib/api/pauta-mensual";
 import { useToast } from "../../../../hooks/use-toast";
@@ -465,7 +467,14 @@ export default function EditarPautaMensualPage() {
           <div>
             <h1 className="text-2xl font-bold">Editar Pauta Mensual</h1>
             <p className="text-sm text-muted-foreground">
-              {instalacion.nombre} - {mes}/{anio}
+              <Link 
+                href={`/instalaciones/${instalacion.id}`}
+                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline flex items-center gap-1"
+              >
+                {instalacion.nombre}
+                <ExternalLink className="h-3 w-3" />
+              </Link>
+              {" - "}{mes}/{anio}
             </p>
           </div>
         </div>
@@ -505,7 +514,13 @@ export default function EditarPautaMensualPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <Building2 className="h-5 w-5" />
-              {instalacion?.nombre}
+              <Link 
+                href={`/instalaciones/${instalacion.id}`}
+                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline flex items-center gap-1"
+              >
+                {instalacion?.nombre}
+                <ExternalLink className="h-3 w-3" />
+              </Link>
             </CardTitle>
             <p className="text-sm text-muted-foreground">
               {instalacion?.direccion}

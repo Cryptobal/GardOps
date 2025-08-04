@@ -8,13 +8,15 @@ import { Trash2, Info, Calendar, Users } from "lucide-react";
 import ConfirmDeleteModal from "../../../components/ui/confirm-delete-modal";
 
 interface PautaGuardia {
-  id_guardia: string;
+  id: string;
   nombre: string;
-  rol_servicio: {
-    patron_turno: string;
-  };
+  nombre_puesto: string;
+  patron_turno: string;
   dias: string[];
-  tipo?: 'asignado' | 'ppc';
+  tipo?: 'asignado' | 'ppc' | 'sin_asignar';
+  es_ppc?: boolean;
+  guardia_id?: string;
+  rol_nombre?: string;
 }
 
 interface PautaTableProps {
@@ -416,7 +418,7 @@ export default function PautaTable({
       return "4x4";
     };
     
-    const tipoTurno = extraerTipoTurno(guardia.rol_servicio.patron_turno);
+    const tipoTurno = extraerTipoTurno(guardia.patron_turno);
     
     const patrones = {
       "4x4": { trabajo: 4, libre: 4 },
@@ -435,7 +437,7 @@ export default function PautaTable({
       const diaDelCiclo = (diaInicio + diferenciaDesdeSeleccionado - 1) % cicloCompleto;
       const esDiaTrabajo = diaDelCiclo < patron.trabajo;
       
-      onUpdatePauta(guardiaIndex, i, esDiaTrabajo ? "trabaja" : "libre");
+      onUpdatePauta(guardiaIndex, i, esDiaTrabajo ? "T" : "L");
     }
     
     setAutocompletadoModal({ isOpen: false, guardiaIndex: 0, diaIndex: 0, diaSeleccionado: 1, diaSemanaSeleccionado: '' });
@@ -544,15 +546,15 @@ export default function PautaTable({
                     {/* Información del guardia */}
                     <div className="space-y-1 flex-1 min-w-0">
                       <div className={`font-semibold text-sm truncate ${
-                        guardia.tipo === 'ppc' 
+                        guardia.es_ppc 
                           ? 'text-orange-600 dark:text-orange-400' 
                           : 'text-gray-900 dark:text-white'
                       }`}>
-                        {guardia.tipo === 'ppc' ? acortarNombrePPC(guardia.nombre) : guardia.nombre}
+                        {guardia.es_ppc ? acortarNombrePPC(guardia.nombre) : guardia.nombre}
                       </div>
                       <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight">
-                        <span className="font-medium">{guardia.rol_servicio.patron_turno}</span>
-                        {guardia.tipo === 'ppc' && (
+                        <span className="font-medium">{guardia.patron_turno}</span>
+                        {guardia.es_ppc && (
                           <span className="ml-2 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full text-xs font-medium">
                             PPC
                           </span>
@@ -618,8 +620,8 @@ export default function PautaTable({
         isOpen={autocompletadoModal.isOpen}
         onClose={() => setAutocompletadoModal({ isOpen: false, guardiaIndex: 0, diaIndex: 0, diaSeleccionado: 1, diaSemanaSeleccionado: '' })}
         onConfirm={autocompletarPauta}
-        id_guardia={pautaData[autocompletadoModal.guardiaIndex]?.id_guardia || ""}
-        patron_turno={pautaData[autocompletadoModal.guardiaIndex]?.rol_servicio.patron_turno || ""}
+        id_guardia={pautaData[autocompletadoModal.guardiaIndex]?.id || ""}
+        patron_turno={pautaData[autocompletadoModal.guardiaIndex]?.patron_turno || ""}
         diaSeleccionado={autocompletadoModal.diaSeleccionado}
         diaSemanaSeleccionado={autocompletadoModal.diaSemanaSeleccionado}
       />

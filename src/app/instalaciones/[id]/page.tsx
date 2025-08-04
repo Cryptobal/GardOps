@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Building2, MapPin, Phone, Mail, Calendar, FileText, Activity, Settings, Edit, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, Phone, Mail, Calendar, FileText, Activity, Settings, Edit, RefreshCw, Users, Clock, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { GoogleMap } from '@/components/ui/google-map';
 import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@/lib/geocoding';
@@ -235,6 +235,87 @@ export default function InstalacionDetallePage() {
             Editar
           </Button>
         </div>
+      </div>
+
+      {/* Cuadro de Resumen */}
+      <div className="mb-6">
+        <Card className="border-0 shadow-sm bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {/* Puestos Operativos */}
+              <div className="flex items-center space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                    <Building2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Puestos Operativos</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {turnosPrecargados.reduce((total, turno) => total + turno.cantidad_guardias, 0)}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {turnosPrecargados.length} turnos • {ppcsPrecargados.filter((ppc: any) => ppc.estado === 'Pendiente').length} PPCs
+                  </p>
+                </div>
+              </div>
+
+              {/* Guardias Asignados */}
+              <div className="flex items-center space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
+                    <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Guardias Asignados</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {guardiasPrecargados.filter((g: any) => g.tipo === 'asignado').length}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {guardiasPrecargados.filter((g: any) => g.tipo === 'asignado' && g.activo).length} activos
+                  </p>
+                </div>
+              </div>
+
+              {/* PPCs */}
+              <div className="flex items-center space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
+                    <Shield className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">PPCs</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {ppcsPrecargados.filter((ppc: any) => ppc.estado === 'Pendiente').length}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {ppcsPrecargados.filter((ppc: any) => ppc.estado === 'Pendiente').length} pendientes
+                  </p>
+                </div>
+              </div>
+
+              {/* Roles de Servicio */}
+              <div className="flex items-center space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
+                    <Clock className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Roles de Servicio</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {rolesPrecargados.length}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {rolesPrecargados.filter((r: any) => r.estado === 'Activo').length} activos
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Pestañas */}
