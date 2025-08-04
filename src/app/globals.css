@@ -54,6 +54,13 @@
     @apply border-border/50;
   }
 
+  /* Eliminar bordes de las celdas de la pauta mensual */
+  .pauta-table td,
+  .pauta-table th {
+    border: none !important;
+    outline: none !important;
+  }
+
   body {
     @apply bg-background text-foreground font-medium;
   }

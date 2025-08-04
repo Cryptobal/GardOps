@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
         CONCAT(rs.dias_trabajo, 'x', rs.dias_descanso) as patron_turno,
         CASE 
           WHEN po.guardia_id IS NOT NULL THEN 
-            CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, ''))
+            CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, ''), ' (', rs.nombre, ')')
           WHEN po.es_ppc = true THEN 
             'PPC ' || substring(po.id::text, 1, 8) || '...'
           ELSE 

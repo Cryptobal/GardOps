@@ -13,7 +13,9 @@ import {
   Save,
   Loader2,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Database,
+  Clock
 } from "lucide-react";
 import { crearPautaMensualAutomatica } from "../../../../lib/api/pauta-mensual";
 import { useToast } from "../../../../hooks/use-toast";
@@ -225,6 +227,32 @@ export default function CrearPautaMensualPage() {
     setPautaData(nuevaPautaData);
   };
 
+  const estadisticasPauta = () => {
+    const totalDias = diasDelMes.length;
+    const totalGuardias = pautaData.length;
+    const diasConAsignaciones = new Set<string>();
+    let totalAsignaciones = 0;
+    
+    pautaData.forEach(guardia => {
+      guardia.dias.forEach((estado, diaIndex) => {
+        if (estado && estado !== 'L' && estado !== '') {
+          diasConAsignaciones.add(`${diaIndex + 1}`);
+          totalAsignaciones++;
+        }
+      });
+    });
+    
+    return {
+      totalDias,
+      totalGuardias,
+      diasConAsignaciones: diasConAsignaciones.size,
+      totalAsignaciones,
+      porcentajeCobertura: totalDias > 0 ? Math.round((diasConAsignaciones.size / totalDias) * 100) : 0
+    };
+  };
+
+  const stats = estadisticasPauta();
+
   if (loading) {
     return (
       <div className="p-4">
@@ -282,26 +310,34 @@ export default function CrearPautaMensualPage() {
       </div>
 
       {/* Información de la instalación */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Información de la Instalación
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <h4 className="font-medium text-sm mb-2">Instalación</h4>
-              <p className="text-sm text-muted-foreground">{instalacion.nombre}</p>
-              <p className="text-xs text-muted-foreground">{instalacion.direccion}</p>
-              {instalacion.cliente_nombre && (
-                <p className="text-xs text-muted-foreground">Cliente: {instalacion.cliente_nombre}</p>
-              )}
-            </div>
-            
-            <div>
-              <h4 className="font-medium text-sm mb-2">Guardias Disponibles</h4>
+      <div className="flex flex-col lg:flex-row gap-4 mb-6">
+        <Card className="flex-1">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              {instalacion.nombre}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {instalacion.direccion}
+            </p>
+            {instalacion.cliente_nombre && (
+              <p className="text-xs text-muted-foreground">
+                Cliente: {instalacion.cliente_nombre}
+              </p>
+            )}
+          </CardHeader>
+        </Card>
+
+        {/* Información de guardias y PPCs */}
+        <Card className="flex-1">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Guardias Disponibles
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-blue-600" />
                 <span className="text-sm">
@@ -314,7 +350,7 @@ export default function CrearPautaMensualPage() {
                 </span>
               </div>
               {instalacion.guardias && instalacion.guardias.length > 0 && (
-                <div className="mt-2 space-y-1">
+                <div className="space-y-1">
                   {instalacion.guardias.slice(0, 3).map((guardia) => (
                     <Badge 
                       key={guardia.id} 
@@ -335,18 +371,46 @@ export default function CrearPautaMensualPage() {
                   )}
                 </div>
               )}
-            </div>
-
-            <div>
-              <h4 className="font-medium text-sm mb-2">PPCs Activos</h4>
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-600" />
-                <span className="text-sm">{instalacion.ppcs?.length || 0} PPCs</span>
+                <span className="text-sm">{instalacion.ppcs?.length || 0} PPCs activos</span>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Estadísticas de la pauta */}
+      {stats && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Estadísticas de Pauta
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-blue-500" />
+                <span>{stats.totalGuardias} guardias</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-green-500" />
+                <span>{stats.totalDias} días</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
+                <span>{stats.diasConAsignaciones} días con asignaciones</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-orange-500" />
+                <span>{stats.porcentajeCobertura}% cobertura</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tabla de pauta interactiva */}
       <Card>
@@ -392,6 +456,8 @@ export default function CrearPautaMensualPage() {
               diasSemana={diasSemana}
               onUpdatePauta={actualizarPauta}
               onDeleteGuardia={eliminarGuardia}
+              modoEdicion={true}
+              diasGuardados={new Set()}
             />
           ) : (
             <div className="text-center py-8 text-muted-foreground">

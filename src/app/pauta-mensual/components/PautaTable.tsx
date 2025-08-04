@@ -4,8 +4,9 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
 import { Button } from "../../../components/ui/button";
-import { Trash2, Info, Calendar, Users } from "lucide-react";
+import { Trash2, Info, Calendar, Users, ExternalLink } from "lucide-react";
 import ConfirmDeleteModal from "../../../components/ui/confirm-delete-modal";
+import Link from "next/link";
 
 interface PautaGuardia {
   id: string;
@@ -262,21 +263,21 @@ const DiaCell = ({
         return { 
           icon: "🟢", 
           text: "T", 
-          className: "bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-600",
+          className: "bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 text-emerald-800 dark:text-emerald-300 border-0 outline-0",
           tooltip: "Trabajando"
         };
       case "libre":
         return { 
           icon: "⚪", 
           text: "L", 
-          className: "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600",
+          className: "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 text-gray-600 dark:text-gray-400 border-0 outline-0",
           tooltip: "Libre"
         };
       default:
         return { 
           icon: "⬜", 
           text: "", 
-          className: "bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 text-gray-400 dark:text-gray-600 border-gray-200 dark:border-gray-700",
+          className: "bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 text-gray-400 dark:text-gray-600 border-0 outline-0",
           tooltip: "Vacío"
         };
     }
@@ -288,8 +289,8 @@ const DiaCell = ({
   const esDiaEspecial = esFinDeSemana || esFeriado;
   const isDiaGuardado = diasGuardados?.has(`${guardiaNombre}-${diaNumero}`);
   
-  const clasesEspeciales = esDiaEspecial ? 'ring-1 ring-amber-300 dark:ring-amber-600' : '';
-  const clasesFeriado = esFeriado ? 'bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20' : '';
+  const clasesEspeciales = ''; // Eliminado el ring amber
+  const clasesFeriado = esFeriado ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/30' : '';
   const clasesFinDeSemana = esFinDeSemana ? 'bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20' : '';
   const clasesModoEdicion = modoEdicion ? 'cursor-pointer hover:scale-105 hover:shadow-sm' : 'cursor-default opacity-90';
   const clasesGuardado = isDiaGuardado ? 'ring-2 ring-green-400 dark:ring-green-500 shadow-sm' : '';
@@ -310,17 +311,18 @@ const DiaCell = ({
 
   const tooltipText = `${guardiaNombre} - Día ${diaNumero} (${diaSemana || ''})${esFeriado ? ' - FERIADO' : ''}: ${tooltip}${isDiaGuardado ? ' - ✅ Guardado en BD' : ''}${!modoEdicion ? ' - Modo solo lectura' : ''}`;
 
-  return (
-    <TableCell 
-      className={`text-center transition-all duration-200 p-0 border-l-0 border-r-0 ${className} ${clasesEspeciales} ${clasesFeriado} ${clasesFinDeSemana} ${clasesModoEdicion} ${clasesGuardado}`}
-      onClick={handleClick}
-      onContextMenu={handleContextMenu}
-      title={tooltipText}
-    >
+      return (
+      <TableCell 
+        className={`text-center transition-all duration-200 p-0 border-0 !border-b-0 ${className} ${clasesEspeciales} ${clasesFeriado} ${clasesFinDeSemana} ${clasesModoEdicion} ${clasesGuardado}`}
+        style={{ border: 'none', outline: 'none', borderWidth: '0px', borderStyle: 'none', borderBottom: 'none' }}
+        onClick={handleClick}
+        onContextMenu={handleContextMenu}
+        title={tooltipText}
+      >
       <div className="flex flex-col items-center justify-center min-h-[2.5rem] py-1 relative">
         {diaSemana && (
           <span className={`text-xs font-semibold leading-none mb-1 ${
-            esFeriado ? 'text-orange-600 dark:text-orange-400' : 
+            esFeriado ? 'text-red-600 dark:text-red-400' : 
             esFinDeSemana ? 'text-amber-600 dark:text-amber-400' : 
             'text-gray-500 dark:text-gray-400'
           }`}>
@@ -381,10 +383,20 @@ export default function PautaTable({
   const month = fechaActual.getMonth() + 1;
   const feriadosChile = getFeriadosChile(year, month);
 
+  // Ordenar los datos: puestos cubiertos primero, PPC después
+  const pautaDataOrdenada = [...pautaData].sort((a, b) => {
+    // Si ambos son PPC o ambos no son PPC, mantener orden original
+    if (a.es_ppc === b.es_ppc) return 0;
+    // Puestos cubiertos primero (es_ppc = false)
+    if (!a.es_ppc && b.es_ppc) return -1;
+    // PPC después (es_ppc = true)
+    return 1;
+  });
+
   const cambiarEstadoDia = (guardiaIndex: number, diaIndex: number) => {
     if (!modoEdicion) return;
     console.log('🔄 Cambiando estado de día:', { guardiaIndex, diaIndex });
-    const estadoActual = pautaData[guardiaIndex].dias[diaIndex];
+    const estadoActual = pautaDataOrdenada[guardiaIndex].dias[diaIndex];
     // Normalizar estados: convertir a mayúsculas para comparación
     const estadoNormalizado = estadoActual?.toUpperCase() || '';
     const nuevoEstado = estadoNormalizado === "TRABAJA" ? "libre" : "trabaja";
@@ -408,7 +420,7 @@ export default function PautaTable({
 
   const autocompletarPauta = (diaInicio: number) => {
     const { guardiaIndex, diaSeleccionado } = autocompletadoModal;
-    const guardia = pautaData[guardiaIndex];
+    const guardia = pautaDataOrdenada[guardiaIndex];
     
     const extraerTipoTurno = (patron: string): string => {
       if (patron.includes("4x4")) return "4x4";
@@ -473,7 +485,7 @@ export default function PautaTable({
           <div>
             <h3 className="font-semibold text-gray-900 dark:text-white">Pauta Mensual</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              {pautaData.length} guardia{pautaData.length !== 1 ? 's' : ''} • {diasDelMes.length} días
+              {pautaDataOrdenada.length} guardia{pautaDataOrdenada.length !== 1 ? 's' : ''} • {diasDelMes.length} días
             </p>
           </div>
         </div>
@@ -489,7 +501,7 @@ export default function PautaTable({
             <span className="text-gray-700 dark:text-gray-300">Libre</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-300 dark:border-orange-600 rounded"></div>
+            <div className="w-4 h-4 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/30 border border-red-300 dark:border-red-600 rounded"></div>
             <span className="text-gray-700 dark:text-gray-300">Feriado</span>
           </div>
         </div>
@@ -500,22 +512,22 @@ export default function PautaTable({
         <Table className="w-full">
           <TableHeader>
             <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
-              <TableHead className="font-semibold text-left p-4 border-r border-gray-200 dark:border-gray-700" style={{width: '200px', minWidth: '200px'}}>
+              <TableHead className="font-semibold text-left p-4 border-0" style={{width: '200px', minWidth: '200px'}}>
                 Guardia
               </TableHead>
               {diasDelMes.slice(0, diasAMostrar).map((dia) => {
                 const diaInfo = diasSemana[dia - 1];
                 const esFinDeSemana = diaInfo?.diaSemana === 'Sáb' || diaInfo?.diaSemana === 'Dom';
                 const esFeriado = diaInfo?.esFeriado || feriadosChile.includes(dia);
-                const clasesEspeciales = esFeriado ? 'bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30' : 
+                const clasesEspeciales = esFeriado ? 'bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-900/40' : 
                                            esFinDeSemana ? 'bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30' : '';
                 
                 return (
-                  <TableHead key={dia} className={`font-semibold text-center p-2 border-l border-gray-200 dark:border-gray-700 ${clasesEspeciales}`} style={{width: '35px', minWidth: '35px'}}>
+                  <TableHead key={dia} className={`font-semibold text-center p-2 border-0 ${clasesEspeciales}`} style={{width: '35px', minWidth: '35px'}}>
                     <div className="text-xs font-bold text-gray-900 dark:text-white">{dia}</div>
                     {diaInfo?.diaSemana && (
                       <div className={`text-xs mt-1 font-medium ${
-                        esFeriado ? 'text-orange-600 dark:text-orange-400' : 
+                        esFeriado ? 'text-red-600 dark:text-red-400' : 
                         esFinDeSemana ? 'text-amber-600 dark:text-amber-400' : 
                         'text-gray-500 dark:text-gray-400'
                       }`}>
@@ -528,9 +540,9 @@ export default function PautaTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {pautaData.map((guardia, guardiaIndex) => (
-              <TableRow key={guardiaIndex} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 group border-b border-gray-200 dark:border-gray-700">
-                <TableCell className="p-4 border-r border-gray-200 dark:border-gray-700 whitespace-nowrap relative">
+            {pautaDataOrdenada.map((guardia, guardiaIndex) => (
+                              <TableRow key={guardiaIndex} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 group border-0">
+                <TableCell className="p-4 border-0 whitespace-nowrap relative">
                   <div className="flex items-center gap-3">
                     {/* Botón eliminar */}
                     {modoEdicion && (
@@ -545,17 +557,27 @@ export default function PautaTable({
                     
                     {/* Información del guardia */}
                     <div className="space-y-1 flex-1 min-w-0">
-                      <div className={`font-semibold text-sm truncate ${
-                        guardia.es_ppc 
-                          ? 'text-orange-600 dark:text-orange-400' 
-                          : 'text-gray-900 dark:text-white'
-                      }`}>
-                        {guardia.es_ppc ? acortarNombrePPC(guardia.nombre) : guardia.nombre}
+                      <div className="flex items-center gap-2">
+                        <Link 
+                          href={guardia.es_ppc ? `/ppc` : `/guardias/${guardia.guardia_id || guardia.id}`}
+                          className={`font-semibold text-sm truncate hover:underline transition-colors ${
+                            guardia.es_ppc 
+                              ? 'text-red-600 dark:text-red-400' 
+                              : 'text-gray-900 dark:text-white'
+                          }`}
+                        >
+                          {guardia.es_ppc ? acortarNombrePPC(guardia.nombre) : guardia.nombre}
+                          <ExternalLink className="inline-block h-3 w-3 ml-1 opacity-60" />
+                        </Link>
                       </div>
                       <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight">
-                        <span className="font-medium">{guardia.patron_turno}</span>
+                        {guardia.rol_nombre ? (
+                          <span className="font-medium">{guardia.rol_nombre}</span>
+                        ) : (
+                          <span className="font-medium">{guardia.patron_turno}</span>
+                        )}
                         {guardia.es_ppc && (
-                          <span className="ml-2 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full text-xs font-medium">
+                          <span className="ml-2 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-xs font-medium">
                             PPC
                           </span>
                         )}
@@ -587,53 +609,25 @@ export default function PautaTable({
         </Table>
       </div>
 
-      {/* Instrucciones */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
-        <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-gray-700 dark:text-gray-300">
-            <p className="font-medium text-gray-900 dark:text-white mb-1">
-              {modoEdicion ? 'Instrucciones (Modo Edición):' : 'Instrucciones (Modo Solo Lectura):'}
-            </p>
-            <ul className="space-y-1 text-xs">
-              {modoEdicion ? (
-                <>
-                  <li>• <strong>Clic izquierdo:</strong> Cambiar entre Trabajando/Libre</li>
-                  <li>• <strong>Clic derecho:</strong> Autocompletar patrón desde ese día</li>
-                  <li>• <strong>Fines de semana:</strong> Resaltados en amarillo</li>
-                  <li>• <strong>Feriados Chile:</strong> Resaltados en naranja</li>
-                </>
-              ) : (
-                <>
-                  <li>• <strong>Presiona "Editar Pauta"</strong> para habilitar la edición</li>
-                  <li>• <strong>Fines de semana:</strong> Resaltados en amarillo</li>
-                  <li>• <strong>Feriados Chile:</strong> Resaltados en naranja</li>
-                </>
-              )}
-            </ul>
-          </div>
-        </div>
-      </div>
-
       {/* Modal de autocompletado */}
       <ModalAutocompletarPauta
         isOpen={autocompletadoModal.isOpen}
         onClose={() => setAutocompletadoModal({ isOpen: false, guardiaIndex: 0, diaIndex: 0, diaSeleccionado: 1, diaSemanaSeleccionado: '' })}
         onConfirm={autocompletarPauta}
-        id={pautaData[autocompletadoModal.guardiaIndex]?.id || ""}
-        patron_turno={pautaData[autocompletadoModal.guardiaIndex]?.patron_turno || ""}
+        id={pautaDataOrdenada[autocompletadoModal.guardiaIndex]?.id || ""}
+        patron_turno={pautaDataOrdenada[autocompletadoModal.guardiaIndex]?.patron_turno || ""}
         diaSeleccionado={autocompletadoModal.diaSeleccionado}
         diaSemanaSeleccionado={autocompletadoModal.diaSemanaSeleccionado}
       />
 
-              {/* Modal de confirmación de eliminación */}
-        <ConfirmDeleteModal
-          isOpen={deleteModal.isOpen}
-          onClose={() => setDeleteModal({ isOpen: false, guardiaIndex: null })}
-          onConfirm={confirmarEliminarPauta}
-          title="Eliminar Turnos Asignados"
-          message={`¿Estás seguro de que quieres eliminar todos los turnos asignados de ${deleteModal.guardiaIndex !== null ? pautaData[deleteModal.guardiaIndex]?.nombre : ''}? Esta acción limpiará la programación pero mantendrá al guardia en la lista.`}
-        />
+      {/* Modal de confirmación de eliminación */}
+      <ConfirmDeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, guardiaIndex: null })}
+        onConfirm={confirmarEliminarPauta}
+        title="Eliminar Turnos Asignados"
+        message={`¿Estás seguro de que quieres eliminar todos los turnos asignados de ${deleteModal.guardiaIndex !== null ? pautaDataOrdenada[deleteModal.guardiaIndex]?.nombre : ''}? Esta acción limpiará la programación pero mantendrá al guardia en la lista.`}
+      />
     </div>
   );
 } 

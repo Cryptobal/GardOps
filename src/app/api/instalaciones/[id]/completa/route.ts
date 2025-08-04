@@ -93,10 +93,25 @@ export async function GET(
         FROM as_turnos_puestos_operativos po
         LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
         LEFT JOIN guardias g ON po.guardia_id = g.id
-        WHERE po.instalacion_id = $1 AND po.activo = true
+        WHERE po.instalacion_id = $1
         ORDER BY po.rol_id, po.nombre_puesto, po.creado_en
       `, [instalacionId]);
       console.log(`✅ Puestos operativos encontrados: ${puestosOperativosResult.rows.length}`);
+      
+      // Agregar diagnóstico detallado
+      console.log('🔍 Diagnóstico de puestos operativos:');
+      puestosOperativosResult.rows.forEach((row: any, index: number) => {
+        console.log(`   Puesto ${index + 1}:`);
+        console.log(`     ID: ${row.id}`);
+        console.log(`     Nombre: ${row.nombre_puesto}`);
+        console.log(`     Rol ID: ${row.rol_id}`);
+        console.log(`     Rol Nombre: ${row.rol_nombre || 'NULL'}`);
+        console.log(`     Es PPC: ${row.es_ppc}`);
+        console.log(`     Guardia ID: ${row.guardia_id || 'NULL'}`);
+        console.log(`     Guardia Nombre: ${row.guardia_nombre || 'NULL'}`);
+        console.log(`     Horario: ${row.hora_inicio || 'NULL'} - ${row.hora_termino || 'NULL'}`);
+        console.log(`     Días: ${row.dias_trabajo || 'NULL'}x${row.dias_descanso || 'NULL'}x${row.horas_turno || 'NULL'}`);
+      });
       
       // Verificar si hay duplicados por rol
       const puestosPorRol: { [key: string]: any[] } = {};
