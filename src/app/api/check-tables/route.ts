@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       'instalaciones'
     ];
 
-    const tableStatus = {};
+    const tableStatus: Record<string, any> = {};
 
     for (const table of tables) {
       try {
