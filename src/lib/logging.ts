@@ -49,7 +49,19 @@ export async function logCRUD(
     };
 
     const tabla = `logs_${modulo}`;
-    const idCampo = `${modulo}_id`;
+    // Mapear el nombre del módulo al nombre correcto de la columna ID
+    const idCampoMap: { [key: string]: string } = {
+      'guardias': 'guardia_id',
+      'instalaciones': 'instalacion_id',
+      'clientes': 'cliente_id',
+      'pauta_mensual': 'pauta_mensual_id',
+      'pauta_diaria': 'pauta_diaria_id',
+      'turnos_extras': 'turno_extra_id',
+      'puestos_operativos': 'puesto_operativo_id',
+      'documentos': 'documento_id',
+      'usuarios': 'usuario_id'
+    };
+    const idCampo = idCampoMap[modulo] || `${modulo}_id`;
 
     await query(
       `

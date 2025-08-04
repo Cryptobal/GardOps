@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { InputDireccion } from '@/components/ui/input-direccion';
-import { ArrowLeft, Save, User, MapPin, Phone, Mail } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, Save, User, MapPin, Phone, Mail, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import type { AddressData } from '@/lib/useAddressAutocomplete';
 
@@ -19,9 +20,25 @@ interface Guardia {
   telefono: string;
   direccion: string;
   estado: string;
+  banco?: string;
+  tipo_cuenta?: string;
+  numero_cuenta?: string;
   created_at: string;
   updated_at: string;
 }
+
+interface Banco {
+  id: string;
+  nombre: string;
+  codigo: string;
+}
+
+const TIPOS_CUENTA = [
+  { value: 'CCT', label: 'Cuenta Corriente' },
+  { value: 'CTE', label: 'Cuenta de Ahorro' },
+  { value: 'CTA', label: 'Cuenta Vista' },
+  { value: 'RUT', label: 'Cuenta RUT' }
+];
 
 export default function EditarGuardiaPage() {
   const params = useParams();
@@ -36,12 +53,17 @@ export default function EditarGuardiaPage() {
     rut: '',
     email: '',
     telefono: '',
-    direccion: ''
+    direccion: '',
+    banco_id: '',
+    tipo_cuenta: '',
+    numero_cuenta: ''
   });
   const [selectedAddress, setSelectedAddress] = useState<AddressData | null>(null);
+  const [bancos, setBancos] = useState<Banco[]>([]);
 
   useEffect(() => {
     cargarGuardia();
+    cargarBancos();
   }, [guardiaId]);
 
   const cargarGuardia = async () => {
@@ -59,7 +81,10 @@ export default function EditarGuardiaPage() {
         rut: guardiaData.rut || '',
         email: guardiaData.email || '',
         telefono: guardiaData.telefono || '',
-        direccion: guardiaData.direccion || ''
+        direccion: guardiaData.direccion || '',
+        banco_id: guardiaData.banco || '',
+        tipo_cuenta: guardiaData.tipo_cuenta || '',
+        numero_cuenta: guardiaData.numero_cuenta || ''
       });
     } catch (error) {
       console.error('Error cargando guardia:', error);
@@ -68,8 +93,27 @@ export default function EditarGuardiaPage() {
     }
   };
 
+  const cargarBancos = async () => {
+    try {
+      const response = await fetch('/api/bancos');
+      if (response.ok) {
+        const bancosData = await response.json();
+        setBancos(bancosData.bancos || []);
+      }
+    } catch (error) {
+      console.error('Error cargando bancos:', error);
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -252,6 +296,64 @@ export default function EditarGuardiaPage() {
                   showMap={false}
                   showClearButton={true}
                 />
+              </div>
+            </div>
+
+            {/* Datos Bancarios */}
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Datos Bancarios
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <label htmlFor="banco" className="text-sm font-medium text-gray-600">Banco</label>
+                  <Select
+                    value={formData.banco_id}
+                    onValueChange={(value) => handleSelectChange('banco_id', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar banco" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bancos.map((banco) => (
+                        <SelectItem key={banco.id} value={banco.id}>
+                          {banco.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="tipo_cuenta" className="text-sm font-medium text-gray-600">Tipo de Cuenta</label>
+                  <Select
+                    value={formData.tipo_cuenta}
+                    onValueChange={(value) => handleSelectChange('tipo_cuenta', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIPOS_CUENTA.map((tipo) => (
+                        <SelectItem key={tipo.value} value={tipo.value}>
+                          {tipo.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="numero_cuenta" className="text-sm font-medium text-gray-600">Número de Cuenta</label>
+                  <Input
+                    id="numero_cuenta"
+                    name="numero_cuenta"
+                    value={formData.numero_cuenta}
+                    onChange={handleInputChange}
+                    placeholder="Ingrese número de cuenta"
+                  />
+                </div>
               </div>
             </div>
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
+import { logCRUD } from '@/lib/logging';
 
 export async function GET(
   request: NextRequest,
@@ -45,6 +46,10 @@ export async function PATCH(
     const guardiaId = params.id;
     const { banco_id, tipo_cuenta, numero_cuenta } = await request.json();
 
+    // Por ahora usar un tenant_id fijo para testing
+    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const usuario = 'admin@test.com';
+
     // Validar datos
     if (!numero_cuenta) {
       return NextResponse.json(
@@ -59,6 +64,20 @@ export async function PATCH(
         { status: 400 }
       );
     }
+
+    // Obtener datos anteriores para el log
+    const oldDataResult = await query(`
+      SELECT banco, tipo_cuenta, numero_cuenta FROM guardias WHERE id = $1
+    `, [guardiaId]);
+
+    if (oldDataResult.rows.length === 0) {
+      return NextResponse.json(
+        { error: 'Guardia no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    const datosAnteriores = oldDataResult.rows[0];
 
     // Actualizar datos bancarios
     const result = await query(`
@@ -78,6 +97,28 @@ export async function PATCH(
         { status: 404 }
       );
     }
+
+    const datosNuevos = result.rows[0];
+
+    // Registrar log de actualización
+    await logCRUD(
+      'guardias',
+      guardiaId,
+      'UPDATE',
+      usuario,
+      datosAnteriores,
+      datosNuevos,
+      tenantId,
+      'api',
+      {
+        contexto: 'Actualización de datos bancarios',
+        campos_modificados: {
+          banco: banco_id || null,
+          tipo_cuenta,
+          numero_cuenta
+        }
+      }
+    );
 
     return NextResponse.json({
       success: true,

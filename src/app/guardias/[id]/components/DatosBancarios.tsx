@@ -3,9 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Download, CreditCard, DollarSign } from 'lucide-react';
 
@@ -49,12 +46,6 @@ export default function DatosBancarios({ guardiaId }: DatosBancariosProps) {
   const [bancos, setBancos] = useState<Banco[]>([]);
   const [pagos, setPagos] = useState<Pago[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({
-    banco_id: '',
-    tipo_cuenta: '',
-    numero_cuenta: ''
-  });
 
   useEffect(() => {
     cargarDatos();
@@ -69,11 +60,6 @@ export default function DatosBancarios({ guardiaId }: DatosBancariosProps) {
       if (datosResponse.ok) {
         const datos = await datosResponse.json();
         setDatosBancarios(datos);
-        setFormData({
-          banco_id: datos.banco || '',
-          tipo_cuenta: datos.tipo_cuenta || '',
-          numero_cuenta: datos.numero_cuenta || ''
-        });
       }
 
       // Cargar lista de bancos
@@ -93,36 +79,6 @@ export default function DatosBancarios({ guardiaId }: DatosBancariosProps) {
       console.error('Error cargando datos:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleGuardar = async () => {
-    try {
-      setSaving(true);
-      
-      const response = await fetch(`/api/guardias/${guardiaId}/bancarios`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        alert('Datos bancarios guardados con éxito');
-        
-        // Recargar datos
-        await cargarDatos();
-      } else {
-        const error = await response.json();
-        alert(`Error: ${error.error}`);
-      }
-    } catch (error) {
-      console.error('Error guardando datos:', error);
-      alert('Error al guardar los datos bancarios');
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -149,6 +105,20 @@ export default function DatosBancarios({ guardiaId }: DatosBancariosProps) {
     }
   };
 
+  // Función para obtener el nombre del banco
+  const obtenerNombreBanco = (bancoId: string | null) => {
+    if (!bancoId) return 'No especificado';
+    const banco = bancos.find(b => b.id === bancoId);
+    return banco ? banco.nombre : 'Banco no encontrado';
+  };
+
+  // Función para obtener el nombre del tipo de cuenta
+  const obtenerNombreTipoCuenta = (tipoCuenta: string | null) => {
+    if (!tipoCuenta) return 'No especificado';
+    const tipo = TIPOS_CUENTA.find(t => t.value === tipoCuenta);
+    return tipo ? tipo.label : tipoCuenta;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -160,7 +130,7 @@ export default function DatosBancarios({ guardiaId }: DatosBancariosProps) {
 
   return (
     <div className="space-y-6">
-      {/* Formulario de Datos Bancarios */}
+      {/* Datos Bancarios de Solo Lectura */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -171,69 +141,37 @@ export default function DatosBancarios({ guardiaId }: DatosBancariosProps) {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="banco">Banco</Label>
-              <Select
-                value={formData.banco_id}
-                onValueChange={(value) => setFormData({ ...formData, banco_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar banco" />
-                </SelectTrigger>
-                <SelectContent>
-                  {bancos.map((banco) => (
-                    <SelectItem key={banco.id} value={banco.id}>
-                      {banco.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="text-sm font-medium text-gray-600">Banco</label>
+              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md border">
+                <p className="text-sm">
+                  {datosBancarios?.banco ? obtenerNombreBanco(datosBancarios.banco) : 'No especificado'}
+                </p>
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="tipo_cuenta">Tipo de Cuenta</Label>
-              <Select
-                value={formData.tipo_cuenta}
-                onValueChange={(value) => setFormData({ ...formData, tipo_cuenta: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIPOS_CUENTA.map((tipo) => (
-                    <SelectItem key={tipo.value} value={tipo.value}>
-                      {tipo.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="text-sm font-medium text-gray-600">Tipo de Cuenta</label>
+              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md border">
+                <p className="text-sm">
+                  {datosBancarios?.tipo_cuenta ? obtenerNombreTipoCuenta(datosBancarios.tipo_cuenta) : 'No especificado'}
+                </p>
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="numero_cuenta">Número de Cuenta</Label>
-              <Input
-                id="numero_cuenta"
-                value={formData.numero_cuenta}
-                onChange={(e) => setFormData({ ...formData, numero_cuenta: e.target.value })}
-                placeholder="Ingrese número de cuenta"
-              />
+              <label className="text-sm font-medium text-gray-600">Número de Cuenta</label>
+              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md border">
+                <p className="text-sm">
+                  {datosBancarios?.numero_cuenta || 'No especificado'}
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="flex justify-end">
-            <Button 
-              onClick={handleGuardar} 
-              disabled={saving}
-              className="flex items-center gap-2"
-            >
-              {saving ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Guardando...
-                </>
-              ) : (
-                'Guardar Datos Bancarios'
-              )}
-            </Button>
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              <strong>Nota:</strong> Para modificar los datos bancarios, utiliza el botón "Editar" en la parte superior de la página.
+            </p>
           </div>
         </CardContent>
       </Card>

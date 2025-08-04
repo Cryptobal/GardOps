@@ -1,10 +1,10 @@
 -- Sistema centralizado de logs para GardOps
--- Tablas estandarizadas para 7 módulos principales con UUIDs y referencias
+-- Tablas estandarizadas para 7 módulos principales sin referencias externas
 
 -- 1. Logs de Guardias
 CREATE TABLE IF NOT EXISTS logs_guardias (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    guardia_id UUID NOT NULL REFERENCES guardias(id) ON DELETE CASCADE,
+    guardia_id TEXT NOT NULL,
     accion TEXT NOT NULL,
     usuario TEXT NOT NULL,
     tipo TEXT DEFAULT 'manual',
@@ -12,13 +12,13 @@ CREATE TABLE IF NOT EXISTS logs_guardias (
     datos_anteriores JSONB,
     datos_nuevos JSONB,
     fecha TIMESTAMP DEFAULT now(),
-    tenant_id UUID REFERENCES tenants(id)
+    tenant_id TEXT
 );
 
--- 2. Logs de Pauta Mensual (usando pautas_mensuales)
+-- 2. Logs de Pauta Mensual
 CREATE TABLE IF NOT EXISTS logs_pauta_mensual (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    pauta_mensual_id UUID NOT NULL REFERENCES pautas_mensuales(id) ON DELETE CASCADE,
+    pauta_mensual_id TEXT NOT NULL,
     accion TEXT NOT NULL,
     usuario TEXT NOT NULL,
     tipo TEXT DEFAULT 'manual',
@@ -26,13 +26,13 @@ CREATE TABLE IF NOT EXISTS logs_pauta_mensual (
     datos_anteriores JSONB,
     datos_nuevos JSONB,
     fecha TIMESTAMP DEFAULT now(),
-    tenant_id UUID REFERENCES tenants(id)
+    tenant_id TEXT
 );
 
--- 3. Logs de Pauta Diaria (usando pautas_diarias)
+-- 3. Logs de Pauta Diaria
 CREATE TABLE IF NOT EXISTS logs_pauta_diaria (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    pauta_diaria_id UUID NOT NULL REFERENCES pautas_diarias(id) ON DELETE CASCADE,
+    pauta_diaria_id TEXT NOT NULL,
     accion TEXT NOT NULL,
     usuario TEXT NOT NULL,
     tipo TEXT DEFAULT 'manual',
@@ -40,13 +40,13 @@ CREATE TABLE IF NOT EXISTS logs_pauta_diaria (
     datos_anteriores JSONB,
     datos_nuevos JSONB,
     fecha TIMESTAMP DEFAULT now(),
-    tenant_id UUID REFERENCES tenants(id)
+    tenant_id TEXT
 );
 
 -- 4. Logs de Turnos Extras
 CREATE TABLE IF NOT EXISTS logs_turnos_extras (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    turno_extra_id UUID NOT NULL REFERENCES turnos_extras(id) ON DELETE CASCADE,
+    turno_extra_id TEXT NOT NULL,
     accion TEXT NOT NULL,
     usuario TEXT NOT NULL,
     tipo TEXT DEFAULT 'manual',
@@ -54,13 +54,13 @@ CREATE TABLE IF NOT EXISTS logs_turnos_extras (
     datos_anteriores JSONB,
     datos_nuevos JSONB,
     fecha TIMESTAMP DEFAULT now(),
-    tenant_id UUID REFERENCES tenants(id)
+    tenant_id TEXT
 );
 
--- 5. Logs de Puestos Operativos (usando as_turnos_puestos_operativos)
+-- 5. Logs de Puestos Operativos
 CREATE TABLE IF NOT EXISTS logs_puestos_operativos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    puesto_operativo_id UUID NOT NULL REFERENCES as_turnos_puestos_operativos(id) ON DELETE CASCADE,
+    puesto_operativo_id TEXT NOT NULL,
     accion TEXT NOT NULL,
     usuario TEXT NOT NULL,
     tipo TEXT DEFAULT 'manual',
@@ -68,13 +68,13 @@ CREATE TABLE IF NOT EXISTS logs_puestos_operativos (
     datos_anteriores JSONB,
     datos_nuevos JSONB,
     fecha TIMESTAMP DEFAULT now(),
-    tenant_id UUID REFERENCES tenants(id)
+    tenant_id TEXT
 );
 
 -- 6. Logs de Documentos
 CREATE TABLE IF NOT EXISTS logs_documentos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    documento_id UUID NOT NULL REFERENCES documentos(id) ON DELETE CASCADE,
+    documento_id TEXT NOT NULL,
     accion TEXT NOT NULL,
     usuario TEXT NOT NULL,
     tipo TEXT DEFAULT 'manual',
@@ -82,13 +82,13 @@ CREATE TABLE IF NOT EXISTS logs_documentos (
     datos_anteriores JSONB,
     datos_nuevos JSONB,
     fecha TIMESTAMP DEFAULT now(),
-    tenant_id UUID REFERENCES tenants(id)
+    tenant_id TEXT
 );
 
 -- 7. Logs de Usuarios
 CREATE TABLE IF NOT EXISTS logs_usuarios (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    usuario_id TEXT NOT NULL,
     accion TEXT NOT NULL,
     usuario TEXT NOT NULL,
     tipo TEXT DEFAULT 'manual',
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS logs_usuarios (
     datos_anteriores JSONB,
     datos_nuevos JSONB,
     fecha TIMESTAMP DEFAULT now(),
-    tenant_id UUID REFERENCES tenants(id)
+    tenant_id TEXT
 );
 
 -- Índices para optimizar consultas por fecha y entidad
@@ -128,7 +128,7 @@ CREATE INDEX IF NOT EXISTS idx_logs_usuarios_fecha ON logs_usuarios(fecha);
 CREATE INDEX IF NOT EXISTS idx_logs_usuarios_usuario_id ON logs_usuarios(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_logs_usuarios_usuario ON logs_usuarios(usuario);
 
--- Índices para tenant_id en todas las tablas
+-- Índices adicionales para tenant_id
 CREATE INDEX IF NOT EXISTS idx_logs_guardias_tenant ON logs_guardias(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_logs_pauta_mensual_tenant ON logs_pauta_mensual(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_logs_pauta_diaria_tenant ON logs_pauta_diaria(tenant_id);

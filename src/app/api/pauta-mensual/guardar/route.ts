@@ -1,238 +1,199 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
-import { logCRUD } from '@/lib/logging';
 
-// Función de validación de integridad de datos
-const validarActualizaciones = (actualizaciones: any[]): string[] => {
-  const errores: string[] = [];
-  
-  if (!Array.isArray(actualizaciones)) {
-    errores.push('Las actualizaciones deben ser un array');
-    return errores;
-  }
-  
-  actualizaciones.forEach((actualizacion, index) => {
-    if (!actualizacion || typeof actualizacion !== 'object') {
-      errores.push(`Actualización ${index}: debe ser un objeto válido`);
-      return;
-    }
-    
-    if (!actualizacion.puesto_id) {
-      errores.push(`Actualización ${index}: puesto_id es requerido`);
-    }
-    
-    if (!actualizacion.anio || !actualizacion.mes || !actualizacion.dia) {
-      errores.push(`Actualización ${index}: anio, mes y dia son requeridos`);
-    }
-    
-    if (!['trabajado', 'libre'].includes(actualizacion.estado)) {
-      errores.push(`Actualización ${index}: estado debe ser 'trabajado' o 'libre'`);
-    }
-  });
-  
-  return errores;
-};
-
-export async function POST(request: NextRequest) {
-  const startTime = Date.now();
-  const timestamp = new Date().toISOString();
-  
+export async function POST(req: NextRequest) {
   try {
-    console.log(`[${timestamp}] 🚀 Iniciando guardado de pauta mensual`);
+    const body = await req.json();
     
-    const body = await request.json();
-    const { instalacion_id, anio, mes, actualizaciones } = body;
-    
-    // Por ahora usar un tenant_id fijo para testing
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
-    const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
-
-    console.log(`[${timestamp}] 📥 Datos recibidos:`, { 
-      instalacion_id, 
-      anio, 
-      mes, 
-      total_actualizaciones: actualizaciones?.length || 0 
+    console.log('📝 Datos recibidos en endpoint:', {
+      bodyType: typeof body,
+      isArray: Array.isArray(body),
+      hasInstalacionId: body && typeof body === 'object' && 'instalacion_id' in body,
+      hasPauta: body && typeof body === 'object' && 'pauta' in body,
+      hasActualizaciones: body && typeof body === 'object' && 'actualizaciones' in body,
+      bodyKeys: body && typeof body === 'object' ? Object.keys(body) : 'N/A',
+      pautaLength: body && typeof body === 'object' && 'pauta' in body ? body.pauta?.length : 'N/A',
+      actualizacionesLength: body && typeof body === 'object' && 'actualizaciones' in body ? body.actualizaciones?.length : 'N/A'
     });
 
-    // Validación de parámetros básicos
-    if (!instalacion_id || !anio || !mes) {
-      console.log(`[${timestamp}] ❌ Validación fallida: parámetros requeridos faltantes`);
-      return NextResponse.json(
-        { error: 'Parámetros requeridos: instalacion_id, anio, mes' },
-        { status: 400 }
-      );
-    }
+    // Verificar si es el formato del frontend (objeto con instalacion_id, mes, anio, pauta/actualizaciones)
+    if (body && typeof body === 'object' && 'instalacion_id' in body && ('pauta' in body || 'actualizaciones' in body)) {
+      console.log('📝 Formato frontend detectado:', { 
+        instalacion_id: body.instalacion_id, 
+        mes: body.mes, 
+        anio: body.anio,
+        pauta_length: body.pauta?.length,
+        actualizaciones_length: body.actualizaciones?.length
+      });
 
-    // Validación de estructura de actualizaciones
-    if (!actualizaciones || !Array.isArray(actualizaciones) || actualizaciones.length === 0) {
-      console.log(`[${timestamp}] ❌ Validación fallida: actualizaciones inválidas`);
-      return NextResponse.json(
-        { error: 'Las actualizaciones deben ser un array válido con datos de turnos' },
-        { status: 400 }
-      );
-    }
-
-    // Validación de integridad de datos
-    const erroresValidacion = validarActualizaciones(actualizaciones);
-    if (erroresValidacion.length > 0) {
-      console.log(`[${timestamp}] ❌ Errores de validación:`, erroresValidacion);
-      return NextResponse.json(
-        { error: 'Datos inválidos', detalles: erroresValidacion },
-        { status: 400 }
-      );
-    }
-
-    console.log(`[${timestamp}] ✅ Validación exitosa, procediendo con guardado`);
-
-    // Obtener datos anteriores para el log
-    const pautaAnterior = await query(`
-      SELECT pm.*, po.nombre_puesto
-      FROM as_turnos_pauta_mensual pm
-      INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
-      WHERE po.instalacion_id = $1 
-        AND pm.anio = $2 
-        AND pm.mes = $3
-    `, [instalacion_id, anio, mes]);
-
-    console.log(`[${timestamp}] 🔍 Procesando ${actualizaciones.length} actualizaciones...`);
-
-    // Procesar cada actualización
-    const operaciones = [];
-    let totalOperaciones = 0;
-    
-    for (const actualizacion of actualizaciones) {
-      const { puesto_id, guardia_id, anio: anioAct, mes: mesAct, dia, estado } = actualizacion;
-      
-      console.log(`[${timestamp}] 🔄 Procesando actualización:`, { puesto_id, guardia_id, dia, estado });
-      
-      // Verificar si existe un registro para este puesto, día y mes
-      const registroExistente = await query(`
-        SELECT COUNT(*) as count
-        FROM as_turnos_pauta_mensual pm
-        WHERE pm.puesto_id = $1 
-          AND pm.anio = $2 
-          AND pm.mes = $3 
-          AND pm.dia = $4
-      `, [puesto_id, anioAct, mesAct, dia]);
-
-      const existeRegistro = parseInt(registroExistente.rows[0].count) > 0;
-      
-      if (existeRegistro) {
-        // Actualizar registro existente
-        operaciones.push(
-          query(`
-            UPDATE as_turnos_pauta_mensual 
-            SET estado = $1, 
-                guardia_id = $2,
-                updated_at = NOW()
-            WHERE puesto_id = $3 
-              AND anio = $4 
-              AND mes = $5 
-              AND dia = $6
-          `, [estado, guardia_id, puesto_id, anioAct, mesAct, dia])
-        );
-      } else {
-        // Insertar nuevo registro
-        operaciones.push(
-          query(`
-            INSERT INTO as_turnos_pauta_mensual 
-            (puesto_id, guardia_id, anio, mes, dia, estado, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-          `, [puesto_id, guardia_id, anioAct, mesAct, dia, estado])
-        );
+      // Si tiene actualizaciones, procesarlas directamente
+      if (body.actualizaciones && Array.isArray(body.actualizaciones) && body.actualizaciones.length > 0) {
+        console.log('📝 Procesando actualizaciones directamente:', body.actualizaciones.length);
+        return await procesarTurnos(body.actualizaciones);
       }
-      totalOperaciones++;
+
+      // Convertir el formato del frontend al formato esperado por la base de datos
+      const turnos = [];
+      const { instalacion_id, mes, anio } = body;
+      
+      // Usar 'pauta' o 'actualizaciones', cualquiera que esté presente
+      const pauta = body.pauta || body.actualizaciones;
+
+      if (!Array.isArray(pauta) || pauta.length === 0) {
+        console.log('❌ Pauta/actualizaciones no es un array válido:', { pauta, pautaType: typeof pauta });
+        return NextResponse.json({ error: 'No se enviaron datos de pauta válidos' }, { status: 400 });
+      }
+
+      // Obtener puestos operativos de la instalación
+      const puestosResult = await query(`
+        SELECT id, nombre_puesto, guardia_id, es_ppc
+        FROM as_turnos_puestos_operativos
+        WHERE instalacion_id = $1 AND (activo = true OR activo IS NULL)
+      `, [instalacion_id]);
+
+      if (puestosResult.rows.length === 0) {
+        console.log('❌ No se encontraron puestos operativos para instalación:', instalacion_id);
+        return NextResponse.json({ error: 'No se encontraron puestos operativos para esta instalación' }, { status: 400 });
+      }
+
+      console.log('📋 Puestos operativos encontrados:', puestosResult.rows.length);
+
+      // Generar turnos para cada día del mes
+      const diasEnMes = new Date(anio, mes, 0).getDate();
+      console.log('📅 Generando turnos para', diasEnMes, 'días del mes');
+      
+      for (let dia = 1; dia <= diasEnMes; dia++) {
+        for (const puesto of puestosResult.rows) {
+          // Buscar si hay un guardia asignado para este puesto en este día
+          const guardiaAsignado = pauta.find((g: any) => {
+            // El frontend envía guardia_id que puede ser el ID del puesto (para PPCs) o el ID del guardia
+            if (g.guardia_id === puesto.id && puesto.es_ppc) {
+              // Es un PPC, verificar si tiene asignación para este día
+              const diaIndex = dia - 1;
+              return g.dias && g.dias[diaIndex] === 'T'; // 'T' = TRABAJA
+            } else if (g.guardia_id === puesto.guardia_id && !puesto.es_ppc) {
+              // Es un guardia asignado, verificar si trabaja este día
+              const diaIndex = dia - 1;
+              return g.dias && g.dias[diaIndex] === 'T'; // 'T' = TRABAJA
+            }
+            return false;
+          });
+
+          const turno = {
+            puesto_id: puesto.id,
+            guardia_id: guardiaAsignado ? (puesto.es_ppc ? null : puesto.guardia_id) : null,
+            anio: anio,
+            mes: mes,
+            dia: dia,
+            estado: guardiaAsignado ? 'trabajado' : 'libre',
+            observaciones: guardiaAsignado ? 'Turno asignado' : null,
+            reemplazo_guardia_id: null,
+          };
+
+          turnos.push(turno);
+        }
+      }
+
+      console.log(`🔄 Convertidos ${pauta.length} guardias a ${turnos.length} turnos para ${diasEnMes} días`);
+      
+      // Continuar con el procesamiento normal usando el array de turnos
+      return await procesarTurnos(turnos);
+
+    } else if (Array.isArray(body) && body.length > 0) {
+      // Formato directo de array de turnos (para tests y otros usos)
+      console.log('📝 Formato directo detectado:', { turnos_count: body.length });
+      return await procesarTurnos(body);
+    } else {
+      console.log('❌ Formato no reconocido:', { 
+        bodyType: typeof body, 
+        isArray: Array.isArray(body),
+        body: body 
+      });
+      return NextResponse.json({ error: 'No se enviaron datos válidos' }, { status: 400 });
     }
 
-    console.log(`[${timestamp}] ⏳ Ejecutando ${totalOperaciones} operaciones en paralelo...`);
-    await Promise.all(operaciones);
-
-    // Obtener datos después de la actualización para el log
-    const pautaDespues = await query(`
-      SELECT pm.*, po.nombre_puesto
-      FROM as_turnos_pauta_mensual pm
-      INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
-      WHERE po.instalacion_id = $1 
-        AND pm.anio = $2 
-        AND pm.mes = $3
-    `, [instalacion_id, anio, mes]);
-
-    // Crear un ID único para la pauta mensual
-    const pautaId = `${instalacion_id}_${anio}_${mes}`;
-    
-    // Log de actualización de pauta mensual
-    await logCRUD(
-      'pauta_mensual',
-      pautaId,
-      'UPDATE',
-      usuario,
-      {
-        instalacion_id,
-        anio: parseInt(anio),
-        mes: parseInt(mes),
-        registros_anteriores: pautaAnterior.rows.length,
-        pauta_anterior: pautaAnterior.rows
-      },
-      {
-        instalacion_id,
-        anio: parseInt(anio),
-        mes: parseInt(mes),
-        registros_despues: pautaDespues.rows.length,
-        pauta_despues: pautaDespues.rows,
-        total_operaciones,
-        tiempo_procesamiento_ms: Date.now() - startTime
-      },
-      tenantId
-    );
-
-    const endTime = Date.now();
-    const duration = endTime - startTime;
-    
-    console.log(`[${timestamp}] ✅ Pauta mensual actualizada exitosamente`);
-    console.log(`[${timestamp}] 📊 Resumen: ${actualizaciones.length} actualizaciones, ${totalOperaciones} operaciones`);
-    console.log(`[${timestamp}] ⏱️ Tiempo total: ${duration}ms`);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Pauta mensual actualizada exitosamente',
-      instalacion_id,
-      anio,
-      mes,
-      metadata: {
-        total_actualizaciones: actualizaciones.length,
-        total_operaciones: totalOperaciones,
-        tiempo_procesamiento_ms: duration,
-        timestamp: timestamp
-      }
-    });
-
-  } catch (error) {
-    const errorTime = new Date().toISOString();
-    console.error(`[${errorTime}] ❌ Error guardando pauta mensual:`, error);
-    
-    // Log del error
-    await logCRUD(
-      'pauta_mensual',
-      'ERROR',
-      'ERROR',
-      'admin@test.com',
-      null,
-      {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        endpoint: '/api/pauta-mensual/guardar',
-        method: 'POST'
-      },
-      'accebf8a-bacc-41fa-9601-ed39cb320a52'
-    );
-    
+  } catch (err) {
+    console.error('❌ Error guardando pauta mensual:', err);
     return NextResponse.json(
-      { 
-        error: 'Error interno del servidor al guardar la pauta mensual',
-        timestamp: errorTime,
-        detalles: process.env.NODE_ENV === 'development' ? error : undefined
-      },
+      { error: 'Error interno del servidor al guardar la pauta mensual' },
       { status: 500 }
     );
   }
+}
+
+async function procesarTurnos(turnos: any[]) {
+  let guardados = 0;
+  const errores = [];
+
+  for (const turno of turnos) {
+    const {
+      puesto_id,
+      guardia_id,
+      anio,
+      mes,
+      dia,
+      estado,
+      observaciones,
+      reemplazo_guardia_id,
+    } = turno;
+
+    // Validación de campos requeridos
+    if (!puesto_id || !anio || !mes || !dia || !estado) {
+      errores.push(`Turno inválido: faltan campos requeridos - puesto_id: ${puesto_id}, anio: ${anio}, mes: ${mes}, dia: ${dia}, estado: ${estado}`);
+      continue;
+    }
+
+    // Validación de estado
+    if (!['trabajado', 'libre'].includes(estado)) {
+      errores.push(`Estado inválido: ${estado} - debe ser 'trabajado' o 'libre'`);
+      continue;
+    }
+
+    try {
+      await query(
+        `
+        INSERT INTO as_turnos_pauta_mensual (
+          puesto_id, guardia_id, anio, mes, dia, estado,
+          observaciones, reemplazo_guardia_id, created_at, updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+        ON CONFLICT (puesto_id, anio, mes, dia)
+        DO UPDATE SET
+          guardia_id = EXCLUDED.guardia_id,
+          estado = EXCLUDED.estado,
+          observaciones = EXCLUDED.observaciones,
+          reemplazo_guardia_id = EXCLUDED.reemplazo_guardia_id,
+          updated_at = NOW()
+      `,
+        [
+          puesto_id,
+          guardia_id || null,
+          anio,
+          mes,
+          dia,
+          estado,
+          observaciones || null,
+          reemplazo_guardia_id || null,
+        ]
+      );
+
+      guardados++;
+    } catch (dbError) {
+      console.error('Error en turno específico:', { turno, error: dbError });
+      errores.push(`Error guardando turno para puesto ${puesto_id}, día ${dia}: ${dbError instanceof Error ? dbError.message : 'Error desconocido'}`);
+    }
+  }
+
+  console.log(`✅ Guardados ${guardados} turnos de ${turnos.length} totales`);
+  
+  if (errores.length > 0) {
+    console.warn('⚠️ Errores encontrados:', errores);
+  }
+
+  return NextResponse.json({ 
+    success: true, 
+    total: guardados,
+    total_enviados: turnos.length,
+    errores: errores.length > 0 ? errores : undefined
+  });
 } 

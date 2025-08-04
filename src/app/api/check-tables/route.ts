@@ -1,69 +1,84 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query, checkConnection } from '@/lib/database';
+import { query } from '@/lib/database';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 Verificando conexión a la base de datos...');
+    const { searchParams } = new URL(request.url);
+    const checkStructure = searchParams.get('structure') === 'true';
     
-    // Verificar conexión
-    const isConnected = await checkConnection();
-    if (!isConnected) {
-      return NextResponse.json(
-        { error: 'No se pudo conectar a la base de datos' },
-        { status: 500 }
-      );
-    }
-
-    console.log('✅ Conexión exitosa, verificando tablas...');
-
-    // Verificar tablas necesarias
     const tables = [
+      'guardias',
+      'instalaciones',
       'as_turnos_puestos_operativos',
       'as_turnos_roles_servicio',
-      'guardias',
-      'instalaciones'
+      'logs_guardias',
+      'logs_instalaciones',
+      'logs_clientes',
+      'logs_pauta_mensual',
+      'logs_pauta_diaria',
+      'logs_turnos_extras',
+      'logs_puestos_operativos',
+      'logs_documentos',
+      'logs_usuarios'
     ];
 
-    const tableStatus: Record<string, any> = {};
+    const results: any = {};
+    let connectionOk = false;
+
+    try {
+      await query('SELECT 1');
+      connectionOk = true;
+    } catch (error) {
+      console.error('Error de conexión:', error);
+    }
 
     for (const table of tables) {
       try {
-        const result = await query(`
-          SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND table_name = $1
-          )
-        `, [table]);
-        
-        tableStatus[table] = {
-          exists: result.rows[0].exists,
-          error: null
+        const result = await query(`SELECT COUNT(*) as count FROM ${table}`);
+        results[table] = {
+          exists: true,
+          error: null,
+          count: parseInt(result.rows[0].count)
         };
 
-        if (result.rows[0].exists) {
-          // Verificar si tiene datos
-          const countResult = await query(`SELECT COUNT(*) as count FROM ${table}`);
-          tableStatus[table].count = parseInt(countResult.rows[0].count);
+        // Si se solicita verificar estructura, obtener las columnas
+        if (checkStructure && table.startsWith('logs_')) {
+          try {
+            const columnsResult = await query(`
+              SELECT column_name, data_type, is_nullable
+              FROM information_schema.columns 
+              WHERE table_name = $1 
+              ORDER BY ordinal_position
+            `, [table]);
+            
+            results[table].columns = columnsResult.rows;
+          } catch (error) {
+            results[table].columnsError = error instanceof Error ? error.message : 'Error desconocido';
+          }
         }
       } catch (error) {
-        tableStatus[table] = {
+        results[table] = {
           exists: false,
-          error: error instanceof Error ? error.message : 'Error desconocido'
+          error: error instanceof Error ? error.message : 'Error desconocido',
+          count: 0
         };
       }
     }
 
     return NextResponse.json({
       success: true,
-      connection: 'OK',
-      tables: tableStatus
+      connection: connectionOk ? 'OK' : 'ERROR',
+      tables: results
     });
 
   } catch (error) {
-    console.error('❌ Error verificando tablas:', error);
+    console.error('Error verificando tablas:', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor al verificar tablas' },
+      { 
+        success: false,
+        error: 'Error interno del servidor',
+        details: error instanceof Error ? error.message : 'Error desconocido'
+      },
       { status: 500 }
     );
   }

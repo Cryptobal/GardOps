@@ -57,8 +57,11 @@ export async function PUT(
         email = $5,
         telefono = $6,
         direccion = $7,
+        banco = $8,
+        tipo_cuenta = $9,
+        numero_cuenta = $10,
         updated_at = NOW()
-      WHERE id = $8 AND tenant_id = $9
+      WHERE id = $11 AND tenant_id = $12
       RETURNING *
     `, [
       body.nombre,
@@ -68,6 +71,9 @@ export async function PUT(
       body.email,
       body.telefono,
       body.direccion,
+      body.banco_id || null,
+      body.tipo_cuenta || null,
+      body.numero_cuenta || null,
       guardiaId,
       tenantId
     ]);
@@ -105,6 +111,9 @@ export async function PUT(
       latitud: guardiaActualizado.latitud,
       longitud: guardiaActualizado.longitud,
       estado: guardiaActualizado.activo ? 'activo' : 'inactivo',
+      banco: guardiaActualizado.banco,
+      tipo_cuenta: guardiaActualizado.tipo_cuenta,
+      numero_cuenta: guardiaActualizado.numero_cuenta,
       created_at: guardiaActualizado.created_at,
       updated_at: guardiaActualizado.updated_at
     };
@@ -198,6 +207,9 @@ export async function GET(
       latitud: guardia.latitud,
       longitud: guardia.longitud,
       estado: guardia.activo ? 'activo' : 'inactivo',
+      banco: guardia.banco,
+      tipo_cuenta: guardia.tipo_cuenta,
+      numero_cuenta: guardia.numero_cuenta,
       created_at: guardia.created_at,
       updated_at: guardia.updated_at,
       instalacion_nombre: guardia.instalacion_nombre,

@@ -21,252 +21,259 @@ export async function GET(request: NextRequest) {
     // Por ahora usar un tenant_id fijo para testing
     const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
 
-    // Construir la consulta base - solo para tablas que tienen tenant_id
-    let whereConditions = [];
-    let params: any[] = [];
-    let paramIndex = 1;
-
-    // Aplicar filtros
+    // Si se especifica un módulo específico, consultar solo esa tabla
     if (modulo && modulo !== 'todos') {
-      whereConditions.push(`modulo = $${paramIndex}`);
-      params.push(modulo);
-      paramIndex++;
+      const tablaLogs = `logs_${modulo}`;
+      // Mapear el nombre del módulo al nombre correcto de la columna ID
+      const idCampoMap: { [key: string]: string } = {
+        'guardias': 'guardia_id',
+        'instalaciones': 'instalacion_id',
+        'clientes': 'cliente_id',
+        'pauta_mensual': 'pauta_mensual_id',
+        'pauta_diaria': 'pauta_diaria_id',
+        'turnos_extras': 'turno_extra_id',
+        'puestos_operativos': 'puesto_operativo_id',
+        'documentos': 'documento_id',
+        'usuarios': 'usuario_id'
+      };
+      const idCampo = idCampoMap[modulo] || `${modulo}_id`;
+      
+      let whereConditions = [];
+      let params: any[] = [];
+      let paramIndex = 1;
+
+      // Aplicar filtros específicos del módulo
+      if (usuario && usuario !== 'todos') {
+        whereConditions.push(`usuario = $${paramIndex}`);
+        params.push(usuario);
+        paramIndex++;
+      }
+
+      if (accion && accion !== 'todos') {
+        whereConditions.push(`accion = $${paramIndex}`);
+        params.push(accion);
+        paramIndex++;
+      }
+
+      if (fechaDesde) {
+        whereConditions.push(`fecha >= $${paramIndex}`);
+        params.push(`${fechaDesde}T00:00:00.000Z`);
+        paramIndex++;
+      }
+
+      if (fechaHasta) {
+        whereConditions.push(`fecha <= $${paramIndex}`);
+        params.push(`${fechaHasta}T23:59:59.999Z`);
+        paramIndex++;
+      }
+
+      if (search) {
+        whereConditions.push(`(
+          accion ILIKE $${paramIndex} OR 
+          usuario ILIKE $${paramIndex} OR 
+          contexto::text ILIKE $${paramIndex} OR
+          datos_anteriores::text ILIKE $${paramIndex} OR
+          datos_nuevos::text ILIKE $${paramIndex}
+        )`);
+        params.push(`%${search}%`);
+        paramIndex++;
+      }
+
+      // Agregar filtro de tenant_id si la tabla lo tiene
+      if (modulo !== 'instalaciones' && modulo !== 'clientes') {
+        whereConditions.push(`tenant_id = $${paramIndex}`);
+        params.push(tenantId);
+        paramIndex++;
+      }
+
+      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+      // Consulta para obtener el total de registros
+      const countQuery = `
+        SELECT COUNT(*) as total
+        FROM ${tablaLogs}
+        ${whereClause}
+      `;
+
+      const countResult = await query(countQuery, params);
+      const total = parseInt(countResult.rows[0].total);
+
+      // Consulta principal con paginación
+      const mainQuery = `
+        SELECT 
+          id,
+          '${modulo}' as modulo,
+          ${idCampo} as entidad_id,
+          accion,
+          usuario,
+          tipo,
+          contexto,
+          datos_anteriores,
+          datos_nuevos,
+          fecha,
+          tenant_id
+        FROM ${tablaLogs}
+        ${whereClause}
+        ORDER BY fecha DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+
+      const queryParams = [...params, limite, offset];
+      const result = await query(mainQuery, queryParams);
+
+      const totalPaginas = Math.ceil(total / limite);
+
+      return NextResponse.json({
+        success: true,
+        logs: result.rows,
+        total,
+        totalPaginas,
+        pagina,
+        limite,
+        filtros: {
+          modulo,
+          usuario,
+          accion,
+          fechaDesde,
+          fechaHasta,
+          search
+        }
+      });
     }
 
-    if (usuario && usuario !== 'todos') {
-      whereConditions.push(`usuario = $${paramIndex}`);
-      params.push(usuario);
-      paramIndex++;
-    }
+    // Si no se especifica módulo, consultar todas las tablas de logs
+    const tablasLogs = [
+      { nombre: 'guardias', tabla: 'logs_guardias', idCampo: 'guardia_id', tieneDatosAnteriores: true },
+      { nombre: 'instalaciones', tabla: 'logs_instalaciones', idCampo: 'instalacion_id', tieneDatosAnteriores: false },
+      { nombre: 'clientes', tabla: 'logs_clientes', idCampo: 'cliente_id', tieneDatosAnteriores: false },
+      { nombre: 'pauta_mensual', tabla: 'logs_pauta_mensual', idCampo: 'pauta_mensual_id', tieneDatosAnteriores: true },
+      { nombre: 'pauta_diaria', tabla: 'logs_pauta_diaria', idCampo: 'pauta_diaria_id', tieneDatosAnteriores: true },
+      { nombre: 'turnos_extras', tabla: 'logs_turnos_extras', idCampo: 'turno_extra_id', tieneDatosAnteriores: true },
+      { nombre: 'puestos_operativos', tabla: 'logs_puestos_operativos', idCampo: 'puesto_operativo_id', tieneDatosAnteriores: true },
+      { nombre: 'documentos', tabla: 'logs_documentos', idCampo: 'documento_id', tieneDatosAnteriores: true },
+      { nombre: 'usuarios', tabla: 'logs_usuarios', idCampo: 'usuario_id', tieneDatosAnteriores: true }
+    ];
 
-    if (accion && accion !== 'todos') {
-      whereConditions.push(`accion = $${paramIndex}`);
-      params.push(accion);
-      paramIndex++;
-    }
+    let allLogs: any[] = [];
+    let totalLogs = 0;
 
-    if (fechaDesde) {
-      whereConditions.push(`fecha >= $${paramIndex}`);
-      params.push(`${fechaDesde}T00:00:00.000Z`);
-      paramIndex++;
-    }
+    for (const tablaInfo of tablasLogs) {
+      try {
+        let whereConditions = [];
+        let params: any[] = [];
+        let paramIndex = 1;
 
-    if (fechaHasta) {
-      whereConditions.push(`fecha <= $${paramIndex}`);
-      params.push(`${fechaHasta}T23:59:59.999Z`);
-      paramIndex++;
-    }
+        if (usuario && usuario !== 'todos') {
+          whereConditions.push(`usuario = $${paramIndex}`);
+          params.push(usuario);
+          paramIndex++;
+        }
 
-    if (search) {
-      whereConditions.push(`(
-        modulo ILIKE $${paramIndex} OR 
-        usuario ILIKE $${paramIndex} OR 
-        accion ILIKE $${paramIndex} OR
-        contexto::text ILIKE $${paramIndex} OR
-        datos_anteriores::text ILIKE $${paramIndex} OR
-        datos_nuevos::text ILIKE $${paramIndex}
-      )`);
-      params.push(`%${search}%`);
-      paramIndex++;
-    }
+        if (accion && accion !== 'todos') {
+          whereConditions.push(`accion = $${paramIndex}`);
+          params.push(accion);
+          paramIndex++;
+        }
 
-    const whereClause = whereConditions.join(' AND ');
+        if (fechaDesde) {
+          whereConditions.push(`fecha >= $${paramIndex}`);
+          params.push(`${fechaDesde}T00:00:00.000Z`);
+          paramIndex++;
+        }
 
-    // Consulta para obtener el total de registros
-    const countQuery = `
-      SELECT COUNT(*) as total
-      FROM (
-        SELECT 'guardias' as modulo, guardia_id as entidad_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id
-        FROM logs_guardias
-        UNION ALL
-        SELECT 'pauta_mensual' as modulo, pauta_mensual_id as entidad_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id
-        FROM logs_pauta_mensual
-        UNION ALL
-        SELECT 'pauta_diaria' as modulo, pauta_diaria_id as entidad_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id
-        FROM logs_pauta_diaria
-        UNION ALL
-        SELECT 'turnos_extras' as modulo, turno_extra_id as entidad_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id
-        FROM logs_turnos_extras
-        UNION ALL
-        SELECT 'puestos_operativos' as modulo, puesto_operativo_id as entidad_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id
-        FROM logs_puestos_operativos
-        UNION ALL
-        SELECT 'documentos' as modulo, documento_id as entidad_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id
-        FROM logs_documentos
-        UNION ALL
-        SELECT 'usuarios' as modulo, usuario_id as entidad_id, accion, usuario, tipo, contexto, datos_anteriores, datos_nuevos, fecha, tenant_id
-        FROM logs_usuarios
-        UNION ALL
-        SELECT 'instalaciones' as modulo, instalacion_id as entidad_id, accion, usuario, tipo, contexto, null as datos_anteriores, null as datos_nuevos, fecha, null as tenant_id
-        FROM logs_instalaciones
-        UNION ALL
-        SELECT 'clientes' as modulo, cliente_id as entidad_id, accion, usuario, tipo, contexto, null as datos_anteriores, null as datos_nuevos, fecha, null as tenant_id
-        FROM logs_clientes
-      ) combined_logs
-    `;
+        if (fechaHasta) {
+          whereConditions.push(`fecha <= $${paramIndex}`);
+          params.push(`${fechaHasta}T23:59:59.999Z`);
+          paramIndex++;
+        }
 
-    const countResult = await query(countQuery, params);
-    const total = parseInt(countResult.rows[0].total);
+        if (search) {
+          const searchConditions = [
+            `accion ILIKE $${paramIndex}`,
+            `usuario ILIKE $${paramIndex}`,
+            `contexto::text ILIKE $${paramIndex}`
+          ];
+          
+          // Solo agregar búsqueda en datos_anteriores y datos_nuevos si la tabla los tiene
+          if (tablaInfo.tieneDatosAnteriores) {
+            searchConditions.push(`datos_anteriores::text ILIKE $${paramIndex}`);
+            searchConditions.push(`datos_nuevos::text ILIKE $${paramIndex}`);
+          }
+          
+          whereConditions.push(`(${searchConditions.join(' OR ')})`);
+          params.push(`%${search}%`);
+          paramIndex++;
+        }
 
-    // Consulta principal con paginación
-    const mainQuery = `
-      SELECT 
-        id,
-        modulo,
-        entidad_id,
-        accion,
-        usuario,
-        tipo,
-        contexto,
-        datos_anteriores,
-        datos_nuevos,
-        fecha,
-        tenant_id
-      FROM (
-        SELECT 
+        // Agregar filtro de tenant_id si la tabla lo tiene
+        if (tablaInfo.nombre !== 'instalaciones' && tablaInfo.nombre !== 'clientes') {
+          whereConditions.push(`tenant_id = $${paramIndex}`);
+          params.push(tenantId);
+          paramIndex++;
+        }
+
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+        // Construir la consulta según la estructura de la tabla
+        let selectFields = `
           id,
-          'guardias' as modulo, 
-          guardia_id as entidad_id, 
-          accion, 
-          usuario, 
-          tipo, 
-          contexto, 
-          datos_anteriores, 
-          datos_nuevos, 
-          fecha, 
-          tenant_id
-        FROM logs_guardias
-        UNION ALL
-        SELECT 
-          id,
-          'pauta_mensual' as modulo, 
-          pauta_mensual_id as entidad_id, 
-          accion, 
-          usuario, 
-          tipo, 
-          contexto, 
-          datos_anteriores, 
-          datos_nuevos, 
-          fecha, 
-          tenant_id
-        FROM logs_pauta_mensual
-        UNION ALL
-        SELECT 
-          id,
-          'pauta_diaria' as modulo, 
-          pauta_diaria_id as entidad_id, 
-          accion, 
-          usuario, 
-          tipo, 
-          contexto, 
-          datos_anteriores, 
-          datos_nuevos, 
-          fecha, 
-          tenant_id
-        FROM logs_pauta_diaria
-        UNION ALL
-        SELECT 
-          id,
-          'turnos_extras' as modulo, 
-          turno_extra_id as entidad_id, 
-          accion, 
-          usuario, 
-          tipo, 
-          contexto, 
-          datos_anteriores, 
-          datos_nuevos, 
-          fecha, 
-          tenant_id
-        FROM logs_turnos_extras
-        UNION ALL
-        SELECT 
-          id,
-          'puestos_operativos' as modulo, 
-          puesto_operativo_id as entidad_id, 
-          accion, 
-          usuario, 
-          tipo, 
-          contexto, 
-          datos_anteriores, 
-          datos_nuevos, 
-          fecha, 
-          tenant_id
-        FROM logs_puestos_operativos
-        UNION ALL
-        SELECT 
-          id,
-          'documentos' as modulo, 
-          documento_id as entidad_id, 
-          accion, 
-          usuario, 
-          tipo, 
-          contexto, 
-          datos_anteriores, 
-          datos_nuevos, 
-          fecha, 
-          tenant_id
-        FROM logs_documentos
-        UNION ALL
-        SELECT 
-          id,
-          'usuarios' as modulo, 
-          usuario_id as entidad_id, 
-          accion, 
-          usuario, 
-          tipo, 
-          contexto, 
-          datos_anteriores, 
-          datos_nuevos, 
-          fecha, 
-          tenant_id
-        FROM logs_usuarios
-        UNION ALL
-        SELECT 
-          id,
-          'instalaciones' as modulo, 
-          instalacion_id as entidad_id, 
-          accion, 
-          usuario, 
-          tipo, 
-          contexto, 
+          '${tablaInfo.nombre}' as modulo,
+          ${tablaInfo.idCampo} as entidad_id,
+          accion,
+          usuario,
+          tipo,
+          contexto,
+          fecha
+        `;
+
+        // Agregar campos de datos según la estructura de la tabla
+        if (tablaInfo.tieneDatosAnteriores) {
+          selectFields += `,
+          datos_anteriores,
+          datos_nuevos,
+          tenant_id`;
+        } else {
+          selectFields += `,
           null as datos_anteriores,
           null as datos_nuevos,
-          fecha,
-          null as tenant_id
-        FROM logs_instalaciones
-        UNION ALL
-        SELECT 
-          id,
-          'clientes' as modulo, 
-          cliente_id as entidad_id, 
-          accion, 
-          usuario, 
-          tipo, 
-          contexto, 
-          null as datos_anteriores,
-          null as datos_nuevos,
-          fecha,
-          null as tenant_id
-        FROM logs_clientes
-      ) combined_logs
-      ORDER BY fecha DESC
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-    `;
+          null as tenant_id`;
+        }
 
-    const queryParams = [...params, limite, offset];
-    const result = await query(mainQuery, queryParams);
+        // Consulta para obtener logs de esta tabla
+        const sqlQuery = `
+          SELECT 
+            ${selectFields}
+          FROM ${tablaInfo.tabla}
+          ${whereClause}
+          ORDER BY fecha DESC
+        `;
 
-    const totalPaginas = Math.ceil(total / limite);
+        const result = await query(sqlQuery, params);
+        allLogs.push(...result.rows);
+        totalLogs += result.rows.length;
+
+      } catch (error) {
+        console.error(`Error consultando tabla ${tablaInfo.tabla}:`, error);
+        // Continuar con la siguiente tabla
+      }
+    }
+
+    // Ordenar todos los logs por fecha descendente
+    allLogs.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+
+    // Aplicar paginación
+    const logsPaginados = allLogs.slice(offset, offset + limite);
+    const totalPaginas = Math.ceil(totalLogs / limite);
 
     return NextResponse.json({
       success: true,
-      logs: result.rows,
-      total,
+      logs: logsPaginados,
+      total: totalLogs,
       totalPaginas,
       pagina,
       limite,
       filtros: {
-        modulo,
+        modulo: 'todos',
         usuario,
         accion,
         fechaDesde,

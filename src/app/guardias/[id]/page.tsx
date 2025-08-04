@@ -8,8 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, User, MapPin, Phone, Mail, Calendar, FileText, Settings, Edit, RefreshCw, AlertTriangle, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import AsignacionOperativa from './components/AsignacionOperativa';
-import DocumentosGuardia from './components/DocumentosGuardia';
-
+import { DocumentManager } from '@/components/shared/document-manager';
 import PermisosGuardia from './components/PermisosGuardia';
 import FiniquitoGuardia from './components/FiniquitoGuardia';
 import DatosBancarios from './components/DatosBancarios';
@@ -41,7 +40,6 @@ export default function GuardiaDetallePage() {
   const [geocodingData, setGeocodingData] = useState<GeocodingResult | null>(null);
   const [mapLoading, setMapLoading] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
-  // Agregar estado para el modal de confirmación
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingEstado, setPendingEstado] = useState<string | null>(null);
 
@@ -59,7 +57,6 @@ export default function GuardiaDetallePage() {
       const guardiaData = await response.json();
       setGuardia(guardiaData);
       
-      // Cargar datos de geocodificación si hay dirección
       if (guardiaData.direccion) {
         await cargarDatosGeograficos(guardiaData.direccion);
       }
@@ -75,25 +72,16 @@ export default function GuardiaDetallePage() {
       setMapLoading(true);
       setMapError(null);
       
-      console.log('Iniciando geocodificación para dirección:', direccion);
-      
-      // Cargar Google Maps si no está disponible
       const mapsLoaded = await cargarGoogleMaps();
       if (!mapsLoaded) {
-        console.error('No se pudo cargar Google Maps');
         setMapError('No se pudo cargar Google Maps');
         return;
       }
 
-      console.log('Google Maps cargado correctamente');
-
-      // Geocodificar la dirección
       const resultado = await geocodificarDireccion(direccion);
       if (resultado) {
         setGeocodingData(resultado);
-        console.log('Información con mapa integrada correctamente');
       } else {
-        console.error('No se pudo obtener la ubicación de la dirección');
         setMapError('No se pudo obtener la ubicación de la dirección');
       }
     } catch (error) {
@@ -105,7 +93,6 @@ export default function GuardiaDetallePage() {
   };
 
   const handleEditarGuardia = () => {
-    // Redirigir a la página de edición o abrir modal
     router.push(`/guardias/${guardiaId}/editar`);
   };
 
@@ -115,7 +102,6 @@ export default function GuardiaDetallePage() {
     }
   };
 
-  // Modificar la función handleToggleEstado para mostrar el modal
   const handleToggleEstado = () => {
     if (!guardia) return;
     const nuevoEstado = guardia.estado === 'activo' ? 'inactivo' : 'activo';
@@ -123,7 +109,6 @@ export default function GuardiaDetallePage() {
     setShowConfirmModal(true);
   };
 
-  // Agregar función para confirmar el cambio de estado
   const confirmarCambioEstado = async () => {
     if (!guardia || !pendingEstado) return;
     
@@ -140,11 +125,9 @@ export default function GuardiaDetallePage() {
       setShowConfirmModal(false);
       setPendingEstado(null);
       
-      // Mostrar toast de éxito
       console.log(`Guardia ${pendingEstado === 'activo' ? 'activado' : 'inactivado'} correctamente`);
     } catch (e) {
       console.error('Error al cambiar estado:', e);
-      // Mostrar toast de error
     } finally {
       setShowConfirmModal(false);
       setPendingEstado(null);
@@ -247,212 +230,342 @@ export default function GuardiaDetallePage() {
       </div>
 
       {/* Pestañas */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="bg-muted/30 p-1 rounded-lg">
-            {/* Primera fila de pestañas */}
-            <div className="flex flex-wrap gap-1 mb-1">
-              <TabsTrigger value="informacion" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap flex-1 min-w-0">
-                <User className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span className="hidden sm:inline truncate">Información</span>
-                <span className="sm:hidden">Info</span>
-              </TabsTrigger>
-              <TabsTrigger value="asignacion" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap flex-1 min-w-0">
-                <Settings className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span className="hidden sm:inline truncate">Asignación</span>
-                <span className="sm:hidden">Asign</span>
-              </TabsTrigger>
-              <TabsTrigger value="permisos" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap flex-1 min-w-0">
-                <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span className="hidden sm:inline truncate">Permisos</span>
-                <span className="sm:hidden">Perm</span>
-              </TabsTrigger>
-              <TabsTrigger value="documentos" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap flex-1 min-w-0">
-                <FileText className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span className="hidden sm:inline truncate">Documentos</span>
-                <span className="sm:hidden">Docs</span>
-              </TabsTrigger>
-            </div>
-            
-            {/* Segunda fila de pestañas */}
-            <div className="flex flex-wrap gap-1">
-              <TabsTrigger value="datos-bancarios" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap flex-1 min-w-0">
-                <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span className="hidden sm:inline truncate">Datos Bancarios</span>
-                <span className="sm:hidden">Banc</span>
-              </TabsTrigger>
-              <TabsTrigger value="finiquito" className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap flex-1 min-w-0">
-                <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span className="hidden sm:inline truncate">Finiquito</span>
-                <span className="sm:hidden">Fin</span>
-              </TabsTrigger>
-              {/* Espacio vacío para balance visual */}
-              <div className="flex-1 min-w-0"></div>
-            </div>
+      <div className="w-full mb-6">
+        {/* Contenedor de pestañas con fondo y bordes */}
+        <div className="bg-muted/30 rounded-xl p-3 shadow-sm border border-border/50">
+          {/* Desktop: Mejor distribución con espaciado */}
+          <div className="hidden md:flex gap-4 w-full justify-center">
+            <button
+              onClick={() => setActiveTab('informacion')}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'informacion' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <User className="h-4 w-4 flex-shrink-0" />
+              <span>Información</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('asignacion')}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'asignacion' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Settings className="h-4 w-4 flex-shrink-0" />
+              <span>Asignación</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('permisos')}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'permisos' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Calendar className="h-4 w-4 flex-shrink-0" />
+              <span>Permisos</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('documentos')}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'documentos' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <FileText className="h-4 w-4 flex-shrink-0" />
+              <span>Documentos</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('datos-bancarios')}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'datos-bancarios' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <CreditCard className="h-4 w-4 flex-shrink-0" />
+              <span>Datos Bancarios</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('finiquito')}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'finiquito' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              <span>Finiquito</span>
+            </button>
           </div>
 
-        {/* Contenido de la pestaña Información */}
-        <TabsContent value="informacion" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Información Personal
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Nombre Completo</label>
-                    <p className="text-lg font-semibold">{guardia.nombre} {guardia.apellidos}</p>
+          {/* Móvil: Diseño en 2 filas de 3 pestañas cada una */}
+          <div className="md:hidden grid grid-cols-3 gap-3">
+            {/* Primera fila */}
+            <button
+              onClick={() => setActiveTab('informacion')}
+              className={`flex flex-col items-center gap-1 px-3 py-4 text-xs font-medium rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'informacion' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <User className="h-4 w-4" />
+              <span>Información</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('asignacion')}
+              className={`flex flex-col items-center gap-1 px-3 py-4 text-xs font-medium rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'asignacion' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Settings className="h-4 w-4" />
+              <span>Asignación</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('permisos')}
+              className={`flex flex-col items-center gap-1 px-3 py-4 text-xs font-medium rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'permisos' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Calendar className="h-4 w-4" />
+              <span>Permisos</span>
+            </button>
+            {/* Segunda fila */}
+            <button
+              onClick={() => setActiveTab('documentos')}
+              className={`flex flex-col items-center gap-1 px-3 py-4 text-xs font-medium rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'documentos' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <FileText className="h-4 w-4" />
+              <span>Documentos</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('datos-bancarios')}
+              className={`flex flex-col items-center gap-1 px-3 py-4 text-xs font-medium rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'datos-bancarios' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <CreditCard className="h-4 w-4" />
+              <span>Bancarios</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('finiquito')}
+              className={`flex flex-col items-center gap-1 px-3 py-4 text-xs font-medium rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'finiquito' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <AlertTriangle className="h-4 w-4" />
+              <span>Finiquito</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+              {/* Contenido de la pestaña Información */}
+        {activeTab === 'informacion' && (
+          <div className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Información Personal
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Nombre Completo</label>
+                      <p className="text-lg font-semibold">{guardia.nombre} {guardia.apellidos}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">RUT</label>
+                      <p className="text-lg">{guardia.rut}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                        <Mail className="h-4 w-4" />
+                        Email
+                      </label>
+                      <p className="text-lg">{guardia.email}</p>
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">RUT</label>
-                    <p className="text-lg">{guardia.rut}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                      <Mail className="h-4 w-4" />
-                      Email
-                    </label>
-                    <p className="text-lg">{guardia.email}</p>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                        <Phone className="h-4 w-4" />
+                        Teléfono
+                      </label>
+                      <p className="text-lg">{guardia.telefono}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                        <MapPin className="h-4 w-4" />
+                        Dirección
+                      </label>
+                      <p className="text-lg">{guardia.direccion}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        Fecha de Registro
+                      </label>
+                      <p className="text-lg">
+                        {new Date(guardia.created_at).toLocaleDateString('es-ES', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                      <Phone className="h-4 w-4" />
-                      Teléfono
-                    </label>
-                    <p className="text-lg">{guardia.telefono}</p>
+
+                {/* Información geográfica */}
+                {geocodingData && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {geocodingData.comuna && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Comuna</label>
+                          <p className="text-lg">{geocodingData.comuna}</p>
+                        </div>
+                      )}
+                      {geocodingData.ciudad && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Ciudad</label>
+                          <p className="text-lg">{geocodingData.ciudad}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div>
+                )}
+
+                {/* Mapa de Google Maps */}
+                {geocodingData && (
+                  <div className="space-y-4">
                     <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
                       <MapPin className="h-4 w-4" />
-                      Dirección
+                      Ubicación
                     </label>
-                    <p className="text-lg">{guardia.direccion}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      Fecha de Registro
-                    </label>
-                    <p className="text-lg">
-                      {new Date(guardia.created_at).toLocaleDateString('es-ES', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Información geográfica */}
-              {geocodingData && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {geocodingData.comuna && (
-                      <div>
-                        <label className="text-sm font-medium text-gray-600">Comuna</label>
-                        <p className="text-lg">{geocodingData.comuna}</p>
-                      </div>
-                    )}
-                    {geocodingData.ciudad && (
-                      <div>
-                        <label className="text-sm font-medium text-gray-600">Ciudad</label>
-                        <p className="text-lg">{geocodingData.ciudad}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Mapa de Google Maps */}
-              {geocodingData && (
-                <div className="space-y-4">
-                  <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    Ubicación
-                  </label>
-                  <div className="rounded-xl shadow-md overflow-hidden">
-                    <GoogleMap
-                      center={{
-                        lat: geocodingData.latitud,
-                        lng: geocodingData.longitud
-                      }}
-                      zoom={16}
-                      markers={[{
-                        position: {
+                    <div className="rounded-xl shadow-md overflow-hidden">
+                      <GoogleMap
+                        center={{
                           lat: geocodingData.latitud,
                           lng: geocodingData.longitud
-                        },
-                        title: `${guardia.nombre} ${guardia.apellidos}`,
-                        info: geocodingData.direccionCompleta
-                      }]}
-                      height="240px"
-                      className="w-full"
-                    />
+                        }}
+                        zoom={16}
+                        markers={[{
+                          position: {
+                            lat: geocodingData.latitud,
+                            lng: geocodingData.longitud
+                          },
+                          title: `${guardia.nombre} ${guardia.apellidos}`,
+                          info: geocodingData.direccionCompleta
+                        }]}
+                        height="240px"
+                        className="w-full"
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Estado de carga del mapa */}
-              {mapLoading && (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-white"></div>
-                  <span className="ml-2 text-sm text-gray-600">Cargando mapa...</span>
-                </div>
-              )}
+                {/* Estado de carga del mapa */}
+                {mapLoading && (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-white"></div>
+                    <span className="ml-2 text-sm text-gray-600">Cargando mapa...</span>
+                  </div>
+                )}
 
-              {/* Error del mapa */}
-              {mapError && (
-                <div className="text-center py-8">
-                  <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 mb-4">{mapError}</p>
-                  <Button 
-                    onClick={handleReintentarGeocodificacion}
-                    variant="outline" 
-                    size="sm"
-                    className="flex items-center gap-2 mx-auto"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    Reintentar
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                {/* Error del mapa */}
+                {mapError && (
+                  <div className="text-center py-8">
+                    <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500 mb-4">{mapError}</p>
+                    <Button 
+                      onClick={handleReintentarGeocodificacion}
+                      variant="outline" 
+                      size="sm"
+                      className="flex items-center gap-2 mx-auto"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      Reintentar
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Contenido de la pestaña Asignación */}
-        <TabsContent value="asignacion" className="mt-6">
-          <AsignacionOperativa guardiaId={guardiaId} />
-        </TabsContent>
+        {activeTab === 'asignacion' && (
+          <div className="mt-6">
+            <AsignacionOperativa guardiaId={guardiaId} />
+          </div>
+        )}
 
         {/* Contenido de la pestaña Permisos */}
-        <TabsContent value="permisos" className="mt-6">
-          <PermisosGuardia guardiaId={guardiaId} />
-        </TabsContent>
+        {activeTab === 'permisos' && (
+          <div className="mt-6">
+            <PermisosGuardia guardiaId={guardiaId} />
+          </div>
+        )}
 
         {/* Contenido de la pestaña Documentos */}
-        <TabsContent value="documentos" className="mt-6">
-          <DocumentosGuardia guardiaId={guardiaId} />
-        </TabsContent>
+        {activeTab === 'documentos' && (
+          <div className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Documentos del Guardia
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DocumentManager
+                  modulo="guardias"
+                  entidadId={guardiaId}
+                  onDocumentDeleted={() => console.log('Documento eliminado')}
+                  onUploadSuccess={() => console.log('Documento subido')}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Contenido de la pestaña Datos Bancarios */}
-        <TabsContent value="datos-bancarios" className="mt-6">
-          <DatosBancarios guardiaId={guardiaId} />
-        </TabsContent>
+        {activeTab === 'datos-bancarios' && (
+          <div className="mt-6">
+            <DatosBancarios guardiaId={guardiaId} />
+          </div>
+        )}
 
         {/* Contenido de la pestaña Finiquito */}
-        <TabsContent value="finiquito" className="mt-6">
-          <FiniquitoGuardia guardiaId={guardiaId} />
-        </TabsContent>
+        {activeTab === 'finiquito' && (
+          <div className="mt-6">
+            <FiniquitoGuardia guardiaId={guardiaId} />
+          </div>
+        )}
 
-
-        </Tabs>
+      {/* Modal de confirmación */}
       {showConfirmModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
@@ -488,6 +601,4 @@ export default function GuardiaDetallePage() {
       )}
     </div>
   );
-}
-
-console.log("✅ Pestaña de Datos Bancarios validada y funcional. Incluye historial de pagos."); 
+} 

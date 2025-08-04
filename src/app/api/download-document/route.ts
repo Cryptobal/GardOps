@@ -19,31 +19,12 @@ export async function GET(req: NextRequest) {
     let query = "";
     let params = [documentId];
 
-    if (modulo === "clientes") {
-      query = `
-        SELECT archivo_url, nombre, tipo, contenido_archivo
-        FROM documentos_clientes 
-        WHERE id = $1
-      `;
-    } else if (modulo === "instalaciones") {
-      query = `
-        SELECT url as archivo_url, tipo as nombre, tipo, contenido_archivo
-        FROM documentos_instalacion 
-        WHERE id = $1
-      `;
-    } else if (modulo === "guardias") {
-      query = `
-        SELECT url as archivo_url, tipo as nombre, tipo, contenido_archivo
-        FROM documentos_guardias 
-        WHERE id = $1
-      `;
-    } else {
-      query = `
-        SELECT url as archivo_url, url as nombre, tipo, contenido_archivo
-        FROM documentos 
-        WHERE id = $1
-      `;
-    }
+    // Usar la tabla unificada de documentos para todos los módulos
+    query = `
+      SELECT url as archivo_url, url as nombre, tipo, contenido_archivo
+      FROM documentos 
+      WHERE id = $1
+    `;
 
     const result = await pool.query(query, params);
     

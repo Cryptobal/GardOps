@@ -13,11 +13,10 @@ import dayjs from 'dayjs';
 
 interface Permiso {
   id: string;
-  dia: string;
+  guardia_id: string;
+  fecha: string;
   tipo: string;
   observacion?: string;
-  instalacion_nombre?: string;
-  rol_servicio_nombre?: string;
 }
 
 interface PermisosGuardiaProps {
@@ -43,18 +42,26 @@ export default function PermisosGuardia({ guardiaId }: PermisosGuardiaProps) {
   });
 
   useEffect(() => {
-    cargarPermisos();
+    if (guardiaId) {
+      cargarPermisos();
+    }
   }, [guardiaId]);
 
   const cargarPermisos = async () => {
+    if (!guardiaId) {
+      console.warn('No se proporcionó guardiaId para cargar permisos');
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await fetch(`/api/guardias/permisos?guardiaId=${guardiaId}`);
       if (!response.ok) throw new Error('Error al cargar permisos');
-      const data = await response.json();
-      setPermisos(data);
+      const result = await response.json();
+      setPermisos(result.data || []);
     } catch (error) {
       console.error('Error cargando permisos:', error);
+      setPermisos([]);
     } finally {
       setLoading(false);
     }
@@ -62,6 +69,11 @@ export default function PermisosGuardia({ guardiaId }: PermisosGuardiaProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!guardiaId) {
+      alert('Error: No se proporcionó ID de guardia');
+      return;
+    }
     
     if (!formData.tipo || !formData.fechaInicio || !formData.fechaFin) {
       alert('Por favor completa todos los campos obligatorios');
@@ -110,7 +122,10 @@ export default function PermisosGuardia({ guardiaId }: PermisosGuardiaProps) {
         method: 'DELETE'
       });
 
-      if (!response.ok) throw new Error('Error al eliminar permiso');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al eliminar permiso');
+      }
 
       await cargarPermisos();
     } catch (error) {
@@ -209,52 +224,55 @@ export default function PermisosGuardia({ guardiaId }: PermisosGuardiaProps) {
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-white"></div>
               <span className="ml-2">Cargando permisos...</span>
             </div>
-          ) : permisos.length === 0 ? (
+          ) : !Array.isArray(permisos) || permisos.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No hay permisos registrados</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {permisos.map((permiso) => (
-                <div key={permiso.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <span className="font-medium">{getTipoLabel(permiso.tipo)}</span>
-                      <span className="text-sm text-gray-500">
-                        {dayjs(permiso.dia).format('DD/MM/YYYY')}
-                      </span>
+              {permisos.map((permiso) => {
+                if (!permiso || !permiso.id) return null;
+                return (
+                  <div key={permiso.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <span className="font-medium">{getTipoLabel(permiso.tipo || '')}</span>
+                        <span className="text-sm text-gray-500">
+                          {permiso.fecha ? dayjs(permiso.fecha).format('DD/MM/YYYY') : 'Fecha no disponible'}
+                        </span>
+                      </div>
+                      {permiso.observacion && (
+                        <p className="text-sm text-gray-600 mt-1">{permiso.observacion}</p>
+                      )}
                     </div>
-                    {permiso.observacion && (
-                      <p className="text-sm text-gray-600 mt-1">{permiso.observacion}</p>
-                    )}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Eliminar Permiso</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            ¿Estás seguro de que quieres eliminar este permiso? Esta acción no se puede deshacer.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleEliminarPermiso(permiso.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Eliminar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Eliminar Permiso</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          ¿Estás seguro de que quieres eliminar este permiso? Esta acción no se puede deshacer.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleEliminarPermiso(permiso.id)}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          Eliminar
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

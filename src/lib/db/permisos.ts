@@ -1,22 +1,23 @@
 import { query } from '@/lib/database';
 import dayjs from 'dayjs';
 
-export async function registrarPermiso({ guardiaId, tipo, desde, hasta }: {
+export async function registrarPermiso({ guardiaId, tipo, desde, hasta, observaciones }: {
   guardiaId: string;
   tipo: 'licencia' | 'vacaciones' | 'permiso_con_goce' | 'permiso_sin_goce';
   desde: string;
   hasta: string;
+  observaciones?: string;
 }) {
   console.log(`🔧 Registrando permiso ${tipo} para guardia ${guardiaId} desde ${desde} hasta ${hasta}`);
 
   try {
     // Actualizar o insertar registros en la pauta mensual
     const result = await query(`
-      INSERT INTO pautas_mensuales (guardia_id, dia, tipo, tenant_id, instalacion_id, rol_servicio_id)
-      SELECT $1, generate_series($2::date, $3::date, '1 day'::interval)::date, $4, $5, $6, $7
+      INSERT INTO pautas_mensuales (guardia_id, dia, tipo, observacion, tenant_id, instalacion_id, rol_servicio_id)
+      SELECT $1, generate_series($2::date, $3::date, '1 day'::interval)::date, $4, $5, $6, $7, $8
       ON CONFLICT (guardia_id, dia) 
-      DO UPDATE SET tipo = $4
-    `, [guardiaId, desde, hasta, tipo, 'accebf8a-bacc-41fa-9601-ed39cb320a52', 'fe761cd0-320f-404a-aa26-2e81093ee12e', '64bef7f7-7d41-4ce6-a8bd-f26ed0482825']);
+      DO UPDATE SET tipo = $4, observacion = $5
+    `, [guardiaId, desde, hasta, tipo, observaciones || null, 'accebf8a-bacc-41fa-9601-ed39cb320a52', 'fe761cd0-320f-404a-aa26-2e81093ee12e', '64bef7f7-7d41-4ce6-a8bd-f26ed0482825']);
 
     const diasActualizados = dayjs(hasta).diff(dayjs(desde), 'day') + 1;
     console.log(`✅ Permiso ${tipo} registrado en ${diasActualizados} días`);

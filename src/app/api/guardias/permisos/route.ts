@@ -22,6 +22,7 @@ export async function POST(req: Request) {
       tipo: body.tipo,
       desde: body.desde,
       hasta: body.hasta,
+      observaciones: body.observaciones,
     });
 
     return NextResponse.json({ ok: true, actualizado: cantidad });
