@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useRouter } from 'next/navigation';
 import { 
   Calendar, 
   Download, 
@@ -53,6 +54,20 @@ interface Puesto {
 }
 
 export default function PautaDiariaPage() {
+  const router = useRouter();
+  
+  // Función helper para generar ID corto de puesto
+  const generarIdCortoPuesto = (puestoId: string | number) => {
+    // Convertir a string y tomar los últimos 4 caracteres del UUID y convertirlos a mayúsculas
+    const puestoIdStr = puestoId.toString();
+    return `P-${puestoIdStr.slice(-4).toUpperCase()}`;
+  };
+
+  // Función para navegar a la instalación
+  const navegarAInstalacion = (instalacionId: string) => {
+    router.push(`/instalaciones/${instalacionId}`);
+  };
+
   // Inicializar directamente con la fecha actual
   const fechaInicial = (() => {
     const ahora = new Date();
@@ -206,7 +221,7 @@ export default function PautaDiariaPage() {
       guardiaId, 
       motivo, 
       observaciones,
-      puestoNombre: puesto.nombre_puesto,
+      puestoNombre: generarIdCortoPuesto(puesto.puesto_id),
       puestoEstado: puesto.estado
     });
     
@@ -459,7 +474,7 @@ export default function PautaDiariaPage() {
                 onClick={() => {
                   showConfirmModal(
                     'Eliminar Cobertura',
-                    `¿Estás seguro de que quieres eliminar la cobertura del puesto "${puesto.nombre_puesto}"?`,
+                    `¿Estás seguro de que quieres eliminar la cobertura del puesto "${generarIdCortoPuesto(puesto.puesto_id)}"?`,
                     () => {
                       actualizarAsistencia(puesto, 'eliminar_cobertura', undefined, undefined, observaciones);
                     },
@@ -587,7 +602,7 @@ export default function PautaDiariaPage() {
                 onClick={() => {
                   showConfirmModal(
                     'Eliminar Cobertura PPC',
-                    `¿Estás seguro de que quieres eliminar la cobertura del PPC "${puesto.nombre_puesto}"?`,
+                    `¿Estás seguro de que quieres eliminar la cobertura del PPC "${generarIdCortoPuesto(puesto.puesto_id)}"?`,
                     () => {
                       actualizarAsistencia(puesto, 'eliminar_cobertura', undefined, undefined, observaciones);
                     },
@@ -802,7 +817,13 @@ export default function PautaDiariaPage() {
                         <div className="flex items-center gap-2">
                           <Shield className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                           <div className="min-w-0 flex-1">
-                            <span className="font-medium text-sm">{puesto.nombre_puesto}</span>
+                            <button
+                              onClick={() => navegarAInstalacion(puesto.instalacion_id)}
+                              className="font-medium text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                              title="Ver instalación"
+                            >
+                              {generarIdCortoPuesto(puesto.puesto_id)}
+                            </button>
                             {puesto.es_ppc && (
                               <Badge variant="outline" className="text-xs ml-2 bg-orange-50 text-orange-700 border-orange-200">
                                 PPC
@@ -846,7 +867,13 @@ export default function PautaDiariaPage() {
                         <div className="min-w-[200px]">
                           <div className="flex items-center gap-2">
                             <Shield className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium text-sm">{puesto.nombre_puesto}</span>
+                            <button
+                              onClick={() => navegarAInstalacion(puesto.instalacion_id)}
+                              className="font-medium text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                              title="Ver instalación"
+                            >
+                              {generarIdCortoPuesto(puesto.puesto_id)}
+                            </button>
                             {puesto.es_ppc && (
                               <Badge variant="outline" className="text-xs ml-2 bg-orange-50 text-orange-700 border-orange-200">
                                 PPC

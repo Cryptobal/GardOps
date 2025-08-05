@@ -57,13 +57,22 @@ export async function GET(request: NextRequest) {
       LEFT JOIN guardias rg ON te.guardia_id = rg.id
       
       WHERE pm.anio = $1 AND pm.mes = $2 AND pm.dia = $3
-        AND pm.estado IN ('trabajado', 'reemplazo', 'sin_cobertura')
+        AND pm.estado IN ('T', 'trabajado', 'reemplazo', 'sin_cobertura')
         AND po.activo = true
       
       ORDER BY i.nombre, po.nombre_puesto
     `, [anio, mes, dia]);
 
     console.log(`📊 Pauta diaria para ${anio}-${mes}-${dia}: ${pautaDiaria.rows.length} registros`);
+
+    // Debug: Ver los datos que llegan de la base de datos
+    console.log('🔍 Datos raw de la base de datos:', pautaDiaria.rows.map(row => ({
+      puesto_id: row.puesto_id,
+      nombre_puesto: row.nombre_puesto,
+      instalacion_nombre: row.instalacion_nombre,
+      guardia_original_id: row.guardia_original_id,
+      estado: row.estado
+    })));
 
     // Procesar los datos según el formato requerido
     const resultado = pautaDiaria.rows.map((row: any) => {
