@@ -454,7 +454,7 @@ export async function DELETE(
     await logCRUD(
       'guardias',
       params.id,
-      'ERROR',
+      'DELETE',
       'admin@test.com',
       null,
       {
