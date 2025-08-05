@@ -130,7 +130,7 @@ export async function PUT(
     await logCRUD(
       'guardias',
       params.id,
-      'ERROR',
+      'UPDATE',
       'admin@test.com',
       null,
       {
