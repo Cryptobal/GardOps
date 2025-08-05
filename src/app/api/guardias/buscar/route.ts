@@ -33,7 +33,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Filtro por fecha para verificar disponibilidad
-    let fechaParams = [];
     let fechaCondition = '';
     if (fecha) {
       const fechaObj = new Date(fecha + 'T00:00:00.000Z');
@@ -43,8 +42,6 @@ export async function GET(request: NextRequest) {
 
       // En la pauta diaria, permitimos asignar guardias incluso si ya tienen turno
       // porque pueden hacer turnos extras. Solo marcamos para información.
-      fechaParams = [anio, mes, dia];
-      params.push(...fechaParams);
       
       // Condición para verificar si el guardia ya tiene turno asignado en esa fecha
       fechaCondition = `
@@ -53,9 +50,13 @@ export async function GET(request: NextRequest) {
             pm.guardia_id,
             true as tiene_turno_asignado
           FROM as_turnos_pauta_mensual pm
-          WHERE pm.anio = $${paramIndex - 2} AND pm.mes = $${paramIndex - 1} AND pm.dia = $${paramIndex}
+          WHERE pm.anio = $${paramIndex} AND pm.mes = $${paramIndex + 1} AND pm.dia = $${paramIndex + 2}
         ) turno_asignado ON g.id = turno_asignado.guardia_id
       `;
+      
+      // Agregar los parámetros de fecha después de construir la condición
+      params.push(anio, mes, dia);
+      paramIndex += 3;
     }
 
     const whereClause = whereConditions.join(' AND ');
