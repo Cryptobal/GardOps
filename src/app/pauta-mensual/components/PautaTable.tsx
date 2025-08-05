@@ -233,7 +233,23 @@ const ModalAutocompletarPauta = ({
 };
 
 // Función centralizada para obtener el display del estado - TODOS LOS ESTADOS
-const getEstadoDisplay = (estado: string) => {
+const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean = false) => {
+  // Si es PPC cubierto (tiene cobertura), mostrar estado especial
+  if (esPPC && cobertura && (estado === 'A' || estado === 'trabajado')) {
+    return { 
+      icon: "🛡️", 
+      text: "C", 
+      className: "bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 text-purple-800 dark:text-purple-300 border-0 outline-0",
+      tooltip: `PPC Cubierto por: ${cobertura.nombre}`
+    };
+  }
+  
+  // Si hay cobertura (reemplazo), mejorar tooltip
+  let tooltipExtra = '';
+  if (cobertura && cobertura.tipo === 'reemplazo') {
+    tooltipExtra = ` - Reemplazo: ${cobertura.nombre}`;
+  }
+  
   // Normalizar el estado para comparación
   const estadoNormalizado = estado?.toLowerCase() || '';
   
@@ -264,14 +280,14 @@ const getEstadoDisplay = (estado: string) => {
         icon: "🔄", 
         text: "R", 
         className: "bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 text-orange-800 dark:text-orange-300 border-0 outline-0",
-        tooltip: "Con Reemplazo"
+        tooltip: `Falta con Reemplazo${tooltipExtra}`
       };
     case "s":
       return { 
         icon: "⚠️", 
         text: "S", 
         className: "bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-900/30 dark:to-yellow-800/30 text-yellow-800 dark:text-yellow-300 border-0 outline-0",
-        tooltip: "Sin Cobertura"
+        tooltip: "Falta sin Cobertura"
       };
     case "libre":
     case "l":
@@ -323,7 +339,8 @@ const DiaCell = ({
   esFeriado,
   modoEdicion = false,
   diasGuardados,
-  esPPC = false
+  esPPC = false,
+  cobertura = null
 }: { 
   estado: string; 
   onClick?: () => void;
@@ -335,8 +352,9 @@ const DiaCell = ({
   modoEdicion?: boolean;
   diasGuardados?: Set<string>;
   esPPC?: boolean;
+  cobertura?: any;
 }) => {
-  const { icon, text, className, tooltip } = getEstadoDisplay(estado);
+  const { icon, text, className, tooltip } = getEstadoDisplay(estado, cobertura, esPPC);
 
   const esFinDeSemana = diaSemana === 'Sáb' || diaSemana === 'Dom';
   const esDiaEspecial = esFinDeSemana || esFeriado;
@@ -678,6 +696,7 @@ export default function PautaTable({
                     {guardia.dias.map((estado, diaIndex) => {
                       const diaInfo = diasSemana[diaIndex];
                       const esFeriado = diaInfo?.esFeriado || feriadosChile.includes(diaIndex + 1);
+                      const cobertura = guardia.cobertura_por_dia ? guardia.cobertura_por_dia[diaIndex] : null;
                       return (
                         <DiaCell
                           key={diaIndex}
@@ -691,6 +710,7 @@ export default function PautaTable({
                           modoEdicion={modoEdicion}
                           diasGuardados={diasGuardados}
                           esPPC={guardia.es_ppc}
+                          cobertura={cobertura}
                         />
                       );
                     })}

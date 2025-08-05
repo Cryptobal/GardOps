@@ -462,21 +462,6 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                     <h4 className="font-medium">❌ No Asistió</h4>
                     
                     <div className="space-y-2">
-                      <Label>Motivo de ausencia:</Label>
-                      <Select value={motivoInasistencia} onValueChange={setMotivoInasistencia}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar motivo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="enfermedad">Enfermedad</SelectItem>
-                          <SelectItem value="personal">Personal</SelectItem>
-                          <SelectItem value="accidente">Accidente</SelectItem>
-                          <SelectItem value="otro">Otro</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
                       <Label>Seleccionar reemplazo:</Label>
                       <SearchableCombobox
                         value={guardiasOptions.find(g => g.value === puestoEnEdicion?.guardia_original?.id)?.value}
@@ -510,12 +495,9 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                     <div className="flex gap-2">
                       <Button 
                         size="sm" 
+                        disabled={!puestoEnEdicion?.guardia_original?.id}
                         onClick={() => {
-                          if (puestoEnEdicion?.guardia_original?.id) {
-                            actualizarAsistencia(puesto, 'reemplazo', puestoEnEdicion.guardia_original.id, motivoInasistencia, observaciones);
-                          } else {
-                            actualizarAsistencia(puesto, 'sin_cobertura', undefined, motivoInasistencia, observaciones);
-                          }
+                          actualizarAsistencia(puesto, 'reemplazo', puestoEnEdicion.guardia_original.id, '', observaciones);
                           setPopoverReemplazo(null);
                           setPuestoEnEdicion(null);
                           setObservaciones('');
@@ -524,7 +506,22 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                         }}
                         className="flex-1"
                       >
-                        {puestoEnEdicion?.guardia_original?.id ? 'Asignar Reemplazo' : 'Sin Cobertura'}
+                        Asignar Reemplazo
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="destructive"
+                        onClick={() => {
+                          actualizarAsistencia(puesto, 'sin_cobertura', undefined, '', observaciones);
+                          setPopoverReemplazo(null);
+                          setPuestoEnEdicion(null);
+                          setObservaciones('');
+                          setMotivoInasistencia('');
+                          setSearchTerm('');
+                        }}
+                        className="flex-1"
+                      >
+                        Sin Cobertura
                       </Button>
                       <Button 
                         size="sm" 

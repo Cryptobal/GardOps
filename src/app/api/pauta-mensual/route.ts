@@ -42,11 +42,20 @@ export async function GET(request: NextRequest) {
         g.apellido_paterno,
         g.apellido_materno,
         rs.nombre as rol_nombre,
-        CONCAT(rs.dias_trabajo, 'x', rs.dias_descanso) as patron_turno
+        CONCAT(rs.dias_trabajo, 'x', rs.dias_descanso) as patron_turno,
+        
+        -- Información de cobertura desde turnos_extras
+        te.guardia_id as cobertura_guardia_id,
+        rg.nombre as cobertura_nombre,
+        rg.apellido_paterno as cobertura_apellido_paterno,
+        rg.apellido_materno as cobertura_apellido_materno,
+        te.estado as tipo_cobertura
       FROM as_turnos_pauta_mensual pm
       INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
       LEFT JOIN guardias g ON pm.guardia_id = g.id
       LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+      LEFT JOIN turnos_extras te ON pm.id = te.pauta_id
+      LEFT JOIN guardias rg ON te.guardia_id = rg.id
       WHERE po.instalacion_id = $1 
         AND pm.anio = $2 
         AND pm.mes = $3
@@ -123,12 +132,26 @@ export async function GET(request: NextRequest) {
         }
       });
 
+      // Crear información de cobertura por día
+      const coberturaPorDia = diasDelMes.map(dia => {
+        const pautaDia = pautaPuesto.find((p: any) => p.dia === dia);
+        if (pautaDia?.cobertura_guardia_id) {
+          return {
+            guardia_id: pautaDia.cobertura_guardia_id,
+            nombre: `${pautaDia.cobertura_nombre} ${pautaDia.cobertura_apellido_paterno} ${pautaDia.cobertura_apellido_materno || ''}`.trim(),
+            tipo: pautaDia.tipo_cobertura // 'ppc' o 'reemplazo'
+          };
+        }
+        return null;
+      });
+
       return {
         id: puesto.puesto_id,
         nombre: puesto.nombre_completo,
         nombre_puesto: puesto.nombre_puesto,
         patron_turno: puesto.patron_turno || '4x4',
         dias: dias,
+        cobertura_por_dia: coberturaPorDia, // Nueva información de cobertura
         tipo: puesto.tipo,
         es_ppc: puesto.es_ppc,
         guardia_id: puesto.guardia_id,
