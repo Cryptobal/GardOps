@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
 
     // Filtro por fecha para verificar disponibilidad
     let fechaParams = [];
+    let fechaCondition = '';
     if (fecha) {
       const fechaObj = new Date(fecha + 'T00:00:00.000Z');
       const anio = fechaObj.getUTCFullYear();
@@ -44,11 +45,22 @@ export async function GET(request: NextRequest) {
       // porque pueden hacer turnos extras. Solo marcamos para información.
       fechaParams = [anio, mes, dia];
       params.push(...fechaParams);
+      
+      // Condición para verificar si el guardia ya tiene turno asignado en esa fecha
+      fechaCondition = `
+        LEFT JOIN (
+          SELECT 
+            pm.guardia_id,
+            true as tiene_turno_asignado
+          FROM as_turnos_pauta_mensual pm
+          WHERE pm.anio = $${paramIndex - 2} AND pm.mes = $${paramIndex - 1} AND pm.dia = $${paramIndex}
+        ) turno_asignado ON g.id = turno_asignado.guardia_id
+      `;
     }
 
     const whereClause = whereConditions.join(' AND ');
 
-    // Consulta con información de instalación actual (copiada del endpoint que funciona)
+    // Consulta corregida con verificación de turno asignado
     let sqlQuery = `
       SELECT 
         g.id,
@@ -60,10 +72,11 @@ export async function GET(request: NextRequest) {
         g.activo,
         po.instalacion_id as instalacion_actual_id,
         i.nombre as instalacion_actual_nombre,
-        false as tiene_turno_asignado
+        COALESCE(turno_asignado.tiene_turno_asignado, false) as tiene_turno_asignado
       FROM guardias g
       LEFT JOIN as_turnos_puestos_operativos po ON g.id = po.guardia_id AND po.es_ppc = false
       LEFT JOIN instalaciones i ON po.instalacion_id = i.id
+      ${fechaCondition}
     `;
 
     sqlQuery += `
@@ -72,7 +85,9 @@ export async function GET(request: NextRequest) {
       LIMIT 20
     `;
 
+    console.log('🔍 Buscando guardias con parámetros:', { search, instalacionId, fecha, params });
     const result = await query(sqlQuery, params);
+    console.log('✅ Guardias encontrados:', result.rows.length);
 
     return NextResponse.json({
       success: true,
