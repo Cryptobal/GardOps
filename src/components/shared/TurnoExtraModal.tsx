@@ -29,7 +29,7 @@ export function TurnoExtraModal({
 }: TurnoExtraModalProps) {
   const [estado, setEstado] = useState<'reemplazo' | 'ppc' | ''>('');
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const { success, error } = useToast();
 
   const handleSubmit = async () => {
     if (!estado) {

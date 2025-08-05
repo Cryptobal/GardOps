@@ -180,7 +180,7 @@ export async function GET(request: NextRequest) {
     await logCRUD(
       'pauta_mensual',
       'ERROR',
-      'ERROR',
+      'READ',
       'admin@test.com',
       null,
       {

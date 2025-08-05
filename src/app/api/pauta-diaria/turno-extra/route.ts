@@ -119,7 +119,7 @@ export async function POST(req: Request) {
     await logCRUD(
       'turnos_extras',
       'ERROR',
-      'ERROR',
+      'CREATE',
       'admin@test.com',
       null,
       {
@@ -147,7 +147,7 @@ export async function GET(req: Request) {
     const fecha_inicio = searchParams.get('fecha_inicio');
     const fecha_fin = searchParams.get('fecha_fin');
 
-    let query = `
+    let queryString = `
       SELECT pte.*, g.nombre as guardia_nombre, i.nombre as instalacion_nombre
       FROM turnos_extras pte
       JOIN guardias g ON g.id = pte.guardia_id
@@ -158,32 +158,32 @@ export async function GET(req: Request) {
     let paramIndex = 1;
 
     if (guardia_id) {
-      query += ` AND pte.guardia_id = $${paramIndex}`;
+      queryString += ` AND pte.guardia_id = $${paramIndex}`;
       params.push(guardia_id);
       paramIndex++;
     }
 
     if (instalacion_id) {
-      query += ` AND pte.instalacion_id = $${paramIndex}`;
+      queryString += ` AND pte.instalacion_id = $${paramIndex}`;
       params.push(instalacion_id);
       paramIndex++;
     }
 
     if (fecha_inicio) {
-      query += ` AND pte.fecha >= $${paramIndex}`;
+      queryString += ` AND pte.fecha >= $${paramIndex}`;
       params.push(fecha_inicio);
       paramIndex++;
     }
 
     if (fecha_fin) {
-      query += ` AND pte.fecha <= $${paramIndex}`;
+      queryString += ` AND pte.fecha <= $${paramIndex}`;
       params.push(fecha_fin);
       paramIndex++;
     }
 
-    query += ` ORDER BY pte.fecha DESC, pte.created_at DESC`;
+    queryString += ` ORDER BY pte.fecha DESC, pte.created_at DESC`;
 
-    const { rows } = await query(query, params);
+    const { rows } = await query(queryString, params);
 
     return NextResponse.json({ 
       ok: true, 

@@ -39,7 +39,7 @@ async function crearTablaTurnosExtras() {
     `);
     
     console.log('📋 Estructura de la tabla turnos_extras:');
-    columns.forEach(col => {
+    columns.forEach((col: any) => {
       console.log(`  - ${col.column_name}: ${col.data_type} ${col.is_nullable === 'NO' ? '(NOT NULL)' : ''}`);
     });
 

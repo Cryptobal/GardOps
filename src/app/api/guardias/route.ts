@@ -84,12 +84,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   console.log('🔍 API Guardias - Creando nuevo guardia');
   
+  // Por ahora usar un tenant_id fijo para testing
+  const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+  const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
+  
   try {
     const body = await request.json();
-    
-    // Por ahora usar un tenant_id fijo para testing
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
-    const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
     
     console.log('✅ API Guardias - Creando con datos:', body);
 
@@ -154,14 +154,13 @@ export async function POST(request: NextRequest) {
       'guardias',
       'NEW',
       'CREATE',
-      usuario,
+      'admin@test.com',
       null,
       {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
         endpoint: '/api/guardias',
-        method: 'POST',
-        body
+        method: 'POST'
       },
       tenantId
     );

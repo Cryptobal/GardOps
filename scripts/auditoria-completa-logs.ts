@@ -46,7 +46,8 @@ async function auditoriaCompletaLogs() {
 
       const info: LogTableInfo = {
         nombre: tabla,
-        existe: existe.rows[0].exists
+        existe: existe.rows[0].exists,
+        registros: 0
       };
 
       if (info.existe) {

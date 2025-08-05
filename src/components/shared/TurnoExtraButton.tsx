@@ -29,7 +29,7 @@ export function TurnoExtraButton({
   className = ''
 }: TurnoExtraButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { toast } = useToast();
+  const { success, error } = useToast();
 
   const handleClick = () => {
     setIsModalOpen(true);
