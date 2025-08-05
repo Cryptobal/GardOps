@@ -1,0 +1,318 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { TrendingUp, TrendingDown, DollarSign, Calendar, Users, Building, BarChart3 } from 'lucide-react';
+
+interface DashboardStatsProps {
+  filtros: {
+    fechaInicio: string;
+    fechaFin: string;
+    instalacion: string;
+  };
+}
+
+interface Estadisticas {
+  generales: {
+    total_turnos: number;
+    turnos_pagados: number;
+    turnos_pendientes: number;
+    monto_total: number;
+    monto_pagado: number;
+    monto_pendiente: number;
+    promedio_por_turno: number;
+    turnos_reemplazo: number;
+    turnos_ppc: number;
+  };
+  porInstalacion: Array<{
+    instalacion_nombre: string;
+    total_turnos: number;
+    monto_total: number;
+    turnos_pagados: number;
+    turnos_pendientes: number;
+  }>;
+  porMes: Array<{
+    mes: string;
+    total_turnos: number;
+    monto_total: number;
+    turnos_pagados: number;
+    turnos_pendientes: number;
+  }>;
+  topGuardias: Array<{
+    nombre: string;
+    apellido_paterno: string;
+    rut: string;
+    total_turnos: number;
+    monto_total: number;
+    turnos_pagados: number;
+    turnos_pendientes: number;
+  }>;
+}
+
+export default function DashboardStats({ filtros }: DashboardStatsProps) {
+  const [estadisticas, setEstadisticas] = useState<Estadisticas | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const cargarEstadisticas = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (filtros.fechaInicio) params.append('fecha_inicio', filtros.fechaInicio);
+      if (filtros.fechaFin) params.append('fecha_fin', filtros.fechaFin);
+      if (filtros.instalacion !== 'all') params.append('instalacion_id', filtros.instalacion);
+
+      const response = await fetch(`/api/pauta-diaria/turno-extra/stats?${params.toString()}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setEstadisticas(data.estadisticas);
+      }
+    } catch (error) {
+      console.error('Error cargando estadísticas:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarEstadisticas();
+  }, [filtros]);
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[...Array(6)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="pb-2">
+              <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (!estadisticas) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-center text-muted-foreground">No se pudieron cargar las estadísticas</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const { generales } = estadisticas;
+  const porcentajePendientes = generales.total_turnos > 0 ? (generales.turnos_pendientes / generales.total_turnos) * 100 : 0;
+  const porcentajePagados = generales.total_turnos > 0 ? (generales.turnos_pagados / generales.total_turnos) * 100 : 0;
+
+  return (
+    <div className="space-y-6">
+      {/* Estadísticas Generales */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Total Turnos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{generales.total_turnos}</div>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="text-xs">
+                {generales.turnos_reemplazo} reemplazos
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {generales.turnos_ppc} PPC
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className={generales.turnos_pendientes > 0 ? 'border-orange-200 bg-orange-50' : ''}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TrendingDown className="h-4 w-4 text-orange-600" />
+              Pendientes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{generales.turnos_pendientes}</div>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="text-xs">
+                {porcentajePendientes.toFixed(1)}%
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                ${generales.monto_pendiente.toLocaleString()}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-green-600" />
+              Pagados
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{generales.turnos_pagados}</div>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="text-xs">
+                {porcentajePagados.toFixed(1)}%
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                ${generales.monto_pagado.toLocaleString()}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Monto Total
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${generales.monto_total.toLocaleString()}</div>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="text-xs">
+                ${generales.promedio_por_turno.toLocaleString()} promedio
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Top Instalaciones y Guardias */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Instalaciones */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building className="h-5 w-5" />
+              Top Instalaciones
+            </CardTitle>
+            <CardDescription>
+              Instalaciones con más turnos extras
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {estadisticas.porInstalacion.slice(0, 5).map((instalacion, index) => (
+                <div key={instalacion.instalacion_nombre} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="text-xs">
+                      #{index + 1}
+                    </Badge>
+                    <div>
+                      <div className="font-medium">{instalacion.instalacion_nombre}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {instalacion.total_turnos} turnos
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-medium">${instalacion.monto_total.toLocaleString()}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {instalacion.turnos_pendientes} pendientes
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Top Guardias */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Top Guardias
+            </CardTitle>
+            <CardDescription>
+              Guardias con más turnos extras
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {estadisticas.topGuardias.slice(0, 5).map((guardia, index) => (
+                <div key={guardia.rut} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="text-xs">
+                      #{index + 1}
+                    </Badge>
+                    <div>
+                      <div className="font-medium">
+                        {guardia.nombre} {guardia.apellido_paterno}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {guardia.rut} • {guardia.total_turnos} turnos
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-medium">${guardia.monto_total.toLocaleString()}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {guardia.turnos_pendientes} pendientes
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Estadísticas por Mes */}
+      {estadisticas.porMes.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Evolución Mensual
+            </CardTitle>
+            <CardDescription>
+              Turnos extras por mes (últimos 12 meses)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {estadisticas.porMes.map((mes) => (
+                <div key={mes.mes} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <div className="font-medium">
+                      {new Date(mes.mes).toLocaleDateString('es-ES', { 
+                        year: 'numeric', 
+                        month: 'long' 
+                      })}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {mes.total_turnos} turnos • {mes.turnos_pagados} pagados
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-medium">${mes.monto_total.toLocaleString()}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {mes.turnos_pendientes} pendientes
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+} 

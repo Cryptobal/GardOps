@@ -238,7 +238,7 @@ const ModalAutocompletarPauta = ({
 // Función centralizada para obtener el display del estado - DISEÑO MINIMALISTA
 const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean = false) => {
   // Si es PPC cubierto (tiene cobertura), mostrar estado especial
-  if (esPPC && cobertura && (estado === 'A' || estado === 'trabajado')) {
+  if (esPPC && cobertura && (estado === 'A' || estado === 'trabajado' || estado === 'a')) {
     return { 
       icon: "🛡️", 
       text: "", 
@@ -251,7 +251,7 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
   // Lógica mejorada para distinguir Falta vs Sin Cobertura
   // Si hay cobertura (reemplazo), mejorar tooltip
   let tooltipExtra = '';
-  if (cobertura && cobertura.tipo === 'reemplazo') {
+  if (cobertura && cobertura.tipo === 'reemplazo' && !esPPC) {
     tooltipExtra = ` - Reemplazo: ${cobertura.nombre}`;
   }
   
@@ -268,6 +268,16 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
         tooltip: "Turno Planificado"
       };
     case "a":
+      // Si es PPC con cobertura, mostrar escudo
+      if (esPPC && cobertura) {
+        return { 
+          icon: "🛡️", 
+          text: "", 
+          className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600",
+          iconColor: "text-purple-600 dark:text-purple-400",
+          tooltip: `PPC Cubierto por: ${cobertura.nombre}`
+        };
+      }
       return { 
         icon: "✓", 
         text: "", 
@@ -285,6 +295,16 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
         tooltip: esPPC ? "Sin Cobertura" : "Falta"
       };
     case "r":
+      // Si es PPC, no mostrar icono de reemplazo
+      if (esPPC) {
+        return { 
+          icon: "🛡️", 
+          text: "", 
+          className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600",
+          iconColor: "text-purple-600 dark:text-purple-400",
+          tooltip: `PPC Cubierto por: ${cobertura?.nombre || 'Guardia asignado'}`
+        };
+      }
       return { 
         icon: "↻", 
         text: "", 

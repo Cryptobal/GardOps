@@ -138,7 +138,7 @@ export async function POST(req: Request) {
   }
 }
 
-// Endpoint para obtener turnos extras de un guardia
+// Endpoint para obtener turnos extras con filtros avanzados
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -146,42 +146,76 @@ export async function GET(req: Request) {
     const instalacion_id = searchParams.get('instalacion_id');
     const fecha_inicio = searchParams.get('fecha_inicio');
     const fecha_fin = searchParams.get('fecha_fin');
+    const estado = searchParams.get('estado');
+    const pagado = searchParams.get('pagado');
+    const busqueda = searchParams.get('busqueda');
 
     let queryString = `
-      SELECT pte.*, g.nombre as guardia_nombre, i.nombre as instalacion_nombre
-      FROM turnos_extras pte
-      JOIN guardias g ON g.id = pte.guardia_id
-      JOIN instalaciones i ON i.id = pte.instalacion_id
+      SELECT 
+        te.*,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        i.nombre as instalacion_nombre,
+        po.nombre_puesto
+      FROM turnos_extras te
+      JOIN guardias g ON g.id = te.guardia_id
+      JOIN instalaciones i ON i.id = te.instalacion_id
+      JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
       WHERE 1=1
     `;
     const params: any[] = [];
     let paramIndex = 1;
 
     if (guardia_id) {
-      queryString += ` AND pte.guardia_id = $${paramIndex}`;
+      queryString += ` AND te.guardia_id = $${paramIndex}`;
       params.push(guardia_id);
       paramIndex++;
     }
 
     if (instalacion_id) {
-      queryString += ` AND pte.instalacion_id = $${paramIndex}`;
+      queryString += ` AND te.instalacion_id = $${paramIndex}`;
       params.push(instalacion_id);
       paramIndex++;
     }
 
     if (fecha_inicio) {
-      queryString += ` AND pte.fecha >= $${paramIndex}`;
+      queryString += ` AND te.fecha >= $${paramIndex}`;
       params.push(fecha_inicio);
       paramIndex++;
     }
 
     if (fecha_fin) {
-      queryString += ` AND pte.fecha <= $${paramIndex}`;
+      queryString += ` AND te.fecha <= $${paramIndex}`;
       params.push(fecha_fin);
       paramIndex++;
     }
 
-    queryString += ` ORDER BY pte.fecha DESC, pte.created_at DESC`;
+    if (estado && estado !== 'all') {
+      queryString += ` AND te.estado = $${paramIndex}`;
+      params.push(estado);
+      paramIndex++;
+    }
+
+    if (pagado && pagado !== 'all') {
+      queryString += ` AND te.pagado = $${paramIndex}`;
+      params.push(pagado === 'true');
+      paramIndex++;
+    }
+
+    if (busqueda) {
+      queryString += ` AND (
+        g.nombre ILIKE $${paramIndex} OR 
+        g.apellido_paterno ILIKE $${paramIndex} OR 
+        g.rut ILIKE $${paramIndex} OR 
+        i.nombre ILIKE $${paramIndex}
+      )`;
+      params.push(`%${busqueda}%`);
+      paramIndex++;
+    }
+
+    queryString += ` ORDER BY te.fecha DESC, te.created_at DESC`;
 
     const { rows } = await query(queryString, params);
 

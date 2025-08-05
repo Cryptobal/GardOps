@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Shield, Users, Building2, Calendar, Clock, TrendingUp, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
+import TurnosExtrasSummary from "../components/dashboard/TurnosExtrasSummary";
 
 interface AlertaDocumento {
   id: string;
@@ -309,6 +310,9 @@ export default function HomePage() {
           </div>
         ))}
       </div>
+
+      {/* Turnos Extras Summary */}
+      <TurnosExtrasSummary />
 
       {/* Quick Actions */}
       <div>

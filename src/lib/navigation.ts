@@ -12,7 +12,8 @@ import {
   MapPin,
   Target,
   CalendarDays,
-  Activity
+  Activity,
+  DollarSign
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -53,6 +54,12 @@ export const navigationItems: NavigationItem[] = [
     name: "Pauta Diaria",
     href: "/pauta-diaria",
     icon: CalendarDays
+  },
+  {
+    name: "Turnos Extras",
+    href: "/pauta-diaria/turnos-extras",
+    icon: DollarSign,
+    description: "Gestión de pagos de turnos adicionales"
   },
   {
     name: "PPC",

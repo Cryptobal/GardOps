@@ -220,6 +220,7 @@ export async function PUT(request: NextRequest) {
     switch (accion) {
       case 'asistio':
         // Marcar como trabajado y actualizar la pauta mensual
+        // Para PPCs, mantener el estado 'trabajado' si ya tienen cobertura
         queryUpdate = `
           UPDATE as_turnos_pauta_mensual 
           SET estado = 'trabajado', 
@@ -230,15 +231,25 @@ export async function PUT(request: NextRequest) {
         break;
 
       case 'no_asistio':
-        // Marcar como inasistencia
+        // Verificar si es PPC para determinar el estado correcto
+        const esPpcInasistencia = await query(`
+          SELECT po.es_ppc 
+          FROM as_turnos_pauta_mensual pm
+          INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
+          WHERE pm.id = $1
+        `, [turnoId]);
+
+        // Para PPCs usar 'sin_cobertura', para puestos regulares usar 'inasistencia'
+        const estadoInasistencia = esPpcInasistencia.rows[0]?.es_ppc ? 'sin_cobertura' : 'inasistencia';
+        
         queryUpdate = `
           UPDATE as_turnos_pauta_mensual 
-          SET estado = 'inasistencia',
+          SET estado = $3,
               observaciones = $2,
               updated_at = NOW()
           WHERE id = $1
         `;
-        params = [turnoId, observaciones || null];
+        params = [turnoId, observaciones || null, estadoInasistencia];
         break;
 
       case 'reemplazo':
@@ -251,7 +262,7 @@ export async function PUT(request: NextRequest) {
         
         // Obtener datos del turno original
         const turnoData = await query(`
-          SELECT pm.anio, pm.mes, pm.dia, pm.guardia_id as guardia_original_id, po.instalacion_id, po.id as puesto_id, i.valor_turno_extra
+          SELECT pm.anio, pm.mes, pm.dia, pm.guardia_id as guardia_original_id, po.instalacion_id, po.id as puesto_id, po.es_ppc, i.valor_turno_extra
           FROM as_turnos_pauta_mensual pm
           INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
           INNER JOIN instalaciones i ON po.instalacion_id = i.id
@@ -268,16 +279,19 @@ export async function PUT(request: NextRequest) {
         const turno = turnoData.rows[0];
         const fechaTurno = `${turno.anio}-${String(turno.mes).padStart(2, '0')}-${String(turno.dia).padStart(2, '0')}`;
         
+        // Determinar el estado correcto: 'reemplazo' para puestos regulares, 'trabajado' para PPCs
+        const estadoReemplazo = turno.es_ppc ? 'trabajado' : 'reemplazo';
+        
         // Actualizar el turno con el reemplazo
         queryUpdate = `
           UPDATE as_turnos_pauta_mensual 
-          SET estado = 'reemplazo', 
+          SET estado = $4, 
               reemplazo_guardia_id = $2,
               observaciones = $3,
               updated_at = NOW()
           WHERE id = $1
         `;
-        params = [turnoId, guardiaId, observaciones || null];
+        params = [turnoId, guardiaId, observaciones || null, estadoReemplazo];
 
         // Crear registro en turnos_extras
         await query(`
@@ -296,13 +310,13 @@ export async function PUT(request: NextRequest) {
           turno.instalacion_id,
           turnoId,
           fechaTurno,
-          'reemplazo',
+          turno.es_ppc ? 'ppc' : 'reemplazo',
           turno.valor_turno_extra
         ]);
         break;
 
       case 'sin_cobertura':
-        // Marcar como sin cobertura
+        // Marcar como sin cobertura (válido para PPCs y puestos regulares)
         queryUpdate = `
           UPDATE as_turnos_pauta_mensual 
           SET estado = 'sin_cobertura',
@@ -340,11 +354,11 @@ export async function PUT(request: NextRequest) {
         const ppc = ppcData.rows[0];
         const fechaPpc = `${ppc.anio}-${String(ppc.mes).padStart(2, '0')}-${String(ppc.dia).padStart(2, '0')}`;
         
-        // Asignar guardia al PPC - usar estado 'reemplazo' que está permitido
+        // Asignar guardia al PPC - usar estado 'trabajado' para PPCs cubiertos
         queryUpdate = `
           UPDATE as_turnos_pauta_mensual 
           SET reemplazo_guardia_id = $2, 
-              estado = 'reemplazo',
+              estado = 'trabajado',
               observaciones = $3,
               updated_at = NOW()
           WHERE id = $1

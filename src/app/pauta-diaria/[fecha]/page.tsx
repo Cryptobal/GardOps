@@ -25,7 +25,10 @@ import {
   Plus,
   Minus,
   Filter,
-  Search
+  Search,
+  FileDown,
+  FileSpreadsheet,
+  DollarSign
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +46,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useGuardiasSearch } from '@/hooks/useGuardiasSearch';
+import { exportarPautaPDF, exportarPautaExcel } from '@/lib/export-utils';
+import { TurnoExtraButton } from '@/components/shared/TurnoExtraButton';
 
 interface Puesto {
   puesto_id: string;
@@ -85,6 +90,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
 
   const [fechaSeleccionada, setFechaSeleccionada] = useState<string>(fechaInicial);
   const [puestos, setPuestos] = useState<Puesto[]>([]);
+  const [pautaId, setPautaId] = useState<number>(1);
   const [loading, setLoading] = useState(false);
   const [cambiosPendientes, setCambiosPendientes] = useState(false);
   const [puestoEnEdicion, setPuestoEnEdicion] = useState<Puesto | null>(null);
@@ -212,7 +218,11 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
       const response = await fetch(`/api/pauta-diaria?anio=${anio}&mes=${mes}&dia=${dia}`);
       if (response.ok) {
         const data = await response.json();
-        setPuestos(data);
+        setPuestos(data.puestos || data);
+        // Obtener pauta_id si está disponible en la respuesta
+        if (data.pauta_id) {
+          setPautaId(data.pauta_id);
+        }
       } else {
         console.error('Error al cargar pauta diaria');
         setPuestos([]);
@@ -267,6 +277,43 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
     console.log('🔄 Navegando a hoy:', fechaFormateada);
     setFechaSeleccionada(fechaFormateada);
     router.push(`/pauta-diaria/${fechaFormateada}`);
+  };
+
+  // Funciones de exportación
+  const handleExportarPDF = () => {
+    try {
+      exportarPautaPDF(puestos, fechaSeleccionada);
+      addToast({
+        title: "✅ PDF Generado",
+        description: "La pauta diaria se ha exportado correctamente en PDF",
+        type: "success"
+      });
+    } catch (error) {
+      console.error('Error al exportar PDF:', error);
+      addToast({
+        title: "❌ Error",
+        description: "No se pudo generar el PDF. Inténtalo de nuevo.",
+        type: "error"
+      });
+    }
+  };
+
+  const handleExportarExcel = () => {
+    try {
+      exportarPautaExcel(puestos, fechaSeleccionada);
+      addToast({
+        title: "✅ Excel Generado",
+        description: "La pauta diaria se ha exportado correctamente en Excel",
+        type: "success"
+      });
+    } catch (error) {
+      console.error('Error al exportar Excel:', error);
+      addToast({
+        title: "❌ Error",
+        description: "No se pudo generar el Excel. Inténtalo de nuevo.",
+        type: "error"
+      });
+    }
   };
 
   // Actualizar estado de asistencia
@@ -350,6 +397,16 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
 
   // Renderizar badge de estado
   const renderEstadoBadge = (puesto: Puesto) => {
+    // Caso especial: PPC cubierto (trabajado con cobertura)
+    if (puesto.es_ppc && puesto.estado === 'trabajado' && puesto.cobertura_real) {
+      return (
+        <Badge className="text-xs font-medium bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900 dark:text-purple-200">
+          <span className="mr-1">🛡️</span>
+          PPC Cubierto
+        </Badge>
+      );
+    }
+
     const config = {
       T: { 
         label: 'Asignado', 
@@ -830,6 +887,24 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
             </div>
           </PopoverContent>
         </Popover>
+
+        {/* Botón Turno Extra - Solo mostrar para reemplazos y PPCs trabajados */}
+        {(puesto.estado === 'reemplazo' || (puesto.es_ppc && puesto.estado === 'trabajado' && puesto.cobertura_real)) && (
+          <TurnoExtraButton
+            guardia_id={puesto.estado === 'reemplazo' ? puesto.asignacion_real : puesto.cobertura_real!}
+            guardia_nombre={puesto.estado === 'reemplazo' ? 
+              guardiasOptions.find(g => g.value === puesto.asignacion_real)?.label || 'Guardia' :
+              guardiasOptions.find(g => g.value === puesto.cobertura_real)?.label || 'Guardia'
+            }
+            puesto_id={puesto.puesto_id}
+            puesto_nombre={puesto.nombre_puesto}
+            pauta_id={pautaId}
+            fecha={fechaSeleccionada}
+            variant="outline"
+            size="sm"
+            className="text-xs px-2 py-1 h-7 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 border-purple-300 hover:border-purple-400"
+          />
+        )}
       </div>
     );
   };
@@ -848,6 +923,17 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
             <p className="text-sm sm:text-base text-muted-foreground">
               Control operativo de puestos con turno asignado
             </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => router.push('/pauta-diaria/turnos-extras')}
+              variant="outline"
+              size="sm"
+              className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 dark:bg-orange-900/20 dark:border-orange-700 dark:text-orange-300"
+            >
+              <DollarSign className="h-4 w-4 mr-2" />
+              Turnos Extras
+            </Button>
           </div>
         </div>
 
@@ -1125,7 +1211,11 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                         <TableCell>
                           {puesto.cobertura_real ? (
                             <div className="flex items-center gap-2">
-                              <UserPlus className="h-4 w-4 text-muted-foreground" />
+                              {puesto.es_ppc && puesto.estado === 'trabajado' ? (
+                                <Shield className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                              ) : (
+                                <UserPlus className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                              )}
                               <span className="text-sm">{puesto.cobertura_real}</span>
                             </div>
                           ) : (

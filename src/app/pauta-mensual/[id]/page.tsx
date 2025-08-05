@@ -21,9 +21,11 @@ import {
   Clock,
   ExternalLink,
   Plus,
-  FileText
+  FileText,
+  Download,
+  FileSpreadsheet
 } from "lucide-react";
-import { obtenerPautaMensual, guardarPautaMensual, crearPautaMensualAutomatica } from "../../../lib/api/pauta-mensual";
+import { obtenerPautaMensual, guardarPautaMensual, crearPautaMensualAutomatica, exportarPautaMensualPDF, exportarPautaMensualXLSX } from "../../../lib/api/pauta-mensual";
 import { useToast } from "../../../hooks/use-toast";
 import PautaTable from "../components/PautaTable";
 
@@ -107,6 +109,8 @@ export default function PautaMensualUnificadaPage() {
   const [diasGuardados, setDiasGuardados] = useState<Set<string>>(new Set());
   const [pautaExiste, setPautaExiste] = useState(false);
   const [generando, setGenerando] = useState(false);
+  const [exportandoPDF, setExportandoPDF] = useState(false);
+  const [exportandoXLSX, setExportandoXLSX] = useState(false);
 
   // Seguimiento del estado de edición
   useEffect(() => {
@@ -461,6 +465,32 @@ export default function PautaMensualUnificadaPage() {
 
   const stats = estadisticasPauta();
 
+  const exportarPDF = async () => {
+    try {
+      setExportandoPDF(true);
+      await exportarPautaMensualPDF(instalacionId, anio, mes);
+      toast.success("✅ PDF exportado", "La pauta mensual se ha exportado correctamente en formato PDF.");
+    } catch (error) {
+      console.error('Error exportando PDF:', error);
+      toast.error("❌ Error al exportar", "No se pudo exportar la pauta en formato PDF.");
+    } finally {
+      setExportandoPDF(false);
+    }
+  };
+
+  const exportarXLSX = async () => {
+    try {
+      setExportandoXLSX(true);
+      await exportarPautaMensualXLSX(instalacionId, anio, mes);
+      toast.success("✅ XLSX exportado", "La pauta mensual se ha exportado correctamente en formato XLSX.");
+    } catch (error) {
+      console.error('Error exportando XLSX:', error);
+      toast.error("❌ Error al exportar", "No se pudo exportar la pauta en formato XLSX.");
+    } finally {
+      setExportandoXLSX(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-4">
@@ -537,11 +567,56 @@ export default function PautaMensualUnificadaPage() {
           {pautaExiste ? (
             <>
               {!editando ? (
-                <Button onClick={() => setEditando(true)} className="w-full sm:w-auto">
-                  <Edit className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Editar Pauta</span>
-                  <span className="sm:hidden">Editar</span>
-                </Button>
+                <>
+                  <Button onClick={() => setEditando(true)} className="w-full sm:w-auto">
+                    <Edit className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Editar Pauta</span>
+                    <span className="sm:hidden">Editar</span>
+                  </Button>
+                  
+                  {/* Botones de exportación */}
+                  <Button 
+                    variant="outline" 
+                    onClick={exportarPDF} 
+                    disabled={exportandoPDF}
+                    className="w-full sm:w-auto"
+                  >
+                    {exportandoPDF ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <span className="hidden sm:inline">Exportando PDF...</span>
+                        <span className="sm:hidden">PDF...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">Exportar PDF</span>
+                        <span className="sm:hidden">PDF</span>
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={exportarXLSX} 
+                    disabled={exportandoXLSX}
+                    className="w-full sm:w-auto"
+                  >
+                    {exportandoXLSX ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <span className="hidden sm:inline">Exportando XLSX...</span>
+                        <span className="sm:hidden">XLSX...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileSpreadsheet className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">Exportar XLSX</span>
+                        <span className="sm:hidden">XLSX</span>
+                      </>
+                    )}
+                  </Button>
+                </>
               ) : (
                 <>
                   <Button variant="outline" onClick={() => {

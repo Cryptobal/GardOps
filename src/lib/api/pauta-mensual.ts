@@ -152,3 +152,53 @@ export async function eliminarPautaMensual(data: {
     throw error;
   }
 } 
+
+// Función para exportar la pauta mensual en PDF
+export async function exportarPautaMensualPDF(instalacion_id: string, anio: number, mes: number) {
+  try {
+    const response = await fetch(`/api/pauta-mensual/exportar-pdf?instalacion_id=${instalacion_id}&anio=${anio}&mes=${mes}`);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al exportar la pauta en PDF');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pauta_mensual_${mes}_${anio}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (error) {
+    console.error('Error exportando PDF:', error);
+    throw error;
+  }
+}
+
+// Función para exportar la pauta mensual en XLSX
+export async function exportarPautaMensualXLSX(instalacion_id: string, anio: number, mes: number) {
+  try {
+    const response = await fetch(`/api/pauta-mensual/exportar-xlsx?instalacion_id=${instalacion_id}&anio=${anio}&mes=${mes}`);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al exportar la pauta en XLSX');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pauta_mensual_${mes}_${anio}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (error) {
+    console.error('Error exportando XLSX:', error);
+    throw error;
+  }
+} 
