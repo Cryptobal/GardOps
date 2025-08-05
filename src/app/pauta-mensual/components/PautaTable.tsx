@@ -415,7 +415,7 @@ const DiaCell = ({
           <span className={`text-xs font-bold leading-none mb-1 ${
             esFeriado ? 'text-red-700 dark:text-red-300' : 
             esFinDeSemana ? 'text-amber-700 dark:text-amber-300' : 
-            'text-gray-700 dark:text-gray-300'
+            'text-gray-400 dark:text-gray-500'
           }`}>
             {diaSemana}
           </span>
@@ -697,8 +697,8 @@ export default function PautaTable({
           <div className="min-w-max">
             <Table className="w-full">
               <TableHeader>
-                <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
-                  <TableHead className="font-semibold text-left p-4 border-0 sticky left-0 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 z-10" style={{width: '200px', minWidth: '200px'}}>
+                <TableRow className="bg-gradient-to-r from-gray-50/50 to-gray-100/50 dark:from-gray-800/50 dark:to-gray-900/50">
+                  <TableHead className="font-semibold text-left p-4 border-0 sticky left-0 bg-gradient-to-r from-gray-50/50 to-gray-100/50 dark:from-gray-800/50 dark:to-gray-900/50 z-10 text-gray-500 dark:text-gray-400" style={{width: '200px', minWidth: '200px'}}>
                     Guardia
                   </TableHead>
                   {diasDelMes.map((dia) => {
@@ -706,11 +706,16 @@ export default function PautaTable({
                     const esFinDeSemana = diaInfo?.diaSemana === 'Sáb' || diaInfo?.diaSemana === 'Dom';
                     const esFeriado = diaInfo?.esFeriado || feriadosChile.includes(dia);
                     const clasesEspeciales = esFeriado ? 'bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-900/40' : 
-                                               esFinDeSemana ? 'bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30' : '';
+                                               esFinDeSemana ? 'bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30' : 
+                                               'bg-gray-50/30 dark:bg-gray-900/30';
                     
                     return (
                       <TableHead key={dia} className={`font-semibold text-center p-2 border-0 ${clasesEspeciales}`} style={{width: '35px', minWidth: '35px'}}>
-                        <div className="text-xs font-bold text-gray-900 dark:text-white">{dia}</div>
+                        <div className={`text-xs font-bold ${
+                          esFeriado ? 'text-red-700 dark:text-red-300' : 
+                          esFinDeSemana ? 'text-amber-700 dark:text-amber-300' : 
+                          'text-gray-500 dark:text-gray-400'
+                        }`}>{dia}</div>
                         {diaInfo?.diaSemana && (
                           <div className={`text-xs mt-1 font-medium ${
                             esFeriado ? 'text-red-600 dark:text-red-400' : 
