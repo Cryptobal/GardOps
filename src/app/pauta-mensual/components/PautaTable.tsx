@@ -276,12 +276,12 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
         tooltip: "Asistió (Confirmado)"
       };
     case "i":
-      // Lógica corregida: Si es PPC -> Sin Cobertura, Si es Guardia -> Falta
+      // Lógica corregida: Si es PPC -> Sin Cobertura (triángulo rojo), Si es Guardia -> Falta (X roja)
       return { 
-        icon: esPPC ? "⚠" : "✗", 
+        icon: esPPC ? "▲" : "✗", 
         text: "", 
         className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-600",
-        iconColor: esPPC ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400",
+        iconColor: "text-red-600 dark:text-red-400",
         tooltip: esPPC ? "Sin Cobertura" : "Falta"
       };
     case "r":
@@ -294,19 +294,19 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
       };
     case "s":
       return { 
-        icon: "⚠", 
+        icon: "▲", 
         text: "", 
-        className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-600",
-        iconColor: "text-amber-600 dark:text-amber-400",
+        className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-600",
+        iconColor: "text-red-600 dark:text-red-400",
         tooltip: "Sin Cobertura"
       };
     case "libre":
     case "l":
       return { 
-        icon: "○", 
+        icon: "●", 
         text: "", 
-        className: "bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600",
-        iconColor: "text-gray-400 dark:text-gray-500",
+        className: "bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500",
+        iconColor: "text-white dark:text-gray-200",
         tooltip: "Libre"
       };
     case "p":
@@ -643,14 +643,14 @@ export default function PautaTable({
             <span className="text-gray-700 dark:text-gray-300 font-medium">Reemplazo</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-md flex items-center justify-center">
-              <span className="text-gray-400 dark:text-gray-500 text-lg font-bold">○</span>
+            <div className="w-8 h-8 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-600 rounded-md flex items-center justify-center">
+              <span className="text-white dark:text-gray-200 text-lg font-bold">●</span>
             </div>
             <span className="text-gray-700 dark:text-gray-300 font-medium">Libre</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md flex items-center justify-center">
-              <span className="text-amber-600 dark:text-amber-400 text-lg font-bold">⚠</span>
+              <span className="text-red-600 dark:text-red-400 text-lg font-bold">▲</span>
             </div>
             <span className="text-gray-700 dark:text-gray-300 font-medium">Sin Cobertura</span>
           </div>
