@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`🔍 Consultando pauta diaria para: ${anio}-${mes}-${dia}`);
 
-    // Consulta optimizada para obtener puestos con turno asignado ese día
+    // Consulta optimizada para obtener TODOS los turnos asignados para ese día
     const pautaDiaria = await query(`
       SELECT DISTINCT ON (pm.id)
         pm.id as puesto_id,
@@ -70,6 +70,7 @@ export async function GET(request: NextRequest) {
       
       WHERE pm.anio = $1 AND pm.mes = $2 AND pm.dia = $3
         AND po.activo = true
+        AND pm.estado IN ('trabajado', 'T', 'reemplazo', 'inasistencia', 'sin_cobertura')  -- CORREGIDO: Mostrar todos los turnos asignados
       
       ORDER BY pm.id, te.created_at DESC NULLS LAST, i.nombre, po.nombre_puesto
     `, [anio, mes, dia]);
@@ -135,29 +136,15 @@ export async function GET(request: NextRequest) {
         coberturaReal = nombreCompleto;
       }
 
-      // Lógica corregida para el estado: normalizar estados para PPC
-      let estadoCorregido;
+      // Lógica simplificada para el estado: mantener estados reales de la BD
+      let estadoCorregido = row.estado;
+      
+      // Solo normalizar casos especiales
       if (!row.estado || row.estado === '') {
-        // Si no hay estado, asignar según si tiene guardia
         estadoCorregido = row.guardia_original_id ? 'T' : 'sin_cobertura';
-      } else if (row.estado === 'trabajado') {
-        // Mantener estado 'trabajado' cuando está marcado como asistido
-        estadoCorregido = 'trabajado';
-        console.log(`✅ Manteniendo estado 'trabajado' para puesto ${row.puesto_id} (asistido)`);
-      } else if (row.es_ppc && row.estado === 'trabajado' && row.reemplazo_guardia_id) {
-        // Para PPC con estado 'trabajado' y reemplazo asignado, mantener como 'trabajado' pero será manejado como PPC en el frontend
-        estadoCorregido = 'trabajado';
-        console.log(`🛡️ PPC ${row.puesto_id} con cobertura asignada (estado: trabajado)`);
-      } else if (row.es_ppc && (row.estado === 'libre' || row.estado === 'disponible')) {
-        // Para PPC, normalizar estados 'libre' o 'disponible' a 'T' (Asignado)
+      } else if (row.estado === 'asignado') {
+        // Normalizar 'asignado' a 'T' por consistencia
         estadoCorregido = 'T';
-        console.log(`🔧 Normalizando estado PPC de '${row.estado}' a 'T' para puesto ${row.puesto_id}`);
-      } else if (row.estado === 'T' || row.estado === 'asignado') {
-        // Mantener estado asignado
-        estadoCorregido = 'T';
-      } else {
-        // Mantener el estado si es válido
-        estadoCorregido = row.estado;
       }
       
       console.log(`📊 Puesto ${row.puesto_id}: estado original=${row.estado}, corregido=${estadoCorregido}, guardia=${row.guardia_original_id ? 'Sí' : 'No'}, reemplazo=${row.reemplazo_guardia_id ? 'Sí' : 'No'}`);

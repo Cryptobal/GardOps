@@ -100,18 +100,26 @@ export async function GET(request: NextRequest) {
         const estado = pautaDia?.estado || '';
         // Convertir estado de BD a formato frontend
         switch (estado) {
+          case 'T':
+            return 'T';          // Planificado/Asignado
           case 'trabajado':
-            return 'T';
+            return 'A';          // Asistió (confirmado)
+          case 'inasistencia':
+            return 'I';          // Inasistencia
+          case 'reemplazo':
+            return 'R';          // Con reemplazo
+          case 'sin_cobertura':
+            return 'S';          // Sin cobertura
           case 'libre':
-            return 'L';
+            return 'L';          // Libre
           case 'permiso':
-            return 'P';
+            return 'P';          // Permiso
           case 'vacaciones':
-            return 'V';
+            return 'V';          // Vacaciones
           case 'licencia':
-            return 'M';
+            return 'M';          // Licencia médica
           default:
-            return '';
+            return '';           // Sin asignar
         }
       });
 

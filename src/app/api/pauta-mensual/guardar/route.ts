@@ -123,6 +123,7 @@ export async function POST(req: NextRequest) {
 
 async function procesarTurnos(turnos: any[]) {
   let guardados = 0;
+  let eliminados = 0;
   const errores = [];
 
   for (const turno of turnos) {
@@ -137,54 +138,64 @@ async function procesarTurnos(turnos: any[]) {
       reemplazo_guardia_id,
     } = turno;
 
-    // Validación de campos requeridos
-    if (!puesto_id || !anio || !mes || !dia || !estado) {
-      errores.push(`Turno inválido: faltan campos requeridos - puesto_id: ${puesto_id}, anio: ${anio}, mes: ${mes}, dia: ${dia}, estado: ${estado}`);
-      continue;
-    }
-
-    // Validación de estado
-    if (!['trabajado', 'libre'].includes(estado)) {
-      errores.push(`Estado inválido: ${estado} - debe ser 'trabajado' o 'libre'`);
+    // Validación de campos requeridos (estado puede ser null para eliminar)
+    if (!puesto_id || !anio || !mes || !dia) {
+      errores.push(`Turno inválido: faltan campos requeridos - puesto_id: ${puesto_id}, anio: ${anio}, mes: ${mes}, dia: ${dia}`);
       continue;
     }
 
     try {
-      await query(
-        `
-        INSERT INTO as_turnos_pauta_mensual (
-          puesto_id, guardia_id, anio, mes, dia, estado,
-          observaciones, reemplazo_guardia_id, created_at, updated_at
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
-        ON CONFLICT (puesto_id, anio, mes, dia)
-        DO UPDATE SET
-          guardia_id = EXCLUDED.guardia_id,
-          estado = EXCLUDED.estado,
-          observaciones = EXCLUDED.observaciones,
-          reemplazo_guardia_id = EXCLUDED.reemplazo_guardia_id,
-          updated_at = NOW()
-      `,
-        [
-          puesto_id,
-          guardia_id || null,
-          anio,
-          mes,
-          dia,
-          estado,
-          observaciones || null,
-          reemplazo_guardia_id || null,
-        ]
-      );
+      // CAMBIO: Si estado es null, eliminar el registro
+      if (estado === null || estado === '') {
+        await query(
+          `DELETE FROM as_turnos_pauta_mensual 
+           WHERE puesto_id = $1 AND anio = $2 AND mes = $3 AND dia = $4`,
+          [puesto_id, anio, mes, dia]
+        );
+        eliminados++;
+        console.log(`🗑️ Eliminado turno para puesto ${puesto_id}, día ${dia}`);
+      } else {
+        // Validación de estado solo si no es null
+        if (!['trabajado', 'libre', 'T'].includes(estado)) {
+          errores.push(`Estado inválido: ${estado} - debe ser 'trabajado', 'libre', 'T', o null para eliminar`);
+          continue;
+        }
 
-      guardados++;
+        await query(
+          `
+          INSERT INTO as_turnos_pauta_mensual (
+            puesto_id, guardia_id, anio, mes, dia, estado,
+            observaciones, reemplazo_guardia_id, created_at, updated_at
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+          ON CONFLICT (puesto_id, anio, mes, dia)
+          DO UPDATE SET
+            guardia_id = EXCLUDED.guardia_id,
+            estado = EXCLUDED.estado,
+            observaciones = EXCLUDED.observaciones,
+            reemplazo_guardia_id = EXCLUDED.reemplazo_guardia_id,
+            updated_at = NOW()
+        `,
+          [
+            puesto_id,
+            guardia_id || null,
+            anio,
+            mes,
+            dia,
+            estado,
+            observaciones || null,
+            reemplazo_guardia_id || null,
+          ]
+        );
+        guardados++;
+      }
     } catch (dbError) {
       console.error('Error en turno específico:', { turno, error: dbError });
-      errores.push(`Error guardando turno para puesto ${puesto_id}, día ${dia}: ${dbError instanceof Error ? dbError.message : 'Error desconocido'}`);
+      errores.push(`Error procesando turno para puesto ${puesto_id}, día ${dia}: ${dbError instanceof Error ? dbError.message : 'Error desconocido'}`);
     }
   }
 
-  console.log(`✅ Guardados ${guardados} turnos de ${turnos.length} totales`);
+  console.log(`✅ Guardados ${guardados} turnos, eliminados ${eliminados} turnos de ${turnos.length} totales`);
   
   if (errores.length > 0) {
     console.warn('⚠️ Errores encontrados:', errores);
@@ -192,8 +203,9 @@ async function procesarTurnos(turnos: any[]) {
 
   return NextResponse.json({ 
     success: true, 
-    total: guardados,
-    total_enviados: turnos.length,
+    total_guardados: guardados,
+    total_eliminados: eliminados,
+    total_procesados: turnos.length,
     errores: errores.length > 0 ? errores : undefined
   });
 } 

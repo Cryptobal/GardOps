@@ -232,25 +232,46 @@ const ModalAutocompletarPauta = ({
   );
 };
 
-// Función centralizada para obtener el display del estado - INCLUYENDO TRABAJADO
+// Función centralizada para obtener el display del estado - TODOS LOS ESTADOS
 const getEstadoDisplay = (estado: string) => {
   // Normalizar el estado para comparación
   const estadoNormalizado = estado?.toLowerCase() || '';
   
   switch (estadoNormalizado) {
-    case "trabajado":
-      return { 
-        icon: "✅", 
-        text: "T", 
-        className: "bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 text-green-800 dark:text-green-300 border-0 outline-0",
-        tooltip: "Trabajado"
-      };
     case "t":
       return { 
         icon: "🟢", 
         text: "T", 
-        className: "bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 text-emerald-800 dark:text-emerald-300 border-0 outline-0",
-        tooltip: "Turno"
+        className: "bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 text-blue-800 dark:text-blue-300 border-0 outline-0",
+        tooltip: "Turno Planificado"
+      };
+    case "a":
+      return { 
+        icon: "✅", 
+        text: "A", 
+        className: "bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 text-green-800 dark:text-green-300 border-0 outline-0",
+        tooltip: "Asistió (Confirmado)"
+      };
+    case "i":
+      return { 
+        icon: "❌", 
+        text: "I", 
+        className: "bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-800/30 text-red-800 dark:text-red-300 border-0 outline-0",
+        tooltip: "Inasistencia"
+      };
+    case "r":
+      return { 
+        icon: "🔄", 
+        text: "R", 
+        className: "bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 text-orange-800 dark:text-orange-300 border-0 outline-0",
+        tooltip: "Con Reemplazo"
+      };
+    case "s":
+      return { 
+        icon: "⚠️", 
+        text: "S", 
+        className: "bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-900/30 dark:to-yellow-800/30 text-yellow-800 dark:text-yellow-300 border-0 outline-0",
+        tooltip: "Sin Cobertura"
       };
     case "libre":
     case "l":
@@ -260,19 +281,26 @@ const getEstadoDisplay = (estado: string) => {
         className: "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 text-gray-600 dark:text-gray-400 border-0 outline-0",
         tooltip: "Libre"
       };
-    case "inasistencia":
+    case "p":
       return { 
-        icon: "❌", 
-        text: "I", 
-        className: "bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-800/30 text-red-800 dark:text-red-300 border-0 outline-0",
-        tooltip: "Inasistencia"
+        icon: "🏖️", 
+        text: "P", 
+        className: "bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 text-purple-800 dark:text-purple-300 border-0 outline-0",
+        tooltip: "Permiso"
       };
-    case "reemplazo":
+    case "v":
       return { 
-        icon: "🔄", 
-        text: "R", 
-        className: "bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 text-orange-800 dark:text-orange-300 border-0 outline-0",
-        tooltip: "Reemplazo"
+        icon: "🏖️", 
+        text: "V", 
+        className: "bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 text-purple-800 dark:text-purple-300 border-0 outline-0",
+        tooltip: "Vacaciones"
+      };
+    case "m":
+      return { 
+        icon: "🏥", 
+        text: "M", 
+        className: "bg-gradient-to-br from-pink-100 to-pink-200 dark:from-pink-900/30 dark:to-pink-800/30 text-pink-800 dark:text-pink-300 border-0 outline-0",
+        tooltip: "Licencia Médica"
       };
     default:
       return { 
@@ -422,10 +450,16 @@ export default function PautaTable({
     console.log('🔄 Cambiando estado de día:', { guardiaIndex, diaIndex });
     const estadoActual = guardiaOrdenada.dias[diaIndex];
     
+    // No permitir editar estados que vienen de pauta diaria
+    if (['A', 'I', 'R', 'S'].includes(estadoActual)) {
+      console.log('🔒 No se puede editar este estado (viene de pauta diaria):', estadoActual);
+      return;
+    }
+    
     // Encontrar el índice original en pautaData
     const indiceOriginal = pautaData.findIndex(g => g.id === guardiaOrdenada.id);
     
-    // Solo permitir alternar entre T y L
+    // Solo permitir alternar entre T y L para planificación
     const nuevoEstado = estadoActual === "T" ? "L" : "T";
     console.log('🔄 Estado actual:', estadoActual, '-> Nuevo estado:', nuevoEstado);
     console.log('🔄 Índice ordenado:', guardiaIndex, '-> Índice original:', indiceOriginal);

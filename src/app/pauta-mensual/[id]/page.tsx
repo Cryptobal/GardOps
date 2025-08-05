@@ -345,22 +345,24 @@ export default function PautaMensualUnificadaPage() {
       for (const guardia of pautaData) {
         for (let diaIndex = 0; diaIndex < guardia.dias.length; diaIndex++) {
           const estado = guardia.dias[diaIndex];
-          if (estado && estado !== '') {
-            // Convertir estado a formato de base de datos
-            let estadoDB = 'libre';
-            if (estado === 'T') {
-              estadoDB = 'trabajado';
-            }
-            
-            actualizaciones.push({
-              puesto_id: guardia.id, // Para PPCs y guardias, usar el ID del puesto
-              guardia_id: guardia.es_ppc ? null : (guardia.guardia_id || guardia.id), // null para PPCs
-              anio: parseInt(anio.toString()),
-              mes: parseInt(mes.toString()),
-              dia: diaIndex + 1,
-              estado: estadoDB
-            });
+          
+          // CAMBIO: Enviar todos los días, incluso los vacíos para limpiarlos
+          let estadoDB = null; // null significa eliminar el registro
+          if (estado === 'T') {
+            estadoDB = 'T'; // CORREGIDO: Guardar como 'T' para que aparezca en pauta diaria
+          } else if (estado === 'L') {
+            estadoDB = 'libre';
           }
+          // Para días vacíos, estadoDB se mantiene como null
+          
+          actualizaciones.push({
+            puesto_id: guardia.id, // Para PPCs y guardias, usar el ID del puesto
+            guardia_id: guardia.es_ppc ? null : (guardia.guardia_id || guardia.id), // null para PPCs
+            anio: parseInt(anio.toString()),
+            mes: parseInt(mes.toString()),
+            dia: diaIndex + 1,
+            estado: estadoDB // Puede ser 'trabajado', 'libre', o null (para eliminar)
+          });
         }
       }
 
@@ -388,11 +390,16 @@ export default function PautaMensualUnificadaPage() {
       actualizarDiasGuardados();
 
       // Resumen final en consola
-      console.log("✅ Pauta mensual actualizada: ahora incluye PPCs con turnos planificables (T/L).");
+      console.log(`[${timestamp}] 📊 Resumen guardado:`, {
+        total_enviados: actualizaciones.length,
+        total_guardados: result.total_guardados || 0,
+        total_eliminados: result.total_eliminados || 0,
+        errores: result.errores?.length || 0
+      });
 
-    } catch (error: any) {
-      console.error(`[${new Date().toISOString()}] ❌ Error guardando pauta:`, error);
-      toast.error('Error', error.message || 'Error al guardar la pauta');
+    } catch (error) {
+      console.error('❌ Error guardando pauta:', error);
+      toast.error('Error al guardar', error instanceof Error ? error.message : 'Error desconocido');
     } finally {
       setGuardando(false);
     }
