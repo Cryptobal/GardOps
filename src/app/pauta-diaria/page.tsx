@@ -20,7 +20,9 @@ import {
   Shield,
   Eye,
   EyeOff,
-  RotateCcw
+  RotateCcw,
+  Plus,
+  Minus
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -38,42 +40,16 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useGuardiasSearch } from '@/hooks/useGuardiasSearch';
 
-interface Turno {
-  id: string;
+interface Puesto {
   puesto_id: string;
-  guardia_id: string | null;
-  guardia_nombre: string | null;
-  guardia_rut: string | null;
-  
-  // Información del guardia que está actualmente cubriendo el turno
-  guardia_actual_id: string | null;
-  guardia_actual_nombre: string | null;
-  guardia_actual_rut: string | null;
-  
-  // Información del reemplazo
-  reemplazo_guardia_id: string | null;
-  reemplazo_nombre: string | null;
-  reemplazo_rut: string | null;
-  tipo_reemplazo: string | null;
-  
-  // Tipo de cobertura para mostrar correctamente
-  tipo_cobertura: string;
-  
   nombre_puesto: string;
-  es_ppc: boolean;
+  guardia_original: { id: string; nombre: string } | null;
+  asignacion_real: string;
+  cobertura_real: string | null;
   estado: string;
   observaciones: string | null;
-  rol_nombre: string | null;
-  hora_inicio: string | null;
-  hora_termino: string | null;
-  turno_nombre: string;
-}
-
-interface Instalacion {
-  id: string;
-  nombre: string;
-  valor_turno_extra: number;
-  turnos: Turno[];
+  instalacion_id: string;
+  es_ppc: boolean;
 }
 
 export default function PautaDiariaPage() {
@@ -86,30 +62,17 @@ export default function PautaDiariaPage() {
   })();
 
   const [fechaSeleccionada, setFechaSeleccionada] = useState<string>(fechaInicial);
-
-  // Función helper para obtener la fecha actual
-  const obtenerFechaActual = () => {
-    const ahora = new Date();
-    const fechaLocal = format(ahora, 'yyyy-MM-dd');
-    console.log('🕐 Fecha actual del cliente:', fechaLocal, 'Hora:', ahora.toLocaleTimeString());
-    return fechaLocal;
-  };
-
-  // Debug: Log cuando cambia fechaSeleccionada
-  useEffect(() => {
-    console.log('📅 fechaSeleccionada cambió a:', fechaSeleccionada);
-  }, [fechaSeleccionada]);
-  const [instalaciones, setInstalaciones] = useState<Instalacion[]>([]);
+  const [puestos, setPuestos] = useState<Puesto[]>([]);
   const [loading, setLoading] = useState(false);
   const [cambiosPendientes, setCambiosPendientes] = useState(false);
-  const [turnoEnEdicion, setTurnoEnEdicion] = useState<Turno | null>(null);
+  const [puestoEnEdicion, setPuestoEnEdicion] = useState<Puesto | null>(null);
   const [observaciones, setObservaciones] = useState<string>('');
   const [motivoInasistencia, setMotivoInasistencia] = useState<string>('');
   
   // Estados para controlar popovers
   const [popoverObservaciones, setPopoverObservaciones] = useState<string | null>(null);
-  const [popoverPPC, setPopoverPPC] = useState<string | null>(null);
   const [popoverReemplazo, setPopoverReemplazo] = useState<string | null>(null);
+  const [popoverCobertura, setPopoverCobertura] = useState<string | null>(null);
   
   // Estados para modales de confirmación
   const [confirmModal, setConfirmModal] = useState<{
@@ -167,32 +130,30 @@ export default function PautaDiariaPage() {
 
   // Calcular estadísticas
   const estadisticas = {
-    asistieron: instalaciones.flatMap(i => i.turnos).filter(t => t.estado === 'trabajado').length,
-    inasistencias: instalaciones.flatMap(i => i.turnos).filter(t => t.estado === 'inasistencia').length,
-    reemplazos: instalaciones.flatMap(i => i.turnos).filter(t => t.tipo_cobertura === 'reemplazo').length,
-    ppcCubiertos: instalaciones.flatMap(i => i.turnos).filter(t => t.tipo_cobertura === 'ppc_cubierto').length,
-    sinCubrir: instalaciones.flatMap(i => i.turnos).filter(t => t.estado === 'sin_cubrir').length,
-    sinMarcar: instalaciones.flatMap(i => i.turnos).filter(t => t.estado === 'sin_marcar').length,
-    total: instalaciones.flatMap(i => i.turnos).length
+    trabajado: puestos.filter(p => p.estado === 'trabajado').length,
+    reemplazo: puestos.filter(p => p.estado === 'reemplazo').length,
+    sin_cobertura: puestos.filter(p => p.estado === 'sin_cobertura').length,
+    total: puestos.length
   };
-
-  const totalTurnosExtras = estadisticas.reemplazos + estadisticas.ppcCubiertos;
 
   // Cargar datos de la pauta diaria
   const cargarPautaDiaria = async (fecha: string) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/pauta-diaria?fecha=${fecha}`);
+      // Corregir el problema de zona horaria
+      const [anio, mes, dia] = fecha.split('-').map(Number);
+      
+      const response = await fetch(`/api/pauta-diaria?anio=${anio}&mes=${mes}&dia=${dia}`);
       if (response.ok) {
         const data = await response.json();
-        setInstalaciones(data);
+        setPuestos(data);
       } else {
         console.error('Error al cargar pauta diaria');
-        setInstalaciones([]);
+        setPuestos([]);
       }
     } catch (error) {
       console.error('Error:', error);
-      setInstalaciones([]);
+      setPuestos([]);
     } finally {
       setLoading(false);
     }
@@ -226,33 +187,32 @@ export default function PautaDiariaPage() {
       }
       setCambiosPendientes(false);
     }
-    // Siempre usar la fecha actual del momento del clic
-    const fechaFormateada = obtenerFechaActual();
+    const fechaFormateada = format(new Date(), 'yyyy-MM-dd');
     console.log('🔄 Navegando a hoy:', fechaFormateada);
     setFechaSeleccionada(fechaFormateada);
   };
 
   // Actualizar estado de asistencia
   const actualizarAsistencia = async (
-    turno: Turno, 
+    puesto: Puesto, 
     accion: string, 
     guardiaId?: string, 
     motivo?: string, 
     observaciones?: string
   ) => {
     console.log('🔄 Actualizando asistencia:', { 
-      turno: turno.id, 
+      puesto: puesto.puesto_id, 
       accion, 
       guardiaId, 
       motivo, 
       observaciones,
-      turnoNombre: turno.nombre_puesto,
-      turnoEstado: turno.estado
+      puestoNombre: puesto.nombre_puesto,
+      puestoEstado: puesto.estado
     });
     
     try {
       const requestBody = {
-        turnoId: turno.id,
+        turnoId: puesto.puesto_id,
         accion,
         guardiaId,
         motivo,
@@ -277,7 +237,7 @@ export default function PautaDiariaPage() {
         
         addToast({
           title: "✅ Estado actualizado",
-          description: "El estado del turno se ha actualizado correctamente.",
+          description: "El estado del puesto se ha actualizado correctamente.",
           type: "success"
         });
         
@@ -285,7 +245,7 @@ export default function PautaDiariaPage() {
         console.log('🔄 Recargando pauta diaria...');
         await cargarPautaDiaria(fechaSeleccionada);
         setCambiosPendientes(false);
-        setTurnoEnEdicion(null);
+        setPuestoEnEdicion(null);
         setObservaciones('');
         setMotivoInasistencia('');
         setSearchTerm('');
@@ -309,86 +269,36 @@ export default function PautaDiariaPage() {
     }
   };
 
-  // Exportar CSV
-  const exportarCSV = async () => {
-    try {
-      const response = await fetch(`/api/pauta-diaria/turno-extra/exportar?fecha=${fechaSeleccionada}`);
-      
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `turnos_extras_${fechaSeleccionada}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        
-        addToast({
-          title: "CSV exportado",
-          description: "El archivo CSV se ha descargado correctamente.",
-          type: "success"
-        });
-      } else {
-        addToast({
-          title: "Error",
-          description: "No hay turnos extras para exportar en esta fecha",
-          type: "error"
-        });
-      }
-    } catch (error) {
-      console.error('Error exportando CSV:', error);
-      addToast({
-        title: "Error",
-        description: "Error al exportar el CSV",
-        type: "error"
-      });
-    }
-  };
-
   // Renderizar badge de estado
-  const renderEstadoBadge = (turno: Turno) => {
+  const renderEstadoBadge = (puesto: Puesto) => {
     const config = {
+      T: { 
+        label: 'Asignado', 
+        variant: 'default', 
+        icon: '📋', 
+        color: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-200' 
+      },
       trabajado: { 
-        label: 'Asistió', 
+        label: 'Trabajado', 
         variant: 'default', 
         icon: '✅', 
         color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200' 
-      },
-      inasistencia: { 
-        label: 'No asistió', 
-        variant: 'destructive', 
-        icon: '❌', 
-        color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-200' 
       },
       reemplazo: { 
         label: 'Reemplazo', 
         variant: 'secondary', 
         icon: '🔄', 
-        color: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-200' 
+        color: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900 dark:text-orange-200' 
       },
-      cubierto: { 
-        label: 'Cubierto', 
-        variant: 'default', 
-        icon: '✅', 
-        color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200' 
-      },
-      sin_cubrir: { 
-        label: 'Sin cubrir', 
-        variant: 'outline', 
-        icon: '⚠️', 
-        color: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-200' 
-      },
-      sin_marcar: { 
-        label: 'Sin marcar', 
-        variant: 'outline', 
-        icon: '⚪', 
-        color: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-300' 
+      sin_cobertura: { 
+        label: 'Sin cobertura', 
+        variant: 'destructive', 
+        icon: '❌', 
+        color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-200' 
       }
     };
 
-    const configItem = config[turno.estado as keyof typeof config] || config.sin_marcar;
+    const configItem = config[puesto.estado as keyof typeof config] || config.T;
 
     return (
       <Badge className={cn("text-xs font-medium", configItem.color)}>
@@ -398,410 +308,45 @@ export default function PautaDiariaPage() {
     );
   };
 
-  // Renderizar modal de asignación de guardia
-  const renderModalGuardia = (turno: Turno, esEdicion: boolean = false, esPPC: boolean = false) => (
-    <PopoverContent className="w-96">
-      <div className="space-y-4">
-        <h4 className="font-medium text-lg">
-          {esEdicion ? 'Editar guardia' : esPPC ? 'Cubrir PPC' : 'Asignar reemplazo'}
-        </h4>
-        
-        <div className="space-y-2">
-          <Label>Buscar guardia:</Label>
-          <Input
-            placeholder="Buscar por nombre o RUT..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Seleccionar guardia:</Label>
-          <SearchableCombobox
-            options={guardiasOptions}
-            value={turnoEnEdicion?.reemplazo_guardia_id || ''}
-            onValueChange={(value) => {
-              if (turnoEnEdicion) {
-                setTurnoEnEdicion({ ...turnoEnEdicion, reemplazo_guardia_id: value });
-              }
-            }}
-            onSearchChange={setSearchTerm}
-            searchValue={searchTerm}
-            placeholder="Seleccionar guardia..."
-            searchPlaceholder="Buscar guardias..."
-            emptyText={loadingGuardias ? "Buscando..." : "No se encontraron guardias disponibles"}
-            disabled={loadingGuardias}
-            loading={loadingGuardias}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Observaciones (opcional):</Label>
-          <Textarea
-            value={observaciones}
-            onChange={(e) => setObservaciones(e.target.value)}
-            placeholder="Agregar observaciones..."
-            className="min-h-[80px]"
-          />
-        </div>
-
-        <div className="flex gap-2">
-          <Button 
-            size="sm" 
-            onClick={() => {
-              const accion = esEdicion ? 'editar_reemplazo' : esPPC ? 'asignar_ppc' : 'reemplazo';
-              const guardiaId = turnoEnEdicion?.reemplazo_guardia_id;
-              if (!guardiaId) {
-                addToast({
-                  title: "Error",
-                  description: "Debes seleccionar un guardia",
-                  type: "error"
-                });
-                return;
-              }
-              actualizarAsistencia(turno, accion, guardiaId, undefined, observaciones);
-            }}
-            disabled={!turnoEnEdicion?.reemplazo_guardia_id}
-            className="flex-1"
-          >
-            {esEdicion ? 'Actualizar' : esPPC ? 'Cubrir PPC' : 'Asignar'}
-          </Button>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={() => {
-              setTurnoEnEdicion(null);
-              setObservaciones('');
-              setSearchTerm('');
-            }}
-            className="flex-1"
-          >
-            Cancelar
-          </Button>
-        </div>
-      </div>
-    </PopoverContent>
-  );
-
-  // Renderizar acciones para un turno
-  const renderAcciones = (turno: Turno) => {
-    const instalacion = instalaciones.find(i => i.turnos.some(t => t.id === turno.id));
-    console.log('🔧 Renderizando acciones para turno:', {
-      id: turno.id,
-      estado: turno.estado,
-      es_ppc: turno.es_ppc,
-      guardia_id: turno.guardia_id,
-      nombre_puesto: turno.nombre_puesto
-    });
-    
+  // Renderizar acciones para un puesto
+  const renderAcciones = (puesto: Puesto) => {
     return (
       <div className="flex gap-1">
-        {/* PPC SIN ASIGNACIONES - Orden: Cubrir PPC, Observaciones */}
-        {turno.es_ppc && !turno.guardia_actual_nombre && (
+        {/* Si tiene guardia asignado */}
+        {puesto.guardia_original && (
           <>
-            {/* 1. Botón de cubrir PPC */}
-            <Popover open={popoverPPC === turno.id} onOpenChange={(open) => {
-              if (open) {
-                setPopoverPPC(turno.id);
-                setTurnoEnEdicion(turno);
-                setObservaciones('');
-                setSearchTerm('');
-                // Cargar guardias iniciales cuando se abre el popover
-                searchGuardias('');
-              } else {
-                setPopoverPPC(null);
-                setTurnoEnEdicion(null);
-                setObservaciones('');
-                setSearchTerm('');
-              }
-            }}>
-              <PopoverTrigger asChild>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="text-xs px-2 py-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                  title="Cubrir PPC"
-                >
-                  Cubrir PPC
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-96">
-                <div className="space-y-4">
-                  <h4 className="font-medium">🛡️ Cubrir PPC</h4>
-                  <div className="space-y-2">
-                    <Label>Buscar guardia:</Label>
-                    <SearchableCombobox
-                      value={guardiasOptions.find(g => g.value === turnoEnEdicion?.reemplazo_guardia_id)?.value}
-                      onValueChange={(value) => {
-                        if (turnoEnEdicion) {
-                          setTurnoEnEdicion({
-                            ...turnoEnEdicion,
-                            reemplazo_guardia_id: value || null
-                          });
-                        }
-                      }}
-                      onSearchChange={setSearchTerm}
-                      searchValue={searchTerm}
-                      options={guardiasOptions}
-                      placeholder="Seleccionar guardia..."
-                      searchPlaceholder="Buscar guardia..."
-                      emptyText="No se encontraron guardias"
-                      loading={loadingGuardias}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Observaciones:</Label>
-                    <Textarea
-                      value={observaciones}
-                      onChange={(e) => setObservaciones(e.target.value)}
-                      placeholder="Observaciones opcionales..."
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      onClick={() => {
-                        if (!turnoEnEdicion?.reemplazo_guardia_id) {
-                          addToast({
-                            title: "❌ Error",
-                            description: "Debes seleccionar un guardia",
-                            type: "error"
-                          });
-                          return;
-                        }
-                        actualizarAsistencia(turno, 'asignar_ppc', turnoEnEdicion.reemplazo_guardia_id, undefined, observaciones);
-                        setPopoverPPC(null);
-                        setTurnoEnEdicion(null);
-                        setObservaciones('');
-                        setSearchTerm('');
-                      }}
-                      disabled={!turnoEnEdicion?.reemplazo_guardia_id}
-                      className="flex-1"
-                    >
-                      Cubrir PPC
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => {
-                        setPopoverPPC(null);
-                        setTurnoEnEdicion(null);
-                        setObservaciones('');
-                        setSearchTerm('');
-                      }}
-                      className="flex-1"
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {/* 2. Botón de observaciones */}
-            <Popover open={popoverObservaciones === turno.id} onOpenChange={(open) => {
-              if (open) {
-                setPopoverObservaciones(turno.id);
-                setTurnoEnEdicion(turno);
-                setObservaciones(turno.observaciones || '');
-                // Cargar guardias iniciales cuando se abre el popover
-                searchGuardias('');
-              } else {
-                setPopoverObservaciones(null);
-                setTurnoEnEdicion(null);
-                setObservaciones('');
-              }
-            }}>
-              <PopoverTrigger asChild>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="text-xs px-2 py-1 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
-                  title="Agregar observaciones"
-                >
-                  Observaciones
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80">
-                <div className="space-y-4">
-                  <h4 className="font-medium">📝 Observaciones</h4>
-                  <div className="space-y-2">
-                    <Label>Observaciones:</Label>
-                    <Textarea
-                      value={observaciones}
-                      onChange={(e) => setObservaciones(e.target.value)}
-                      placeholder="Escribir observaciones..."
-                      className="min-h-[80px]"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      onClick={() => {
-                        if (!observaciones.trim()) {
-                          addToast({
-                            title: "❌ Error",
-                            description: "Debes escribir alguna observación",
-                            type: "error"
-                          });
-                          return;
-                        }
-                        actualizarAsistencia(turno, 'agregar_observaciones', undefined, undefined, observaciones);
-                        setPopoverObservaciones(null);
-                        setTurnoEnEdicion(null);
-                        setObservaciones('');
-                      }}
-                      disabled={!observaciones.trim()}
-                      className="flex-1"
-                    >
-                      Guardar
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => {
-                        setPopoverObservaciones(null);
-                        setTurnoEnEdicion(null);
-                        setObservaciones('');
-                      }}
-                      className="flex-1"
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </>
-        )}
-
-        {/* PUESTOS NORMALES - Orden: Asistió, No Asistió, Observaciones */}
-        {!turno.es_ppc && (
-          <>
-            {/* 1. Botón Asistió - para turnos sin marcar */}
-            {turno.estado === 'sin_marcar' && (
+            {/* Botón Asistió */}
+            {puesto.estado === 'T' && (
               <Button 
                 size="sm" 
                 variant="outline" 
                 className="text-xs px-2 py-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
                 onClick={() => {
-                  console.log('✅ Marcando asistencia para:', turno);
-                  actualizarAsistencia(turno, 'asistio');
+                  console.log('✅ Marcando asistencia para:', puesto);
+                  actualizarAsistencia(puesto, 'asistio');
                 }}
                 title="Marcar asistencia"
               >
+                <Check className="h-3 w-3 mr-1" />
                 Asistió
               </Button>
             )}
 
-            {/* 2. Botón No Asistió - para turnos sin marcar */}
-            {turno.estado === 'sin_marcar' && (
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="text-xs px-2 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                onClick={() => {
-                  console.log('❌ Marcando inasistencia para:', turno);
-                  actualizarAsistencia(turno, 'inasistencia', undefined, 'personal');
-                }}
-                title="Marcar inasistencia"
-              >
-                No Asistió
-              </Button>
-            )}
-
-            {/* 3. Botón de observaciones */}
-            <Popover open={popoverObservaciones === turno.id} onOpenChange={(open) => {
-              if (open) {
-                setPopoverObservaciones(turno.id);
-                setTurnoEnEdicion(turno);
-                setObservaciones(turno.observaciones || '');
-                // Cargar guardias iniciales cuando se abre el popover
-                searchGuardias('');
-              } else {
-                setPopoverObservaciones(null);
-                setTurnoEnEdicion(null);
-                setObservaciones('');
-              }
-            }}>
-              <PopoverTrigger asChild>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="text-xs px-2 py-1 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
-                  title="Agregar observaciones"
-                >
-                  Observaciones
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80">
-                <div className="space-y-4">
-                  <h4 className="font-medium">📝 Observaciones</h4>
-                  <div className="space-y-2">
-                    <Label>Observaciones:</Label>
-                    <Textarea
-                      value={observaciones}
-                      onChange={(e) => setObservaciones(e.target.value)}
-                      placeholder="Escribir observaciones..."
-                      className="min-h-[80px]"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      onClick={() => {
-                        if (!observaciones.trim()) {
-                          addToast({
-                            title: "❌ Error",
-                            description: "Debes escribir alguna observación",
-                            type: "error"
-                          });
-                          return;
-                        }
-                        actualizarAsistencia(turno, 'agregar_observaciones', undefined, undefined, observaciones);
-                        setPopoverObservaciones(null);
-                        setTurnoEnEdicion(null);
-                        setObservaciones('');
-                      }}
-                      disabled={!observaciones.trim()}
-                      className="flex-1"
-                    >
-                      Guardar
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => {
-                        setPopoverObservaciones(null);
-                        setTurnoEnEdicion(null);
-                        setObservaciones('');
-                      }}
-                      className="flex-1"
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {/* Botones adicionales para estados específicos */}
-            
-            {/* Botón de asignar reemplazo para inasistencias */}
-            {turno.guardia_id && turno.estado === 'inasistencia' && turno.tipo_cobertura !== 'reemplazo' && (
-              <Popover open={popoverReemplazo === turno.id} onOpenChange={(open) => {
+            {/* Botón No Asistió */}
+            {puesto.estado === 'T' && (
+              <Popover open={popoverReemplazo === puesto.puesto_id} onOpenChange={(open) => {
                 if (open) {
-                  setPopoverReemplazo(turno.id);
-                  setTurnoEnEdicion(turno);
+                  setPopoverReemplazo(puesto.puesto_id);
+                  setPuestoEnEdicion(puesto);
                   setObservaciones('');
+                  setMotivoInasistencia('');
                   setSearchTerm('');
-                  // Cargar guardias iniciales cuando se abre el popover
                   searchGuardias('');
                 } else {
                   setPopoverReemplazo(null);
-                  setTurnoEnEdicion(null);
+                  setPuestoEnEdicion(null);
                   setObservaciones('');
+                  setMotivoInasistencia('');
                   setSearchTerm('');
                 }
               }}>
@@ -809,24 +354,41 @@ export default function PautaDiariaPage() {
                   <Button 
                     size="sm" 
                     variant="outline" 
-                    className="text-xs px-2 py-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                    title="Asignar reemplazo"
+                    className="text-xs px-2 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    title="Marcar no asistió"
                   >
-                    Asignar Reemplazo
+                    <X className="h-3 w-3 mr-1" />
+                    No Asistió
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-96">
                   <div className="space-y-4">
-                    <h4 className="font-medium">👤 Asignar Reemplazo</h4>
+                    <h4 className="font-medium">❌ No Asistió</h4>
+                    
                     <div className="space-y-2">
-                      <Label>Buscar guardia:</Label>
+                      <Label>Motivo de ausencia:</Label>
+                      <Select value={motivoInasistencia} onValueChange={setMotivoInasistencia}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar motivo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="enfermedad">Enfermedad</SelectItem>
+                          <SelectItem value="personal">Personal</SelectItem>
+                          <SelectItem value="accidente">Accidente</SelectItem>
+                          <SelectItem value="otro">Otro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Seleccionar reemplazo:</Label>
                       <SearchableCombobox
-                        value={guardiasOptions.find(g => g.value === turnoEnEdicion?.reemplazo_guardia_id)?.value}
+                        value={guardiasOptions.find(g => g.value === puestoEnEdicion?.guardia_original?.id)?.value}
                         onValueChange={(value) => {
-                          if (turnoEnEdicion) {
-                            setTurnoEnEdicion({
-                              ...turnoEnEdicion,
-                              reemplazo_guardia_id: value || null
+                          if (puestoEnEdicion) {
+                            setPuestoEnEdicion({
+                              ...puestoEnEdicion,
+                              guardia_original: value ? { id: value, nombre: guardiasOptions.find(g => g.value === value)?.label || '' } : null
                             });
                           }
                         }}
@@ -839,6 +401,7 @@ export default function PautaDiariaPage() {
                         loading={loadingGuardias}
                       />
                     </div>
+
                     <div className="space-y-2">
                       <Label>Observaciones:</Label>
                       <Textarea
@@ -847,35 +410,161 @@ export default function PautaDiariaPage() {
                         placeholder="Observaciones opcionales..."
                       />
                     </div>
+
                     <div className="flex gap-2">
                       <Button 
                         size="sm" 
                         onClick={() => {
-                          if (!turnoEnEdicion?.reemplazo_guardia_id) {
-                            addToast({
-                              title: "❌ Error",
-                              description: "Debes seleccionar un guardia",
-                              type: "error"
-                            });
-                            return;
+                          if (puestoEnEdicion?.guardia_original?.id) {
+                            actualizarAsistencia(puesto, 'reemplazo', puestoEnEdicion.guardia_original.id, motivoInasistencia, observaciones);
+                          } else {
+                            actualizarAsistencia(puesto, 'sin_cobertura', undefined, motivoInasistencia, observaciones);
                           }
-                          actualizarAsistencia(turno, 'reemplazo', turnoEnEdicion.reemplazo_guardia_id, undefined, observaciones);
                           setPopoverReemplazo(null);
-                          setTurnoEnEdicion(null);
+                          setPuestoEnEdicion(null);
                           setObservaciones('');
+                          setMotivoInasistencia('');
                           setSearchTerm('');
                         }}
-                        disabled={!turnoEnEdicion?.reemplazo_guardia_id}
                         className="flex-1"
                       >
-                        Asignar
+                        {puestoEnEdicion?.guardia_original?.id ? 'Asignar Reemplazo' : 'Sin Cobertura'}
                       </Button>
                       <Button 
                         size="sm" 
                         variant="outline" 
                         onClick={() => {
                           setPopoverReemplazo(null);
-                          setTurnoEnEdicion(null);
+                          setPuestoEnEdicion(null);
+                          setObservaciones('');
+                          setMotivoInasistencia('');
+                          setSearchTerm('');
+                        }}
+                        className="flex-1"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+
+            {/* Botón Eliminar cobertura */}
+            {(puesto.estado === 'trabajado' || puesto.estado === 'reemplazo' || puesto.estado === 'sin_cobertura') && (
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="text-xs px-2 py-1 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-900/20"
+                onClick={() => {
+                  showConfirmModal(
+                    'Eliminar Cobertura',
+                    `¿Estás seguro de que quieres eliminar la cobertura del puesto "${puesto.nombre_puesto}"?`,
+                    () => {
+                      actualizarAsistencia(puesto, 'eliminar_cobertura', undefined, undefined, observaciones);
+                    },
+                    'Eliminar',
+                    'Cancelar'
+                  );
+                }}
+                title="Eliminar cobertura"
+              >
+                <RotateCcw className="h-3 w-3 mr-1" />
+                Eliminar
+              </Button>
+            )}
+          </>
+        )}
+
+        {/* Si es PPC */}
+        {puesto.es_ppc && (
+          <>
+            {/* Botón Cobertura */}
+            {puesto.estado === 'T' && (
+              <Popover open={popoverCobertura === puesto.puesto_id} onOpenChange={(open) => {
+                if (open) {
+                  setPopoverCobertura(puesto.puesto_id);
+                  setPuestoEnEdicion(puesto);
+                  setObservaciones('');
+                  setSearchTerm('');
+                  searchGuardias('');
+                } else {
+                  setPopoverCobertura(null);
+                  setPuestoEnEdicion(null);
+                  setObservaciones('');
+                  setSearchTerm('');
+                }
+              }}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="text-xs px-2 py-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                    title="Asignar cobertura"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Cobertura
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-96">
+                  <div className="space-y-4">
+                    <h4 className="font-medium">🛡️ Asignar Cobertura PPC</h4>
+                    
+                    <div className="space-y-2">
+                      <Label>Seleccionar guardia:</Label>
+                      <SearchableCombobox
+                        value={guardiasOptions.find(g => g.value === puestoEnEdicion?.guardia_original?.id)?.value}
+                        onValueChange={(value) => {
+                          if (puestoEnEdicion) {
+                            setPuestoEnEdicion({
+                              ...puestoEnEdicion,
+                              guardia_original: value ? { id: value, nombre: guardiasOptions.find(g => g.value === value)?.label || '' } : null
+                            });
+                          }
+                        }}
+                        onSearchChange={setSearchTerm}
+                        searchValue={searchTerm}
+                        options={guardiasOptions}
+                        placeholder="Seleccionar guardia..."
+                        searchPlaceholder="Buscar guardia..."
+                        emptyText="No se encontraron guardias"
+                        loading={loadingGuardias}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Observaciones:</Label>
+                      <Textarea
+                        value={observaciones}
+                        onChange={(e) => setObservaciones(e.target.value)}
+                        placeholder="Observaciones opcionales..."
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        onClick={() => {
+                          if (puestoEnEdicion?.guardia_original?.id) {
+                            actualizarAsistencia(puesto, 'asignar_ppc', puestoEnEdicion.guardia_original.id, undefined, observaciones);
+                          } else {
+                            actualizarAsistencia(puesto, 'sin_cobertura', undefined, undefined, observaciones);
+                          }
+                          setPopoverCobertura(null);
+                          setPuestoEnEdicion(null);
+                          setObservaciones('');
+                          setSearchTerm('');
+                        }}
+                        className="flex-1"
+                      >
+                        {puestoEnEdicion?.guardia_original?.id ? 'Asignar' : 'Sin Cobertura'}
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => {
+                          setPopoverCobertura(null);
+                          setPuestoEnEdicion(null);
                           setObservaciones('');
                           setSearchTerm('');
                         }}
@@ -889,466 +578,110 @@ export default function PautaDiariaPage() {
               </Popover>
             )}
 
-            {/* Botón de eliminar guardia para turnos con guardia asignado y ya marcados */}
-            {turno.guardia_id && (turno.estado === 'trabajado' || turno.estado === 'inasistencia') && (
+            {/* Botón Eliminar cobertura para PPC */}
+            {(puesto.estado === 'trabajado' || puesto.estado === 'reemplazo' || puesto.estado === 'sin_cobertura') && (
               <Button 
                 size="sm" 
                 variant="outline" 
-                className="text-xs px-2 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                className="text-xs px-2 py-1 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-900/20"
                 onClick={() => {
-                  console.log('🗑️ Intentando eliminar guardia:', {
-                    turnoId: turno.id,
-                    nombrePuesto: turno.nombre_puesto,
-                    guardiaActual: turno.guardia_actual_nombre
-                  });
                   showConfirmModal(
-                    'Eliminar Guardia',
-                    `¿Estás seguro de que quieres eliminar el guardia "${turno.guardia_actual_nombre}" del puesto "${generarIdCortoPuesto(turno.puesto_id)}"?`,
+                    'Eliminar Cobertura PPC',
+                    `¿Estás seguro de que quieres eliminar la cobertura del PPC "${puesto.nombre_puesto}"?`,
                     () => {
-                      console.log('✅ Confirmación aceptada, eliminando guardia...');
-                      actualizarAsistencia(turno, 'eliminar_guardia', undefined, undefined, 'Guardia eliminado');
+                      actualizarAsistencia(puesto, 'eliminar_cobertura', undefined, undefined, observaciones);
                     },
                     'Eliminar',
                     'Cancelar'
                   );
                 }}
-                title="Eliminar Asignación"
+                title="Eliminar cobertura"
               >
-                Eliminar Asignación
+                <Minus className="h-3 w-3 mr-1" />
+                Eliminar
               </Button>
             )}
           </>
         )}
 
-        {/* PPC CON ASIGNACIONES - Botones de edición y eliminación */}
-        {turno.es_ppc && turno.guardia_actual_nombre && (
-          <>
-            {/* Botón de editar PPC cubierto */}
-            <Popover open={popoverPPC === turno.id} onOpenChange={(open) => {
-              if (open) {
-                console.log('🔧 Abriendo popover para editar PPC:', {
-                  turnoId: turno.id,
-                  guardiaActualId: turno.guardia_actual_id,
-                  guardiaActualNombre: turno.guardia_actual_nombre
-                });
-                setPopoverPPC(turno.id);
-                setTurnoEnEdicion({
-                  ...turno,
-                  reemplazo_guardia_id: turno.guardia_actual_id
-                });
-                setObservaciones(turno.observaciones || '');
-                setSearchTerm('');
-                // Cargar guardias iniciales cuando se abre el popover
-                searchGuardias('');
-              } else {
-                setPopoverPPC(null);
-                setTurnoEnEdicion(null);
-                setObservaciones('');
-                setSearchTerm('');
-              }
-            }}>
-              <PopoverTrigger asChild>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="text-xs px-2 py-1 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20"
-                  title="Editar"
-                >
-                  Editar
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-96">
-                <div className="space-y-4">
-                  <h4 className="font-medium">✏️ Editar PPC</h4>
-                  <div className="space-y-2">
-                    <Label>Guardia actual: {turno.guardia_actual_nombre}</Label>
-                    <Label>Buscar nuevo guardia:</Label>
-                    <SearchableCombobox
-                      value={turnoEnEdicion?.reemplazo_guardia_id || ''}
-                      onValueChange={(value) => {
-                        console.log('🖱️ Seleccionando guardia para PPC:', {
-                          value,
-                          turnoEnEdicionId: turnoEnEdicion?.id,
-                          currentReemplazoId: turnoEnEdicion?.reemplazo_guardia_id
-                        });
-                        if (turnoEnEdicion) {
-                          setTurnoEnEdicion({
-                            ...turnoEnEdicion,
-                            reemplazo_guardia_id: value || null
-                          });
-                        }
-                      }}
-                      onSearchChange={setSearchTerm}
-                      searchValue={searchTerm}
-                      options={guardiasOptions}
-                      placeholder="Seleccionar guardia..."
-                      searchPlaceholder="Buscar guardia..."
-                      emptyText="No se encontraron guardias"
-                      loading={loadingGuardias}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Observaciones:</Label>
-                    <Textarea
-                      value={observaciones}
-                      onChange={(e) => setObservaciones(e.target.value)}
-                      placeholder="Observaciones opcionales..."
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      onClick={() => {
-                        console.log('💾 Guardando edición PPC:', {
-                          turnoId: turno.id,
-                          guardiaSeleccionado: turnoEnEdicion?.reemplazo_guardia_id,
-                          observaciones
-                        });
-                        if (!turnoEnEdicion?.reemplazo_guardia_id) {
-                          addToast({
-                            title: "❌ Error",
-                            description: "Debes seleccionar un guardia",
-                            type: "error"
-                          });
-                          return;
-                        }
-                        actualizarAsistencia(turno, 'editar_ppc', turnoEnEdicion.reemplazo_guardia_id, undefined, observaciones);
-                        setPopoverPPC(null);
-                        setTurnoEnEdicion(null);
-                        setObservaciones('');
-                        setSearchTerm('');
-                      }}
-                      disabled={!turnoEnEdicion?.reemplazo_guardia_id}
-                      className="flex-1"
-                    >
-                      Actualizar
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => {
-                        setPopoverPPC(null);
-                        setTurnoEnEdicion(null);
-                        setObservaciones('');
-                        setSearchTerm('');
-                      }}
-                      className="flex-1"
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {/* Botón de observaciones */}
-            <Popover open={popoverObservaciones === turno.id} onOpenChange={(open) => {
-              if (open) {
-                setPopoverObservaciones(turno.id);
-                setTurnoEnEdicion(turno);
-                setObservaciones(turno.observaciones || '');
-                // Cargar guardias iniciales cuando se abre el popover
-                searchGuardias('');
-              } else {
-                setPopoverObservaciones(null);
-                setTurnoEnEdicion(null);
-                setObservaciones('');
-              }
-            }}>
-              <PopoverTrigger asChild>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="text-xs px-2 py-1 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
-                  title="Agregar observaciones"
-                >
-                  Observaciones
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80">
-                <div className="space-y-4">
-                  <h4 className="font-medium">📝 Observaciones</h4>
-                  <div className="space-y-2">
-                    <Label>Observaciones:</Label>
-                    <Textarea
-                      value={observaciones}
-                      onChange={(e) => setObservaciones(e.target.value)}
-                      placeholder="Escribir observaciones..."
-                      className="min-h-[80px]"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      onClick={() => {
-                        if (!observaciones.trim()) {
-                          addToast({
-                            title: "❌ Error",
-                            description: "Debes escribir alguna observación",
-                            type: "error"
-                          });
-                          return;
-                        }
-                        actualizarAsistencia(turno, 'agregar_observaciones', undefined, undefined, observaciones);
-                        setPopoverObservaciones(null);
-                        setTurnoEnEdicion(null);
-                        setObservaciones('');
-                      }}
-                      disabled={!observaciones.trim()}
-                      className="flex-1"
-                    >
-                      Guardar
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => {
-                        setPopoverObservaciones(null);
-                        setTurnoEnEdicion(null);
-                        setObservaciones('');
-                      }}
-                      className="flex-1"
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {/* Botón de eliminar cobertura de PPC */}
+        {/* Botón Observaciones para todos */}
+        <Popover open={popoverObservaciones === puesto.puesto_id} onOpenChange={(open) => {
+          if (open) {
+            setPopoverObservaciones(puesto.puesto_id);
+            setPuestoEnEdicion(puesto);
+            setObservaciones(puesto.observaciones || '');
+          } else {
+            setPopoverObservaciones(null);
+            setPuestoEnEdicion(null);
+            setObservaciones('');
+          }
+        }}>
+          <PopoverTrigger asChild>
             <Button 
               size="sm" 
               variant="outline" 
-              className="text-xs px-2 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-              onClick={() => {
-                console.log('🗑️ Intentando eliminar PPC:', {
-                  turnoId: turno.id,
-                  nombrePuesto: turno.nombre_puesto,
-                  guardiaActual: turno.guardia_actual_nombre
-                });
-                showConfirmModal(
-                  'Eliminar Cobertura PPC',
-                  `¿Estás seguro de que quieres eliminar la cobertura del PPC "${generarIdCortoPuesto(turno.puesto_id)}"?`,
-                  () => {
-                    console.log('✅ Confirmación aceptada, eliminando PPC...');
-                    actualizarAsistencia(turno, 'eliminar_ppc', undefined, undefined, 'Cobertura eliminada');
-                  },
-                  'Eliminar',
-                  'Cancelar'
-                );
-              }}
-              title="Eliminar Asignación"
+              className="text-xs px-2 py-1 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+              title="Agregar observaciones"
             >
-              Eliminar Asignación
+              <FileText className="h-3 w-3 mr-1" />
+              Observaciones
             </Button>
-          </>
-        )}
-
-        {/* REEMPLAZOS - Botones de edición */}
-        {turno.tipo_cobertura === 'reemplazo' && (
-          <>
-            {/* Botón de editar reemplazo existente */}
-            <Popover open={popoverReemplazo === turno.id} onOpenChange={(open) => {
-              if (open) {
-                setPopoverReemplazo(turno.id);
-                setTurnoEnEdicion({
-                  ...turno,
-                  reemplazo_guardia_id: turno.reemplazo_guardia_id
-                });
-                setObservaciones(turno.observaciones || '');
-                setSearchTerm('');
-                // Cargar guardias iniciales cuando se abre el popover
-                searchGuardias('');
-              } else {
-                setPopoverReemplazo(null);
-                setTurnoEnEdicion(null);
-                setObservaciones('');
-                setSearchTerm('');
-              }
-            }}>
-              <PopoverTrigger asChild>
+          </PopoverTrigger>
+          <PopoverContent className="w-80">
+            <div className="space-y-4">
+              <h4 className="font-medium">📝 Observaciones</h4>
+              <div className="space-y-2">
+                <Label>Observaciones:</Label>
+                <Textarea
+                  value={observaciones}
+                  onChange={(e) => setObservaciones(e.target.value)}
+                  placeholder="Escribir observaciones..."
+                  className="min-h-[80px]"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  size="sm" 
+                  onClick={() => {
+                    if (!observaciones.trim()) {
+                      addToast({
+                        title: "❌ Error",
+                        description: "Debes escribir alguna observación",
+                        type: "error"
+                      });
+                      return;
+                    }
+                    actualizarAsistencia(puesto, 'agregar_observaciones', undefined, undefined, observaciones);
+                    setPopoverObservaciones(null);
+                    setPuestoEnEdicion(null);
+                    setObservaciones('');
+                  }}
+                  disabled={!observaciones.trim()}
+                  className="flex-1"
+                >
+                  Guardar
+                </Button>
                 <Button 
                   size="sm" 
                   variant="outline" 
-                  className="text-xs px-2 py-1 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20"
-                  title="Editar"
+                  onClick={() => {
+                    setPopoverObservaciones(null);
+                    setPuestoEnEdicion(null);
+                    setObservaciones('');
+                  }}
+                  className="flex-1"
                 >
-                  Editar
+                  Cancelar
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-96">
-                <div className="space-y-4">
-                  <h4 className="font-medium">✏️ Editar Reemplazo</h4>
-                  <div className="space-y-2">
-                    <Label>Guardia actual: {turno.reemplazo_nombre}</Label>
-                    <Label>Buscar nuevo guardia:</Label>
-                    <SearchableCombobox
-                      value={guardiasOptions.find(g => g.value === turnoEnEdicion?.reemplazo_guardia_id)?.value}
-                      onValueChange={(value) => {
-                        if (turnoEnEdicion) {
-                          setTurnoEnEdicion({
-                            ...turnoEnEdicion,
-                            reemplazo_guardia_id: value || null
-                          });
-                        }
-                      }}
-                      onSearchChange={setSearchTerm}
-                      searchValue={searchTerm}
-                      options={guardiasOptions}
-                      placeholder="Seleccionar guardia..."
-                      searchPlaceholder="Buscar guardia..."
-                      emptyText="No se encontraron guardias"
-                      loading={loadingGuardias}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Observaciones:</Label>
-                    <Textarea
-                      value={observaciones}
-                      onChange={(e) => setObservaciones(e.target.value)}
-                      placeholder="Observaciones opcionales..."
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      onClick={() => {
-                        if (!turnoEnEdicion?.reemplazo_guardia_id) {
-                          addToast({
-                            title: "❌ Error",
-                            description: "Debes seleccionar un guardia",
-                            type: "error"
-                          });
-                          return;
-                        }
-                        actualizarAsistencia(turno, 'editar_reemplazo', turnoEnEdicion.reemplazo_guardia_id, undefined, observaciones);
-                        setPopoverReemplazo(null);
-                        setTurnoEnEdicion(null);
-                        setObservaciones('');
-                        setSearchTerm('');
-                      }}
-                      disabled={!turnoEnEdicion?.reemplazo_guardia_id}
-                      className="flex-1"
-                    >
-                      Actualizar
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => {
-                        setPopoverReemplazo(null);
-                        setTurnoEnEdicion(null);
-                        setObservaciones('');
-                        setSearchTerm('');
-                      }}
-                      className="flex-1"
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {/* Botón de observaciones */}
-            <Popover open={popoverObservaciones === turno.id} onOpenChange={(open) => {
-              if (open) {
-                setPopoverObservaciones(turno.id);
-                setTurnoEnEdicion(turno);
-                setObservaciones(turno.observaciones || '');
-                // Cargar guardias iniciales cuando se abre el popover
-                searchGuardias('');
-              } else {
-                setPopoverObservaciones(null);
-                setTurnoEnEdicion(null);
-                setObservaciones('');
-              }
-            }}>
-              <PopoverTrigger asChild>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="text-xs px-2 py-1 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
-                  title="Agregar observaciones"
-                >
-                  Observaciones
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80">
-                <div className="space-y-4">
-                  <h4 className="font-medium">📝 Observaciones</h4>
-                  <div className="space-y-2">
-                    <Label>Observaciones:</Label>
-                    <Textarea
-                      value={observaciones}
-                      onChange={(e) => setObservaciones(e.target.value)}
-                      placeholder="Escribir observaciones..."
-                      className="min-h-[80px]"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      onClick={() => {
-                        if (!observaciones.trim()) {
-                          addToast({
-                            title: "❌ Error",
-                            description: "Debes escribir alguna observación",
-                            type: "error"
-                          });
-                          return;
-                        }
-                        actualizarAsistencia(turno, 'agregar_observaciones', undefined, undefined, observaciones);
-                        setPopoverObservaciones(null);
-                        setTurnoEnEdicion(null);
-                        setObservaciones('');
-                      }}
-                      disabled={!observaciones.trim()}
-                      className="flex-1"
-                    >
-                      Guardar
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => {
-                        setPopoverObservaciones(null);
-                        setTurnoEnEdicion(null);
-                        setObservaciones('');
-                      }}
-                      className="flex-1"
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </>
-        )}
-
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
     );
   };
 
-  // Ordenar turnos por horario (día, noche)
-  const ordenarTurnos = (turnos: Turno[]) => {
-    return turnos.sort((a, b) => {
-      const orden = { 'Día': 1, 'Tarde': 2, 'Noche': 3 };
-      const ordenA = orden[a.turno_nombre as keyof typeof orden] || 4;
-      const ordenB = orden[b.turno_nombre as keyof typeof orden] || 4;
-      return ordenA - ordenB;
-    });
-  };
-
-  // Función helper para generar ID corto del puesto
-  const generarIdCortoPuesto = (puestoId: string) => {
-    // Tomar los últimos 4 caracteres del UUID y convertirlos a mayúsculas
-    return `P-${puestoId.slice(-4).toUpperCase()}`;
-  };
-
-  console.log("Pauta Diaria actualizada: turnos ahora se marcan manualmente, PPCs se cubren, todo editable.");
+  console.log("✅ Vista de pauta diaria operativa y refactorizada");
 
   return (
     <TooltipProvider>
@@ -1358,17 +691,8 @@ export default function PautaDiariaPage() {
           <div className="text-center sm:text-left">
             <h1 className="text-2xl sm:text-3xl font-bold mb-2">Pauta Diaria</h1>
             <p className="text-sm sm:text-base text-muted-foreground">
-              Control de asistencia y estados de guardias
+              Control operativo de puestos con turno asignado
             </p>
-          </div>
-          <div className="flex justify-center sm:justify-end">
-            {totalTurnosExtras > 0 && (
-              <Button variant="outline" size="sm" onClick={exportarCSV} className="w-full sm:w-auto">
-                <Download className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">CSV Turnos Extras</span>
-                <span className="sm:hidden">Exportar CSV</span>
-              </Button>
-            )}
           </div>
         </div>
 
@@ -1424,17 +748,16 @@ export default function PautaDiariaPage() {
               {fechaSeleccionada && (
                 <div className={cn(
                   "text-xs sm:text-sm text-center sm:text-left w-full sm:w-auto",
-                  fechaSeleccionada === obtenerFechaActual() 
+                  fechaSeleccionada === format(new Date(), 'yyyy-MM-dd')
                     ? "text-green-500 font-medium" 
                     : "text-muted-foreground"
                 )}>
                   {(() => {
                     const fechaConHora = new Date(fechaSeleccionada + 'T00:00:00');
                     const textoFormateado = format(fechaConHora, 'EEEE, d \'de\' MMMM \'de\' yyyy', { locale: es });
-                    console.log('📅 Formateando texto fecha:', fechaSeleccionada, '->', fechaConHora, '->', textoFormateado);
                     return textoFormateado;
                   })()}
-                  {fechaSeleccionada === obtenerFechaActual() && (
+                  {fechaSeleccionada === format(new Date(), 'yyyy-MM-dd') && (
                     <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full dark:bg-green-900 dark:text-green-200">
                       Hoy
                     </span>
@@ -1455,178 +778,130 @@ export default function PautaDiariaPage() {
           </Alert>
         )}
 
-
-
-        {/* Asignaciones por instalación */}
+        {/* Lista de puestos */}
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-        ) : instalaciones.length === 0 ? (
+        ) : puestos.length === 0 ? (
           <Card>
             <CardContent className="text-center py-8 text-muted-foreground">
-              No hay asignaciones para la fecha seleccionada
+              No hay puestos con turno asignado para la fecha seleccionada
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4 sm:space-y-6">
-            {instalaciones.map((instalacion) => (
-              <Card key={instalacion.id} className="overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 border-b dark:from-gray-800 dark:to-gray-900">
-                  <CardTitle className="flex items-center gap-2 sm:gap-3 text-base sm:text-lg">
-                    <MapPin className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 flex-shrink-0" />
-                    <span className="truncate">{instalacion.nombre}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="divide-y">
-                    {ordenarTurnos(instalacion.turnos).map((turno) => (
-                      <div key={turno.id} className="p-3 sm:p-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-                          <div className="flex-1 min-w-0">
-                            {/* Layout móvil: información apilada */}
-                            <div className="sm:hidden space-y-3">
-                              {/* Información del turno */}
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                <div className="min-w-0 flex-1">
-                                  <span className="font-medium text-sm">{turno.turno_nombre}</span>
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    {generarIdCortoPuesto(turno.puesto_id)}
-                                  </div>
-                                  {turno.rol_nombre && (
-                                    <div className="text-xs text-blue-600 mt-1">
-                                      {turno.rol_nombre}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Información del guardia */}
-                              <div className="flex items-center gap-2">
-                                <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                <div className="min-w-0 flex-1">
-                                  {turno.es_ppc && !turno.guardia_actual_nombre ? (
-                                    <span className="text-muted-foreground italic">PPC - Sin asignar</span>
-                                  ) : turno.tipo_cobertura === 'reemplazo' ? (
-                                    <div className="space-y-1">
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-medium truncate">{turno.reemplazo_nombre}</span>
-                                        <Badge variant="outline" className="text-xs flex-shrink-0 bg-blue-50 text-blue-700 border-blue-200">
-                                          Reemplazo
-                                        </Badge>
-                                      </div>
-                                      {turno.guardia_nombre && (
-                                        <div className="text-xs text-muted-foreground">
-                                          Original: {turno.guardia_nombre}
-                                        </div>
-                                      )}
-                                    </div>
-                                  ) : turno.tipo_cobertura === 'ppc_cubierto' ? (
-                                    <div className="space-y-1">
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-medium truncate">{turno.guardia_actual_nombre}</span>
-                                        <Badge variant="outline" className="text-xs flex-shrink-0 bg-green-50 text-green-700 border-green-200">
-                                          PPC Cubierto
-                                        </Badge>
-                                      </div>
-                                                                              <div className="text-xs text-muted-foreground">
-                                          PPC: {generarIdCortoPuesto(turno.puesto_id)}
-                                        </div>
-                                    </div>
-                                  ) : (
-                                    <span className="font-medium truncate">{turno.guardia_actual_nombre || turno.guardia_nombre}</span>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Estado */}
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-medium text-muted-foreground">Estado:</span>
-                                {renderEstadoBadge(turno)}
-                              </div>
-                            </div>
-
-                            {/* Layout desktop: información en línea */}
-                            <div className="hidden sm:flex items-center gap-6">
-                              {/* Información del turno */}
-                              <div className="min-w-[140px]">
-                                <div className="flex items-center gap-2">
-                                  <Clock className="h-4 w-4 text-muted-foreground" />
-                                  <span className="font-medium text-sm">{turno.turno_nombre}</span>
-                                </div>
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  {generarIdCortoPuesto(turno.puesto_id)}
-                                </div>
-                                {turno.rol_nombre && (
-                                  <div className="text-xs text-blue-600 mt-1">
-                                    {turno.rol_nombre}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Información del guardia */}
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <User className="h-4 w-4 text-muted-foreground" />
-                                  {turno.es_ppc && !turno.guardia_actual_nombre ? (
-                                    <span className="text-muted-foreground italic">PPC - Sin asignar</span>
-                                  ) : turno.tipo_cobertura === 'reemplazo' ? (
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium">{turno.reemplazo_nombre}</span>
-                                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                                        Reemplazo
-                                      </Badge>
-                                    </div>
-                                  ) : turno.tipo_cobertura === 'ppc_cubierto' ? (
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium">{turno.guardia_actual_nombre}</span>
-                                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                                        PPC Cubierto
-                                      </Badge>
-                                    </div>
-                                  ) : (
-                                    <span className="font-medium">{turno.guardia_actual_nombre || turno.guardia_nombre}</span>
-                                  )}
-                                </div>
-                                {turno.tipo_cobertura === 'reemplazo' && turno.guardia_nombre && (
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    Original: {turno.guardia_nombre}
-                                  </div>
-                                )}
-                                {turno.tipo_cobertura === 'ppc_cubierto' && (
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    PPC: {generarIdCortoPuesto(turno.puesto_id)}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Estado */}
-                              <div className="min-w-[100px]">
-                                {renderEstadoBadge(turno)}
-                              </div>
-                            </div>
-
-                            {/* Observaciones */}
-                            {turno.observaciones && (
-                              <div className="mt-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r dark:bg-blue-900/20 dark:border-blue-600">
-                                <div className="flex items-start gap-2">
-                                  <FileText className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                                  <div className="text-sm text-blue-800 dark:text-blue-200 min-w-0">
-                                    <span className="font-medium">Observaciones:</span> {turno.observaciones}
-                                  </div>
-                                </div>
-                              </div>
+          <div className="space-y-4">
+            {puestos.map((puesto) => (
+              <Card key={puesto.puesto_id} className="overflow-hidden">
+                <CardContent className="p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      {/* Layout móvil: información apilada */}
+                      <div className="sm:hidden space-y-3">
+                        {/* Información del puesto */}
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <span className="font-medium text-sm">{puesto.nombre_puesto}</span>
+                            {puesto.es_ppc && (
+                              <Badge variant="outline" className="text-xs ml-2 bg-orange-50 text-orange-700 border-orange-200">
+                                PPC
+                              </Badge>
                             )}
                           </div>
+                        </div>
 
-                          {/* Acciones */}
-                          <div className="flex justify-end sm:ml-4">
-                            {renderAcciones(turno)}
+                        {/* Asignación real */}
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <span className="text-sm">
+                              <span className="font-medium">Asignación:</span> {puesto.asignacion_real}
+                            </span>
                           </div>
                         </div>
+
+                        {/* Cobertura real */}
+                        {puesto.cobertura_real && (
+                          <div className="flex items-center gap-2">
+                            <UserPlus className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <span className="text-sm">
+                                <span className="font-medium">Cobertura:</span> {puesto.cobertura_real}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Estado */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-muted-foreground">Estado:</span>
+                          {renderEstadoBadge(puesto)}
+                        </div>
                       </div>
-                    ))}
+
+                      {/* Layout desktop: información en línea */}
+                      <div className="hidden sm:flex items-center gap-6">
+                        {/* Información del puesto */}
+                        <div className="min-w-[200px]">
+                          <div className="flex items-center gap-2">
+                            <Shield className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium text-sm">{puesto.nombre_puesto}</span>
+                            {puesto.es_ppc && (
+                              <Badge variant="outline" className="text-xs ml-2 bg-orange-50 text-orange-700 border-orange-200">
+                                PPC
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Asignación real */}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">
+                              <span className="font-medium">Asignación:</span> {puesto.asignacion_real}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Cobertura real */}
+                        <div className="flex-1">
+                          {puesto.cobertura_real ? (
+                            <div className="flex items-center gap-2">
+                              <UserPlus className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">
+                                <span className="font-medium">Cobertura:</span> {puesto.cobertura_real}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">Sin cobertura</span>
+                          )}
+                        </div>
+
+                        {/* Estado */}
+                        <div className="min-w-[100px]">
+                          {renderEstadoBadge(puesto)}
+                        </div>
+                      </div>
+
+                      {/* Observaciones */}
+                      {puesto.observaciones && (
+                        <div className="mt-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r dark:bg-blue-900/20 dark:border-blue-600">
+                          <div className="flex items-start gap-2">
+                            <FileText className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                            <div className="text-sm text-blue-800 dark:text-blue-200 min-w-0">
+                              <span className="font-medium">Observaciones:</span> {puesto.observaciones}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Acciones */}
+                    <div className="flex justify-end sm:ml-4">
+                      {renderAcciones(puesto)}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -1640,48 +915,30 @@ export default function PautaDiariaPage() {
             <CardTitle className="text-base sm:text-lg">Resumen de Estados</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4">
-              <div className="text-center">
-                <div className="text-xl sm:text-2xl font-bold text-green-600">
-                  {estadisticas.asistieron}
-                </div>
-                <div className="text-xs sm:text-sm text-muted-foreground">✅ Asistieron</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xl sm:text-2xl font-bold text-red-600">
-                  {estadisticas.inasistencias}
-                </div>
-                <div className="text-xs sm:text-sm text-muted-foreground">❌ Inasistencias</div>
-              </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
               <div className="text-center">
                 <div className="text-xl sm:text-2xl font-bold text-blue-600">
-                  {estadisticas.reemplazos}
+                  {puestos.filter(p => p.estado === 'T').length}
+                </div>
+                <div className="text-xs sm:text-sm text-muted-foreground">📋 Asignados</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl sm:text-2xl font-bold text-green-600">
+                  {estadisticas.trabajado}
+                </div>
+                <div className="text-xs sm:text-sm text-muted-foreground">✅ Trabajados</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl sm:text-2xl font-bold text-orange-600">
+                  {estadisticas.reemplazo}
                 </div>
                 <div className="text-xs sm:text-sm text-muted-foreground">🔄 Reemplazos</div>
               </div>
               <div className="text-center">
-                <div className="text-xl sm:text-2xl font-bold text-green-600">
-                  {estadisticas.ppcCubiertos}
+                <div className="text-xl sm:text-2xl font-bold text-red-600">
+                  {estadisticas.sin_cobertura}
                 </div>
-                <div className="text-xs sm:text-sm text-muted-foreground">🛡️ PPCs Cubiertos</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xl sm:text-2xl font-bold text-orange-600">
-                  {estadisticas.sinCubrir}
-                </div>
-                <div className="text-xs sm:text-sm text-muted-foreground">⚠️ Sin cubrir</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xl sm:text-2xl font-bold text-gray-600">
-                  {estadisticas.sinMarcar}
-                </div>
-                <div className="text-xs sm:text-sm text-muted-foreground">⚪ Sin marcar</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xl sm:text-2xl font-bold text-purple-600">
-                  {totalTurnosExtras}
-                </div>
-                <div className="text-xs sm:text-sm text-muted-foreground">💰 Turnos extras</div>
+                <div className="text-xs sm:text-sm text-muted-foreground">❌ Sin cobertura</div>
               </div>
             </div>
           </CardContent>

@@ -4,208 +4,98 @@ import { logCRUD, logError } from '@/lib/logging';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🚀 Iniciando endpoint pauta-diaria optimizado');
+    console.log('🚀 Iniciando endpoint pauta-diaria refactorizado');
     
     const { searchParams } = new URL(request.url);
-    const fecha = searchParams.get('fecha');
+    const anio = searchParams.get('anio');
+    const mes = searchParams.get('mes');
+    const dia = searchParams.get('dia');
 
-    console.log('📅 Fecha recibida:', fecha);
+    console.log('📅 Parámetros recibidos:', { anio, mes, dia });
 
-    if (!fecha) {
+    if (!anio || !mes || !dia) {
       return NextResponse.json(
-        { error: 'Fecha requerida' },
+        { error: 'anio, mes y dia son requeridos' },
         { status: 400 }
       );
     }
 
-    // Extraer año, mes y día de la fecha
-    const fechaObj = new Date(fecha + 'T00:00:00.000Z');
-    const anio = fechaObj.getUTCFullYear();
-    const mes = fechaObj.getUTCMonth() + 1;
-    const dia = fechaObj.getUTCDate();
+    console.log(`🔍 Consultando pauta diaria para: ${anio}-${mes}-${dia}`);
 
-    console.log(`🔍 Consultando pauta diaria para: ${fecha} (${anio}-${mes}-${dia})`);
-
-    // Consulta optimizada para obtener todos los datos necesarios incluyendo reemplazos y PPCs cubiertos
+    // Consulta optimizada para obtener puestos con turno asignado ese día
     const pautaDiaria = await query(`
       SELECT 
-        pm.id,
-        pm.puesto_id,
-        pm.guardia_id,
-        pm.anio,
-        pm.mes,
-        pm.dia,
-        pm.estado,
-        pm.observaciones,
+        pm.id as puesto_id,
+        po.nombre_puesto,
+        po.es_ppc,
+        
+        -- Datos del guardia original asignado al puesto
+        pm.guardia_id as guardia_original_id,
+        g.nombre as guardia_original_nombre,
+        g.apellido_paterno as guardia_original_apellido_paterno,
+        g.apellido_materno as guardia_original_apellido_materno,
         
         -- Datos de la instalación
         i.id as instalacion_id,
         i.nombre as instalacion_nombre,
-        i.valor_turno_extra,
         
-        -- Datos del puesto
-        po.nombre_puesto,
-        po.es_ppc,
+        -- Estado y observaciones
+        pm.estado,
+        pm.observaciones,
         
-        -- Datos del guardia asignado originalmente
-        g.nombre as guardia_nombre,
-        g.apellido_paterno as guardia_apellido_paterno,
-        g.apellido_materno as guardia_apellido_materno,
-        g.rut as guardia_rut,
-        
-        -- Datos del guardia que cubrió el turno (reemplazo o PPC)
-        CASE 
-          WHEN po.es_ppc = true THEN te.guardia_id
-          ELSE COALESCE(te.guardia_id, pm.guardia_id)
-        END as guardia_actual_id,
-        CASE 
-          WHEN po.es_ppc = true THEN rg.nombre
-          ELSE COALESCE(rg.nombre, g.nombre)
-        END as guardia_actual_nombre,
-        CASE 
-          WHEN po.es_ppc = true THEN rg.apellido_paterno
-          ELSE COALESCE(rg.apellido_paterno, g.apellido_paterno)
-        END as guardia_actual_apellido_paterno,
-        CASE 
-          WHEN po.es_ppc = true THEN rg.apellido_materno
-          ELSE COALESCE(rg.apellido_materno, g.apellido_materno)
-        END as guardia_actual_apellido_materno,
-        CASE 
-          WHEN po.es_ppc = true THEN rg.rut
-          ELSE COALESCE(rg.rut, g.rut)
-        END as guardia_actual_rut,
-        
-        -- Datos del reemplazo (si existe)
+        -- Datos del reemplazo/cobertura
         te.guardia_id as reemplazo_guardia_id,
         rg.nombre as reemplazo_nombre,
         rg.apellido_paterno as reemplazo_apellido_paterno,
-        rg.apellido_materno as reemplazo_apellido_materno,
-        rg.rut as reemplazo_rut,
-        te.estado as tipo_reemplazo,
-        
-        -- Datos del rol para el turno
-        rs.nombre as rol_nombre,
-        rs.hora_inicio,
-        rs.hora_termino,
-        
-        -- Información adicional para determinar el tipo de cobertura
-        CASE 
-          WHEN te.estado = 'reemplazo' THEN 'reemplazo'
-          WHEN te.estado = 'ppc' AND po.es_ppc = true THEN 'ppc_cubierto'
-          WHEN po.es_ppc = true AND te.guardia_id IS NOT NULL THEN 'ppc_cubierto'
-          WHEN pm.estado = 'reemplazo' THEN 'reemplazo'
-          ELSE 'normal'
-        END as tipo_cobertura
+        rg.apellido_materno as reemplazo_apellido_materno
         
       FROM as_turnos_pauta_mensual pm
       INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
       INNER JOIN instalaciones i ON po.instalacion_id = i.id
       LEFT JOIN guardias g ON pm.guardia_id = g.id
-      LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       LEFT JOIN turnos_extras te ON pm.id = te.pauta_id
       LEFT JOIN guardias rg ON te.guardia_id = rg.id
       
       WHERE pm.anio = $1 AND pm.mes = $2 AND pm.dia = $3
+        AND pm.estado IN ('trabajado', 'reemplazo', 'sin_cobertura')
         AND po.activo = true
       
       ORDER BY i.nombre, po.nombre_puesto
     `, [anio, mes, dia]);
 
-    console.log(`📊 Pauta diaria para ${fecha}: ${pautaDiaria.rows.length} registros`);
+    console.log(`📊 Pauta diaria para ${anio}-${mes}-${dia}: ${pautaDiaria.rows.length} registros`);
 
-    // Procesar los datos para agrupar por instalación
-    const instalaciones = new Map();
-    
-    pautaDiaria.rows.forEach((row: any) => {
-      const instalacionId = row.instalacion_id;
-      
-      if (!instalaciones.has(instalacionId)) {
-        instalaciones.set(instalacionId, {
-          id: instalacionId,
-          nombre: row.instalacion_nombre,
-          valor_turno_extra: row.valor_turno_extra,
-          turnos: []
-        });
+    // Procesar los datos según el formato requerido
+    const resultado = pautaDiaria.rows.map((row: any) => {
+      // Determinar asignación real
+      let asignacionReal = "PPC - Sin asignar";
+      if (row.guardia_original_id) {
+        const nombreCompleto = `${row.guardia_original_nombre} ${row.guardia_original_apellido_paterno} ${row.guardia_original_apellido_materno || ''}`.trim();
+        asignacionReal = nombreCompleto;
       }
-      
-      const instalacion = instalaciones.get(instalacionId);
-      
-      // Determinar el nombre completo del guardia actual
-      const guardiaActualNombre = row.guardia_actual_nombre ? 
-        `${row.guardia_actual_nombre} ${row.guardia_actual_apellido_paterno} ${row.guardia_actual_apellido_materno || ''}`.trim() : null;
-      
-      // Determinar el nombre completo del guardia original
-      const guardiaOriginalNombre = row.guardia_nombre ? 
-        `${row.guardia_nombre} ${row.guardia_apellido_paterno} ${row.guardia_apellido_materno || ''}`.trim() : null;
-      
-      // Determinar el nombre completo del reemplazo
-      const reemplazoNombre = row.reemplazo_nombre ? 
-        `${row.reemplazo_nombre} ${row.reemplazo_apellido_paterno} ${row.reemplazo_apellido_materno || ''}`.trim() : null;
-      
-      instalacion.turnos.push({
-        id: row.id,
-        puesto_id: row.puesto_id,
-        guardia_id: row.guardia_id,
-        guardia_nombre: guardiaOriginalNombre,
-        guardia_rut: row.guardia_rut,
-        
-        // Información del guardia que está actualmente cubriendo el turno
-        guardia_actual_id: row.guardia_actual_id,
-        guardia_actual_nombre: guardiaActualNombre,
-        guardia_actual_rut: row.guardia_actual_rut,
-        
-        // Información del reemplazo
-        reemplazo_guardia_id: row.reemplazo_guardia_id,
-        reemplazo_nombre: reemplazoNombre,
-        reemplazo_rut: row.reemplazo_rut,
-        tipo_reemplazo: row.tipo_reemplazo,
-        
-        // Tipo de cobertura para mostrar correctamente
-        tipo_cobertura: row.tipo_cobertura,
-        
-        nombre_puesto: row.nombre_puesto,
-        es_ppc: row.es_ppc,
-        estado: (() => {
-          // Si es PPC y no tiene guardia asignado específicamente para cubrirlo, debe estar sin cubrir
-          if (row.es_ppc && !row.guardia_actual_id) {
-            return 'sin_cubrir';
-          }
-          // Si es PPC con guardia asignado específicamente para cubrirlo, usar el estado de la base de datos
-          if (row.es_ppc && row.guardia_actual_id) {
-            // Si el estado es 'sin_cubrir', mantenerlo
-            if (row.estado === 'sin_cubrir') {
-              return 'sin_cubrir';
-            }
-            // Si tiene otro estado, usar 'cubierto'
-            return 'cubierto';
-          }
-          // Para turnos normales (no PPC), usar la lógica original
-          if (row.estado) {
-            return row.estado;
-          }
-          // Estado por defecto
-          return row.es_ppc ? 'sin_cubrir' : 'sin_marcar';
-        })(),
-        observaciones: row.observaciones || null,
-        rol_nombre: row.rol_nombre,
-        hora_inicio: row.hora_inicio,
-        hora_termino: row.hora_termino,
-        turno_nombre: (() => {
-          if (!row.hora_inicio || !row.hora_termino) return 'Turno';
-          const inicio = parseInt(row.hora_inicio.split(':')[0]);
-          const termino = parseInt(row.hora_termino.split(':')[0]);
-          
-          // Si el turno cruza la medianoche (termino < inicio), es turno de noche
-          if (termino < inicio) return 'Noche';
-          // Si empieza antes de las 12, es turno de día
-          if (inicio < 12) return 'Día';
-          // Si empieza después de las 12, es turno de tarde/noche
-          return 'Tarde';
-        })()
-      });
-    });
 
-    const resultado = Array.from(instalaciones.values());
+      // Determinar cobertura real
+      let coberturaReal = null;
+      if (row.reemplazo_guardia_id) {
+        const nombreCompleto = `${row.reemplazo_nombre} ${row.reemplazo_apellido_paterno} ${row.reemplazo_apellido_materno || ''}`.trim();
+        coberturaReal = nombreCompleto;
+      }
+
+      return {
+        puesto_id: row.puesto_id,
+        nombre_puesto: row.nombre_puesto,
+        guardia_original: row.guardia_original_id ? {
+          id: row.guardia_original_id,
+          nombre: `${row.guardia_original_nombre} ${row.guardia_original_apellido_paterno} ${row.guardia_original_apellido_materno || ''}`.trim()
+        } : null,
+        asignacion_real: asignacionReal,
+        cobertura_real: coberturaReal,
+        estado: row.estado,
+        observaciones: row.observaciones,
+        instalacion_id: row.instalacion_id,
+        es_ppc: row.es_ppc
+      };
+    });
 
     return NextResponse.json(resultado);
 
@@ -254,31 +144,7 @@ export async function PUT(request: NextRequest) {
 
     switch (accion) {
       case 'asistio':
-        // Verificar si es PPC y tiene guardia asignado
-        const turnoInfo = await query(`
-          SELECT pm.guardia_id, po.es_ppc
-          FROM as_turnos_pauta_mensual pm
-          INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
-          WHERE pm.id = $1
-        `, [turnoId]);
-
-        if (turnoInfo.rows.length === 0) {
-          return NextResponse.json(
-            { error: 'Turno no encontrado' },
-            { status: 404 }
-          );
-        }
-
-        const turnoAsistencia = turnoInfo.rows[0];
-        
-        // Si es PPC y no tiene guardia asignado, no se puede marcar como trabajado
-        if (turnoAsistencia.es_ppc && !turnoAsistencia.guardia_id) {
-          return NextResponse.json(
-            { error: 'No se puede marcar asistencia para un PPC sin guardia asignado' },
-            { status: 400 }
-          );
-        }
-
+        // Marcar como trabajado y llenar cobertura con el mismo guardia
         queryUpdate = `
           UPDATE as_turnos_pauta_mensual 
           SET estado = 'trabajado', 
@@ -288,14 +154,16 @@ export async function PUT(request: NextRequest) {
         params = [turnoId];
         break;
 
-      case 'inasistencia':
+      case 'no_asistio':
+        // Abrir modal para reemplazo o sin cobertura
+        // Por ahora solo actualizar observaciones
         queryUpdate = `
           UPDATE as_turnos_pauta_mensual 
-          SET estado = 'inasistencia', 
+          SET observaciones = $2,
               updated_at = NOW()
           WHERE id = $1
         `;
-        params = [turnoId];
+        params = [turnoId, observaciones || null];
         break;
 
       case 'reemplazo':
@@ -329,11 +197,12 @@ export async function PUT(request: NextRequest) {
         queryUpdate = `
           UPDATE as_turnos_pauta_mensual 
           SET estado = 'reemplazo', 
-              guardia_id = $2,
+              reemplazo_guardia_id = $2,
+              observaciones = $3,
               updated_at = NOW()
           WHERE id = $1
         `;
-        params = [turnoId, guardiaId];
+        params = [turnoId, guardiaId, observaciones || null];
 
         // Crear registro en turnos_extras
         await query(`
@@ -350,11 +219,23 @@ export async function PUT(request: NextRequest) {
           guardiaId,
           turno.puesto_id,
           turno.instalacion_id,
-          turnoId, // pauta_id es el ID del turno en as_turnos_pauta_mensual
+          turnoId,
           fechaTurno,
           'reemplazo',
           turno.valor_turno_extra
         ]);
+        break;
+
+      case 'sin_cobertura':
+        // Marcar como sin cobertura
+        queryUpdate = `
+          UPDATE as_turnos_pauta_mensual 
+          SET estado = 'sin_cobertura',
+              observaciones = $2,
+              updated_at = NOW()
+          WHERE id = $1
+        `;
+        params = [turnoId, observaciones || null];
         break;
 
       case 'asignar_ppc':
@@ -387,12 +268,13 @@ export async function PUT(request: NextRequest) {
         // Asignar guardia al PPC
         queryUpdate = `
           UPDATE as_turnos_pauta_mensual 
-          SET guardia_id = $2, 
-              estado = 'cubierto',
+          SET reemplazo_guardia_id = $2, 
+              estado = 'trabajado',
+              observaciones = $3,
               updated_at = NOW()
           WHERE id = $1
         `;
-        params = [turnoId, guardiaId];
+        params = [turnoId, guardiaId, observaciones || null];
 
         // Crear registro en turnos_extras
         await query(`
@@ -409,39 +291,18 @@ export async function PUT(request: NextRequest) {
           guardiaId,
           ppc.puesto_id,
           ppc.instalacion_id,
-          turnoId, // pauta_id es el ID del turno en as_turnos_pauta_mensual
+          turnoId,
           fechaPpc,
           'ppc',
           ppc.valor_turno_extra
         ]);
         break;
 
-      case 'editar_reemplazo':
-        if (!guardiaId) {
-          return NextResponse.json(
-            { error: 'Guardia requerido para editar reemplazo' },
-            { status: 400 }
-          );
-        }
-        
-        // Actualizar el turno con el nuevo reemplazo
+      case 'eliminar_cobertura':
+        // Eliminar cobertura y volver a estado 'trabajado'
         queryUpdate = `
           UPDATE as_turnos_pauta_mensual 
-          SET guardia_id = $2,
-              observaciones = $3,
-              updated_at = NOW()
-          WHERE id = $1
-        `;
-        params = [turnoId, guardiaId, observaciones || null];
-        break;
-
-      case 'eliminar_ppc':
-        // Eliminar la cobertura del PPC - volver a estado sin cubrir
-        // En lugar de establecer guardia_id como NULL, lo mantenemos pero cambiamos el estado
-        // y limpiamos reemplazo_guardia_id
-        queryUpdate = `
-          UPDATE as_turnos_pauta_mensual 
-          SET estado = 'sin_cubrir',
+          SET estado = 'trabajado',
               reemplazo_guardia_id = NULL,
               observaciones = $2,
               updated_at = NOW()
@@ -452,59 +313,8 @@ export async function PUT(request: NextRequest) {
         // Eliminar registro de turnos_extras
         await query(`
           DELETE FROM turnos_extras 
-          WHERE pauta_id = $1 AND estado = 'ppc'
+          WHERE pauta_id = $1
         `, [turnoId]);
-        break;
-
-      case 'eliminar_guardia':
-        // Eliminar el guardia asignado al turno normal - volver a estado sin marcar
-        queryUpdate = `
-          UPDATE as_turnos_pauta_mensual 
-          SET guardia_id = NULL,
-              estado = 'sin_marcar',
-              observaciones = $2,
-              updated_at = NOW()
-          WHERE id = $1
-        `;
-        params = [turnoId, observaciones || null];
-
-        // Eliminar registro de turnos_extras si existe (para reemplazos)
-        try {
-          await query(`
-            DELETE FROM turnos_extras 
-            WHERE pauta_id = $1 AND estado = 'reemplazo'
-          `, [turnoId]);
-        } catch (error) {
-          console.log('⚠️ No se pudo eliminar registro de turnos_extras:', error);
-          // Continuar con la actualización principal
-        }
-        break;
-
-      case 'editar_ppc':
-        if (!guardiaId) {
-          return NextResponse.json(
-            { error: 'Guardia requerido para editar PPC' },
-            { status: 400 }
-          );
-        }
-        
-        // Actualizar el guardia asignado al PPC
-        queryUpdate = `
-          UPDATE as_turnos_pauta_mensual 
-          SET guardia_id = $2,
-              observaciones = $3,
-              updated_at = NOW()
-          WHERE id = $1
-        `;
-        params = [turnoId, guardiaId, observaciones || null];
-
-        // Actualizar registro en turnos_extras
-        await query(`
-          UPDATE turnos_extras 
-          SET guardia_id = $2,
-              updated_at = NOW()
-          WHERE pauta_id = $1 AND estado = 'ppc'
-        `, [turnoId, guardiaId]);
         break;
 
       case 'agregar_observaciones':
@@ -516,17 +326,6 @@ export async function PUT(request: NextRequest) {
           WHERE id = $1
         `;
         params = [turnoId, observaciones];
-        break;
-
-      case 'deshacer':
-        // Deshacer marcado - volver a sin_marcar
-        queryUpdate = `
-          UPDATE as_turnos_pauta_mensual 
-          SET estado = 'sin_marcar',
-              updated_at = NOW()
-          WHERE id = $1
-        `;
-        params = [turnoId];
         break;
 
       default:
