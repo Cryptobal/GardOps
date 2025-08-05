@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     await logCRUD(
       'guardias',
       'ALL',
-      'ERROR',
+      'READ',
       'admin@test.com',
       null,
       {
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
     await logCRUD(
       'guardias',
       'NEW',
-      'ERROR',
+      'CREATE',
       usuario,
       null,
       {
