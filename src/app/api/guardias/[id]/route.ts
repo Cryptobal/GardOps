@@ -225,7 +225,7 @@ export async function GET(
     await logCRUD(
       'guardias',
       params.id,
-      'ERROR',
+      'READ',
       'admin@test.com',
       null,
       {
