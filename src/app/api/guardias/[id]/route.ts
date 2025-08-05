@@ -345,7 +345,7 @@ export async function PATCH(
     await logCRUD(
       'guardias',
       params.id,
-      'ERROR',
+      'UPDATE',
       'admin@test.com',
       null,
       {
