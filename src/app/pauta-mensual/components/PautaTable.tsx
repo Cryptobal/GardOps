@@ -235,14 +235,14 @@ const ModalAutocompletarPauta = ({
   );
 };
 
-// Función centralizada para obtener el display del estado - TODOS LOS ESTADOS con colores mejorados
+// Función centralizada para obtener el display del estado - TODOS LOS ESTADOS con colores distintivos
 const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean = false) => {
   // Si es PPC cubierto (tiene cobertura), mostrar estado especial
   if (esPPC && cobertura && (estado === 'A' || estado === 'trabajado')) {
     return { 
       icon: "🛡️", 
       text: "C", 
-      className: "bg-gradient-to-br from-purple-200 to-purple-300 dark:from-purple-700/50 dark:to-purple-600/50 text-purple-900 dark:text-purple-100 border border-purple-300 dark:border-purple-500 shadow-sm",
+      className: "bg-gradient-to-br from-purple-300 to-purple-400 dark:from-purple-600 dark:to-purple-700 text-white dark:text-purple-100 border border-purple-400 dark:border-purple-500 shadow-md font-bold",
       tooltip: `PPC Cubierto por: ${cobertura.nombre}`
     };
   }
@@ -261,35 +261,35 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
       return { 
         icon: "🟦", 
         text: "T", 
-        className: "bg-gradient-to-br from-blue-200 to-blue-300 dark:from-blue-600/50 dark:to-blue-500/50 text-blue-900 dark:text-blue-100 border border-blue-300 dark:border-blue-500 shadow-sm",
+        className: "bg-gradient-to-br from-blue-400 to-blue-500 dark:from-blue-500 dark:to-blue-600 text-white border border-blue-500 dark:border-blue-600 shadow-md font-bold",
         tooltip: "Turno Planificado"
       };
     case "a":
       return { 
         icon: "✅", 
         text: "A", 
-        className: "bg-gradient-to-br from-green-200 to-emerald-300 dark:from-green-600/50 dark:to-emerald-500/50 text-green-900 dark:text-green-100 border border-green-300 dark:border-emerald-400 shadow-sm",
+        className: "bg-gradient-to-br from-emerald-400 to-green-500 dark:from-emerald-500 dark:to-green-600 text-white border border-emerald-500 dark:border-green-600 shadow-md font-bold",
         tooltip: "Asistió (Confirmado)"
       };
     case "i":
       return { 
         icon: "❌", 
         text: "I", 
-        className: "bg-gradient-to-br from-red-200 to-red-300 dark:from-red-600/50 dark:to-red-500/50 text-red-900 dark:text-red-100 border border-red-300 dark:border-red-500 shadow-sm",
+        className: "bg-gradient-to-br from-red-400 to-red-500 dark:from-red-500 dark:to-red-600 text-white border border-red-500 dark:border-red-600 shadow-md font-bold",
         tooltip: "Inasistencia"
       };
     case "r":
       return { 
         icon: "🔄", 
         text: "R", 
-        className: "bg-gradient-to-br from-orange-200 to-orange-300 dark:from-orange-600/50 dark:to-orange-500/50 text-orange-900 dark:text-orange-100 border border-orange-300 dark:border-orange-500 shadow-sm",
+        className: "bg-gradient-to-br from-orange-400 to-orange-500 dark:from-orange-500 dark:to-orange-600 text-white border border-orange-500 dark:border-orange-600 shadow-md font-bold",
         tooltip: `Falta con Reemplazo${tooltipExtra}`
       };
     case "s":
       return { 
         icon: "⚠️", 
         text: "S", 
-        className: "bg-gradient-to-br from-yellow-200 to-yellow-300 dark:from-yellow-600/50 dark:to-yellow-500/50 text-yellow-900 dark:text-yellow-100 border border-yellow-300 dark:border-yellow-500 shadow-sm",
+        className: "bg-gradient-to-br from-yellow-400 to-amber-500 dark:from-yellow-500 dark:to-amber-600 text-white border border-yellow-500 dark:border-amber-600 shadow-md font-bold",
         tooltip: "Falta sin Cobertura"
       };
     case "libre":
@@ -297,35 +297,35 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
       return { 
         icon: "⚪", 
         text: "L", 
-        className: "bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-500 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-500 shadow-sm",
+        className: "bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-500 dark:to-gray-600 text-gray-800 dark:text-gray-200 border border-gray-400 dark:border-gray-500 shadow-md font-bold",
         tooltip: "Libre"
       };
     case "p":
       return { 
         icon: "🏖️", 
         text: "P", 
-        className: "bg-gradient-to-br from-indigo-200 to-indigo-300 dark:from-indigo-600/50 dark:to-indigo-500/50 text-indigo-900 dark:text-indigo-100 border border-indigo-300 dark:border-indigo-500 shadow-sm",
+        className: "bg-gradient-to-br from-indigo-400 to-indigo-500 dark:from-indigo-500 dark:to-indigo-600 text-white border border-indigo-500 dark:border-indigo-600 shadow-md font-bold",
         tooltip: "Permiso"
       };
     case "v":
       return { 
         icon: "🌴", 
         text: "V", 
-        className: "bg-gradient-to-br from-teal-200 to-teal-300 dark:from-teal-600/50 dark:to-teal-500/50 text-teal-900 dark:text-teal-100 border border-teal-300 dark:border-teal-500 shadow-sm",
+        className: "bg-gradient-to-br from-teal-400 to-cyan-500 dark:from-teal-500 dark:to-cyan-600 text-white border border-teal-500 dark:border-cyan-600 shadow-md font-bold",
         tooltip: "Vacaciones"
       };
     case "m":
       return { 
         icon: "🏥", 
         text: "M", 
-        className: "bg-gradient-to-br from-pink-200 to-pink-300 dark:from-pink-600/50 dark:to-pink-500/50 text-pink-900 dark:text-pink-100 border border-pink-300 dark:border-pink-500 shadow-sm",
+        className: "bg-gradient-to-br from-pink-400 to-rose-500 dark:from-pink-500 dark:to-rose-600 text-white border border-pink-500 dark:border-rose-600 shadow-md font-bold",
         tooltip: "Licencia Médica"
       };
     default:
       return { 
         icon: "⬜", 
         text: "", 
-        className: "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600",
+        className: "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600 shadow-sm",
         tooltip: "Sin asignar"
       };
   }
@@ -408,8 +408,10 @@ const DiaCell = ({
           </span>
         )}
         
-        <span className="text-sm leading-none">{icon}</span>
-        {text && <span className="text-xs font-bold leading-none mt-0.5">{text}</span>}
+        <div className="flex items-center justify-center gap-1">
+          <span className="text-sm leading-none">{icon}</span>
+          {text && <span className="text-sm font-bold leading-none">{text}</span>}
+        </div>
       </div>
     </TableCell>
   );
@@ -600,39 +602,55 @@ export default function PautaTable({
           </div>
         </div>
         
-        {/* Leyenda completa mejorada */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-          <div className="flex items-center gap-1">
-            <div className="w-4 h-4 bg-gradient-to-br from-blue-200 to-blue-300 border border-blue-300 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300">Turno</span>
+        {/* Leyenda completa con emojis y colores exactos */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-gradient-to-br from-blue-400 to-blue-500 dark:from-blue-500 dark:to-blue-600 border border-blue-500 dark:border-blue-600 rounded shadow-sm flex items-center justify-center text-white text-xs font-bold">
+              T
+            </div>
+            <span className="text-gray-700 dark:text-gray-300 font-medium">Turno</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-4 h-4 bg-gradient-to-br from-green-200 to-emerald-300 border border-green-300 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300">Asistió</span>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-gradient-to-br from-emerald-400 to-green-500 dark:from-emerald-500 dark:to-green-600 border border-emerald-500 dark:border-green-600 rounded shadow-sm flex items-center justify-center text-white text-xs font-bold">
+              A
+            </div>
+            <span className="text-gray-700 dark:text-gray-300 font-medium">Asistió</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-4 h-4 bg-gradient-to-br from-red-200 to-red-300 border border-red-300 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300">Falta</span>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-gradient-to-br from-red-400 to-red-500 dark:from-red-500 dark:to-red-600 border border-red-500 dark:border-red-600 rounded shadow-sm flex items-center justify-center text-white text-xs font-bold">
+              I
+            </div>
+            <span className="text-gray-700 dark:text-gray-300 font-medium">Falta</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-4 h-4 bg-gradient-to-br from-orange-200 to-orange-300 border border-orange-300 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300">Reemplazo</span>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-gradient-to-br from-orange-400 to-orange-500 dark:from-orange-500 dark:to-orange-600 border border-orange-500 dark:border-orange-600 rounded shadow-sm flex items-center justify-center text-white text-xs font-bold">
+              R
+            </div>
+            <span className="text-gray-700 dark:text-gray-300 font-medium">Reemplazo</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-4 h-4 bg-gradient-to-br from-gray-200 to-gray-300 border border-gray-300 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300">Libre</span>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-500 dark:to-gray-600 border border-gray-400 dark:border-gray-500 rounded shadow-sm flex items-center justify-center text-gray-800 dark:text-gray-200 text-xs font-bold">
+              L
+            </div>
+            <span className="text-gray-700 dark:text-gray-300 font-medium">Libre</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-4 h-4 bg-gradient-to-br from-yellow-200 to-yellow-300 border border-yellow-300 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300">Sin Cobertura</span>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-gradient-to-br from-yellow-400 to-amber-500 dark:from-yellow-500 dark:to-amber-600 border border-yellow-500 dark:border-amber-600 rounded shadow-sm flex items-center justify-center text-white text-xs font-bold">
+              S
+            </div>
+            <span className="text-gray-700 dark:text-gray-300 font-medium">Sin Cobertura</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-4 h-4 bg-gradient-to-br from-teal-200 to-teal-300 border border-teal-300 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300">Vacaciones</span>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-gradient-to-br from-teal-400 to-cyan-500 dark:from-teal-500 dark:to-cyan-600 border border-teal-500 dark:border-cyan-600 rounded shadow-sm flex items-center justify-center text-white text-xs font-bold">
+              V
+            </div>
+            <span className="text-gray-700 dark:text-gray-300 font-medium">Vacaciones</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-4 h-4 bg-gradient-to-br from-purple-200 to-purple-300 border border-purple-300 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300">PPC</span>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-gradient-to-br from-purple-300 to-purple-400 dark:from-purple-600 dark:to-purple-700 border border-purple-400 dark:border-purple-500 rounded shadow-sm flex items-center justify-center text-white text-xs font-bold">
+              C
+            </div>
+            <span className="text-gray-700 dark:text-gray-300 font-medium">PPC</span>
           </div>
         </div>
       </div>
