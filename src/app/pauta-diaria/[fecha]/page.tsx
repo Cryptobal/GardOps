@@ -372,10 +372,21 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
         variant: 'destructive', 
         icon: '❌', 
         color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-200' 
+      },
+      libre: { 
+        label: 'Disponible', 
+        variant: 'secondary', 
+        icon: '🆓', 
+        color: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900 dark:text-gray-200' 
       }
     };
 
-    const configItem = config[puesto.estado as keyof typeof config] || config.T;
+    const configItem = config[puesto.estado as keyof typeof config] || {
+      label: `Estado: ${puesto.estado}`,
+      variant: 'secondary',
+      icon: '❓', 
+      color: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-200'
+    };
 
     return (
       <Badge className={cn("text-xs font-medium", configItem.color)}>
@@ -393,7 +404,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
         {puesto.guardia_original && (
           <>
             {/* Botón Asistió */}
-            {puesto.estado === 'T' && (
+            {(puesto.estado === 'T' || puesto.estado === 'libre') && (
               <Button 
                 size="sm" 
                 variant="outline" 
@@ -410,7 +421,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
             )}
 
             {/* Botón No Asistió */}
-            {puesto.estado === 'T' && (
+            {(puesto.estado === 'T' || puesto.estado === 'libre') && (
               <Popover open={popoverReemplazo === puesto.puesto_id} onOpenChange={(open) => {
                 if (open) {
                   setPopoverReemplazo(puesto.puesto_id);
@@ -557,7 +568,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
         {puesto.es_ppc && (
           <>
             {/* Botón Cobertura */}
-            {puesto.estado === 'T' && (
+            {(puesto.estado === 'T' || puesto.estado === 'libre') && (
               <Popover open={popoverCobertura === puesto.puesto_id} onOpenChange={(open) => {
                 if (open) {
                   setPopoverCobertura(puesto.puesto_id);
