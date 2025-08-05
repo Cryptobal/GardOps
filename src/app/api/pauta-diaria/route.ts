@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
         -- Datos de la instalación
         i.id as instalacion_id,
         i.nombre as instalacion_nombre,
+        NULL as comuna_nombre,
         
         -- Estado y observaciones
         pm.estado,
@@ -47,17 +48,27 @@ export async function GET(request: NextRequest) {
         te.guardia_id as reemplazo_guardia_id,
         rg.nombre as reemplazo_nombre,
         rg.apellido_paterno as reemplazo_apellido_paterno,
-        rg.apellido_materno as reemplazo_apellido_materno
+        rg.apellido_materno as reemplazo_apellido_materno,
+        
+        -- Datos del rol de servicio
+        rs.nombre as rol_nombre,
+        rs.hora_inicio as hora_entrada,
+        rs.hora_termino as hora_salida,
+        CASE 
+          WHEN rs.nombre ILIKE '%día%' OR rs.nombre ILIKE '%dia%' THEN 'dia'
+          WHEN rs.nombre ILIKE '%noche%' THEN 'noche'
+          ELSE NULL
+        END as tipo_turno
         
       FROM as_turnos_pauta_mensual pm
       INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
       INNER JOIN instalaciones i ON po.instalacion_id = i.id
+      LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       LEFT JOIN guardias g ON pm.guardia_id = g.id
       LEFT JOIN turnos_extras te ON pm.id = te.pauta_id
       LEFT JOIN guardias rg ON te.guardia_id = rg.id
       
       WHERE pm.anio = $1 AND pm.mes = $2 AND pm.dia = $3
-        AND pm.estado IN ('T', 'trabajado', 'reemplazo', 'sin_cobertura')
         AND po.activo = true
       
       ORDER BY i.nombre, po.nombre_puesto
@@ -65,8 +76,21 @@ export async function GET(request: NextRequest) {
 
     console.log(`📊 Pauta diaria para ${anio}-${mes}-${dia}: ${pautaDiaria.rows.length} registros`);
 
+    // Debug: Verificar si hay datos en las tablas
+    const debugQuery = await query(`
+      SELECT 
+        (SELECT COUNT(*) FROM as_turnos_pauta_mensual WHERE anio = $1 AND mes = $2 AND dia = $3) as total_pauta,
+        (SELECT COUNT(*) FROM as_turnos_puestos_operativos WHERE activo = true) as total_puestos,
+        (SELECT COUNT(*) FROM instalaciones) as total_instalaciones,
+        (SELECT COUNT(*) FROM guardias) as total_guardias
+    `, [anio, mes, dia]);
+    
+    console.log('🔍 Debug - Datos disponibles:', debugQuery.rows[0]);
+
+    console.log(`📊 Pauta diaria para ${anio}-${mes}-${dia}: ${pautaDiaria.rows.length} registros`);
+
     // Debug: Ver los datos que llegan de la base de datos
-    console.log('🔍 Datos raw de la base de datos:', pautaDiaria.rows.map(row => ({
+    console.log('🔍 Datos raw de la base de datos:', pautaDiaria.rows.map((row: any) => ({
       puesto_id: row.puesto_id,
       nombre_puesto: row.nombre_puesto,
       instalacion_nombre: row.instalacion_nombre,
@@ -75,7 +99,28 @@ export async function GET(request: NextRequest) {
     })));
 
     // Procesar los datos según el formato requerido
-    const resultado = pautaDiaria.rows.map((row: any) => {
+    const resultado = pautaDiaria.rows.map((row: {
+      puesto_id: string;
+      nombre_puesto: string;
+      es_ppc: boolean;
+      guardia_original_id: string | null;
+      guardia_original_nombre: string | null;
+      guardia_original_apellido_paterno: string | null;
+      guardia_original_apellido_materno: string | null;
+      instalacion_id: string;
+      instalacion_nombre: string;
+      comuna_nombre: string | null;
+      estado: string;
+      observaciones: string | null;
+      reemplazo_guardia_id: string | null;
+      reemplazo_nombre: string | null;
+      reemplazo_apellido_paterno: string | null;
+      reemplazo_apellido_materno: string | null;
+      rol_nombre: string | null;
+      hora_entrada: string | null;
+      hora_salida: string | null;
+      tipo_turno: string | null;
+    }) => {
       // Determinar asignación real
       let asignacionReal = "PPC - Sin asignar";
       if (row.guardia_original_id) {
@@ -90,6 +135,26 @@ export async function GET(request: NextRequest) {
         coberturaReal = nombreCompleto;
       }
 
+      // Lógica corregida para el estado: normalizar estados para PPC
+      let estadoCorregido;
+      if (!row.estado || row.estado === '') {
+        // Si no hay estado, asignar según si tiene guardia
+        estadoCorregido = row.guardia_original_id ? 'T' : 'sin_cobertura';
+      } else if (row.estado === 'trabajado' && !row.reemplazo_guardia_id) {
+        // Si está marcado como trabajado pero no tiene confirmación de reemplazo, corregir a 'T'
+        estadoCorregido = 'T';
+        console.log(`🔧 Corrigiendo estado de 'trabajado' a 'T' para puesto ${row.puesto_id} (sin reemplazo)`);
+      } else if (row.es_ppc && (row.estado === 'libre' || row.estado === 'disponible')) {
+        // Para PPC, normalizar estados 'libre' o 'disponible' a 'T' (Asignado)
+        estadoCorregido = 'T';
+        console.log(`🔧 Normalizando estado PPC de '${row.estado}' a 'T' para puesto ${row.puesto_id}`);
+      } else {
+        // Mantener el estado si es válido
+        estadoCorregido = row.estado;
+      }
+      
+      console.log(`📊 Puesto ${row.puesto_id}: estado original=${row.estado}, corregido=${estadoCorregido}, guardia=${row.guardia_original_id ? 'Sí' : 'No'}, reemplazo=${row.reemplazo_guardia_id ? 'Sí' : 'No'}`);
+
       return {
         puesto_id: row.puesto_id,
         nombre_puesto: row.nombre_puesto,
@@ -99,13 +164,20 @@ export async function GET(request: NextRequest) {
         } : null,
         asignacion_real: asignacionReal,
         cobertura_real: coberturaReal,
-        estado: row.estado,
+        estado: estadoCorregido,
         observaciones: row.observaciones,
         instalacion_id: row.instalacion_id,
-        es_ppc: row.es_ppc
+        instalacion_nombre: row.instalacion_nombre,
+        comuna_nombre: row.comuna_nombre,
+        es_ppc: row.es_ppc,
+        rol_nombre: row.rol_nombre,
+        horario_entrada: row.hora_entrada,
+        horario_salida: row.hora_salida,
+        tipo_turno: row.tipo_turno
       };
     });
 
+    console.log("✅ API Pauta Diaria: Estados corregidos - turnos marcados como 'trabajado' sin confirmación ahora son 'T' (Asignado)");
     return NextResponse.json(resultado);
 
   } catch (error) {
