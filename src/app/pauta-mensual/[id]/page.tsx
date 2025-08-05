@@ -678,6 +678,8 @@ export default function PautaMensualUnificadaPage() {
         onDeleteGuardia={eliminarGuardia}
         modoEdicion={editando}
         diasGuardados={diasGuardados}
+        mes={mes}
+        anio={anio}
       />
     </div>
   );

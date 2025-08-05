@@ -7,6 +7,7 @@ import { Button } from "../../../components/ui/button";
 import { Trash2, Info, Calendar, Users, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import ConfirmDeleteModal from "../../../components/ui/confirm-delete-modal";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface PautaGuardia {
   id: string;
@@ -28,6 +29,8 @@ interface PautaTableProps {
   onDeleteGuardia: (guardiaIndex: number) => void;
   modoEdicion?: boolean;
   diasGuardados?: Set<string>; // Nuevo prop para indicar días guardados
+  mes?: number; // Mes actual de la pauta
+  anio?: number; // Año actual de la pauta
 }
 
 interface ModalAutocompletarPautaProps {
@@ -232,14 +235,14 @@ const ModalAutocompletarPauta = ({
   );
 };
 
-// Función centralizada para obtener el display del estado - TODOS LOS ESTADOS
+// Función centralizada para obtener el display del estado - TODOS LOS ESTADOS con colores mejorados
 const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean = false) => {
   // Si es PPC cubierto (tiene cobertura), mostrar estado especial
   if (esPPC && cobertura && (estado === 'A' || estado === 'trabajado')) {
     return { 
       icon: "🛡️", 
       text: "C", 
-      className: "bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 text-purple-800 dark:text-purple-300 border-0 outline-0",
+      className: "bg-gradient-to-br from-purple-200 to-purple-300 dark:from-purple-700/50 dark:to-purple-600/50 text-purple-900 dark:text-purple-100 border border-purple-300 dark:border-purple-500 shadow-sm",
       tooltip: `PPC Cubierto por: ${cobertura.nombre}`
     };
   }
@@ -256,37 +259,37 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
   switch (estadoNormalizado) {
     case "t":
       return { 
-        icon: "🟢", 
+        icon: "🟦", 
         text: "T", 
-        className: "bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 text-blue-800 dark:text-blue-300 border-0 outline-0",
+        className: "bg-gradient-to-br from-blue-200 to-blue-300 dark:from-blue-600/50 dark:to-blue-500/50 text-blue-900 dark:text-blue-100 border border-blue-300 dark:border-blue-500 shadow-sm",
         tooltip: "Turno Planificado"
       };
     case "a":
       return { 
         icon: "✅", 
         text: "A", 
-        className: "bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 text-green-800 dark:text-green-300 border-0 outline-0",
+        className: "bg-gradient-to-br from-green-200 to-emerald-300 dark:from-green-600/50 dark:to-emerald-500/50 text-green-900 dark:text-green-100 border border-green-300 dark:border-emerald-400 shadow-sm",
         tooltip: "Asistió (Confirmado)"
       };
     case "i":
       return { 
         icon: "❌", 
         text: "I", 
-        className: "bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-800/30 text-red-800 dark:text-red-300 border-0 outline-0",
+        className: "bg-gradient-to-br from-red-200 to-red-300 dark:from-red-600/50 dark:to-red-500/50 text-red-900 dark:text-red-100 border border-red-300 dark:border-red-500 shadow-sm",
         tooltip: "Inasistencia"
       };
     case "r":
       return { 
         icon: "🔄", 
         text: "R", 
-        className: "bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 text-orange-800 dark:text-orange-300 border-0 outline-0",
+        className: "bg-gradient-to-br from-orange-200 to-orange-300 dark:from-orange-600/50 dark:to-orange-500/50 text-orange-900 dark:text-orange-100 border border-orange-300 dark:border-orange-500 shadow-sm",
         tooltip: `Falta con Reemplazo${tooltipExtra}`
       };
     case "s":
       return { 
         icon: "⚠️", 
         text: "S", 
-        className: "bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-900/30 dark:to-yellow-800/30 text-yellow-800 dark:text-yellow-300 border-0 outline-0",
+        className: "bg-gradient-to-br from-yellow-200 to-yellow-300 dark:from-yellow-600/50 dark:to-yellow-500/50 text-yellow-900 dark:text-yellow-100 border border-yellow-300 dark:border-yellow-500 shadow-sm",
         tooltip: "Falta sin Cobertura"
       };
     case "libre":
@@ -294,35 +297,35 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
       return { 
         icon: "⚪", 
         text: "L", 
-        className: "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 text-gray-600 dark:text-gray-400 border-0 outline-0",
+        className: "bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-500 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-500 shadow-sm",
         tooltip: "Libre"
       };
     case "p":
       return { 
         icon: "🏖️", 
         text: "P", 
-        className: "bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 text-purple-800 dark:text-purple-300 border-0 outline-0",
+        className: "bg-gradient-to-br from-indigo-200 to-indigo-300 dark:from-indigo-600/50 dark:to-indigo-500/50 text-indigo-900 dark:text-indigo-100 border border-indigo-300 dark:border-indigo-500 shadow-sm",
         tooltip: "Permiso"
       };
     case "v":
       return { 
-        icon: "🏖️", 
+        icon: "🌴", 
         text: "V", 
-        className: "bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 text-purple-800 dark:text-purple-300 border-0 outline-0",
+        className: "bg-gradient-to-br from-teal-200 to-teal-300 dark:from-teal-600/50 dark:to-teal-500/50 text-teal-900 dark:text-teal-100 border border-teal-300 dark:border-teal-500 shadow-sm",
         tooltip: "Vacaciones"
       };
     case "m":
       return { 
         icon: "🏥", 
         text: "M", 
-        className: "bg-gradient-to-br from-pink-100 to-pink-200 dark:from-pink-900/30 dark:to-pink-800/30 text-pink-800 dark:text-pink-300 border-0 outline-0",
+        className: "bg-gradient-to-br from-pink-200 to-pink-300 dark:from-pink-600/50 dark:to-pink-500/50 text-pink-900 dark:text-pink-100 border border-pink-300 dark:border-pink-500 shadow-sm",
         tooltip: "Licencia Médica"
       };
     default:
       return { 
         icon: "⬜", 
         text: "", 
-        className: "bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 text-gray-400 dark:text-gray-600 border-0 outline-0",
+        className: "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600",
         tooltip: "Sin asignar"
       };
   }
@@ -365,7 +368,9 @@ const DiaCell = ({
   const clasesFinDeSemana = esFinDeSemana ? 'bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20' : '';
   
   // Clases para edición - ahora PPCs también son editables
-  const clasesModoEdicion = modoEdicion ? 'cursor-pointer hover:scale-105 hover:shadow-sm' : 'cursor-default opacity-90';
+  const clasesModoEdicion = modoEdicion 
+    ? 'cursor-pointer hover:scale-105 hover:shadow-md transition-all duration-200' 
+    : 'cursor-pointer hover:scale-102 hover:shadow-sm hover:ring-2 hover:ring-blue-300 dark:hover:ring-blue-500 transition-all duration-200';
   const clasesGuardado = '';
 
   const handleClick = () => {
@@ -417,8 +422,12 @@ export default function PautaTable({
   onUpdatePauta, 
   onDeleteGuardia,
   modoEdicion = false,
-  diasGuardados
+  diasGuardados,
+  mes,
+  anio
 }: PautaTableProps) {
+  const router = useRouter();
+  
   const [autocompletadoModal, setAutocompletadoModal] = useState<{
     isOpen: boolean;
     guardiaIndex: number;
@@ -460,8 +469,25 @@ export default function PautaTable({
     return 1;
   });
 
+  // Nueva función para navegar a pauta diaria
+  const navegarAPautaDiaria = (diaNumero: number) => {
+    // Usar valores de props o fallback a fecha actual
+    const year = anio || new Date().getFullYear();
+    const month = mes || (new Date().getMonth() + 1);
+    
+    // Formatear la fecha como YYYY-MM-DD
+    const fechaFormateada = `${year}-${month.toString().padStart(2, '0')}-${diaNumero.toString().padStart(2, '0')}`;
+    
+    console.log('🚀 Navegando a pauta diaria:', fechaFormateada);
+    router.push(`/pauta-diaria/${fechaFormateada}`);
+  };
+
   const cambiarEstadoDia = (guardiaIndex: number, diaIndex: number) => {
-    if (!modoEdicion) return;
+    if (!modoEdicion) {
+      // Si no está en modo edición, navegar a pauta diaria
+      navegarAPautaDiaria(diaIndex + 1);
+      return;
+    }
     
     const guardiaOrdenada = pautaDataOrdenada[guardiaIndex];
     
@@ -574,38 +600,61 @@ export default function PautaTable({
           </div>
         </div>
         
-        {/* Leyenda mejorada - Solo T y L */}
-        <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm flex-wrap">
-          <div className="flex items-center gap-1 sm:gap-2">
-            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 border border-emerald-300 dark:border-emerald-600 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300 hidden sm:inline">Turno</span>
-            <span className="text-gray-700 dark:text-gray-300 sm:hidden">T</span>
+        {/* Leyenda completa mejorada */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 bg-gradient-to-br from-blue-200 to-blue-300 border border-blue-300 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300">Turno</span>
           </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 border border-gray-300 dark:border-gray-600 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300 hidden sm:inline">Libre</span>
-            <span className="text-gray-700 dark:text-gray-300 sm:hidden">L</span>
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 bg-gradient-to-br from-green-200 to-emerald-300 border border-green-300 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300">Asistió</span>
           </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/30 border border-red-300 dark:border-red-600 rounded"></div>
-            <span className="text-gray-700 dark:text-gray-300 hidden sm:inline">Feriado</span>
-            <span className="text-gray-700 dark:text-gray-300 sm:hidden">F</span>
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 bg-gradient-to-br from-red-200 to-red-300 border border-red-300 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300">Falta</span>
           </div>
-          {modoEdicion && (
-            <div className="flex items-center gap-1 sm:gap-2">
-              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-800/30 border border-red-300 dark:border-red-600 rounded"></div>
-              <span className="text-gray-700 dark:text-gray-300 hidden sm:inline">PPC</span>
-              <span className="text-gray-700 dark:text-gray-300 sm:hidden">PPC</span>
-            </div>
-          )}
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 bg-gradient-to-br from-orange-200 to-orange-300 border border-orange-300 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300">Reemplazo</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 bg-gradient-to-br from-gray-200 to-gray-300 border border-gray-300 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300">Libre</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 bg-gradient-to-br from-yellow-200 to-yellow-300 border border-yellow-300 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300">Sin Cobertura</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 bg-gradient-to-br from-teal-200 to-teal-300 border border-teal-300 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300">Vacaciones</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 bg-gradient-to-br from-purple-200 to-purple-300 border border-purple-300 rounded"></div>
+            <span className="text-gray-700 dark:text-gray-300">PPC</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Indicador de funcionalidad */}
+      <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+        <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+          <Info className="h-4 w-4" />
+          <span>
+            {modoEdicion 
+              ? "Modo edición: Clic izquierdo para cambiar estado • Clic derecho para autocompletar"
+              : "Haz clic en cualquier día para ver la pauta diaria de ese día"
+            }
+          </span>
         </div>
       </div>
 
       {/* Contenedor con scroll horizontal para móviles */}
       <div className="relative">
         {/* Indicador de scroll en móviles */}
-        <div className="sm:hidden mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
-          <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-300">
+        <div className="sm:hidden mb-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
             <Info className="h-3 w-3" />
             <span>Desliza horizontalmente para ver todos los días del mes</span>
           </div>

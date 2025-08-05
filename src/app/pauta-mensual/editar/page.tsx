@@ -332,6 +332,8 @@ export default function EditarPautaMensualPage() {
               onUpdatePauta={actualizarPauta}
               onDeleteGuardia={eliminarGuardia}
               modoEdicion={true}
+              mes={parseInt(mes || '1')}
+              anio={parseInt(anio || new Date().getFullYear().toString())}
             />
           </CardContent>
         </Card>
