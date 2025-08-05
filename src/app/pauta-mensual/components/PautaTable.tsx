@@ -232,13 +232,19 @@ const ModalAutocompletarPauta = ({
   );
 };
 
-// Función centralizada para obtener el display del estado - SOLO T y L
+// Función centralizada para obtener el display del estado - INCLUYENDO TRABAJADO
 const getEstadoDisplay = (estado: string) => {
   // Normalizar el estado para comparación
   const estadoNormalizado = estado?.toLowerCase() || '';
   
   switch (estadoNormalizado) {
     case "trabajado":
+      return { 
+        icon: "✅", 
+        text: "T", 
+        className: "bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 text-green-800 dark:text-green-300 border-0 outline-0",
+        tooltip: "Trabajado"
+      };
     case "t":
       return { 
         icon: "🟢", 
@@ -253,6 +259,20 @@ const getEstadoDisplay = (estado: string) => {
         text: "L", 
         className: "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 text-gray-600 dark:text-gray-400 border-0 outline-0",
         tooltip: "Libre"
+      };
+    case "inasistencia":
+      return { 
+        icon: "❌", 
+        text: "I", 
+        className: "bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-800/30 text-red-800 dark:text-red-300 border-0 outline-0",
+        tooltip: "Inasistencia"
+      };
+    case "reemplazo":
+      return { 
+        icon: "🔄", 
+        text: "R", 
+        className: "bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 text-orange-800 dark:text-orange-300 border-0 outline-0",
+        tooltip: "Reemplazo"
       };
     default:
       return { 

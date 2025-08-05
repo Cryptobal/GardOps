@@ -313,8 +313,10 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
         console.log('✅ Respuesta exitosa:', responseData);
         
         addToast({
-          title: "✅ Estado actualizado",
-          description: "El estado del puesto se ha actualizado correctamente.",
+          title: accion === 'asistio' ? "✅ Asistencia confirmada" : "✅ Estado actualizado",
+          description: accion === 'asistio' 
+            ? "El guardia ha sido marcado como asistido correctamente."
+            : "El estado del puesto se ha actualizado correctamente.",
           type: "success"
         });
         
@@ -361,6 +363,12 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
         icon: '✅', 
         color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200' 
       },
+      ppc_asignado: { 
+        label: 'PPC Asignado', 
+        variant: 'default', 
+        icon: '🛡️', 
+        color: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900 dark:text-purple-200' 
+      },
       reemplazo: { 
         label: 'Reemplazo', 
         variant: 'secondary', 
@@ -403,12 +411,12 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
         {/* Si tiene guardia asignado */}
         {puesto.guardia_original && (
           <>
-            {/* Botón Asistió */}
-            {(puesto.estado === 'T' || puesto.estado === 'libre') && (
+            {/* Botón Asistió - Solo mostrar si NO está ya marcado como trabajado */}
+            {puesto.estado !== 'trabajado' && (
               <Button 
                 size="sm" 
                 variant="outline" 
-                className="text-xs px-2 py-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                className="text-xs px-2 py-1 h-7 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 border-green-300 hover:border-green-400"
                 onClick={() => {
                   console.log('✅ Marcando asistencia para:', puesto);
                   actualizarAsistencia(puesto, 'asistio');
@@ -420,8 +428,8 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
               </Button>
             )}
 
-            {/* Botón No Asistió */}
-            {(puesto.estado === 'T' || puesto.estado === 'libre') && (
+            {/* Botón No Asistió - Solo mostrar si NO está ya marcado como trabajado */}
+            {puesto.estado !== 'trabajado' && (
               <Popover open={popoverReemplazo === puesto.puesto_id} onOpenChange={(open) => {
                 if (open) {
                   setPopoverReemplazo(puesto.puesto_id);
@@ -442,7 +450,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                   <Button 
                     size="sm" 
                     variant="outline" 
-                    className="text-xs px-2 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    className="text-xs px-2 py-1 h-7 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-300 hover:border-red-400"
                     title="Marcar no asistió"
                   >
                     <X className="h-3 w-3 mr-1" />
@@ -538,12 +546,28 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
               </Popover>
             )}
 
+            {/* Mostrar estado cuando ya está marcado como trabajado */}
+            {puesto.estado === 'trabajado' && !puesto.es_ppc && (
+              <div className="flex items-center gap-1 px-2 py-1 h-7 bg-green-100 dark:bg-green-900/20 rounded text-xs text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700">
+                <Check className="h-3 w-3" />
+                <span>Asistido</span>
+              </div>
+            )}
+
+            {/* Mostrar estado para PPC con cobertura asignada */}
+            {puesto.estado === 'trabajado' && puesto.es_ppc && puesto.cobertura_real && (
+              <div className="flex items-center gap-1 px-2 py-1 h-7 bg-purple-100 dark:bg-purple-900/20 rounded text-xs text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700">
+                <Shield className="h-3 w-3" />
+                <span>PPC Asignado</span>
+              </div>
+            )}
+
             {/* Botón Eliminar cobertura */}
             {(puesto.estado === 'trabajado' || puesto.estado === 'reemplazo' || puesto.estado === 'sin_cobertura') && (
               <Button 
                 size="sm" 
                 variant="outline" 
-                className="text-xs px-2 py-1 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-900/20"
+                className="text-xs px-2 py-1 h-7 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-900/20 border-gray-300 dark:border-gray-600"
                 onClick={() => {
                   showConfirmModal(
                     'Eliminar Cobertura',
@@ -567,8 +591,8 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
         {/* Si es PPC */}
         {puesto.es_ppc && (
           <>
-            {/* Botón Cobertura */}
-            {(puesto.estado === 'T' || puesto.estado === 'libre') && (
+            {/* Botón Cobertura - solo para PPCs sin cobertura */}
+            {(!puesto.cobertura_real && (puesto.estado === 'T' || puesto.estado === 'libre')) && (
               <Popover open={popoverCobertura === puesto.puesto_id} onOpenChange={(open) => {
                 if (open) {
                   setPopoverCobertura(puesto.puesto_id);
@@ -587,7 +611,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                   <Button 
                     size="sm" 
                     variant="outline" 
-                    className="text-xs px-2 py-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                    className="text-xs px-2 py-1 h-7 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-300 hover:border-blue-400"
                     title="Asignar cobertura"
                   >
                     <Plus className="h-3 w-3 mr-1" />
@@ -667,11 +691,11 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
             )}
 
             {/* Botón Eliminar cobertura para PPC */}
-            {(puesto.estado === 'trabajado' || puesto.estado === 'reemplazo' || puesto.estado === 'sin_cobertura') && (
+            {(puesto.cobertura_real && (puesto.estado === 'trabajado' || puesto.estado === 'reemplazo' || puesto.estado === 'sin_cobertura')) && (
               <Button 
                 size="sm" 
                 variant="outline" 
-                className="text-xs px-2 py-1 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-900/20"
+                className="text-xs px-2 py-1 h-7 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-900/20 border-gray-300 dark:border-gray-600"
                 onClick={() => {
                   showConfirmModal(
                     'Eliminar Cobertura PPC',
@@ -709,7 +733,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
               size="sm" 
               variant="outline" 
               className={cn(
-                "text-xs px-2 py-1 hover:bg-orange-50 dark:hover:bg-orange-900/20",
+                "text-xs px-2 py-1 h-7 hover:bg-orange-50 dark:hover:bg-orange-900/20 border-orange-300 hover:border-orange-400",
                 puesto.observaciones 
                   ? "text-orange-700 bg-orange-50 border-orange-200 dark:bg-orange-900/30" 
                   : "text-orange-600"
@@ -1091,18 +1115,14 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">
-                              {puesto.nombre_puesto.includes('día') ? 'Día 4×4×12' : 
-                               puesto.nombre_puesto.includes('noche') ? 'Día 4×4×12' : 
-                               puesto.es_ppc ? 'PPC - Sin asignar' : 
-                               'Día 4×4×12'}
+                            <span className={cn(
+                              "text-sm",
+                              puesto.estado === 'trabajado' && puesto.guardia_original
+                                ? "text-green-600 dark:text-green-400 font-medium" 
+                                : "text-foreground"
+                            )}>
+                              {puesto.asignacion_real}
                             </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">{puesto.asignacion_real}</span>
                           </div>
                         </TableCell>
                         <TableCell>

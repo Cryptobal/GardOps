@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     // Consulta optimizada para obtener puestos con turno asignado ese día
     const pautaDiaria = await query(`
-      SELECT 
+      SELECT DISTINCT ON (pm.id)
         pm.id as puesto_id,
         po.nombre_puesto,
         po.es_ppc,
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
         pm.estado,
         pm.observaciones,
         
-        -- Datos del reemplazo/cobertura
+        -- Datos del reemplazo/cobertura (tomar el más reciente)
         te.guardia_id as reemplazo_guardia_id,
         rg.nombre as reemplazo_nombre,
         rg.apellido_paterno as reemplazo_apellido_paterno,
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
       WHERE pm.anio = $1 AND pm.mes = $2 AND pm.dia = $3
         AND po.activo = true
       
-      ORDER BY i.nombre, po.nombre_puesto
+      ORDER BY pm.id, te.created_at DESC NULLS LAST, i.nombre, po.nombre_puesto
     `, [anio, mes, dia]);
 
     console.log(`📊 Pauta diaria para ${anio}-${mes}-${dia}: ${pautaDiaria.rows.length} registros`);
@@ -140,14 +140,21 @@ export async function GET(request: NextRequest) {
       if (!row.estado || row.estado === '') {
         // Si no hay estado, asignar según si tiene guardia
         estadoCorregido = row.guardia_original_id ? 'T' : 'sin_cobertura';
-      } else if (row.estado === 'trabajado' && !row.reemplazo_guardia_id) {
-        // Si está marcado como trabajado pero no tiene confirmación de reemplazo, corregir a 'T'
-        estadoCorregido = 'T';
-        console.log(`🔧 Corrigiendo estado de 'trabajado' a 'T' para puesto ${row.puesto_id} (sin reemplazo)`);
+      } else if (row.estado === 'trabajado') {
+        // Mantener estado 'trabajado' cuando está marcado como asistido
+        estadoCorregido = 'trabajado';
+        console.log(`✅ Manteniendo estado 'trabajado' para puesto ${row.puesto_id} (asistido)`);
+      } else if (row.es_ppc && row.estado === 'trabajado' && row.reemplazo_guardia_id) {
+        // Para PPC con estado 'trabajado' y reemplazo asignado, mantener como 'trabajado' pero será manejado como PPC en el frontend
+        estadoCorregido = 'trabajado';
+        console.log(`🛡️ PPC ${row.puesto_id} con cobertura asignada (estado: trabajado)`);
       } else if (row.es_ppc && (row.estado === 'libre' || row.estado === 'disponible')) {
         // Para PPC, normalizar estados 'libre' o 'disponible' a 'T' (Asignado)
         estadoCorregido = 'T';
         console.log(`🔧 Normalizando estado PPC de '${row.estado}' a 'T' para puesto ${row.puesto_id}`);
+      } else if (row.estado === 'T' || row.estado === 'asignado') {
+        // Mantener estado asignado
+        estadoCorregido = 'T';
       } else {
         // Mantener el estado si es válido
         estadoCorregido = row.estado;
@@ -177,7 +184,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    console.log("✅ API Pauta Diaria: Estados corregidos - turnos marcados como 'trabajado' sin confirmación ahora son 'T' (Asignado)");
+    console.log("✅ API Pauta Diaria: Estados procesados - estado 'trabajado' mantenido para guardias asistidos");
     return NextResponse.json(resultado);
 
   } catch (error) {
@@ -225,7 +232,7 @@ export async function PUT(request: NextRequest) {
 
     switch (accion) {
       case 'asistio':
-        // Marcar como trabajado y llenar cobertura con el mismo guardia
+        // Marcar como trabajado y actualizar la pauta mensual
         queryUpdate = `
           UPDATE as_turnos_pauta_mensual 
           SET estado = 'trabajado', 
@@ -236,11 +243,11 @@ export async function PUT(request: NextRequest) {
         break;
 
       case 'no_asistio':
-        // Abrir modal para reemplazo o sin cobertura
-        // Por ahora solo actualizar observaciones
+        // Marcar como inasistencia
         queryUpdate = `
           UPDATE as_turnos_pauta_mensual 
-          SET observaciones = $2,
+          SET estado = 'inasistencia',
+              observaciones = $2,
               updated_at = NOW()
           WHERE id = $1
         `;
@@ -346,11 +353,11 @@ export async function PUT(request: NextRequest) {
         const ppc = ppcData.rows[0];
         const fechaPpc = `${ppc.anio}-${String(ppc.mes).padStart(2, '0')}-${String(ppc.dia).padStart(2, '0')}`;
         
-        // Asignar guardia al PPC
+        // Asignar guardia al PPC - usar estado 'reemplazo' que está permitido
         queryUpdate = `
           UPDATE as_turnos_pauta_mensual 
           SET reemplazo_guardia_id = $2, 
-              estado = 'trabajado',
+              estado = 'reemplazo',
               observaciones = $3,
               updated_at = NOW()
           WHERE id = $1
@@ -380,16 +387,27 @@ export async function PUT(request: NextRequest) {
         break;
 
       case 'eliminar_cobertura':
-        // Eliminar cobertura y volver a estado 'trabajado'
+        // Verificar si es PPC para determinar el estado correcto
+        const esPpc = await query(`
+          SELECT po.es_ppc 
+          FROM as_turnos_pauta_mensual pm
+          INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
+          WHERE pm.id = $1
+        `, [turnoId]);
+
+        // CORRECCIÓN: Para puestos regulares (no PPC), volver a 'T' (asignado) en lugar de 'trabajado'
+        const estadoDestino = esPpc.rows[0]?.es_ppc ? 'T' : 'T';
+        
+        // Eliminar cobertura y volver al estado apropiado
         queryUpdate = `
           UPDATE as_turnos_pauta_mensual 
-          SET estado = 'trabajado',
+          SET estado = $3,
               reemplazo_guardia_id = NULL,
               observaciones = $2,
               updated_at = NOW()
           WHERE id = $1
         `;
-        params = [turnoId, observaciones || null];
+        params = [turnoId, observaciones || null, estadoDestino];
 
         // Eliminar registro de turnos_extras
         await query(`
