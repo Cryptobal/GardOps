@@ -697,16 +697,33 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
             <Button 
               size="sm" 
               variant="outline" 
-              className="text-xs px-2 py-1 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20"
-              title="Agregar observaciones"
+              className={cn(
+                "text-xs px-2 py-1 hover:bg-orange-50 dark:hover:bg-orange-900/20",
+                puesto.observaciones 
+                  ? "text-orange-700 bg-orange-50 border-orange-200 dark:bg-orange-900/30" 
+                  : "text-orange-600"
+              )}
+              title={puesto.observaciones ? "Ver/editar observaciones" : "Agregar observaciones"}
             >
               <FileText className="h-3 w-3 mr-1" />
               Observaciones
+              {puesto.observaciones && (
+                <span className="ml-1 text-xs bg-orange-200 text-orange-800 px-1 rounded-full dark:bg-orange-700 dark:text-orange-200">
+                  ●
+                </span>
+              )}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-80">
             <div className="space-y-4">
-              <h4 className="font-medium">📝 Observaciones</h4>
+              <h4 className="font-medium">
+                📝 Observaciones - {generarIdCortoPuesto(puesto.puesto_id)}
+                {puesto.observaciones && (
+                  <span className="ml-2 text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded-full dark:bg-orange-900/30 dark:text-orange-400">
+                    Con observaciones
+                  </span>
+                )}
+              </h4>
               <div className="space-y-2">
                 <Label>Observaciones:</Label>
                 <Textarea
@@ -738,6 +755,33 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                 >
                   Guardar
                 </Button>
+                
+                {/* Botón Eliminar - solo aparece si hay observaciones guardadas */}
+                {puesto.observaciones && (
+                  <Button 
+                    size="sm" 
+                    variant="destructive" 
+                    onClick={() => {
+                      showConfirmModal(
+                        'Eliminar Observaciones',
+                        `¿Estás seguro de que quieres eliminar las observaciones del puesto "${generarIdCortoPuesto(puesto.puesto_id)}"?`,
+                        () => {
+                          actualizarAsistencia(puesto, 'agregar_observaciones', undefined, undefined, '');
+                          setPopoverObservaciones(null);
+                          setPuestoEnEdicion(null);
+                          setObservaciones('');
+                        },
+                        'Eliminar',
+                        'Cancelar'
+                      );
+                    }}
+                    className="flex-1"
+                    title="Eliminar observaciones existentes"
+                  >
+                    Eliminar
+                  </Button>
+                )}
+                
                 <Button 
                   size="sm" 
                   variant="outline" 
