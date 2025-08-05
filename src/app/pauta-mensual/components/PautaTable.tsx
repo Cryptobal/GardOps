@@ -422,7 +422,7 @@ const DiaCell = ({
         )}
         
         <div className="flex items-center justify-center">
-          <span className={`text-lg font-bold ${iconColor || 'text-gray-400'}`}>
+          <span className={`${icon === '↻' ? 'text-xl' : 'text-lg'} font-bold ${iconColor || 'text-gray-400'}`}>
             {icon}
           </span>
         </div>
@@ -638,7 +638,7 @@ export default function PautaTable({
           </div>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md flex items-center justify-center">
-              <span className="text-orange-600 dark:text-orange-400 text-lg font-bold">↻</span>
+              <span className="text-orange-600 dark:text-orange-400 text-xl font-bold">↻</span>
             </div>
             <span className="text-gray-700 dark:text-gray-300 font-medium">Reemplazo</span>
           </div>
