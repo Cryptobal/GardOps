@@ -235,18 +235,20 @@ const ModalAutocompletarPauta = ({
   );
 };
 
-// Función centralizada para obtener el display del estado - TODOS LOS ESTADOS con colores distintivos
+// Función centralizada para obtener el display del estado - DISEÑO MINIMALISTA
 const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean = false) => {
   // Si es PPC cubierto (tiene cobertura), mostrar estado especial
   if (esPPC && cobertura && (estado === 'A' || estado === 'trabajado')) {
     return { 
       icon: "🛡️", 
-      text: "C", 
-      className: "bg-gradient-to-br from-purple-300 to-purple-400 dark:from-purple-600 dark:to-purple-700 text-white dark:text-purple-100 border border-purple-400 dark:border-purple-500 shadow-md font-bold",
+      text: "", 
+      className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600",
+      iconColor: "text-purple-600 dark:text-purple-400",
       tooltip: `PPC Cubierto por: ${cobertura.nombre}`
     };
   }
   
+  // Lógica mejorada para distinguir Falta vs Sin Cobertura
   // Si hay cobertura (reemplazo), mejorar tooltip
   let tooltipExtra = '';
   if (cobertura && cobertura.tipo === 'reemplazo') {
@@ -259,73 +261,84 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
   switch (estadoNormalizado) {
     case "t":
       return { 
-        icon: "🟦", 
-        text: "T", 
-        className: "bg-gradient-to-br from-blue-400 to-blue-500 dark:from-blue-500 dark:to-blue-600 text-white border border-blue-500 dark:border-blue-600 shadow-md font-bold",
+        icon: "●", 
+        text: "", 
+        className: "bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-600",
+        iconColor: "text-blue-600 dark:text-blue-400",
         tooltip: "Turno Planificado"
       };
     case "a":
       return { 
-        icon: "✅", 
-        text: "A", 
-        className: "bg-gradient-to-br from-emerald-400 to-green-500 dark:from-emerald-500 dark:to-green-600 text-white border border-emerald-500 dark:border-green-600 shadow-md font-bold",
+        icon: "✓", 
+        text: "", 
+        className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600",
+        iconColor: "text-green-600 dark:text-green-400",
         tooltip: "Asistió (Confirmado)"
       };
     case "i":
+      // Lógica corregida: Si es PPC -> Sin Cobertura, Si es Guardia -> Falta
       return { 
-        icon: "❌", 
-        text: "I", 
-        className: "bg-gradient-to-br from-red-400 to-red-500 dark:from-red-500 dark:to-red-600 text-white border border-red-500 dark:border-red-600 shadow-md font-bold",
-        tooltip: "Inasistencia"
+        icon: esPPC ? "⚠" : "✗", 
+        text: "", 
+        className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-600",
+        iconColor: esPPC ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400",
+        tooltip: esPPC ? "Sin Cobertura" : "Falta"
       };
     case "r":
       return { 
-        icon: "🔄", 
-        text: "R", 
-        className: "bg-gradient-to-br from-orange-400 to-orange-500 dark:from-orange-500 dark:to-orange-600 text-white border border-orange-500 dark:border-orange-600 shadow-md font-bold",
-        tooltip: `Falta con Reemplazo${tooltipExtra}`
+        icon: "↻", 
+        text: "", 
+        className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600",
+        iconColor: "text-orange-600 dark:text-orange-400",
+        tooltip: `Reemplazo${tooltipExtra}`
       };
     case "s":
       return { 
-        icon: "⚠️", 
-        text: "S", 
-        className: "bg-gradient-to-br from-yellow-400 to-amber-500 dark:from-yellow-500 dark:to-amber-600 text-white border border-yellow-500 dark:border-amber-600 shadow-md font-bold",
-        tooltip: "Falta sin Cobertura"
+        icon: "⚠", 
+        text: "", 
+        className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-600",
+        iconColor: "text-amber-600 dark:text-amber-400",
+        tooltip: "Sin Cobertura"
       };
     case "libre":
     case "l":
       return { 
-        icon: "⚪", 
-        text: "L", 
-        className: "bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-500 dark:to-gray-600 text-gray-800 dark:text-gray-200 border border-gray-400 dark:border-gray-500 shadow-md font-bold",
+        icon: "○", 
+        text: "", 
+        className: "bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600",
+        iconColor: "text-gray-400 dark:text-gray-500",
         tooltip: "Libre"
       };
     case "p":
       return { 
-        icon: "🏖️", 
-        text: "P", 
-        className: "bg-gradient-to-br from-indigo-400 to-indigo-500 dark:from-indigo-500 dark:to-indigo-600 text-white border border-indigo-500 dark:border-indigo-600 shadow-md font-bold",
+        icon: "🏖", 
+        text: "", 
+        className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600",
+        iconColor: "text-indigo-600 dark:text-indigo-400",
         tooltip: "Permiso"
       };
     case "v":
       return { 
         icon: "🌴", 
-        text: "V", 
-        className: "bg-gradient-to-br from-teal-400 to-cyan-500 dark:from-teal-500 dark:to-cyan-600 text-white border border-teal-500 dark:border-cyan-600 shadow-md font-bold",
+        text: "", 
+        className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-teal-300 dark:hover:border-teal-600",
+        iconColor: "text-teal-600 dark:text-teal-400",
         tooltip: "Vacaciones"
       };
     case "m":
       return { 
         icon: "🏥", 
-        text: "M", 
-        className: "bg-gradient-to-br from-pink-400 to-rose-500 dark:from-pink-500 dark:to-rose-600 text-white border border-pink-500 dark:border-rose-600 shadow-md font-bold",
+        text: "", 
+        className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-pink-300 dark:hover:border-pink-600",
+        iconColor: "text-pink-600 dark:text-pink-400",
         tooltip: "Licencia Médica"
       };
     default:
       return { 
-        icon: "⬜", 
+        icon: "·", 
         text: "", 
-        className: "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600 shadow-sm",
+        className: "bg-gray-50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-700",
+        iconColor: "text-gray-300 dark:text-gray-600",
         tooltip: "Sin asignar"
       };
   }
@@ -357,7 +370,7 @@ const DiaCell = ({
   esPPC?: boolean;
   cobertura?: any;
 }) => {
-  const { icon, text, className, tooltip } = getEstadoDisplay(estado, cobertura, esPPC);
+  const { icon, text, className, iconColor, tooltip } = getEstadoDisplay(estado, cobertura, esPPC);
 
   const esFinDeSemana = diaSemana === 'Sáb' || diaSemana === 'Dom';
   const esDiaEspecial = esFinDeSemana || esFeriado;
@@ -397,20 +410,21 @@ const DiaCell = ({
       onContextMenu={handleContextMenu}
       title={tooltipText}
     >
-      <div className="flex flex-col items-center justify-center min-h-[2.5rem] py-1 relative">
+      <div className="flex flex-col items-center justify-center min-h-[2.5rem] py-2 relative">
         {diaSemana && (
-          <span className={`text-xs font-semibold leading-none mb-1 ${
-            esFeriado ? 'text-red-600 dark:text-red-400' : 
-            esFinDeSemana ? 'text-amber-600 dark:text-amber-400' : 
-            'text-gray-500 dark:text-gray-400'
+          <span className={`text-xs font-bold leading-none mb-1 ${
+            esFeriado ? 'text-red-700 dark:text-red-300' : 
+            esFinDeSemana ? 'text-amber-700 dark:text-amber-300' : 
+            'text-gray-700 dark:text-gray-300'
           }`}>
             {diaSemana}
           </span>
         )}
         
-        <div className="flex items-center justify-center gap-1">
-          <span className="text-sm leading-none">{icon}</span>
-          {text && <span className="text-sm font-bold leading-none">{text}</span>}
+        <div className="flex items-center justify-center">
+          <span className={`text-lg font-bold ${iconColor || 'text-gray-400'}`}>
+            {icon}
+          </span>
         </div>
       </div>
     </TableCell>
@@ -602,55 +616,55 @@ export default function PautaTable({
           </div>
         </div>
         
-        {/* Leyenda completa con emojis y colores exactos */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gradient-to-br from-blue-400 to-blue-500 dark:from-blue-500 dark:to-blue-600 border border-blue-500 dark:border-blue-600 rounded shadow-sm flex items-center justify-center text-white text-xs font-bold">
-              T
+        {/* Leyenda minimalista con iconos exactos */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md flex items-center justify-center">
+              <span className="text-blue-600 dark:text-blue-400 text-lg font-bold">●</span>
             </div>
             <span className="text-gray-700 dark:text-gray-300 font-medium">Turno</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gradient-to-br from-emerald-400 to-green-500 dark:from-emerald-500 dark:to-green-600 border border-emerald-500 dark:border-green-600 rounded shadow-sm flex items-center justify-center text-white text-xs font-bold">
-              A
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md flex items-center justify-center">
+              <span className="text-green-600 dark:text-green-400 text-lg font-bold">✓</span>
             </div>
             <span className="text-gray-700 dark:text-gray-300 font-medium">Asistió</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gradient-to-br from-red-400 to-red-500 dark:from-red-500 dark:to-red-600 border border-red-500 dark:border-red-600 rounded shadow-sm flex items-center justify-center text-white text-xs font-bold">
-              I
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md flex items-center justify-center">
+              <span className="text-red-600 dark:text-red-400 text-lg font-bold">✗</span>
             </div>
             <span className="text-gray-700 dark:text-gray-300 font-medium">Falta</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gradient-to-br from-orange-400 to-orange-500 dark:from-orange-500 dark:to-orange-600 border border-orange-500 dark:border-orange-600 rounded shadow-sm flex items-center justify-center text-white text-xs font-bold">
-              R
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md flex items-center justify-center">
+              <span className="text-orange-600 dark:text-orange-400 text-lg font-bold">↻</span>
             </div>
             <span className="text-gray-700 dark:text-gray-300 font-medium">Reemplazo</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-500 dark:to-gray-600 border border-gray-400 dark:border-gray-500 rounded shadow-sm flex items-center justify-center text-gray-800 dark:text-gray-200 text-xs font-bold">
-              L
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-md flex items-center justify-center">
+              <span className="text-gray-400 dark:text-gray-500 text-lg font-bold">○</span>
             </div>
             <span className="text-gray-700 dark:text-gray-300 font-medium">Libre</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gradient-to-br from-yellow-400 to-amber-500 dark:from-yellow-500 dark:to-amber-600 border border-yellow-500 dark:border-amber-600 rounded shadow-sm flex items-center justify-center text-white text-xs font-bold">
-              S
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md flex items-center justify-center">
+              <span className="text-amber-600 dark:text-amber-400 text-lg font-bold">⚠</span>
             </div>
             <span className="text-gray-700 dark:text-gray-300 font-medium">Sin Cobertura</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gradient-to-br from-teal-400 to-cyan-500 dark:from-teal-500 dark:to-cyan-600 border border-teal-500 dark:border-cyan-600 rounded shadow-sm flex items-center justify-center text-white text-xs font-bold">
-              V
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md flex items-center justify-center">
+              <span className="text-teal-600 dark:text-teal-400 text-sm">🌴</span>
             </div>
             <span className="text-gray-700 dark:text-gray-300 font-medium">Vacaciones</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gradient-to-br from-purple-300 to-purple-400 dark:from-purple-600 dark:to-purple-700 border border-purple-400 dark:border-purple-500 rounded shadow-sm flex items-center justify-center text-white text-xs font-bold">
-              C
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md flex items-center justify-center">
+              <span className="text-purple-600 dark:text-purple-400 text-sm">🛡️</span>
             </div>
-            <span className="text-gray-700 dark:text-gray-300 font-medium">PPC</span>
+            <span className="text-gray-700 dark:text-gray-300 font-medium">PPC Cubierto</span>
           </div>
         </div>
       </div>
