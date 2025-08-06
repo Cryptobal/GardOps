@@ -99,6 +99,12 @@ export default function TurnosExtrasPage() {
   const [showDashboard, setShowDashboard] = useState(false);
   const [procesandoPlanilla, setProcesandoPlanilla] = useState(false);
   const [showCalendarView, setShowCalendarView] = useState(false);
+  const [showPlanillaSuccessModal, setShowPlanillaSuccessModal] = useState(false);
+  const [planillaGenerada, setPlanillaGenerada] = useState<{
+    id: number;
+    cantidadTurnos: number;
+    montoTotal: number | string;
+  } | null>(null);
 
   const { success, error } = useToast();
 
@@ -247,18 +253,17 @@ export default function TurnosExtrasPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // Mostrar notificación con opción de ir al historial
-        const mensaje = `Planilla #${data.planilla_id} generada exitosamente con ${data.cantidad_turnos} turnos por un total de ${formatCurrency(data.monto_total)}. Ve al historial para descargar el archivo XLSX.`;
+        // Guardar información de la planilla generada
+        setPlanillaGenerada({
+          id: data.planilla_id,
+          cantidadTurnos: data.cantidad_turnos,
+          montoTotal: data.monto_total
+        });
         
-        success("📊 Planilla Generada", mensaje);
+        // Mostrar el modal de éxito
+        setShowPlanillaSuccessModal(true);
         
-        // Mostrar botón adicional para ir al historial
-        setTimeout(() => {
-          if (confirm("¿Deseas ir al historial de planillas para descargar el archivo?")) {
-            window.location.href = '/pauta-diaria/turnos-extras/historial';
-          }
-        }, 1000);
-
+        // Limpiar selección y recargar
         setSelectedTurnos([]);
         cargarTurnosExtras();
       } else {
@@ -678,6 +683,61 @@ export default function TurnosExtrasPage() {
                   Confirmar Pago
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Éxito de Planilla Generada */}
+      <Dialog open={showPlanillaSuccessModal} onOpenChange={setShowPlanillaSuccessModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Planilla Generada Exitosamente
+            </DialogTitle>
+            <DialogDescription>
+              La planilla ha sido creada y está lista para descargar.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {planillaGenerada && (
+            <div className="space-y-4">
+              <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                <h4 className="font-medium text-green-800 dark:text-green-200 mb-2">Detalles de la planilla:</h4>
+                <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                  <li>• <strong>ID de Planilla:</strong> #{planillaGenerada.id}</li>
+                  <li>• <strong>Cantidad de turnos:</strong> {planillaGenerada.cantidadTurnos}</li>
+                  <li>• <strong>Monto total:</strong> {formatCurrency(planillaGenerada.montoTotal)}</li>
+                  <li>• <strong>Fecha de generación:</strong> {new Date().toLocaleDateString('es-ES')}</li>
+                </ul>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  💡 <strong>Consejo:</strong> Ve al historial de planillas para descargar el archivo XLSX con el formato requerido para transferencias bancarias.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowPlanillaSuccessModal(false)}
+              className="w-full sm:w-auto"
+            >
+              Cerrar
+            </Button>
+            <Button
+              onClick={() => {
+                setShowPlanillaSuccessModal(false);
+                window.location.href = '/pauta-diaria/turnos-extras/historial';
+              }}
+              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
+            >
+              <CalendarIcon className="h-4 w-4 mr-2" />
+              Ir al Historial
             </Button>
           </DialogFooter>
         </DialogContent>

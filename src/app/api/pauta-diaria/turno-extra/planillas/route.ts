@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       params.push(estado);
     }
 
-    const query = `
+    const sqlQuery = `
       SELECT 
         p.id,
         p.fecha_generacion,
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     params.push(limit, offset);
 
-    const { rows } = await query(query, params);
+    const { rows } = await query(sqlQuery, params);
     
     // Obtener total de planillas para paginación
     const countQuery = `
