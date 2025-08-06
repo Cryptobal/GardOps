@@ -13,7 +13,8 @@ import {
   Target,
   CalendarDays,
   Activity,
-  DollarSign
+  DollarSign,
+  Calculator
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -59,6 +60,11 @@ export const navigationItems: NavigationItem[] = [
     name: "Turnos Extras",
     href: "/pauta-diaria/turnos-extras",
     icon: DollarSign
+  },
+  {
+    name: "Sueldos",
+    href: "/sueldos",
+    icon: Calculator
   },
   {
     name: "PPC",

@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { calcularSueldo, SueldoInput, SueldoResultado } from '@/lib/sueldo/calcularSueldo';
+import { SueldoInput, SueldoResultado } from '@/lib/sueldo/tipos/sueldo';
 import { formatearCLP, formatearNumero } from '@/lib/sueldo/utils/redondeo';
 
 export default function SueldosPage() {
@@ -56,8 +56,21 @@ export default function SueldosPage() {
     setError(null);
     
     try {
-      const resultado = await calcularSueldo(input);
-      setResultado(resultado);
+      const response = await fetch('/api/sueldos/calcular', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(input),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al calcular sueldo');
+      }
+
+      setResultado(data.data);
     } catch (err: any) {
       setError(err.message || 'Error al calcular sueldo');
     } finally {
