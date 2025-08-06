@@ -43,6 +43,7 @@ function calcularDescuentoDiasAusencia(sueldoBase: number, diasAusencia?: number
  * Calcula el valor de las horas extras según normativa oficial
  * Valor por hora: (sueldo base ajustado / 30 / jornada diaria) × 1,5
  * Jornada diaria estándar: 8 horas
+ * SOLO considera horas extras al 50%, excluye las horas al 100%
  */
 function calcularHorasExtras(sueldoBaseAjustado: number, horasExtras?: { cincuenta?: number; cien?: number }): number {
   if (!horasExtras) return 0;
@@ -50,10 +51,10 @@ function calcularHorasExtras(sueldoBaseAjustado: number, horasExtras?: { cincuen
   const jornadaDiaria = 8; // Horas diarias estándar
   const valorHora = (sueldoBaseAjustado / 30 / jornadaDiaria) * 1.5;
   
+  // Solo considerar horas extras al 50%, excluir las horas al 100%
   const horas50 = (horasExtras.cincuenta || 0) * valorHora * 1.5;
-  const horas100 = (horasExtras.cien || 0) * valorHora * 2.0;
   
-  return redondearCLP(horas50 + horas100);
+  return redondearCLP(horas50);
 }
 
 /**

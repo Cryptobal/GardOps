@@ -15,8 +15,8 @@ export async function testCalculoSueldo() {
     mutualidad: 'achs',
     tipoContrato: 'indefinido',
     horasExtras: {
-      cincuenta: 0,
-      cien: 20
+      cincuenta: 20, // Solo se consideran las horas al 50%
+      cien: 0
     },
     bonos: {
       nocturnidad: 0,
@@ -60,7 +60,7 @@ export async function testCalculoSueldo() {
     console.error('❌ Error en caso de prueba 1:', error);
   }
 
-  // Caso de prueba 2: Sueldo alto con horas extras
+  // Caso de prueba 2: Sueldo alto con horas extras (solo al 50%)
   const testCase2: SueldoInput = {
     sueldoBase: 1000000,
     fecha: new Date('2025-08-06'),
@@ -68,8 +68,8 @@ export async function testCalculoSueldo() {
     mutualidad: 'achs',
     tipoContrato: 'indefinido',
     horasExtras: {
-      cincuenta: 10,
-      cien: 5
+      cincuenta: 15, // Solo se consideran las horas al 50%
+      cien: 0
     },
     bonos: {
       nocturnidad: 50000,

@@ -14,8 +14,8 @@ El sistema de cálculo de sueldos de GardOps implementa la lógica completa para
 
 2. **Horas Extras Corregidas:**
    - Valor por hora: `(sueldo base / 30 / jornada diaria) × 1,5`
-   - Horas al 50%: `horas × valorHora × 1.5`
-   - Horas al 100%: `horas × valorHora × 2.0`
+   - Horas al 50%: `horas × valorHora × 1.5` (solo estas se consideran)
+   - Horas al 100%: No se consideran en el cálculo
 
 3. **Cotizaciones AFP Actualizadas:**
    - Tasas oficiales por administradora (2025)
@@ -39,8 +39,8 @@ interface SueldoInput {
   mutualidad: string;           // Mutualidad seleccionada
   tipoContrato: 'indefinido' | 'plazo_fijo' | 'obra_faena';
   horasExtras?: {               // Horas extras (opcional)
-    cincuenta: number;          // Horas al 50%
-    cien: number;               // Horas al 100%
+    cincuenta: number;          // Horas al 50% (solo estas se consideran)
+    cien: number;               // Horas al 100% (no se consideran en el cálculo)
   };
   bonos?: {                     // Bonos (opcional)
     nocturnidad?: number;

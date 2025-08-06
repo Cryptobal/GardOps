@@ -9,9 +9,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SueldoInput, SueldoResultado } from '@/lib/sueldo/tipos/sueldo';
 import { formatearCLP } from '@/lib/sueldo/utils/redondeo';
-import { Settings } from 'lucide-react';
+import { Settings, Calculator, TrendingUp, DollarSign, FileText, Shield, Users, Building2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SueldosPage() {
@@ -35,6 +36,7 @@ export default function SueldosPage() {
   const [resultado, setResultado] = useState<SueldoResultado | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("resumen");
 
   const handleInputChange = (field: string, value: any) => {
     setInput(prev => ({
@@ -84,414 +86,467 @@ export default function SueldosPage() {
   const isFormValid = input.sueldoBase > 0 && input.afp;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Cálculo de Sueldos</h1>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary">Beta</Badge>
-          <Link href="/sueldos/parametros">
-            <Button variant="outline" size="sm">
-              <Settings className="h-4 w-4 mr-2" />
-              Parámetros
-            </Button>
-          </Link>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+                <Calculator className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100">
+                  Calculadora de Sueldos
+                </h1>
+                <p className="text-slate-600 dark:text-slate-400 text-sm">
+                  Cálculo completo según normativa chilena 2025
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                Actualizado 2025
+              </Badge>
+              <Link href="/sueldos/parametros">
+                <Button variant="outline" size="sm" className="hidden sm:flex">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Parámetros
+                </Button>
+              </Link>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Formulario de entrada */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Datos de Entrada</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="sueldoBase">Sueldo Base *</Label>
-                <Input
-                  id="sueldoBase"
-                  type="number"
-                  value={input.sueldoBase || ''}
-                  onChange={(e) => handleInputChange('sueldoBase', Number(e.target.value) || 0)}
-                  placeholder="Ingrese sueldo base"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="fecha">Fecha *</Label>
-                <Input
-                  id="fecha"
-                  type="date"
-                  value={input.fecha.toISOString().split('T')[0]}
-                  onChange={(e) => handleInputChange('fecha', new Date(e.target.value))}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="afp">AFP *</Label>
-                <Select value={input.afp} onValueChange={(value) => handleInputChange('afp', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccione AFP" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="capital">Capital</SelectItem>
-                    <SelectItem value="cuprum">Cuprum</SelectItem>
-                    <SelectItem value="habitat">Habitat</SelectItem>
-                    <SelectItem value="modelo">Modelo</SelectItem>
-                    <SelectItem value="planvital">PlanVital</SelectItem>
-                    <SelectItem value="provida">ProVida</SelectItem>
-                    <SelectItem value="uno">Uno</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="cotizacionAdicionalUF">Cotización Adicional (UF)</Label>
-                <Input
-                  id="cotizacionAdicionalUF"
-                  type="text"
-                  value={input.cotizacionAdicionalUF ? input.cotizacionAdicionalUF.toString().replace('.', ',') : ''}
-                  onChange={(e) => {
-                    // Permitir solo números con coma decimal
-                    const value = e.target.value.replace('.', ',');
-                    if (/^\d*,?\d{0,2}$/.test(value) || value === '') {
-                      const numValue = parseFloat(value.replace(',', '.')) || 0;
-                      handleInputChange('cotizacionAdicionalUF', numValue);
-                    }
-                  }}
-                  placeholder="0,4"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="diasAusencia">Días de Ausencia</Label>
-                <Input
-                  id="diasAusencia"
-                  type="number"
-                  value={input.diasAusencia || ''}
-                  onChange={(e) => handleInputChange('diasAusencia', Number(e.target.value) || 0)}
-                  placeholder="0"
-                  min="0"
-                  max="30"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="tipoContrato">Tipo de Contrato</Label>
-                <Select value={input.tipoContrato} onValueChange={(value) => handleInputChange('tipoContrato', value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="indefinido">Indefinido</SelectItem>
-                    <SelectItem value="plazo_fijo">Plazo Fijo</SelectItem>
-                    <SelectItem value="obra_faena">Obra o Faena</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="comisiones">Comisiones</Label>
-                <Input
-                  id="comisiones"
-                  type="number"
-                  value={input.comisiones || ''}
-                  onChange={(e) => handleInputChange('comisiones', Number(e.target.value) || 0)}
-                  placeholder="0"
-                />
-              </div>
-            </div>
-
-            {/* Horas Extras */}
-            <div>
-              <Label className="text-sm font-medium">Horas Extras</Label>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                <div>
-                  <Label htmlFor="horas50" className="text-xs">50%</Label>
-                  <Input
-                    id="horas50"
-                    type="number"
-                    value={input.horasExtras?.cincuenta || ''}
-                    onChange={(e) => handleNestedInputChange('horasExtras', 'cincuenta', Number(e.target.value) || 0)}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="horas100" className="text-xs">100%</Label>
-                  <Input
-                    id="horas100"
-                    type="number"
-                    value={input.horasExtras?.cien || ''}
-                    onChange={(e) => handleNestedInputChange('horasExtras', 'cien', Number(e.target.value) || 0)}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Bonos */}
-            <div>
-              <Label className="text-sm font-medium">Bonos</Label>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                <div>
-                  <Label htmlFor="nocturnidad" className="text-xs">Nocturnidad</Label>
-                  <Input
-                    id="nocturnidad"
-                    type="number"
-                    value={input.bonos?.nocturnidad || ''}
-                    onChange={(e) => handleNestedInputChange('bonos', 'nocturnidad', Number(e.target.value) || 0)}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="festivo" className="text-xs">Festivo</Label>
-                  <Input
-                    id="festivo"
-                    type="number"
-                    value={input.bonos?.festivo || ''}
-                    onChange={(e) => handleNestedInputChange('bonos', 'festivo', Number(e.target.value) || 0)}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* No Imponible */}
-            <div>
-              <Label className="text-sm font-medium">No Imponible</Label>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                <div>
-                  <Label htmlFor="colacion" className="text-xs">Colación</Label>
-                  <Input
-                    id="colacion"
-                    type="number"
-                    value={input.noImponible?.colacion || ''}
-                    onChange={(e) => handleNestedInputChange('noImponible', 'colacion', Number(e.target.value) || 0)}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="movilizacion" className="text-xs">Movilización</Label>
-                  <Input
-                    id="movilizacion"
-                    type="number"
-                    value={input.noImponible?.movilizacion || ''}
-                    onChange={(e) => handleNestedInputChange('noImponible', 'movilizacion', Number(e.target.value) || 0)}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Descuentos */}
-            <div>
-              <Label className="text-sm font-medium">Descuentos</Label>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                <div>
-                  <Label htmlFor="anticipos" className="text-xs">Anticipos</Label>
-                  <Input
-                    id="anticipos"
-                    type="number"
-                    value={input.anticipos || ''}
-                    onChange={(e) => handleInputChange('anticipos', Number(e.target.value) || 0)}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="judiciales" className="text-xs">Judiciales</Label>
-                  <Input
-                    id="judiciales"
-                    type="number"
-                    value={input.judiciales || ''}
-                    onChange={(e) => handleInputChange('judiciales', Number(e.target.value) || 0)}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Button 
-              onClick={handleCalcular} 
-              disabled={loading || !isFormValid}
-              size="lg"
-              className="w-full"
-            >
-              {loading ? 'Calculando...' : 'Calcular Sueldo'}
-            </Button>
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Resultados */}
-        {resultado && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Resultado del Cálculo</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold text-green-800">Sueldo Líquido</h3>
-                <p className="text-2xl font-bold text-green-700">{formatearCLP(resultado.sueldoLiquido)}</p>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-3">
-                <h4 className="font-semibold">Desglose Imponible</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Sueldo Base:</span>
-                    <span>{formatearCLP(resultado.imponible.sueldoBase)}</span>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Formulario */}
+          <div className="xl:col-span-1">
+            <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                  Datos de Entrada
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Información Básica */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <Building2 className="h-4 w-4" />
+                    Información Básica
                   </div>
-                  {resultado.imponible.descuentoDiasAusencia > 0 && (
-                    <>
-                      <div className="flex justify-between text-red-600">
-                        <span>Descuento por Días de Ausencia:</span>
-                        <span>-{formatearCLP(resultado.imponible.descuentoDiasAusencia)}</span>
-                      </div>
-                      <div className="flex justify-between font-medium">
-                        <span>Sueldo Base Ajustado:</span>
-                        <span>{formatearCLP(resultado.imponible.sueldoBaseAjustado)}</span>
-                      </div>
-                    </>
-                  )}
-                  <div className="flex justify-between">
-                    <span>Gratificación Legal:</span>
-                    <span>{formatearCLP(resultado.imponible.gratificacionLegal)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Horas Extras:</span>
-                    <span>{formatearCLP(resultado.imponible.horasExtras)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Comisiones:</span>
-                    <span>{formatearCLP(resultado.imponible.comisiones)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Bonos:</span>
-                    <span>{formatearCLP(resultado.imponible.bonos)}</span>
-                  </div>
-                  <div className="flex justify-between font-semibold">
-                    <span>Total Imponible:</span>
-                    <span>{formatearCLP(resultado.imponible.total)}</span>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="sueldoBase" className="text-sm font-medium">
+                        Sueldo Base *
+                      </Label>
+                      <Input
+                        id="sueldoBase"
+                        type="number"
+                        value={input.sueldoBase || ''}
+                        onChange={(e) => handleInputChange('sueldoBase', Number(e.target.value) || 0)}
+                        placeholder="550.000"
+                        className="h-10"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="fecha" className="text-sm font-medium">
+                        Fecha *
+                      </Label>
+                      <Input
+                        id="fecha"
+                        type="date"
+                        value={input.fecha.toISOString().split('T')[0]}
+                        onChange={(e) => handleInputChange('fecha', new Date(e.target.value))}
+                        className="h-10"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="afp" className="text-sm font-medium">
+                        AFP *
+                      </Label>
+                      <Select value={input.afp} onValueChange={(value) => handleInputChange('afp', value)}>
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder="Seleccione AFP" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="capital">Capital</SelectItem>
+                          <SelectItem value="cuprum">Cuprum</SelectItem>
+                          <SelectItem value="habitat">Habitat</SelectItem>
+                          <SelectItem value="modelo">Modelo</SelectItem>
+                          <SelectItem value="planvital">PlanVital</SelectItem>
+                          <SelectItem value="provida">ProVida</SelectItem>
+                          <SelectItem value="uno">Uno</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="tipoContrato" className="text-sm font-medium">
+                        Tipo de Contrato
+                      </Label>
+                      <Select value={input.tipoContrato} onValueChange={(value) => handleInputChange('tipoContrato', value)}>
+                        <SelectTrigger className="h-10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="indefinido">Indefinido</SelectItem>
+                          <SelectItem value="plazo_fijo">Plazo Fijo</SelectItem>
+                          <SelectItem value="obra_faena">Obra o Faena</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <Separator />
+                {/* Horas Extras */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <TrendingUp className="h-4 w-4" />
+                    Horas Extras
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="horas50" className="text-xs font-medium">
+                        50% (Se consideran)
+                      </Label>
+                      <Input
+                        id="horas50"
+                        type="number"
+                        value={input.horasExtras?.cincuenta || ''}
+                        onChange={(e) => handleNestedInputChange('horasExtras', 'cincuenta', Number(e.target.value) || 0)}
+                        placeholder="0"
+                        className="h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="horas100" className="text-xs font-medium text-slate-500">
+                        100% (No se consideran)
+                      </Label>
+                      <Input
+                        id="horas100"
+                        type="number"
+                        value={input.horasExtras?.cien || ''}
+                        onChange={(e) => handleNestedInputChange('horasExtras', 'cien', Number(e.target.value) || 0)}
+                        placeholder="0"
+                        className="h-10 bg-slate-50 dark:bg-slate-700"
+                        disabled
+                      />
+                    </div>
+                  </div>
+                </div>
 
-              <div className="space-y-3">
-                <h4 className="font-semibold">Cotizaciones</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>AFP:</span>
-                    <span>{formatearCLP(resultado.cotizaciones.afp)}</span>
+                {/* Bonos y Comisiones */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <DollarSign className="h-4 w-4" />
+                    Bonos y Comisiones
                   </div>
-                  <div className="flex justify-between">
-                    <span>Salud (7%):</span>
-                    <span>{formatearCLP(resultado.cotizaciones.salud)}</span>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="comisiones" className="text-xs font-medium">
+                        Comisiones
+                      </Label>
+                      <Input
+                        id="comisiones"
+                        type="number"
+                        value={input.comisiones || ''}
+                        onChange={(e) => handleInputChange('comisiones', Number(e.target.value) || 0)}
+                        placeholder="0"
+                        className="h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="nocturnidad" className="text-xs font-medium">
+                        Bono Nocturnidad
+                      </Label>
+                      <Input
+                        id="nocturnidad"
+                        type="number"
+                        value={input.bonos?.nocturnidad || ''}
+                        onChange={(e) => handleNestedInputChange('bonos', 'nocturnidad', Number(e.target.value) || 0)}
+                        placeholder="0"
+                        className="h-10"
+                      />
+                    </div>
                   </div>
-                  {resultado.entrada.cotizacionAdicionalUF && resultado.entrada.cotizacionAdicionalUF > 0 && (
-                    <div className="flex justify-between text-xs text-gray-600">
-                      <span className="ml-4">
-                        (Incluye {resultado.entrada.cotizacionAdicionalUF.toString().replace('.', ',')} UF adicionales)
-                      </span>
+                </div>
+
+                {/* No Imponible */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <Shield className="h-4 w-4" />
+                    No Imponible
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="colacion" className="text-xs font-medium">
+                        Colación
+                      </Label>
+                      <Input
+                        id="colacion"
+                        type="number"
+                        value={input.noImponible?.colacion || ''}
+                        onChange={(e) => handleNestedInputChange('noImponible', 'colacion', Number(e.target.value) || 0)}
+                        placeholder="0"
+                        className="h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="movilizacion" className="text-xs font-medium">
+                        Movilización
+                      </Label>
+                      <Input
+                        id="movilizacion"
+                        type="number"
+                        value={input.noImponible?.movilizacion || ''}
+                        onChange={(e) => handleNestedInputChange('noImponible', 'movilizacion', Number(e.target.value) || 0)}
+                        placeholder="0"
+                        className="h-10"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Descuentos */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <Users className="h-4 w-4" />
+                    Descuentos
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="anticipos" className="text-xs font-medium">
+                        Anticipos
+                      </Label>
+                      <Input
+                        id="anticipos"
+                        type="number"
+                        value={input.anticipos || ''}
+                        onChange={(e) => handleInputChange('anticipos', Number(e.target.value) || 0)}
+                        placeholder="0"
+                        className="h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="judiciales" className="text-xs font-medium">
+                        Judiciales
+                      </Label>
+                      <Input
+                        id="judiciales"
+                        type="number"
+                        value={input.judiciales || ''}
+                        onChange={(e) => handleInputChange('judiciales', Number(e.target.value) || 0)}
+                        placeholder="0"
+                        className="h-10"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleCalcular} 
+                  disabled={loading || !isFormValid}
+                  size="lg"
+                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                >
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Calculando...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Calculator className="h-4 w-4" />
+                      Calcular Sueldo
                     </div>
                   )}
-                  <div className="flex justify-between">
-                    <span>AFC:</span>
-                    <span>{formatearCLP(resultado.cotizaciones.afc)}</span>
-                  </div>
-                  <div className="flex justify-between font-semibold">
-                    <span>Total Cotizaciones:</span>
-                    <span>{formatearCLP(resultado.cotizaciones.total)}</span>
-                  </div>
-                </div>
-              </div>
+                </Button>
 
-              <Separator className="my-3 sm:my-4" />
+                {error && (
+                  <Alert variant="destructive" className="border-red-200 bg-red-50 dark:bg-red-900/20">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-              <div className="space-y-2 sm:space-y-3">
-                <h4 className="font-semibold text-sm sm:text-base">No Imponible</h4>
-                <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
-                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
-                    <span className="text-muted-foreground">Colación:</span>
-                    <span className="font-medium tabular-nums">{formatearCLP(resultado.noImponible.colacion)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
-                    <span className="text-muted-foreground">Movilización:</span>
-                    <span className="font-medium tabular-nums">{formatearCLP(resultado.noImponible.movilizacion)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
-                    <span className="text-muted-foreground">Viático:</span>
-                    <span className="font-medium tabular-nums">{formatearCLP(resultado.noImponible.viatico)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
-                    <span className="text-muted-foreground">Desgaste:</span>
-                    <span className="font-medium tabular-nums">{formatearCLP(resultado.noImponible.desgaste)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
-                    <span className="text-muted-foreground">Asignación Familiar:</span>
-                    <span className="font-medium tabular-nums">{formatearCLP(resultado.noImponible.asignacionFamiliar)}</span>
-                  </div>
-                  <div className="flex justify-between items-center font-semibold pt-2 mt-2 border-t text-sm sm:text-base">
-                    <span>Total No Imponible:</span>
-                    <span className="tabular-nums">{formatearCLP(resultado.noImponible.total)}</span>
-                  </div>
-                </div>
-              </div>
+          {/* Resultados */}
+          {resultado && (
+            <div className="xl:col-span-2">
+              <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <TrendingUp className="h-5 w-5 text-green-600" />
+                    Resultado del Cálculo
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="resumen">Resumen</TabsTrigger>
+                      <TabsTrigger value="imponible">Imponible</TabsTrigger>
+                      <TabsTrigger value="cotizaciones">Cotizaciones</TabsTrigger>
+                      <TabsTrigger value="empleador">Empleador</TabsTrigger>
+                    </TabsList>
 
-              <Separator className="my-3 sm:my-4" />
+                    {/* Resumen */}
+                    <TabsContent value="resumen" className="space-y-6">
+                      <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 p-6 rounded-xl border border-green-200 dark:border-green-800">
+                        <div className="text-center">
+                          <h3 className="text-lg font-semibold text-green-800 dark:text-green-400 mb-2">
+                            Sueldo Líquido
+                          </h3>
+                          <p className="text-3xl sm:text-4xl font-bold text-green-700 dark:text-green-300">
+                            {formatearCLP(resultado.sueldoLiquido)}
+                          </p>
+                        </div>
+                      </div>
 
-              <div className="space-y-2 sm:space-y-3">
-                <h4 className="font-semibold text-sm sm:text-base">Impuesto Único</h4>
-                <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
-                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
-                    <span className="text-muted-foreground">Base Tributable:</span>
-                    <span className="font-medium tabular-nums">{formatearCLP(resultado.impuesto.baseTributable)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
-                    <span className="text-muted-foreground">Impuesto Único:</span>
-                    <span className="font-medium tabular-nums text-red-600 dark:text-red-400">{formatearCLP(resultado.impuesto.impuestoUnico)}</span>
-                  </div>
-                </div>
-              </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                          <div className="text-sm text-blue-600 dark:text-blue-400 font-medium">Total Imponible</div>
+                          <div className="text-lg font-bold text-blue-700 dark:text-blue-300">
+                            {formatearCLP(resultado.imponible.total)}
+                          </div>
+                        </div>
+                        <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
+                          <div className="text-sm text-orange-600 dark:text-orange-400 font-medium">Cotizaciones</div>
+                          <div className="text-lg font-bold text-orange-700 dark:text-orange-300">
+                            {formatearCLP(resultado.cotizaciones.total)}
+                          </div>
+                        </div>
+                        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                          <div className="text-sm text-red-600 dark:text-red-400 font-medium">Impuesto Único</div>
+                          <div className="text-lg font-bold text-red-700 dark:text-red-300">
+                            {formatearCLP(resultado.impuesto.impuestoUnico)}
+                          </div>
+                        </div>
+                      </div>
+                    </TabsContent>
 
-              <Separator className="my-3 sm:my-4" />
+                    {/* Imponible */}
+                    <TabsContent value="imponible" className="space-y-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center py-2 px-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                          <span className="font-medium">Sueldo Base:</span>
+                          <span className="font-bold">{formatearCLP(resultado.imponible.sueldoBase)}</span>
+                        </div>
+                        
+                        {resultado.imponible.descuentoDiasAusencia > 0 && (
+                          <>
+                            <div className="flex justify-between items-center py-2 px-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                              <span className="font-medium text-red-700 dark:text-red-400">Descuento por Días de Ausencia:</span>
+                              <span className="font-bold text-red-700 dark:text-red-400">-{formatearCLP(resultado.imponible.descuentoDiasAusencia)}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2 px-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                              <span className="font-medium">Sueldo Base Ajustado:</span>
+                              <span className="font-bold">{formatearCLP(resultado.imponible.sueldoBaseAjustado)}</span>
+                            </div>
+                          </>
+                        )}
+                        
+                        <div className="flex justify-between items-center py-2 px-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                          <span className="font-medium">Gratificación Legal:</span>
+                          <span className="font-bold">{formatearCLP(resultado.imponible.gratificacionLegal)}</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center py-2 px-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                          <span className="font-medium">Horas Extras (50%):</span>
+                          <span className="font-bold">{formatearCLP(resultado.imponible.horasExtras)}</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center py-2 px-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                          <span className="font-medium">Comisiones:</span>
+                          <span className="font-bold">{formatearCLP(resultado.imponible.comisiones)}</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center py-2 px-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                          <span className="font-medium">Bonos:</span>
+                          <span className="font-bold">{formatearCLP(resultado.imponible.bonos)}</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center py-2 px-3 bg-green-50 dark:bg-green-900/20 rounded-lg border-2 border-green-200 dark:border-green-800">
+                          <span className="font-bold">Total Imponible:</span>
+                          <span className="font-bold text-lg">{formatearCLP(resultado.imponible.total)}</span>
+                        </div>
+                      </div>
+                    </TabsContent>
 
-              <div className="space-y-2 sm:space-y-3">
-                <h4 className="font-semibold text-sm sm:text-base">Costo Empleador</h4>
-                <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
-                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
-                    <span className="text-muted-foreground">SIS:</span>
-                    <span className="font-medium tabular-nums">{formatearCLP(resultado.empleador.sis)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
-                    <span className="text-muted-foreground">AFC:</span>
-                    <span className="font-medium tabular-nums">{formatearCLP(resultado.empleador.afc)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
-                    <span className="text-muted-foreground">Mutual:</span>
-                    <span className="font-medium tabular-nums">{formatearCLP(resultado.empleador.mutual)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
-                    <span className="text-muted-foreground">Reforma Previsional:</span>
-                    <span className="font-medium tabular-nums">{formatearCLP(resultado.empleador.reformaPrevisional)}</span>
-                  </div>
-                  <div className="flex justify-between items-center font-semibold pt-2 mt-2 border-t text-sm sm:text-base">
-                    <span>Costo Total:</span>
-                    <span className="tabular-nums text-blue-600 dark:text-blue-400">{formatearCLP(resultado.empleador.costoTotal)}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                    {/* Cotizaciones */}
+                    <TabsContent value="cotizaciones" className="space-y-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center py-2 px-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                          <span className="font-medium">AFP ({resultado.entrada.afp.toUpperCase()}):</span>
+                          <span className="font-bold">{formatearCLP(resultado.cotizaciones.afp)}</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center py-2 px-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                          <span className="font-medium">Salud:</span>
+                          <span className="font-bold">{formatearCLP(resultado.cotizaciones.salud)}</span>
+                        </div>
+                        
+                        {resultado.entrada.cotizacionAdicionalUF && resultado.entrada.cotizacionAdicionalUF > 0 && (
+                          <div className="text-xs text-slate-500 dark:text-slate-400 px-3">
+                            Incluye {resultado.entrada.cotizacionAdicionalUF.toString().replace('.', ',')} UF adicionales
+                          </div>
+                        )}
+                        
+                        <div className="flex justify-between items-center py-2 px-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                          <span className="font-medium">AFC:</span>
+                          <span className="font-bold">{formatearCLP(resultado.cotizaciones.afc)}</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center py-2 px-3 bg-red-50 dark:bg-red-900/20 rounded-lg border-2 border-red-200 dark:border-red-800">
+                          <span className="font-bold">Total Cotizaciones:</span>
+                          <span className="font-bold text-lg">{formatearCLP(resultado.cotizaciones.total)}</span>
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    {/* Empleador */}
+                    <TabsContent value="empleador" className="space-y-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center py-2 px-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                          <span className="font-medium">SIS:</span>
+                          <span className="font-bold">{formatearCLP(resultado.empleador.sis)}</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center py-2 px-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                          <span className="font-medium">AFC:</span>
+                          <span className="font-bold">{formatearCLP(resultado.empleador.afc)}</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center py-2 px-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                          <span className="font-medium">Mutual:</span>
+                          <span className="font-bold">{formatearCLP(resultado.empleador.mutual)}</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center py-2 px-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                          <span className="font-medium">Reforma Previsional:</span>
+                          <span className="font-bold">{formatearCLP(resultado.empleador.reformaPrevisional)}</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center py-2 px-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+                          <span className="font-bold">Costo Total Empleador:</span>
+                          <span className="font-bold text-lg text-blue-700 dark:text-blue-300">{formatearCLP(resultado.empleador.costoTotal)}</span>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

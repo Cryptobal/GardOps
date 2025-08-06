@@ -13,7 +13,7 @@ async function testCalculo() {
       fecha: new Date('2025-01-01'),
       afp: 'habitat',
       tipoContrato: 'indefinido',
-      horasExtras: { cincuenta: 10, cien: 5 },
+      horasExtras: { cincuenta: 15, cien: 0 }, // Solo se consideran las horas al 50%
       bonos: {
         nocturnidad: 50000,
         festivo: 30000
@@ -36,8 +36,8 @@ async function testCalculo() {
     console.log(`   Sueldo Base: ${formatearCLP(input.sueldoBase)}`);
     console.log(`   AFP: ${input.afp}`);
     console.log(`   Tipo Contrato: ${input.tipoContrato}`);
-    console.log(`   Horas Extras 50%: ${input.horasExtras?.cincuenta}`);
-    console.log(`   Horas Extras 100%: ${input.horasExtras?.cien}`);
+    console.log(`   Horas Extras 50%: ${input.horasExtras?.cincuenta} (solo estas se consideran)`);
+    console.log(`   Horas Extras 100%: ${input.horasExtras?.cien} (no se consideran en el cálculo)`);
     console.log(`   Bonos Nocturnidad: ${formatearCLP(input.bonos?.nocturnidad || 0)}`);
     console.log(`   Bonos Festivo: ${formatearCLP(input.bonos?.festivo || 0)}`);
     console.log(`   Comisiones: ${formatearCLP(input.comisiones || 0)}`);

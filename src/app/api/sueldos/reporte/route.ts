@@ -31,10 +31,11 @@ function generarReporteDetallado(resultado: any) {
       },
       horasExtras: {
         valor: formatearCLP(resultado.imponible.horasExtras),
-        descripcion: 'Valor de horas extras trabajadas',
+        descripcion: 'Valor de horas extras trabajadas (solo al 50%)',
         detalle: {
           al50: resultado.entrada.horasExtras?.cincuenta || 0,
-          al100: resultado.entrada.horasExtras?.cien || 0
+          al100: resultado.entrada.horasExtras?.cien || 0,
+          nota: 'Solo se consideran las horas extras al 50% para el cálculo'
         }
       },
       comisiones: {
