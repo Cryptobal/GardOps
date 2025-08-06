@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
         -- Datos del puesto
         po.nombre_puesto
         
-      FROM turnos_extras te
+      FROM TE_turnos_extras te
       INNER JOIN guardias g ON te.guardia_id = g.id
       INNER JOIN instalaciones i ON te.instalacion_id = i.id
       INNER JOIN as_turnos_puestos_operativos po ON te.puesto_id = po.id

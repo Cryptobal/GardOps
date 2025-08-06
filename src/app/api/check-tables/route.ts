@@ -21,8 +21,9 @@ export async function GET(request: NextRequest) {
       'logs_puestos_operativos',
       'logs_documentos',
       'logs_usuarios',
-      'planillas_turnos_extras',
-      'planilla_turno_relacion'
+      'TE_planillas_turnos_extras',
+      'TE_planilla_turno_relacion',
+      'TE_turnos_extras'
     ];
 
     const results: any = {};

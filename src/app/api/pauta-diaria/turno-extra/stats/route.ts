@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
         AVG(valor) as promedio_por_turno,
         COUNT(CASE WHEN estado = 'reemplazo' THEN 1 END) as turnos_reemplazo,
         COUNT(CASE WHEN estado = 'ppc' THEN 1 END) as turnos_ppc
-      FROM turnos_extras te
+      FROM TE_turnos_extras te
       ${whereConditions}
     `, params);
 
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
         SUM(valor) as monto_total,
         COUNT(CASE WHEN pagado = true THEN 1 END) as turnos_pagados,
         COUNT(CASE WHEN pagado = false THEN 1 END) as turnos_pendientes
-      FROM turnos_extras te
+      FROM TE_turnos_extras te
       JOIN instalaciones i ON i.id = te.instalacion_id
       ${whereConditions}
       GROUP BY i.id, i.nombre
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
         SUM(valor) as monto_total,
         COUNT(CASE WHEN pagado = true THEN 1 END) as turnos_pagados,
         COUNT(CASE WHEN pagado = false THEN 1 END) as turnos_pendientes
-      FROM turnos_extras te
+      FROM TE_turnos_extras te
       ${whereConditions}
       AND te.fecha >= CURRENT_DATE - INTERVAL '12 months'
       GROUP BY DATE_TRUNC('month', te.fecha)
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
         SUM(te.valor) as monto_total,
         COUNT(CASE WHEN te.pagado = true THEN 1 END) as turnos_pagados,
         COUNT(CASE WHEN te.pagado = false THEN 1 END) as turnos_pendientes
-      FROM turnos_extras te
+      FROM TE_turnos_extras te
       JOIN guardias g ON g.id = te.guardia_id
       ${whereConditions}
       GROUP BY g.id, g.nombre, g.apellido_paterno, g.rut

@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
         te.estado,
         te.pagado,
         te.created_at
-      FROM turnos_extras te
+      FROM TE_turnos_extras te
       JOIN guardias g ON g.id = te.guardia_id
       JOIN instalaciones i ON i.id = te.instalacion_id
       WHERE te.valor = 0 OR te.valor IS NULL
@@ -27,16 +27,16 @@ export async function POST(request: NextRequest) {
 
     // Actualizar turnos extras con valores correctos de sus instalaciones
     const { rows: turnosActualizados } = await query(`
-      UPDATE turnos_extras 
+      UPDATE TE_turnos_extras 
       SET 
         valor = i.valor_turno_extra,
         updated_at = NOW()
       FROM instalaciones i
-      WHERE turnos_extras.instalacion_id = i.id 
-        AND (turnos_extras.valor = 0 OR turnos_extras.valor IS NULL)
+      WHERE TE_turnos_extras.instalacion_id = i.id 
+        AND (TE_turnos_extras.valor = 0 OR TE_turnos_extras.valor IS NULL)
         AND i.valor_turno_extra IS NOT NULL 
         AND i.valor_turno_extra > 0
-      RETURNING turnos_extras.*
+      RETURNING TE_turnos_extras.*
     `);
 
     console.log('✅ Turnos extras actualizados:', turnosActualizados.length);
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         SUM(te.valor) as monto_total,
         AVG(te.valor) as promedio_valor
       FROM instalaciones i
-      LEFT JOIN turnos_extras te ON i.id = te.instalacion_id
+      LEFT JOIN TE_turnos_extras te ON i.id = te.instalacion_id
       WHERE i.valor_turno_extra IS NOT NULL AND i.valor_turno_extra > 0
       GROUP BY i.id, i.nombre, i.valor_turno_extra
       ORDER BY i.nombre

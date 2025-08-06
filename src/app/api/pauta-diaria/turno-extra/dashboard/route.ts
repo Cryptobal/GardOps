@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
         te.usuario_pago,
         te.planilla_id,
         te.created_at
-      FROM turnos_extras te
+      FROM TE_turnos_extras te
       LEFT JOIN guardias g ON te.guardia_id = g.id
       LEFT JOIN instalaciones i ON te.instalacion_id = i.id
       LEFT JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id

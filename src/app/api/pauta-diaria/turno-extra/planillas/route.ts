@@ -42,9 +42,9 @@ export async function GET(request: NextRequest) {
         u.apellido as usuario_apellido,
         MIN(te.fecha) as fecha_inicio_turnos,
         MAX(te.fecha) as fecha_fin_turnos
-      FROM planillas_turnos_extras p
+      FROM TE_planillas_turnos_extras p
       LEFT JOIN usuarios u ON p.usuario_id = u.id
-      LEFT JOIN turnos_extras te ON te.planilla_id = p.id
+      LEFT JOIN TE_turnos_extras te ON te.planilla_id = p.id
       ${whereClause}
       GROUP BY p.id, p.codigo, p.fecha_generacion, p.monto_total, p.cantidad_turnos, p.estado, p.fecha_pago, p.observaciones, u.nombre, u.apellido
       ORDER BY p.fecha_generacion DESC
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     // Obtener total de planillas para paginación
     const countQuery = `
       SELECT COUNT(*) as total
-      FROM planillas_turnos_extras p
+      FROM TE_planillas_turnos_extras p
       ${whereClause}
     `;
     
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     // Obtener información de los turnos
     const turnosQuery = `
       SELECT id, valor
-      FROM turnos_extras 
+      FROM TE_turnos_extras 
       WHERE id = ANY($1) AND planilla_id IS NULL
     `;
     
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
     // Obtener el siguiente número secuencial para este mes
     const { rows: countRows } = await query(
       `SELECT COUNT(*) as count 
-       FROM planillas_turnos_extras 
+       FROM TE_planillas_turnos_extras 
        WHERE codigo LIKE $1`,
       [`TE-${year}-${month}-%`]
     );
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
     
     // Crear la planilla con código
     const planillaQuery = `
-      INSERT INTO planillas_turnos_extras (usuario_id, monto_total, cantidad_turnos, observaciones, codigo)
+      INSERT INTO TE_planillas_turnos_extras (usuario_id, monto_total, cantidad_turnos, observaciones, codigo)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING id, codigo
     `;
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
     
     // Solo actualizar turnos extras con planilla_id, ya no usamos planilla_turno_relacion
     await query(
-      'UPDATE turnos_extras SET planilla_id = $1 WHERE id = ANY($2)',
+      'UPDATE TE_turnos_extras SET planilla_id = $1 WHERE id = ANY($2)',
       [planillaId, turnoIdsArray]
     );
 

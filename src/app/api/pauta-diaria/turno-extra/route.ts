@@ -93,7 +93,7 @@ export async function POST(req: Request) {
 
     // Verificar que no exista un turno extra para el mismo guardia, puesto y fecha
     const { rows: existingRows } = await query(
-      `SELECT id FROM turnos_extras 
+      `SELECT id FROM TE_turnos_extras 
        WHERE guardia_id = $1 AND puesto_id = $2 AND fecha = $3 AND tenant_id = $4`,
       [guardia_id, puesto_id, fecha, tenantId]
     );
@@ -107,7 +107,7 @@ export async function POST(req: Request) {
 
     // Insertar el turno extra
     const { rows: insertRows } = await query(
-      `INSERT INTO turnos_extras 
+      `INSERT INTO TE_turnos_extras 
        (guardia_id, instalacion_id, puesto_id, pauta_id, fecha, estado, valor, tenant_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING id`,
@@ -195,7 +195,7 @@ export async function GET(req: Request) {
         g.rut as guardia_rut,
         i.nombre as instalacion_nombre,
         po.nombre_puesto
-      FROM turnos_extras te
+      FROM TE_turnos_extras te
       JOIN guardias g ON g.id = te.guardia_id
       JOIN instalaciones i ON i.id = te.instalacion_id
       JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id

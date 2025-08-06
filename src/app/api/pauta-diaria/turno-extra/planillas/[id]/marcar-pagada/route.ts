@@ -21,7 +21,7 @@ export async function POST(
     // Verificar que la planilla existe y no está pagada
     const planillaQuery = `
       SELECT id, estado, monto_total, cantidad_turnos
-      FROM planillas_turnos_extras 
+      FROM TE_planillas_turnos_extras 
       WHERE id = $1
     `;
     
@@ -44,7 +44,7 @@ export async function POST(
 
     // Actualizar planilla como pagada
     await sql.query(
-      `UPDATE planillas_turnos_extras 
+      `UPDATE TE_planillas_turnos_extras 
        SET estado = 'pagada', fecha_pago = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
        WHERE id = $1`,
       [planillaId]
@@ -52,7 +52,7 @@ export async function POST(
 
     // Actualizar todos los turnos extras de esta planilla como pagados
     await sql.query(
-      `UPDATE turnos_extras 
+      `UPDATE TE_turnos_extras 
        SET pagado = true, fecha_pago = CURRENT_TIMESTAMP, usuario_pago = $1
        WHERE planilla_id = $2`,
       [usuarioId, planillaId]

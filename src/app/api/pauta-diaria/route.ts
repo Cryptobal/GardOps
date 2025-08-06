@@ -295,7 +295,7 @@ export async function PUT(request: NextRequest) {
 
         // Crear registro en turnos_extras
         await query(`
-          INSERT INTO turnos_extras (
+          INSERT INTO TE_turnos_extras (
             guardia_id, 
             puesto_id, 
             instalacion_id, 
@@ -367,7 +367,7 @@ export async function PUT(request: NextRequest) {
 
         // Crear registro en turnos_extras
         await query(`
-          INSERT INTO turnos_extras (
+          INSERT INTO TE_turnos_extras (
             guardia_id, 
             puesto_id, 
             instalacion_id, 
@@ -412,7 +412,7 @@ export async function PUT(request: NextRequest) {
 
         // Eliminar registro de turnos_extras
         await query(`
-          DELETE FROM turnos_extras 
+          DELETE FROM TE_turnos_extras 
           WHERE pauta_id = $1
         `, [turnoId]);
         break;

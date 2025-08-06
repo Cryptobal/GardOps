@@ -20,7 +20,7 @@ export async function GET(
         p.cantidad_turnos,
         p.estado,
         p.observaciones
-      FROM planillas_turnos_extras p
+      FROM TE_planillas_turnos_extras p
       WHERE p.id = $1
     `;
     
@@ -47,7 +47,7 @@ export async function GET(
         g.numero_cuenta as cuenta_destino,
         b.codigo as codigo_banco,
         b.nombre as nombre_banco
-      FROM turnos_extras te
+      FROM TE_turnos_extras te
       LEFT JOIN guardias g ON te.guardia_id = g.id
       LEFT JOIN bancos b ON g.banco = b.id
       WHERE te.planilla_id = $1
