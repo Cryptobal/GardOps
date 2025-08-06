@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../lib/database';
 
+// Configuración para evitar errores de Dynamic Server Usage
+export const dynamic = 'force-dynamic';
+
 // PUT /api/documentos-instalaciones?id=uuid - Actualizar fecha de vencimiento
 export async function PUT(request: NextRequest) {
   try {

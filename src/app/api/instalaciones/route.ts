@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { crearInstalacionSchema, actualizarInstalacionSchema } from '../../../lib/schemas/instalaciones';
 import { query } from '../../../lib/database';
 
+// Configuración para evitar errores de Dynamic Server Usage
+export const dynamic = 'force-dynamic';
+
 // Cache para evitar verificaciones repetitivas
 let tableVerified = false;
 

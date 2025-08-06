@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
-import { logCRUD } from '@/lib/logging';
+import { getCurrentUserServer } from '@/lib/auth';
+import { logCRUD, logError } from '@/lib/logging';
+
+// Configuración para evitar errores de Dynamic Server Usage
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();

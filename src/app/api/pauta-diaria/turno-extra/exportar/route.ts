@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
+// Configuración para evitar errores de Dynamic Server Usage
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     console.log('🚀 Exportando CSV de turnos extras');

@@ -1,7 +1,10 @@
-import { NextResponse } from "next/server";
-import { query } from "@/lib/database";
+import { NextRequest, NextResponse } from 'next/server';
+import { query } from '@/lib/database';
 
-export async function GET(request: Request) {
+// Configuración para evitar errores de Dynamic Server Usage
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const estado = searchParams.get('estado');

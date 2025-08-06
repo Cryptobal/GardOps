@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../lib/database';
 import { cookies } from 'next/headers';
 
+// Configuración para evitar errores de Dynamic Server Usage
+export const dynamic = 'force-dynamic';
+
 // GET: Obtener alertas de documentos por vencer
 export async function GET(request: NextRequest) {
   try {

@@ -3,6 +3,9 @@ import { obtenerClientes, crearCliente, actualizarCliente, eliminarCliente } fro
 import { crearClienteSchema, actualizarClienteSchema } from '../../../lib/schemas/clientes';
 import { query } from '../../../lib/database';
 
+// Configuración para evitar errores de Dynamic Server Usage
+export const dynamic = 'force-dynamic';
+
 // GET /api/clientes - Obtener todos los clientes
 export async function GET() {
   try {
