@@ -201,16 +201,7 @@ export function validarSueldoInput(input: SueldoInput): void {
     );
   }
 
-  // Validar ISAPRE
-  if (input.isapre) {
-    if (input.isapre.plan <= 0) {
-      throw new SueldoError(
-        'El plan ISAPRE debe ser mayor a 0',
-        'PLAN_ISAPRE_INVALIDO',
-        { isapre: input.isapre }
-      );
-    }
-  }
+  // La validación de ISAPRE ya no es necesaria porque se usa cotización adicional en UF
 }
 
 export function validarParametros(parametros: any): void {

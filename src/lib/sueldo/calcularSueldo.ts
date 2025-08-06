@@ -5,7 +5,7 @@ import { calcularImponible } from './calculos/imponible';
 import { calcularCotizaciones } from './calculos/cotizaciones';
 import { calcularImpuestoUnico } from './calculos/impuesto';
 import { calcularEmpleador } from './calculos/empleador';
-import { query } from '@/lib/database';
+import { query } from '../database';
 
 /**
  * Obtiene los parámetros desde la base de datos
