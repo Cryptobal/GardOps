@@ -51,11 +51,26 @@ async function obtenerParametros(input: SueldoInput): Promise<ParametrosSueldo> 
       parametrosMap[row.parametro] = Number(row.valor);
     });
     
-    // 3. Obtener tasa de mutualidad (solo para cálculo del empleador)
+    // 3. Obtener jornada semanal según fecha
+    const resultJornada = await query(
+      `SELECT valor 
+       FROM sueldo_parametros_generales 
+       WHERE parametro = 'HORAS_SEMANALES_JORNADA' 
+       ORDER BY id DESC 
+       LIMIT 1`,
+      []
+    );
+    
+    let horasSemanalesJornada = 44; // Default: 44 horas desde abril 2024
+    if (resultJornada.rows.length > 0) {
+      horasSemanalesJornada = Number(resultJornada.rows[0].valor);
+    }
+    
+    // 4. Obtener tasa de mutualidad (solo para cálculo del empleador)
     // Se usa una tasa default del 0.90% ya que no viene del input
     let tasaMutualidad = 0.90; // Default para cálculo del empleador
     
-    // 4. Obtener comisión AFP (aunque ya no se usa directamente)
+    // 5. Obtener comisión AFP (aunque ya no se usa directamente)
     let comisionAfp = 1.44; // Default
     if (input.afp) {
       // Mapear código a nombre de AFP
@@ -83,7 +98,7 @@ async function obtenerParametros(input: SueldoInput): Promise<ParametrosSueldo> 
       }
     }
     
-    // 5. Obtener tramos de impuesto
+    // 6. Obtener tramos de impuesto
     const resultTramos = await query(
       `SELECT tramo, desde, hasta, factor, rebaja 
        FROM sueldo_tramos_impuesto 
@@ -115,7 +130,9 @@ async function obtenerParametros(input: SueldoInput): Promise<ParametrosSueldo> 
       valorUf: valorUf,
       comisionAfp: comisionAfp,
       tasaMutualidad: tasaMutualidad, // Es opcional, puede ser undefined
-      tramosImpuesto: tramosFinales
+      tasaSis: parametrosMap['TASA_SIS'] || 0.02, // Tasa SIS desde la base de datos
+      tramosImpuesto: tramosFinales,
+      horasSemanalesJornada: horasSemanalesJornada
     };
     
     return parametros;
@@ -216,7 +233,8 @@ export async function calcularSueldo(input: SueldoInput): Promise<SueldoResultad
         ufTopeImponible: parametros.ufTopeImponible,
         valorUf: parametros.valorUf,
         comisionAfp: parametros.comisionAfp,
-        tasaMutualidad: parametros.tasaMutualidad
+        tasaMutualidad: parametros.tasaMutualidad,
+        horasSemanalesJornada: parametros.horasSemanalesJornada
       }
     };
     

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Filter, RotateCcw, Calendar, DollarSign, CheckCircle, AlertTriangle } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface FiltrosAvanzadosProps {
   filtros: {
@@ -34,6 +35,18 @@ export default function FiltrosAvanzados({
   setShowFiltros,
   instalaciones
 }: FiltrosAvanzadosProps) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
   
   // Generar opciones de meses (últimos 12 meses)
   const generarOpcionesMeses = () => {
@@ -197,7 +210,7 @@ export default function FiltrosAvanzados({
                 }}
               >
                 <RotateCcw className="h-4 w-4 mr-1" />
-                Limpiar
+                {!isMobile && "Limpiar"}
               </Button>
             )}
           </div>
@@ -212,7 +225,11 @@ export default function FiltrosAvanzados({
               <Calendar className="h-4 w-4" />
               Filtros de Fecha
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className={`grid gap-4 ${
+              isMobile 
+                ? 'grid-cols-1' // En móvil: 1 columna
+                : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' // En desktop: responsive
+            }`}>
               {/* Rango de Fecha Predefinido */}
               <div className="space-y-2">
                 <Label htmlFor="rango-fecha">Rango de Fecha</Label>
@@ -237,7 +254,7 @@ export default function FiltrosAvanzados({
               <div className="space-y-2">
                 <Label htmlFor="mes" className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Mes Específico
+                  {isMobile ? 'Mes' : 'Mes Específico'}
                 </Label>
                 <Select 
                   value={filtros.mes || 'all'} 
@@ -259,7 +276,7 @@ export default function FiltrosAvanzados({
 
               {/* Fecha Inicio */}
               <div className="space-y-2">
-                <Label htmlFor="fecha-inicio">Fecha Inicio</Label>
+                <Label htmlFor="fecha-inicio">{isMobile ? 'Desde' : 'Fecha Inicio'}</Label>
                 <DatePicker
                   date={fechaInicioDate}
                   onDateChange={handleFechaInicioChange}
@@ -269,7 +286,7 @@ export default function FiltrosAvanzados({
 
               {/* Fecha Fin */}
               <div className="space-y-2">
-                <Label htmlFor="fecha-fin">Fecha Fin</Label>
+                <Label htmlFor="fecha-fin">{isMobile ? 'Hasta' : 'Fecha Fin'}</Label>
                 <DatePicker
                   date={fechaFinDate}
                   onDateChange={handleFechaFinChange}
@@ -285,10 +302,14 @@ export default function FiltrosAvanzados({
               <CheckCircle className="h-4 w-4" />
               Filtros de Estado y Monto
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className={`grid gap-4 ${
+              isMobile 
+                ? 'grid-cols-1' // En móvil: 1 columna
+                : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' // En desktop: responsive
+            }`}>
               {/* Estado */}
               <div className="space-y-2">
-                <Label htmlFor="estado">Tipo de Turno</Label>
+                <Label htmlFor="estado">{isMobile ? 'Tipo' : 'Tipo de Turno'}</Label>
                 <Select 
                   value={filtros.estado} 
                   onValueChange={(value) => setFiltros(prev => ({ ...prev, estado: value }))}
@@ -306,7 +327,7 @@ export default function FiltrosAvanzados({
 
               {/* Estado de Pago */}
               <div className="space-y-2">
-                <Label htmlFor="pagado">Estado de Pago</Label>
+                <Label htmlFor="pagado">{isMobile ? 'Pago' : 'Estado de Pago'}</Label>
                 <Select 
                   value={filtros.pagado} 
                   onValueChange={(value) => setFiltros(prev => ({ ...prev, pagado: value }))}
@@ -327,7 +348,7 @@ export default function FiltrosAvanzados({
               <div className="space-y-2">
                 <Label htmlFor="monto-min" className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4" />
-                  Monto Mínimo
+                  {isMobile ? 'Mínimo' : 'Monto Mínimo'}
                 </Label>
                 <Input
                   id="monto-min"
@@ -342,7 +363,7 @@ export default function FiltrosAvanzados({
               <div className="space-y-2">
                 <Label htmlFor="monto-max" className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4" />
-                  Monto Máximo
+                  {isMobile ? 'Máximo' : 'Monto Máximo'}
                 </Label>
                 <Input
                   id="monto-max"
@@ -361,10 +382,14 @@ export default function FiltrosAvanzados({
               <AlertTriangle className="h-4 w-4" />
               Filtros de Ubicación y Búsqueda
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={`grid gap-4 ${
+              isMobile 
+                ? 'grid-cols-1' // En móvil: 1 columna
+                : 'grid-cols-1 md:grid-cols-2' // En desktop: responsive
+            }`}>
               {/* Instalación */}
               <div className="space-y-2">
-                <Label htmlFor="instalacion">Instalación</Label>
+                <Label htmlFor="instalacion">{isMobile ? 'Instalación' : 'Instalación'}</Label>
                 <Select 
                   value={filtros.instalacion} 
                   onValueChange={(value) => setFiltros(prev => ({ ...prev, instalacion: value }))}
@@ -388,7 +413,7 @@ export default function FiltrosAvanzados({
                 <Label htmlFor="busqueda">Buscar</Label>
                 <Input
                   id="busqueda"
-                  placeholder="Nombre, RUT, instalación..."
+                  placeholder={isMobile ? "Nombre, RUT..." : "Nombre, RUT, instalación..."}
                   value={filtros.busqueda}
                   onChange={(e) => setFiltros(prev => ({ ...prev, busqueda: e.target.value }))}
                 />

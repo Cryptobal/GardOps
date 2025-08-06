@@ -2,6 +2,7 @@ export interface SueldoInput {
   sueldoBase: number;
   fecha: Date;
   afp: string;
+  tipoSalud?: 'fonasa' | 'isapre';
   horasExtras?: {
     cincuenta: number;
     cien: number;
@@ -29,6 +30,7 @@ export interface SueldoInput {
   cotizacionAdicionalUF?: number; // Cotización adicional en UF (formato 0.4)
   diasAusencia?: number; // Días de ausencia a descontar
   tipoContrato: 'indefinido' | 'plazo_fijo' | 'obra_faena';
+  excedenteSalud?: number; // Excedente de salud en UF
 }
 
 export interface SueldoResultado {
@@ -96,6 +98,7 @@ export interface SueldoResultado {
     valorUf: number;
     comisionAfp: number;
     tasaMutualidad?: number; // Opcional, solo para cálculo del empleador
+    horasSemanalesJornada: number; // Nueva propiedad para jornada semanal
   };
 }
 
@@ -104,6 +107,8 @@ export interface ParametrosSueldo {
   valorUf: number;
   comisionAfp: number;
   tasaMutualidad?: number; // Solo para cálculo del empleador, opcional
+  tasaSis: number; // Tasa del SIS desde la base de datos
+  horasSemanalesJornada: number; // Nueva propiedad para jornada semanal
   tramosImpuesto: Array<{
     desde: number;
     hasta: number | null;

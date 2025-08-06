@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
@@ -15,7 +15,7 @@ import {
   AlertTriangle, 
   FileText, 
   Edit, 
-  MapPin, 
+
   Clock, 
   User,
   Shield,
@@ -77,21 +77,13 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
   };
 
   // Inicializar con la fecha de los parámetros o fecha actual
-  const fechaInicial = (() => {
-    if (params.fecha) {
-      console.log('🕐 Inicializando con fecha de URL:', params.fecha);
-      return params.fecha;
-    }
-    const ahora = new Date();
-    const fechaLocal = format(ahora, 'yyyy-MM-dd');
-    console.log('🕐 Inicializando con fecha actual:', fechaLocal, 'Hora:', ahora.toLocaleTimeString());
-    return fechaLocal;
-  })();
+  const fechaInicial = params.fecha || format(new Date(), 'yyyy-MM-dd');
 
   const [fechaSeleccionada, setFechaSeleccionada] = useState<string>(fechaInicial);
   const [puestos, setPuestos] = useState<Puesto[]>([]);
   const [pautaId, setPautaId] = useState<number>(1);
   const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [cambiosPendientes, setCambiosPendientes] = useState(false);
   const [puestoEnEdicion, setPuestoEnEdicion] = useState<Puesto | null>(null);
   const [observaciones, setObservaciones] = useState<string>('');
@@ -108,10 +100,20 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
   // Estado para controlar la visibilidad de los filtros
   const [showFiltros, setShowFiltros] = useState(false);
   
-  // Estados para controlar popovers
-  const [popoverObservaciones, setPopoverObservaciones] = useState<string | null>(null);
-  const [popoverReemplazo, setPopoverReemplazo] = useState<string | null>(null);
-  const [popoverCobertura, setPopoverCobertura] = useState<string | null>(null);
+  // Estados para controlar popovers - Usando un objeto para mayor estabilidad
+  const [openPopovers, setOpenPopovers] = useState<{
+    observaciones: string | null;
+    reemplazo: string | null;
+    cobertura: string | null;
+  }>({
+    observaciones: null,
+    reemplazo: null,
+    cobertura: null
+  });
+  
+  // Refs para prevenir cierres accidentales
+  const popoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastOpenTimeRef = useRef<number>(0);
   
   // Estados para modales de confirmación
   const [confirmModal, setConfirmModal] = useState<{
@@ -212,8 +214,10 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
   };
 
   // Cargar datos de la pauta diaria
-  const cargarPautaDiaria = async (fecha: string) => {
-    setLoading(true);
+  const cargarPautaDiaria = async (fecha: string, isActionReload = false) => {
+    if (!isActionReload) {
+      setLoading(true);
+    }
     try {
       // Corregir el problema de zona horaria
       const [anio, mes, dia] = fecha.split('-').map(Number);
@@ -336,8 +340,8 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
     }
   };
 
-  // Actualizar estado de asistencia
-  const actualizarAsistencia = async (
+  // Actualizar estado de asistencia - Memoizado para evitar re-renders
+  const actualizarAsistencia = useCallback(async (
     puesto: Puesto, 
     accion: string, 
     guardiaId?: string, 
@@ -353,6 +357,8 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
       puestoNombre: generarIdCortoPuesto(puesto.puesto_id),
       puestoEstado: puesto.estado
     });
+    
+    setActionLoading(puesto.puesto_id);
     
     try {
       const requestBody = {
@@ -389,7 +395,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
         
         // Recargar datos
         console.log('🔄 Recargando pauta diaria...');
-        await cargarPautaDiaria(fechaSeleccionada);
+        await cargarPautaDiaria(fechaSeleccionada, true);
         setCambiosPendientes(false);
         setPuestoEnEdicion(null);
         setObservaciones('');
@@ -424,8 +430,10 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
         description: "Error de conexión al actualizar el estado",
         type: "error"
       });
+    } finally {
+      setActionLoading(null);
     }
-  };
+  }, [fechaSeleccionada, addToast]);
 
   // Renderizar badge de estado
   const renderEstadoBadge = (puesto: Puesto) => {
@@ -493,8 +501,11 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
     );
   };
 
-  // Renderizar acciones para un puesto
-  const renderAcciones = (puesto: Puesto) => {
+  // Renderizar acciones para un puesto - Memoizado para evitar re-renders
+  const renderAcciones = useCallback((puesto: Puesto, viewType: 'desktop' | 'mobile' = 'desktop') => {
+    // Crear un ID único para cada popover basado en el tipo de vista
+    const popoverId = `${puesto.puesto_id}-${viewType}`;
+    
     return (
       <div className="flex gap-1">
         {/* Si tiene guardia asignado */}
@@ -510,40 +521,63 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                   console.log('✅ Marcando asistencia para:', puesto);
                   actualizarAsistencia(puesto, 'asistio');
                 }}
+                disabled={actionLoading === puesto.puesto_id}
                 title="Marcar asistencia"
               >
                 <Check className="h-3 w-3 mr-1" />
-                Asistió
+                {actionLoading === puesto.puesto_id ? 'Procesando...' : 'Asistió'}
               </Button>
             )}
 
             {/* Botón No Asistió - Solo mostrar si NO está ya marcado como trabajado */}
             {puesto.estado !== 'trabajado' && (
-              <Popover open={popoverReemplazo === puesto.puesto_id} onOpenChange={(open) => {
-                if (open) {
-                  setPopoverReemplazo(puesto.puesto_id);
-                  setPuestoEnEdicion(puesto);
-                  setObservaciones('');
-                  setMotivoInasistencia('');
-                  setSearchTerm('');
-                  searchGuardias('');
-                } else {
-                  setPopoverReemplazo(null);
-                  setPuestoEnEdicion(null);
-                  setObservaciones('');
-                  setMotivoInasistencia('');
-                  setSearchTerm('');
-                }
-              }}>
+              <Popover 
+                open={openPopovers.reemplazo === popoverId} 
+                onOpenChange={(open) => {
+                  const now = Date.now();
+                  console.log('🔍 Popover Reemplazo onOpenChange:', { 
+                    open, 
+                    popoverId,
+                    currentState: openPopovers.reemplazo,
+                    timestamp: now,
+                    timeSinceOpen: now - lastOpenTimeRef.current
+                  });
+                  
+                  if (open) {
+                    // Registrar el tiempo de apertura
+                    lastOpenTimeRef.current = now;
+                    setOpenPopovers(prev => ({ ...prev, reemplazo: popoverId, observaciones: null, cobertura: null }));
+                    setPuestoEnEdicion(puesto);
+                    setObservaciones('');
+                    setMotivoInasistencia('');
+                    setSearchTerm('');
+                    searchGuardias('');
+                  } else {
+                    // Ignorar cierres que ocurren muy rápido después de abrir
+                    const timeSinceOpen = now - lastOpenTimeRef.current;
+                    if (timeSinceOpen < 500) {
+                      console.log('🚫 Ignorando cierre accidental de Reemplazo (muy rápido):', timeSinceOpen, 'ms');
+                      return;
+                    }
+                    
+                    setOpenPopovers(prev => ({ ...prev, reemplazo: null }));
+                    setPuestoEnEdicion(null);
+                    setObservaciones('');
+                    setMotivoInasistencia('');
+                    setSearchTerm('');
+                  }
+                }}
+                modal={true}>
                 <PopoverTrigger asChild>
                   <Button 
                     size="sm" 
                     variant="outline" 
                     className="text-xs px-2 py-1 h-7 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-300 hover:border-red-400"
+                    disabled={actionLoading === puesto.puesto_id}
                     title="Marcar no asistió"
                   >
                     <X className="h-3 w-3 mr-1" />
-                    No Asistió
+                    {actionLoading === puesto.puesto_id ? 'Procesando...' : 'No Asistió'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-96">
@@ -587,7 +621,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                         disabled={!puestoEnEdicion?.guardia_original?.id}
                         onClick={() => {
                           actualizarAsistencia(puesto, 'reemplazo', puestoEnEdicion.guardia_original.id, '', observaciones);
-                          setPopoverReemplazo(null);
+                          setOpenPopovers(prev => ({ ...prev, reemplazo: null }));
                           setPuestoEnEdicion(null);
                           setObservaciones('');
                           setMotivoInasistencia('');
@@ -602,7 +636,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                         variant="destructive"
                         onClick={() => {
                           actualizarAsistencia(puesto, 'sin_cobertura', undefined, '', observaciones);
-                          setPopoverReemplazo(null);
+                          setOpenPopovers(prev => ({ ...prev, reemplazo: null }));
                           setPuestoEnEdicion(null);
                           setObservaciones('');
                           setMotivoInasistencia('');
@@ -616,7 +650,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                         size="sm" 
                         variant="outline" 
                         onClick={() => {
-                          setPopoverReemplazo(null);
+                          setOpenPopovers(prev => ({ ...prev, reemplazo: null }));
                           setPuestoEnEdicion(null);
                           setObservaciones('');
                           setMotivoInasistencia('');
@@ -665,10 +699,11 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                     'Cancelar'
                   );
                 }}
+                disabled={actionLoading === puesto.puesto_id}
                 title="Eliminar cobertura"
               >
                 <RotateCcw className="h-3 w-3 mr-1" />
-                Eliminar
+                {actionLoading === puesto.puesto_id ? 'Procesando...' : 'Eliminar'}
               </Button>
             )}
           </>
@@ -679,29 +714,51 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
           <>
             {/* Botón Cobertura - solo para PPCs sin cobertura */}
             {(!puesto.cobertura_real && (puesto.estado === 'T' || puesto.estado === 'libre')) && (
-              <Popover open={popoverCobertura === puesto.puesto_id} onOpenChange={(open) => {
-                if (open) {
-                  setPopoverCobertura(puesto.puesto_id);
-                  setPuestoEnEdicion(puesto);
-                  setObservaciones('');
-                  setSearchTerm('');
-                  searchGuardias('');
-                } else {
-                  setPopoverCobertura(null);
-                  setPuestoEnEdicion(null);
-                  setObservaciones('');
-                  setSearchTerm('');
-                }
-              }}>
+              <Popover 
+                open={openPopovers.cobertura === popoverId} 
+                onOpenChange={(open) => {
+                  const now = Date.now();
+                  console.log('🔍 Popover Cobertura onOpenChange:', { 
+                    open, 
+                    popoverId, 
+                    currentState: openPopovers.cobertura,
+                    timestamp: now,
+                    timeSinceOpen: now - lastOpenTimeRef.current
+                  });
+                  
+                  if (open) {
+                    // Registrar el tiempo de apertura
+                    lastOpenTimeRef.current = now;
+                    setOpenPopovers(prev => ({ ...prev, cobertura: popoverId, observaciones: null, reemplazo: null }));
+                    setPuestoEnEdicion(puesto);
+                    setObservaciones('');
+                    setSearchTerm('');
+                    searchGuardias('');
+                  } else {
+                    // Ignorar cierres que ocurren muy rápido después de abrir
+                    const timeSinceOpen = now - lastOpenTimeRef.current;
+                    if (timeSinceOpen < 500) {
+                      console.log('🚫 Ignorando cierre accidental de Cobertura (muy rápido):', timeSinceOpen, 'ms');
+                      return;
+                    }
+                    
+                    setOpenPopovers(prev => ({ ...prev, cobertura: null }));
+                    setPuestoEnEdicion(null);
+                    setObservaciones('');
+                    setSearchTerm('');
+                  }
+                }}
+                modal={true}>
                 <PopoverTrigger asChild>
                   <Button 
                     size="sm" 
                     variant="outline" 
                     className="text-xs px-2 py-1 h-7 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-300 hover:border-blue-400"
+                    disabled={actionLoading === puesto.puesto_id}
                     title="Asignar cobertura"
                   >
                     <Plus className="h-3 w-3 mr-1" />
-                    Cobertura
+                    {actionLoading === puesto.puesto_id ? 'Procesando...' : 'Cobertura'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-96">
@@ -748,7 +805,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                           } else {
                             actualizarAsistencia(puesto, 'sin_cobertura', undefined, undefined, observaciones);
                           }
-                          setPopoverCobertura(null);
+                          setOpenPopovers(prev => ({ ...prev, cobertura: null }));
                           setPuestoEnEdicion(null);
                           setObservaciones('');
                           setSearchTerm('');
@@ -761,7 +818,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                         size="sm" 
                         variant="outline" 
                         onClick={() => {
-                          setPopoverCobertura(null);
+                          setOpenPopovers(prev => ({ ...prev, cobertura: null }));
                           setPuestoEnEdicion(null);
                           setObservaciones('');
                           setSearchTerm('');
@@ -776,16 +833,24 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
               </Popover>
             )}
 
-            {/* Botón Eliminar cobertura para PPC */}
-            {(puesto.cobertura_real && (puesto.estado === 'trabajado' || puesto.estado === 'reemplazo' || puesto.estado === 'sin_cobertura')) && (
+            {/* Botón Eliminar cobertura para PPC - aparece si tiene cobertura O está en estado sin_cobertura */}
+            {((puesto.cobertura_real && (puesto.estado === 'trabajado' || puesto.estado === 'reemplazo')) || puesto.estado === 'sin_cobertura') && (
               <Button 
                 size="sm" 
                 variant="outline" 
                 className="text-xs px-2 py-1 h-7 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-900/20 border-gray-300 dark:border-gray-600"
                 onClick={() => {
+                  const titulo = puesto.estado === 'sin_cobertura' && !puesto.cobertura_real 
+                    ? 'Eliminar Estado Sin Cobertura' 
+                    : 'Eliminar Cobertura PPC';
+                  
+                  const mensaje = puesto.estado === 'sin_cobertura' && !puesto.cobertura_real
+                    ? `¿Estás seguro de que quieres eliminar el estado "sin cobertura" del PPC "${generarIdCortoPuesto(puesto.puesto_id)}" y dejarlo disponible para asignar?`
+                    : `¿Estás seguro de que quieres eliminar la cobertura del PPC "${generarIdCortoPuesto(puesto.puesto_id)}"?`;
+                  
                   showConfirmModal(
-                    'Eliminar Cobertura PPC',
-                    `¿Estás seguro de que quieres eliminar la cobertura del PPC "${generarIdCortoPuesto(puesto.puesto_id)}"?`,
+                    titulo,
+                    mensaje,
                     () => {
                       actualizarAsistencia(puesto, 'eliminar_cobertura', undefined, undefined, observaciones);
                     },
@@ -793,27 +858,57 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                     'Cancelar'
                   );
                 }}
-                title="Eliminar cobertura"
+                disabled={actionLoading === puesto.puesto_id}
+                title={puesto.estado === 'sin_cobertura' && !puesto.cobertura_real ? "Eliminar estado sin cobertura" : "Eliminar cobertura"}
               >
                 <Minus className="h-3 w-3 mr-1" />
-                Eliminar
+                {actionLoading === puesto.puesto_id ? 'Procesando...' : 'Eliminar'}
               </Button>
             )}
           </>
         )}
 
         {/* Botón Observaciones para todos */}
-        <Popover open={popoverObservaciones === puesto.puesto_id} onOpenChange={(open) => {
-          if (open) {
-            setPopoverObservaciones(puesto.puesto_id);
-            setPuestoEnEdicion(puesto);
-            setObservaciones(puesto.observaciones || '');
-          } else {
-            setPopoverObservaciones(null);
-            setPuestoEnEdicion(null);
-            setObservaciones('');
-          }
-        }}>
+        <Popover 
+          open={openPopovers.observaciones === popoverId} 
+          onOpenChange={(open) => {
+            const now = Date.now();
+            console.log('🔍 Popover Observaciones onOpenChange:', { 
+              open, 
+              popoverId, 
+              currentState: openPopovers.observaciones,
+              timestamp: now,
+              timeSinceOpen: now - lastOpenTimeRef.current
+            });
+            
+            // Limpiar timeout anterior si existe
+            if (popoverTimeoutRef.current) {
+              clearTimeout(popoverTimeoutRef.current);
+              popoverTimeoutRef.current = null;
+            }
+            
+            if (open) {
+              // Registrar el tiempo de apertura
+              lastOpenTimeRef.current = now;
+              // Abrir inmediatamente
+              setOpenPopovers(prev => ({ ...prev, observaciones: popoverId, cobertura: null, reemplazo: null }));
+              setPuestoEnEdicion(puesto);
+              setObservaciones(puesto.observaciones || '');
+            } else {
+              // Ignorar cierres que ocurren muy rápido después de abrir (menos de 500ms)
+              const timeSinceOpen = now - lastOpenTimeRef.current;
+              if (timeSinceOpen < 500) {
+                console.log('🚫 Ignorando cierre accidental (muy rápido):', timeSinceOpen, 'ms');
+                return; // Ignorar este cierre
+              }
+              
+              // Si ha pasado suficiente tiempo, permitir el cierre
+              setOpenPopovers(prev => ({ ...prev, observaciones: null }));
+              setPuestoEnEdicion(null);
+              setObservaciones('');
+            }
+          }}
+          modal={true}>
           <PopoverTrigger asChild>
             <Button 
               size="sm" 
@@ -824,10 +919,11 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                   ? "text-orange-700 bg-orange-50 border-orange-200 dark:bg-orange-900/30" 
                   : "text-orange-600"
               )}
+              disabled={actionLoading === puesto.puesto_id}
               title={puesto.observaciones ? "Ver/editar observaciones" : "Agregar observaciones"}
             >
               <FileText className="h-3 w-3 mr-1" />
-              Observaciones
+              {actionLoading === puesto.puesto_id ? 'Procesando...' : 'Observaciones'}
               {puesto.observaciones && (
                 <span className="ml-1 text-xs bg-orange-200 text-orange-800 px-1 rounded-full dark:bg-orange-700 dark:text-orange-200">
                   ●
@@ -867,7 +963,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                       return;
                     }
                     actualizarAsistencia(puesto, 'agregar_observaciones', undefined, undefined, observaciones);
-                    setPopoverObservaciones(null);
+                    setOpenPopovers(prev => ({ ...prev, observaciones: null }));
                     setPuestoEnEdicion(null);
                     setObservaciones('');
                   }}
@@ -888,7 +984,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                         `¿Estás seguro de que quieres eliminar las observaciones del puesto "${generarIdCortoPuesto(puesto.puesto_id)}"?`,
                         () => {
                           actualizarAsistencia(puesto, 'agregar_observaciones', undefined, undefined, '');
-                          setPopoverObservaciones(null);
+                          setOpenPopovers(prev => ({ ...prev, observaciones: null }));
                           setPuestoEnEdicion(null);
                           setObservaciones('');
                         },
@@ -907,7 +1003,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                   size="sm" 
                   variant="outline" 
                   onClick={() => {
-                    setPopoverObservaciones(null);
+                    setOpenPopovers(prev => ({ ...prev, observaciones: null }));
                     setPuestoEnEdicion(null);
                     setObservaciones('');
                   }}
@@ -923,11 +1019,34 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
 
       </div>
     );
-  };
+  }, [
+    openPopovers,
+    actionLoading,
+    searchTerm,
+    observaciones,
+    motivoInasistencia,
+    guardiasOptions,
+    loadingGuardias,
+    puestoEnEdicion,
+    actualizarAsistencia,
+    addToast,
+    showConfirmModal,
+    setOpenPopovers,
+    setPuestoEnEdicion,
+    setObservaciones,
+    setMotivoInasistencia,
+    setSearchTerm,
+    searchGuardias
+  ]);
 
-  console.log("✅ Vista de pauta diaria operativa y refactorizada");
-  console.log("Pauta diaria refactorizada con URL dinámica");
-  console.log("Pauta diaria cargada correctamente para fecha dinámica");
+  // Logs solo en desarrollo y en el primer render
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.log("✅ Vista de pauta diaria operativa y refactorizada");
+      console.log("Pauta diaria refactorizada con URL dinámica");
+      console.log("Pauta diaria cargada correctamente para fecha dinámica");
+    }
+  }, []); // Solo ejecutar una vez
 
   return (
     <TooltipProvider>
@@ -955,58 +1074,20 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
 
         {/* Selector de fecha */}
         <Card>
-          <CardHeader className="pb-3 sm:pb-4">
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
               Seleccionar Fecha
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
-                <Label htmlFor="fecha" className="text-sm">Fecha:</Label>
-                <DatePickerComponent
-                  value={fechaSeleccionada}
-                  onChange={setFechaSeleccionada}
-                  placeholder="Seleccionar fecha"
-                  className="w-full sm:w-48"
-                />
-              </div>
-              
-              {/* Botones de navegación */}
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => cambiarFecha(-1)}
-                  className="h-8 w-8 p-0"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={irAHoy}
-                  className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white"
-                  title="Ir al día de hoy"
-                >
-                  Hoy
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => cambiarFecha(1)}
-                  className="h-8 w-8 p-0"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-              
+            <div className="space-y-3">
+              {/* Fecha actual en móvil */}
               {fechaSeleccionada && (
                 <div className={cn(
-                  "text-xs sm:text-sm text-center sm:text-left w-full sm:w-auto",
+                  "text-center p-2 rounded bg-muted/50",
                   fechaSeleccionada === format(new Date(), 'yyyy-MM-dd')
-                    ? "text-green-500 font-medium" 
+                    ? "text-green-600 font-medium bg-green-50 dark:bg-green-900/20" 
                     : "text-muted-foreground"
                 )}>
                   {(() => {
@@ -1015,15 +1096,61 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                     return textoFormateado;
                   })()}
                   {fechaSeleccionada === format(new Date(), 'yyyy-MM-dd') && (
-                    <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full dark:bg-green-900 dark:text-green-200">
+                    <span className="ml-2 text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full dark:bg-green-700 dark:text-green-200">
                       Hoy
                     </span>
                   )}
                 </div>
               )}
+
+              {/* Controles de fecha optimizados para móvil */}
+              <div className="flex items-center justify-between gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => cambiarFecha(-1)}
+                  className="h-10 w-10 p-0"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                
+                <div className="flex-1">
+                  <DatePickerComponent
+                    value={fechaSeleccionada}
+                    onChange={setFechaSeleccionada}
+                    placeholder="Seleccionar fecha"
+                    className="w-full"
+                  />
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => cambiarFecha(1)}
+                  className="h-10 w-10 p-0"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {/* Botón Hoy centrado */}
+              <div className="flex justify-center">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={irAHoy}
+                  className="h-10 px-6 bg-green-600 hover:bg-green-700 text-white"
+                  title="Ir al día de hoy"
+                >
+                  Hoy
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
+
+
+
 
         {/* Alert de cambios pendientes */}
         {cambiosPendientes && (
@@ -1067,110 +1194,127 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
           
           {showFiltros && (
             <CardContent className="pt-0">
-              {/* Filtros */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              {/* Búsqueda */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">🔍 Búsqueda</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar puesto, instalación, guardia..."
-                    value={filtros.busqueda}
-                    onChange={(e) => setFiltros(prev => ({ ...prev, busqueda: e.target.value }))}
-                    className="pl-10"
-                  />
+              {/* KPIs - Siempre visibles en móvil */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                  <div className="text-xl sm:text-2xl font-bold text-blue-600">
+                    {estadisticas.asignados}
+                  </div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">📋 Asignados</div>
+                </div>
+                <div className="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                  <div className="text-xl sm:text-2xl font-bold text-green-600">
+                    {estadisticas.trabajados}
+                  </div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">✅ Trabajados</div>
+                </div>
+                <div className="text-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded">
+                  <div className="text-xl sm:text-2xl font-bold text-orange-600">
+                    {estadisticas.reemplazos}
+                  </div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">🔄 Reemplazos</div>
+                </div>
+                <div className="text-center p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                  <div className="text-xl sm:text-2xl font-bold text-red-600">
+                    {estadisticas.sin_cobertura}
+                  </div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">❌ Sin cobertura</div>
                 </div>
               </div>
 
-              {/* Instalación */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">🏢 Instalación</Label>
-                <Select
-                  value={filtros.instalacion}
-                  onValueChange={(value) => setFiltros(prev => ({ ...prev, instalacion: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas las instalaciones" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las instalaciones</SelectItem>
-                    {instalacionesUnicas.map((instalacion) => (
-                      <SelectItem key={instalacion.id} value={instalacion.id}>
-                        {instalacion.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Filtros - Optimizados para móvil */}
+              <div className="space-y-3">
+                {/* Búsqueda - Siempre visible */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">🔍 Búsqueda</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar puesto, instalación, guardia..."
+                      value={filtros.busqueda}
+                      onChange={(e) => setFiltros(prev => ({ ...prev, busqueda: e.target.value }))}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
 
-              {/* Tipo de Turno */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">🌅 Tipo de Turno</Label>
-                <Select
-                  value={filtros.tipoTurno}
-                  onValueChange={(value) => setFiltros(prev => ({ ...prev, tipoTurno: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos los turnos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los turnos</SelectItem>
-                    <SelectItem value="dia">Día</SelectItem>
-                    <SelectItem value="noche">Noche</SelectItem>
-                    <SelectItem value="ppc">PPC</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                {/* Filtros en grid para móvil */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Instalación */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium">🏢 Instalación</Label>
+                    <Select
+                      value={filtros.instalacion}
+                      onValueChange={(value) => setFiltros(prev => ({ ...prev, instalacion: value }))}
+                    >
+                      <SelectTrigger className="text-xs">
+                        <SelectValue placeholder="Todas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas las instalaciones</SelectItem>
+                        {instalacionesUnicas.map((instalacion) => (
+                          <SelectItem key={instalacion.id} value={instalacion.id}>
+                            {instalacion.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              {/* Estado */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">📊 Estado</Label>
-                <Select
-                  value={filtros.estado}
-                  onValueChange={(value) => setFiltros(prev => ({ ...prev, estado: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos los estados" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los estados</SelectItem>
-                    <SelectItem value="T">Asignado</SelectItem>
-                    <SelectItem value="trabajado">Trabajado</SelectItem>
-                    <SelectItem value="reemplazo">Reemplazo</SelectItem>
-                    <SelectItem value="sin_cobertura">Sin cobertura</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                  {/* Tipo de Turno */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium">🌅 Turno</Label>
+                    <Select
+                      value={filtros.tipoTurno}
+                      onValueChange={(value) => setFiltros(prev => ({ ...prev, tipoTurno: value }))}
+                    >
+                      <SelectTrigger className="text-xs">
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los turnos</SelectItem>
+                        <SelectItem value="dia">Día</SelectItem>
+                        <SelectItem value="noche">Noche</SelectItem>
+                        <SelectItem value="ppc">PPC</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-            {/* KPIs */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">
-                  {estadisticas.asignados}
+                  {/* Estado */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium">📊 Estado</Label>
+                    <Select
+                      value={filtros.estado}
+                      onValueChange={(value) => setFiltros(prev => ({ ...prev, estado: value }))}
+                    >
+                      <SelectTrigger className="text-xs">
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los estados</SelectItem>
+                        <SelectItem value="T">Asignado</SelectItem>
+                        <SelectItem value="trabajado">Trabajado</SelectItem>
+                        <SelectItem value="reemplazo">Reemplazo</SelectItem>
+                        <SelectItem value="sin_cobertura">Sin cobertura</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Botón Limpiar */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium opacity-0">Limpiar</Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={limpiarFiltros}
+                      className="w-full h-9 text-xs"
+                    >
+                      <RotateCcw className="h-3 w-3 mr-1" />
+                      Limpiar
+                    </Button>
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground">📋 Asignados</div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {estadisticas.trabajados}
-                </div>
-                <div className="text-sm text-muted-foreground">✅ Trabajados</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">
-                  {estadisticas.reemplazos}
-                </div>
-                <div className="text-sm text-muted-foreground">🔄 Reemplazos</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">
-                  {estadisticas.sin_cobertura}
-                </div>
-                <div className="text-sm text-muted-foreground">❌ Sin cobertura</div>
-              </div>
-            </div>
             </CardContent>
           )}
         </Card>
@@ -1187,115 +1331,213 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
             </CardContent>
           </Card>
         ) : (
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="w-[200px]">Instalación / Puesto</TableHead>
-                      <TableHead className="w-[150px]">Rol del Puesto</TableHead>
-                      <TableHead className="w-[250px]">Asignación</TableHead>
-                      <TableHead className="w-[250px]">Cobertura</TableHead>
-                      <TableHead className="w-[120px]">Estado</TableHead>
-                      <TableHead className="w-[300px]">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {puestosFiltrados.map((puesto) => (
-                      <TableRow key={puesto.puesto_id} className="border-b">
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="flex flex-col">
-                              <span className="text-xs text-muted-foreground">
-                                {puesto.instalacion_nombre}
-                              </span>
-                              <button
-                                onClick={() => navegarAInstalacion(puesto.instalacion_id)}
-                                className="font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
-                                title="Ver instalación"
-                              >
-                                {generarIdCortoPuesto(puesto.puesto_id)}
-                              </button>
-                            </div>
-                            {puesto.es_ppc && (
-                              <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
-                                PPC
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <span className={cn(
-                              "text-sm",
-                              puesto.estado === 'trabajado' && puesto.guardia_original
-                                ? "text-green-600 dark:text-green-400 font-medium" 
-                                : "text-foreground"
-                            )}>
-                              {puesto.asignacion_real}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {puesto.cobertura_real ? (
+          <>
+            {/* Vista de escritorio - Tabla */}
+            <Card className="hidden md:block">
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="w-[200px]">Instalación / Puesto</TableHead>
+                        <TableHead className="w-[180px]">Rol del Puesto</TableHead>
+                        <TableHead className="w-[230px]">Asignación</TableHead>
+                        <TableHead className="w-[230px]">Cobertura</TableHead>
+                        <TableHead className="w-[120px]">Estado</TableHead>
+                        <TableHead className="w-[300px]">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {puestosFiltrados.map((puesto) => (
+                        <TableRow key={puesto.puesto_id} className="border-b">
+                          <TableCell>
                             <div className="flex items-center gap-2">
-                              {puesto.es_ppc && puesto.estado === 'trabajado' ? (
-                                <Shield className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                              ) : (
-                                <UserPlus className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                              <div className="flex flex-col">
+                                <span className="text-xs text-muted-foreground">
+                                  {puesto.instalacion_nombre}
+                                </span>
+                                <button
+                                  onClick={() => navegarAInstalacion(puesto.instalacion_id)}
+                                  className="font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                                  title="Ver instalación"
+                                >
+                                  {generarIdCortoPuesto(puesto.puesto_id)}
+                                </button>
+                              </div>
+                              {puesto.es_ppc && (
+                                <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                                  PPC
+                                </Badge>
                               )}
-                              <span className="text-sm">{puesto.cobertura_real}</span>
                             </div>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">Sin cobertura</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {renderEstadoBadge(puesto)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1 flex-wrap">
-                            {renderAcciones(puesto)}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {puestosFiltrados.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          No se encontraron puestos que coincidan con los filtros
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-              
-              {/* Observaciones debajo de la tabla */}
-              {puestosFiltrados.some(p => p.observaciones) && (
-                <div className="p-4 border-t bg-muted/25">
-                  <h4 className="font-semibold mb-3 flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Observaciones
-                  </h4>
-                  <div className="space-y-2">
-                    {puestosFiltrados
-                      .filter(p => p.observaciones)
-                      .map((puesto) => (
-                        <div key={puesto.puesto_id} className="text-sm">
-                          <span className="font-medium text-blue-600">
-                            {generarIdCortoPuesto(puesto.puesto_id)}:
-                          </span>
-                          <span className="ml-2">{puesto.observaciones}</span>
-                        </div>
+                          </TableCell>
+                          {/* Rol del Puesto */}
+                          <TableCell>
+                            <span className="text-sm text-foreground">
+                              {puesto.nombre_puesto}
+                            </span>
+                          </TableCell>
+
+                          {/* Asignación */}
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              <span className={cn(
+                                "text-sm",
+                                puesto.estado === 'trabajado' && puesto.guardia_original
+                                  ? "text-green-600 dark:text-green-400 font-medium" 
+                                  : "text-foreground"
+                              )}>
+                                {puesto.asignacion_real}
+                              </span>
+                            </div>
+                          </TableCell>
+
+                          {/* Cobertura */}
+                          <TableCell>
+                            {puesto.cobertura_real ? (
+                              <div className="flex items-center gap-2">
+                                {puesto.es_ppc && puesto.estado === 'trabajado' ? (
+                                  <Shield className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                ) : (
+                                  <UserPlus className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                                )}
+                                <span className="text-sm">{puesto.cobertura_real}</span>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">Sin cobertura</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {renderEstadoBadge(puesto)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1 flex-wrap">
+                              {renderAcciones(puesto, 'desktop')}
+                            </div>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                  </div>
+                      {puestosFiltrados.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                            No se encontraron puestos que coincidan con los filtros
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
                 </div>
+                
+                {/* Observaciones debajo de la tabla */}
+                {puestosFiltrados.some(p => p.observaciones) && (
+                  <div className="p-4 border-t bg-muted/25">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Observaciones
+                    </h4>
+                    <div className="space-y-2">
+                      {puestosFiltrados
+                        .filter(p => p.observaciones)
+                        .map((puesto) => (
+                          <div key={puesto.puesto_id} className="text-sm">
+                            <span className="font-medium text-blue-600">
+                              {generarIdCortoPuesto(puesto.puesto_id)}:
+                            </span>
+                            <span className="ml-2">{puesto.observaciones}</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Vista móvil - Contenedores de dos en dos */}
+            <div className="md:hidden space-y-4">
+              {puestosFiltrados.map((puesto, index) => (
+                <Card key={puesto.puesto_id} className="border-2 hover:border-blue-300 transition-colors">
+                  <CardContent className="p-4">
+                    {/* Header del puesto */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs text-muted-foreground">
+                            {puesto.instalacion_nombre}
+                          </span>
+                          {puesto.es_ppc && (
+                            <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                              PPC
+                            </Badge>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => navegarAInstalacion(puesto.instalacion_id)}
+                          className="font-bold text-lg text-blue-600 hover:text-blue-800"
+                          title="Ver instalación"
+                        >
+                          {generarIdCortoPuesto(puesto.puesto_id)}
+                        </button>
+                      </div>
+                      <div className="flex-shrink-0">
+                        {renderEstadoBadge(puesto)}
+                      </div>
+                    </div>
+
+                    {/* Información del guardia */}
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span className={cn(
+                          "text-sm font-medium",
+                          puesto.estado === 'trabajado' && puesto.guardia_original
+                            ? "text-green-600 dark:text-green-400" 
+                            : "text-foreground"
+                        )}>
+                          {puesto.asignacion_real}
+                        </span>
+                      </div>
+                      
+                      {puesto.cobertura_real && (
+                        <div className="flex items-center gap-2">
+                          {puesto.es_ppc && puesto.estado === 'trabajado' ? (
+                            <Shield className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                          ) : (
+                            <UserPlus className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                          )}
+                          <span className="text-sm text-muted-foreground">
+                            Cobertura: {puesto.cobertura_real}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Botones de acción optimizados para móvil */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {renderAcciones(puesto, 'mobile')}
+                    </div>
+
+                    {/* Observaciones visibles en móvil */}
+                    {puesto.observaciones && (
+                      <div className="mt-3 p-2 bg-orange-50 dark:bg-orange-900/20 rounded border border-orange-200 dark:border-orange-700">
+                        <div className="text-xs text-orange-700 dark:text-orange-300">
+                          <span className="font-medium">Observación:</span> {puesto.observaciones}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+              
+              {puestosFiltrados.length === 0 && (
+                <Card>
+                  <CardContent className="text-center py-8 text-muted-foreground">
+                    No se encontraron puestos que coincidan con los filtros
+                  </CardContent>
+                </Card>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </>
         )}
       </div>
 

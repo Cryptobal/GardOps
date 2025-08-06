@@ -10,13 +10,13 @@ export interface CalculoEmpleador {
 }
 
 /**
- * Calcula el SIS (1.88% del imponible) - Según normativa 2025
+ * Calcula el SIS usando el parámetro de la base de datos
  */
-function calcularSIS(imponible: number): number {
+function calcularSIS(imponible: number, tasaSis: number = 0.02): number {
   if (typeof imponible !== 'number') {
     return 0;
   }
-  return redondearCLP(imponible * 0.0188);
+  return redondearCLP(imponible * tasaSis);
 }
 
 /**
@@ -74,7 +74,7 @@ export function calcularEmpleador(
     };
   }
   
-  const sis = calcularSIS(imponible);
+  const sis = calcularSIS(imponible, parametros.tasaSis);
   const afc = calcularAFCEmpleador(imponible, input.tipoContrato);
   const mutual = calcularMutualEmpleador(imponible, parametros.tasaMutualidad);
   const reformaPrevisional = calcularReformaPrevisional(imponible);

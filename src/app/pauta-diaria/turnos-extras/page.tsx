@@ -106,8 +106,21 @@ export default function TurnosExtrasPage() {
     cantidadTurnos: number;
     montoTotal: number | string;
   } | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   const { success, error } = useToast();
+
+  // Detectar si es móvil automáticamente
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
 
   // Inicializar filtros con el mes actual
   useEffect(() => {
@@ -433,14 +446,14 @@ export default function TurnosExtrasPage() {
       <NavigationTabs activeTab={activeTab} onTabChange={handleTabChange} />
       
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Turnos Pago, Turnos Extras</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Turnos Pago, Turnos Extras</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button onClick={cargarTurnosExtras} variant="outline" size="sm" disabled={loading}>
             <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
-            Actualizar
+            {!isMobile && "Actualizar"}
           </Button>
           <Button 
             onClick={() => setShowDashboard(!showDashboard)} 
@@ -448,7 +461,7 @@ export default function TurnosExtrasPage() {
             size="sm"
           >
             <BarChart3 className="h-4 w-4 mr-2" />
-            {showDashboard ? 'Ocultar Dashboard' : 'Ver Dashboard'}
+            {!isMobile && (showDashboard ? 'Ocultar Dashboard' : 'Ver Dashboard')}
           </Button>
           <Button 
             onClick={() => setShowCalendarView(!showCalendarView)} 
@@ -456,7 +469,7 @@ export default function TurnosExtrasPage() {
             size="sm"
           >
             <Calendar className="h-4 w-4 mr-2" />
-            {showCalendarView ? 'Ocultar Calendario' : 'Ver Calendario'}
+            {!isMobile && (showCalendarView ? 'Ocultar Calendario' : 'Ver Calendario')}
           </Button>
           <Button 
             onClick={() => window.location.href = '/pauta-diaria/turnos-extras/historial'} 
@@ -464,7 +477,7 @@ export default function TurnosExtrasPage() {
             size="sm"
           >
             <CalendarIcon className="h-4 w-4 mr-2" />
-            Ver Historial
+            {!isMobile && "Ver Historial"}
           </Button>
         </div>
       </div>
@@ -506,7 +519,7 @@ export default function TurnosExtrasPage() {
       {selectedTurnos.length > 0 && (
         <Card className="border-blue-600/50 bg-blue-900/20 dark:bg-blue-900/30">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <FileSpreadsheet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 <span className="font-medium text-blue-600 dark:text-blue-400">
@@ -523,7 +536,7 @@ export default function TurnosExtrasPage() {
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   <FileSpreadsheet className="h-4 w-4 mr-2" />
-                  Generar Planilla
+                  {!isMobile && "Generar Planilla"}
                 </Button>
                 <Button
                   onClick={() => setSelectedTurnos([])}
@@ -531,7 +544,7 @@ export default function TurnosExtrasPage() {
                   size="sm"
                 >
                   <XCircle className="h-4 w-4 mr-2" />
-                  Cancelar Selección
+                  {!isMobile && "Cancelar Selección"}
                 </Button>
               </div>
             </div>
@@ -558,7 +571,89 @@ export default function TurnosExtrasPage() {
               <p>No hay turnos extras para mostrar</p>
               <p className="text-sm">Ajusta los filtros o crea nuevos turnos extras</p>
             </div>
+          ) : isMobile ? (
+            // Vista Móvil - Contenedores de 2 por fila
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {turnosExtras.map((turno) => {
+                const estadoTurno = getEstadoTurno(turno);
+                const isSelectable = !turno.pagado && !turno.planilla_id;
+                const isSelected = selectedTurnos.includes(turno.id);
+                
+                return (
+                  <Card key={turno.id} className={`border-l-4 ${
+                    isSelected 
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                      : estadoTurno.variant === 'destructive'
+                      ? 'border-red-500'
+                      : estadoTurno.variant === 'secondary'
+                      ? 'border-orange-500'
+                      : 'border-green-500'
+                  }`}>
+                    <CardContent className="p-4">
+                      {/* Header con checkbox y estado */}
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          {isSelectable && (
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleSelectTurno(turno.id)}
+                            />
+                          )}
+                          <Badge variant={estadoTurno.variant} className="text-xs">
+                            {estadoTurno.texto}
+                          </Badge>
+                        </div>
+                        <Badge variant={turno.estado === 'reemplazo' ? 'default' : 'secondary'} className="text-xs">
+                          {turno.estado.toUpperCase()}
+                        </Badge>
+                      </div>
+
+                      {/* Información del guardia */}
+                      <div className="mb-3">
+                        <h4 className="font-semibold text-sm">
+                          {turno.guardia_nombre} {turno.guardia_apellido_paterno}
+                        </h4>
+                        <p className="text-xs text-muted-foreground">{turno.guardia_rut}</p>
+                      </div>
+
+                      {/* Información de la instalación y puesto */}
+                      <div className="mb-3 space-y-1">
+                        <p className="text-sm font-medium">{turno.instalacion_nombre}</p>
+                        <p className="text-xs text-muted-foreground">{turno.nombre_puesto}</p>
+                      </div>
+
+                      {/* Fecha y valor */}
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(turno.fecha), 'dd/MM/yyyy')}
+                        </p>
+                        <p className="font-bold text-sm">{formatCurrency(turno.valor)}</p>
+                      </div>
+
+                      {/* Botón de acción */}
+                      {isSelectable && (
+                        <div className="mt-3 pt-3 border-t">
+                          <Button
+                            onClick={() => {
+                              setSelectedTurnos([turno.id]);
+                              setShowPagoModal(true);
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className="w-full text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                          >
+                            <DollarSign className="h-4 w-4 mr-1" />
+                            Marcar como Pagado
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           ) : (
+            // Vista Desktop - Tabla tradicional
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>

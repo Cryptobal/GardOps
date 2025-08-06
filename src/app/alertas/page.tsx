@@ -1,6 +1,26 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
+import { 
+  AlertTriangle, 
+  Filter, 
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  X,
+  CalendarDays,
+  Eye,
+  Download,
+  FileText,
+  Users,
+  Building,
+  Shield,
+  Search,
+  Clock,
+  CheckCircle,
+  Calendar
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -32,7 +52,12 @@ export default function AlertasPage() {
   const [documentoEditando, setDocumentoEditando] = useState<AlertaDocumento | null>(null);
   const [nuevaFecha, setNuevaFecha] = useState("");
   const [actualizando, setActualizando] = useState(false);
-  const [filtroModulo, setFiltroModulo] = useState<string>("todos");
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
+  const [filtros, setFiltros] = useState({
+    modulo: 'todos',
+    estado: 'todos',
+    search: ''
+  });
   const { toast } = useToast();
 
   const cargarAlertas = useCallback(async () => {
@@ -43,7 +68,7 @@ export default function AlertasPage() {
       const timestamp = new Date().getTime();
       const response = await fetch(`/api/alertas-documentos?_t=${timestamp}`, {
         method: 'GET',
-        credentials: 'include', // IMPORTANTE: Incluir cookies
+        credentials: 'include',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
@@ -81,14 +106,45 @@ export default function AlertasPage() {
     }
   }, [toast]);
 
-  // Filtrar alertas según el módulo seleccionado
+  // Filtrar alertas según los filtros aplicados
   useEffect(() => {
-    if (filtroModulo === "todos") {
-      setAlertasFiltradas(alertas);
-    } else {
-      setAlertasFiltradas(alertas.filter(alerta => alerta.modulo === filtroModulo));
+    let alertasFiltradas = alertas;
+
+    // Filtro por módulo
+    if (filtros.modulo !== 'todos') {
+      alertasFiltradas = alertasFiltradas.filter(alerta => alerta.modulo === filtros.modulo);
     }
-  }, [alertas, filtroModulo]);
+
+    // Filtro por estado (días restantes)
+    if (filtros.estado !== 'todos') {
+      switch (filtros.estado) {
+        case 'vencidos':
+          alertasFiltradas = alertasFiltradas.filter(a => a.dias_restantes < 0);
+          break;
+        case 'vencen_hoy':
+          alertasFiltradas = alertasFiltradas.filter(a => a.dias_restantes === 0);
+          break;
+        case 'criticos':
+          alertasFiltradas = alertasFiltradas.filter(a => a.dias_restantes > 0 && a.dias_restantes <= 7);
+          break;
+        case 'proximos':
+          alertasFiltradas = alertasFiltradas.filter(a => a.dias_restantes > 7 && a.dias_restantes <= 30);
+          break;
+      }
+    }
+
+    // Filtro por búsqueda
+    if (filtros.search) {
+      const searchLower = filtros.search.toLowerCase();
+      alertasFiltradas = alertasFiltradas.filter(alerta => 
+        alerta.documento_nombre?.toLowerCase().includes(searchLower) ||
+        alerta.entidad_nombre?.toLowerCase().includes(searchLower) ||
+        alerta.tipo_documento_nombre?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    setAlertasFiltradas(alertasFiltradas);
+  }, [alertas, filtros]);
 
   useEffect(() => {
     cargarAlertas();
@@ -206,11 +262,11 @@ export default function AlertasPage() {
   };
 
   const getBadgeColor = (diasRestantes: number) => {
-    if (diasRestantes < 0) return "bg-red-500 text-white";
-    if (diasRestantes === 0) return "bg-red-500 text-white";
-    if (diasRestantes <= 7) return "bg-orange-500 text-white";
-    if (diasRestantes <= 30) return "bg-yellow-500 text-black";
-    return "bg-green-500 text-white";
+    if (diasRestantes < 0) return "bg-red-600/20 text-red-300 border-red-500/30";
+    if (diasRestantes === 0) return "bg-red-600/20 text-red-300 border-red-500/30";
+    if (diasRestantes <= 7) return "bg-orange-600/20 text-orange-300 border-orange-500/30";
+    if (diasRestantes <= 30) return "bg-yellow-600/20 text-yellow-300 border-yellow-500/30";
+    return "bg-green-600/20 text-green-300 border-green-500/30";
   };
 
   const getEstadoTexto = (diasRestantes: number) => {
@@ -221,19 +277,19 @@ export default function AlertasPage() {
   };
 
   const getIconoEstado = (diasRestantes: number) => {
-    if (diasRestantes < 0) return "❌";
-    if (diasRestantes === 0) return "🚨";
-    if (diasRestantes <= 7) return "⚠️";
-    if (diasRestantes <= 30) return "📅";
-    return "✅";
+    if (diasRestantes < 0) return AlertTriangle;
+    if (diasRestantes === 0) return AlertTriangle;
+    if (diasRestantes <= 7) return Clock;
+    if (diasRestantes <= 30) return Calendar;
+    return CheckCircle;
   };
 
-  const getModuloIcono = (modulo: string) => {
+  const getModuloIcon = (modulo: string) => {
     switch (modulo) {
-      case 'clientes': return '🏢';
-      case 'instalaciones': return '🏭';
-      case 'guardias': return '👤';
-      default: return '📄';
+      case 'clientes': return Users;
+      case 'instalaciones': return Building;
+      case 'guardias': return Shield;
+      default: return FileText;
     }
   };
 
@@ -246,13 +302,21 @@ export default function AlertasPage() {
     }
   };
 
+  const resetearFiltros = () => {
+    setFiltros({
+      modulo: 'todos',
+      estado: 'todos',
+      search: ''
+    });
+  };
+
   if (cargando) {
     console.log('🔄 Renderizando estado de carga...');
     return (
-      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-          <p className="text-white/60">Cargando alertas y KPIs...</p>
+          <p className="text-muted-foreground">Cargando alertas y KPIs...</p>
         </div>
       </div>
     );
@@ -264,295 +328,388 @@ export default function AlertasPage() {
   console.log('🎨 Cargando:', cargando);
 
   return (
-    <div className="min-h-screen bg-[#0F172A] p-6 space-y-6">
-      {/* Header con título y botón actualizar */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Alertas y KPIs</h1>
-          <p className="text-white/60 mt-1">Monitoreo y indicadores</p>
-          
-        </div>
-        
-        <Button 
-          onClick={cargarAlertas}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
-          disabled={cargando}
+    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-7xl space-y-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-4"
         >
-          {cargando ? (
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-              Actualizando...
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+                <AlertTriangle className="h-8 w-8 text-red-500" />
+                Alertas y KPIs
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                Monitoreo y indicadores de documentos próximos a vencer
+              </p>
             </div>
-          ) : (
-            "Actualizar"
-          )}
-        </Button>
-      </div>
-
-      {/* Filtro por módulo */}
-      <Card className="bg-card/50 border-border/50">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            🔍 Filtro por Módulo
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <Select value={filtroModulo} onValueChange={setFiltroModulo}>
-              <SelectTrigger className="w-64 bg-white/5 border-white/20 text-white">
-                <SelectValue placeholder="Seleccionar módulo" />
-              </SelectTrigger>
-              <SelectContent className="bg-[#1E293B] border-white/20">
-                <SelectItem value="todos" className="text-white hover:bg-white/10">
-                  📊 Todos los módulos ({alertas.length})
-                </SelectItem>
-                <SelectItem value="clientes" className="text-white hover:bg-white/10">
-                  🏢 Clientes ({alertas.filter(a => a.modulo === 'clientes').length})
-                </SelectItem>
-                <SelectItem value="instalaciones" className="text-white hover:bg-white/10">
-                  🏭 Instalaciones ({alertas.filter(a => a.modulo === 'instalaciones').length})
-                </SelectItem>
-                <SelectItem value="guardias" className="text-white hover:bg-white/10">
-                  👤 Guardias ({alertas.filter(a => a.modulo === 'guardias').length})
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Badge className="bg-blue-600 text-white">
-              {alertasFiltradas.length} {alertasFiltradas.length === 1 ? 'documento' : 'documentos'} filtrados
-            </Badge>
+            <Button
+              onClick={cargarAlertas}
+              variant="outline"
+              size="sm"
+              disabled={cargando}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${cargando ? 'animate-spin' : ''}`} />
+              Actualizar
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </motion.div>
 
-      {/* KPIs Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        <Card className="bg-red-500/10 border-red-500/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-red-400 text-sm font-medium flex items-center gap-2">
-              ❌ Documentos Vencidos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-400">{vencidos}</div>
-            <p className="text-xs text-red-400/60 mt-1">Requieren atención inmediata</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-orange-500/10 border-orange-500/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-orange-400 text-sm font-medium flex items-center gap-2">
-              🚨 Vencen Hoy
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-400">{vencenHoy}</div>
-            <p className="text-xs text-orange-400/60 mt-1">Acción urgente requerida</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-yellow-500/10 border-yellow-500/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-yellow-400 text-sm font-medium flex items-center gap-2">
-              ⚠️ Críticos ( ≤ 7 días )
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-400">{criticos}</div>
-            <p className="text-xs text-yellow-400/60 mt-1">Programar renovación</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-blue-500/10 border-blue-500/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-blue-400 text-sm font-medium flex items-center gap-2">
-              📅 Próximos ( ≤ 30 días )
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-400">{proximosVencer}</div>
-            <p className="text-xs text-blue-400/60 mt-1">Monitoreo preventivo</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Sección de Alertas de Vencimiento */}
-      <Card className="bg-card/50 border-border/50">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            🔔 Alertas de Vencimiento
-            <Badge className="bg-blue-600 text-white ml-2">
-              {alertasFiltradas.length} {alertasFiltradas.length === 1 ? 'documento' : 'documentos'}
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {alertasFiltradas.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">✅</span>
+        {/* KPIs - Optimizado para móviles */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6"
+        >
+          <Card className="bg-card/50 border-border/50">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs md:text-sm font-medium text-muted-foreground">Vencidos</p>
+                  <p className="text-lg md:text-2xl font-bold text-red-400">{vencidos.toLocaleString()}</p>
+                </div>
+                <AlertTriangle className="h-6 w-6 md:h-8 md:w-8 text-red-500" />
               </div>
-              <p className="text-white/60">No hay documentos próximos a vencer</p>
-              <p className="text-white/40 text-sm mt-1">¡Todos los documentos están al día!</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {alertasFiltradas.map((alerta) => (
-                <div
-                  key={alerta.id}
-                  className={`border rounded-xl p-5 transition-all hover:bg-white/[0.02] ${
-                    alerta.leida 
-                      ? 'border-white/5 bg-white/[0.01] opacity-75' 
-                      : 'border-white/10 bg-white/[0.02] shadow-lg'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="text-xl">{getIconoEstado(alerta.dias_restantes)}</span>
-                        <h3 className={`font-semibold text-lg ${alerta.leida ? 'text-white/60' : 'text-white'}`}>
-                          {alerta.documento_nombre}
-                        </h3>
-                        <Badge className={getBadgeColor(alerta.dias_restantes)}>
-                          {getEstadoTexto(alerta.dias_restantes)}
-                        </Badge>
-                        {alerta.modulo && (
-                          <Badge className="bg-purple-600/20 text-purple-400 border-purple-600/20">
-                            {getModuloIcono(alerta.modulo)} {getModuloNombre(alerta.modulo)}
-                          </Badge>
-                        )}
-                        {!alerta.leida && (
-                          <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                        )}
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="text-white/40">
-                            {alerta.modulo === 'clientes' ? '👤 Cliente:' :
-                             alerta.modulo === 'instalaciones' ? '🏭 Instalación:' :
-                             alerta.modulo === 'guardias' ? '👤 Guardia:' : '📄 Entidad:'}
-                          </span>
-                          <span className="text-white/80 font-medium">{alerta.entidad_nombre}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-white/40">📄 Tipo:</span>
-                          <span className="text-white/80">{alerta.tipo_documento_nombre}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-white/40">📅 Vence:</span>
-                          <span className={`font-medium ${
-                            alerta.dias_restantes <= 0 ? 'text-red-400' :
-                            alerta.dias_restantes <= 7 ? 'text-orange-400' : 'text-white/80'
-                          }`}>
-                            {alerta.fecha_vencimiento 
-                              ? new Date(alerta.fecha_vencimiento).toLocaleDateString('es-ES', {
-                                  weekday: 'short',
-                                  day: '2-digit',
-                                  month: 'short',
-                                  year: '2-digit'
-                                })
-                              : 'No especificado'
-                            }
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <p className="text-xs text-white/40 mt-3">
-                        Alerta generada: {new Date(alerta.creada_en).toLocaleString('es-ES')}
-                      </p>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 ml-4">
-                      <Button
-                        size="sm"
-                        onClick={() => abrirModalEditar(alerta)}
-                        className="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-600/20"
-                        title="Actualizar fecha"
-                      >
-                        📅 Editar fecha
-                      </Button>
-                      
-                      {!alerta.leida && (
-                        <Button
-                          size="sm"
-                          onClick={() => marcarComoLeida(alerta.id)}
-                          className="bg-green-600/20 hover:bg-green-600/40 text-green-400 border border-green-600/20"
-                          title="Marcar como leída"
-                        >
-                          ✅ Leída
-                        </Button>
-                      )}
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card/50 border-border/50">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs md:text-sm font-medium text-muted-foreground">Vencen Hoy</p>
+                  <p className="text-lg md:text-2xl font-bold text-orange-400">{vencenHoy.toLocaleString()}</p>
+                </div>
+                <AlertTriangle className="h-6 w-6 md:h-8 md:w-8 text-orange-500" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card/50 border-border/50">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs md:text-sm font-medium text-muted-foreground">Críticos (≤7 días)</p>
+                  <p className="text-lg md:text-2xl font-bold text-yellow-400">{criticos.toLocaleString()}</p>
+                </div>
+                <Clock className="h-6 w-6 md:h-8 md:w-8 text-yellow-500" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card/50 border-border/50">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs md:text-sm font-medium text-muted-foreground">Próximos (≤30 días)</p>
+                  <p className="text-lg md:text-2xl font-bold text-blue-400">{proximosVencer.toLocaleString()}</p>
+                </div>
+                <Calendar className="h-6 w-6 md:h-8 md:w-8 text-blue-500" />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Filtros - Colapsables por defecto */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card className="bg-card/50 border-border/50">
+            <CardHeader 
+              className="cursor-pointer"
+              onClick={() => setFiltrosAbiertos(!filtrosAbiertos)}
+            >
+              <CardTitle className="text-white flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-5 w-5" />
+                  Filtros
+                </div>
+                {filtrosAbiertos ? (
+                  <ChevronUp className="h-5 w-5" />
+                ) : (
+                  <ChevronDown className="h-5 w-5" />
+                )}
+              </CardTitle>
+            </CardHeader>
+            {filtrosAbiertos && (
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Módulo</label>
+                    <Select 
+                      value={filtros.modulo} 
+                      onValueChange={(value) => setFiltros(prev => ({ ...prev, modulo: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos los módulos</SelectItem>
+                        <SelectItem value="clientes">Clientes</SelectItem>
+                        <SelectItem value="instalaciones">Instalaciones</SelectItem>
+                        <SelectItem value="guardias">Guardias</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Estado</label>
+                    <Select 
+                      value={filtros.estado} 
+                      onValueChange={(value) => setFiltros(prev => ({ ...prev, estado: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos los estados</SelectItem>
+                        <SelectItem value="vencidos">Vencidos</SelectItem>
+                        <SelectItem value="vencen_hoy">Vencen hoy</SelectItem>
+                        <SelectItem value="criticos">Críticos (≤7 días)</SelectItem>
+                        <SelectItem value="proximos">Próximos (≤30 días)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Búsqueda</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar alertas..."
+                        value={filtros.search}
+                        onChange={(e) => setFiltros(prev => ({ ...prev, search: e.target.value }))}
+                        className="pl-10"
+                      />
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={resetearFiltros}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Limpiar Filtros
+                  </Button>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        </motion.div>
+
+        {/* Lista de Alertas */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card className="bg-card/50 border-border/50">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center justify-between">
+                <span>Alertas de Vencimiento ({alertasFiltradas.length})</span>
+                {cargando && (
+                  <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {alertasFiltradas.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="flex flex-col items-center gap-2">
+                    <CheckCircle className="h-8 w-8 text-green-500" />
+                    <p className="text-muted-foreground">
+                      {cargando ? 'Cargando alertas...' : 'No hay documentos próximos a vencer'}
+                    </p>
+                    {!cargando && (
+                      <p className="text-sm text-muted-foreground">¡Todos los documentos están al día!</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {alertasFiltradas.map((alerta) => {
+                    const EstadoIcon = getIconoEstado(alerta.dias_restantes);
+                    const ModuloIcon = getModuloIcon(alerta.modulo || '');
+                    return (
+                      <Card 
+                        key={alerta.id} 
+                        className={`bg-card/30 border-border/30 transition-all hover:bg-card/40 ${
+                          alerta.leida ? 'opacity-75' : ''
+                        }`}
+                      >
+                        <CardContent className="p-4">
+                          <div className="space-y-3">
+                            {/* Header del documento */}
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                  <p className={`text-sm font-medium truncate ${
+                                    alerta.leida ? 'text-muted-foreground' : 'text-white'
+                                  }`}>
+                                    {alerta.documento_nombre}
+                                  </p>
+                                </div>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {alerta.tipo_documento_nombre || 'Sin tipo'}
+                                </p>
+                              </div>
+                              {!alerta.leida && (
+                                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse flex-shrink-0"></div>
+                              )}
+                            </div>
+
+                            {/* Información del módulo y entidad */}
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <ModuloIcon className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs capitalize text-muted-foreground">
+                                  {getModuloNombre(alerta.modulo || '')}
+                                </span>
+                              </div>
+                              <p className="text-xs text-white truncate">
+                                {alerta.entidad_nombre}
+                              </p>
+                            </div>
+
+                            {/* Estado y vencimiento */}
+                            <div className="space-y-1">
+                              <Badge className={`text-xs ${getBadgeColor(alerta.dias_restantes)}`}>
+                                <EstadoIcon className="h-3 w-3 mr-1" />
+                                {getEstadoTexto(alerta.dias_restantes)}
+                              </Badge>
+                              <p className="text-xs text-muted-foreground">
+                                {alerta.fecha_vencimiento 
+                                  ? new Date(alerta.fecha_vencimiento).toLocaleDateString('es-ES', {
+                                      weekday: 'short',
+                                      day: '2-digit',
+                                      month: 'short',
+                                      year: '2-digit'
+                                    })
+                                  : 'No especificado'
+                                }
+                              </p>
+                            </div>
+
+                            {/* Fecha de alerta */}
+                            <p className="text-xs text-muted-foreground">
+                              Alerta: {new Date(alerta.creada_en).toLocaleString('es-ES')}
+                            </p>
+
+                            {/* Acciones */}
+                            <div className="flex items-center justify-between pt-2">
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => abrirModalEditar(alerta)}
+                                  title="Editar fecha"
+                                  className="h-7 w-7 p-0 hover:bg-orange-600/20"
+                                >
+                                  <CalendarDays className="h-3 w-3" />
+                                </Button>
+                                {!alerta.leida && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => marcarComoLeida(alerta.id)}
+                                    title="Marcar como leída"
+                                    className="h-7 w-7 p-0 hover:bg-green-600/20"
+                                  >
+                                    <CheckCircle className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
 
       {/* Modal para editar fecha */}
       <Modal
         isOpen={modalEditar}
         onClose={cerrarModal}
-        title="📅 Actualizar fecha de vencimiento"
+        title="Editar Fecha de Vencimiento"
+        size="md"
       >
-        <div className="space-y-6">
-          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-            <p className="text-sm text-white/80 mb-2">
-              <strong>Documento:</strong> {documentoEditando?.documento_nombre}
-            </p>
-            <p className="text-sm text-white/60">
-              <strong>Entidad:</strong> {documentoEditando?.entidad_nombre}
-            </p>
-            {documentoEditando?.modulo && (
-              <p className="text-sm text-white/60">
-                <strong>Módulo:</strong> {getModuloIcono(documentoEditando.modulo)} {getModuloNombre(documentoEditando.modulo)}
-              </p>
-            )}
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-muted-foreground mb-2 block">
+              Documento
+            </label>
+            <p className="text-white font-medium">{documentoEditando?.documento_nombre}</p>
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-white mb-3">
-              Nueva fecha de vencimiento
+            <label className="text-sm font-medium text-muted-foreground mb-2 block">
+              Entidad
+            </label>
+            <p className="text-white">{documentoEditando?.entidad_nombre}</p>
+          </div>
+
+          {documentoEditando?.modulo && (
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                Módulo
+              </label>
+              <p className="text-white">{getModuloNombre(documentoEditando.modulo)}</p>
+            </div>
+          )}
+          
+          <div>
+            <label className="text-sm font-medium text-muted-foreground mb-2 block">
+              Nueva Fecha de Vencimiento
             </label>
             <Input
               type="date"
               value={nuevaFecha}
               onChange={(e) => setNuevaFecha(e.target.value)}
-              className="w-full text-base"
+              className="w-full"
               min={new Date().toISOString().split('T')[0]}
               disabled={actualizando}
-              style={{ colorScheme: 'dark' }}
             />
-            <p className="text-xs text-white/40 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               💡 Esto actualizará las alertas automáticamente
             </p>
           </div>
 
-          <div className="flex gap-3">
-            <Button 
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={cerrarModal}
+              disabled={actualizando}
+            >
+              Cancelar
+            </Button>
+            <Button
               onClick={actualizarFechaVencimiento}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
               disabled={actualizando || !nuevaFecha}
             >
               {actualizando ? (
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
                   Actualizando...
                 </div>
               ) : (
-                "✅ Actualizar fecha"
+                "Guardar"
               )}
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={cerrarModal}
-              className="flex-1 border-white/20 text-white hover:bg-white/5"
-              disabled={actualizando}
-            >
-              ❌ Cancelar
             </Button>
           </div>
         </div>

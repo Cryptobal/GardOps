@@ -19,7 +19,9 @@ import {
   RefreshCw,
   X,
   Eye,
-  CalendarDays
+  CalendarDays,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -71,6 +73,7 @@ export default function DocumentosGlobalesPage() {
   const [tiposDocumentos, setTiposDocumentos] = useState<TipoDocumento[]>([]);
   const [cargando, setCargando] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   const { toast } = useToast();
   
   // Estados para el visualizador y editor
@@ -285,197 +288,209 @@ export default function DocumentosGlobalesPage() {
           </div>
         </motion.div>
 
-        {/* KPIs */}
+        {/* KPIs - Optimizado para móviles */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6"
+          className="grid grid-cols-3 md:grid-cols-5 gap-4 md:gap-6"
         >
           <Card className="bg-card/50 border-border/50">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total</p>
-                  <p className="text-2xl font-bold text-white">{stats.total.toLocaleString()}</p>
+                  <p className="text-xs md:text-sm font-medium text-muted-foreground">Total</p>
+                  <p className="text-lg md:text-2xl font-bold text-white">{stats.total.toLocaleString()}</p>
                 </div>
-                <FileText className="h-8 w-8 text-blue-500" />
+                <FileText className="h-6 w-6 md:h-8 md:w-8 text-blue-500" />
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-card/50 border-border/50">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Vigentes</p>
-                  <p className="text-2xl font-bold text-green-400">{stats.vigentes.toLocaleString()}</p>
+                  <p className="text-xs md:text-sm font-medium text-muted-foreground">Vigentes</p>
+                  <p className="text-lg md:text-2xl font-bold text-green-400">{stats.vigentes.toLocaleString()}</p>
                 </div>
-                <CheckCircle className="h-8 w-8 text-green-500" />
+                <CheckCircle className="h-6 w-6 md:h-8 md:w-8 text-green-500" />
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-card/50 border-border/50">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Por Vencer</p>
-                  <p className="text-2xl font-bold text-yellow-400">{stats.por_vencer.toLocaleString()}</p>
+                  <p className="text-xs md:text-sm font-medium text-muted-foreground">Por Vencer</p>
+                  <p className="text-lg md:text-2xl font-bold text-yellow-400">{stats.por_vencer.toLocaleString()}</p>
                 </div>
-                <Clock className="h-8 w-8 text-yellow-500" />
+                <Clock className="h-6 w-6 md:h-8 md:w-8 text-yellow-500" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="p-6">
+          <Card className="bg-card/50 border-border/50 md:col-span-1 col-span-3 md:col-start-4">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Vencidos</p>
-                  <p className="text-2xl font-bold text-red-400">{stats.vencidos.toLocaleString()}</p>
+                  <p className="text-xs md:text-sm font-medium text-muted-foreground">Vencidos</p>
+                  <p className="text-lg md:text-2xl font-bold text-red-400">{stats.vencidos.toLocaleString()}</p>
                 </div>
-                <AlertTriangle className="h-8 w-8 text-red-500" />
+                <AlertTriangle className="h-6 w-6 md:h-8 md:w-8 text-red-500" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="p-6">
+          <Card className="bg-card/50 border-border/50 md:col-span-1 col-span-3">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Sin Vencimiento</p>
-                  <p className="text-2xl font-bold text-slate-400">{stats.sin_vencimiento.toLocaleString()}</p>
+                  <p className="text-xs md:text-sm font-medium text-muted-foreground">Sin Vencimiento</p>
+                  <p className="text-lg md:text-2xl font-bold text-slate-400">{stats.sin_vencimiento.toLocaleString()}</p>
                 </div>
-                <Calendar className="h-8 w-8 text-slate-500" />
+                <Calendar className="h-6 w-6 md:h-8 md:w-8 text-slate-500" />
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Filtros */}
+        {/* Filtros - Colapsables por defecto */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
           <Card className="bg-card/50 border-border/50">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                Filtros
+            <CardHeader 
+              className="cursor-pointer"
+              onClick={() => setFiltrosAbiertos(!filtrosAbiertos)}
+            >
+              <CardTitle className="text-white flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-5 w-5" />
+                  Filtros
+                </div>
+                {filtrosAbiertos ? (
+                  <ChevronUp className="h-5 w-5" />
+                ) : (
+                  <ChevronDown className="h-5 w-5" />
+                )}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Primera fila de filtros */}
-              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Módulo</label>
-                  <Select 
-                    value={filtros.modulo} 
-                    onValueChange={(value) => setFiltros(prev => ({ ...prev, modulo: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Todos los módulos</SelectItem>
-                      <SelectItem value="clientes">Clientes</SelectItem>
-                      <SelectItem value="instalaciones">Instalaciones</SelectItem>
-                      <SelectItem value="guardias">Guardias</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            {filtrosAbiertos && (
+              <CardContent className="space-y-4">
+                {/* Primera fila de filtros */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Módulo</label>
+                    <Select 
+                      value={filtros.modulo} 
+                      onValueChange={(value) => setFiltros(prev => ({ ...prev, modulo: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos los módulos</SelectItem>
+                        <SelectItem value="clientes">Clientes</SelectItem>
+                        <SelectItem value="instalaciones">Instalaciones</SelectItem>
+                        <SelectItem value="guardias">Guardias</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Tipo de Documento</label>
-                  <Select 
-                    value={filtros.tipo_documento} 
-                    onValueChange={(value) => setFiltros(prev => ({ ...prev, tipo_documento: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Todos los tipos</SelectItem>
-                      {tiposDocumentos.map((tipo) => (
-                        <SelectItem key={tipo.id} value={tipo.id}>
-                          {tipo.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Tipo de Documento</label>
+                    <Select 
+                      value={filtros.tipo_documento} 
+                      onValueChange={(value) => setFiltros(prev => ({ ...prev, tipo_documento: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos los tipos</SelectItem>
+                        {tiposDocumentos.map((tipo) => (
+                          <SelectItem key={tipo.id} value={tipo.id}>
+                            {tipo.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Estado</label>
-                  <Select 
-                    value={filtros.estado} 
-                    onValueChange={(value) => setFiltros(prev => ({ ...prev, estado: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Todos los estados</SelectItem>
-                      <SelectItem value="vigente">Vigente</SelectItem>
-                      <SelectItem value="por_vencer">Por vencer</SelectItem>
-                      <SelectItem value="vencido">Vencido</SelectItem>
-                      <SelectItem value="sin_vencimiento">Sin vencimiento</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Estado</label>
+                    <Select 
+                      value={filtros.estado} 
+                      onValueChange={(value) => setFiltros(prev => ({ ...prev, estado: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos los estados</SelectItem>
+                        <SelectItem value="vigente">Vigente</SelectItem>
+                        <SelectItem value="por_vencer">Por vencer</SelectItem>
+                        <SelectItem value="vencido">Vencido</SelectItem>
+                        <SelectItem value="sin_vencimiento">Sin vencimiento</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Búsqueda</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar documentos..."
-                      value={filtros.search}
-                      onChange={(e) => setFiltros(prev => ({ ...prev, search: e.target.value }))}
-                      className="pl-10"
-                    />
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Búsqueda</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar documentos..."
+                        value={filtros.search}
+                        onChange={(e) => setFiltros(prev => ({ ...prev, search: e.target.value }))}
+                        className="pl-10"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Segunda fila de filtros */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Fecha Desde</label>
-                  <Input
-                    type="date"
-                    value={filtros.fecha_desde}
-                    onChange={(e) => setFiltros(prev => ({ ...prev, fecha_desde: e.target.value }))}
-                  />
-                </div>
+                {/* Segunda fila de filtros */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Fecha Desde</label>
+                    <Input
+                      type="date"
+                      value={filtros.fecha_desde}
+                      onChange={(e) => setFiltros(prev => ({ ...prev, fecha_desde: e.target.value }))}
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Fecha Hasta</label>
-                  <Input
-                    type="date"
-                    value={filtros.fecha_hasta}
-                    onChange={(e) => setFiltros(prev => ({ ...prev, fecha_hasta: e.target.value }))}
-                  />
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Fecha Hasta</label>
+                    <Input
+                      type="date"
+                      value={filtros.fecha_hasta}
+                      onChange={(e) => setFiltros(prev => ({ ...prev, fecha_hasta: e.target.value }))}
+                    />
       </div>
 
-                <div className="flex items-end">
-                  <Button 
-                    onClick={resetearFiltros}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Limpiar Filtros
-                  </Button>
+                  <div className="flex items-end">
+                    <Button 
+                      onClick={resetearFiltros}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Limpiar Filtros
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
+              </CardContent>
+            )}
           </Card>
         </motion.div>
 
-        {/* Tabla de documentos */}
+        {/* Tabla de documentos - Optimizada para móviles */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -491,7 +506,8 @@ export default function DocumentosGlobalesPage() {
           </CardTitle>
         </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
+              {/* Vista de escritorio - Tabla */}
+              <div className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -592,6 +608,109 @@ export default function DocumentosGlobalesPage() {
                     )}
                   </TableBody>
                 </Table>
+          </div>
+
+          {/* Vista móvil - Cards 2x2 */}
+          <div className="md:hidden">
+            {documentosFiltrados.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="flex flex-col items-center gap-2">
+                  <FileText className="h-8 w-8 text-muted-foreground" />
+                  <p className="text-muted-foreground">
+                    {cargando ? 'Cargando documentos...' : 'No se encontraron documentos'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                {documentosFiltrados.map((documento) => {
+                  const ModuloIcon = getModuloIcon(documento.modulo);
+                  return (
+                    <Card key={documento.id} className="bg-card/30 border-border/30">
+                      <CardContent className="p-4">
+                        <div className="space-y-3">
+                          {/* Header del documento */}
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                <p className="text-sm font-medium text-white truncate">
+                                  {documento.nombre}
+                                </p>
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {documento.tipo_documento_nombre || 'Sin tipo'}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Información del módulo y entidad */}
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <ModuloIcon className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-xs capitalize text-muted-foreground">
+                                {documento.modulo}
+                              </span>
+                            </div>
+                            <p className="text-xs text-white truncate">
+                              {documento.entidad_nombre}
+                            </p>
+                          </div>
+
+                          {/* Estado y vencimiento */}
+                          <div className="space-y-1">
+                            <Badge className={`text-xs ${getEstadoColor(documento.estado)}`}>
+                              {documento.estado.replace('_', ' ')}
+                            </Badge>
+                            <p className="text-xs text-muted-foreground">
+                              {formatearFecha(documento.fecha_vencimiento)}
+                            </p>
+                          </div>
+
+                          {/* Tamaño */}
+                          <p className="text-xs text-muted-foreground">
+                            {formatearTamano(documento.tamaño)}
+                          </p>
+
+                          {/* Acciones */}
+                          <div className="flex items-center justify-between pt-2">
+                            <div className="flex items-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => abrirVisualizador(documento)}
+                                title="Ver documento"
+                                className="h-7 w-7 p-0 hover:bg-blue-600/20"
+                              >
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => abrirEditorFecha(documento)}
+                                title="Editar fecha"
+                                className="h-7 w-7 p-0 hover:bg-orange-600/20"
+                              >
+                                <CalendarDays className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => window.open(documento.url, '_blank')}
+                              title="Descargar"
+                              className="h-7 w-7 p-0 hover:bg-green-600/20"
+                            >
+                              <Download className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

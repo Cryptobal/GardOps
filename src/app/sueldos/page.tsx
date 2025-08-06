@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SueldoInput, SueldoResultado } from '@/lib/sueldo/tipos/sueldo';
 import { formatearCLP } from '@/lib/sueldo/utils/redondeo';
-import { Settings, Calculator, TrendingUp, DollarSign, FileText, Shield, Users, Building2 } from 'lucide-react';
+import { Settings, Calculator, TrendingUp, DollarSign, FileText, Shield, Users, Building2, Heart } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SueldosPage() {
@@ -20,6 +20,7 @@ export default function SueldosPage() {
     sueldoBase: 0,
     fecha: new Date(),
     afp: '',
+    tipoSalud: 'fonasa',
     tipoContrato: 'indefinido',
     horasExtras: { cincuenta: 0, cien: 0 },
     bonos: {},
@@ -30,7 +31,8 @@ export default function SueldosPage() {
     apv: 0,
     cuenta2: 0,
     cotizacionAdicionalUF: 0,
-    diasAusencia: 0
+    diasAusencia: 0,
+    excedenteSalud: 0
   });
 
   const [resultado, setResultado] = useState<SueldoResultado | null>(null);
@@ -87,9 +89,9 @@ export default function SueldosPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
@@ -122,22 +124,22 @@ export default function SueldosPage() {
           {/* Formulario */}
           <div className="xl:col-span-1">
             <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-              <CardHeader className="pb-4">
+              <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <FileText className="h-5 w-5 text-blue-600" />
                   Datos de Entrada
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4">
                 {/* Información Básica */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                     <Building2 className="h-4 w-4" />
                     Información Básica
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
                       <Label htmlFor="sueldoBase" className="text-sm font-medium">
                         Sueldo Base *
                       </Label>
@@ -147,29 +149,16 @@ export default function SueldosPage() {
                         value={input.sueldoBase || ''}
                         onChange={(e) => handleInputChange('sueldoBase', Number(e.target.value) || 0)}
                         placeholder="550.000"
-                        className="h-10"
+                        className="h-9"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="fecha" className="text-sm font-medium">
-                        Fecha *
-                      </Label>
-                      <Input
-                        id="fecha"
-                        type="date"
-                        value={input.fecha.toISOString().split('T')[0]}
-                        onChange={(e) => handleInputChange('fecha', new Date(e.target.value))}
-                        className="h-10"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <Label htmlFor="afp" className="text-sm font-medium">
                         AFP *
                       </Label>
                       <Select value={input.afp} onValueChange={(value) => handleInputChange('afp', value)}>
-                        <SelectTrigger className="h-10">
+                        <SelectTrigger className="h-9">
                           <SelectValue placeholder="Seleccione AFP" />
                         </SelectTrigger>
                         <SelectContent>
@@ -184,12 +173,12 @@ export default function SueldosPage() {
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <Label htmlFor="tipoContrato" className="text-sm font-medium">
                         Tipo de Contrato
                       </Label>
                       <Select value={input.tipoContrato} onValueChange={(value) => handleInputChange('tipoContrato', value)}>
-                        <SelectTrigger className="h-10">
+                        <SelectTrigger className="h-9">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -199,18 +188,33 @@ export default function SueldosPage() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="tipoSalud" className="text-sm font-medium">
+                        Tipo de Salud
+                      </Label>
+                      <Select value={input.tipoSalud || 'fonasa'} onValueChange={(value) => handleInputChange('tipoSalud', value)}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fonasa">Fonasa</SelectItem>
+                          <SelectItem value="isapre">Isapre</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 
                 {/* Horas Extras */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                     <TrendingUp className="h-4 w-4" />
                     Horas Extras
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                  <div className="space-y-2">
+                    <div className="space-y-1">
                       <Label htmlFor="horas50" className="text-xs font-medium">
                         50% (Se consideran)
                       </Label>
@@ -220,35 +224,21 @@ export default function SueldosPage() {
                         value={input.horasExtras?.cincuenta || ''}
                         onChange={(e) => handleNestedInputChange('horasExtras', 'cincuenta', Number(e.target.value) || 0)}
                         placeholder="0"
-                        className="h-10"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="horas100" className="text-xs font-medium text-slate-500">
-                        100% (No se consideran)
-                      </Label>
-                      <Input
-                        id="horas100"
-                        type="number"
-                        value={input.horasExtras?.cien || ''}
-                        onChange={(e) => handleNestedInputChange('horasExtras', 'cien', Number(e.target.value) || 0)}
-                        placeholder="0"
-                        className="h-10 bg-slate-50 dark:bg-slate-700"
-                        disabled
+                        className="h-9"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Bonos y Comisiones */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                     <DollarSign className="h-4 w-4" />
                     Bonos y Comisiones
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
                       <Label htmlFor="comisiones" className="text-xs font-medium">
                         Comisiones
                       </Label>
@@ -258,10 +248,10 @@ export default function SueldosPage() {
                         value={input.comisiones || ''}
                         onChange={(e) => handleInputChange('comisiones', Number(e.target.value) || 0)}
                         placeholder="0"
-                        className="h-10"
+                        className="h-9"
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <Label htmlFor="nocturnidad" className="text-xs font-medium">
                         Bono Nocturnidad
                       </Label>
@@ -271,21 +261,48 @@ export default function SueldosPage() {
                         value={input.bonos?.nocturnidad || ''}
                         onChange={(e) => handleNestedInputChange('bonos', 'nocturnidad', Number(e.target.value) || 0)}
                         placeholder="0"
-                        className="h-10"
+                        className="h-9"
                       />
                     </div>
                   </div>
                 </div>
 
+                {/* Excedente Salud - Solo para Isapre */}
+                {input.tipoSalud === 'isapre' && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                      <Heart className="h-4 w-4" />
+                      Excedente Salud
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="space-y-1">
+                        <Label htmlFor="excedenteSalud" className="text-xs font-medium">
+                          Cotización Adicional (UF)
+                        </Label>
+                        <Input
+                          id="excedenteSalud"
+                          type="number"
+                          step="0.01"
+                          value={input.excedenteSalud || ''}
+                          onChange={(e) => handleInputChange('excedenteSalud', Number(e.target.value) || 0)}
+                          placeholder="0.00"
+                          className="h-9"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* No Imponible */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                     <Shield className="h-4 w-4" />
                     No Imponible
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
                       <Label htmlFor="colacion" className="text-xs font-medium">
                         Colación
                       </Label>
@@ -295,10 +312,10 @@ export default function SueldosPage() {
                         value={input.noImponible?.colacion || ''}
                         onChange={(e) => handleNestedInputChange('noImponible', 'colacion', Number(e.target.value) || 0)}
                         placeholder="0"
-                        className="h-10"
+                        className="h-9"
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <Label htmlFor="movilizacion" className="text-xs font-medium">
                         Movilización
                       </Label>
@@ -308,21 +325,21 @@ export default function SueldosPage() {
                         value={input.noImponible?.movilizacion || ''}
                         onChange={(e) => handleNestedInputChange('noImponible', 'movilizacion', Number(e.target.value) || 0)}
                         placeholder="0"
-                        className="h-10"
+                        className="h-9"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Descuentos */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                     <Users className="h-4 w-4" />
                     Descuentos
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
                       <Label htmlFor="anticipos" className="text-xs font-medium">
                         Anticipos
                       </Label>
@@ -332,10 +349,10 @@ export default function SueldosPage() {
                         value={input.anticipos || ''}
                         onChange={(e) => handleInputChange('anticipos', Number(e.target.value) || 0)}
                         placeholder="0"
-                        className="h-10"
+                        className="h-9"
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <Label htmlFor="judiciales" className="text-xs font-medium">
                         Judiciales
                       </Label>
@@ -345,7 +362,7 @@ export default function SueldosPage() {
                         value={input.judiciales || ''}
                         onChange={(e) => handleInputChange('judiciales', Number(e.target.value) || 0)}
                         placeholder="0"
-                        className="h-10"
+                        className="h-9"
                       />
                     </div>
                   </div>
@@ -355,7 +372,7 @@ export default function SueldosPage() {
                   onClick={handleCalcular} 
                   disabled={loading || !isFormValid}
                   size="lg"
-                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                  className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium"
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">
@@ -383,7 +400,7 @@ export default function SueldosPage() {
           {resultado && (
             <div className="xl:col-span-2">
               <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-                <CardHeader className="pb-4">
+                <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <TrendingUp className="h-5 w-5 text-green-600" />
                     Resultado del Cálculo
@@ -399,8 +416,8 @@ export default function SueldosPage() {
                     </TabsList>
 
                     {/* Resumen */}
-                    <TabsContent value="resumen" className="space-y-6">
-                      <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 p-6 rounded-xl border border-green-200 dark:border-green-800">
+                    <TabsContent value="resumen" className="space-y-4">
+                      <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 p-4 rounded-xl border border-green-200 dark:border-green-800">
                         <div className="text-center">
                           <h3 className="text-lg font-semibold text-green-800 dark:text-green-400 mb-2">
                             Sueldo Líquido
@@ -411,20 +428,20 @@ export default function SueldosPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
                           <div className="text-sm text-blue-600 dark:text-blue-400 font-medium">Total Imponible</div>
                           <div className="text-lg font-bold text-blue-700 dark:text-blue-300">
                             {formatearCLP(resultado.imponible.total)}
                           </div>
                         </div>
-                        <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
+                        <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg">
                           <div className="text-sm text-orange-600 dark:text-orange-400 font-medium">Cotizaciones</div>
                           <div className="text-lg font-bold text-orange-700 dark:text-orange-300">
                             {formatearCLP(resultado.cotizaciones.total)}
                           </div>
                         </div>
-                        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                        <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
                           <div className="text-sm text-red-600 dark:text-red-400 font-medium">Impuesto Único</div>
                           <div className="text-lg font-bold text-red-700 dark:text-red-300">
                             {formatearCLP(resultado.impuesto.impuestoUnico)}
@@ -434,8 +451,8 @@ export default function SueldosPage() {
                     </TabsContent>
 
                     {/* Imponible */}
-                    <TabsContent value="imponible" className="space-y-4">
-                      <div className="space-y-3">
+                    <TabsContent value="imponible" className="space-y-3">
+                      <div className="space-y-2">
                         <div className="flex justify-between items-center py-2 px-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
                           <span className="font-medium">Sueldo Base:</span>
                           <span className="font-bold">{formatearCLP(resultado.imponible.sueldoBase)}</span>
@@ -482,8 +499,8 @@ export default function SueldosPage() {
                     </TabsContent>
 
                     {/* Cotizaciones */}
-                    <TabsContent value="cotizaciones" className="space-y-4">
-                      <div className="space-y-3">
+                    <TabsContent value="cotizaciones" className="space-y-3">
+                      <div className="space-y-2">
                         <div className="flex justify-between items-center py-2 px-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
                           <span className="font-medium">AFP ({resultado.entrada.afp.toUpperCase()}):</span>
                           <span className="font-bold">{formatearCLP(resultado.cotizaciones.afp)}</span>
@@ -513,8 +530,8 @@ export default function SueldosPage() {
                     </TabsContent>
 
                     {/* Empleador */}
-                    <TabsContent value="empleador" className="space-y-4">
-                      <div className="space-y-3">
+                    <TabsContent value="empleador" className="space-y-3">
+                      <div className="space-y-2">
                         <div className="flex justify-between items-center py-2 px-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
                           <span className="font-medium">SIS:</span>
                           <span className="font-bold">{formatearCLP(resultado.empleador.sis)}</span>

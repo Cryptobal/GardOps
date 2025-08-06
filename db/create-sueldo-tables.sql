@@ -94,12 +94,9 @@ INSERT INTO sueldo_parametros_generales (parametro, valor, descripcion, fecha_vi
 ('TOPE_GRATIFICACION_ANUAL', 2512750.00, 'Tope anual gratificación (4.75 ingresos mínimos)', '2025-01-01'),
 ('TOPE_GRATIFICACION_MENSUAL', 209396.00, 'Tope mensual gratificación (4.75 IM / 12)', '2025-01-01'),
 ('TASA_FONASA', 7.00, 'Tasa de cotización FONASA (%)', '2025-01-01'),
-('TASA_AFC_INDEFINIDO_TRABAJADOR', 0.60, 'Tasa AFC trabajador contrato indefinido (%)', '2025-01-01'),
-('TASA_AFC_INDEFINIDO_EMPLEADOR', 2.40, 'Tasa AFC empleador contrato indefinido (%)', '2025-01-01'),
-('TASA_AFC_PLAZO_FIJO_EMPLEADOR', 3.00, 'Tasa AFC empleador contrato plazo fijo (%)', '2025-01-01'),
-('TASA_SIS_EMPLEADOR', 1.88, 'Tasa SIS pagada por empleador (%)', '2025-01-01'),
-('TASA_REFORMA_PREVISIONAL', 1.00, 'Tasa reforma previsional empleador (%)', '2025-01-01'),
-('TASA_SANNA', 0.03, 'Tasa SANNA empleador (%)', '2025-01-01')
+('HORAS_SEMANALES_JORNADA', 44, 'Jornada semanal legal en horas (44 desde abril 2024)', '2024-04-26'),
+('HORAS_SEMANALES_JORNADA', 42, 'Jornada semanal legal en horas (42 desde abril 2026)', '2026-04-26'),
+('HORAS_SEMANALES_JORNADA', 40, 'Jornada semanal legal en horas (40 desde abril 2028)', '2028-04-26')
 ON CONFLICT (parametro) DO UPDATE SET 
     valor = EXCLUDED.valor,
     fecha_vigencia = EXCLUDED.fecha_vigencia,

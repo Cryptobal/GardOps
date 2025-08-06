@@ -42,13 +42,16 @@ function calcularDescuentoDiasAusencia(sueldoBase: number, diasAusencia?: number
 /**
  * Calcula el valor de las horas extras según normativa oficial
  * Valor por hora: (sueldo base ajustado / 30 / jornada diaria) × 1,5
- * Jornada diaria estándar: 8 horas
+ * Jornada diaria calculada desde jornada semanal: jornada semanal / 5 días laborales
  * SOLO considera horas extras al 50%, excluye las horas al 100%
  */
-function calcularHorasExtras(sueldoBaseAjustado: number, horasExtras?: { cincuenta?: number; cien?: number }): number {
+function calcularHorasExtras(sueldoBaseAjustado: number, parametros: ParametrosSueldo, horasExtras?: { cincuenta?: number; cien?: number }): number {
   if (!horasExtras) return 0;
   
-  const jornadaDiaria = 8; // Horas diarias estándar
+  // Usar jornada semanal desde parámetros en lugar de 8 horas fijas
+  const jornadaSemanal = parametros.horasSemanalesJornada || 44; // Default 44 horas desde abril 2024
+  const jornadaDiaria = jornadaSemanal / 5; // 5 días laborales
+  
   const valorHora = (sueldoBaseAjustado / 30 / jornadaDiaria) * 1.5;
   
   // Solo considerar horas extras al 50%, excluir las horas al 100%
@@ -97,7 +100,7 @@ export function calcularImponible(input: SueldoInput, parametros: ParametrosSuel
   const sueldoBaseAjustado = redondearCLP(sueldoBase - descuentoDiasAusencia);
   
   // Calcular horas extras basado en el sueldo base ajustado
-  const horasExtras = calcularHorasExtras(sueldoBaseAjustado, input.horasExtras);
+  const horasExtras = calcularHorasExtras(sueldoBaseAjustado, parametros, input.horasExtras);
   const comisiones = redondearCLP(input.comisiones || 0);
   const bonos = calcularBonos(input);
   

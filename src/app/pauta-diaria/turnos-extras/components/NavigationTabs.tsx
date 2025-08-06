@@ -2,6 +2,7 @@
 
 import { DollarSign, Calendar, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 
 interface NavigationTabsProps {
   activeTab: 'turnos' | 'dashboard' | 'historial';
@@ -9,21 +10,37 @@ interface NavigationTabsProps {
 }
 
 export default function NavigationTabs({ activeTab, onTabChange }: NavigationTabsProps) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+
   const tabs = [
     {
       name: 'Turnos Pago, Turnos Extras',
+      mobileName: 'Turnos',
       value: 'turnos' as const,
       icon: DollarSign,
       description: 'Administrar pagos pendientes'
     },
     {
       name: 'Dashboard',
+      mobileName: 'Dashboard',
       value: 'dashboard' as const,
       icon: BarChart3,
       description: 'Análisis Big Data'
     },
     {
       name: 'Historial de Planillas',
+      mobileName: 'Historial',
       value: 'historial' as const,
       icon: Calendar,
       description: 'Ver planillas generadas'
@@ -31,10 +48,13 @@ export default function NavigationTabs({ activeTab, onTabChange }: NavigationTab
   ];
 
   return (
-    <div className="flex flex-wrap gap-1 bg-muted/30 p-1 rounded-lg mb-6">
+    <div className={`flex gap-1 bg-muted/30 p-1 rounded-lg mb-6 ${
+      isMobile ? 'grid grid-cols-3' : 'flex-wrap'
+    }`}>
       {tabs.map((tab) => {
         const isActive = activeTab === tab.value;
         const Icon = tab.icon;
+        const displayName = isMobile ? tab.mobileName : tab.name;
         
         return (
           <button
@@ -48,7 +68,9 @@ export default function NavigationTabs({ activeTab, onTabChange }: NavigationTab
             )}
           >
             <Icon className="h-4 w-4" />
-            {tab.name}
+            <span className={isMobile ? 'text-xs' : ''}>
+              {displayName}
+            </span>
           </button>
         );
       })}

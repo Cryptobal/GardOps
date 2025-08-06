@@ -14,14 +14,21 @@ El sistema de cálculo de sueldos de GardOps implementa la lógica completa para
 
 2. **Horas Extras Corregidas:**
    - Valor por hora: `(sueldo base / 30 / jornada diaria) × 1,5`
+   - Jornada diaria calculada desde jornada semanal: `jornada semanal / 5 días laborales`
    - Horas al 50%: `horas × valorHora × 1.5` (solo estas se consideran)
    - Horas al 100%: No se consideran en el cálculo
 
-3. **Cotizaciones AFP Actualizadas:**
+3. **Jornada Semanal Actualizada (Normativa 2024-2028):**
+   - **26 abril 2024**: 44 horas semanales
+   - **26 abril 2026**: 42 horas semanales  
+   - **26 abril 2028**: 40 horas semanales
+   - El sistema aplica automáticamente la jornada según la fecha del cálculo
+
+4. **Cotizaciones AFP Actualizadas:**
    - Tasas oficiales por administradora (2025)
    - Capital: 11.44%, Cuprum: 11.44%, Habitat: 11.27%, etc.
 
-4. **Costos Empleador Corregidos:**
+5. **Costos Empleador Corregidos:**
    - SIS: 1.88% (corregido de 1.85%)
    - AFC: 2.4% (indefinido) o 3% (otros contratos)
    - Mutual: 0.90% (default)

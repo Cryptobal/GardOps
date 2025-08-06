@@ -40,6 +40,12 @@ export function DatePicker({
             className
           )}
           disabled={disabled}
+          onClick={(e) => {
+            if (props.onClick) {
+              props.onClick(e);
+            }
+            // No prevenir el comportamiento por defecto para botones normales
+          }}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
           {date ? format(date, "PPP", { locale: es }) : placeholder}

@@ -91,7 +91,7 @@ export function SearchableCombobox({
                 {options.map((option) => (
                   <div
                     key={option.value}
-                    onClick={() => {
+                    onClick={(e) => {
                       console.log('🖱️ Seleccionando guardia:', option.label, 'disabled:', option.disabled);
                       onValueChange(option.value)
                       setOpen(false)
