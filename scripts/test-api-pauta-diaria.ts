@@ -40,7 +40,7 @@ async function testApiPautaDiaria() {
       INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
       INNER JOIN instalaciones i ON po.instalacion_id = i.id
       LEFT JOIN guardias g ON pm.guardia_id = g.id
-      LEFT JOIN turnos_extras te ON pm.id = te.pauta_id
+      LEFT JOIN TE_turnos_extras te ON pm.id = te.pauta_id
       LEFT JOIN guardias rg ON te.guardia_id = rg.id
       
       WHERE pm.anio = 2025 AND pm.mes = 8 AND pm.dia = 5

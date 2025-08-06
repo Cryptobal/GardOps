@@ -1,34 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@vercel/postgres';
+import { query } from '@/lib/database';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔄 Iniciando migración: Agregar columna codigo a planillas_turnos_extras...');
+    console.log('🔄 Iniciando migración: Agregar columna codigo a TE_planillas_turnos_extras...');
 
     // 1. Agregar columna codigo si no existe
     console.log('📝 Agregando columna codigo...');
-    await sql`
-      ALTER TABLE planillas_turnos_extras 
+    await query(`
+      ALTER TABLE TE_planillas_turnos_extras 
       ADD COLUMN IF NOT EXISTS codigo VARCHAR(20) UNIQUE
-    `;
+    `);
 
     // 2. Crear índice para búsquedas rápidas
     console.log('📊 Creando índice para codigo...');
-    await sql`
-      CREATE INDEX IF NOT EXISTS idx_planillas_turnos_extras_codigo 
-      ON planillas_turnos_extras(codigo)
-    `;
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_TE_planillas_turnos_extras_codigo 
+      ON TE_planillas_turnos_extras(codigo)
+    `);
 
     // 3. Actualizar planillas existentes con códigos retroactivos
     console.log('🔄 Generando códigos para planillas existentes...');
     
     // Obtener todas las planillas sin código
-    const { rows: planillasSinCodigo } = await sql`
+    const { rows: planillasSinCodigo } = await query(`
       SELECT id, fecha_generacion 
-      FROM planillas_turnos_extras 
+      FROM TE_planillas_turnos_extras 
       WHERE codigo IS NULL 
       ORDER BY fecha_generacion, id
-    `;
+    `);
 
     console.log(`📋 Encontradas ${planillasSinCodigo.length} planillas sin código`);
 
@@ -53,11 +53,11 @@ export async function POST(request: NextRequest) {
       for (let i = 0; i < planillas.length; i++) {
         const codigo = `TE-${year}-${month}-${String(i + 1).padStart(4, '0')}`;
         
-        await sql`
-          UPDATE planillas_turnos_extras 
-          SET codigo = ${codigo} 
-          WHERE id = ${planillas[i].id}
-        `;
+        await query(`
+          UPDATE TE_planillas_turnos_extras 
+          SET codigo = $1 
+          WHERE id = $2
+        `, [codigo, planillas[i].id]);
         
         totalActualizadas++;
       }
@@ -66,13 +66,13 @@ export async function POST(request: NextRequest) {
     console.log(`✅ ${totalActualizadas} planillas actualizadas con código`);
 
     // 4. Verificar la migración
-    const { rows: verificacion } = await sql`
+    const { rows: verificacion } = await query(`
       SELECT 
         COUNT(*) as total,
         COUNT(codigo) as con_codigo,
         COUNT(*) - COUNT(codigo) as sin_codigo
-      FROM planillas_turnos_extras
-    `;
+      FROM TE_planillas_turnos_extras
+    `);
 
     const resultado = {
       success: true,

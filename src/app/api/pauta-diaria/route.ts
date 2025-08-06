@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
       INNER JOIN instalaciones i ON po.instalacion_id = i.id
       LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       LEFT JOIN guardias g ON pm.guardia_id = g.id
-      LEFT JOIN turnos_extras te ON pm.id = te.pauta_id
+      LEFT JOIN TE_turnos_extras te ON pm.id = te.pauta_id
       LEFT JOIN guardias rg ON te.guardia_id = rg.id
       
       WHERE pm.anio = $1 AND pm.mes = $2 AND pm.dia = $3

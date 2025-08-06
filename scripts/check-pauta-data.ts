@@ -30,15 +30,15 @@ async function checkPautaData() {
       });
     }
 
-    // Verificar datos en turnos_extras
+    // Verificar datos en TE_turnos_extras
     const turnosExtras = await client.query(`
       SELECT id, guardia_id, pauta_id, estado, fecha
-      FROM turnos_extras 
+      FROM TE_turnos_extras 
       ORDER BY fecha DESC
       LIMIT 10
     `);
 
-    console.log('\n📋 Datos en turnos_extras:');
+    console.log('\n📋 Datos en TE_turnos_extras:');
     if (turnosExtras.rows.length === 0) {
       console.log('  - No hay datos en la tabla');
     } else {

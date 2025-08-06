@@ -57,7 +57,7 @@ async function testPPCOperations() {
       `, [ppc.id, guardia.id]);
 
       await client.query(`
-        UPDATE turnos_extras 
+        UPDATE TE_turnos_extras 
         SET guardia_id = $2,
             updated_at = NOW()
         WHERE pauta_id = $1 AND estado = 'ppc'
@@ -81,7 +81,7 @@ async function testPPCOperations() {
       `, [ppc.id]);
 
       await client.query(`
-        DELETE FROM turnos_extras 
+        DELETE FROM TE_turnos_extras 
         WHERE pauta_id = $1 AND estado = 'ppc'
       `, [ppc.id]);
 

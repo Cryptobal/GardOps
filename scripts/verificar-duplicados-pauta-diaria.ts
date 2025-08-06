@@ -4,21 +4,21 @@ async function verificarDuplicadosPautaDiaria() {
   console.log('🔍 Verificando duplicados en pauta diaria...');
   
   try {
-    // Verificar duplicados en turnos_extras para la misma pauta
+    // Verificar duplicados en TE_turnos_extras para la misma pauta
     const duplicadosTurnosExtras = await query(`
       SELECT 
         pauta_id,
         COUNT(*) as cantidad_duplicados,
         array_agg(guardia_id) as guardias_duplicados,
         array_agg(created_at) as fechas_creacion
-      FROM turnos_extras 
+      FROM TE_turnos_extras 
       GROUP BY pauta_id 
       HAVING COUNT(*) > 1
       ORDER BY cantidad_duplicados DESC
     `);
 
     if (duplicadosTurnosExtras.rows.length > 0) {
-      console.log('⚠️  Encontrados duplicados en turnos_extras:');
+      console.log('⚠️  Encontrados duplicados en TE_turnos_extras:');
       duplicadosTurnosExtras.rows.forEach((row: any) => {
         console.log(`   Pauta ID: ${row.pauta_id}, Duplicados: ${row.cantidad_duplicados}`);
       });
@@ -31,10 +31,10 @@ async function verificarDuplicadosPautaDiaria() {
         
         // Mantener solo el registro más reciente
         await query(`
-          DELETE FROM turnos_extras 
+          DELETE FROM TE_turnos_extras 
           WHERE pauta_id = $1 
           AND id NOT IN (
-            SELECT id FROM turnos_extras 
+            SELECT id FROM TE_turnos_extras 
             WHERE pauta_id = $1 
             ORDER BY created_at DESC 
             LIMIT 1
@@ -44,7 +44,7 @@ async function verificarDuplicadosPautaDiaria() {
         console.log(`   ✅ Limpiados duplicados para pauta ${pautaId}`);
       }
     } else {
-      console.log('✅ No se encontraron duplicados en turnos_extras');
+      console.log('✅ No se encontraron duplicados en TE_turnos_extras');
     }
 
     // Verificar que no haya puestos duplicados en la pauta mensual

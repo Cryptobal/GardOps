@@ -14,7 +14,7 @@ async function corregirBotonesEliminar() {
         te.guardia_id as cobertura_guardia_id
       FROM as_turnos_pauta_mensual pm
       INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
-      LEFT JOIN turnos_extras te ON pm.id = te.pauta_id
+      LEFT JOIN TE_turnos_extras te ON pm.id = te.pauta_id
       WHERE (pm.anio = 2025 AND pm.mes = 8 AND pm.dia = 5)
       ORDER BY pm.id
       LIMIT 10
@@ -45,7 +45,7 @@ async function corregirBotonesEliminar() {
         AND pm.estado = 'T' 
         AND po.es_ppc = true 
         AND EXISTS (
-          SELECT 1 FROM turnos_extras te 
+          SELECT 1 FROM TE_turnos_extras te 
           WHERE te.pauta_id = pm.id
         )
         AND (pm.anio = 2025 AND pm.mes = 8 AND pm.dia = 5)
@@ -69,7 +69,7 @@ async function corregirBotonesEliminar() {
         END as tiene_cobertura
       FROM as_turnos_pauta_mensual pm
       INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
-      LEFT JOIN turnos_extras te ON pm.id = te.pauta_id
+      LEFT JOIN TE_turnos_extras te ON pm.id = te.pauta_id
       WHERE (pm.anio = 2025 AND pm.mes = 8 AND pm.dia = 5)
       ORDER BY pm.id
       LIMIT 10

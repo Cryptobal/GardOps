@@ -35,7 +35,7 @@ async function corregirDuplicacionCoberturaPPC() {
         STRING_AGG(te.guardia_id::text, ', ') as guardias_ids
       FROM as_turnos_pauta_mensual pm
       INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
-      LEFT JOIN turnos_extras te ON pm.id = te.pauta_id
+      LEFT JOIN TE_turnos_extras te ON pm.id = te.pauta_id
       WHERE po.es_ppc = true 
         AND (pm.anio = 2025 AND pm.mes = 8 AND pm.dia = 5)
         AND te.id IS NOT NULL
@@ -59,7 +59,7 @@ async function corregirDuplicacionCoberturaPPC() {
           ROW_NUMBER() OVER (ORDER BY te.created_at DESC) as rn
         FROM as_turnos_pauta_mensual pm
         INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
-        LEFT JOIN turnos_extras te ON pm.id = te.pauta_id
+        LEFT JOIN TE_turnos_extras te ON pm.id = te.pauta_id
         WHERE po.es_ppc = true 
           AND pm.puesto_id = $1
           AND (pm.anio = 2025 AND pm.mes = 8 AND pm.dia = 5)
@@ -73,7 +73,7 @@ async function corregirDuplicacionCoberturaPPC() {
       for (const cobertura of coberturasAEliminar) {
         console.log(`  🗑️ Eliminando cobertura ${cobertura.turno_extra_id} (guardia ${cobertura.guardia_id})`);
         await query(`
-          DELETE FROM turnos_extras 
+          DELETE FROM TE_turnos_extras 
           WHERE id = $1
         `, [cobertura.turno_extra_id]);
       }
@@ -89,7 +89,7 @@ async function corregirDuplicacionCoberturaPPC() {
         STRING_AGG(g.nombre, ', ') as coberturas_nombres
       FROM as_turnos_pauta_mensual pm
       INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
-      LEFT JOIN turnos_extras te ON pm.id = te.pauta_id
+      LEFT JOIN TE_turnos_extras te ON pm.id = te.pauta_id
       LEFT JOIN guardias g ON te.guardia_id = g.id
       WHERE po.es_ppc = true 
         AND (pm.anio = 2025 AND pm.mes = 8 AND pm.dia = 5)

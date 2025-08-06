@@ -101,9 +101,9 @@ async function verificarYEjecutarMigraciones() {
     // Verificar datos existentes
     console.log('\n📊 Verificando datos existentes...');
     
-    const countPlanillas = await query(`SELECT COUNT(*) as total FROM planillas_turnos_extras`);
-    const countRelaciones = await query(`SELECT COUNT(*) as total FROM planilla_turno_relacion`);
-    const countTurnosConPlanilla = await query(`SELECT COUNT(*) as total FROM turnos_extras WHERE planilla_id IS NOT NULL`);
+    const countPlanillas = await query(`SELECT COUNT(*) as total FROM TE_planillas_turnos_extras`);
+    const countRelaciones = await query(`SELECT COUNT(*) as total FROM TE_planilla_turno_relacion`);
+    const countTurnosConPlanilla = await query(`SELECT COUNT(*) as total FROM TE_turnos_extras WHERE planilla_id IS NOT NULL`);
     
     console.log(`   - Planillas existentes: ${countPlanillas.rows[0].total}`);
     console.log(`   - Relaciones turno-planilla: ${countRelaciones.rows[0].total}`);

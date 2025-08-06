@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
         COUNT(CASE WHEN te.pagado = true THEN 1 END) as turnos_pagados,
         COUNT(CASE WHEN te.pagado = false THEN 1 END) as turnos_no_pagados
       FROM instalaciones i
-      INNER JOIN turnos_extras te ON i.id = te.instalacion_id
+      INNER JOIN TE_turnos_extras te ON i.id = te.instalacion_id
       WHERE i.estado = 'Activo'
       GROUP BY i.id, i.nombre, i.direccion, i.ciudad, i.comuna, i.estado, i.valor_turno_extra
       ORDER BY i.nombre
