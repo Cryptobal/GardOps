@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@vercel/postgres';
+import { query } from '@/lib/database';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,19 +8,19 @@ export async function POST(request: NextRequest) {
     // 1. Verificar si las tablas actuales existen
     console.log('🔍 Verificando tablas existentes...');
     
-    const { rows: existingTables } = await sql`
+    const { rows: existingTables } = await query(`
       SELECT table_name 
       FROM information_schema.tables 
       WHERE table_name IN ('planillas_turnos_extras', 'planilla_turno_relacion', 'turnos_extras')
       AND table_schema = 'public'
-    `;
+    `);
 
     console.log('📋 Tablas encontradas:', existingTables.map(t => t.table_name));
 
     // 2. Renombrar planillas_turnos_extras a TE_planillas_turnos_extras
     console.log('🔄 Renombrando planillas_turnos_extras...');
     try {
-      await sql`ALTER TABLE planillas_turnos_extras RENAME TO TE_planillas_turnos_extras`;
+      await query('ALTER TABLE planillas_turnos_extras RENAME TO TE_planillas_turnos_extras');
       console.log('✅ planillas_turnos_extras → TE_planillas_turnos_extras');
     } catch (error) {
       console.log('⚠️ planillas_turnos_extras ya renombrada o no existe');
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     // 3. Renombrar turnos_extras a TE_turnos_extras
     console.log('🔄 Renombrando turnos_extras...');
     try {
-      await sql`ALTER TABLE turnos_extras RENAME TO TE_turnos_extras`;
+      await query('ALTER TABLE turnos_extras RENAME TO TE_turnos_extras');
       console.log('✅ turnos_extras → TE_turnos_extras');
     } catch (error) {
       console.log('⚠️ turnos_extras ya renombrada o no existe');
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     // 4. Renombrar planilla_turno_relacion a TE_planilla_turno_relacion (si existe)
     console.log('🔄 Renombrando planilla_turno_relacion...');
     try {
-      await sql`ALTER TABLE planilla_turno_relacion RENAME TO TE_planilla_turno_relacion`;
+      await query('ALTER TABLE planilla_turno_relacion RENAME TO TE_planilla_turno_relacion');
       console.log('✅ planilla_turno_relacion → TE_planilla_turno_relacion');
     } catch (error) {
       console.log('⚠️ planilla_turno_relacion ya renombrada o no existe');
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     for (const indexQuery of indicesPlanillas) {
       try {
-        await sql.unsafe(indexQuery);
+        await query(indexQuery);
         console.log('✅ Índice creado:', indexQuery.split('IF NOT EXISTS ')[1]);
       } catch (error) {
         console.log('⚠️ Índice ya existe o error:', error);
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     for (const indexQuery of indicesTurnos) {
       try {
-        await sql.unsafe(indexQuery);
+        await query(indexQuery);
         console.log('✅ Índice creado:', indexQuery.split('IF NOT EXISTS ')[1]);
       } catch (error) {
         console.log('⚠️ Índice ya existe o error:', error);
@@ -84,19 +84,19 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Verificar las tablas renombradas
-    const { rows: newTables } = await sql`
+    const { rows: newTables } = await query(`
       SELECT table_name 
       FROM information_schema.tables 
       WHERE table_name LIKE 'TE_%'
       AND table_schema = 'public'
       ORDER BY table_name
-    `;
+    `);
 
     console.log('📋 Tablas con prefijo TE_:', newTables.map(t => t.table_name));
 
     // 7. Verificar datos en las tablas
-    const { rows: countPlanillas } = await sql`SELECT COUNT(*) as count FROM TE_planillas_turnos_extras`;
-    const { rows: countTurnos } = await sql`SELECT COUNT(*) as count FROM TE_turnos_extras`;
+    const { rows: countPlanillas } = await query('SELECT COUNT(*) as count FROM TE_planillas_turnos_extras');
+    const { rows: countTurnos } = await query('SELECT COUNT(*) as count FROM TE_turnos_extras');
 
     const resultado = {
       success: true,
