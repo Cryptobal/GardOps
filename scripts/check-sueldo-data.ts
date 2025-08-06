@@ -12,7 +12,7 @@ async function checkData() {
     const parametros = await query(`SELECT * FROM sueldo_parametros_generales ORDER BY id`);
     if (parametros.rows.length > 0) {
       parametros.rows.forEach((p: any) => {
-        console.log(`   ID: ${p.id} | ${p.nombre}: ${p.valor}`);
+        console.log(`   ID: ${p.id} | ${p.parametro}: ${p.valor}`);
       });
     } else {
       console.log('   (Sin datos)');

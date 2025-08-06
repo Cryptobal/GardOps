@@ -95,7 +95,7 @@ export default function TurnosExtrasPage() {
   const [showPagoModal, setShowPagoModal] = useState(false);
   const [observacionesPago, setObservacionesPago] = useState('');
   const [procesandoPago, setProcesandoPago] = useState(false);
-  const [showFiltros, setShowFiltros] = useState(true);
+  const [showFiltros, setShowFiltros] = useState(false);
   const [instalaciones, setInstalaciones] = useState<Array<{ id: string; nombre: string }>>([]);
   const [showDashboard, setShowDashboard] = useState(false);
   const [procesandoPlanilla, setProcesandoPlanilla] = useState(false);

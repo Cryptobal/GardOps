@@ -369,84 +369,88 @@ export default function GuardiasPage() {
               router.push(`/guardias/${guardia.id}`);
             }}
             mobileCard={(guardia) => (
-              <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                      <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <Card className="cursor-pointer hover:bg-muted/50 transition-colors h-full">
+                <CardContent className="p-3">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
+                        <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <ToggleStatus
+                        checked={guardia.activo}
+                        disabled
+                        size="sm"
+                      />
                     </div>
-                    <div className="flex-1 min-w-0">
+                    
+                    <div className="space-y-1">
                       <h3 className="font-medium text-sm truncate">{guardia.nombre_completo}</h3>
                       <p className="text-xs text-muted-foreground truncate">{guardia.rut}</p>
-                    </div>
-                    <ToggleStatus
-                      checked={guardia.activo}
-                      disabled
-                      size="sm"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-medium">{guardia.telefono}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-muted-foreground truncate">{guardia.email}</span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2 pt-2">
-                      <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="text-sm truncate">
-                        {guardia.instalacion_asignada || "Sin asignar"}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between pt-2">
-                      <div className="flex-1 min-w-0">
-                        {guardia.instalacion_asignada && (
-                          <div className="flex items-center space-x-2">
-                            <User className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                            <span className="text-xs text-muted-foreground truncate">
-                              {guardia.rol_actual || "Sin rol asignado"}
-                            </span>
-                          </div>
-                        )}
+                      
+                      <div className="flex items-center space-x-1">
+                        <span className="text-xs font-medium">{guardia.telefono}</span>
                       </div>
                       
-                      <div className="flex-shrink-0 ml-2">
-                        {(() => {
-                          const alerta = (guardia as any).alerta_os10;
-                          if (!alerta || alerta.estado === 'sin_fecha') {
-                            return <Badge variant="secondary" className="text-xs">Sin OS10</Badge>;
-                          }
+                      {guardia.email && (
+                        <div className="flex items-center space-x-1">
+                          <span className="text-xs text-muted-foreground truncate">{guardia.email}</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center space-x-1 pt-1">
+                        <Building2 className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        <span className="text-xs truncate">
+                          {guardia.instalacion_asignada || "Sin asignar"}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-1">
+                        <div className="flex-1 min-w-0">
+                          {guardia.instalacion_asignada && (
+                            <div className="flex items-center space-x-1">
+                              <User className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                              <span className="text-xs text-muted-foreground truncate">
+                                {guardia.rol_actual || "Sin rol asignado"}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex-shrink-0 ml-2">
+                          {(() => {
+                            const alerta = (guardia as any).alerta_os10;
+                            if (!alerta || alerta.estado === 'sin_fecha') {
+                              return <Badge variant="secondary" className="text-xs">Sin OS10</Badge>;
+                            }
 
-                          if (alerta.estado === 'vencido') {
-                            return <Badge variant="destructive" className="text-xs">Vencido</Badge>;
-                          } else if (alerta.estado === 'alerta') {
-                            return <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs">
-                              Por vencer ({alerta.dias_restantes} días)
-                            </Badge>;
-                          } else {
-                            return <Badge variant="default" className="text-xs">Vigente</Badge>;
-                          }
-                        })()}
+                            if (alerta.estado === 'vencido') {
+                              return <Badge variant="destructive" className="text-xs">Vencido</Badge>;
+                            } else if (alerta.estado === 'alerta') {
+                              return <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs">
+                                Por vencer ({alerta.dias_restantes} días)
+                              </Badge>;
+                            } else {
+                              return <Badge variant="default" className="text-xs">Vigente</Badge>;
+                            }
+                          })()}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  {/* Botones de acción para móvil */}
-                  <div className="flex items-center space-x-2 pt-3 mt-3 border-t">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/guardias/${guardia.id}`);
-                      }}
-                    >
-                      Ver
-                    </Button>
+                    
+                    {/* Botones de acción para móvil */}
+                    <div className="flex items-center space-x-2 pt-2 mt-2 border-t">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/guardias/${guardia.id}`);
+                        }}
+                      >
+                        Ver
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

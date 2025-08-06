@@ -82,13 +82,13 @@ async function updateValues() {
     
     for (const [nombre, valor] of parametros) {
       const exists = await query(
-        `SELECT id FROM sueldo_parametros_generales WHERE nombre = $1`,
+        `SELECT id FROM sueldo_parametros_generales WHERE parametro = $1`,
         [nombre]
       );
       
       if (exists.rows.length === 0) {
         await query(
-          `INSERT INTO sueldo_parametros_generales (nombre, valor) 
+          `INSERT INTO sueldo_parametros_generales (parametro, valor) 
            VALUES ($1, $2)`,
           [nombre, valor]
         );
@@ -97,7 +97,7 @@ async function updateValues() {
         await query(
           `UPDATE sueldo_parametros_generales 
            SET valor = $1 
-           WHERE nombre = $2`,
+           WHERE parametro = $2`,
           [valor, nombre]
         );
         console.log(`   ✅ Actualizado ${nombre}: ${valor}`);

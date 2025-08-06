@@ -41,14 +41,14 @@ async function obtenerParametros(input: SueldoInput): Promise<ParametrosSueldo> 
     
     // 2. Obtener tope imponible y otros parámetros generales
     const resultParametros = await query(
-      `SELECT nombre, valor FROM sueldo_parametros_generales 
+      `SELECT parametro, valor FROM sueldo_parametros_generales 
        ORDER BY id`,
       []
     );
     
     const parametrosMap: { [key: string]: number } = {};
     resultParametros.rows.forEach((row: any) => {
-      parametrosMap[row.nombre] = Number(row.valor);
+      parametrosMap[row.parametro] = Number(row.valor);
     });
     
     // 3. Obtener tasa de mutualidad (solo para cálculo del empleador)

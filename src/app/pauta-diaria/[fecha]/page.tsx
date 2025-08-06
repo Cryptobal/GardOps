@@ -105,6 +105,9 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
     estado: 'all'
   });
   
+  // Estado para controlar la visibilidad de los filtros
+  const [showFiltros, setShowFiltros] = useState(false);
+  
   // Estados para controlar popovers
   const [popoverObservaciones, setPopoverObservaciones] = useState<string | null>(null);
   const [popoverReemplazo, setPopoverReemplazo] = useState<string | null>(null);
@@ -1034,30 +1037,38 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
 
         {/* Filtros y Resumen */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-2">
+          <CardHeader 
+            className="cursor-pointer hover:bg-muted/50 transition-colors"
+            onClick={() => setShowFiltros(!showFiltros)}
+          >
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
                 <Filter className="h-5 w-5" />
-                <h3 className="text-lg font-semibold">Filtros y Resumen</h3>
-              </div>
-              <div className="flex items-center gap-2">
+                Filtros y Resumen
                 <span className="text-sm text-muted-foreground">
-                  {puestosFiltrados.length} resultados
+                  ({puestosFiltrados.length} resultados)
                 </span>
+              </CardTitle>
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={limpiarFiltros}
-                  className="flex items-center gap-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    limpiarFiltros();
+                  }}
                 >
-                  <RotateCcw className="h-4 w-4" />
+                  <RotateCcw className="h-4 w-4 mr-1" />
                   Limpiar
                 </Button>
               </div>
             </div>
-            
-            {/* Filtros */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          </CardHeader>
+          
+          {showFiltros && (
+            <CardContent className="pt-0">
+              {/* Filtros */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               {/* Búsqueda */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">🔍 Búsqueda</Label>
@@ -1160,7 +1171,8 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                 <div className="text-sm text-muted-foreground">❌ Sin cobertura</div>
               </div>
             </div>
-          </CardContent>
+            </CardContent>
+          )}
         </Card>
 
         {/* Tabla de puestos */}

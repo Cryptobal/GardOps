@@ -20,14 +20,15 @@ export async function GET(request: NextRequest) {
     if (tipo === 'all' || tipo === 'parametros') {
       const resultParametros = await query(
         `SELECT * FROM sueldo_parametros_generales 
-         ORDER BY nombre`
+         ORDER BY parametro`
       );
       data.parametros = resultParametros.rows;
     }
 
     if (tipo === 'all' || tipo === 'afp') {
       const resultAFP = await query(
-        `SELECT * FROM sueldo_afp 
+        `SELECT id, nombre, comision, porcentaje_fondo 
+         FROM sueldo_afp 
          ORDER BY nombre`
       );
       data.afp = resultAFP.rows;
@@ -74,65 +75,57 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { tipo, data } = body;
+    const { tipo, id, campo, valor } = body;
+
+    let querySQL = '';
+    let params: any[] = [];
 
     switch (tipo) {
-      case 'uf':
-        await query(
-          `INSERT INTO sueldo_valor_uf (fecha, valor) 
-           VALUES ($1, $2) 
-           ON CONFLICT (fecha) 
-           DO UPDATE SET valor = $2`,
-          [data.fecha, data.valor]
-        );
+      case 'parametros':
+        querySQL = `UPDATE sueldo_parametros_generales SET valor = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
+        params = [valor, id];
         break;
 
-      case 'parametro':
-        await query(
-          `UPDATE sueldo_parametros_generales 
-           SET valor = $1 
-           WHERE id = $2`,
-          [data.valor, data.id]
-        );
+      case 'uf':
+        querySQL = `UPDATE sueldo_valor_uf SET valor = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
+        params = [valor, id];
         break;
 
       case 'afp':
-        await query(
-          `UPDATE sueldo_afp 
-           SET comision = $1 
-           WHERE id = $2`,
-          [data.comision, data.id]
-        );
+        if (campo === 'tasa_cotizacion') {
+          querySQL = `UPDATE sueldo_afp SET tasa_cotizacion = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
+        } else if (campo === 'comision') {
+          querySQL = `UPDATE sueldo_afp SET comision = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
+        } else if (campo === 'sis') {
+          querySQL = `UPDATE sueldo_afp SET sis = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
+        }
+        params = [valor, id];
         break;
 
       case 'isapre':
-        await query(
-          `UPDATE sueldo_isapre 
-           SET nombre = $1, plan = $2, valor_uf = $3 
-           WHERE id = $4`,
-          [data.nombre, data.plan, data.valor_uf, data.id]
-        );
+        querySQL = `UPDATE sueldo_isapre SET nombre = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
+        params = [valor, id];
         break;
 
       case 'mutualidad':
-        await query(
-          `UPDATE sueldo_mutualidad 
-           SET entidad = $1, tasa = $2 
-           WHERE id = $3`,
-          [data.entidad, data.tasa, data.id]
-        );
+        if (campo === 'tasa_base') {
+          querySQL = `UPDATE sueldo_mutualidad SET tasa_base = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
+        } else if (campo === 'tasa_adicional') {
+          querySQL = `UPDATE sueldo_mutualidad SET tasa_adicional = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
+        }
+        params = [valor, id];
         break;
 
       case 'impuesto':
-        await query(
-          `UPDATE sueldo_tramos_impuesto 
-           SET desde = $1, hasta = $2, factor = $3, rebaja = $4 
-           WHERE id = $5`,
-          [data.desde, data.hasta, data.factor, data.rebaja, data.id]
-        );
+        if (campo === 'factor') {
+          querySQL = `UPDATE sueldo_tramos_impuesto SET factor = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
+        } else if (campo === 'rebaja') {
+          querySQL = `UPDATE sueldo_tramos_impuesto SET rebaja = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
+        }
+        params = [valor, id];
         break;
 
       default:
@@ -140,6 +133,10 @@ export async function POST(request: NextRequest) {
           { error: 'Tipo de parámetro no válido' },
           { status: 400 }
         );
+    }
+
+    if (querySQL) {
+      await query(querySQL, params);
     }
 
     return NextResponse.json({
@@ -152,6 +149,86 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Error al actualizar parámetro',
+        detalles: error instanceof Error ? error.message : 'Error desconocido'
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { tipo, data } = body;
+
+    switch (tipo) {
+      case 'uf':
+        await query(
+          `INSERT INTO sueldo_valor_uf (fecha, valor) 
+           VALUES ($1, $2) 
+           ON CONFLICT (fecha) 
+           DO UPDATE SET valor = $2, updated_at = CURRENT_TIMESTAMP`,
+          [data.fecha, data.valor]
+        );
+        break;
+
+      case 'parametro':
+        await query(
+          `INSERT INTO sueldo_parametros_generales (parametro, valor) 
+           VALUES ($1, $2)`,
+          [data.parametro, data.valor]
+        );
+        break;
+
+      case 'afp':
+        await query(
+          `INSERT INTO sueldo_afp (codigo, nombre, tasa_cotizacion, comision, sis, fecha_vigencia) 
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [data.codigo, data.nombre, data.tasa_cotizacion, data.comision, data.sis, data.fecha_vigencia]
+        );
+        break;
+
+      case 'isapre':
+        await query(
+          `INSERT INTO sueldo_isapre (codigo, nombre) 
+           VALUES ($1, $2)`,
+          [data.codigo, data.nombre]
+        );
+        break;
+
+      case 'mutualidad':
+        await query(
+          `INSERT INTO sueldo_mutualidad (codigo, nombre, tasa_base, fecha_vigencia) 
+           VALUES ($1, $2, $3, $4)`,
+          [data.codigo, data.nombre, data.tasa_base, data.fecha_vigencia]
+        );
+        break;
+
+      case 'impuesto':
+        await query(
+          `INSERT INTO sueldo_tramos_impuesto (tramo, desde, hasta, factor, rebaja, fecha_vigencia) 
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [data.tramo, data.desde, data.hasta, data.factor, data.rebaja, data.fecha_vigencia]
+        );
+        break;
+
+      default:
+        return NextResponse.json(
+          { error: 'Tipo de parámetro no válido' },
+          { status: 400 }
+        );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Parámetro agregado correctamente'
+    });
+
+  } catch (error) {
+    console.error('Error al agregar parámetro:', error);
+    return NextResponse.json(
+      {
+        error: 'Error al agregar parámetro',
         detalles: error instanceof Error ? error.message : 'Error desconocido'
       },
       { status: 500 }
@@ -180,16 +257,16 @@ export async function DELETE(request: NextRequest) {
         await query(`DELETE FROM sueldo_parametros_generales WHERE id = $1`, [id]);
         break;
       case 'afp':
-        await query(`DELETE FROM sueldo_afp WHERE id = $1`, [id]);
+        await query(`UPDATE sueldo_afp SET activo = false WHERE id = $1`, [id]);
         break;
       case 'isapre':
-        await query(`DELETE FROM sueldo_isapre WHERE id = $1`, [id]);
+        await query(`UPDATE sueldo_isapre SET activo = false WHERE id = $1`, [id]);
         break;
       case 'mutualidad':
-        await query(`DELETE FROM sueldo_mutualidad WHERE id = $1`, [id]);
+        await query(`UPDATE sueldo_mutualidad SET activo = false WHERE id = $1`, [id]);
         break;
       case 'impuesto':
-        await query(`DELETE FROM sueldo_tramos_impuesto WHERE id = $1`, [id]);
+        await query(`UPDATE sueldo_tramos_impuesto SET activo = false WHERE id = $1`, [id]);
         break;
       default:
         return NextResponse.json(

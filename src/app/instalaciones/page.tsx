@@ -390,69 +390,66 @@ export default function InstalacionesPage() {
               </div>
 
               {/* Vista móvil con cards */}
-              <div className="md:hidden space-y-3 p-3">
+              <div className="md:hidden grid grid-cols-2 gap-3 p-3">
                 {filteredInstalaciones.map((instalacion: any) => (
                   <Card 
                     key={instalacion.id}
                     className="cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => handleRowClick(instalacion)}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-start space-x-3">
-                        <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
-                          <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <CardContent className="p-3">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
+                            <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            instalacion.estado === 'Activo' 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+                              : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
+                          }`}>
+                            {instalacion.estado}
+                          </span>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-medium text-sm truncate">{instalacion.nombre}</h3>
-                              <p className="text-xs text-muted-foreground truncate">{instalacion.cliente_nombre}</p>
-                            </div>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ml-2 flex-shrink-0 ${
-                              instalacion.estado === 'Activo' 
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
-                                : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
-                            }`}>
-                              {instalacion.estado}
-                            </span>
+                        
+                        <div className="space-y-1">
+                          <h3 className="font-medium text-sm truncate">{instalacion.nombre}</h3>
+                          <p className="text-xs text-muted-foreground truncate">{instalacion.cliente_nombre}</p>
+                          
+                          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                            <span>📍 {instalacion.comuna || instalacion.ciudad || 'Sin ubicación'}</span>
                           </div>
                           
-                          <div className="space-y-1">
-                            <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                              <span>📍 {instalacion.comuna || instalacion.ciudad || 'Sin ubicación'}</span>
+                          <div className="flex items-center space-x-2 pt-1">
+                            <div className="flex items-center space-x-1">
+                              {(() => {
+                                const ppcPendientes = parseInt(instalacion.ppc_pendientes);
+                                const puestosCreados = parseInt(instalacion.puestos_creados);
+                                const shouldBeGreen = ppcPendientes === 0 && puestosCreados > 0;
+                                
+                                return (
+                                  <Users className={`h-3 w-3 ${
+                                    shouldBeGreen ? 'text-green-500' : 'text-blue-500'
+                                  }`} />
+                                );
+                              })()}
+                              <span className={`text-xs font-medium ${
+                                (parseInt(instalacion.ppc_pendientes) === 0 && parseInt(instalacion.puestos_creados) > 0)
+                                  ? 'text-green-600 dark:text-green-400' 
+                                  : ''
+                              }`}>
+                                {instalacion.puestos_creados || 0}
+                              </span>
                             </div>
                             
-                            <div className="flex items-center space-x-4 pt-2">
+                            {parseInt(instalacion.ppc_pendientes) > 0 && (
                               <div className="flex items-center space-x-1">
-                                {(() => {
-                                  const ppcPendientes = parseInt(instalacion.ppc_pendientes);
-                                  const puestosCreados = parseInt(instalacion.puestos_creados);
-                                  const shouldBeGreen = ppcPendientes === 0 && puestosCreados > 0;
-                                  
-                                  return (
-                                    <Users className={`h-3 w-3 ${
-                                      shouldBeGreen ? 'text-green-500' : 'text-blue-500'
-                                    }`} />
-                                  );
-                                })()}
-                                <span className={`text-xs font-medium ${
-                                  (parseInt(instalacion.ppc_pendientes) === 0 && parseInt(instalacion.puestos_creados) > 0)
-                                    ? 'text-green-600 dark:text-green-400' 
-                                    : ''
-                                }`}>
-                                  {instalacion.puestos_creados || 0} puestos
+                                <AlertTriangle className="h-3 w-3 text-orange-500" />
+                                <span className="text-xs font-medium text-orange-600 dark:text-orange-400">
+                                  {instalacion.ppc_pendientes}
                                 </span>
                               </div>
-                              
-                              {parseInt(instalacion.ppc_pendientes) > 0 && (
-                                <div className="flex items-center space-x-1">
-                                  <AlertTriangle className="h-3 w-3 text-orange-500" />
-                                  <span className="text-xs font-medium text-orange-600 dark:text-orange-400">
-                                    {instalacion.ppc_pendientes} PPC
-                                  </span>
-                                </div>
-                              )}
-                            </div>
+                            )}
                           </div>
                         </div>
                       </div>

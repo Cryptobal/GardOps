@@ -25,7 +25,9 @@ import {
   TrendingUp,
   Shield,
   Users,
-  Calculator
+  Calculator,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import Link from 'next/link';
 import { formatearCLP } from '@/lib/sueldo/utils/redondeo';
@@ -34,6 +36,11 @@ interface ParametroEditable {
   id: number;
   isEditing: boolean;
   tempValue: string | number;
+}
+
+interface NuevoParametro {
+  tipo: string;
+  data: any;
 }
 
 export default function ParametrosPage() {
@@ -51,6 +58,8 @@ export default function ParametrosPage() {
     impuesto: []
   });
   const [editingItems, setEditingItems] = useState<{ [key: string]: ParametroEditable }>({});
+  const [showAddForm, setShowAddForm] = useState<{ [key: string]: boolean }>({});
+  const [newItem, setNewItem] = useState<NuevoParametro>({ tipo: '', data: {} });
 
   useEffect(() => {
     cargarParametros();
@@ -164,6 +173,74 @@ export default function ParametrosPage() {
     }
   };
 
+  const deleteItem = async (tipo: string, id: number) => {
+    if (!confirm('¿Está seguro de que desea eliminar este parámetro?')) return;
+
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/sueldos/parametros?tipo=${tipo}&id=${id}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Actualizar datos locales
+        setData(prev => ({
+          ...prev,
+          [tipo]: prev[tipo].filter((item: any) => item.id !== id)
+        }));
+        
+        setSuccess('Parámetro eliminado correctamente');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError(result.error || 'Error al eliminar parámetro');
+      }
+    } catch (error) {
+      console.error('Error eliminando:', error);
+      setError('Error al eliminar parámetro');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addNewItem = async (tipo: string) => {
+    setSaving(true);
+    try {
+      const response = await fetch('/api/sueldos/parametros', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tipo,
+          data: newItem.data
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Recargar datos
+        await cargarParametros();
+        
+        // Limpiar formulario
+        setNewItem({ tipo: '', data: {} });
+        setShowAddForm(prev => ({ ...prev, [tipo]: false }));
+        
+        setSuccess('Parámetro agregado correctamente');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError(result.error || 'Error al agregar parámetro');
+      }
+    } catch (error) {
+      console.error('Error agregando:', error);
+      setError('Error al agregar parámetro');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const isEditing = (tipo: string, id: number) => {
     const key = `${tipo}-${id}`;
     return editingItems[key]?.isEditing || false;
@@ -172,6 +249,13 @@ export default function ParametrosPage() {
   const getTempValue = (tipo: string, id: number) => {
     const key = `${tipo}-${id}`;
     return editingItems[key]?.tempValue || '';
+  };
+
+  const toggleAddForm = (tipo: string) => {
+    setShowAddForm(prev => ({ ...prev, [tipo]: !prev[tipo] }));
+    if (!showAddForm[tipo]) {
+      setNewItem({ tipo, data: {} });
+    }
   };
 
   return (
@@ -251,19 +335,81 @@ export default function ParametrosPage() {
               {/* Parámetros Generales */}
               <TabsContent value="parametros" className="space-y-6">
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">
-                    <Settings className="h-4 w-4" />
-                    Parámetros Generales del Sistema
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                      <Settings className="h-4 w-4" />
+                      Parámetros Generales del Sistema
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => toggleAddForm('parametros')}
+                      className="h-8 px-3"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Agregar
+                    </Button>
                   </div>
+                  
+                  {showAddForm.parametros && (
+                    <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg border">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs">Parámetro</Label>
+                          <Input
+                            value={newItem.data.parametro || ''}
+                            onChange={(e) => setNewItem(prev => ({
+                              ...prev,
+                              data: { ...prev.data, parametro: e.target.value }
+                            }))}
+                            placeholder="NOMBRE_PARAMETRO"
+                            className="h-8"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Valor</Label>
+                          <Input
+                            type="number"
+                            value={newItem.data.valor || ''}
+                            onChange={(e) => setNewItem(prev => ({
+                              ...prev,
+                              data: { ...prev.data, valor: Number(e.target.value) }
+                            }))}
+                            placeholder="0"
+                            className="h-8"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <Button
+                          size="sm"
+                          onClick={() => addNewItem('parametros')}
+                          disabled={saving}
+                          className="h-8 px-3"
+                        >
+                          <Check className="h-3 w-3 mr-1" />
+                          Guardar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => toggleAddForm('parametros')}
+                          className="h-8 px-3"
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   
                   {data.parametros?.map((param: any) => (
                     <div key={param.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
                       <div className="flex-1">
                         <div className="font-medium text-slate-900 dark:text-slate-100">
-                          {param.nombre}
+                          {param.parametro}
                         </div>
                         <div className="text-sm text-slate-600 dark:text-slate-400">
-                          {param.descripcion}
+                          Parámetro del sistema
                         </div>
                       </div>
                       
@@ -308,6 +454,15 @@ export default function ParametrosPage() {
                             >
                               <Edit className="h-3 w-3" />
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => deleteItem('parametros', param.id)}
+                              disabled={saving}
+                              className="h-8 px-2 text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
                           </>
                         )}
                       </div>
@@ -319,10 +474,73 @@ export default function ParametrosPage() {
               {/* Valor UF */}
               <TabsContent value="uf" className="space-y-6">
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">
-                    <DollarSign className="h-4 w-4" />
-                    Valores UF por Fecha
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                      <DollarSign className="h-4 w-4" />
+                      Valores UF por Fecha
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => toggleAddForm('uf')}
+                      className="h-8 px-3"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Agregar
+                    </Button>
                   </div>
+                  
+                  {showAddForm.uf && (
+                    <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg border">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs">Fecha</Label>
+                          <Input
+                            type="date"
+                            value={newItem.data.fecha || ''}
+                            onChange={(e) => setNewItem(prev => ({
+                              ...prev,
+                              data: { ...prev.data, fecha: e.target.value }
+                            }))}
+                            className="h-8"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Valor UF</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={newItem.data.valor || ''}
+                            onChange={(e) => setNewItem(prev => ({
+                              ...prev,
+                              data: { ...prev.data, valor: Number(e.target.value) }
+                            }))}
+                            placeholder="0"
+                            className="h-8"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <Button
+                          size="sm"
+                          onClick={() => addNewItem('uf')}
+                          disabled={saving}
+                          className="h-8 px-3"
+                        >
+                          <Check className="h-3 w-3 mr-1" />
+                          Guardar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => toggleAddForm('uf')}
+                          className="h-8 px-3"
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="grid gap-4">
                     {data.uf?.slice(0, 10).map((uf: any) => (
@@ -338,6 +556,7 @@ export default function ParametrosPage() {
                             <>
                               <Input
                                 type="number"
+                                step="0.01"
                                 value={getTempValue('uf', uf.id)}
                                 onChange={(e) => updateTempValue('uf', uf.id, Number(e.target.value))}
                                 className="w-24 h-8"
@@ -374,6 +593,15 @@ export default function ParametrosPage() {
                               >
                                 <Edit className="h-3 w-3" />
                               </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => deleteItem('uf', uf.id)}
+                                disabled={saving}
+                                className="h-8 px-2 text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
                             </>
                           )}
                         </div>
@@ -386,10 +614,125 @@ export default function ParametrosPage() {
               {/* AFP */}
               <TabsContent value="afp" className="space-y-6">
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">
-                    <Building2 className="h-4 w-4" />
-                    Configuración AFP
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                      <Building2 className="h-4 w-4" />
+                      Configuración AFP
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => toggleAddForm('afp')}
+                      className="h-8 px-3"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Agregar
+                    </Button>
                   </div>
+                  
+                  {showAddForm.afp && (
+                    <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg border">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label className="text-xs">Código</Label>
+                          <Input
+                            value={newItem.data.codigo || ''}
+                            onChange={(e) => setNewItem(prev => ({
+                              ...prev,
+                              data: { ...prev.data, codigo: e.target.value }
+                            }))}
+                            placeholder="codigo_afp"
+                            className="h-8"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Nombre</Label>
+                          <Input
+                            value={newItem.data.nombre || ''}
+                            onChange={(e) => setNewItem(prev => ({
+                              ...prev,
+                              data: { ...prev.data, nombre: e.target.value }
+                            }))}
+                            placeholder="Nombre AFP"
+                            className="h-8"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Tasa Cotización (%)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={newItem.data.tasa_cotizacion || ''}
+                            onChange={(e) => setNewItem(prev => ({
+                              ...prev,
+                              data: { ...prev.data, tasa_cotizacion: Number(e.target.value) }
+                            }))}
+                            placeholder="11.44"
+                            className="h-8"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Comisión (%)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={newItem.data.comision || ''}
+                            onChange={(e) => setNewItem(prev => ({
+                              ...prev,
+                              data: { ...prev.data, comision: Number(e.target.value) }
+                            }))}
+                            placeholder="1.44"
+                            className="h-8"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">SIS (%)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={newItem.data.sis || '1.88'}
+                            onChange={(e) => setNewItem(prev => ({
+                              ...prev,
+                              data: { ...prev.data, sis: Number(e.target.value) }
+                            }))}
+                            placeholder="1.88"
+                            className="h-8"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Fecha Vigencia</Label>
+                          <Input
+                            type="date"
+                            value={newItem.data.fecha_vigencia || ''}
+                            onChange={(e) => setNewItem(prev => ({
+                              ...prev,
+                              data: { ...prev.data, fecha_vigencia: e.target.value }
+                            }))}
+                            className="h-8"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <Button
+                          size="sm"
+                          onClick={() => addNewItem('afp')}
+                          disabled={saving}
+                          className="h-8 px-3"
+                        >
+                          <Check className="h-3 w-3 mr-1" />
+                          Guardar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => toggleAddForm('afp')}
+                          className="h-8 px-3"
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="grid gap-4">
                     {data.afp?.map((afp: any) => (
@@ -399,7 +742,7 @@ export default function ParametrosPage() {
                             {afp.nombre}
                           </div>
                           <div className="text-sm text-slate-600 dark:text-slate-400">
-                            Tasa: {afp.tasa}%
+                            Tasa Total: {afp.tasa_cotizacion}% | Comisión: {afp.comision}% | SIS: {afp.sis}%
                           </div>
                         </div>
                         
@@ -415,7 +758,7 @@ export default function ParametrosPage() {
                               />
                               <Button
                                 size="sm"
-                                onClick={() => saveItem('afp', afp.id, 'tasa')}
+                                onClick={() => saveItem('afp', afp.id, 'tasa_cotizacion')}
                                 disabled={saving}
                                 className="h-8 px-2"
                               >
@@ -434,16 +777,25 @@ export default function ParametrosPage() {
                             <>
                               <div className="text-right">
                                 <div className="font-bold text-slate-900 dark:text-slate-100">
-                                  {afp.tasa}%
+                                  {afp.tasa_cotizacion}%
                                 </div>
                               </div>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => startEditing('afp', afp.id, afp.tasa)}
+                                onClick={() => startEditing('afp', afp.id, afp.tasa_cotizacion)}
                                 className="h-8 px-2"
                               >
                                 <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => deleteItem('afp', afp.id)}
+                                disabled={saving}
+                                className="h-8 px-2 text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-3 w-3" />
                               </Button>
                             </>
                           )}
@@ -457,10 +809,124 @@ export default function ParametrosPage() {
               {/* Impuestos */}
               <TabsContent value="impuesto" className="space-y-6">
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">
-                    <Percent className="h-4 w-4" />
-                    Configuración de Impuestos
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                      <Percent className="h-4 w-4" />
+                      Configuración de Impuestos
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => toggleAddForm('impuesto')}
+                      className="h-8 px-3"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Agregar
+                    </Button>
                   </div>
+                  
+                  {showAddForm.impuesto && (
+                    <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg border">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label className="text-xs">Tramo</Label>
+                          <Input
+                            value={newItem.data.tramo || ''}
+                            onChange={(e) => setNewItem(prev => ({
+                              ...prev,
+                              data: { ...prev.data, tramo: e.target.value }
+                            }))}
+                            placeholder="1"
+                            className="h-8"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Desde</Label>
+                          <Input
+                            type="number"
+                            value={newItem.data.desde || ''}
+                            onChange={(e) => setNewItem(prev => ({
+                              ...prev,
+                              data: { ...prev.data, desde: Number(e.target.value) }
+                            }))}
+                            placeholder="0"
+                            className="h-8"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Hasta</Label>
+                          <Input
+                            type="number"
+                            value={newItem.data.hasta || ''}
+                            onChange={(e) => setNewItem(prev => ({
+                              ...prev,
+                              data: { ...prev.data, hasta: Number(e.target.value) }
+                            }))}
+                            placeholder="0"
+                            className="h-8"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Factor</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={newItem.data.factor || ''}
+                            onChange={(e) => setNewItem(prev => ({
+                              ...prev,
+                              data: { ...prev.data, factor: Number(e.target.value) }
+                            }))}
+                            placeholder="0.00"
+                            className="h-8"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Rebaja</Label>
+                          <Input
+                            type="number"
+                            value={newItem.data.rebaja || ''}
+                            onChange={(e) => setNewItem(prev => ({
+                              ...prev,
+                              data: { ...prev.data, rebaja: Number(e.target.value) }
+                            }))}
+                            placeholder="0"
+                            className="h-8"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Fecha Vigencia</Label>
+                          <Input
+                            type="date"
+                            value={newItem.data.fecha_vigencia || ''}
+                            onChange={(e) => setNewItem(prev => ({
+                              ...prev,
+                              data: { ...prev.data, fecha_vigencia: e.target.value }
+                            }))}
+                            className="h-8"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <Button
+                          size="sm"
+                          onClick={() => addNewItem('impuesto')}
+                          disabled={saving}
+                          className="h-8 px-3"
+                        >
+                          <Check className="h-3 w-3 mr-1" />
+                          Guardar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => toggleAddForm('impuesto')}
+                          className="h-8 px-3"
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="grid gap-4">
                     {data.impuesto?.map((imp: any) => (
@@ -515,6 +981,15 @@ export default function ParametrosPage() {
                                 className="h-8 px-2"
                               >
                                 <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => deleteItem('impuesto', imp.id)}
+                                disabled={saving}
+                                className="h-8 px-2 text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-3 w-3" />
                               </Button>
                             </>
                           )}

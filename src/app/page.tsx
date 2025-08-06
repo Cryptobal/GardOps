@@ -2,13 +2,19 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { Shield, Users, Building2, Calendar, Clock, TrendingUp, AlertTriangle } from "lucide-react";
+import { Shield, Users, Building2, Calendar, Clock, TrendingUp, AlertTriangle, DollarSign } from "lucide-react";
 import { useRouter } from "next/navigation";
 import TurnosExtrasSummary from "../components/dashboard/TurnosExtrasSummary";
 
 interface AlertaDocumento {
   id: string;
   dias_restantes: number;
+}
+
+interface TurnosExtrasStats {
+  total: number;
+  pendientes: number;
+  montoPendiente: number;
 }
 
 const statsBase = [
@@ -61,6 +67,17 @@ const statsBase = [
     href: "/documentos",
     urgent: true,
     animate: false
+  },
+  {
+    title: "Turnos Extras por Pagar",
+    value: "0",
+    subtitle: "$0",
+    icon: DollarSign,
+    description: "Turnos pendientes de pago",
+    color: "text-yellow-500",
+    href: "/pauta-diaria/turnos-extras",
+    urgent: false,
+    animate: false
   }
 ];
 
@@ -76,7 +93,9 @@ export default function HomePage() {
     instalacionesActivas: 0,
     puestosActivos: 0,
     totalPPC: 0,
-    documentosVencidos: 0
+    documentosVencidos: 0,
+    turnosExtrasPendientes: 0,
+    montoTurnosExtrasPendientes: 0
   });
 
   const cargarKPIs = async () => {
@@ -106,6 +125,23 @@ export default function HomePage() {
         }, 0);
       }
 
+      // Cargar datos de turnos extras
+      let turnosExtrasPendientes = 0;
+      let montoTurnosExtrasPendientes = 0;
+      try {
+        const turnosResponse = await fetch('/api/pauta-diaria/turno-extra?solo_pagados=false');
+        const turnosData = await turnosResponse.json();
+        if (turnosResponse.ok) {
+          const turnos = turnosData.turnos_extras || [];
+          turnosExtrasPendientes = turnos.filter((t: any) => !t.pagado).length;
+          montoTurnosExtrasPendientes = turnos
+            .filter((t: any) => !t.pagado)
+            .reduce((sum: number, t: any) => sum + Number(t.valor), 0);
+        }
+      } catch (error) {
+        console.error('Error cargando turnos extras:', error);
+      }
+
       // Por ahora, usar un valor fijo para documentos vencidos hasta arreglar la API
       const documentosVencidos = 0;
 
@@ -114,7 +150,9 @@ export default function HomePage() {
         instalacionesActivas,
         puestosActivos,
         totalPPC,
-        documentosVencidos
+        documentosVencidos,
+        turnosExtrasPendientes,
+        montoTurnosExtrasPendientes
       });
 
     } catch (error) {
@@ -125,7 +163,9 @@ export default function HomePage() {
         instalacionesActivas: 0,
         puestosActivos: 0,
         totalPPC: 0,
-        documentosVencidos: 0
+        documentosVencidos: 0,
+        turnosExtrasPendientes: 0,
+        montoTurnosExtrasPendientes: 0
       });
     }
   };
@@ -230,6 +270,15 @@ export default function HomePage() {
           animate: kpis.documentosVencidos > 0
         };
       }
+      if (stat.title === "Turnos Extras por Pagar") {
+        return {
+          ...stat,
+          value: kpis.turnosExtrasPendientes.toString(),
+          subtitle: `$${kpis.montoTurnosExtrasPendientes.toLocaleString()}`,
+          urgent: kpis.turnosExtrasPendientes > 0,
+          animate: kpis.turnosExtrasPendientes > 0
+        };
+      }
       return stat;
     });
   }, [kpis]);
@@ -253,12 +302,12 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* Stats Grid - Ultra Responsive */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 lg:gap-5 xl:gap-6 auto-rows-fr">
+      {/* Stats Grid - 2 filas de 3 columnas en móvil */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 lg:gap-5 xl:gap-6 auto-rows-fr">
         {stats.map((stat) => (
-          <div key={stat.title} className="h-full min-h-[120px]">
+          <div key={stat.title} className="h-full min-h-[140px] sm:min-h-[160px]">
             <Card 
-              className={`card-elegant p-2 xs:p-3 sm:p-4 md:p-5 lg:p-6 hover:scale-[1.02] sm:hover:scale-[1.03] md:hover:scale-105 transition-all duration-300 cursor-pointer h-full touch-manipulation ${
+              className={`card-elegant p-3 sm:p-4 md:p-5 lg:p-6 hover:scale-[1.02] sm:hover:scale-[1.03] md:hover:scale-105 transition-all duration-300 cursor-pointer h-full touch-manipulation ${
                 stat.urgent ? 'border-red-500/30 bg-red-500/5' : ''
               } ${
                 stat.animate ? 'hover:shadow-lg hover:shadow-red-500/20' : ''
@@ -266,24 +315,29 @@ export default function HomePage() {
               onClick={() => handleCardClick(stat.href)}
               title={`Ir a ${stat.title}`}
             >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-1 sm:pb-2">
-                <CardTitle className="text-[10px] xs:text-xs sm:text-sm lg:text-base font-medium text-muted-foreground min-h-[1rem] sm:min-h-[1.25rem] md:min-h-[1.5rem] flex items-center leading-tight pr-1">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-2 sm:pb-3">
+                <CardTitle className="text-xs sm:text-sm lg:text-base font-medium text-muted-foreground min-h-[1.5rem] sm:min-h-[1.75rem] md:min-h-[2rem] flex items-center leading-tight pr-1">
                   <span className="line-clamp-2">{stat.title}</span>
                   {stat.urgent && (
                     <span className="ml-1 inline-flex items-center">
-                      <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
+                      <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-red-500"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-red-500"></span>
                       </span>
                     </span>
                   )}
                 </CardTitle>
-                <stat.icon className={`h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 ${stat.color} ${stat.animate ? 'animate-pulse' : ''} flex-shrink-0`} />
+                <stat.icon className={`h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 lg:h-7 lg:w-7 ${stat.color} ${stat.animate ? 'animate-pulse' : ''} flex-shrink-0`} />
               </CardHeader>
               <CardContent className="p-0 flex flex-col justify-between h-full">
-                <div className={`text-base xs:text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-foreground ${stat.urgent ? 'text-red-500' : ''} truncate`}>
+                <div className={`text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-foreground ${stat.urgent ? 'text-red-500' : ''} truncate`}>
                   {stat.value}
                 </div>
+                {stat.subtitle && (
+                  <div className="text-sm sm:text-base md:text-lg font-semibold text-muted-foreground mt-1">
+                    {stat.subtitle}
+                  </div>
+                )}
                 {stat.title === "Docs. Vencimiento" && totalAlertas > 0 && (
                   <div className="mt-2 text-xs">
                     <div className="flex gap-2 flex-wrap">

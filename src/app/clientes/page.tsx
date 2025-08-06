@@ -205,39 +205,39 @@ export default function ClientesPage() {
   // Card para móvil
   const mobileCard = (cliente: Cliente) => (
     <Card 
-      className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-card/50 backdrop-blur-sm border-border/50"
+      className="cursor-pointer hover:shadow-lg transition-all duration-200 bg-card/50 backdrop-blur-sm border-border/50 h-full"
       onClick={() => router.push(`/clientes/${cliente.id}`)}
     >
-      <CardContent className="p-4">
-        <div className="space-y-3">
+      <CardContent className="p-3">
+        <div className="space-y-2">
           <div className="flex items-start justify-between">
-            <div>
-              <h3 className="font-bold text-foreground">{cliente.nombre}</h3>
-              <p className="text-sm text-muted-foreground font-mono">{cliente.rut}</p>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-sm truncate">{cliente.nombre}</h3>
+              <p className="text-xs text-muted-foreground font-mono truncate">{cliente.rut}</p>
             </div>
-            <Badge variant={cliente.estado === "Activo" ? "success" : "inactive"}>
+            <Badge variant={cliente.estado === "Activo" ? "success" : "inactive"} className="text-xs ml-2 flex-shrink-0">
               {cliente.estado || "Activo"}
             </Badge>
           </div>
           
           {cliente.representante_legal && (
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{cliente.representante_legal}</span>
+            <div className="flex items-center gap-1">
+              <User className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+              <span className="text-xs truncate">{cliente.representante_legal}</span>
             </div>
           )}
           
           {cliente.email && (
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{cliente.email}</span>
+            <div className="flex items-center gap-1">
+              <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+              <span className="text-xs truncate">{cliente.email}</span>
             </div>
           )}
           
           {cliente.telefono && (
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{cliente.telefono}</span>
+            <div className="flex items-center gap-1">
+              <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+              <span className="text-xs truncate">{cliente.telefono}</span>
             </div>
           )}
         </div>
