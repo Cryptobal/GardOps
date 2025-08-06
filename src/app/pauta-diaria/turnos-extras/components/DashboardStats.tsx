@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, DollarSign, Calendar, Users, Building, BarChart3 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { TrendingUp, TrendingDown, DollarSign, Calendar, Users, Building, BarChart3, Target, Zap, AlertCircle } from 'lucide-react';
 
 interface DashboardStatsProps {
   filtros: {
@@ -54,6 +55,7 @@ interface Estadisticas {
 export default function DashboardStats({ filtros }: DashboardStatsProps) {
   const [estadisticas, setEstadisticas] = useState<Estadisticas | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedMetric, setSelectedMetric] = useState<'turnos' | 'montos' | 'guardias'>('turnos');
 
   const cargarEstadisticas = async () => {
     setLoading(true);
@@ -110,10 +112,95 @@ export default function DashboardStats({ filtros }: DashboardStatsProps) {
   const { generales } = estadisticas;
   const porcentajePendientes = generales.total_turnos > 0 ? (generales.turnos_pendientes / generales.total_turnos) * 100 : 0;
   const porcentajePagados = generales.total_turnos > 0 ? (generales.turnos_pagados / generales.total_turnos) * 100 : 0;
+  const porcentajeReemplazos = generales.total_turnos > 0 ? (generales.turnos_reemplazo / generales.total_turnos) * 100 : 0;
+  const porcentajePPC = generales.total_turnos > 0 ? (generales.turnos_ppc / generales.total_turnos) * 100 : 0;
+
+  // Calcular indicadores de rendimiento
+  const eficienciaPago = generales.total_turnos > 0 ? (generales.turnos_pagados / generales.total_turnos) * 100 : 0;
+  const promedioMontoPorTurno = generales.total_turnos > 0 ? generales.monto_total / generales.total_turnos : 0;
+  const ratioPendientes = generales.turnos_pendientes > 0 ? (generales.monto_pendiente / generales.turnos_pendientes) : 0;
 
   return (
     <div className="space-y-6">
-      {/* Estadísticas Generales */}
+      {/* Indicadores de Rendimiento */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-blue-800">
+              <Target className="h-4 w-4" />
+              Eficiencia de Pago
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-900">{eficienciaPago.toFixed(1)}%</div>
+            <Progress value={eficienciaPago} className="mt-2" />
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="text-xs border-blue-300 text-blue-700">
+                {generales.turnos_pagados} de {generales.total_turnos}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-green-800">
+              <Zap className="h-4 w-4" />
+              Promedio por Turno
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-900">${promedioMontoPorTurno.toLocaleString()}</div>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="text-xs border-green-300 text-green-700">
+                {generales.total_turnos} turnos
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-orange-800">
+              <AlertCircle className="h-4 w-4" />
+              Pendientes Críticos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-900">{generales.turnos_pendientes}</div>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="text-xs border-orange-300 text-orange-700">
+                ${ratioPendientes.toLocaleString()} promedio
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-purple-800">
+              <BarChart3 className="h-4 w-4" />
+              Distribución
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Reemplazos</span>
+                <span className="font-medium">{porcentajeReemplazos.toFixed(1)}%</span>
+              </div>
+              <Progress value={porcentajeReemplazos} className="h-1" />
+              <div className="flex justify-between text-sm">
+                <span>PPC</span>
+                <span className="font-medium">{porcentajePPC.toFixed(1)}%</span>
+              </div>
+              <Progress value={porcentajePPC} className="h-1" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Estadísticas Generales Mejoradas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -137,8 +224,8 @@ export default function DashboardStats({ filtros }: DashboardStatsProps) {
 
         <Card className={generales.turnos_pendientes > 0 ? 'border-orange-200 bg-orange-50' : ''}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingDown className="h-4 w-4 text-orange-600" />
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-orange-600">
+              <TrendingDown className="h-4 w-4" />
               Pendientes
             </CardTitle>
           </CardHeader>
@@ -157,8 +244,8 @@ export default function DashboardStats({ filtros }: DashboardStatsProps) {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-green-600" />
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-green-600">
+              <TrendingUp className="h-4 w-4" />
               Pagados
             </CardTitle>
           </CardHeader>
@@ -191,6 +278,34 @@ export default function DashboardStats({ filtros }: DashboardStatsProps) {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Selector de Métricas */}
+      <div className="flex gap-2">
+        <Button
+          variant={selectedMetric === 'turnos' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSelectedMetric('turnos')}
+        >
+          <Calendar className="h-4 w-4 mr-2" />
+          Por Turnos
+        </Button>
+        <Button
+          variant={selectedMetric === 'montos' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSelectedMetric('montos')}
+        >
+          <DollarSign className="h-4 w-4 mr-2" />
+          Por Montos
+        </Button>
+        <Button
+          variant={selectedMetric === 'guardias' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSelectedMetric('guardias')}
+        >
+          <Users className="h-4 w-4 mr-2" />
+          Por Guardias
+        </Button>
       </div>
 
       {/* Top Instalaciones y Guardias */}

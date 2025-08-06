@@ -1,10 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { useTurnosExtras } from '@/hooks/useTurnosExtras';
+import { CheckCircle, AlertCircle } from 'lucide-react';
 
 interface TurnoExtraModalProps {
   isOpen: boolean;
@@ -13,11 +16,11 @@ interface TurnoExtraModalProps {
   guardia_nombre: string;
   puesto_id: string;
   puesto_nombre: string;
-  pauta_id: number;
+  pauta_id: string;
   fecha: string;
 }
 
-export function TurnoExtraModal({
+export default function TurnoExtraModal({
   isOpen,
   onClose,
   guardia_id,
@@ -27,120 +30,140 @@ export function TurnoExtraModal({
   pauta_id,
   fecha
 }: TurnoExtraModalProps) {
-  const [estado, setEstado] = useState<'reemplazo' | 'ppc' | ''>('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { success, error } = useToast();
+  const [estado, setEstado] = useState<'reemplazo' | 'ppc'>('reemplazo');
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+  const { registrarTurnoExtra } = useTurnosExtras();
 
-  const handleSubmit = async () => {
-    if (!estado) {
-      toast({
-        title: "Error",
-        description: "Selecciona el tipo de turno extra",
-        variant: "destructive"
-      });
-      return;
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-    setIsLoading(true);
     try {
-      const response = await fetch('/api/pauta-diaria/turno-extra', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          guardia_id,
-          puesto_id,
-          pauta_id,
-          estado
-        }),
+      await registrarTurnoExtra({
+        guardia_id,
+        puesto_id,
+        pauta_id,
+        estado
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // Mostrar alerta compacta
-        alert(`✅ Turno extra registrado: $${data.valor} pagado`);
-        
-        toast({
-          title: "Éxito",
-          description: data.mensaje,
-        });
-        
-        onClose();
-        setEstado('');
-      } else {
-        toast({
-          title: "Error",
-          description: data.error || "Error al registrar turno extra",
-          variant: "destructive"
-        });
-      }
+      // Cerrar modal después de registro exitoso
+      onClose();
+      
     } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "Error de conexión",
-        variant: "destructive"
-      });
+      console.error('Error registrando turno extra:', error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  if (!isOpen) return null;
+  const handleClose = () => {
+    if (!loading) {
+      setEstado('reemplazo'); // Reset estado
+      onClose();
+    }
+  };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-md mx-4">
-        <CardHeader>
-          <CardTitle className="text-lg">Registrar Turno Extra</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            Registrar Turno Extra
+          </DialogTitle>
+          <DialogDescription>
+            Registra un turno extra para {guardia_nombre} en {puesto_nombre}
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Información del guardia */}
           <div className="space-y-2">
-            <p className="text-sm text-gray-600">
-              <strong>Guardia:</strong> {guardia_nombre}
-            </p>
-            <p className="text-sm text-gray-600">
-              <strong>Puesto:</strong> {puesto_nombre}
-            </p>
-            <p className="text-sm text-gray-600">
-              <strong>Fecha:</strong> {fecha}
-            </p>
+            <Label className="text-sm font-medium">Guardia</Label>
+            <div className="p-3 bg-gray-50 rounded-md">
+              <p className="font-medium">{guardia_nombre}</p>
+              <p className="text-sm text-gray-600">Fecha: {fecha}</p>
+            </div>
           </div>
 
+          {/* Información del puesto */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Tipo de turno extra</label>
+            <Label className="text-sm font-medium">Puesto</Label>
+            <div className="p-3 bg-gray-50 rounded-md">
+              <p className="font-medium">{puesto_nombre}</p>
+            </div>
+          </div>
+
+          {/* Tipo de turno extra */}
+          <div className="space-y-2">
+            <Label htmlFor="estado" className="text-sm font-medium">
+              Tipo de Turno Extra
+            </Label>
             <Select value={estado} onValueChange={(value: 'reemplazo' | 'ppc') => setEstado(value)}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecciona el tipo" />
+                <SelectValue placeholder="Seleccionar tipo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="reemplazo">Reemplazo</SelectItem>
-                <SelectItem value="ppc">PPC (Cobertura)</SelectItem>
+                <SelectItem value="reemplazo">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-orange-500" />
+                    Reemplazo
+                  </div>
+                </SelectItem>
+                <SelectItem value="ppc">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-blue-500" />
+                    PPC (Cobertura)
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-gray-500">
+              {estado === 'reemplazo' 
+                ? 'Turno para reemplazar a un guardia ausente'
+                : 'Turno de cobertura PPC (Puesto de Protección y Control)'
+              }
+            </p>
           </div>
 
-          <div className="flex gap-2 pt-4">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              disabled={isLoading}
-              className="flex-1"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={isLoading || !estado}
-              className="flex-1"
-            >
-              {isLoading ? 'Registrando...' : 'Registrar'}
-            </Button>
+          {/* Información adicional */}
+          <div className="p-3 bg-blue-50 rounded-md">
+            <p className="text-sm text-blue-700">
+              <strong>Nota:</strong> El valor se calculará automáticamente según la instalación
+            </p>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </form>
+
+        <DialogFooter className="flex gap-2">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={handleClose}
+            disabled={loading}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            type="submit" 
+            onClick={handleSubmit}
+            disabled={loading}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                Registrando...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Registrar Turno Extra
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 } 

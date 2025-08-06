@@ -58,8 +58,7 @@ export const navigationItems: NavigationItem[] = [
   {
     name: "Turnos Extras",
     href: "/pauta-diaria/turnos-extras",
-    icon: DollarSign,
-    description: "Gestión de pagos de turnos adicionales"
+    icon: DollarSign
   },
   {
     name: "PPC",

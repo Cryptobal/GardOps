@@ -6,7 +6,7 @@ import path from 'path';
 // Cargar variables de entorno
 config({ path: path.join(__dirname, '../.env.local') });
 
-import { runDatabaseMigrations } from '../src/lib/database-migrations.js';
+import { runDatabaseMigrations } from '../src/lib/database-migrations';
 
 async function main() {
   console.log('🎯 Script CLI: Iniciando migraciones de base de datos...\n');

@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       SELECT id, pagado, valor, guardia_id, instalacion_id, puesto_id, fecha, estado
       FROM turnos_extras 
       WHERE id = ANY($1)
-    `, [turnos_ids]);
+    `, [turno_ids]);
 
     if (turnosExistentes.length !== turno_ids.length) {
       return NextResponse.json(

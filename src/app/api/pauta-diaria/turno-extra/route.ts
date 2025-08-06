@@ -26,9 +26,32 @@ export async function POST(req: Request) {
       );
     }
 
+    // Verificar que el guardia esté activo
+    const { rows: guardiaRows } = await query(
+      `SELECT id, nombre, apellido_paterno, activo FROM guardias WHERE id = $1`,
+      [guardia_id]
+    );
+
+    if (guardiaRows.length === 0) {
+      return NextResponse.json(
+        { error: 'Guardia no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    if (!guardiaRows[0].activo) {
+      return NextResponse.json(
+        { error: 'El guardia no está activo' },
+        { status: 400 }
+      );
+    }
+
     // Obtener instalación_id y valor_turno_extra desde el puesto
     const { rows: puestoRows } = await query(`
-      SELECT i.id AS instalacion_id, i.valor_turno_extra
+      SELECT 
+        i.id AS instalacion_id, 
+        COALESCE(i.valor_turno_extra, 0) as valor_turno_extra, 
+        i.nombre as instalacion_nombre
       FROM as_turnos_puestos_operativos p
       JOIN instalaciones i ON i.id = p.instalacion_id
       WHERE p.id = $1
@@ -43,6 +66,14 @@ export async function POST(req: Request) {
 
     const instalacion_id = puestoRows[0].instalacion_id;
     const valor = puestoRows[0].valor_turno_extra || 0;
+    const instalacion_nombre = puestoRows[0].instalacion_nombre;
+    
+    console.log('💰 Valor turno extra obtenido:', {
+      instalacion_id,
+      instalacion_nombre,
+      valor_turno_extra: valor,
+      puesto_id
+    });
 
     // Obtener fecha desde la pauta mensual
     const { rows: pautaRows } = await query(
@@ -60,56 +91,61 @@ export async function POST(req: Request) {
     const { anio, mes, dia } = pautaRows[0];
     const fecha = `${anio}-${mes.toString().padStart(2, '0')}-${dia.toString().padStart(2, '0')}`;
 
-    // Verificar si ya existe un registro para esta combinación
-    const { rows: existingRows } = await query(`
-      SELECT id FROM turnos_extras 
-      WHERE guardia_id = $1 AND puesto_id = $2 AND pauta_id = $3 AND estado = $4
-    `, [guardia_id, puesto_id, pauta_id, estado]);
+    // Verificar que no exista un turno extra para el mismo guardia, puesto y fecha
+    const { rows: existingRows } = await query(
+      `SELECT id FROM turnos_extras 
+       WHERE guardia_id = $1 AND puesto_id = $2 AND fecha = $3 AND tenant_id = $4`,
+      [guardia_id, puesto_id, fecha, tenantId]
+    );
 
     if (existingRows.length > 0) {
       return NextResponse.json(
-        { error: 'Ya existe un registro de turno extra para esta combinación' },
+        { error: 'Ya existe un turno extra registrado para este guardia en esta fecha y puesto' },
         { status: 409 }
       );
     }
 
-    // Insertar el registro de turno extra
-    const { rows: insertRows } = await query(`
-      INSERT INTO turnos_extras 
-      (guardia_id, instalacion_id, puesto_id, pauta_id, fecha, estado, valor)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
-    `, [guardia_id, instalacion_id, puesto_id, pauta_id, fecha, estado, valor]);
+    // Insertar el turno extra
+    const { rows: insertRows } = await query(
+      `INSERT INTO turnos_extras 
+       (guardia_id, instalacion_id, puesto_id, pauta_id, fecha, estado, valor, tenant_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id`,
+      [guardia_id, instalacion_id, puesto_id, pauta_id, fecha, estado, valor, tenantId]
+    );
 
-    const turnoExtraCreado = insertRows[0];
+    const turnoExtraId = insertRows[0].id;
 
-    // Log de creación de turno extra
+    // Log de la operación
     await logCRUD(
       'turnos_extras',
-      turnoExtraCreado.id,
+      turnoExtraId,
       'CREATE',
       usuario,
-      null, // No hay datos anteriores en creación
+      null,
       {
         guardia_id,
+        instalacion_id,
         puesto_id,
         pauta_id,
-        instalacion_id,
         fecha,
         estado,
         valor,
-        turno_extra_id: turnoExtraCreado.id
+        tenant_id: tenantId
       },
       tenantId
     );
 
-    console.log("✅ Turno extra registrado con valor desde instalación y guardado en turnos_extras");
+    // Obtener nombre del guardia para la notificación
+    const guardiaNombre = `${guardiaRows[0].nombre} ${guardiaRows[0].apellido_paterno}`;
 
-    return NextResponse.json({ 
-      ok: true, 
-      id: turnoExtraCreado.id,
-      valor,
-      mensaje: `Turno extra registrado: $${valor} pagado`
+    return NextResponse.json({
+      ok: true,
+      id: turnoExtraId,
+      valor: valor,
+      guardia_nombre: guardiaNombre,
+      instalacion_nombre: instalacion_nombre,
+      mensaje: `✅ Turno extra registrado: $${valor.toLocaleString()} pagado`
     });
 
   } catch (error) {
@@ -118,7 +154,7 @@ export async function POST(req: Request) {
     // Log del error
     await logCRUD(
       'turnos_extras',
-      'ERROR',
+      'error',
       'CREATE',
       'admin@test.com',
       null,
@@ -199,9 +235,18 @@ export async function GET(req: Request) {
     }
 
     if (pagado && pagado !== 'all') {
-      queryString += ` AND te.pagado = $${paramIndex}`;
-      params.push(pagado === 'true');
-      paramIndex++;
+      if (pagado === 'pending') {
+        // Pendientes: no pagados pero con planilla_id
+        queryString += ` AND te.pagado = false AND te.planilla_id IS NOT NULL`;
+      } else if (pagado === 'false') {
+        // No pagados: no pagados y sin planilla_id
+        queryString += ` AND te.pagado = false AND te.planilla_id IS NULL`;
+      } else {
+        // Pagados: pagado = true
+        queryString += ` AND te.pagado = $${paramIndex}`;
+        params.push(pagado === 'true');
+        paramIndex++;
+      }
     }
 
     if (busqueda) {
@@ -217,7 +262,13 @@ export async function GET(req: Request) {
 
     queryString += ` ORDER BY te.fecha DESC, te.created_at DESC`;
 
+    console.log('🔍 Query turnos extras:', queryString);
+    console.log('🔍 Params:', params);
+
     const { rows } = await query(queryString, params);
+
+    console.log('📊 Turnos extras obtenidos:', rows.length);
+    console.log('📊 Primer turno (ejemplo):', rows[0]);
 
     return NextResponse.json({ 
       ok: true, 

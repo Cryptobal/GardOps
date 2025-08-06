@@ -198,3 +198,45 @@ export function isSupervisor(): boolean {
 export function isGuardia(): boolean {
   return getUserRole() === 'guardia';
 } 
+
+export function getCurrentUserServer(request: Request): {
+  id: string;
+  email: string;
+  nombre: string;
+  apellido: string;
+  rol: string;
+  tenant_id: string;
+} | null {
+  try {
+    // Obtener el token de las cookies
+    const cookieHeader = request.headers.get('cookie');
+    if (!cookieHeader) return null;
+    
+    const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+      const [key, value] = cookie.trim().split('=');
+      acc[key] = value;
+      return acc;
+    }, {} as Record<string, string>);
+    
+    const token = cookies.auth_token;
+    if (!token) return null;
+    
+    // Verificar y decodificar el token
+    const decoded = verifyToken(token);
+    if (!decoded) return null;
+    
+    // Obtener información adicional del usuario desde la base de datos
+    // Por ahora retornamos la información básica del token
+    return {
+      id: decoded.user_id,
+      email: decoded.email,
+      nombre: '', // Se puede obtener de la base de datos si es necesario
+      apellido: '', // Se puede obtener de la base de datos si es necesario
+      rol: decoded.rol,
+      tenant_id: decoded.tenant_id
+    };
+  } catch (error) {
+    console.error('Error obteniendo usuario del servidor:', error);
+    return null;
+  }
+} 

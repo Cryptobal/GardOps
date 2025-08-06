@@ -101,39 +101,39 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Generar CSV compatible con sistemas contables
+    // Generar CSV compatible con Banco Santander y sistemas contables
     const csvHeaders = [
-      'ID',
-      'RUT',
-      'NOMBRE',
-      'APELLIDO',
+      'ID_TURNO',
+      'RUT_GUARDIA',
+      'NOMBRE_COMPLETO',
       'INSTALACION',
-      'PUESTO',
-      'FECHA',
-      'TIPO_TURNO',
-      'VALOR',
-      'PAGADO',
+      'PUESTO_OPERATIVO',
+      'FECHA_TURNO',
+      'TIPO_TURNO_EXTRA',
+      'VALOR_PESOS',
+      'ESTADO_PAGO',
       'FECHA_PAGO',
       'USUARIO_PAGO',
-      'OBSERVACIONES_PAGO',
-      'FECHA_CREACION'
+      'OBSERVACIONES',
+      'FECHA_REGISTRO',
+      'TENANT_ID'
     ];
 
     const csvRows = turnosExtras.map((turno: any) => [
       turno.id,
       turno.guardia_rut,
-      turno.guardia_nombre,
-      `${turno.guardia_apellido_paterno} ${turno.guardia_apellido_materno || ''}`.trim(),
+      `${turno.guardia_nombre} ${turno.guardia_apellido_paterno} ${turno.guardia_apellido_materno || ''}`.trim(),
       turno.instalacion_nombre,
       turno.nombre_puesto,
       turno.fecha,
       turno.estado === 'reemplazo' ? 'REEMPLAZO' : 'PPC',
       turno.valor,
-      turno.pagado ? 'SI' : 'NO',
-      turno.fecha_pago || '',
-      turno.usuario_pago || '',
-      turno.observaciones_pago || '',
-      turno.created_at
+      turno.pagado ? 'PAGADO' : 'PENDIENTE',
+      turno.fecha_pago || 'N/A',
+      turno.usuario_pago || 'N/A',
+      turno.observaciones_pago || 'N/A',
+      turno.created_at,
+      'accebf8a-bacc-41fa-9601-ed39cb320a52' // tenant_id fijo
     ]);
 
     const csvContent = [

@@ -5,13 +5,14 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, User, MapPin, Phone, Mail, Calendar, FileText, Settings, Edit, RefreshCw, AlertTriangle, CreditCard } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Phone, Mail, Calendar, FileText, Settings, Edit, RefreshCw, AlertTriangle, CreditCard, Clock } from 'lucide-react';
 import Link from 'next/link';
 import AsignacionOperativa from './components/AsignacionOperativa';
 import { DocumentManager } from '@/components/shared/document-manager';
 import PermisosGuardia from './components/PermisosGuardia';
 import FiniquitoGuardia from './components/FiniquitoGuardia';
 import DatosBancarios from './components/DatosBancarios';
+import TurnosExtrasGuardia from './components/TurnosExtrasGuardia';
 import { GoogleMap } from '@/components/ui/google-map';
 import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@/lib/geocoding';
 
@@ -301,6 +302,17 @@ export default function GuardiaDetallePage() {
               <AlertTriangle className="h-4 w-4 flex-shrink-0" />
               <span>Finiquito</span>
             </button>
+            <button
+              onClick={() => setActiveTab('turnos-extras')}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'turnos-extras' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Clock className="h-4 w-4 flex-shrink-0" />
+              <span>Turnos Extras</span>
+            </button>
           </div>
 
           {/* Móvil: Diseño en 2 filas de 3 pestañas cada una */}
@@ -562,6 +574,16 @@ export default function GuardiaDetallePage() {
         {activeTab === 'finiquito' && (
           <div className="mt-6">
             <FiniquitoGuardia guardiaId={guardiaId} />
+          </div>
+        )}
+
+        {/* Contenido de la pestaña Turnos Extras */}
+        {activeTab === 'turnos-extras' && (
+          <div className="mt-6">
+            <TurnosExtrasGuardia 
+              guardiaId={guardiaId} 
+              guardiaNombre={`${guardia?.nombre} ${guardia?.apellidos}`} 
+            />
           </div>
         )}
 

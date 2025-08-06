@@ -1,8 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { DollarSign, Calendar, TrendingUp } from 'lucide-react';
+import { DollarSign, Calendar, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function NavigationTabs() {
@@ -10,42 +9,47 @@ export default function NavigationTabs() {
 
   const tabs = [
     {
-      name: 'Gestión de Pagos',
+      name: 'Turnos Pago, Turnos Extras',
       href: '/pauta-diaria/turnos-extras',
       icon: DollarSign,
       description: 'Administrar pagos pendientes'
     },
     {
-      name: 'Historial',
+      name: 'Dashboard',
+      href: '/pauta-diaria/turnos-extras/dashboard',
+      icon: BarChart3,
+      description: 'Análisis Big Data'
+    },
+    {
+      name: 'Historial de Planillas',
       href: '/pauta-diaria/turnos-extras/historial',
       icon: Calendar,
-      description: 'Ver pagos realizados'
+      description: 'Ver planillas generadas'
     }
   ];
 
   return (
-    <div className="border-b">
-      <nav className="-mb-px flex space-x-8">
-        {tabs.map((tab) => {
-          const isActive = pathname === tab.href;
-          return (
-            <Button
-              key={tab.name}
-              variant="ghost"
-              onClick={() => window.location.href = tab.href}
-              className={cn(
-                'flex items-center gap-2 px-1 py-2 text-sm font-medium border-b-2 transition-colors',
-                isActive
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              )}
-            >
-              <tab.icon className="h-4 w-4" />
-              {tab.name}
-            </Button>
-          );
-        })}
-      </nav>
+    <div className="flex flex-wrap gap-1 bg-muted/30 p-1 rounded-lg mb-6">
+      {tabs.map((tab) => {
+        const isActive = pathname === tab.href;
+        const Icon = tab.icon;
+        
+        return (
+          <button
+            key={tab.name}
+            onClick={() => window.location.href = tab.href}
+            className={cn(
+              'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all whitespace-nowrap border border-transparent',
+              isActive
+                ? 'bg-blue-600/20 text-blue-300 border-blue-500/30 shadow-sm'
+                : 'text-muted-foreground hover:text-white hover:bg-muted/40'
+            )}
+          >
+            <Icon className="h-4 w-4" />
+            {tab.name}
+          </button>
+        );
+      })}
     </div>
   );
 } 
