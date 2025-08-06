@@ -46,56 +46,12 @@ export default function ParametrosPage() {
     impuesto: []
   });
   const [editingItems, setEditingItems] = useState<{ [key: string]: ParametroEditable }>({});
-  const [dbInitialized, setDbInitialized] = useState<boolean | null>(null);
 
   useEffect(() => {
-    checkDbStatus();
     cargarParametros();
   }, []);
 
-  const checkDbStatus = async () => {
-    try {
-      const response = await fetch('/api/sueldos/init-db');
-      const result = await response.json();
-      
-      // Verificar si alguna tabla no existe o está vacía
-      const needsInit = Object.values(result.status || {}).some(
-        (table: any) => !table.exists || table.count === 0
-      );
-      
-      setDbInitialized(!needsInit);
-    } catch (error) {
-      console.error('Error verificando DB:', error);
-      setDbInitialized(false);
-    }
-  };
 
-  const initializeDatabase = async () => {
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-    
-    try {
-      const response = await fetch('/api/sueldos/init-db', {
-        method: 'POST'
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        setSuccess('Base de datos inicializada correctamente');
-        setDbInitialized(true);
-        await cargarParametros();
-      } else {
-        setError(result.message || 'Error al inicializar la base de datos');
-      }
-    } catch (error) {
-      setError('Error al conectar con el servidor');
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const cargarParametros = async () => {
     setLoading(true);
@@ -202,61 +158,7 @@ export default function ParametrosPage() {
     return editingItems[key]?.tempValue;
   };
 
-  if (dbInitialized === false) {
-    return (
-      <div className="container mx-auto p-6 max-w-4xl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="h-6 w-6 text-yellow-500" />
-              Inicialización de Base de Datos Requerida
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Las tablas de parámetros no están inicializadas. Haga clic en el botón para crear e inicializar las tablas con los valores por defecto.
-              </AlertDescription>
-            </Alert>
-            
-            <Button 
-              onClick={initializeDatabase}
-              disabled={loading}
-              className="w-full"
-              size="lg"
-            >
-              {loading ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Inicializando...
-                </>
-              ) : (
-                <>
-                  <Database className="h-4 w-4 mr-2" />
-                  Inicializar Base de Datos
-                </>
-              )}
-            </Button>
-            
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            
-            {success && (
-              <Alert className="bg-green-50 border-green-200">
-                <Check className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800">{success}</AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+
 
   return (
     <div className="container mx-auto p-6 space-y-6">
