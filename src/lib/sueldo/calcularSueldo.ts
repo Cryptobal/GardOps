@@ -41,16 +41,14 @@ async function obtenerParametros(input: SueldoInput): Promise<ParametrosSueldo> 
     
     // 2. Obtener tope imponible y otros parámetros generales
     const resultParametros = await query(
-      `SELECT parametro, valor FROM sueldo_parametros_generales 
-       WHERE activo = true
-       AND fecha_vigencia <= $1
-       ORDER BY fecha_vigencia DESC`,
-      [input.fecha.toISOString().split('T')[0]]
+      `SELECT nombre, valor FROM sueldo_parametros_generales 
+       ORDER BY id`,
+      []
     );
     
     const parametrosMap: { [key: string]: number } = {};
     resultParametros.rows.forEach((row: any) => {
-      parametrosMap[row.parametro] = Number(row.valor);
+      parametrosMap[row.nombre] = Number(row.valor);
     });
     
     // 3. Obtener tasa de mutualidad (solo para cálculo del empleador)
@@ -60,15 +58,28 @@ async function obtenerParametros(input: SueldoInput): Promise<ParametrosSueldo> 
     // 4. Obtener comisión AFP (aunque ya no se usa directamente)
     let comisionAfp = 1.44; // Default
     if (input.afp) {
+      // Mapear código a nombre de AFP
+      const afpNombres: { [key: string]: string } = {
+        'capital': 'Capital',
+        'cuprum': 'Cuprum',
+        'habitat': 'Habitat',
+        'modelo': 'Modelo',
+        'planvital': 'PlanVital',
+        'provida': 'Provida',
+        'uno': 'Uno'
+      };
+      
+      const nombreAfp = afpNombres[input.afp.toLowerCase()] || input.afp;
+      
       const resultAFP = await query(
         `SELECT comision FROM sueldo_afp 
-         WHERE codigo = $1
-         AND activo = true
+         WHERE LOWER(nombre) = LOWER($1)
          LIMIT 1`,
-        [input.afp]
+        [nombreAfp]
       );
       if (resultAFP.rows.length > 0) {
-        comisionAfp = Number(resultAFP.rows[0].comision);
+        // La comisión en la BD está como decimal (0.1144), convertir a porcentaje (11.44)
+        comisionAfp = Number(resultAFP.rows[0].comision) * 100;
       }
     }
     
@@ -76,10 +87,8 @@ async function obtenerParametros(input: SueldoInput): Promise<ParametrosSueldo> 
     const resultTramos = await query(
       `SELECT tramo, desde, hasta, factor, rebaja 
        FROM sueldo_tramos_impuesto 
-       WHERE activo = true
-       AND fecha_vigencia <= $1
-       ORDER BY fecha_vigencia DESC, tramo ASC`,
-      [input.fecha.toISOString().split('T')[0]]
+       ORDER BY tramo ASC`,
+      []
     );
     
     const tramosImpuesto = resultTramos.rows.map((row: any) => ({
