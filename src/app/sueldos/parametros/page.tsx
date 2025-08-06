@@ -58,17 +58,26 @@ export default function ParametrosPage() {
     setError(null);
     
     try {
+      console.log('Cargando parámetros...');
       const response = await fetch('/api/sueldos/parametros?tipo=all');
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const result = await response.json();
+      console.log('Result:', result);
       
       if (result.success) {
         setData(result.data);
+        console.log('Datos cargados:', result.data);
       } else {
         setError('Error al cargar parámetros');
       }
     } catch (error) {
+      console.error('Error cargando parámetros:', error);
       setError('Error al conectar con el servidor');
-      console.error('Error:', error);
     } finally {
       setLoading(false);
     }
