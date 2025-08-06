@@ -3,6 +3,8 @@ import { redondearCLP } from '../utils/redondeo';
 
 export interface CalculoImponible {
   sueldoBase: number;
+  descuentoDiasAusencia: number;
+  sueldoBaseAjustado: number;
   gratificacionLegal: number;
   horasExtras: number;
   comisiones: number;
@@ -12,24 +14,44 @@ export interface CalculoImponible {
 }
 
 /**
- * Calcula la gratificación legal (25% con tope de 4.75 ingresos mínimos)
+ * Calcula la gratificación legal (25% del total imponible bruto con tope de 4.75 ingresos mínimos)
+ * Según normativa 2025: $529.000 × 4,75 / 12 = $209.396 mensual
  */
-function calcularGratificacionLegal(sueldoBase: number, valorUf: number): number {
-  const gratificacion = sueldoBase * 0.25;
-  const topeGratificacion = valorUf * 4.75 * 500000; // Aproximación del ingreso mínimo
+function calcularGratificacionLegal(totalImponibleBruto: number): number {
+  if (typeof totalImponibleBruto !== 'number') {
+    return 0;
+  }
+  
+  const gratificacion = totalImponibleBruto * 0.25;
+  const topeGratificacion = 209396; // $209.396 según normativa 2025
   
   return redondearCLP(Math.min(gratificacion, topeGratificacion));
 }
 
 /**
- * Calcula el valor de las horas extras
+ * Calcula el descuento por días de ausencia
+ * Descuento = (sueldo base / 30) * días de ausencia
  */
-function calcularHorasExtras(input: SueldoInput): number {
-  if (!input.horasExtras) return 0;
+function calcularDescuentoDiasAusencia(sueldoBase: number, diasAusencia?: number): number {
+  if (!diasAusencia || diasAusencia <= 0) return 0;
   
-  const valorHora = input.sueldoBase / 180; // 180 horas mensuales
-  const horas50 = input.horasExtras.cincuenta * valorHora * 0.5;
-  const horas100 = input.horasExtras.cien * valorHora * 1.0;
+  const valorDia = sueldoBase / 30;
+  return redondearCLP(valorDia * diasAusencia);
+}
+
+/**
+ * Calcula el valor de las horas extras según normativa oficial
+ * Valor por hora: (sueldo base ajustado / 30 / jornada diaria) × 1,5
+ * Jornada diaria estándar: 8 horas
+ */
+function calcularHorasExtras(sueldoBaseAjustado: number, horasExtras?: { cincuenta?: number; cien?: number }): number {
+  if (!horasExtras) return 0;
+  
+  const jornadaDiaria = 8; // Horas diarias estándar
+  const valorHora = (sueldoBaseAjustado / 30 / jornadaDiaria) * 1.5;
+  
+  const horas50 = (horasExtras.cincuenta || 0) * valorHora * 1.5;
+  const horas100 = (horasExtras.cien || 0) * valorHora * 2.0;
   
   return redondearCLP(horas50 + horas100);
 }
@@ -41,7 +63,7 @@ function calcularBonos(input: SueldoInput): number {
   if (!input.bonos) return 0;
   
   const total = Object.values(input.bonos).reduce((sum, valor) => {
-    return sum + (valor || 0);
+    return sum + (typeof valor === 'number' ? valor : 0);
   }, 0);
   
   return redondearCLP(total);
@@ -51,14 +73,41 @@ function calcularBonos(input: SueldoInput): number {
  * Calcula todos los valores imponibles
  */
 export function calcularImponible(input: SueldoInput, parametros: ParametrosSueldo): CalculoImponible {
+  if (typeof input.sueldoBase !== 'number' || typeof parametros.valorUf !== 'number') {
+    return {
+      sueldoBase: 0,
+      descuentoDiasAusencia: 0,
+      sueldoBaseAjustado: 0,
+      gratificacionLegal: 0,
+      horasExtras: 0,
+      comisiones: 0,
+      bonos: 0,
+      total: 0,
+      topeAplicado: 0
+    };
+  }
+  
   const sueldoBase = redondearCLP(input.sueldoBase);
-  const gratificacionLegal = calcularGratificacionLegal(sueldoBase, parametros.valorUf);
-  const horasExtras = calcularHorasExtras(input);
+  
+  // Calcular descuento por días de ausencia
+  const descuentoDiasAusencia = calcularDescuentoDiasAusencia(sueldoBase, input.diasAusencia);
+  
+  // Sueldo base ajustado (después de descontar días de ausencia)
+  const sueldoBaseAjustado = redondearCLP(sueldoBase - descuentoDiasAusencia);
+  
+  // Calcular horas extras basado en el sueldo base ajustado
+  const horasExtras = calcularHorasExtras(sueldoBaseAjustado, input.horasExtras);
   const comisiones = redondearCLP(input.comisiones || 0);
   const bonos = calcularBonos(input);
   
+  // Calcular total imponible bruto (sin gratificación)
+  const totalImponibleBruto = sueldoBaseAjustado + horasExtras + comisiones + bonos;
+  
+  // Calcular gratificación legal sobre el total imponible bruto
+  const gratificacionLegal = calcularGratificacionLegal(totalImponibleBruto);
+  
   // Calcular total antes del tope
-  const totalAntesTope = sueldoBase + gratificacionLegal + horasExtras + comisiones + bonos;
+  const totalAntesTope = totalImponibleBruto + gratificacionLegal;
   
   // Aplicar tope imponible
   const topeImponible = parametros.ufTopeImponible * parametros.valorUf;
@@ -67,6 +116,8 @@ export function calcularImponible(input: SueldoInput, parametros: ParametrosSuel
   
   return {
     sueldoBase,
+    descuentoDiasAusencia,
+    sueldoBaseAjustado,
     gratificacionLegal,
     horasExtras,
     comisiones,

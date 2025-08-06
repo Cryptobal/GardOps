@@ -241,24 +241,24 @@ export default function HomePage() {
   console.log('🔍 HomePage: Renderizando página principal...')
   
   return (
-    <div className="space-y-6 md:space-y-8">
-      {/* Welcome Section */}
-      <div className="text-center space-y-4">
-        <h2 className="text-3xl md:text-4xl font-bold heading-gradient">
+    <div className="p-3 sm:p-4 md:p-6 lg:p-8 space-y-4 sm:space-y-6 md:space-y-8 max-w-7xl mx-auto">
+      {/* Welcome Section - Responsive */}
+      <div className="text-center space-y-3 sm:space-y-4 px-2 sm:px-4">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold heading-gradient leading-tight">
           Bienvenido a GardOps
         </h2>
-        <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
+        <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground max-w-xs sm:max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto leading-relaxed">
           Tu plataforma integral para la gestión profesional de servicios de seguridad,
           control de guardias y supervisión de instalaciones.
         </p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 auto-rows-fr">
+      {/* Stats Grid - Ultra Responsive */}
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4 lg:gap-5 xl:gap-6 auto-rows-fr">
         {stats.map((stat) => (
-          <div key={stat.title} className="h-full">
+          <div key={stat.title} className="h-full min-h-[120px]">
             <Card 
-              className={`card-elegant p-3 md:p-6 hover:scale-105 transition-all duration-300 cursor-pointer h-full ${
+              className={`card-elegant p-2 xs:p-3 sm:p-4 md:p-5 lg:p-6 hover:scale-[1.02] sm:hover:scale-[1.03] md:hover:scale-105 transition-all duration-300 cursor-pointer h-full touch-manipulation ${
                 stat.urgent ? 'border-red-500/30 bg-red-500/5' : ''
               } ${
                 stat.animate ? 'hover:shadow-lg hover:shadow-red-500/20' : ''
@@ -266,22 +266,22 @@ export default function HomePage() {
               onClick={() => handleCardClick(stat.href)}
               title={`Ir a ${stat.title}`}
             >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground min-h-[1.5rem] flex items-center">
-                  {stat.title}
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-1 sm:pb-2">
+                <CardTitle className="text-[10px] xs:text-xs sm:text-sm lg:text-base font-medium text-muted-foreground min-h-[1rem] sm:min-h-[1.25rem] md:min-h-[1.5rem] flex items-center leading-tight pr-1">
+                  <span className="line-clamp-2">{stat.title}</span>
                   {stat.urgent && (
                     <span className="ml-1 inline-flex items-center">
-                      <span className="relative flex h-2 w-2">
+                      <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-red-500"></span>
                       </span>
                     </span>
                   )}
                 </CardTitle>
-                <stat.icon className={`h-4 w-4 md:h-5 md:w-5 ${stat.color} ${stat.animate ? 'animate-pulse' : ''} flex-shrink-0`} />
+                <stat.icon className={`h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 ${stat.color} ${stat.animate ? 'animate-pulse' : ''} flex-shrink-0`} />
               </CardHeader>
               <CardContent className="p-0 flex flex-col justify-between h-full">
-                <div className={`text-xl md:text-3xl font-bold text-foreground ${stat.urgent ? 'text-red-500' : ''}`}>
+                <div className={`text-base xs:text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-foreground ${stat.urgent ? 'text-red-500' : ''} truncate`}>
                   {stat.value}
                 </div>
                 {stat.title === "Docs. Vencimiento" && totalAlertas > 0 && (
@@ -314,58 +314,95 @@ export default function HomePage() {
       {/* Turnos Extras Summary */}
       <TurnosExtrasSummary />
 
-      {/* Quick Actions */}
-      <div>
-        <Card className="card-elegant">
-          <CardHeader>
-            <CardTitle className="text-xl font-semibold flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-blue-500" />
-              Acciones Rápidas
+      {/* Quick Actions - Ultra Responsive */}
+      <div className="w-full">
+        <Card className="card-elegant overflow-hidden">
+          <CardHeader className="p-3 sm:p-4 md:p-6">
+            <CardTitle className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold flex flex-wrap items-center gap-2">
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-blue-500" />
+              <span>Acciones Rápidas</span>
               {totalAlertas > 0 && (
-                <span className="ml-2 bg-red-500/20 text-red-400 px-2 py-1 rounded-full text-xs">
+                <span className="ml-auto sm:ml-2 bg-red-500/20 text-red-400 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs">
                   {totalAlertas} alertas activas
                 </span>
               )}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm md:text-base mt-1">
               Funciones principales de gestión de GardOps
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-4">
-              <h4 className="font-medium text-foreground">Gestión de Personal</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• Asignación de guardias</li>
-                <li>• Control de turnos</li>
-                <li>• Evaluación de desempeño</li>
-              </ul>
-            </div>
-            <div className="space-y-4">
-              <h4 className="font-medium text-foreground">Supervisión</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• Monitoreo en tiempo real</li>
-                <li>• Reportes de incidencias</li>
-                <li>• Alertas automáticas</li>
-              </ul>
-            </div>
-            <div className="space-y-4">
-              <h4 className="font-medium text-foreground flex items-center gap-2">
-                Documentación
-                {totalAlertas > 0 && (
-                  <span className="text-red-400 text-xs">({totalAlertas} alertas)</span>
-                )}
-              </h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• Gestión de clientes</li>
-                <li>• Control de instalaciones</li>
-                <li>• Documentación y PPC</li>
-                <li 
-                  className="cursor-pointer hover:text-blue-400 transition-colors"
-                  onClick={() => router.push('/alertas')}
-                >
-                  • Vencimientos y alertas {totalAlertas > 0 && '🔴'}
-                </li>
-              </ul>
+          <CardContent className="p-3 sm:p-4 md:p-6 pt-0 sm:pt-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
+              <div className="space-y-2 sm:space-y-3 md:space-y-4 p-3 sm:p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                <h4 className="font-medium text-sm sm:text-base md:text-lg text-foreground flex items-center gap-2">
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
+                  Gestión de Personal
+                </h4>
+                <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm md:text-base text-muted-foreground">
+                  <li className="flex items-start">
+                    <span className="mr-1">•</span>
+                    <span>Asignación de guardias</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-1">•</span>
+                    <span>Control de turnos</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-1">•</span>
+                    <span>Evaluación de desempeño</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="space-y-2 sm:space-y-3 md:space-y-4 p-3 sm:p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                <h4 className="font-medium text-sm sm:text-base md:text-lg text-foreground flex items-center gap-2">
+                  <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
+                  Supervisión
+                </h4>
+                <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm md:text-base text-muted-foreground">
+                  <li className="flex items-start">
+                    <span className="mr-1">•</span>
+                    <span>Monitoreo en tiempo real</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-1">•</span>
+                    <span>Reportes de incidencias</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-1">•</span>
+                    <span>Alertas automáticas</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="space-y-2 sm:space-y-3 md:space-y-4 p-3 sm:p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors sm:col-span-2 md:col-span-1">
+                <h4 className="font-medium text-sm sm:text-base md:text-lg text-foreground flex items-center gap-2">
+                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500" />
+                  Documentación
+                  {totalAlertas > 0 && (
+                    <span className="text-red-400 text-[10px] sm:text-xs">({totalAlertas} alertas)</span>
+                  )}
+                </h4>
+                <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm md:text-base text-muted-foreground">
+                  <li className="flex items-start">
+                    <span className="mr-1">•</span>
+                    <span>Gestión de clientes</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-1">•</span>
+                    <span>Control de instalaciones</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-1">•</span>
+                    <span>Documentación y PPC</span>
+                  </li>
+                  <li 
+                    className="cursor-pointer hover:text-blue-400 transition-colors flex items-start touch-manipulation active:scale-95"
+                    onClick={() => router.push('/alertas')}
+                  >
+                    <span className="mr-1">•</span>
+                    <span>Vencimientos y alertas {totalAlertas > 0 && '🔴'}</span>
+                  </li>
+                </ul>
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -7,11 +7,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     // Validar que el body tenga los campos requeridos
-    if (!body.sueldoBase || !body.afp || !body.mutualidad || !body.fecha) {
+    if (!body.sueldoBase || !body.afp || !body.fecha) {
       return NextResponse.json(
         { 
           error: 'Faltan campos requeridos',
-          detalles: 'sueldoBase, afp, mutualidad y fecha son obligatorios'
+          detalles: 'sueldoBase, afp y fecha son obligatorios'
         },
         { status: 400 }
       );
@@ -29,6 +29,8 @@ export async function POST(request: NextRequest) {
       judiciales: body.judiciales || 0,
       apv: body.apv || 0,
       cuenta2: body.cuenta2 || 0,
+      cotizacionAdicionalUF: body.cotizacionAdicionalUF || 0,
+      diasAusencia: body.diasAusencia || 0,
       tipoContrato: body.tipoContrato || 'indefinido'
     };
 

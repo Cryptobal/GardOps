@@ -2,7 +2,6 @@ export interface SueldoInput {
   sueldoBase: number;
   fecha: Date;
   afp: string;
-  mutualidad: string;
   horasExtras?: {
     cincuenta: number;
     cien: number;
@@ -27,10 +26,8 @@ export interface SueldoInput {
   judiciales?: number;
   apv?: number;
   cuenta2?: number;
-  isapre?: {
-    plan: number;
-    monto?: number;
-  };
+  cotizacionAdicionalUF?: number; // Cotización adicional en UF (formato 0.4)
+  diasAusencia?: number; // Días de ausencia a descontar
   tipoContrato: 'indefinido' | 'plazo_fijo' | 'obra_faena';
 }
 
@@ -41,6 +38,8 @@ export interface SueldoResultado {
   // Cálculos intermedios
   imponible: {
     sueldoBase: number;
+    descuentoDiasAusencia: number;
+    sueldoBaseAjustado: number;
     gratificacionLegal: number;
     horasExtras: number;
     comisiones: number;
@@ -96,7 +95,7 @@ export interface SueldoResultado {
     ufTopeImponible: number;
     valorUf: number;
     comisionAfp: number;
-    tasaMutualidad: number;
+    tasaMutualidad?: number; // Opcional, solo para cálculo del empleador
   };
 }
 
@@ -104,10 +103,10 @@ export interface ParametrosSueldo {
   ufTopeImponible: number;
   valorUf: number;
   comisionAfp: number;
-  tasaMutualidad: number;
+  tasaMutualidad?: number; // Solo para cálculo del empleador, opcional
   tramosImpuesto: Array<{
     desde: number;
-    hasta: number;
+    hasta: number | null;
     factor: number;
     rebaja: number;
   }>;

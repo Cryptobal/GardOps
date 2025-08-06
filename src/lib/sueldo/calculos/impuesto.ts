@@ -12,7 +12,18 @@ export interface CalculoImpuesto {
 /**
  * Encuentra el tramo de impuesto correspondiente a la base tributable
  */
-function encontrarTramo(baseTributable: number, tramosImpuesto: any[]): any {
+function encontrarTramo(baseTributable: number, tramosImpuesto: Array<{
+  desde: number;
+  hasta: number | null;
+  factor: number;
+  rebaja: number;
+}>): {
+  desde: number;
+  hasta: number | null;
+  factor: number;
+  rebaja: number;
+  numero: number;
+} {
   for (let i = 0; i < tramosImpuesto.length; i++) {
     const tramo = tramosImpuesto[i];
     const desde = tramo.desde;
@@ -41,6 +52,16 @@ export function calcularImpuestoUnico(
   baseTributable: number, 
   parametros: ParametrosSueldo
 ): CalculoImpuesto {
+  if (typeof baseTributable !== 'number' || !parametros.tramosImpuesto || parametros.tramosImpuesto.length === 0) {
+    return {
+      baseTributable: 0,
+      tramo: 1,
+      factor: 0,
+      rebaja: 0,
+      impuestoUnico: 0
+    };
+  }
+  
   const tramo = encontrarTramo(baseTributable, parametros.tramosImpuesto);
   
   // Calcular impuesto: base * factor - rebaja

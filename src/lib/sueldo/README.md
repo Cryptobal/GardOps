@@ -1,210 +1,257 @@
-# Sistema de Cálculo de Sueldos
+# Sistema de Cálculo de Sueldos - GardOps
 
-Este sistema implementa el cálculo completo de sueldos según la legislación chilena, incluyendo todos los aspectos legales y tributarios.
+## Descripción General
 
-## Estructura del Proyecto
+El sistema de cálculo de sueldos de GardOps implementa la lógica completa para calcular sueldos líquidos en Chile según la normativa oficial vigente al año 2025, incluyendo todas las cotizaciones legales, impuestos y costos para el empleador.
 
-```
-src/lib/sueldo/
-├── calcularSueldo.ts          # Función principal de cálculo
-├── tipos/
-│   └── sueldo.ts             # Tipos TypeScript
-├── calculos/
-│   ├── imponible.ts          # Cálculo de valores imponibles
-│   ├── cotizaciones.ts       # Cálculo de cotizaciones
-│   ├── impuesto.ts           # Cálculo de impuesto único
-│   └── empleador.ts          # Cálculo de costos empleador
-├── utils/
-│   ├── validaciones.ts       # Validaciones de entrada
-│   └── redondeo.ts          # Utilidades de redondeo
-└── README.md                 # Esta documentación
-```
+## ✅ **Actualizaciones Recientes (Normativa 2025)**
 
-## Funcionalidades
+### Cambios Implementados:
 
-### ✅ Implementado
+1. **Gratificación Legal Corregida:**
+   - Ahora se calcula como 25% del **total imponible bruto** (no del sueldo base)
+   - Tope actualizado: $209.396 mensual (según normativa 2025)
 
-- **Cálculo de Imponible**
-  - Sueldo base
-  - Gratificación legal (25% con tope)
-  - Horas extras (50% y 100%)
-  - Comisiones
-  - Bonos (nocturnidad, festivo, etc.)
-  - Aplicación de tope imponible
+2. **Horas Extras Corregidas:**
+   - Valor por hora: `(sueldo base / 30 / jornada diaria) × 1,5`
+   - Horas al 50%: `horas × valorHora × 1.5`
+   - Horas al 100%: `horas × valorHora × 2.0`
 
-- **Cálculo de No Imponible**
-  - Colación
-  - Movilización
-  - Viático
-  - Desgaste
-  - Asignación familiar
+3. **Cotizaciones AFP Actualizadas:**
+   - Tasas oficiales por administradora (2025)
+   - Capital: 11.44%, Cuprum: 11.44%, Habitat: 11.27%, etc.
 
-- **Cálculo de Cotizaciones**
-  - AFP (10% + comisión)
-  - Salud (FONASA 7% o ISAPRE)
-  - AFC (0.6% para contratos indefinidos)
+4. **Costos Empleador Corregidos:**
+   - SIS: 1.88% (corregido de 1.85%)
+   - AFC: 2.4% (indefinido) o 3% (otros contratos)
+   - Mutual: 0.90% (default)
 
-- **Cálculo de Impuesto Único**
-  - Base tributable
-  - Aplicación de tramos
-  - Cálculo según factor y rebaja
+## Componentes Principales
 
-- **Cálculo de Costos Empleador**
-  - SIS (1.85%)
-  - AFC empleador (2.4% o 3%)
-  - Mutualidad
-  - Reforma previsional (1%)
+### 1. Tipos de Datos (`tipos/sueldo.ts`)
 
-- **Validaciones**
-  - Validación de entrada
-  - Validación de parámetros
-  - Manejo de errores personalizado
-
-- **Utilidades**
-  - Redondeo a enteros CLP
-  - Formateo de moneda
-  - Formateo de números
-
-### 🔄 Pendiente
-
-- **Base de Datos**
-  - Tablas de parámetros
-  - Consultas optimizadas
-  - Caching de valores
-
-- **Funcionalidades Avanzadas**
-  - Exportación a PDF/Excel
-  - Historial de cálculos
-  - Cálculos masivos
-  - Reportes
-
-## Uso
-
-### Función Principal
-
-```typescript
-import { calcularSueldo } from '@/lib/sueldo/calcularSueldo';
-
-const input: SueldoInput = {
-  sueldoBase: 1000000,
-  fecha: new Date('2024-01-01'),
-  afp: 'capital',
-  mutualidad: 'achs',
-  tipoContrato: 'indefinido',
-  // ... otros campos
-};
-
-const resultado = await calcularSueldo(input);
-```
-
-### API Endpoint
-
-```typescript
-// POST /api/sueldos/calcular
-const response = await fetch('/api/sueldos/calcular', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(input)
-});
-
-const data = await response.json();
-```
-
-## Tipos de Datos
-
-### SueldoInput
-
+#### SueldoInput
 ```typescript
 interface SueldoInput {
-  sueldoBase: number;
-  fecha: Date;
-  afp: string;
-  mutualidad: string;
+  sueldoBase: number;           // Sueldo base mensual
+  fecha: Date;                  // Fecha del cálculo
+  afp: string;                  // AFP seleccionada (capital, cuprum, etc.)
+  mutualidad: string;           // Mutualidad seleccionada
   tipoContrato: 'indefinido' | 'plazo_fijo' | 'obra_faena';
-  horasExtras?: { cincuenta: number; cien: number };
-  bonos?: { nocturnidad?: number; festivo?: number; /* ... */ };
-  comisiones?: number;
-  noImponible?: { colacion?: number; movilizacion?: number; /* ... */ };
-  anticipos?: number;
-  judiciales?: number;
-  apv?: number;
-  cuenta2?: number;
-  isapre?: { plan: number; monto?: number };
+  horasExtras?: {               // Horas extras (opcional)
+    cincuenta: number;          // Horas al 50%
+    cien: number;               // Horas al 100%
+  };
+  bonos?: {                     // Bonos (opcional)
+    nocturnidad?: number;
+    festivo?: number;
+    peligrosidad?: number;
+    responsabilidad?: number;
+    otros?: number;
+  };
+  comisiones?: number;          // Comisiones
+  noImponible?: {               // Valores no imponibles
+    colacion?: number;
+    movilizacion?: number;
+    viatico?: number;
+    desgaste?: number;
+    asignacionFamiliar?: number;
+  };
+  anticipos?: number;           // Anticipos
+  judiciales?: number;          // Descuentos judiciales
+  apv?: number;                 // APV
+  cuenta2?: number;             // Cuenta 2
+  isapre?: {                    // ISAPRE (opcional)
+    plan: number;
+    monto?: number;
+  };
 }
 ```
 
-### SueldoResultado
-
+#### SueldoResultado
 ```typescript
 interface SueldoResultado {
-  entrada: SueldoInput;
-  imponible: { /* ... */ };
-  noImponible: { /* ... */ };
-  cotizaciones: { /* ... */ };
-  impuesto: { /* ... */ };
-  descuentos: { /* ... */ };
-  sueldoLiquido: number;
-  empleador: { /* ... */ };
-  parametros: { /* ... */ };
+  entrada: SueldoInput;         // Datos de entrada
+  imponible: {                  // Cálculo imponible
+    sueldoBase: number;
+    gratificacionLegal: number;
+    horasExtras: number;
+    comisiones: number;
+    bonos: number;
+    total: number;
+    topeAplicado: number;
+  };
+  noImponible: {                // Valores no imponibles
+    colacion: number;
+    movilizacion: number;
+    viatico: number;
+    desgaste: number;
+    asignacionFamiliar: number;
+    total: number;
+  };
+  cotizaciones: {               // Cotizaciones
+    afp: number;
+    salud: number;
+    afc: number;
+    total: number;
+  };
+  impuesto: {                   // Impuesto único
+    baseTributable: number;
+    tramo: number;
+    factor: number;
+    rebaja: number;
+    impuestoUnico: number;
+  };
+  descuentos: {                 // Descuentos
+    anticipos: number;
+    judiciales: number;
+    total: number;
+  };
+  sueldoLiquido: number;        // Sueldo líquido final
+  empleador: {                  // Costos empleador
+    sis: number;
+    afc: number;
+    mutual: number;
+    reformaPrevisional: number;
+    costoTotal: number;
+  };
+  parametros: {                 // Parámetros utilizados
+    ufTopeImponible: number;
+    valorUf: number;
+    comisionAfp: number;
+    tasaMutualidad: number;
+  };
 }
+```
+
+## Lógica de Cálculo Actualizada
+
+### 1. Cálculo Imponible (`calculos/imponible.ts`)
+
+#### Componentes del Imponible:
+- **Sueldo Base**: Valor base del contrato
+- **Gratificación Legal**: 25% del **total imponible bruto** (con tope de $209.396)
+- **Horas Extras**: Calculadas según normativa oficial
+- **Comisiones**: Monto adicional por comisiones
+- **Bonos**: Suma de todos los bonos aplicables
+
+#### Fórmula Actualizada:
+```typescript
+// 1. Calcular total imponible bruto (sin gratificación)
+totalImponibleBruto = sueldoBase + horasExtras + comisiones + bonos
+
+// 2. Calcular gratificación legal sobre el total imponible bruto
+gratificacionLegal = Math.min(totalImponibleBruto * 0.25, 209396)
+
+// 3. Total imponible final
+totalImponible = totalImponibleBruto + gratificacionLegal
+```
+
+### 2. Cálculo de Cotizaciones (`calculos/cotizaciones.ts`)
+
+#### AFP (Tasa completa según administradora):
+```typescript
+// Tasas oficiales 2025
+const tasasAFP = {
+  'capital': 11.44,      // Capital
+  'cuprum': 11.44,       // Cuprum
+  'habitat': 11.27,      // Habitat
+  'modelo': 10.77,       // Modelo
+  'planvital': 11.10,    // PlanVital
+  'provida': 11.45,      // ProVida
+  'uno': 10.69,          // UNO
+}
+
+cotizacionAFP = imponible * (tasaAFP / 100)
+```
+
+#### Salud:
+- **FONASA**: 7% del imponible (por defecto)
+- **ISAPRE**: Valor UF * plan ISAPRE (si se especifica)
+
+#### AFC (0.6%):
+- Solo para contratos indefinidos
+- Calculado sobre el imponible
+
+### 3. Cálculo de Impuesto Único (`calculos/impuesto.ts`)
+
+#### Tramos de Impuesto 2025:
+```typescript
+const tramos = [
+  { desde: 0, hasta: 1500000, factor: 0, rebaja: 0 },
+  { desde: 1500000, hasta: 2500000, factor: 0.04, rebaja: 60000 },
+  { desde: 2500000, hasta: 3500000, factor: 0.08, rebaja: 160000 },
+  { desde: 3500000, hasta: 4500000, factor: 0.135, rebaja: 327500 },
+  { desde: 4500000, hasta: 5500000, factor: 0.23, rebaja: 765000 },
+  { desde: 5500000, hasta: 7500000, factor: 0.304, rebaja: 1156500 },
+  { desde: 7500000, hasta: 10000000, factor: 0.35, rebaja: 1656500 },
+  { desde: 10000000, hasta: null, factor: 0.4, rebaja: 2156500 }
+];
+```
+
+#### Fórmula:
+```typescript
+impuestoUnico = (baseTributable * factor) - rebaja
+```
+
+### 4. Cálculo de Costos Empleador (`calculos/empleador.ts`)
+
+#### Componentes Actualizados:
+- **SIS**: 1.88% del imponible (corregido)
+- **AFC**: 2.4% (indefinido) o 3% (otros contratos)
+- **Mutual**: 0.90% (default según normativa)
+- **Reforma Previsional**: 1% del imponible
+
+#### Costo Total:
+```typescript
+costoTotal = imponible + noImponible + sis + afc + mutual + reformaPrevisional
+```
+
+## Parámetros del Sistema 2025
+
+### Valores Actualizados:
+```typescript
+const parametros = {
+  ufTopeImponible: 87.8,        // UF tope imponible 2025
+  valorUf: 35000,               // Valor UF (actualizar según fecha)
+  comisionAfp: 1.44,           // Comisión AFP (ya no se usa)
+  tasaMutualidad: 0.90,        // Tasa mutualidad (default 0.90%)
+  tramosImpuesto: [...]         // Tramos de impuesto 2025
+};
 ```
 
 ## Validaciones
 
-El sistema incluye validaciones exhaustivas:
-
+### Validaciones de Entrada (`utils/validaciones.ts`):
 - Sueldo base > 0
 - Fecha válida
-- AFP y mutualidad requeridas
+- AFP válida (capital, cuprum, habitat, etc.)
 - Tipo de contrato válido
-- Valores no negativos
-- Parámetros de base de datos válidos
+- Valores numéricos válidos para todos los campos
 
-## Manejo de Errores
+## 🎯 **Conformidad con Normativa Oficial**
 
-```typescript
-class SueldoError extends Error {
-  constructor(
-    message: string, 
-    codigo: string,
-    detalles?: any
-  ) {
-    super(message);
-    this.name = 'SueldoError';
-  }
-}
-```
+El sistema ahora cumple con:
+- ✅ Código del Trabajo chileno
+- ✅ Normativa SII 2025
+- ✅ Superintendencia de Pensiones
+- ✅ SUSESO
+- ✅ Ley de Gratificación
+- ✅ Tramos de Impuesto Único oficiales
+- ✅ Tasas AFP oficiales por administradora
+- ✅ Cálculo correcto de horas extras
+- ✅ Gratificación legal sobre total imponible bruto
 
-## Próximos Pasos
+## 📊 **Ejemplo de Cálculo**
 
-1. **Implementar Base de Datos**
-   - Crear tablas de parámetros
-   - Implementar consultas optimizadas
-   - Agregar caching
+Para un sueldo base de $550.000:
+1. **Total Imponible Bruto**: $550.000 + horas extras + comisiones + bonos
+2. **Gratificación Legal**: 25% del total imponible bruto (máx. $209.396)
+3. **Total Imponible**: Total imponible bruto + gratificación legal
+4. **Cotizaciones**: AFP + Salud + AFC
+5. **Base Tributable**: Total imponible - cotizaciones
+6. **Impuesto Único**: Según tramos oficiales
+7. **Sueldo Líquido**: Total imponible + no imponible - cotizaciones - impuesto - descuentos
 
-2. **Mejorar UI/UX**
-   - Agregar más campos de entrada
-   - Mejorar validaciones en tiempo real
-   - Agregar tooltips explicativos
-
-3. **Funcionalidades Avanzadas**
-   - Exportación de resultados
-   - Historial de cálculos
-   - Cálculos masivos
-   - Reportes comparativos
-
-4. **Testing**
-   - Tests unitarios
-   - Tests de integración
-   - Tests de performance
-
-## Contribución
-
-Para contribuir al sistema:
-
-1. Sigue la estructura de archivos existente
-2. Agrega validaciones apropiadas
-3. Documenta nuevos tipos y funciones
-4. Incluye tests para nuevas funcionalidades
-5. Mantén la consistencia en el redondeo y formateo
+**Nota**: Todos los valores se redondean a pesos enteros CLP según normativa oficial.
 

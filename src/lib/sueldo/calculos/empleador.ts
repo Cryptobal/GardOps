@@ -10,31 +10,48 @@ export interface CalculoEmpleador {
 }
 
 /**
- * Calcula el SIS (1.85% del imponible)
+ * Calcula el SIS (1.88% del imponible) - Según normativa 2025
  */
 function calcularSIS(imponible: number): number {
-  return redondearCLP(imponible * 0.0185);
+  if (typeof imponible !== 'number') {
+    return 0;
+  }
+  return redondearCLP(imponible * 0.0188);
 }
 
 /**
  * Calcula el AFC empleador (2.4% para indefinido, 3% para otros)
+ * Según normativa oficial
  */
 function calcularAFCEmpleador(imponible: number, tipoContrato: string): number {
+  if (typeof imponible !== 'number' || typeof tipoContrato !== 'string') {
+    return 0;
+  }
   const tasa = tipoContrato === 'indefinido' ? 0.024 : 0.03;
   return redondearCLP(imponible * tasa);
 }
 
 /**
- * Calcula la mutualidad empleador
+ * Calcula la mutualidad empleador (0.90% aprox. según actividad)
+ * Según normativa oficial
  */
-function calcularMutualEmpleador(imponible: number, tasaMutualidad: number): number {
-  return redondearCLP(imponible * (tasaMutualidad / 100));
+function calcularMutualEmpleador(imponible: number, tasaMutualidad?: number): number {
+  if (typeof imponible !== 'number') {
+    return 0;
+  }
+  // Usar la tasa proporcionada o 0.90% como default
+  const tasa = tasaMutualidad !== undefined && tasaMutualidad > 0 ? tasaMutualidad : 0.90;
+  return redondearCLP(imponible * (tasa / 100));
 }
 
 /**
  * Calcula la reforma previsional (1% del imponible)
+ * Según normativa oficial
  */
 function calcularReformaPrevisional(imponible: number): number {
+  if (typeof imponible !== 'number') {
+    return 0;
+  }
   return redondearCLP(imponible * 0.01);
 }
 
@@ -47,6 +64,16 @@ export function calcularEmpleador(
   input: SueldoInput,
   parametros: ParametrosSueldo
 ): CalculoEmpleador {
+  if (typeof imponible !== 'number' || typeof noImponible !== 'number') {
+    return {
+      sis: 0,
+      afc: 0,
+      mutual: 0,
+      reformaPrevisional: 0,
+      costoTotal: 0
+    };
+  }
+  
   const sis = calcularSIS(imponible);
   const afc = calcularAFCEmpleador(imponible, input.tipoContrato);
   const mutual = calcularMutualEmpleador(imponible, parametros.tasaMutualidad);

@@ -5,33 +5,108 @@ import { calcularImponible } from './calculos/imponible';
 import { calcularCotizaciones } from './calculos/cotizaciones';
 import { calcularImpuestoUnico } from './calculos/impuesto';
 import { calcularEmpleador } from './calculos/empleador';
+import { query } from '@/lib/database';
 
 /**
  * Obtiene los parámetros desde la base de datos
  */
 async function obtenerParametros(input: SueldoInput): Promise<ParametrosSueldo> {
   try {
-    // TODO: Implementar consultas a la base de datos
-    // Por ahora usamos valores de ejemplo
-    
     const fechaPrimerDia = new Date(input.fecha.getFullYear(), input.fecha.getMonth(), 1);
     
-    // Simular consultas a la base de datos
+    // 1. Obtener valor UF para el mes
+    const resultUF = await query(
+      `SELECT valor FROM sueldo_valor_uf 
+       WHERE fecha = $1
+       LIMIT 1`,
+      [fechaPrimerDia.toISOString().split('T')[0]]
+    );
+    
+    let valorUf = 38000; // Valor por defecto
+    if (resultUF.rows.length > 0) {
+      valorUf = Number(resultUF.rows[0].valor);
+    } else {
+      // Si no hay valor exacto, buscar el más cercano anterior
+      const resultUFCercano = await query(
+        `SELECT valor FROM sueldo_valor_uf 
+         WHERE fecha <= $1
+         ORDER BY fecha DESC
+         LIMIT 1`,
+        [fechaPrimerDia.toISOString().split('T')[0]]
+      );
+      if (resultUFCercano.rows.length > 0) {
+        valorUf = Number(resultUFCercano.rows[0].valor);
+      }
+    }
+    
+    // 2. Obtener tope imponible y otros parámetros generales
+    const resultParametros = await query(
+      `SELECT parametro, valor FROM sueldo_parametros_generales 
+       WHERE activo = true
+       AND fecha_vigencia <= $1
+       ORDER BY fecha_vigencia DESC`,
+      [input.fecha.toISOString().split('T')[0]]
+    );
+    
+    const parametrosMap: { [key: string]: number } = {};
+    resultParametros.rows.forEach((row: any) => {
+      parametrosMap[row.parametro] = Number(row.valor);
+    });
+    
+    // 3. Obtener tasa de mutualidad (solo para cálculo del empleador)
+    // Se usa una tasa default del 0.90% ya que no viene del input
+    let tasaMutualidad = 0.90; // Default para cálculo del empleador
+    
+    // 4. Obtener comisión AFP (aunque ya no se usa directamente)
+    let comisionAfp = 1.44; // Default
+    if (input.afp) {
+      const resultAFP = await query(
+        `SELECT comision FROM sueldo_afp 
+         WHERE codigo = $1
+         AND activo = true
+         LIMIT 1`,
+        [input.afp]
+      );
+      if (resultAFP.rows.length > 0) {
+        comisionAfp = Number(resultAFP.rows[0].comision);
+      }
+    }
+    
+    // 5. Obtener tramos de impuesto
+    const resultTramos = await query(
+      `SELECT tramo, desde, hasta, factor, rebaja 
+       FROM sueldo_tramos_impuesto 
+       WHERE activo = true
+       AND fecha_vigencia <= $1
+       ORDER BY fecha_vigencia DESC, tramo ASC`,
+      [input.fecha.toISOString().split('T')[0]]
+    );
+    
+    const tramosImpuesto = resultTramos.rows.map((row: any) => ({
+      desde: Number(row.desde),
+      hasta: row.hasta ? Number(row.hasta) : null,
+      factor: Number(row.factor),
+      rebaja: Number(row.rebaja)
+    }));
+    
+    // Si no hay tramos en BD, usar los valores por defecto
+    const tramosFinales = tramosImpuesto.length > 0 ? tramosImpuesto : [
+      { desde: 0, hasta: 1500000, factor: 0, rebaja: 0 },
+      { desde: 1500000, hasta: 2500000, factor: 0.04, rebaja: 60000 },
+      { desde: 2500000, hasta: 3500000, factor: 0.08, rebaja: 160000 },
+      { desde: 3500000, hasta: 4500000, factor: 0.135, rebaja: 327500 },
+      { desde: 4500000, hasta: 5500000, factor: 0.23, rebaja: 765000 },
+      { desde: 5500000, hasta: 7500000, factor: 0.304, rebaja: 1156500 },
+      { desde: 7500000, hasta: 10000000, factor: 0.35, rebaja: 1656500 },
+      { desde: 10000000, hasta: null, factor: 0.4, rebaja: 2156500 }
+    ];
+    
     const parametros: ParametrosSueldo = {
-      ufTopeImponible: 87.8, // UF_TOPE_IMPONIBLE
-      valorUf: 35000, // Valor UF para el primer día del mes
-      comisionAfp: 1.44, // Comisión según AFP
-      tasaMutualidad: 0.93, // Tasa según mutualidad
-      tramosImpuesto: [
-        { desde: 0, hasta: 1500000, factor: 0, rebaja: 0 },
-        { desde: 1500000, hasta: 2500000, factor: 0.04, rebaja: 60000 },
-        { desde: 2500000, hasta: 3500000, factor: 0.08, rebaja: 160000 },
-        { desde: 3500000, hasta: 4500000, factor: 0.135, rebaja: 327500 },
-        { desde: 4500000, hasta: 5500000, factor: 0.23, rebaja: 765000 },
-        { desde: 5500000, hasta: 7500000, factor: 0.304, rebaja: 1156500 },
-        { desde: 7500000, hasta: 10000000, factor: 0.35, rebaja: 1656500 },
-        { desde: 10000000, hasta: null, factor: 0.4, rebaja: 2156500 }
-      ]
+      ufTopeImponible: parametrosMap['UF_TOPE_IMPONIBLE'] || 87.8,
+      valorUf: valorUf,
+      comisionAfp: comisionAfp,
+      tasaMutualidad: tasaMutualidad, // Es opcional, puede ser undefined
+      tramosImpuesto: tramosFinales
     };
     
     return parametros;
@@ -50,17 +125,19 @@ async function obtenerParametros(input: SueldoInput): Promise<ParametrosSueldo> 
 function calcularNoImponible(input: SueldoInput) {
   const noImponible = input.noImponible || {};
   
+  const colacion = typeof noImponible.colacion === 'number' ? noImponible.colacion : 0;
+  const movilizacion = typeof noImponible.movilizacion === 'number' ? noImponible.movilizacion : 0;
+  const viatico = typeof noImponible.viatico === 'number' ? noImponible.viatico : 0;
+  const desgaste = typeof noImponible.desgaste === 'number' ? noImponible.desgaste : 0;
+  const asignacionFamiliar = typeof noImponible.asignacionFamiliar === 'number' ? noImponible.asignacionFamiliar : 0;
+  
   return {
-    colacion: noImponible.colacion || 0,
-    movilizacion: noImponible.movilizacion || 0,
-    viatico: noImponible.viatico || 0,
-    desgaste: noImponible.desgaste || 0,
-    asignacionFamiliar: noImponible.asignacionFamiliar || 0,
-    total: (noImponible.colacion || 0) + 
-           (noImponible.movilizacion || 0) + 
-           (noImponible.viatico || 0) + 
-           (noImponible.desgaste || 0) + 
-           (noImponible.asignacionFamiliar || 0)
+    colacion,
+    movilizacion,
+    viatico,
+    desgaste,
+    asignacionFamiliar,
+    total: colacion + movilizacion + viatico + desgaste + asignacionFamiliar
   };
 }
 
@@ -68,8 +145,8 @@ function calcularNoImponible(input: SueldoInput) {
  * Calcula los descuentos
  */
 function calcularDescuentos(input: SueldoInput) {
-  const anticipos = input.anticipos || 0;
-  const judiciales = input.judiciales || 0;
+  const anticipos = typeof input.anticipos === 'number' ? input.anticipos : 0;
+  const judiciales = typeof input.judiciales === 'number' ? input.judiciales : 0;
   
   return {
     anticipos,
