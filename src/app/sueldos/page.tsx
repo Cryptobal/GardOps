@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { SueldoInput, SueldoResultado } from '@/lib/sueldo/tipos/sueldo';
 import { formatearCLP } from '@/lib/sueldo/utils/redondeo';
+import { Settings } from 'lucide-react';
+import Link from 'next/link';
 
 export default function SueldosPage() {
   const [input, setInput] = useState<SueldoInput>({
@@ -85,7 +87,15 @@ export default function SueldosPage() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Cálculo de Sueldos</h1>
-        <Badge variant="secondary">Beta</Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary">Beta</Badge>
+          <Link href="/sueldos/parametros">
+            <Button variant="outline" size="sm">
+              <Settings className="h-4 w-4 mr-2" />
+              Parámetros
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -404,78 +414,78 @@ export default function SueldosPage() {
                 </div>
               </div>
 
-              <Separator />
+              <Separator className="my-3 sm:my-4" />
 
-              <div className="space-y-3">
-                <h4 className="font-semibold">No Imponible</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Colación:</span>
-                    <span>{formatearCLP(resultado.noImponible.colacion)}</span>
+              <div className="space-y-2 sm:space-y-3">
+                <h4 className="font-semibold text-sm sm:text-base">No Imponible</h4>
+                <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
+                    <span className="text-muted-foreground">Colación:</span>
+                    <span className="font-medium tabular-nums">{formatearCLP(resultado.noImponible.colacion)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Movilización:</span>
-                    <span>{formatearCLP(resultado.noImponible.movilizacion)}</span>
+                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
+                    <span className="text-muted-foreground">Movilización:</span>
+                    <span className="font-medium tabular-nums">{formatearCLP(resultado.noImponible.movilizacion)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Viático:</span>
-                    <span>{formatearCLP(resultado.noImponible.viatico)}</span>
+                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
+                    <span className="text-muted-foreground">Viático:</span>
+                    <span className="font-medium tabular-nums">{formatearCLP(resultado.noImponible.viatico)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Desgaste:</span>
-                    <span>{formatearCLP(resultado.noImponible.desgaste)}</span>
+                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
+                    <span className="text-muted-foreground">Desgaste:</span>
+                    <span className="font-medium tabular-nums">{formatearCLP(resultado.noImponible.desgaste)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Asignación Familiar:</span>
-                    <span>{formatearCLP(resultado.noImponible.asignacionFamiliar)}</span>
+                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
+                    <span className="text-muted-foreground">Asignación Familiar:</span>
+                    <span className="font-medium tabular-nums">{formatearCLP(resultado.noImponible.asignacionFamiliar)}</span>
                   </div>
-                  <div className="flex justify-between font-semibold">
+                  <div className="flex justify-between items-center font-semibold pt-2 mt-2 border-t text-sm sm:text-base">
                     <span>Total No Imponible:</span>
-                    <span>{formatearCLP(resultado.noImponible.total)}</span>
+                    <span className="tabular-nums">{formatearCLP(resultado.noImponible.total)}</span>
                   </div>
                 </div>
               </div>
 
-              <Separator />
+              <Separator className="my-3 sm:my-4" />
 
-              <div className="space-y-3">
-                <h4 className="font-semibold">Impuesto Único</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Base Tributable:</span>
-                    <span>{formatearCLP(resultado.impuesto.baseTributable)}</span>
+              <div className="space-y-2 sm:space-y-3">
+                <h4 className="font-semibold text-sm sm:text-base">Impuesto Único</h4>
+                <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
+                    <span className="text-muted-foreground">Base Tributable:</span>
+                    <span className="font-medium tabular-nums">{formatearCLP(resultado.impuesto.baseTributable)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Impuesto Único:</span>
-                    <span>{formatearCLP(resultado.impuesto.impuestoUnico)}</span>
+                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
+                    <span className="text-muted-foreground">Impuesto Único:</span>
+                    <span className="font-medium tabular-nums text-red-600 dark:text-red-400">{formatearCLP(resultado.impuesto.impuestoUnico)}</span>
                   </div>
                 </div>
               </div>
 
-              <Separator />
+              <Separator className="my-3 sm:my-4" />
 
-              <div className="space-y-3">
-                <h4 className="font-semibold">Costo Empleador</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>SIS:</span>
-                    <span>{formatearCLP(resultado.empleador.sis)}</span>
+              <div className="space-y-2 sm:space-y-3">
+                <h4 className="font-semibold text-sm sm:text-base">Costo Empleador</h4>
+                <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
+                    <span className="text-muted-foreground">SIS:</span>
+                    <span className="font-medium tabular-nums">{formatearCLP(resultado.empleador.sis)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>AFC:</span>
-                    <span>{formatearCLP(resultado.empleador.afc)}</span>
+                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
+                    <span className="text-muted-foreground">AFC:</span>
+                    <span className="font-medium tabular-nums">{formatearCLP(resultado.empleador.afc)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Mutual:</span>
-                    <span>{formatearCLP(resultado.empleador.mutual)}</span>
+                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
+                    <span className="text-muted-foreground">Mutual:</span>
+                    <span className="font-medium tabular-nums">{formatearCLP(resultado.empleador.mutual)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Reforma Previsional:</span>
-                    <span>{formatearCLP(resultado.empleador.reformaPrevisional)}</span>
+                  <div className="flex justify-between items-center py-1 hover:bg-muted/50 px-2 -mx-2 rounded transition-colors">
+                    <span className="text-muted-foreground">Reforma Previsional:</span>
+                    <span className="font-medium tabular-nums">{formatearCLP(resultado.empleador.reformaPrevisional)}</span>
                   </div>
-                  <div className="flex justify-between font-semibold">
+                  <div className="flex justify-between items-center font-semibold pt-2 mt-2 border-t text-sm sm:text-base">
                     <span>Costo Total:</span>
-                    <span>{formatearCLP(resultado.empleador.costoTotal)}</span>
+                    <span className="tabular-nums text-blue-600 dark:text-blue-400">{formatearCLP(resultado.empleador.costoTotal)}</span>
                   </div>
                 </div>
               </div>

@@ -55,7 +55,7 @@ export function Sidebar({
         />
       )}
 
-      {/* Sidebar unificado */}
+      {/* Sidebar unificado - Ultra Responsive */}
       <aside
         className={cn(
           "fixed top-0 left-0 z-[70] h-full bg-background border-r border-border/50 transition-all duration-500 ease-in-out",
@@ -64,42 +64,42 @@ export function Sidebar({
           // Móvil: overlay con animación
           "lg:translate-x-0",
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-          // Ancho responsive
-          isCollapsed ? "w-20" : "w-64",
+          // Ancho ultra responsive
+          isCollapsed ? "w-16 sm:w-18 md:w-20" : "w-52 sm:w-60 md:w-64",
           className
         )}
       >
         <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="p-6 border-b border-border/50">
+          {/* Header - Ultra Responsive */}
+          <div className="p-3 sm:p-4 md:p-5 lg:p-6 border-b border-border/50">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center flex-shrink-0">
-                  <span className="text-primary-foreground font-bold text-lg">G</span>
+              <div className="flex items-center gap-2 sm:gap-2.5 md:gap-3">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-primary rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <span className="text-primary-foreground font-bold text-sm sm:text-base md:text-lg">G</span>
                 </div>
                 <div className={cn(
                   "overflow-hidden transition-all duration-500 ease-in-out",
                   isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
                 )}>
-                  <h2 className="text-xl font-bold text-foreground whitespace-nowrap">GardOps</h2>
-                  <p className="text-sm text-muted-foreground whitespace-nowrap">Sistema de Gestión</p>
+                  <h2 className="text-base sm:text-lg md:text-xl font-bold text-foreground whitespace-nowrap">GardOps</h2>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground whitespace-nowrap">Sistema de Gestión</p>
                 </div>
               </div>
               
-              {/* Botón X para cerrar en móvil */}
+              {/* Botón X para cerrar en móvil - Responsive */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onMobileClose}
-                className="lg:hidden p-2 h-8 w-8 rounded-full bg-accent/50 border border-border/30 hover:bg-accent/70"
+                className="lg:hidden p-1.5 sm:p-2 h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-accent/50 border border-border/30 hover:bg-accent/70 touch-manipulation active:scale-95 transition-transform"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </Button>
             </div>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
+          {/* Navigation - Ultra Responsive */}
+          <nav className="flex-1 p-2 sm:p-3 md:p-4 space-y-1 sm:space-y-1.5 md:space-y-2 overflow-y-auto">
             {navigationItems.map((item) => {
               const isActive = pathname === item.href;
               return (
@@ -108,16 +108,16 @@ export function Sidebar({
                     href={item.href}
                     onClick={() => onMobileClose?.()}
                     className={cn(
-                      "sidebar-item",
+                      "sidebar-item text-xs sm:text-sm md:text-base touch-manipulation active:scale-[0.98] transition-all",
                       isActive && "active",
-                      isCollapsed && "justify-center px-2"
+                      isCollapsed && "justify-center px-1 sm:px-1.5 md:px-2"
                     )}
                     title={isCollapsed ? item.name : undefined}
                   >
-                    <item.icon className="h-5 w-5 flex-shrink-0" />
+                    <item.icon className="h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5 flex-shrink-0" />
                     {!isCollapsed && (
                       <div className="flex-1 min-w-0">
-                        <span className="font-medium truncate">{item.name}</span>
+                        <span className="font-medium truncate text-xs sm:text-sm md:text-base">{item.name}</span>
                         {item.description && (
                           <p className="text-xs text-muted-foreground mt-0.5 truncate">
                             {item.description}
@@ -131,33 +131,33 @@ export function Sidebar({
             })}
           </nav>
 
-          {/* Footer */}
-          <div className="p-6 border-t border-border/50">
+          {/* Footer - Ultra Responsive */}
+          <div className="p-3 sm:p-4 md:p-5 lg:p-6 border-t border-border/50">
             {!isCollapsed ? (
-              <div className="space-y-4">
-                {/* Collapse toggle button - solo visible en desktop */}
+              <div className="space-y-2 sm:space-y-3 md:space-y-4">
+                {/* Collapse toggle button - solo visible en desktop - Responsive */}
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={toggleCollapse}
-                  className="w-full hidden lg:flex items-center gap-2 text-foreground hover:text-primary hover:bg-accent/50 transition-colors duration-200 border border-border/30 hover:border-border/60 font-medium"
+                  className="w-full hidden lg:flex items-center gap-1.5 sm:gap-2 text-foreground hover:text-primary hover:bg-accent/50 transition-colors duration-200 border border-border/30 hover:border-border/60 font-medium touch-manipulation active:scale-[0.98] h-8 sm:h-9 md:h-10"
                 >
-                  <div className="w-4 h-4 border border-current rounded-sm flex items-center justify-center">
-                    <ChevronLeft className="h-3 w-3" />
+                  <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 border border-current rounded-sm flex items-center justify-center">
+                    <ChevronLeft className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                   </div>
-                  <span className="text-xs">Colapsar menú</span>
+                  <span className="text-[10px] sm:text-xs md:text-sm">Colapsar menú</span>
                 </Button>
               </div>
             ) : (
-              <div className="space-y-4">
-                {/* Expand toggle button - solo visible en desktop */}
+              <div className="space-y-2 sm:space-y-3 md:space-y-4">
+                {/* Expand toggle button - solo visible en desktop - Responsive */}
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={toggleCollapse}
-                  className="w-full hidden lg:flex items-center justify-center text-foreground hover:text-primary hover:bg-accent/50 transition-colors duration-200 border border-border/30 hover:border-border/60"
+                  className="w-full hidden lg:flex items-center justify-center text-foreground hover:text-primary hover:bg-accent/50 transition-colors duration-200 border border-border/30 hover:border-border/60 touch-manipulation active:scale-[0.98] h-8 sm:h-9 md:h-10"
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </div>
             )}
