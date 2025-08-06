@@ -1,28 +1,30 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
 import { DollarSign, Calendar, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export default function NavigationTabs() {
-  const pathname = usePathname();
+interface NavigationTabsProps {
+  activeTab: 'turnos' | 'dashboard' | 'historial';
+  onTabChange: (tab: 'turnos' | 'dashboard' | 'historial') => void;
+}
 
+export default function NavigationTabs({ activeTab, onTabChange }: NavigationTabsProps) {
   const tabs = [
     {
       name: 'Turnos Pago, Turnos Extras',
-      href: '/pauta-diaria/turnos-extras',
+      value: 'turnos' as const,
       icon: DollarSign,
       description: 'Administrar pagos pendientes'
     },
     {
       name: 'Dashboard',
-      href: '/pauta-diaria/turnos-extras/dashboard',
+      value: 'dashboard' as const,
       icon: BarChart3,
       description: 'Análisis Big Data'
     },
     {
       name: 'Historial de Planillas',
-      href: '/pauta-diaria/turnos-extras/historial',
+      value: 'historial' as const,
       icon: Calendar,
       description: 'Ver planillas generadas'
     }
@@ -31,13 +33,13 @@ export default function NavigationTabs() {
   return (
     <div className="flex flex-wrap gap-1 bg-muted/30 p-1 rounded-lg mb-6">
       {tabs.map((tab) => {
-        const isActive = pathname === tab.href;
+        const isActive = activeTab === tab.value;
         const Icon = tab.icon;
         
         return (
           <button
             key={tab.name}
-            onClick={() => window.location.href = tab.href}
+            onClick={() => onTabChange(tab.value)}
             className={cn(
               'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all whitespace-nowrap border border-transparent',
               isActive

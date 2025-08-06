@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Filter, Eye, EyeOff, RotateCcw, Calendar, DollarSign, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Filter, RotateCcw, Calendar, DollarSign, CheckCircle, AlertTriangle } from 'lucide-react';
 
 interface FiltrosAvanzadosProps {
   filtros: {
@@ -172,7 +172,10 @@ export default function FiltrosAvanzados({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader 
+        className="cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={() => setShowFiltros(!showFiltros)}
+      >
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
@@ -184,18 +187,14 @@ export default function FiltrosAvanzados({
             )}
           </CardTitle>
           <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowFiltros(!showFiltros)}
-            >
-              {showFiltros ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </Button>
             {filtrosActivos > 0 && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={limpiarFiltros}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  limpiarFiltros();
+                }}
               >
                 <RotateCcw className="h-4 w-4 mr-1" />
                 Limpiar

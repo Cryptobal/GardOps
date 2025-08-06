@@ -7,23 +7,19 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { CalendarIcon, Download, DollarSign, RefreshCw, AlertTriangle, FileSpreadsheet, CheckCircle, Clock, FileX } from 'lucide-react';
+import { Download, ArrowLeft, FileSpreadsheet, Calendar, DollarSign, RefreshCw, AlertTriangle, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import NavigationTabs from '../components/NavigationTabs';
 
 interface Planilla {
   id: number;
-  codigo?: string;
-  fecha_generacion: string;
-  monto_total: number;
+  fecha_creacion: string;
   cantidad_turnos: number;
-  estado: 'pendiente' | 'pagada';
-  fecha_pago: string | null;
+  monto_total: number | string;
   observaciones: string | null;
-  usuario_nombre: string;
-  usuario_apellido: string;
-  fecha_inicio_turnos?: string;
-  fecha_fin_turnos?: string;
+  usuario_creador: string | null;
+  estado: 'activa' | 'archivada' | 'pagada';
+  turnos_ids: string[];
 }
 
 // Función para formatear números con puntos como separadores de miles sin decimales
@@ -32,45 +28,25 @@ const formatCurrency = (amount: number | string): string => {
   return `$ ${numValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
 };
 
-export default function HistorialPlanillasPage() {
+export default function HistorialPage() {
   const [planillas, setPlanillas] = useState<Planilla[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [planillaSeleccionada, setPlanillaSeleccionada] = useState<Planilla | null>(null);
-  const [procesandoPago, setProcesandoPago] = useState(false);
   const [descargando, setDescargando] = useState<number | null>(null);
-  const [filtroEstado, setFiltroEstado] = useState<'all' | 'pendiente' | 'pagada'>('all');
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    totalPages: 0
-  });
+  const [procesandoAccion, setProcesandoAccion] = useState<number | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [planillaToDelete, setPlanillaToDelete] = useState<Planilla | null>(null);
 
   const { success, error } = useToast();
 
   // Cargar planillas
-  const cargarPlanillas = async (page = 1) => {
+  const cargarPlanillas = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      params.append('page', page.toString());
-      params.append('limit', pagination.limit.toString());
-      if (filtroEstado !== 'all') {
-        params.append('estado', filtroEstado);
-      }
-
-      const response = await fetch(`/api/pauta-diaria/turno-extra/planillas?${params.toString()}`);
+      const response = await fetch('/api/pauta-diaria/turno-extra/planillas');
       const data = await response.json();
 
       if (response.ok) {
         setPlanillas(data.planillas || []);
-        setPagination(data.pagination || {
-          page: 1,
-          limit: 10,
-          total: 0,
-          totalPages: 0
-        });
       } else {
         error("Error", data.error || "Error al cargar planillas");
       }
@@ -93,29 +69,66 @@ export default function HistorialPlanillasPage() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        const codigoArchivo = planillas.find(p => p.id === planillaId)?.codigo || `PL_${planillaId}`;
-        a.download = `${codigoArchivo}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        a.download = `planilla_turnos_extras_${planillaId}_${new Date().toISOString().split('T')[0]}.xlsx`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
         
-        success("📊 Planilla descargada", "Archivo XLSX descargado exitosamente");
+        success("📊 Planilla descargada", "Archivo descargado exitosamente");
       } else {
-        const data = await response.json();
-        error("❌ Error", data.error || "Error al descargar la planilla");
+        error("❌ Error", "Error al descargar la planilla");
       }
     } catch (err) {
       console.error('Error:', err);
-      error("❌ Error", "Error de conexión al descargar");
+      error("❌ Error", "Error de conexión");
     } finally {
       setDescargando(null);
     }
   };
 
+  // Abrir modal de eliminación
+  const abrirModalEliminar = (planilla: Planilla) => {
+    setPlanillaToDelete(planilla);
+    setShowDeleteModal(true);
+  };
+
+  // Cerrar modal de eliminación
+  const cerrarModalEliminar = () => {
+    setShowDeleteModal(false);
+    setPlanillaToDelete(null);
+  };
+
+  // Eliminar planilla
+  const eliminarPlanilla = async () => {
+    if (!planillaToDelete) return;
+
+    setProcesandoAccion(planillaToDelete.id);
+    try {
+      const response = await fetch(`/api/pauta-diaria/turno-extra/planillas/${planillaToDelete.id}/eliminar`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        success("✅ Planilla eliminada", "Planilla eliminada correctamente. Los turnos extras han vuelto a estado 'no pagado'.");
+        cargarPlanillas(); // Recargar para actualizar la lista
+        cerrarModalEliminar();
+      } else {
+        error("❌ Error", data.error || "Error al eliminar planilla");
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      error("❌ Error", "Error de conexión");
+    } finally {
+      setProcesandoAccion(null);
+    }
+  };
+
   // Marcar planilla como pagada
-  const marcarPlanillaComoPagada = async (planillaId: number) => {
-    setProcesandoPago(true);
+  const marcarComoPagada = async (planillaId: number) => {
+    setProcesandoAccion(planillaId);
     try {
       const response = await fetch(`/api/pauta-diaria/turno-extra/planillas/${planillaId}/marcar-pagada`, {
         method: 'POST',
@@ -127,10 +140,8 @@ export default function HistorialPlanillasPage() {
       const data = await response.json();
 
       if (response.ok) {
-        success("✅ Planilla marcada como pagada", data.mensaje);
-        setShowConfirmModal(false);
-        setPlanillaSeleccionada(null);
-        cargarPlanillas(pagination.page);
+        success("✅ Planilla pagada", "Planilla marcada como pagada correctamente");
+        cargarPlanillas(); // Recargar para actualizar el estado
       } else {
         error("❌ Error", data.error || "Error al marcar planilla como pagada");
       }
@@ -138,100 +149,50 @@ export default function HistorialPlanillasPage() {
       console.error('Error:', err);
       error("❌ Error", "Error de conexión");
     } finally {
-      setProcesandoPago(false);
+      setProcesandoAccion(null);
     }
   };
 
-  // Confirmar pago de planilla
-  const confirmarPagoPlanilla = () => {
-    if (planillaSeleccionada) {
-      marcarPlanillaComoPagada(planillaSeleccionada.id);
+  // Función para manejar el cambio de pestañas
+  const handleTabChange = (tab: 'turnos' | 'dashboard' | 'historial') => {
+    if (tab === 'turnos') {
+      window.location.href = '/pauta-diaria/turnos-extras';
+    } else if (tab === 'dashboard') {
+      window.location.href = '/pauta-diaria/turnos-extras/dashboard';
     }
-  };
-
-  // Abrir modal de confirmación
-  const abrirModalConfirmacion = (planilla: Planilla) => {
-    setPlanillaSeleccionada(planilla);
-    setShowConfirmModal(true);
-  };
-
-  // Cambiar página
-  const cambiarPagina = (nuevaPagina: number) => {
-    setPagination(prev => ({ ...prev, page: nuevaPagina }));
-    cargarPlanillas(nuevaPagina);
   };
 
   // Obtener estado visual de la planilla
   const getEstadoPlanilla = (planilla: Planilla) => {
     if (planilla.estado === 'pagada') {
-      return { texto: 'Pagada', variant: 'default' as const, icon: CheckCircle, color: 'text-green-500' };
+      return { texto: 'Pagada', variant: 'default' as const, color: 'text-green-500' };
     }
-    return { texto: 'Pendiente', variant: 'secondary' as const, icon: Clock, color: 'text-orange-500' };
+    if (planilla.estado === 'activa') {
+      return { texto: 'Activa', variant: 'secondary' as const, color: 'text-blue-500' };
+    }
+    return { texto: 'Archivada', variant: 'secondary' as const, color: 'text-gray-500' };
   };
 
   useEffect(() => {
     cargarPlanillas();
-  }, [filtroEstado]);
-
-  useEffect(() => {
-    cargarPlanillas(pagination.page);
-  }, [pagination.page]);
+  }, []);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {/* Navigation Tabs */}
+      <NavigationTabs activeTab="historial" onTabChange={handleTabChange} />
+      
       {/* Header */}
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Historial de Planillas</h1>
-          <p className="text-muted-foreground">
-            Gestión de planillas de turnos extras generadas
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={() => cargarPlanillas()} variant="outline" size="sm" disabled={loading}>
-            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
-            Actualizar
-          </Button>
-          <Button 
-            onClick={() => window.location.href = '/pauta-diaria/turnos-extras'} 
-            variant="outline" 
-            size="sm"
-          >
-            <CalendarIcon className="h-4 w-4 mr-2" />
-            Volver a Turnos Extras
-          </Button>
-        </div>
+        {/* Espacio reservado para futuras funcionalidades */}
       </div>
-
-      {/* Filtros */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium">Estado:</label>
-              <select
-                value={filtroEstado}
-                onChange={(e) => setFiltroEstado(e.target.value as 'all' | 'pendiente' | 'pagada')}
-                className="px-3 py-1 border border-gray-300 rounded-md bg-white text-gray-900"
-              >
-                <option value="all">Todas</option>
-                <option value="pendiente">Pendientes</option>
-                <option value="pagada">Pagadas</option>
-              </select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Lista de Planillas */}
       <Card>
         <CardHeader>
           <CardTitle>Planillas Generadas</CardTitle>
           <CardDescription>
-            {planillas.length} planilla(s) encontrada(s)
+            Lista de planillas de turnos extras ({planillas.length} planillas)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -241,101 +202,119 @@ export default function HistorialPlanillasPage() {
             </div>
           ) : planillas.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
               <p>No hay planillas para mostrar</p>
-              <p className="text-sm">Genera planillas desde la página de turnos extras</p>
+              <p className="text-sm">Genera planillas desde la sección de turnos extras</p>
             </div>
           ) : (
             <div className="space-y-4">
               {planillas.map((planilla) => {
                 const estadoPlanilla = getEstadoPlanilla(planilla);
-                const EstadoIcon = estadoPlanilla.icon;
+                const isProcesando = procesandoAccion === planilla.id;
+                const isPagada = planilla.estado === 'pagada';
                 
                 return (
-                  <Card key={planilla.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <CardContent className="p-4">
+                  <Card 
+                    key={planilla.id} 
+                    className={cn(
+                      "border-l-4",
+                      isPagada ? "border-l-green-500" : "border-l-blue-500"
+                    )}
+                  >
+                    <CardContent className="pt-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2">
-                            <EstadoIcon className={cn("h-5 w-5", estadoPlanilla.color)} />
-                            <Badge variant={estadoPlanilla.variant}>
+                            <FileSpreadsheet className={cn("h-5 w-5", isPagada ? "text-green-600" : "text-blue-600")} />
+                            <div>
+                              <h3 className="font-semibold">Planilla #{planilla.id}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                Creada el {format(new Date(planilla.fecha_creacion), 'dd/MM/yyyy HH:mm')}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">
+                                {planilla.cantidad_turnos} turno(s)
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">
+                                {formatCurrency(planilla.monto_total)}
+                              </span>
+                            </div>
+                            
+                            <Badge variant={estadoPlanilla.variant} className={estadoPlanilla.color}>
                               {estadoPlanilla.texto}
                             </Badge>
                           </div>
-                          
-                          <div className="space-y-1">
-                            <div className="font-medium">
-                              {planilla.codigo || `Planilla #${planilla.id}`}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              Generada el {format(new Date(planilla.fecha_generacion), 'dd/MM/yyyy HH:mm', { locale: es })}
-                              {planilla.fecha_pago && (
-                                <span className="ml-2">
-                                  • Pagada el {format(new Date(planilla.fecha_pago), 'dd/MM/yyyy HH:mm', { locale: es })}
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              Por: {planilla.usuario_nombre} {planilla.usuario_apellido}
-                            </div>
-                            {planilla.fecha_inicio_turnos && planilla.fecha_fin_turnos && (
-                              <div className="text-sm text-muted-foreground">
-                                Turnos: {format(new Date(planilla.fecha_inicio_turnos), 'dd/MM/yyyy', { locale: es })} - {format(new Date(planilla.fecha_fin_turnos), 'dd/MM/yyyy', { locale: es })}
-                              </div>
-                            )}
-                          </div>
                         </div>
-
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <div className="font-medium">{formatCurrency(planilla.monto_total)}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {planilla.cantidad_turnos} turno(s)
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2">
+                        
+                        <div className="flex gap-2">
+                          {/* Botón Eliminar (solo si no está pagada) */}
+                          {!isPagada && (
                             <Button
-                              onClick={() => descargarPlanilla(planilla.id)}
+                              onClick={() => abrirModalEliminar(planilla)}
                               size="sm"
                               variant="outline"
-                              disabled={descargando === planilla.id}
+                              disabled={isProcesando}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              title="Eliminar planilla y devolver turnos a estado 'no pagado'"
                             >
-                              {descargando === planilla.id ? (
-                                <>
-                                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                                  Descargando...
-                                </>
-                              ) : (
-                                <>
-                                  <Download className="h-4 w-4 mr-2" />
-                                  Descargar XLSX
-                                </>
-                              )}
+                              <Trash2 className="h-4 w-4" />
                             </Button>
+                          )}
 
-                            {planilla.estado === 'pendiente' && (
-                              <Button
-                                onClick={() => abrirModalConfirmacion(planilla)}
-                                size="sm"
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                <DollarSign className="h-4 w-4 mr-2" />
-                                Marcar Pagada
-                              </Button>
+                          {/* Botón Marcar como Pagada (solo si no está pagada) */}
+                          {!isPagada && (
+                            <Button
+                              onClick={() => marcarComoPagada(planilla.id)}
+                              size="sm"
+                              variant="outline"
+                              disabled={isProcesando}
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              title="Marcar planilla como pagada"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Pagada
+                            </Button>
+                          )}
+
+                          {/* Botón Descargar */}
+                          <Button
+                            onClick={() => descargarPlanilla(planilla.id)}
+                            size="sm"
+                            disabled={descargando === planilla.id || isProcesando}
+                            className={cn(
+                              "bg-blue-600 hover:bg-blue-700",
+                              isPagada && "bg-green-600 hover:bg-green-700"
                             )}
-                          </div>
+                          >
+                            {descargando === planilla.id ? (
+                              <>
+                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                Descargando...
+                              </>
+                            ) : (
+                              <>
+                                <Download className="h-4 w-4 mr-2" />
+                                Descargar
+                              </>
+                            )}
+                          </Button>
                         </div>
                       </div>
-
+                      
                       {planilla.observaciones && (
-                        <div className="mt-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-md">
-                          <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Observaciones:
-                          </div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
-                            {planilla.observaciones}
-                          </div>
+                        <div className="mt-3 p-3 bg-muted/50 rounded-md">
+                          <p className="text-sm text-muted-foreground">
+                            <strong>Observaciones:</strong> {planilla.observaciones}
+                          </p>
                         </div>
                       )}
                     </CardContent>
@@ -344,83 +323,78 @@ export default function HistorialPlanillasPage() {
               })}
             </div>
           )}
-
-          {/* Paginación */}
-          {pagination.totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => cambiarPagina(pagination.page - 1)}
-                disabled={pagination.page <= 1}
-              >
-                Anterior
-              </Button>
-              
-              <span className="text-sm text-muted-foreground">
-                Página {pagination.page} de {pagination.totalPages}
-              </span>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => cambiarPagina(pagination.page + 1)}
-                disabled={pagination.page >= pagination.totalPages}
-              >
-                Siguiente
-              </Button>
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* Modal de Confirmación */}
-      <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
-        <DialogContent>
+      {/* Modal de Confirmación de Eliminación */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Confirmar Pago de Planilla</DialogTitle>
-            <DialogDescription>
-              ¿Estás seguro de que quieres marcar esta planilla como pagada?
-              Esta acción marcará todos los turnos extras incluidos en la planilla como pagados.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {planillaSeleccionada && (
-            <div className="space-y-4">
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h4 className="font-medium text-green-800 mb-2">Detalles de la planilla:</h4>
-                <ul className="text-sm text-green-700 space-y-1">
-                  <li>• {planillaSeleccionada.codigo || `Planilla #${planillaSeleccionada.id}`}</li>
-                  <li>• Turnos incluidos: {planillaSeleccionada.cantidad_turnos}</li>
-                  <li>• Monto total: {formatCurrency(planillaSeleccionada.monto_total)}</li>
-                  <li>• Fecha de generación: {format(new Date(planillaSeleccionada.fecha_generacion), 'dd/MM/yyyy', { locale: es })}</li>
-                </ul>
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+                  <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                </div>
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-semibold">
+                  Eliminar Planilla
+                </DialogTitle>
+                <DialogDescription className="text-sm text-muted-foreground">
+                  Esta acción no se puede deshacer
+                </DialogDescription>
               </div>
             </div>
-          )}
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="bg-muted/50 rounded-lg p-4">
+              <div className="flex items-center gap-3">
+                <FileSpreadsheet className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="font-medium">
+                    Planilla #{planillaToDelete?.id}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {planillaToDelete?.cantidad_turnos} turno(s) • {formatCurrency(planillaToDelete?.monto_total || 0)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <p className="text-sm font-medium">¿Estás seguro de que deseas eliminar esta planilla?</p>
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p>• La planilla será eliminada permanentemente</p>
+                <p>• Los turnos extras volverán a estado "no pagado"</p>
+                <p>• Podrás generar una nueva planilla con esos turnos</p>
+              </div>
+            </div>
+          </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button
               variant="outline"
-              onClick={() => setShowConfirmModal(false)}
-              disabled={procesandoPago}
+              onClick={cerrarModalEliminar}
+              disabled={procesandoAccion === planillaToDelete?.id}
             >
               Cancelar
             </Button>
             <Button
-              onClick={confirmarPagoPlanilla}
-              disabled={procesandoPago}
-              className="bg-green-600 hover:bg-green-700"
+              variant="destructive"
+              onClick={eliminarPlanilla}
+              disabled={procesandoAccion === planillaToDelete?.id}
+              className="bg-red-600 hover:bg-red-700"
             >
-              {procesandoPago ? (
+              {procesandoAccion === planillaToDelete?.id ? (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Procesando...
+                  Eliminando...
                 </>
               ) : (
                 <>
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Confirmar Pago
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Eliminar Planilla
                 </>
               )}
             </Button>
@@ -429,4 +403,4 @@ export default function HistorialPlanillasPage() {
       </Dialog>
     </div>
   );
-} 
+}

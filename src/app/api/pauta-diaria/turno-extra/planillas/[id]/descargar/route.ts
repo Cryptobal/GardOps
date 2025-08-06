@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
+import { getCurrentUserServer } from '@/lib/auth';
 import * as XLSX from 'xlsx';
 
 // GET - Descargar planilla individual en formato XLSX
@@ -8,7 +9,20 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('🔍 Iniciando GET /api/pauta-diaria/turno-extra/planillas/[id]/descargar');
+    
+    const user = getCurrentUserServer(request);
+    if (!user) {
+      console.log('❌ Usuario no autorizado');
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
     const planillaId = params.id;
+    if (!planillaId || isNaN(parseInt(planillaId))) {
+      return NextResponse.json({ error: 'ID de planilla inválido' }, { status: 400 });
+    }
+
+    console.log('🔍 Descargando planilla ID:', planillaId);
 
     // Obtener información de la planilla
     const planillaQuery = `
@@ -24,23 +38,24 @@ export async function GET(
       WHERE p.id = $1
     `;
     
-    const planillaResult = await query(planillaQuery, [planillaId]);
+    const { rows: planillaResult } = await query(planillaQuery, [planillaId]);
     
-    if (planillaResult.rows.length === 0) {
+    if (planillaResult.length === 0) {
       return NextResponse.json({ error: 'Planilla no encontrada' }, { status: 404 });
     }
 
-    const planilla = planillaResult.rows[0];
+    const planilla = planillaResult[0];
+    console.log('🔍 Planilla encontrada:', planilla);
 
     // Obtener turnos agrupados por guardia con datos bancarios
     const turnosQuery = `
       SELECT 
         te.guardia_id,
-        te.guardia_nombre,
-        te.guardia_apellido_paterno,
-        te.guardia_apellido_materno,
-        te.guardia_rut,
-        te.instalacion_nombre,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        i.nombre as instalacion_nombre,
         te.fecha,
         te.valor,
         g.email as correo_beneficiario,
@@ -49,13 +64,16 @@ export async function GET(
         b.nombre as nombre_banco
       FROM TE_turnos_extras te
       LEFT JOIN guardias g ON te.guardia_id = g.id
+      LEFT JOIN instalaciones i ON te.instalacion_id = i.id
       LEFT JOIN bancos b ON g.banco = b.id
       WHERE te.planilla_id = $1
-      ORDER BY te.guardia_nombre, te.guardia_apellido_paterno, te.fecha
+      ORDER BY g.nombre, g.apellido_paterno, te.fecha
     `;
     
-    const turnosResult = await query(turnosQuery, [planillaId]);
-    const turnos = turnosResult.rows;
+    const { rows: turnosResult } = await query(turnosQuery, [planillaId]);
+    const turnos = turnosResult;
+
+    console.log('🔍 Turnos encontrados:', turnos.length);
 
     if (turnos.length === 0) {
       return NextResponse.json({ error: 'No se encontraron turnos en la planilla' }, { status: 404 });
@@ -64,7 +82,7 @@ export async function GET(
     // Agrupar turnos por guardia y calcular montos totales
     const guardiasAgrupados = new Map();
     
-    turnos.forEach(turno => {
+    turnos.forEach((turno: any) => {
       const guardiaId = turno.guardia_id;
       
       if (!guardiasAgrupados.has(guardiaId)) {
@@ -89,6 +107,8 @@ export async function GET(
       guardia.turnos.push(turno);
     });
 
+    console.log('🔍 Guardias agrupados:', guardiasAgrupados.size);
+
     // Obtener mes actual para la glosa
     const mesActual = new Date().toLocaleDateString('es-ES', { month: 'long' });
 
@@ -103,7 +123,6 @@ export async function GET(
         'Cuenta Destino',
         'Moneda Destino',
         'Código Banco',
-        'Banco',
         'RUT Beneficiario',
         'Nombre Beneficiario',
         'Monto Transferencia',
@@ -116,10 +135,10 @@ export async function GET(
     // Agregar una fila por guardia
     guardiasAgrupados.forEach(guardia => {
       // Formatear RUT sin puntos ni guiones
-      const rutFormateado = guardia.rut.replace(/[.-]/g, '');
+      const rutFormateado = guardia.rut ? guardia.rut.replace(/[.-]/g, '') : '';
       
       // Nombre completo del guardia
-      const nombreCompleto = `${guardia.nombre} ${guardia.apellido_paterno} ${guardia.apellido_materno || ''}`.trim();
+      const nombreCompleto = `${guardia.nombre || ''} ${guardia.apellido_paterno || ''} ${guardia.apellido_materno || ''}`.trim();
       
       // Glosa cartola original: "Pago [MES] instalación"
       const glosaCartola = `Pago ${mesActual} instalación`;
@@ -130,7 +149,6 @@ export async function GET(
         guardia.cuenta_destino || '', // Cuenta Destino
         'CLP', // Moneda Destino fija
         guardia.codigo_banco || '', // Código Banco
-        guardia.nombre_banco || '', // Banco
         rutFormateado, // RUT Beneficiario sin puntos ni guiones
         nombreCompleto, // Nombre Beneficiario
         guardia.monto_total, // Monto Transferencia
@@ -140,21 +158,30 @@ export async function GET(
       ]);
     });
 
+    console.log('🔍 Datos XLSX preparados:', datosXLSX.length - 1, 'filas');
+
     const sheet = XLSX.utils.aoa_to_sheet(datosXLSX);
     XLSX.utils.book_append_sheet(workbook, sheet, 'Planilla Transferencias');
 
     // Generar archivo
     const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 
+    console.log('🔍 Archivo XLSX generado, tamaño:', buffer.length, 'bytes');
+
     // Crear respuesta con headers para descarga
     const response = new NextResponse(buffer);
     response.headers.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     response.headers.set('Content-Disposition', `attachment; filename="Planilla_Transferencias_Turnos_Extras_${planilla.id}_${new Date().toISOString().split('T')[0]}.xlsx"`);
 
+    console.log('✅ Archivo XLSX enviado correctamente');
+
     return response;
 
   } catch (error) {
-    console.error('Error descargando planilla:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+    console.error('❌ Error descargando planilla:', error);
+    return NextResponse.json({ 
+      error: 'Error interno del servidor',
+      details: error instanceof Error ? error.message : 'Error desconocido'
+    }, { status: 500 });
   }
 } 

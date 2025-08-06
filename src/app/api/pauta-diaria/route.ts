@@ -279,6 +279,38 @@ export async function PUT(request: NextRequest) {
         const turno = turnoData.rows[0];
         const fechaTurno = `${turno.anio}-${String(turno.mes).padStart(2, '0')}-${String(turno.dia).padStart(2, '0')}`;
         
+        // NUEVA VALIDACIÓN: Verificar si el guardia ya está asignado a otro puesto en la misma fecha
+        const guardiaAsignadoCheck = await query(`
+          SELECT 
+            pm.id,
+            po.instalacion_id,
+            i.nombre as instalacion_nombre,
+            po.nombre_puesto
+          FROM as_turnos_pauta_mensual pm
+          INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
+          INNER JOIN instalaciones i ON po.instalacion_id = i.id
+          WHERE pm.guardia_id = $1 
+            AND pm.anio = $2 
+            AND pm.mes = $3 
+            AND pm.dia = $4
+            AND pm.estado IN ('trabajado', 'T', 'reemplazo')
+            AND pm.id != $5
+        `, [guardiaId, turno.anio, turno.mes, turno.dia, turnoId]);
+
+        if (guardiaAsignadoCheck.rows.length > 0) {
+          const conflicto = guardiaAsignadoCheck.rows[0];
+          return NextResponse.json(
+            { 
+              error: `El guardia ya está asignado a ${conflicto.instalacion_nombre} - ${conflicto.nombre_puesto}`,
+              conflicto: {
+                instalacion: conflicto.instalacion_nombre,
+                puesto: conflicto.nombre_puesto
+              }
+            },
+            { status: 409 }
+          );
+        }
+        
         // Determinar el estado correcto: 'reemplazo' para puestos regulares, 'trabajado' para PPCs
         const estadoReemplazo = turno.es_ppc ? 'trabajado' : 'reemplazo';
         
@@ -353,6 +385,38 @@ export async function PUT(request: NextRequest) {
 
         const ppc = ppcData.rows[0];
         const fechaPpc = `${ppc.anio}-${String(ppc.mes).padStart(2, '0')}-${String(ppc.dia).padStart(2, '0')}`;
+        
+        // NUEVA VALIDACIÓN: Verificar si el guardia ya está asignado a otro puesto en la misma fecha
+        const guardiaAsignadoCheckPpc = await query(`
+          SELECT 
+            pm.id,
+            po.instalacion_id,
+            i.nombre as instalacion_nombre,
+            po.nombre_puesto
+          FROM as_turnos_pauta_mensual pm
+          INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
+          INNER JOIN instalaciones i ON po.instalacion_id = i.id
+          WHERE pm.guardia_id = $1 
+            AND pm.anio = $2 
+            AND pm.mes = $3 
+            AND pm.dia = $4
+            AND pm.estado IN ('trabajado', 'T', 'reemplazo')
+            AND pm.id != $5
+        `, [guardiaId, ppc.anio, ppc.mes, ppc.dia, turnoId]);
+
+        if (guardiaAsignadoCheckPpc.rows.length > 0) {
+          const conflicto = guardiaAsignadoCheckPpc.rows[0];
+          return NextResponse.json(
+            { 
+              error: `El guardia ya está asignado a ${conflicto.instalacion_nombre} - ${conflicto.nombre_puesto}`,
+              conflicto: {
+                instalacion: conflicto.instalacion_nombre,
+                puesto: conflicto.nombre_puesto
+              }
+            },
+            { status: 409 }
+          );
+        }
         
         // Asignar guardia al PPC - usar estado 'trabajado' para PPCs cubiertos
         queryUpdate = `

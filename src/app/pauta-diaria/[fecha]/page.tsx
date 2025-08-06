@@ -47,7 +47,6 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useGuardiasSearch } from '@/hooks/useGuardiasSearch';
 import { exportarPautaPDF, exportarPautaExcel } from '@/lib/export-utils';
-import { TurnoExtraButton } from '@/components/shared/TurnoExtraButton';
 
 interface Puesto {
   puesto_id: string;
@@ -58,6 +57,7 @@ interface Puesto {
   estado: string;
   observaciones: string | null;
   instalacion_id: string;
+  instalacion_nombre: string; // Agregado para mostrar el nombre de la instalación
   es_ppc: boolean;
 }
 
@@ -195,7 +195,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
   // Obtener instalaciones únicas para el filtro
   const instalacionesUnicas = Array.from(new Set(puestos.map(p => ({
     id: p.instalacion_id,
-    nombre: p.asignacion_real.split(' - ')[0] || 'Sin nombre'
+    nombre: p.instalacion_nombre || 'Sin nombre'
   }))));
 
   // Función para limpiar filtros
@@ -224,8 +224,25 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
           setPautaId(data.pauta_id);
         }
       } else {
-        console.error('Error al cargar pauta diaria');
-        setPuestos([]);
+        const errorData = await response.json();
+        console.error('❌ Error del servidor:', errorData);
+        
+        // Mejorar mensaje de error para conflictos
+        let errorMessage = errorData.error || "Error al actualizar el estado";
+        let errorTitle = "❌ Error";
+        
+        if (response.status === 409 && errorData.conflicto) {
+          errorTitle = "⚠️ Conflicto de Asignación";
+          errorMessage = `${errorData.error}\n\nEl guardia ya está asignado a:\n• Instalación: ${errorData.conflicto.instalacion}\n• Puesto: ${errorData.conflicto.puesto}`;
+        } else if (response.status === 409) {
+          errorTitle = "⚠️ Conflicto de Asignación";
+        }
+        
+        addToast({
+          title: errorTitle,
+          description: errorMessage,
+          type: "error"
+        });
       }
     } catch (error) {
       console.error('Error:', error);
@@ -379,9 +396,21 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
       } else {
         const errorData = await response.json();
         console.error('❌ Error del servidor:', errorData);
+        
+        // Mejorar mensaje de error para conflictos
+        let errorMessage = errorData.error || "Error al actualizar el estado";
+        let errorTitle = "❌ Error";
+        
+        if (response.status === 409 && errorData.conflicto) {
+          errorTitle = "⚠️ Conflicto de Asignación";
+          errorMessage = `${errorData.error}\n\nEl guardia ya está asignado a:\n• Instalación: ${errorData.conflicto.instalacion}\n• Puesto: ${errorData.conflicto.puesto}`;
+        } else if (response.status === 409) {
+          errorTitle = "⚠️ Conflicto de Asignación";
+        }
+        
         addToast({
-          title: "❌ Error",
-          description: errorData.error || "Error al actualizar el estado",
+          title: errorTitle,
+          description: errorMessage,
           type: "error"
         });
       }
@@ -888,23 +917,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
           </PopoverContent>
         </Popover>
 
-        {/* Botón Turno Extra - Solo mostrar para reemplazos y PPCs trabajados */}
-        {(puesto.estado === 'reemplazo' || (puesto.es_ppc && puesto.estado === 'trabajado' && puesto.cobertura_real)) && (
-          <TurnoExtraButton
-            guardia_id={puesto.estado === 'reemplazo' ? puesto.asignacion_real : puesto.cobertura_real!}
-            guardia_nombre={puesto.estado === 'reemplazo' ? 
-              guardiasOptions.find(g => g.value === puesto.asignacion_real)?.label || 'Guardia' :
-              guardiasOptions.find(g => g.value === puesto.cobertura_real)?.label || 'Guardia'
-            }
-            puesto_id={puesto.puesto_id}
-            puesto_nombre={puesto.nombre_puesto}
-            pauta_id={pautaId}
-            fecha={fechaSeleccionada}
-            variant="outline"
-            size="sm"
-            className="text-xs px-2 py-1 h-7 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 border-purple-300 hover:border-purple-400"
-          />
-        )}
+
       </div>
     );
   };
@@ -1181,13 +1194,18 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                       <TableRow key={puesto.puesto_id} className="border-b">
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => navegarAInstalacion(puesto.instalacion_id)}
-                              className="font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
-                              title="Ver instalación"
-                            >
-                              {generarIdCortoPuesto(puesto.puesto_id)}
-                            </button>
+                            <div className="flex flex-col">
+                              <span className="text-xs text-muted-foreground">
+                                {puesto.instalacion_nombre}
+                              </span>
+                              <button
+                                onClick={() => navegarAInstalacion(puesto.instalacion_id)}
+                                className="font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                                title="Ver instalación"
+                              >
+                                {generarIdCortoPuesto(puesto.puesto_id)}
+                              </button>
+                            </div>
                             {puesto.es_ppc && (
                               <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
                                 PPC

@@ -20,8 +20,8 @@ export async function POST(request: NextRequest) {
 
     // Verificar que todos los turnos existan y no estén pagados
     const { rows: turnosExistentes } = await query(`
-      SELECT id, pagado, valor, guardia_id, instalacion_id, puesto_id, fecha, estado
-      FROM TE_turnos_extras 
+      SELECT id, pagado, preservado, valor, guardia_id, instalacion_id, puesto_id, fecha, estado
+      FROM turnos_extras 
       WHERE id = ANY($1)
     `, [turno_ids]);
 
@@ -40,16 +40,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Marcar turnos como pagados
+    // Marcar turnos como pagados y preservarlos
     const fechaPago = new Date().toISOString().split('T')[0];
     
     const { rows: turnosActualizados } = await query(`
-      UPDATE TE_turnos_extras 
+      UPDATE turnos_extras 
       SET 
         pagado = true,
+        preservado = true,
         fecha_pago = $1,
         observaciones_pago = $2,
         usuario_pago = $3,
+        desacoplado_en = NOW(),
         updated_at = NOW()
       WHERE id = ANY($4)
       RETURNING *

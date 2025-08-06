@@ -66,6 +66,7 @@ export default function TurnosExtrasPage() {
   const [turnosExtras, setTurnosExtras] = useState<TurnoExtra[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTurnos, setSelectedTurnos] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'turnos' | 'dashboard' | 'historial'>('turnos');
   const [filtros, setFiltros] = useState({
     fechaInicio: '',
     fechaFin: '',
@@ -120,6 +121,21 @@ export default function TurnosExtrasPage() {
       fechaFin
     }));
   }, []);
+
+  // Función para manejar el cambio de pestañas
+  const handleTabChange = (tab: 'turnos' | 'dashboard' | 'historial') => {
+    setActiveTab(tab);
+    
+    if (tab === 'dashboard') {
+      setShowDashboard(true);
+      setShowCalendarView(false);
+    } else if (tab === 'historial') {
+      window.location.href = '/pauta-diaria/turnos-extras/historial';
+    } else {
+      setShowDashboard(false);
+      setShowCalendarView(false);
+    }
+  };
 
   // Cargar turnos extras
   const cargarTurnosExtras = async () => {
@@ -414,7 +430,7 @@ export default function TurnosExtrasPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Navigation Tabs */}
-      <NavigationTabs />
+      <NavigationTabs activeTab={activeTab} onTabChange={handleTabChange} />
       
       {/* Header */}
       <div className="flex justify-between items-center">

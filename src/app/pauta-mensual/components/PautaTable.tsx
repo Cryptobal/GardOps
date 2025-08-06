@@ -19,6 +19,7 @@ interface PautaGuardia {
   es_ppc?: boolean;
   guardia_id?: string;
   rol_nombre?: string;
+  cobertura_por_dia?: any[]; // Array de coberturas por día
 }
 
 interface PautaTableProps {
@@ -235,15 +236,15 @@ const ModalAutocompletarPauta = ({
   );
 };
 
-// Función centralizada para obtener el display del estado - DISEÑO MINIMALISTA
+// Función centralizada para obtener el display del estado - DISEÑO MINIMALISTA MEJORADO
 const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean = false) => {
   // Si es PPC cubierto (tiene cobertura), mostrar estado especial
   if (esPPC && cobertura && (estado === 'A' || estado === 'trabajado' || estado === 'a')) {
     return { 
       icon: "🛡️", 
       text: "", 
-      className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600",
-      iconColor: "text-purple-600 dark:text-purple-400",
+      className: "bg-amber-500/10 dark:bg-amber-500/20 border-2 border-amber-500 dark:border-amber-400 shadow-sm",
+      iconColor: "text-amber-600 dark:text-amber-400 text-xl",
       tooltip: `PPC Cubierto por: ${cobertura.nombre}`
     };
   }
@@ -263,8 +264,8 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
       return { 
         icon: "●", 
         text: "", 
-        className: "bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-600",
-        iconColor: "text-blue-600 dark:text-blue-400",
+        className: "bg-blue-500/10 dark:bg-blue-500/20 border-2 border-blue-500 dark:border-blue-400 hover:border-blue-400 dark:hover:border-blue-300",
+        iconColor: "text-blue-700 dark:text-blue-300 text-xl font-bold",
         tooltip: "Turno Planificado"
       };
     case "a":
@@ -273,16 +274,16 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
         return { 
           icon: "🛡️", 
           text: "", 
-          className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600",
-          iconColor: "text-purple-600 dark:text-purple-400",
+          className: "bg-amber-500/10 dark:bg-amber-500/20 border-2 border-amber-500 dark:border-amber-400 shadow-sm",
+          iconColor: "text-amber-600 dark:text-amber-400 text-xl",
           tooltip: `PPC Cubierto por: ${cobertura.nombre}`
         };
       }
       return { 
         icon: "✓", 
         text: "", 
-        className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600",
-        iconColor: "text-green-600 dark:text-green-400",
+        className: "bg-green-500/10 dark:bg-green-500/20 border-2 border-green-500 dark:border-green-400 hover:border-green-400 dark:hover:border-green-300",
+        iconColor: "text-green-700 dark:text-green-400 text-xl font-bold",
         tooltip: "Asistió (Confirmado)"
       };
     case "i":
@@ -290,8 +291,8 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
       return { 
         icon: esPPC ? "▲" : "✗", 
         text: "", 
-        className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-600",
-        iconColor: "text-red-600 dark:text-red-400",
+        className: "bg-red-500/15 dark:bg-red-500/25 border-2 border-red-500 dark:border-red-400 hover:border-red-400 dark:hover:border-red-300 animate-pulse-subtle",
+        iconColor: "text-red-700 dark:text-red-400 text-xl font-bold",
         tooltip: esPPC ? "Sin Cobertura" : "Falta"
       };
     case "r":
@@ -300,65 +301,65 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
         return { 
           icon: "🛡️", 
           text: "", 
-          className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600",
-          iconColor: "text-purple-600 dark:text-purple-400",
+          className: "bg-amber-500/10 dark:bg-amber-500/20 border-2 border-amber-500 dark:border-amber-400 shadow-sm",
+          iconColor: "text-amber-600 dark:text-amber-400 text-xl",
           tooltip: `PPC Cubierto por: ${cobertura?.nombre || 'Guardia asignado'}`
         };
       }
       return { 
-        icon: "↻", 
+        icon: "⟲", 
         text: "", 
-        className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600",
-        iconColor: "text-orange-600 dark:text-orange-400",
+        className: "bg-orange-500/10 dark:bg-orange-500/20 border-2 border-orange-500 dark:border-orange-400 hover:border-orange-400 dark:hover:border-orange-300",
+        iconColor: "text-orange-600 dark:text-orange-400 text-xl font-bold",
         tooltip: `Reemplazo${tooltipExtra}`
       };
     case "s":
       return { 
         icon: "▲", 
         text: "", 
-        className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-600",
-        iconColor: "text-red-600 dark:text-red-400",
+        className: "bg-red-500/15 dark:bg-red-500/25 border-2 border-red-500 dark:border-red-400 hover:border-red-400 dark:hover:border-red-300",
+        iconColor: "text-red-700 dark:text-red-400 text-xl font-bold",
         tooltip: "Sin Cobertura"
       };
     case "libre":
     case "l":
       return { 
-        icon: "●", 
+        icon: "○", 
         text: "", 
-        className: "bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500",
-        iconColor: "text-white dark:text-gray-200",
+        className: "bg-gray-100 dark:bg-gray-800/50 border border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500",
+        iconColor: "text-gray-400 dark:text-gray-500 text-lg",
         tooltip: "Libre"
       };
     case "p":
       return { 
         icon: "🏖", 
         text: "", 
-        className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600",
-        iconColor: "text-indigo-600 dark:text-indigo-400",
+        className: "bg-indigo-500/10 dark:bg-indigo-500/20 border-2 border-indigo-500 dark:border-indigo-400 hover:border-indigo-400 dark:hover:border-indigo-300",
+        iconColor: "text-indigo-600 dark:text-indigo-400 text-xl",
         tooltip: "Permiso"
       };
     case "v":
       return { 
         icon: "🌴", 
         text: "", 
-        className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-teal-300 dark:hover:border-teal-600",
-        iconColor: "text-teal-600 dark:text-teal-400",
+        className: "bg-purple-500/10 dark:bg-purple-500/20 border-2 border-purple-500 dark:border-purple-400 hover:border-purple-400 dark:hover:border-purple-300",
+        iconColor: "text-purple-600 dark:text-purple-400 text-xl",
         tooltip: "Vacaciones"
       };
     case "m":
       return { 
         icon: "🏥", 
         text: "", 
-        className: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-pink-300 dark:hover:border-pink-600",
-        iconColor: "text-pink-600 dark:text-pink-400",
+        className: "bg-pink-500/10 dark:bg-pink-500/20 border-2 border-pink-500 dark:border-pink-400 hover:border-pink-400 dark:hover:border-pink-300",
+        iconColor: "text-pink-600 dark:text-pink-400 text-xl",
         tooltip: "Licencia Médica"
       };
     default:
       return { 
         icon: "·", 
         text: "", 
-        className: "bg-gray-50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-700",
-        iconColor: "text-gray-300 dark:text-gray-600",
+        className: "bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700",
+        iconColor: "text-gray-300 dark:text-gray-600 text-lg",
         tooltip: "Sin asignar"
       };
   }
@@ -442,9 +443,13 @@ const DiaCell = ({
         )}
         
         <div className="flex items-center justify-center">
-          <span className={`${icon === '↻' ? 'text-xl' : 'text-lg'} font-bold ${iconColor || 'text-gray-400'}`}>
+          <span className={`${icon === '⟲' ? 'text-2xl' : 'text-xl'} font-bold ${iconColor || 'text-gray-400'} drop-shadow-sm`}>
             {icon}
           </span>
+          {/* Indicador adicional para estados críticos */}
+          {estado === 'i' && (
+            <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+          )}
         </div>
       </div>
     </TableCell>

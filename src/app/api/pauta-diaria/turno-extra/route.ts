@@ -91,27 +91,61 @@ export async function POST(req: Request) {
     const { anio, mes, dia } = pautaRows[0];
     const fecha = `${anio}-${mes.toString().padStart(2, '0')}-${dia.toString().padStart(2, '0')}`;
 
-    // Verificar que no exista un turno extra para el mismo guardia, puesto y fecha
+    // Validación mejorada: Verificar que el guardia no tenga ningún turno extra para la misma fecha
     const { rows: existingRows } = await query(
-      `SELECT id FROM TE_turnos_extras 
-       WHERE guardia_id = $1 AND puesto_id = $2 AND fecha = $3 AND tenant_id = $4`,
-      [guardia_id, puesto_id, fecha, tenantId]
+      `SELECT id, estado, valor FROM turnos_extras 
+       WHERE guardia_id = $1 AND fecha = $2 AND tenant_id = $3`,
+      [guardia_id, fecha, tenantId]
     );
 
     if (existingRows.length > 0) {
+      const turnosExistentes = existingRows.map((row: any) => ({
+        id: row.id,
+        estado: row.estado,
+        valor: row.valor
+      }));
+      
       return NextResponse.json(
-        { error: 'Ya existe un turno extra registrado para este guardia en esta fecha y puesto' },
+        { 
+          error: 'El guardia ya tiene turnos extras asignados para esta fecha',
+          detalles: {
+            fecha,
+            turnos_existentes: turnosExistentes,
+            mensaje: 'Un guardia no puede tener múltiples turnos extras el mismo día'
+          }
+        },
         { status: 409 }
       );
     }
 
-    // Insertar el turno extra
+    // Verificar también turnos regulares del guardia para la misma fecha
+    const { rows: turnosRegulares } = await query(
+      `SELECT id FROM as_turnos_pauta_mensual 
+       WHERE guardia_id = $1 AND anio = $2 AND mes = $3 AND dia = $4`,
+      [guardia_id, anio, mes, dia]
+    );
+
+    if (turnosRegulares.length > 0) {
+      return NextResponse.json(
+        { 
+          error: 'El guardia ya tiene turnos regulares asignados para esta fecha',
+          detalles: {
+            fecha,
+            turnos_regulares: turnosRegulares.length,
+            mensaje: 'No se puede asignar un turno extra cuando el guardia ya tiene turnos regulares'
+          }
+        },
+        { status: 409 }
+      );
+    }
+
+    // Insertar el turno extra con referencia al turno original
     const { rows: insertRows } = await query(
-      `INSERT INTO TE_turnos_extras 
-       (guardia_id, instalacion_id, puesto_id, pauta_id, fecha, estado, valor, tenant_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO turnos_extras 
+       (guardia_id, instalacion_id, puesto_id, pauta_id, fecha, estado, valor, tenant_id, turno_original_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING id`,
-      [guardia_id, instalacion_id, puesto_id, pauta_id, fecha, estado, valor, tenantId]
+      [guardia_id, instalacion_id, puesto_id, pauta_id, fecha, estado, valor, tenantId, pauta_id]
     );
 
     const turnoExtraId = insertRows[0].id;

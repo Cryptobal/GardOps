@@ -40,10 +40,8 @@ export async function GET(request: NextRequest) {
       const mes = fechaObj.getUTCMonth() + 1;
       const dia = fechaObj.getUTCDate();
 
-      // En la pauta diaria, permitimos asignar guardias incluso si ya tienen turno
-      // porque pueden hacer turnos extras. Solo marcamos para información.
-      
-      // Condición para verificar si el guardia ya tiene turno asignado en esa fecha
+      // NUEVA LÓGICA: Excluir guardias que ya están asignados como rol del puesto
+      // o que ya tienen turno asignado en esa fecha
       fechaCondition = `
         LEFT JOIN (
           SELECT 
@@ -53,6 +51,15 @@ export async function GET(request: NextRequest) {
           WHERE pm.anio = $${paramIndex} AND pm.mes = $${paramIndex + 1} AND pm.dia = $${paramIndex + 2}
         ) turno_asignado ON g.id = turno_asignado.guardia_id
       `;
+      
+      // Agregar condición para excluir guardias asignados como rol del puesto en esa fecha
+      whereConditions.push(`g.id NOT IN (
+        SELECT DISTINCT po.guardia_id 
+        FROM as_turnos_puestos_operativos po
+        INNER JOIN as_turnos_pauta_mensual pm ON po.id = pm.puesto_id
+        WHERE pm.anio = $${paramIndex} AND pm.mes = $${paramIndex + 1} AND pm.dia = $${paramIndex + 2}
+          AND po.guardia_id IS NOT NULL
+      )`);
       
       // Agregar los parámetros de fecha después de construir la condición
       params.push(anio, mes, dia);
@@ -73,7 +80,7 @@ export async function GET(request: NextRequest) {
         g.activo,
         po.instalacion_id as instalacion_actual_id,
         i.nombre as instalacion_actual_nombre,
-        COALESCE(turno_asignado.tiene_turno_asignado, false) as tiene_turno_asignado
+        ${fecha ? 'COALESCE(turno_asignado.tiene_turno_asignado, false)' : 'false'} as tiene_turno_asignado
       FROM guardias g
       LEFT JOIN as_turnos_puestos_operativos po ON g.id = po.guardia_id AND po.es_ppc = false
       LEFT JOIN instalaciones i ON po.instalacion_id = i.id
