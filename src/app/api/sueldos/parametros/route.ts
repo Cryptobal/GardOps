@@ -20,8 +20,7 @@ export async function GET(request: NextRequest) {
     if (tipo === 'all' || tipo === 'parametros') {
       const resultParametros = await query(
         `SELECT * FROM sueldo_parametros_generales 
-         WHERE activo = true 
-         ORDER BY parametro`
+         ORDER BY nombre`
       );
       data.parametros = resultParametros.rows;
     }
@@ -29,7 +28,6 @@ export async function GET(request: NextRequest) {
     if (tipo === 'all' || tipo === 'afp') {
       const resultAFP = await query(
         `SELECT * FROM sueldo_afp 
-         WHERE activo = true 
          ORDER BY nombre`
       );
       data.afp = resultAFP.rows;
@@ -38,7 +36,6 @@ export async function GET(request: NextRequest) {
     if (tipo === 'all' || tipo === 'isapre') {
       const resultIsapre = await query(
         `SELECT * FROM sueldo_isapre 
-         WHERE activo = true 
          ORDER BY nombre`
       );
       data.isapre = resultIsapre.rows;
@@ -47,8 +44,7 @@ export async function GET(request: NextRequest) {
     if (tipo === 'all' || tipo === 'mutualidad') {
       const resultMutualidad = await query(
         `SELECT * FROM sueldo_mutualidad 
-         WHERE activo = true 
-         ORDER BY nombre`
+         ORDER BY entidad`
       );
       data.mutualidad = resultMutualidad.rows;
     }
@@ -56,7 +52,6 @@ export async function GET(request: NextRequest) {
     if (tipo === 'all' || tipo === 'impuesto') {
       const resultImpuesto = await query(
         `SELECT * FROM sueldo_tramos_impuesto 
-         WHERE activo = true 
          ORDER BY tramo`
       );
       data.impuesto = resultImpuesto.rows;
@@ -90,7 +85,7 @@ export async function POST(request: NextRequest) {
           `INSERT INTO sueldo_valor_uf (fecha, valor) 
            VALUES ($1, $2) 
            ON CONFLICT (fecha) 
-           DO UPDATE SET valor = $2, updated_at = CURRENT_TIMESTAMP`,
+           DO UPDATE SET valor = $2`,
           [data.fecha, data.valor]
         );
         break;
@@ -98,7 +93,7 @@ export async function POST(request: NextRequest) {
       case 'parametro':
         await query(
           `UPDATE sueldo_parametros_generales 
-           SET valor = $1, updated_at = CURRENT_TIMESTAMP 
+           SET valor = $1 
            WHERE id = $2`,
           [data.valor, data.id]
         );
@@ -107,7 +102,7 @@ export async function POST(request: NextRequest) {
       case 'afp':
         await query(
           `UPDATE sueldo_afp 
-           SET comision = $1, updated_at = CURRENT_TIMESTAMP 
+           SET comision = $1 
            WHERE id = $2`,
           [data.comision, data.id]
         );
@@ -116,25 +111,25 @@ export async function POST(request: NextRequest) {
       case 'isapre':
         await query(
           `UPDATE sueldo_isapre 
-           SET nombre = $1, activo = $2, updated_at = CURRENT_TIMESTAMP 
-           WHERE id = $3`,
-          [data.nombre, data.activo, data.id]
+           SET nombre = $1, plan = $2, valor_uf = $3 
+           WHERE id = $4`,
+          [data.nombre, data.plan, data.valor_uf, data.id]
         );
         break;
 
       case 'mutualidad':
         await query(
           `UPDATE sueldo_mutualidad 
-           SET tasa_base = $1, tasa_adicional = $2, updated_at = CURRENT_TIMESTAMP 
+           SET entidad = $1, tasa = $2 
            WHERE id = $3`,
-          [data.tasa_base, data.tasa_adicional || 0, data.id]
+          [data.entidad, data.tasa, data.id]
         );
         break;
 
       case 'impuesto':
         await query(
           `UPDATE sueldo_tramos_impuesto 
-           SET desde = $1, hasta = $2, factor = $3, rebaja = $4, updated_at = CURRENT_TIMESTAMP 
+           SET desde = $1, hasta = $2, factor = $3, rebaja = $4 
            WHERE id = $5`,
           [data.desde, data.hasta, data.factor, data.rebaja, data.id]
         );
@@ -182,19 +177,19 @@ export async function DELETE(request: NextRequest) {
         await query(`DELETE FROM sueldo_valor_uf WHERE id = $1`, [id]);
         break;
       case 'parametro':
-        await query(`UPDATE sueldo_parametros_generales SET activo = false WHERE id = $1`, [id]);
+        await query(`DELETE FROM sueldo_parametros_generales WHERE id = $1`, [id]);
         break;
       case 'afp':
-        await query(`UPDATE sueldo_afp SET activo = false WHERE id = $1`, [id]);
+        await query(`DELETE FROM sueldo_afp WHERE id = $1`, [id]);
         break;
       case 'isapre':
-        await query(`UPDATE sueldo_isapre SET activo = false WHERE id = $1`, [id]);
+        await query(`DELETE FROM sueldo_isapre WHERE id = $1`, [id]);
         break;
       case 'mutualidad':
-        await query(`UPDATE sueldo_mutualidad SET activo = false WHERE id = $1`, [id]);
+        await query(`DELETE FROM sueldo_mutualidad WHERE id = $1`, [id]);
         break;
       case 'impuesto':
-        await query(`UPDATE sueldo_tramos_impuesto SET activo = false WHERE id = $1`, [id]);
+        await query(`DELETE FROM sueldo_tramos_impuesto WHERE id = $1`, [id]);
         break;
       default:
         return NextResponse.json(

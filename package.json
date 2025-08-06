@@ -19,6 +19,10 @@
     "reset": "npm run clean && npm install && npm run dev",
     "verify:ids": "npx ts-node scripts/verificar-ids-instalaciones.ts",
     "init:sueldo-db": "npx ts-node scripts/init-sueldo-db.ts",
+    "check:sueldo-tables": "npx ts-node scripts/check-sueldo-tables.ts",
+    "check:sueldo-data": "npx ts-node scripts/check-sueldo-data.ts",
+    "update:sueldo-values": "npx ts-node scripts/update-sueldo-values.ts",
+    "test:sueldo-calculo": "npx ts-node scripts/test-calculo-sueldo.ts",
     "migrate:ids-numericos": "npx ts-node scripts/migrar-ids-numericos-a-uuid.ts"
   },
   "dependencies": {
