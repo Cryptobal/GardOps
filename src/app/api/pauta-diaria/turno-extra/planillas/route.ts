@@ -5,6 +5,8 @@ import { getCurrentUserServer } from '@/lib/auth';
 // GET - Obtener todas las planillas
 export async function GET(request: NextRequest) {
   try {
+    console.log('🔍 Iniciando GET /api/pauta-diaria/turno-extra/planillas');
+    
     const user = getCurrentUserServer(request);
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
@@ -15,6 +17,8 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const offset = (page - 1) * limit;
+
+    console.log('🔍 Parámetros:', { estado, page, limit, offset });
 
     let whereClause = '';
     const params: any[] = [];
@@ -27,6 +31,7 @@ export async function GET(request: NextRequest) {
     const sqlQuery = `
       SELECT 
         p.id,
+        p.codigo,
         p.fecha_generacion,
         p.monto_total,
         p.cantidad_turnos,
@@ -34,21 +39,26 @@ export async function GET(request: NextRequest) {
         p.fecha_pago,
         p.observaciones,
         u.nombre as usuario_nombre,
-        u.apellido_paterno as usuario_apellido,
+        u.apellido as usuario_apellido,
         MIN(te.fecha) as fecha_inicio_turnos,
         MAX(te.fecha) as fecha_fin_turnos
       FROM planillas_turnos_extras p
       LEFT JOIN usuarios u ON p.usuario_id = u.id
       LEFT JOIN turnos_extras te ON te.planilla_id = p.id
       ${whereClause}
-      GROUP BY p.id, p.fecha_generacion, p.monto_total, p.cantidad_turnos, p.estado, p.fecha_pago, p.observaciones, u.nombre, u.apellido_paterno
+      GROUP BY p.id, p.codigo, p.fecha_generacion, p.monto_total, p.cantidad_turnos, p.estado, p.fecha_pago, p.observaciones, u.nombre, u.apellido
       ORDER BY p.fecha_generacion DESC
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}
     `;
 
     params.push(limit, offset);
 
+    console.log('🔍 Ejecutando query:', sqlQuery);
+    console.log('🔍 Parámetros:', params);
+
     const { rows } = await query(sqlQuery, params);
+    
+    console.log('🔍 Resultados:', rows);
     
     // Obtener total de planillas para paginación
     const countQuery = `
@@ -57,8 +67,11 @@ export async function GET(request: NextRequest) {
       ${whereClause}
     `;
     
+    console.log('🔍 Ejecutando count query:', countQuery);
     const countResult = await query(countQuery, estado !== 'all' ? [estado] : []);
     const total = parseInt(countResult.rows[0]?.total || '0');
+
+    console.log('🔍 Total de planillas:', total);
 
     return NextResponse.json({
       planillas: rows,
@@ -71,8 +84,11 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error obteniendo planillas:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+    console.error('❌ Error obteniendo planillas:', error);
+    return NextResponse.json({ 
+      error: 'Error interno del servidor',
+      details: error instanceof Error ? error.message : 'Error desconocido'
+    }, { status: 500 });
   }
 }
 
@@ -115,42 +131,53 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 400 });
     }
 
-    // Crear la planilla
+    // Generar código único TE-YYYY-MM-XXXX
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    
+    // Obtener el siguiente número secuencial para este mes
+    const { rows: countRows } = await query(
+      `SELECT COUNT(*) as count 
+       FROM planillas_turnos_extras 
+       WHERE codigo LIKE $1`,
+      [`TE-${year}-${month}-%`]
+    );
+    
+    const nextNumber = parseInt(countRows[0].count) + 1;
+    const codigo = `TE-${year}-${month}-${String(nextNumber).padStart(4, '0')}`;
+    
+    // Crear la planilla con código
     const planillaQuery = `
-      INSERT INTO planillas_turnos_extras (usuario_id, monto_total, cantidad_turnos, observaciones)
-      VALUES ($1, $2, $3, $4)
-      RETURNING id
+      INSERT INTO planillas_turnos_extras (usuario_id, monto_total, cantidad_turnos, observaciones, codigo)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, codigo
     `;
     
     const { rows: planillaRows } = await query(planillaQuery, [
       usuarioId, 
       montoTotal, 
       turnos.length, 
-      observaciones || null
+      observaciones || null,
+      codigo
     ]);
     
     const planillaId = planillaRows[0].id;
+    const planillaCodigo = planillaRows[0].codigo;
 
-    // Crear relaciones y actualizar turnos
+    // Actualizar turnos extras con la planilla asignada
     const turnoIdsArray = turnos.map(t => t.id);
     
-    // Insertar relaciones
-    for (const turnoId of turnoIdsArray) {
-      await query(
-        'INSERT INTO planilla_turno_relacion (planilla_id, turno_extra_id) VALUES ($1, $2)',
-        [planillaId, turnoId]
-      );
-    }
-
-    // Actualizar turnos extras
+    // Solo actualizar turnos extras con planilla_id, ya no usamos planilla_turno_relacion
     await query(
       'UPDATE turnos_extras SET planilla_id = $1 WHERE id = ANY($2)',
       [planillaId, turnoIdsArray]
     );
 
     return NextResponse.json({
-      mensaje: `Planilla creada exitosamente con ${turnos.length} turnos`,
+      mensaje: `Planilla ${planillaCodigo} creada exitosamente con ${turnos.length} turnos`,
       planilla_id: planillaId,
+      codigo: planillaCodigo,
       monto_total: montoTotal,
       cantidad_turnos: turnos.length
     });

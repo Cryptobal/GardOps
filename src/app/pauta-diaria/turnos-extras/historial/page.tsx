@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 
 interface Planilla {
   id: number;
+  codigo?: string;
   fecha_generacion: string;
   monto_total: number;
   cantidad_turnos: number;
@@ -92,7 +93,8 @@ export default function HistorialPlanillasPage() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Planilla_Turnos_Extras_${planillaId}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        const codigoArchivo = planillas.find(p => p.id === planillaId)?.codigo || `PL_${planillaId}`;
+        a.download = `${codigoArchivo}_${new Date().toISOString().split('T')[0]}.xlsx`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -263,7 +265,7 @@ export default function HistorialPlanillasPage() {
                           
                           <div className="space-y-1">
                             <div className="font-medium">
-                              Planilla #{planilla.id}
+                              {planilla.codigo || `Planilla #${planilla.id}`}
                             </div>
                             <div className="text-sm text-muted-foreground">
                               Generada el {format(new Date(planilla.fecha_generacion), 'dd/MM/yyyy HH:mm', { locale: es })}
@@ -388,7 +390,7 @@ export default function HistorialPlanillasPage() {
               <div className="bg-green-50 p-4 rounded-lg">
                 <h4 className="font-medium text-green-800 mb-2">Detalles de la planilla:</h4>
                 <ul className="text-sm text-green-700 space-y-1">
-                  <li>• Planilla #{planillaSeleccionada.id}</li>
+                  <li>• {planillaSeleccionada.codigo || `Planilla #${planillaSeleccionada.id}`}</li>
                   <li>• Turnos incluidos: {planillaSeleccionada.cantidad_turnos}</li>
                   <li>• Monto total: {formatCurrency(planillaSeleccionada.monto_total)}</li>
                   <li>• Fecha de generación: {format(new Date(planillaSeleccionada.fecha_generacion), 'dd/MM/yyyy', { locale: es })}</li>

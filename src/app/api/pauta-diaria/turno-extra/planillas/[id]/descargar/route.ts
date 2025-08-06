@@ -14,6 +14,7 @@ export async function GET(
     const planillaQuery = `
       SELECT 
         p.id,
+        p.codigo,
         p.fecha_generacion,
         p.monto_total,
         p.cantidad_turnos,

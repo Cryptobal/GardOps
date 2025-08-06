@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const tables = [
       'guardias',
       'instalaciones',
+      'usuarios',
       'as_turnos_puestos_operativos',
       'as_turnos_roles_servicio',
       'logs_guardias',
@@ -19,7 +20,9 @@ export async function GET(request: NextRequest) {
       'logs_turnos_extras',
       'logs_puestos_operativos',
       'logs_documentos',
-      'logs_usuarios'
+      'logs_usuarios',
+      'planillas_turnos_extras',
+      'planilla_turno_relacion'
     ];
 
     const results: any = {};

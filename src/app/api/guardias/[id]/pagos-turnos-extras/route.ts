@@ -1,47 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/database';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const guardiaId = params.id;
+    // Esta tabla ya no se usa, retornar vacío
+    // TODO: Eliminar este endpoint cuando se actualice el frontend
+    console.warn('⚠️ Endpoint deprecado: pagos_turnos_extras ya no se usa');
     
-    // Verificar si la tabla pagos_turnos_extras existe
-    const tableExists = await query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_name = 'pagos_turnos_extras'
-      );
-    `);
-
-    if (!tableExists.rows[0].exists) {
-      return NextResponse.json({
-        success: true,
-        pagos: []
-      });
-    }
-
-    // Obtener pagos de turnos extras del guardia
-    const result = await query(`
-      SELECT 
-        id,
-        guardia_id,
-        fecha_pago,
-        glosa,
-        monto_total,
-        estado,
-        observaciones,
-        created_at
-      FROM pagos_turnos_extras
-      WHERE guardia_id = $1
-      ORDER BY fecha_pago DESC, created_at DESC
-    `, [guardiaId]);
-
     return NextResponse.json({
       success: true,
-      pagos: result.rows
+      pagos: [],
+      mensaje: 'La tabla pagos_turnos_extras ha sido deprecada. Use planillas_turnos_extras en su lugar.'
     });
   } catch (error) {
     console.error('Error obteniendo pagos de turnos extras:', error);
