@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@vercel/postgres';
+import { query } from '@/lib/database';
 
 export async function GET(
   request: NextRequest,
@@ -82,8 +82,8 @@ export async function DELETE(
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId') || '1';
 
-    const query = 'SELECT * FROM delete_rol_servicio($1, $2)';
-    const result = await sql.query(query, [id, tenantId]);
+    const queryText = 'SELECT * FROM delete_rol_servicio($1, $2)';
+    const result = await query(queryText, [id, tenantId]);
 
     if (result.rows[0]?.error) {
       return NextResponse.json(
@@ -116,10 +116,9 @@ export async function PATCH(
     const { action } = body;
 
     if (action === 'reactivar') {
-      const result = await sql.query(`
+      const result = await query(`
         UPDATE as_turnos_roles_servicio 
         SET 
-          activo = true,
           estado = 'Activo',
           fecha_inactivacion = NULL,
           updated_at = NOW()

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
+import { calcularNomenclaturaRol, calcularHorasTurno } from '@/lib/utils/calcularNomenclaturaRol';
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,18 +8,23 @@ export async function GET(request: NextRequest) {
     const activo = searchParams.get('activo');
     const tenantId = searchParams.get('tenantId');
 
+    console.log('🔍 GET roles-servicio - Parámetros:', { activo, tenantId });
+
     let query = `
       SELECT 
         id,
         nombre,
-        descripcion,
-        CASE WHEN activo THEN 'Activo' ELSE 'Inactivo' END as estado,
-        activo,
+        dias_trabajo,
+        dias_descanso,
+        horas_turno,
+        hora_inicio,
+        hora_termino,
+        estado,
         tenant_id,
-        creado_en as created_at,
-        creado_en as updated_at,
-        NULL as fecha_inactivacion
-      FROM roles_servicio 
+        created_at,
+        updated_at,
+        fecha_inactivacion
+      FROM as_turnos_roles_servicio 
       WHERE 1=1
     `;
     
@@ -32,14 +38,21 @@ export async function GET(request: NextRequest) {
     }
 
     if (activo !== null) {
-      query += ` AND activo = $${paramIndex}`;
-      params.push(activo === 'false' ? false : true);
+      const estadoFiltro = activo === 'false' ? 'Inactivo' : 'Activo';
+      query += ` AND estado = $${paramIndex}`;
+      params.push(estadoFiltro);
       paramIndex++;
     }
 
     query += ' ORDER BY nombre';
 
+    console.log('🔍 Query ejecutada:', query);
+    console.log('🔍 Parámetros:', params);
+
     const result = await sql.query(query, params);
+    
+    console.log('🔍 Resultados obtenidos:', result.rows.length, 'filas');
+    console.log('🔍 IDs de roles:', result.rows.map(rol => ({ id: rol.id, nombre: rol.nombre })));
     
     return NextResponse.json({
       success: true,
@@ -58,39 +71,65 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { nombre, descripcion, activo = true, tenantId = '1' } = body;
+    const { 
+      dias_trabajo, 
+      dias_descanso, 
+      hora_inicio, 
+      hora_termino, 
+      estado = 'Activo', 
+      tenantId = '1' 
+    } = body;
 
-    if (!nombre) {
+    // Validar campos requeridos
+    if (!dias_trabajo || !dias_descanso || !hora_inicio || !hora_termino) {
       return NextResponse.json(
-        { success: false, error: 'El nombre es requerido' },
+        { success: false, error: 'Todos los campos de turno son requeridos' },
         { status: 400 }
       );
     }
 
+    // Calcular horas de turno automáticamente
+    const horas_turno = calcularHorasTurno(hora_inicio, hora_termino);
+
+    // Calcular nombre automáticamente
+    const nombre = calcularNomenclaturaRol(
+      dias_trabajo,
+      dias_descanso,
+      hora_inicio,
+      hora_termino
+    );
+
     // Verificar que el nombre no esté duplicado
     const checkDuplicate = await sql.query(`
-      SELECT 1 FROM roles_servicio 
+      SELECT 1 FROM as_turnos_roles_servicio 
       WHERE nombre = $1 AND (tenant_id::text = $2 OR (tenant_id IS NULL AND $2 = '1'))
     `, [nombre, tenantId]);
 
     if (checkDuplicate.rows.length > 0) {
       return NextResponse.json(
-        { success: false, error: 'Ya existe un rol de servicio con ese nombre' },
+        { success: false, error: 'Ya existe un rol de servicio con esa configuración de turno' },
         { status: 400 }
       );
     }
 
     // Insertar nuevo rol
     const insertQuery = `
-      INSERT INTO roles_servicio (nombre, descripcion, activo, tenant_id)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO as_turnos_roles_servicio (
+        nombre, dias_trabajo, dias_descanso, horas_turno, 
+        hora_inicio, hora_termino, estado, tenant_id
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `;
     
     const result = await sql.query(insertQuery, [
-      nombre, 
-      descripcion, 
-      activo, 
+      nombre,
+      dias_trabajo,
+      dias_descanso,
+      horas_turno,
+      hora_inicio,
+      hora_termino,
+      estado,
       tenantId === '1' ? null : tenantId
     ]);
 
@@ -102,7 +141,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error al crear rol de servicio:', error);
     return NextResponse.json(
-      { success: false, error: 'Error interno del servidor' },
+      { success: false, error: error instanceof Error ? error.message : 'Error interno del servidor' },
       { status: 500 }
     );
   }

@@ -232,12 +232,12 @@ export async function inactivarRolServicioCompleto(
   usuario_id?: string
 ): Promise<any> {
   try {
-    const response = await fetch(`/api/roles-servicio/${id}/inactivar`, {
-      method: 'PUT',
+    const response = await fetch(`/api/roles-servicio/inactivar`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ motivo, usuario_id }),
+      body: JSON.stringify({ rolId: id, motivo, usuario_id }),
     });
 
     if (!response.ok) {
@@ -325,6 +325,31 @@ export async function crearNuevaEstructuraServicio(
     return result;
   } catch (error) {
     console.error('Error creando nueva estructura:', error);
+    throw error;
+  }
+} 
+
+export async function verificarPautasRol(rolId: string): Promise<any> {
+  try {
+    console.log('🔍 verificarPautasRol llamado con rolId:', rolId, 'Tipo:', typeof rolId);
+    
+    const response = await fetch('/api/roles-servicio/verificar-pautas', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ rol_id: rolId }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Error verificando pautas del rol: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Error verificando pautas del rol:', error);
     throw error;
   }
 } 

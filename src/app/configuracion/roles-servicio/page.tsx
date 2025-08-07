@@ -6,19 +6,30 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Save, X, Trash2, RotateCcw, Download, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit, Save, X, Download, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { 
   getRolesServicio, 
   crearRolServicio, 
   actualizarRolServicio,
-  eliminarRolServicio,
-  toggleRolServicioActivo,
   getRolesServicioStats,
   inactivarRolServicioCompleto,
-  reactivarRolServicio
+  reactivarRolServicio,
+  verificarPautasRol
 } from '@/lib/api/roles-servicio';
 import { RolServicio, CrearRolServicioData } from '@/lib/schemas/roles-servicio';
+import { calcularNomenclaturaRol } from '@/lib/utils/calcularNomenclaturaRol';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function RolesServicioPage() {
   const { success, error } = useToast();
@@ -28,23 +39,62 @@ export default function RolesServicioPage() {
   const [creando, setCreando] = useState(false);
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'activos' | 'inactivos'>('todos');
   const [stats, setStats] = useState<any>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [rolParaConfirmar, setRolParaConfirmar] = useState<RolServicio | null>(null);
+  const [showInfoDialog, setShowInfoDialog] = useState(false);
+  const [infoRol, setInfoRol] = useState<{rol: RolServicio, verificacion: any} | null>(null);
   
-  const [formData, setFormData] = useState<CrearRolServicioData>({
-    nombre: '',
-    descripcion: '',
-    activo: true
+  const [nuevoRol, setNuevoRol] = useState({
+    dias_trabajo: 4,
+    dias_descanso: 4,
+    hora_inicio: '08:00',
+    hora_termino: '20:00'
   });
 
   const [editData, setEditData] = useState<CrearRolServicioData>({
-    nombre: '',
-    descripcion: '',
-    activo: true
+    dias_trabajo: 4,
+    dias_descanso: 4,
+    hora_inicio: '08:00',
+    hora_termino: '20:00',
+    estado: 'Activo'
   });
+
+  // Calcular nombre automáticamente
+  const [nombreCalculado, setNombreCalculado] = useState('');
+  const [nombreCalculadoEdit, setNombreCalculadoEdit] = useState('');
 
   useEffect(() => {
     cargarRoles();
     cargarStats();
   }, []);
+
+  useEffect(() => {
+    try {
+      const nombre = calcularNomenclaturaRol(
+        nuevoRol.dias_trabajo,
+        nuevoRol.dias_descanso,
+        nuevoRol.hora_inicio,
+        nuevoRol.hora_termino
+      );
+      setNombreCalculado(nombre);
+    } catch (err) {
+      setNombreCalculado('Error en cálculo');
+    }
+  }, [nuevoRol]);
+
+  useEffect(() => {
+    try {
+      const nombre = calcularNomenclaturaRol(
+        editData.dias_trabajo,
+        editData.dias_descanso,
+        editData.hora_inicio,
+        editData.hora_termino
+      );
+      setNombreCalculadoEdit(nombre);
+    } catch (err) {
+      setNombreCalculadoEdit('Error en cálculo');
+    }
+  }, [editData]);
 
   const cargarRoles = async () => {
     try {
@@ -69,55 +119,95 @@ export default function RolesServicioPage() {
   };
 
   const handleCrearRol = async () => {
-    if (!formData.nombre.trim()) {
-      error('El nombre del rol es requerido', 'Error');
-      return;
-    }
-
     try {
       setCreando(true);
-      await crearRolServicio(formData);
+      
+      // Verificar si ya existe un rol con el mismo nombre
+      const nombreCalculado = calcularNomenclaturaRol(
+        nuevoRol.dias_trabajo,
+        nuevoRol.dias_descanso,
+        nuevoRol.hora_inicio,
+        nuevoRol.hora_termino
+      );
+      
+      const rolExistente = roles.find(rol => rol.nombre === nombreCalculado);
+      if (rolExistente) {
+        error(`Ya existe un rol de servicio con el nombre: ${nombreCalculado}`, 'Error');
+        return;
+      }
+      
+      await crearRolServicio(nuevoRol as CrearRolServicioData);
       
       success('Rol de servicio creado correctamente', 'Éxito');
 
       // Limpiar formulario
-      setFormData({
-        nombre: '',
-        descripcion: '',
-        activo: true
+      setNuevoRol({
+        dias_trabajo: 4,
+        dias_descanso: 4,
+        hora_inicio: '08:00',
+        hora_termino: '20:00'
       });
 
       await cargarRoles();
       await cargarStats();
     } catch (err) {
       console.error('Error creando rol:', err);
-      error(err instanceof Error ? err.message : 'No se pudo crear el rol', 'Error');
+      error('No se pudo crear el rol', 'Error');
     } finally {
       setCreando(false);
     }
   };
 
-  const handleEditar = (rol: RolServicio) => {
-    setEditando(rol.id);
-    setEditData({
-      nombre: rol.nombre,
-      descripcion: rol.descripcion || '',
-      activo: rol.activo
-    });
+  const handleEditar = async (rol: RolServicio) => {
+    try {
+      // Verificar si el rol tiene pautas asociadas
+      const verificacionPautas = await verificarPautasRol(rol.id);
+      
+      if (verificacionPautas.tiene_pautas) {
+        // Mostrar modal informativo en lugar de error
+        setInfoRol({ rol, verificacion: verificacionPautas });
+        setShowInfoDialog(true);
+        return;
+      }
+
+      setEditData({
+        dias_trabajo: rol.dias_trabajo,
+        dias_descanso: rol.dias_descanso,
+        hora_inicio: rol.hora_inicio,
+        hora_termino: rol.hora_termino,
+        estado: rol.estado
+      });
+      setEditando(rol.id);
+    } catch (err) {
+      console.error('Error verificando pautas del rol:', err);
+      error('Error al verificar si el rol puede ser editado', 'Error');
+    }
   };
 
   const handleGuardarEdicion = async () => {
-    if (!editando || !editData.nombre.trim()) {
-      error('El nombre del rol es requerido', 'Error');
-      return;
-    }
+    if (!editando) return;
 
     try {
+      // Verificar si ya existe un rol con el mismo nombre (excluyendo el actual)
+      const nombreCalculado = calcularNomenclaturaRol(
+        editData.dias_trabajo,
+        editData.dias_descanso,
+        editData.hora_inicio,
+        editData.hora_termino
+      );
+      
+      const rolExistente = roles.find(rol => 
+        rol.nombre === nombreCalculado && rol.id !== editando
+      );
+      if (rolExistente) {
+        error(`Ya existe un rol de servicio con el nombre: ${nombreCalculado}`, 'Error');
+        return;
+      }
+
       await actualizarRolServicio(editando, editData);
       success('Rol de servicio actualizado correctamente', 'Éxito');
       setEditando(null);
       await cargarRoles();
-      await cargarStats();
     } catch (err) {
       console.error('Error actualizando rol:', err);
       error(err instanceof Error ? err.message : 'No se pudo actualizar el rol', 'Error');
@@ -128,86 +218,63 @@ export default function RolesServicioPage() {
     setEditando(null);
   };
 
-  const handleEliminarRol = async (rol: RolServicio) => {
-    if (!confirm(`¿Estás seguro de que quieres eliminar el rol "${rol.nombre}"?`)) {
-      return;
-    }
-
-    try {
-      await eliminarRolServicio(rol.id);
-      success('Rol de servicio eliminado correctamente', 'Éxito');
-      await cargarRoles();
-      await cargarStats();
-    } catch (err) {
-      console.error('Error eliminando rol:', err);
-      error(err instanceof Error ? err.message : 'No se pudo eliminar el rol', 'Error');
-    }
+  const handleActivarInactivar = async (rol: RolServicio) => {
+    setRolParaConfirmar(rol);
+    setShowConfirmDialog(true);
   };
 
-  const handleToggleActivo = async (rol: RolServicio) => {
-    try {
-      await toggleRolServicioActivo(rol.id, !rol.activo);
-      const action = rol.activo ? 'inactivado' : 'activado';
-      success(`Rol de servicio ${action} correctamente`, 'Éxito');
-      await cargarRoles();
-      await cargarStats();
-    } catch (err) {
-      console.error('Error cambiando estado del rol:', err);
-      error(err instanceof Error ? err.message : 'No se pudo cambiar el estado del rol', 'Error');
-    }
-  };
+  const confirmarAccion = async () => {
+    if (!rolParaConfirmar) return;
 
-  // Nueva función para inactivación completa (con liberación de estructuras)
-  const handleInactivarCompleto = async (rol: RolServicio) => {
-    const motivo = prompt('Ingrese el motivo de la inactivación (opcional):');
-    
-    try {
-      const resultado = await inactivarRolServicioCompleto(rol.id, motivo || undefined);
-      
-      success(
-        `Rol inactivado completamente. ${resultado.guardias_liberados} guardias liberados.`, 
-        'Éxito'
-      );
-      
-      await cargarRoles();
-      await cargarStats();
-    } catch (err) {
-      console.error('Error inactivando rol completamente:', err);
-      error(err instanceof Error ? err.message : 'No se pudo inactivar el rol completamente', 'Error');
-    }
-  };
+    const accion = rolParaConfirmar.estado === 'Activo' ? 'inactivar' : 'activar';
 
-  // Nueva función para reactivar rol
-  const handleReactivar = async (rol: RolServicio) => {
     try {
-      await reactivarRolServicio(rol.id);
-      success('Rol de servicio reactivado correctamente', 'Éxito');
+      if (rolParaConfirmar.estado === 'Activo') {
+        await inactivarRolServicioCompleto(rolParaConfirmar.id);
+        success('Rol inactivado correctamente', 'Éxito');
+      } else {
+        await reactivarRolServicio(rolParaConfirmar.id);
+        success('Rol activado correctamente', 'Éxito');
+      }
       await cargarRoles();
       await cargarStats();
     } catch (err) {
-      console.error('Error reactivando rol:', err);
-      error(err instanceof Error ? err.message : 'No se pudo reactivar el rol', 'Error');
+      console.error(`Error ${accion}ando rol:`, err);
+      error(`No se pudo ${accion} el rol`, 'Error');
+    } finally {
+      setShowConfirmDialog(false);
+      setRolParaConfirmar(null);
     }
   };
 
   const exportarRoles = () => {
-    const headers = ['Nombre', 'Descripción', 'Estado', 'Creado', 'Actualizado'];
+    const rolesFiltrados = roles.filter(rol => {
+      if (filtroEstado === 'activos') return rol.estado === 'Activo';
+      if (filtroEstado === 'inactivos') return rol.estado === 'Inactivo';
+      return true;
+    });
+
     const csvContent = [
-      headers.join(','),
+      ['ID', 'Nombre', 'Descripción', 'Días Trabajo', 'Días Descanso', 'Horas Turno', 'Hora Inicio', 'Hora Término', 'Estado', 'Creado'],
       ...rolesFiltrados.map(rol => [
-        `"${rol.nombre}"`,
-        `"${rol.descripcion || ''}"`,
-        rol.activo ? 'Activo' : 'Inactivo',
-        new Date(rol.created_at).toLocaleDateString('es-CL'),
-        new Date(rol.updated_at).toLocaleDateString('es-CL')
-      ].join(','))
-    ].join('\n');
+        rol.id,
+        rol.nombre,
+        rol.nombre || '',
+        rol.dias_trabajo,
+        rol.dias_descanso,
+        rol.horas_turno,
+        rol.hora_inicio,
+        rol.hora_termino,
+        rol.estado,
+        new Date(rol.created_at).toLocaleDateString('es-CL')
+      ])
+    ].map(row => row.join(',')).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `roles-servicio-${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `roles_servicio_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -215,195 +282,262 @@ export default function RolesServicioPage() {
   };
 
   const rolesFiltrados = roles.filter(rol => {
-    if (filtroEstado === 'activos') return rol.activo;
-    if (filtroEstado === 'inactivos') return !rol.activo;
-    return true; // todos
+    if (filtroEstado === 'activos') return rol.estado === 'Activo';
+    if (filtroEstado === 'inactivos') return rol.estado === 'Inactivo';
+    return true;
   });
 
-  if (loading) {
-    return (
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Roles de Servicio</h1>
+        <div className="flex gap-2">
+          <Button onClick={exportarRoles} variant="outline">
+            <Download className="w-4 h-4 mr-2" />
+            Exportar
+          </Button>
+        </div>
+      </div>
+
+      {/* Estadísticas */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total Roles</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.total}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Activos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{stats.activos}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Inactivos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">{stats.inactivos}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Con Guardias</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{stats.conGuardias}</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Formulario de Creación */}
       <Card>
         <CardHeader>
-          <CardTitle>Roles de Servicio</CardTitle>
+          <CardTitle>Crear Nuevo Rol de Servicio</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="dias_trabajo">Días de Trabajo</Label>
+              <Input
+                id="dias_trabajo"
+                type="number"
+                min="1"
+                value={nuevoRol.dias_trabajo}
+                onChange={(e) => setNuevoRol({...nuevoRol, dias_trabajo: parseInt(e.target.value) || 0})}
+                placeholder="4"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dias_descanso">Días de Descanso</Label>
+              <Input
+                id="dias_descanso"
+                type="number"
+                min="1"
+                value={nuevoRol.dias_descanso}
+                onChange={(e) => setNuevoRol({...nuevoRol, dias_descanso: parseInt(e.target.value) || 0})}
+                placeholder="4"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="hora_inicio">Hora de Inicio</Label>
+              <Input
+                id="hora_inicio"
+                type="time"
+                value={nuevoRol.hora_inicio}
+                onChange={(e) => setNuevoRol({...nuevoRol, hora_inicio: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="hora_termino">Hora de Término</Label>
+              <Input
+                id="hora_termino"
+                type="time"
+                value={nuevoRol.hora_termino}
+                onChange={(e) => setNuevoRol({...nuevoRol, hora_termino: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="nombre">Nombre Calculado</Label>
+              <Input
+                id="nombre"
+                value={nombreCalculado}
+                disabled
+                placeholder="Se calcula automáticamente"
+              />
+            </div>
+          </div>
+          
+          {/* Nombre Calculado */}
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+            <Label className="text-sm font-medium">Nombre Calculado:</Label>
+            <div className="text-lg font-mono text-blue-600 dark:text-blue-400">
+              {nombreCalculado}
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <Button onClick={handleCrearRol} disabled={creando}>
+              {creando ? 'Creando...' : 'Crear Rol'}
+            </Button>
           </div>
         </CardContent>
       </Card>
-    );
-  }
 
-  return (
-    <div className="space-y-6">
-      {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-600">{stats?.total_roles || roles.length}</div>
-            <div className="text-sm text-muted-foreground">Total Roles</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">{stats?.roles_activos || roles.filter(r => r.activo).length}</div>
-            <div className="text-sm text-muted-foreground">Activos</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-gray-600">{stats?.roles_inactivos || roles.filter(r => !r.activo).length}</div>
-            <div className="text-sm text-muted-foreground">Inactivos</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-purple-600">{stats?.roles_con_estructura || 0}</div>
-            <div className="text-sm text-muted-foreground">Con Estructura</div>
-          </CardContent>
-        </Card>
+      {/* Filtros */}
+      <div className="flex gap-2">
+        <Button
+          variant={filtroEstado === 'todos' ? 'default' : 'outline'}
+          onClick={() => setFiltroEstado('todos')}
+        >
+          Todos ({roles.length})
+        </Button>
+        <Button
+          variant={filtroEstado === 'activos' ? 'default' : 'outline'}
+          onClick={() => setFiltroEstado('activos')}
+        >
+          Activos ({roles.filter(r => r.estado === 'Activo').length})
+        </Button>
+        <Button
+          variant={filtroEstado === 'inactivos' ? 'default' : 'outline'}
+          onClick={() => setFiltroEstado('inactivos')}
+        >
+          Inactivos ({roles.filter(r => r.estado === 'Inactivo').length})
+        </Button>
       </div>
 
+      {/* Tabla de Roles */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <span>⚙️ Mantenedor de Roles de Servicio</span>
-            <Badge variant="secondary">{roles.length} roles</Badge>
-          </CardTitle>
+          <CardTitle>Roles de Servicio ({rolesFiltrados.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Formulario para crear nuevo rol */}
-          <div className="border-b pb-6 mb-6">
-            <h3 className="text-lg font-semibold mb-4">➕ Crear Nuevo Rol</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Nombre del Rol</label>
-                <Input
-                  value={formData.nombre}
-                  onChange={(e) => setFormData(prev => ({ ...prev, nombre: e.target.value }))}
-                  placeholder="Ej: Supervisor Día"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Descripción</label>
-                <Input
-                  value={formData.descripcion}
-                  onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
-                  placeholder="Descripción opcional"
-                />
-              </div>
-
-              <div className="flex items-end">
-                <Button 
-                  onClick={handleCrearRol}
-                  disabled={creando || !formData.nombre.trim()}
-                  className="w-full"
-                >
-                  {creando ? 'Creando...' : 'Crear Rol'}
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Tabla de roles existentes */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">📋 Roles Existentes</h3>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Filtrar:</span>
-                <select
-                  value={filtroEstado}
-                  onChange={(e) => setFiltroEstado(e.target.value as 'todos' | 'activos' | 'inactivos')}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600"
-                >
-                  <option value="todos">Todos ({roles.length})</option>
-                  <option value="activos">Activos ({roles.filter(r => r.activo).length})</option>
-                  <option value="inactivos">Inactivos ({roles.filter(r => !r.activo).length})</option>
-                </select>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={exportarRoles}
-                  disabled={rolesFiltrados.length === 0}
-                  className="ml-2"
-                >
-                  <Download className="w-4 h-4 mr-1" />
-                  Exportar
-                </Button>
-              </div>
-            </div>
+          {loading ? (
+            <div className="text-center py-8">Cargando roles...</div>
+          ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Descripción</TableHead>
+                  <TableHead>Turno</TableHead>
+                  <TableHead>Horario</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead>Creado</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rolesFiltrados.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      {roles.length === 0 ? 'No hay roles de servicio configurados' : 'No hay roles que coincidan con el filtro'}
+                {rolesFiltrados.map((rol) => (
+                  <TableRow key={rol.id}>
+                    <TableCell>
+                      {editando === rol.id ? (
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium text-blue-600">Nombre Calculado:</div>
+                          <div className="text-sm font-mono">{nombreCalculadoEdit}</div>
+                        </div>
+                      ) : (
+                        <div className="font-medium">{rol.nombre}</div>
+                      )}
                     </TableCell>
-                  </TableRow>
-                ) : (
-                  rolesFiltrados.map((rol) => (
-                    <TableRow key={rol.id}>
-                      <TableCell>
-                        {editando === rol.id ? (
+                    <TableCell>
+                      {editando === rol.id ? (
+                        <div className="text-sm text-muted-foreground">
+                          {nombreCalculadoEdit || 'Sin nombre'}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">
+                          {rol.nombre || 'Sin nombre'}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editando === rol.id ? (
+                        <div className="space-y-2">
                           <Input
-                            value={editData.nombre}
-                            onChange={(e) => setEditData(prev => ({ ...prev, nombre: e.target.value }))}
-                            className="w-full"
+                            type="number"
+                            min="1"
+                            value={editData.dias_trabajo}
+                            onChange={(e) => setEditData({...editData, dias_trabajo: parseInt(e.target.value) || 0})}
+                            className="w-16"
                           />
-                        ) : (
-                          <span className="font-medium">{rol.nombre}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {editando === rol.id ? (
+                          <span className="text-sm">x</span>
                           <Input
-                            value={editData.descripcion}
-                            onChange={(e) => setEditData(prev => ({ ...prev, descripcion: e.target.value }))}
-                            className="w-full"
+                            type="number"
+                            min="1"
+                            value={editData.dias_descanso}
+                            onChange={(e) => setEditData({...editData, dias_descanso: parseInt(e.target.value) || 0})}
+                            className="w-16"
                           />
-                        ) : (
-                          <span className="text-muted-foreground">{rol.descripcion || '-'}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
+                        </div>
+                      ) : (
+                        <div className="text-sm">
+                          {rol.dias_trabajo}x{rol.dias_descanso}x{rol.horas_turno}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editando === rol.id ? (
+                        <div className="space-y-2">
+                          <Input
+                            type="time"
+                            value={editData.hora_inicio}
+                            onChange={(e) => setEditData({...editData, hora_inicio: e.target.value})}
+                            className="w-24"
+                          />
+                          <span className="text-sm">-</span>
+                          <Input
+                            type="time"
+                            value={editData.hora_termino}
+                            onChange={(e) => setEditData({...editData, hora_termino: e.target.value})}
+                            className="w-24"
+                          />
+                        </div>
+                      ) : (
+                        <div className="text-sm">
+                          {rol.hora_inicio} - {rol.hora_termino}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={rol.estado === 'Activo' ? 'default' : 'secondary'}>
+                        {rol.estado}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
                         {editando === rol.id ? (
-                          <select
-                            value={editData.activo ? 'true' : 'false'}
-                            onChange={(e) => setEditData(prev => ({ ...prev, activo: e.target.value === 'true' }))}
-                            className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600"
-                          >
-                            <option value="true">Activo</option>
-                            <option value="false">Inactivo</option>
-                          </select>
-                        ) : (
-                          <Badge variant={rol.activo ? 'default' : 'secondary'}>
-                            {rol.activo ? 'Activo' : 'Inactivo'}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">
-                          {new Date(rol.created_at).toLocaleDateString('es-CL')}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {editando === rol.id ? (
-                          <div className="flex gap-2">
+                          <>
                             <Button
                               size="sm"
+                              variant="default"
                               onClick={handleGuardarEdicion}
-                              className="text-green-600 hover:text-green-700"
                             >
                               <Save className="w-4 h-4" />
                             </Button>
@@ -414,66 +548,138 @@ export default function RolesServicioPage() {
                             >
                               <X className="w-4 h-4" />
                             </Button>
-                          </div>
+                          </>
                         ) : (
-                          <div className="flex gap-2">
+                          <>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleEditar(rol)}
-                              className="text-blue-600 hover:text-blue-700"
+                              title="Editar rol"
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
                             <Button
                               size="sm"
-                              variant="outline"
-                              onClick={() => handleToggleActivo(rol)}
-                              className={rol.activo ? "text-orange-600 hover:text-orange-700" : "text-green-600 hover:text-green-700"}
+                              variant="destructive"
+                              onClick={() => handleActivarInactivar(rol)}
+                              title={rol.estado === 'Activo' ? 'Inactivar rol' : 'Activar rol'}
                             >
-                              {rol.activo ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              {rol.estado === 'Activo' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </Button>
-                            {rol.activo ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleInactivarCompleto(rol)}
-                                className="text-red-600 hover:text-red-700"
-                                title="Inactivar completamente (libera estructuras y guardias)"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleReactivar(rol)}
-                                className="text-purple-600 hover:text-purple-700"
-                                title="Reactivar rol de servicio"
-                              >
-                                <RotateCcw className="w-4 h-4" />
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEliminarRol(rol)}
-                              className="text-gray-600 hover:text-gray-700"
-                              title="Eliminar permanentemente"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
+                          </>
                         )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
-          </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Modal de Confirmación */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {rolParaConfirmar?.estado === 'Activo' ? 'Inactivar Rol' : 'Activar Rol'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que quieres {rolParaConfirmar?.estado === 'Activo' ? 'inactivar' : 'activar'} el rol "{rolParaConfirmar?.nombre}"?
+              {rolParaConfirmar?.estado === 'Activo' && (
+                <span className="block mt-2 text-red-600 font-medium">
+                  ⚠️ Esta acción inactivará el rol y no podrá ser asignado a nuevas guardias.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarAccion}>
+              {rolParaConfirmar?.estado === 'Activo' ? 'Inactivar' : 'Activar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Modal Informativo - Rol No Editable */}
+      <AlertDialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
+        <AlertDialogContent className="max-w-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-orange-500" />
+              Rol No Editable
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4">
+              <div className="bg-orange-50 dark:bg-orange-950/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
+                <p className="font-medium text-orange-800 dark:text-orange-200 mb-2">
+                  El rol <strong>"{infoRol?.rol.nombre}"</strong> no puede ser editado.
+                </p>
+                <p className="text-sm text-orange-700 dark:text-orange-300">
+                  {infoRol?.verificacion.mensaje}
+                </p>
+              </div>
+
+              {infoRol?.verificacion.pautas_info && infoRol.verificacion.pautas_info.length > 0 && (
+                <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">
+                    📋 Pautas Mensuales Asociadas:
+                  </h4>
+                  <div className="space-y-2">
+                    {infoRol.verificacion.pautas_info.map((pauta: any, index: number) => (
+                      <div key={index} className="flex justify-between items-center text-sm">
+                        <span className="text-blue-700 dark:text-blue-300">
+                          {pauta.instalacion_nombre}
+                        </span>
+                        <div className="flex gap-4 text-blue-600 dark:text-blue-400">
+                          <span>{pauta.anio}/{pauta.mes.toString().padStart(2, '0')}</span>
+                          <span>{pauta.dias_asignados} días</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">
+                  💡 ¿Por qué no se puede editar?
+                </h4>
+                <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                  <li>• El rol ya tiene pautas mensuales generadas</li>
+                  <li>• Modificar el rol afectaría datos históricos</li>
+                  <li>• Podría causar inconsistencias en las pautas existentes</li>
+                </ul>
+              </div>
+
+              <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                <h4 className="font-medium text-green-800 dark:text-green-200 mb-2">
+                  ✅ Alternativas Disponibles:
+                </h4>
+                <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                  <li>• <strong>Activar/Inactivar:</strong> Puedes cambiar el estado del rol</li>
+                  <li>• <strong>Crear nuevo rol:</strong> Si necesitas cambios, crea un nuevo rol</li>
+                  <li>• <strong>Mantener histórico:</strong> Los datos existentes se preservan</li>
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Entendido</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                setShowInfoDialog(false);
+                setInfoRol(null);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Cerrar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
-} 
+}

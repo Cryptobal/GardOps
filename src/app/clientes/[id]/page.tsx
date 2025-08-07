@@ -19,15 +19,7 @@ import {
   Save,
   X,
   RefreshCw,
-  Loader2,
-  DollarSign,
-  Shield,
-  Clock,
-  Eye,
-  EyeOff,
-  Trash2,
-  RotateCcw,
-  Plus
+  Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import { DocumentManager } from '@/components/shared/document-manager';
@@ -56,43 +48,6 @@ interface Cliente {
   updated_at: string;
 }
 
-interface RolServicio {
-  id: string;
-  nombre: string;
-  descripcion?: string;
-  dias_trabajo: number;
-  dias_descanso: number;
-  horas_turno: number;
-  hora_inicio: string;
-  hora_termino: string;
-  estado: string;
-  activo: boolean;
-  sueldo_base?: number;
-  created_at: string;
-  updated_at: string;
-}
-
-interface EstructuraSueldo {
-  id: string;
-  rol_servicio_id: string;
-  rol_nombre: string;
-  sueldo_base: number;
-  activo: boolean;
-  fecha_inactivacion?: string;
-  conceptos: EstructuraConcepto[];
-  created_at: string;
-  updated_at: string;
-}
-
-interface EstructuraConcepto {
-  id: string;
-  estructura_id: string;
-  nombre: string;
-  monto: number;
-  imponible: boolean;
-  tipo: string;
-}
-
 export default function ClienteDetallePage() {
   const params = useParams();
   const router = useRouter();
@@ -110,12 +65,6 @@ export default function ClienteDetallePage() {
   const [pendingEstado, setPendingEstado] = useState<string | null>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorDetails, setErrorDetails] = useState<any>(null);
-  
-  // Estados para la pestaña de estructura
-  const [rolesServicio, setRolesServicio] = useState<RolServicio[]>([]);
-  const [estructurasSueldo, setEstructurasSueldo] = useState<EstructuraSueldo[]>([]);
-  const [loadingEstructura, setLoadingEstructura] = useState(false);
-  const [expandedRoles, setExpandedRoles] = useState<Set<string>>(new Set());
 
   const cargarCliente = useCallback(async () => {
     try {
@@ -147,147 +96,9 @@ export default function ClienteDetallePage() {
     }
   }, [clienteId]);
 
-  // Nueva función para cargar datos de estructura
-  const cargarDatosEstructura = useCallback(async () => {
-    try {
-      setLoadingEstructura(true);
-      
-      // Cargar roles de servicio del cliente
-      const rolesResponse = await fetch(`/api/roles-servicio/cliente/${clienteId}`);
-      if (rolesResponse.ok) {
-        const rolesData = await rolesResponse.json();
-        setRolesServicio(rolesData.rows || rolesData);
-      }
-      
-      // Cargar estructuras de sueldo
-      const estructurasResponse = await fetch(`/api/estructuras-sueldo/cliente/${clienteId}`);
-      if (estructurasResponse.ok) {
-        const estructurasData = await estructurasResponse.json();
-        setEstructurasSueldo(estructurasData.rows || estructurasData);
-      }
-    } catch (error) {
-      console.error('Error cargando datos de estructura:', error);
-    } finally {
-      setLoadingEstructura(false);
-    }
-  }, [clienteId]);
-
   useEffect(() => {
     cargarCliente();
   }, [cargarCliente]);
-
-  // Cargar datos de estructura cuando se selecciona la pestaña
-  useEffect(() => {
-    if (activeTab === 'estructura' && cliente) {
-      cargarDatosEstructura();
-    }
-  }, [activeTab, cliente, cargarDatosEstructura]);
-
-  // Funciones para manejar roles y estructuras
-  const handleInactivarRol = async (rolId: string) => {
-    if (!confirm(`¿Estás seguro de inactivar el rol "${rolesServicio.find(r => r.id === rolId)?.nombre}"?\n\nEsto inactivará el rol y liberará todos los guardias asignados.`)) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/roles-servicio/${rolId}/inactivar`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motivo: 'Inactivación desde vista de cliente', usuario_id: null })
-      });
-
-      if (response.ok) {
-        const resultado = await response.json();
-        alert(`✅ Rol inactivado exitosamente.\n\nGuardias liberados: ${resultado.guardias_liberados}\nEstructura inactivada: ${resultado.estructura_inactivada ? 'Sí' : 'No'}`);
-        await cargarDatosEstructura();
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al inactivar el rol');
-      }
-    } catch (error) {
-      console.error('Error inactivando rol:', error);
-      alert(`❌ Error al inactivar el rol: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-    }
-  };
-
-  const handleReactivarRol = async (rolId: string) => {
-    if (!confirm(`¿Estás seguro de reactivar el rol "${rolesServicio.find(r => r.id === rolId)?.nombre}"?`)) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/roles-servicio/${rolId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'reactivar' })
-      });
-
-      if (response.ok) {
-        alert('✅ Rol reactivado exitosamente');
-        await cargarDatosEstructura();
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al reactivar el rol');
-      }
-    } catch (error) {
-      console.error('Error reactivando rol:', error);
-      alert(`❌ Error al reactivar el rol: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-    }
-  };
-
-  const handleInactivarEstructura = async (estructuraId: string) => {
-    const motivo = prompt('Ingrese el motivo de la inactivación (opcional):');
-    const crearNueva = confirm('¿Desea crear una nueva estructura automáticamente?');
-    
-    try {
-      const response = await fetch(`/api/estructuras-sueldo/${estructuraId}/inactivar`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          motivo: motivo || 'Inactivación desde vista de cliente', 
-          usuario_id: null,
-          crear_nueva_automaticamente: crearNueva 
-        })
-      });
-
-      if (response.ok) {
-        const resultado = await response.json();
-        alert(`✅ Estructura inactivada exitosamente.\n\n${resultado.nueva_estructura_creada ? 'Nueva estructura creada automáticamente.' : ''}`);
-        await cargarDatosEstructura();
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al inactivar la estructura');
-      }
-    } catch (error) {
-      console.error('Error inactivando estructura:', error);
-      alert(`❌ Error al inactivar la estructura: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-    }
-  };
-
-  const handleReactivarEstructura = async (estructuraId: string) => {
-    if (!confirm('¿Estás seguro de reactivar esta estructura de sueldo?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/estructuras-sueldo/${estructuraId}/toggle-activo`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activo: true })
-      });
-
-      if (response.ok) {
-        alert('✅ Estructura reactivada exitosamente');
-        await cargarDatosEstructura();
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al reactivar la estructura');
-      }
-    } catch (error) {
-      console.error('Error reactivando estructura:', error);
-      alert(`❌ Error al reactivar la estructura: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-    }
-  };
 
   const cargarDatosGeograficos = async (direccion: string) => {
     try {
@@ -590,7 +401,7 @@ export default function ClienteDetallePage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="informacion" className="flex items-center space-x-2">
             <Building2 className="h-4 w-4" />
             <span>Información</span>
@@ -598,10 +409,6 @@ export default function ClienteDetallePage() {
           <TabsTrigger value="documentos" className="flex items-center space-x-2">
             <FileText className="h-4 w-4" />
             <span>Documentos</span>
-          </TabsTrigger>
-          <TabsTrigger value="estructura" className="flex items-center space-x-2">
-            <Shield className="h-4 w-4" />
-            <span>Estructura</span>
           </TabsTrigger>
         </TabsList>
 
@@ -883,152 +690,6 @@ export default function ClienteDetallePage() {
                 onUploadSuccess={() => setRefreshTrigger(prev => prev + 1)}
                 refreshTrigger={refreshTrigger}
               />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="estructura" className="flex-1 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Shield className="h-5 w-5" />
-                <span>Estructura de Servicios</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Roles de Servicio</h3>
-                {loadingEstructura ? (
-                  <div className="flex items-center justify-center h-32">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                  </div>
-                ) : rolesServicio.length === 0 ? (
-                  <p className="text-muted-foreground">No hay roles de servicio registrados para este cliente.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {rolesServicio.map((rol) => (
-                      <div key={rol.id} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-md font-medium">{rol.nombre}</h4>
-                          <Badge variant={rol.activo ? 'default' : 'destructive'}>{rol.activo ? 'Activo' : 'Inactivo'}</Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{rol.descripcion}</p>
-                        <p className="text-sm text-muted-foreground">
-                          <Clock className="h-4 w-4 inline-block mr-1" />
-                          Horas de trabajo: {rol.horas_turno}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          <Clock className="h-4 w-4 inline-block mr-1" />
-                          Horas de descanso: {rol.dias_descanso} días
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          <Clock className="h-4 w-4 inline-block mr-1" />
-                          Horas de turno: {rol.horas_turno}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          <Clock className="h-4 w-4 inline-block mr-1" />
-                          Horario: {rol.hora_inicio} - {rol.hora_termino}
-                        </p>
-                        <div className="flex items-center mt-3 text-sm text-muted-foreground">
-                          <Eye className="h-4 w-4 inline-block mr-1" />
-                          <span>Estado: {rol.activo ? 'Activo' : 'Inactivo'}</span>
-                        </div>
-                                                 <div className="flex items-center mt-1 text-sm text-muted-foreground">
-                           <DollarSign className="h-4 w-4 inline-block mr-1" />
-                           <span>Sueldo Base: ${rol.sueldo_base?.toFixed(0) || 'N/A'}</span>
-                         </div>
-                                                 <div className="flex items-center justify-between mt-3">
-                           {rol.activo ? (
-                             <Button
-                               size="sm"
-                               variant="outline"
-                               onClick={() => handleInactivarRol(rol.id)}
-                               className="text-red-600 hover:text-red-700"
-                             >
-                               <EyeOff className="h-4 w-4 mr-1" />
-                               Inactivar Rol
-                             </Button>
-                           ) : (
-                             <Button
-                               size="sm"
-                               variant="outline"
-                               onClick={() => handleReactivarRol(rol.id)}
-                               className="text-green-600 hover:text-green-700"
-                             >
-                               <RotateCcw className="h-4 w-4 mr-1" />
-                               Reactivar Rol
-                             </Button>
-                           )}
-                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <h3 className="text-lg font-semibold mt-6">Estructuras de Sueldo</h3>
-                {loadingEstructura ? (
-                  <div className="flex items-center justify-center h-32">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                  </div>
-                ) : estructurasSueldo.length === 0 ? (
-                  <p className="text-muted-foreground">No hay estructuras de sueldo registradas para este cliente.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {estructurasSueldo.map((estructura) => (
-                      <div key={estructura.id} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-md font-medium">{estructura.rol_nombre}</h4>
-                          <Badge variant={estructura.activo ? 'default' : 'destructive'}>{estructura.activo ? 'Activo' : 'Inactivo'}</Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          <DollarSign className="h-4 w-4 inline-block mr-1" />
-                          Sueldo Base: ${estructura.sueldo_base.toFixed(0)}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          <Clock className="h-4 w-4 inline-block mr-1" />
-                          Fecha de Inactivación: {estructura.fecha_inactivacion || 'N/A'}
-                        </p>
-                        <div className="flex items-center mt-3 text-sm text-muted-foreground">
-                          <Eye className="h-4 w-4 inline-block mr-1" />
-                          <span>Estado: {estructura.activo ? 'Activo' : 'Inactivo'}</span>
-                        </div>
-                                                 <div className="flex items-center justify-between mt-3">
-                           {estructura.activo ? (
-                             <Button
-                               size="sm"
-                               variant="outline"
-                               onClick={() => handleInactivarEstructura(estructura.id)}
-                               className="text-red-600 hover:text-red-700"
-                             >
-                               <EyeOff className="h-4 w-4 mr-1" />
-                               Inactivar Estructura
-                             </Button>
-                           ) : (
-                             <Button
-                               size="sm"
-                               variant="outline"
-                               onClick={() => handleReactivarEstructura(estructura.id)}
-                               className="text-green-600 hover:text-green-700"
-                             >
-                               <RotateCcw className="h-4 w-4 mr-1" />
-                               Reactivar Estructura
-                             </Button>
-                           )}
-                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <Button className="mt-6">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nuevo Rol de Servicio
-                </Button>
-                <Button className="mt-6">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nueva Estructura de Sueldo
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
