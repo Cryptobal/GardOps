@@ -9,7 +9,7 @@ export async function GET(
   try {
     const instalacionId = params.id;
     
-    const rows = await query(`
+    const result = await query(`
       SELECT 
         es.*,
         rs.nombre as rol_nombre
@@ -18,6 +18,9 @@ export async function GET(
       WHERE es.instalacion_id = $1
       ORDER BY rs.nombre, es.nombre_bono
     `, [instalacionId]);
+    
+    // Extraer solo el array de rows
+    const rows = Array.isArray(result) ? result : (result.rows || []);
     
     return NextResponse.json(rows);
   } catch (error) {
@@ -48,12 +51,14 @@ export async function POST(
     }
     
     // Verificar que no exista un bono con el mismo nombre para el mismo rol
-    const existing = await query(`
+    const existingResult = await query(`
       SELECT id FROM sueldo_estructuras_servicio
       WHERE instalacion_id = $1
         AND rol_servicio_id = $2
         AND nombre_bono = $3
     `, [instalacionId, rol_servicio_id, nombre_bono]);
+    
+    const existing = Array.isArray(existingResult) ? existingResult : (existingResult.rows || []);
     
     if (existing.length > 0) {
       return NextResponse.json(
@@ -63,7 +68,7 @@ export async function POST(
     }
     
     // Crear nueva estructura
-    const rows = await query(`
+    const result = await query(`
       INSERT INTO sueldo_estructuras_servicio (
         instalacion_id,
         rol_servicio_id,
@@ -75,6 +80,8 @@ export async function POST(
       )
       RETURNING *
     `, [instalacionId, rol_servicio_id, nombre_bono, monto, imponible !== false]);
+    
+    const rows = Array.isArray(result) ? result : (result.rows || []);
     
     return NextResponse.json(rows[0]);
   } catch (error) {

@@ -10,7 +10,7 @@ export async function GET(
     const instalacionId = params.id;
     
     // Obtener los roles de servicio asociados a la instalación a través de puestos operativos
-    const rows = await query(`
+    const result = await query(`
       SELECT DISTINCT
         rs.id,
         rs.nombre,
@@ -23,6 +23,8 @@ export async function GET(
       WHERE po.instalacion_id = $1
       ORDER BY rs.nombre
     `, [instalacionId]);
+    
+    const rows = Array.isArray(result) ? result : (result.rows || []);
     
     return NextResponse.json(rows);
   } catch (error) {

@@ -20,7 +20,7 @@ export async function PUT(
     }
     
     // Actualizar estructura
-    const rows = await query(`
+    const result = await query(`
       UPDATE sueldo_estructuras_servicio
       SET 
         nombre_bono = $1,
@@ -30,6 +30,8 @@ export async function PUT(
       WHERE id = $4
       RETURNING *
     `, [nombre_bono, monto, imponible !== false, estructuraId]);
+    
+    const rows = Array.isArray(result) ? result : (result.rows || []);
     
     if (rows.length === 0) {
       return NextResponse.json(
@@ -56,11 +58,13 @@ export async function DELETE(
   try {
     const { estructuraId } = params;
     
-    const rows = await query(`
+    const result = await query(`
       DELETE FROM sueldo_estructuras_servicio
       WHERE id = $1
       RETURNING id
     `, [estructuraId]);
+    
+    const rows = Array.isArray(result) ? result : (result.rows || []);
     
     if (rows.length === 0) {
       return NextResponse.json(

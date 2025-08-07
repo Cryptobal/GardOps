@@ -71,7 +71,11 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
         const rolesResponse = await fetch(`/api/roles-servicio/instalacion/${instalacionId}`);
         if (rolesResponse.ok) {
           const rolesData = await rolesResponse.json();
-          setRoles(rolesData);
+          // Extraer el array de rows si viene con metadata, o usar directamente si es array
+          const rolesArray = Array.isArray(rolesData) 
+            ? rolesData 
+            : (rolesData.rows || []);
+          setRoles(rolesArray);
         }
       }
 
@@ -79,7 +83,11 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
       const estructurasResponse = await fetch(`/api/instalaciones/${instalacionId}/estructuras-servicio`);
       if (estructurasResponse.ok) {
         const estructurasData = await estructurasResponse.json();
-        setEstructuras(estructurasData);
+        // Extraer el array de rows si viene con metadata, o usar directamente si es array
+        const estructurasArray = Array.isArray(estructurasData) 
+          ? estructurasData 
+          : (estructurasData.rows || []);
+        setEstructuras(estructurasArray);
         console.log("✅ Estructura de servicio cargada para la instalación");
       }
     } catch (error) {
