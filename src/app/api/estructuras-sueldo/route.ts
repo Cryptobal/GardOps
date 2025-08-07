@@ -8,23 +8,42 @@ export async function GET(request: NextRequest) {
     const tenantId = searchParams.get('tenantId') || '1';
     const rolId = searchParams.get('rolId');
 
-    let query = 'SELECT * FROM sueldo_estructuras_roles WHERE 1=1';
+    let query = `
+      SELECT 
+        es.id,
+        es.rol_servicio_id as rol_id,
+        rs.nombre as rol_nombre,
+        es.sueldo_base,
+        es.bono_asistencia,
+        es.bono_responsabilidad,
+        es.bono_noche,
+        es.bono_feriado,
+        es.bono_riesgo,
+        es.otros_bonos,
+        es.activo,
+        es.fecha_inactivacion,
+        es.created_at,
+        es.updated_at
+      FROM sueldo_estructuras_roles es
+      LEFT JOIN as_turnos_roles_servicio rs ON es.rol_servicio_id = rs.id
+      WHERE 1=1
+    `;
     const params: any[] = [];
     let paramIndex = 1;
 
     if (activo !== null) {
-      query += ` AND activo = $${paramIndex}`;
+      query += ` AND es.activo = $${paramIndex}`;
       params.push(activo === 'false' ? false : true);
       paramIndex++;
     }
 
     if (rolId) {
-      query += ` AND rol_servicio_id = $${paramIndex}`;
+      query += ` AND es.rol_servicio_id = $${paramIndex}`;
       params.push(rolId);
       paramIndex++;
     }
 
-    query += ' ORDER BY created_at DESC';
+    query += ' ORDER BY es.created_at DESC';
 
     const result = await sql.query(query, params);
     

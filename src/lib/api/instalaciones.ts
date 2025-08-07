@@ -271,7 +271,9 @@ export async function getRolesServicio(): Promise<RolServicio[]> {
       throw new Error(`Error al obtener roles de servicio: ${response.statusText}`);
     }
 
-    return await response.json();
+    const result = await response.json();
+    // Soportar ambos formatos: { success, data } y [] (legacy)
+    return Array.isArray(result) ? result : (result?.success ? result.data ?? [] : []);
   } catch (error) {
     console.error('Error obteniendo roles de servicio:', error);
     throw error;

@@ -17,6 +17,7 @@ import {
   Filter
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import InstalacionModal from "@/components/instalaciones/InstalacionModal";
 
 // Componente KPI Box optimizado para móviles
 const KPIBox = ({ 
@@ -100,6 +101,10 @@ export default function InstalacionesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("activo");
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Estados para el modal
+  const [showModal, setShowModal] = useState(false);
+  const [selectedInstalacion, setSelectedInstalacion] = useState<any>(null);
 
   // Estados para KPIs
   const [kpis, setKpis] = useState({
@@ -182,6 +187,23 @@ export default function InstalacionesPage() {
     router.push(`/instalaciones/${instalacion.id}`);
   };
 
+  // Funciones para manejar el modal
+  const openCreateModal = () => {
+    setSelectedInstalacion(null);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedInstalacion(null);
+  };
+
+  const handleModalSuccess = (instalacion: any) => {
+    closeModal();
+    fetchInstalaciones(); // Recargar la lista
+    fetchKPIs(); // Recargar KPIs
+  };
+
   return (
     <div className="container mx-auto p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6">
       {/* Header optimizado para móviles */}
@@ -246,7 +268,7 @@ export default function InstalacionesPage() {
             <span className="hidden sm:inline">Filtros</span>
           </Button>
           
-          <Button className="flex items-center space-x-2 w-full sm:w-auto">
+          <Button onClick={openCreateModal} className="flex items-center space-x-2 w-full sm:w-auto">
             <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">Nueva Instalación</span>
             <span className="sm:hidden">Nueva</span>
@@ -461,6 +483,14 @@ export default function InstalacionesPage() {
           )}
         </CardContent>
       </Card>
+      
+      {/* Modal para crear/editar instalación */}
+      <InstalacionModal
+        instalacion={selectedInstalacion}
+        isOpen={showModal}
+        onClose={closeModal}
+        onSuccess={handleModalSuccess}
+      />
     </div>
   );
 } 

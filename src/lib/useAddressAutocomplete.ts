@@ -150,28 +150,89 @@ export const useAddressAutocomplete = () => {
     };
 
     if (place.address_components) {
+      // Primera pasada: recolectar todos los componentes
+      const localityComponents: string[] = [];
+      const sublocalityComponents: string[] = [];
+      let administrativeLevel2 = '';
+      let administrativeLevel1 = '';
+
       place.address_components.forEach((component) => {
         const types = component.types;
+        const name = component.long_name;
 
-        // Para Chile: locality es la comuna (ej: Lo Barnechea, Providencia)
         if (types.includes('locality')) {
-          components.comuna = component.long_name;
-        } 
-        // administrative_area_level_1 es la región (ej: Región Metropolitana)
-        else if (types.includes('administrative_area_level_1')) {
-          components.region = component.long_name;
-        } 
-        // administrative_area_level_2 es la provincia (ej: Santiago)
-        else if (types.includes('administrative_area_level_2')) {
-          components.ciudad = component.long_name;
-        } 
-        else if (types.includes('country')) {
-          components.pais = component.long_name;
-        } 
-        else if (types.includes('postal_code')) {
-          components.codigoPostal = component.long_name;
+          localityComponents.push(name);
+        } else if (types.includes('sublocality')) {
+          sublocalityComponents.push(name);
+        } else if (types.includes('administrative_area_level_2')) {
+          administrativeLevel2 = name;
+        } else if (types.includes('administrative_area_level_1')) {
+          administrativeLevel1 = name;
+        } else if (types.includes('country')) {
+          components.pais = name;
+        } else if (types.includes('postal_code')) {
+          components.codigoPostal = name;
         }
       });
+
+      // Lógica específica para Chile
+      // Para direcciones como "Av. La Dehesa 224, Santiago, Lo Barnechea, Región Metropolitana"
+      
+      // Determinar comuna: priorizar sublocality sobre locality
+      if (sublocalityComponents.length > 0) {
+        // Si hay sublocality, es probablemente la comuna (ej: Lo Barnechea)
+        components.comuna = sublocalityComponents[0];
+        // Y locality es la ciudad (ej: Santiago)
+        if (localityComponents.length > 0) {
+          components.ciudad = localityComponents[0];
+        }
+      } else if (localityComponents.length > 0) {
+        // Si no hay sublocality, locality puede ser la comuna
+        components.comuna = localityComponents[0];
+        // Usar administrative_area_level_2 como ciudad si está disponible
+        if (administrativeLevel2) {
+          components.ciudad = administrativeLevel2;
+        }
+      }
+
+      // Si no se determinó ciudad, usar administrative_area_level_2
+      if (!components.ciudad && administrativeLevel2) {
+        components.ciudad = administrativeLevel2;
+      }
+
+      // Si no se determinó comuna, buscar en la dirección formateada
+      if (!components.comuna && place.formatted_address) {
+        const comunas = [
+          'Providencia', 'Las Condes', 'Ñuñoa', 'Santiago', 'Maipú', 
+          'Puente Alto', 'La Florida', 'Peñalolén', 'Macul', 'San Miguel',
+          'La Granja', 'La Pintana', 'El Bosque', 'Pedro Aguirre Cerda',
+          'Lo Espejo', 'Estación Central', 'Cerrillos', 'Lo Prado',
+          'Pudahuel', 'Quilicura', 'Conchalí', 'Huechuraba', 'Recoleta',
+          'Independencia', 'Quinta Normal', 'Lo Barnechea', 'Vitacura',
+          'San Joaquín', 'San Ramón', 'La Cisterna', 'El Monte',
+          'Isla de Maipo', 'Padre Hurtado', 'Peñaflor', 'Talagante',
+          'Melipilla', 'Curacaví', 'Alhué', 'San Pedro', 'Buin',
+          'Paine', 'Calera de Tango', 'San Bernardo', 'Colina',
+          'Lampa', 'Tiltil', 'Pirque', 'San José de Maipo'
+        ];
+        
+        for (const comuna of comunas) {
+          if (place.formatted_address.includes(comuna)) {
+            components.comuna = comuna;
+            break;
+          }
+        }
+      }
+
+      // Región
+      if (administrativeLevel1) {
+        components.region = administrativeLevel1;
+      }
+
+      // Fallback: si no se determinó ciudad, usar la región
+      if (!components.ciudad && components.region) {
+        components.ciudad = components.region;
+      }
     }
 
     return {

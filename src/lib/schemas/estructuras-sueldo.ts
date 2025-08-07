@@ -2,9 +2,16 @@ export interface EstructuraSueldo {
   id: string;
   rol_id: string;
   rol_nombre?: string;
+  rol_descripcion?: string;
   nombre: string;
   descripcion?: string;
   sueldo_base: number;
+  bono_asistencia?: number;
+  bono_responsabilidad?: number;
+  bono_noche?: number;
+  bono_feriado?: number;
+  bono_riesgo?: number;
+  otros_bonos?: any;
   bonificacion_nocturna?: number;
   bonificacion_festivo?: number;
   bonificacion_riesgo?: number;
@@ -21,6 +28,7 @@ export interface EstructuraSueldo {
   descuento_impuesto?: number;
   descuento_otros?: number;
   activo: boolean;
+  fecha_inactivacion?: string;
   tenant_id: string;
   created_at: string;
   updated_at: string;
@@ -102,12 +110,14 @@ export interface EstructuraSueldoConRol extends EstructuraSueldo {
 export function calcularTotalEstructura(estructura: EstructuraSueldo): number {
   return (
     estructura.sueldo_base +
-    estructura.bono_asistencia +
-    estructura.bono_responsabilidad +
-    estructura.bono_noche +
-    estructura.bono_feriado +
-    estructura.bono_riesgo +
-    estructura.otros_bonos.reduce((sum, bono) => sum + bono.monto, 0)
+    (estructura.bono_asistencia || 0) +
+    (estructura.bono_responsabilidad || 0) +
+    (estructura.bono_noche || 0) +
+    (estructura.bono_feriado || 0) +
+    (estructura.bono_riesgo || 0) +
+    (estructura.otros_bonos && Array.isArray(estructura.otros_bonos) 
+      ? estructura.otros_bonos.reduce((sum: number, bono: any) => sum + (bono.monto || 0), 0)
+      : 0)
   );
 }
 
@@ -115,14 +125,16 @@ export function calcularTotalEstructura(estructura: EstructuraSueldo): number {
 export function calcularTotalImponible(estructura: EstructuraSueldo): number {
   return (
     estructura.sueldo_base +
-    estructura.bono_asistencia +
-    estructura.bono_responsabilidad +
-    estructura.bono_noche +
-    estructura.bono_feriado +
-    estructura.bono_riesgo +
-    estructura.otros_bonos
-      .filter(bono => bono.imponible)
-      .reduce((sum, bono) => sum + bono.monto, 0)
+    (estructura.bono_asistencia || 0) +
+    (estructura.bono_responsabilidad || 0) +
+    (estructura.bono_noche || 0) +
+    (estructura.bono_feriado || 0) +
+    (estructura.bono_riesgo || 0) +
+    (estructura.otros_bonos && Array.isArray(estructura.otros_bonos)
+      ? estructura.otros_bonos
+          .filter((bono: any) => bono.imponible)
+          .reduce((sum: number, bono: any) => sum + (bono.monto || 0), 0)
+      : 0)
   );
 }
 

@@ -3,8 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Modal, ModalHeader, ModalFooter } from '@/components/ui/modal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { EntityTabs } from '@/components/ui/entity-tabs';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,10 +62,14 @@ interface FormData {
   estado: "Activo" | "Inactivo";
   instalacion_id?: string;
   fecha_os10?: string;
+  banco_id?: string;
+  numero_cuenta?: string;
+  tipo_cuenta?: 'Cuenta Corriente' | 'Cuenta Vista' | 'Cuenta de Ahorro' | 'RUT';
 }
 
 function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps) {
   const [loading, setLoading] = useState(false);
+  const [errorDialog, setErrorDialog] = useState<{ open: boolean; title: string; description: string }>({ open: false, title: '', description: '' });
   const [location, setLocation] = useState({
     latitud: null as number | null,
     longitud: null as number | null
@@ -83,6 +98,23 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
       fecha_os10: ''
     }
   });
+
+  const [bancos, setBancos] = useState<Array<{ id: string; nombre: string }>>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const resp = await fetch('/api/bancos');
+        if (resp.ok) {
+          const data = await resp.json();
+          const rows = Array.isArray(data.bancos) ? data.bancos : [];
+          setBancos(rows.map((b: any) => ({ id: b.id, nombre: b.nombre })));
+        }
+      } catch {}
+    })();
+  }, []);
+
+  // Nota: se eliminó la validación en vivo del RUT para no interferir al escribir
 
   // Resetear formulario cuando cambia el guardia o se abre/cierra el modal
   useEffect(() => {
@@ -135,10 +167,43 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
       return;
     }
 
+    // Email y teléfono obligatorios
+    if (!data.email) {
+      alert('El Email es obligatorio');
+      return;
+    }
+    if (!data.telefono) {
+      alert('El Teléfono es obligatorio');
+      return;
+    }
+    // Datos bancarios opcionales - comentados para hacerlos opcionales
+    // if (!data.banco_id) {
+    //   alert('Seleccione un banco');
+    //   return;
+    // }
+    // if (!data.tipo_cuenta) {
+    //   alert('Seleccione el tipo de cuenta');
+    //   return;
+    // }
+    // if (!data.numero_cuenta) {
+    //   alert('Ingrese el número de cuenta');
+    //   return;
+    // }
+    // Ubicación obligatoria
+    if (!location.latitud || !location.longitud) {
+      alert('La Ubicación es obligatoria. Seleccione una dirección válida.');
+      return;
+    }
+
+    // Normalizar RUT (sin puntos y sin espacios). La validación completa la realiza el backend.
+    const rutIngresado = (data.rut || '').toString().trim();
+    const rutNormalizado = rutIngresado.replace(/\./g, '').replace(/\s+/g, '');
+
     setLoading(true);
     try {
       const payload = {
         ...data,
+        rut: rutNormalizado,
         latitud: location.latitud,
         longitud: location.longitud
       };
@@ -163,7 +228,29 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
       
       if (!response.ok) {
         console.error('❌ Error del servidor:', result);
-        throw new Error(result.error || 'Error al guardar el guardia');
+        // Mostrar modal bonito según el tipo de error
+        if (response.status === 409) {
+          setErrorDialog({
+            open: true,
+            title: 'RUT ya registrado',
+            description: 'Ya existe un guardia con ese RUT en el sistema. Verifica el RUT ingresado o edita el guardia existente.'
+          });
+          return;
+        }
+        if (response.status === 400) {
+          setErrorDialog({
+            open: true,
+            title: 'Datos inválidos',
+            description: result.error || 'Revisa el formato del RUT (ej: 12345678-9) y completa los campos obligatorios.'
+          });
+          return;
+        }
+        setErrorDialog({
+          open: true,
+          title: 'Error al guardar',
+          description: result.error || 'Ocurrió un error inesperado. Intenta nuevamente.'
+        });
+        return;
       }
 
       console.log(guardia?.id ? '✅ Guardia actualizado' : '✅ Guardia creado');
@@ -185,12 +272,20 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
       latitud: addressData.latitud, 
       longitud: addressData.longitud 
     });
-    // Extraer ciudad y comuna del address si es posible
-    const parts = addressData.direccionCompleta.split(',').map((part: string) => part.trim());
-    if (parts.length >= 2) {
-      setValue('ciudad', parts[parts.length - 2] || '');
-      setValue('comuna', parts[parts.length - 1] || '');
+    
+    // Usar los componentes extraídos correctamente por Google Maps
+    if (addressData.componentes) {
+      setValue('ciudad', addressData.componentes.ciudad || '');
+      setValue('comuna', addressData.componentes.comuna || '');
+    } else {
+      // Fallback: extraer ciudad y comuna del address si es posible
+      const parts = addressData.direccionCompleta.split(',').map((part: string) => part.trim());
+      if (parts.length >= 2) {
+        setValue('ciudad', parts[parts.length - 2] || '');
+        setValue('comuna', parts[parts.length - 1] || '');
+      }
     }
+    
     setValue('direccion', addressData.direccionCompleta);
   };
 
@@ -205,7 +300,7 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium">Nombre *</label>
               <Input
@@ -241,33 +336,24 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium">RUT *</label>
               <Input
                 {...register('rut', { required: 'El RUT es obligatorio' })}
-                placeholder="12345678-9"
+                placeholder="Ej: 12345678-9 (sin puntos)"
                 className={errors.rut ? 'border-red-500' : ''}
               />
               {errors.rut && (
                 <p className="text-sm text-red-500">{errors.rut.message}</p>
               )}
             </div>
-            <div>
-              <label className="text-sm font-medium">Estado</label>
-              <div className="mt-2">
-                <ToggleStatus
-                  checked={watch('estado') === 'Activo'}
-                  onChange={(checked) => setValue('estado', checked ? 'Activo' : 'Inactivo')}
-                  size="md"
-                />
-              </div>
-            </div>
+            
             <div>
               <label className="text-sm font-medium">Fecha Vencimiento OS10</label>
               <DatePickerComponent
                 value={watch('fecha_os10') || ''}
-                onChange={(date) => setValue('fecha_os10', date)}
+                onChange={(dateStr) => setValue('fecha_os10', dateStr)}
                 placeholder="Seleccionar fecha"
                 className="mt-1"
               />
@@ -284,11 +370,11 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium">Email</label>
+              <label className="text-sm font-medium">Email *</label>
               <Input
-                {...register('email')}
+                {...register('email', { required: 'El email es obligatorio' })}
                 type="email"
                 placeholder="guardia@ejemplo.com"
                 className={errors.email ? 'border-red-500' : ''}
@@ -298,15 +384,55 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
               )}
             </div>
             <div>
-              <label className="text-sm font-medium">Teléfono</label>
+              <label className="text-sm font-medium">Teléfono *</label>
               <Input
-                {...register('telefono')}
-                placeholder="+56 9 1234 5678"
+                {...register('telefono', { 
+                  required: 'El teléfono es obligatorio',
+                  pattern: { value: /^\d{9}$/, message: 'Debe tener 9 dígitos (sin +56)' }
+                })}
+                placeholder="912345678"
                 className={errors.telefono ? 'border-red-500' : ''}
               />
               {errors.telefono && (
                 <p className="text-sm text-red-500">{errors.telefono.message}</p>
               )}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="text-sm font-medium">Banco *</label>
+              <Select value={watch('banco_id') || ''} onValueChange={(v) => setValue('banco_id', v)}>
+                <SelectTrigger className="w-full h-9">
+                  <SelectValue placeholder="Seleccione banco" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bancos.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Tipo de Cuenta *</label>
+              <Select value={watch('tipo_cuenta') || ''} onValueChange={(v) => setValue('tipo_cuenta', v as any)}>
+                <SelectTrigger className="w-full h-9">
+                  <SelectValue placeholder="Seleccione tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Cuenta Corriente">Cuenta Corriente</SelectItem>
+                  <SelectItem value="Cuenta Vista">Cuenta Vista</SelectItem>
+                  <SelectItem value="Cuenta de Ahorro">Cuenta de Ahorro</SelectItem>
+                  <SelectItem value="RUT">RUT</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Número de Cuenta *</label>
+              <Input
+                {...register('numero_cuenta', { required: true })}
+                placeholder="00012345678"
+                className={errors.numero_cuenta ? 'border-red-500' : ''}
+              />
             </div>
           </div>
         </CardContent>
@@ -316,7 +442,7 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
 
   // Sección de ubicación
   const GuardLocationSection = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -324,9 +450,9 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
             Ubicación
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           <div>
-            <label className="text-sm font-medium">Dirección</label>
+            <label className="text-sm font-medium">Dirección *</label>
             <InputDireccion
               value={watch('direccion')}
               onAddressSelect={handleLocationChange}
@@ -334,12 +460,14 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
             />
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium">Ciudad</label>
               <Input
                 {...register('ciudad')}
                 placeholder="Ciudad"
+                readOnly
+                disabled
               />
             </div>
             <div>
@@ -347,13 +475,15 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
               <Input
                 {...register('comuna')}
                 placeholder="Comuna"
+                readOnly
+                disabled
               />
             </div>
           </div>
 
           {location.latitud && location.longitud && (
-            <div className="p-3 bg-gray-50 rounded-md">
-              <p className="text-sm text-gray-600">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-gray-600">
                 <strong>Coordenadas:</strong> {Number(location.latitud).toFixed(6)}, {Number(location.longitud).toFixed(6)}
               </p>
             </div>
@@ -475,7 +605,7 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
   // Componente wrapper para manejar errores en las pestañas
   const SafeTabContent = ({ children }: { children: React.ReactNode }) => {
     return (
-      <div className="min-h-[400px] p-4">
+      <div className="h-full overflow-auto p-4">
         <React.Suspense fallback={
           <div className="flex items-center justify-center h-32">
             <Loader2 className="h-6 w-6 animate-spin" />
@@ -488,7 +618,7 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
     );
   };
 
-  const tabs = [
+  const tabs = guardia?.id ? [
     {
       key: 'informacion',
       label: 'Información',
@@ -508,17 +638,9 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
       label: 'Documentos',
       icon: FileText,
       color: 'amber' as const,
-      content: guardia?.id ? (
-        <SafeTabContent>
-          <DocumentManager modulo="guardias" entidadId={guardia.id} />
-        </SafeTabContent>
-      ) : (
-        <SafeTabContent>
-          <div className="text-center py-8">
-            <p className="text-gray-500">Guarda el guardia para gestionar documentos</p>
-          </div>
-        </SafeTabContent>
-      )
+      content: <SafeTabContent>
+        <DocumentManager modulo="guardias" entidadId={guardia.id} />
+      </SafeTabContent>
     },
     {
       key: 'asignaciones',
@@ -527,7 +649,14 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
       color: 'violet' as const,
       content: <SafeTabContent><GuardOperationalSection guardia={guardia} /></SafeTabContent>
     },
-
+  ] : [
+    {
+      key: 'informacion',
+      label: 'Información',
+      icon: User,
+      color: 'blue' as const,
+      content: <SafeTabContent><div className="space-y-6"><GuardFormSection /><GuardLocationSection /></div></SafeTabContent>
+    },
   ];
 
   console.log('🔍 GuardiaModal - Tabs configuradas:', tabs.map(t => t.key));
@@ -535,45 +664,60 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
   console.log('🔍 GuardiaModal - IsOpen:', isOpen);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
-      <div className="h-[80vh] flex flex-col">
-        <ModalHeader 
-          title={guardia?.id ? 'Editar Guardia' : 'Nuevo Guardia'}
-          onClose={onClose}
-        />
-
-        <div className="flex-1 overflow-hidden">
-          <EntityTabs
-            tabs={tabs}
-            defaultTab="informacion"
-            className="h-full"
+    <>
+      <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+        <div className="h-[80vh] flex flex-col">
+          <ModalHeader 
+            title={guardia?.id ? 'Editar Guardia' : 'Nuevo Guardia'}
+            onClose={onClose}
           />
-        </div>
 
-        <ModalFooter>
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={onClose}
-            disabled={loading}
-          >
-            <X className="h-4 w-4 mr-2" />
-            Cancelar
-          </Button>
-          <Button 
-            onClick={handleSubmit(onSubmit)}
-            disabled={loading}
-          >
-            {loading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            {loading ? 'Guardando...' : 'Guardar'}
-          </Button>
-        </ModalFooter>
-      </div>
-    </Modal>
+          <div className="flex-1 overflow-auto">
+            <EntityTabs
+              tabs={tabs}
+              defaultTab="informacion"
+              className="h-full"
+            />
+          </div>
+
+          <ModalFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose}
+              disabled={loading}
+            >
+              <X className="h-4 w-4 mr-2" />
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleSubmit(onSubmit)}
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {loading ? 'Guardando...' : 'Guardar'}
+            </Button>
+          </ModalFooter>
+        </div>
+      </Modal>
+      <AlertDialog open={errorDialog.open} onOpenChange={(open) => setErrorDialog(prev => ({ ...prev, open }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{errorDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {errorDialog.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setErrorDialog({ open: false, title: '', description: '' })}>Entendido</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 

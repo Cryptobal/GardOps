@@ -1,35 +1,29 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
+  Building2, 
+  Shield, 
+  DollarSign, 
   Plus, 
+  Edit2, 
   Trash2, 
-  Save, 
-  AlertCircle, 
-  DollarSign,
-  Shield,
-  Building2,
-  Edit2,
-  X,
-  Check,
+  Check, 
+  X, 
+  AlertCircle,
+  Eye,
   EyeOff,
-  RotateCcw,
-  AlertTriangle
+  Power,
+  PowerOff,
+  Settings
 } from 'lucide-react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 
 interface EstructuraBono {
   id?: string;
@@ -46,6 +40,15 @@ interface RolServicio {
   id: string;
   nombre: string;
   descripcion?: string;
+  dias_trabajo?: number;
+  dias_descanso?: number;
+  horas_turno?: number;
+  hora_inicio?: string;
+  hora_termino?: string;
+  estado?: 'Activo' | 'Inactivo';
+  tenant_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface EstructuraServicioProps {
@@ -56,10 +59,14 @@ interface EstructuraServicioProps {
 export default function EstructuraServicio({ instalacionId, rolesPrecargados = [] }: EstructuraServicioProps) {
   const [roles, setRoles] = useState<RolServicio[]>(rolesPrecargados);
   const [estructuras, setEstructuras] = useState<EstructuraBono[]>([]);
+  const [bonosGlobales, setBonosGlobales] = useState<{ id: string; nombre: string; imponible: boolean; activo: boolean }[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [expandedRoles, setExpandedRoles] = useState<Set<string>>(new Set());
+  const [expandedRoles, setExpandedRoles] = useState<string[]>([]);
   const [editingBono, setEditingBono] = useState<string | null>(null);
+  const [liquidoPorRol, setLiquidoPorRol] = useState<Record<string, number>>({});
+  const recalculoTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const fetchControllers = useRef<Record<string, AbortController | null>>({});
 
   useEffect(() => {
     cargarDatos();
@@ -115,6 +122,20 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
         });
         setRoles(Object.values(rolesMap));
       }
+
+      // Cargar bonos globales activos desde el mantenedor
+      const bonosResponse = await fetch('/api/bonos-globales?activo=true');
+      if (bonosResponse.ok) {
+        const bonosData = await bonosResponse.json();
+        const rows = Array.isArray(bonosData.data) ? bonosData.data : (bonosData.rows || bonosData);
+        setBonosGlobales(rows);
+      }
+
+      // Recalcular líquidos estimados por cada rol cargado (si tiene base)
+      const rolesIds = Array.from(new Set((Array.isArray(roles) ? roles : []).map(r => r.id)));
+      for (const rid of rolesIds) {
+        programarRecalculo(rid, 0);
+      }
     } catch (error) {
       console.error('Error cargando datos:', error);
     } finally {
@@ -123,16 +144,19 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
   };
 
   const toggleRolExpanded = (rolId: string) => {
-    const newExpanded = new Set(expandedRoles);
-    if (newExpanded.has(rolId)) {
-      newExpanded.delete(rolId);
+    if (expandedRoles.includes(rolId)) {
+      setExpandedRoles(expandedRoles.filter(id => id !== rolId));
     } else {
-      newExpanded.add(rolId);
+      setExpandedRoles([...expandedRoles, rolId]);
     }
-    setExpandedRoles(newExpanded);
   };
 
   const agregarBono = (rolId: string, nombrePredefinido?: string) => {
+    // Evitar duplicar sueldo base
+    if (nombrePredefinido === 'Sueldo Base') {
+      const yaExisteBase = estructuras.some(e => e.rol_servicio_id === rolId && e.nombre_bono === 'Sueldo Base');
+      if (yaExisteBase) return;
+    }
     const nuevoBono: EstructuraBono = {
       instalacion_id: instalacionId,
       rol_servicio_id: rolId,
@@ -144,7 +168,11 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
     };
     
     setEstructuras([...estructuras, nuevoBono]);
-    setExpandedRoles(new Set([...expandedRoles, rolId]));
+    if (!expandedRoles.includes(rolId)) {
+      setExpandedRoles([...expandedRoles, rolId]);
+    }
+    // Recalcular líquido con debounce
+    programarRecalculo(rolId);
   };
   
   const inicializarSueldoBase = async (rolId: string) => {
@@ -186,6 +214,9 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
       [campo]: valor
     };
     setEstructuras(nuevasEstructuras);
+    // Recalcular líquido del rol afectado con debounce usando snapshot coherente
+    const rid = nuevasEstructuras[index].rol_servicio_id;
+    programarRecalculo(rid, 300, obtenerEstructurasRolConArray(rid, nuevasEstructuras));
   };
 
   const guardarBono = async (bono: EstructuraBono, index: number) => {
@@ -216,6 +247,7 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
           const nuevasEstructuras = [...estructuras];
           nuevasEstructuras[index] = { ...nuevoBono, isEditing: false, isNew: false };
           setEstructuras(nuevasEstructuras);
+          programarRecalculo(nuevasEstructuras[index].rol_servicio_id);
         } else {
           throw new Error('Error al crear bono');
         }
@@ -236,6 +268,7 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
           const nuevasEstructuras = [...estructuras];
           nuevasEstructuras[index] = { ...bonoActualizado, isEditing: false };
           setEstructuras(nuevasEstructuras);
+          programarRecalculo(nuevasEstructuras[index].rol_servicio_id);
         } else {
           throw new Error('Error al actualizar bono');
         }
@@ -270,6 +303,8 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
       if (response.ok) {
         setEstructuras(estructuras.filter(e => e.id !== bonoId));
         console.log('✅ Bono eliminado correctamente');
+        const rolId = bono?.rol_servicio_id as string;
+        programarRecalculo(rolId);
       } else {
         throw new Error('Error al eliminar bono');
       }
@@ -281,9 +316,116 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
     }
   };
 
+  // --- Cálculo de sueldo líquido en tiempo real ---
+  function normalizarNombre(nombre: string): string {
+    // Remover acentos de forma compatible sin usar \p{Diacritic}
+    const sinAcentos = nombre
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    return sinAcentos.trim();
+  }
+
+  function programarRecalculo(rolId: string, delay: number = 500, itemsOverride?: EstructuraBono[]) {
+    const timer = recalculoTimers.current[rolId];
+    if (timer) clearTimeout(timer);
+    recalculoTimers.current[rolId] = setTimeout(() => {
+      recalcularLiquido(rolId, itemsOverride);
+    }, delay);
+  }
+
+  async function recalcularLiquido(rolId: string, itemsOverride?: EstructuraBono[]) {
+    try {
+      const items = itemsOverride || obtenerEstructurasRol(rolId);
+      const base = items.find(i => i.nombre_bono === 'Sueldo Base')?.monto || 0;
+
+      const imponibles = items.filter(i => i.nombre_bono !== 'Sueldo Base' && i.imponible);
+      const noImponibles = items.filter(i => i.nombre_bono !== 'Sueldo Base' && !i.imponible);
+
+      // Evitar llamadas innecesarias mientras el usuario escribe o sin datos
+      if (!Number.isFinite(base) || base <= 0) {
+        setLiquidoPorRol(prev => ({ ...prev, [rolId]: 0 }));
+        return;
+      }
+
+      // Mapear a SueldoInput
+      const bonos: any = { nocturnidad: 0, festivo: 0, peligrosidad: 0, responsabilidad: 0, otros: 0 };
+      const noImp: any = { colacion: 0, movilizacion: 0, viatico: 0, desgaste: 0, asignacionFamiliar: 0 };
+
+      for (const b of imponibles) {
+        const n = normalizarNombre(b.nombre_bono);
+        if (n.includes('nocturn')) bonos.nocturnidad += b.monto;
+        else if (n.includes('festiv') || n.includes('feriad')) bonos.festivo += b.monto;
+        else if (n.includes('pelig') || n.includes('riesgo')) bonos.peligrosidad += b.monto;
+        else if (n.includes('respons')) bonos.responsabilidad += b.monto;
+        else bonos.otros += b.monto;
+      }
+
+      for (const b of noImponibles) {
+        const n = normalizarNombre(b.nombre_bono);
+        if (n.includes('colac')) noImp.colacion += b.monto;
+        else if (n.includes('movil')) noImp.movilizacion += b.monto;
+        else if (n.includes('viati')) noImp.viatico += b.monto;
+        else noImp.desgaste += b.monto; // genérico
+      }
+
+      const payload = {
+        sueldoBase: base,
+        fecha: new Date(),
+        afp: 'modelo',
+        tipoSalud: 'fonasa' as const,
+        horasExtras: { cincuenta: 0, cien: 0 },
+        bonos,
+        comisiones: 0,
+        noImponible: noImp,
+        descuentosVoluntarios: 0,
+        anticipos: 0,
+        judiciales: 0,
+        apv: 0,
+        cuenta2: 0,
+        cotizacionAdicionalUF: 0,
+        diasAusencia: 0,
+        tipoContrato: 'indefinido' as const,
+      };
+
+      // Cancelar request anterior si existe
+      if (fetchControllers.current[rolId]) {
+        try { fetchControllers.current[rolId]?.abort(); } catch {}
+      }
+      const controller = new AbortController();
+      fetchControllers.current[rolId] = controller;
+
+      const res = await fetch('/api/sueldos/calcular', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        // 400 u otros: no romper UI ni pisar valores correctos previos
+        return;
+      }
+      const data = await res.json();
+      const liquido = data?.data?.sueldoLiquido || 0;
+      setLiquidoPorRol(prev => ({ ...prev, [rolId]: liquido }));
+    } catch (e) {
+      // Ignorar abortos de control
+      if (e instanceof DOMException && e.name === 'AbortError') return;
+      // Silencioso para no entorpecer UX
+    }
+  }
+
   const obtenerEstructurasRol = (rolId: string) => {
     const estructurasRol = estructuras.filter(e => e.rol_servicio_id === rolId);
     // Ordenar para que Sueldo Base aparezca primero
+    return estructurasRol.sort((a, b) => {
+      if (a.nombre_bono === 'Sueldo Base') return -1;
+      if (b.nombre_bono === 'Sueldo Base') return 1;
+      return a.nombre_bono.localeCompare(b.nombre_bono);
+    });
+  };
+  const obtenerEstructurasRolConArray = (rolId: string, arr: EstructuraBono[]) => {
+    const estructurasRol = arr.filter(e => e.rol_servicio_id === rolId);
     return estructurasRol.sort((a, b) => {
       if (a.nombre_bono === 'Sueldo Base') return -1;
       if (b.nombre_bono === 'Sueldo Base') return 1;
@@ -453,17 +595,17 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
           const sueldoBase = obtenerSueldoBase(rol.id);
           const totalRol = calcularTotalRol(rol.id);
           const imponibleRol = calcularImponibleRol(rol.id);
-          const isExpanded = expandedRoles.has(rol.id);
+          const isExpanded = expandedRoles.includes(rol.id);
 
           return (
             <Card key={rol.id} className="overflow-hidden">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => toggleRolExpanded(rol.id)}
-                      className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-                    >
+                      <button
+                        onClick={() => toggleRolExpanded(rol.id)}
+                        className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+                      >
                       <Shield className="h-4 w-4 text-primary" />
                       <CardTitle className="text-base">{rol.nombre}</CardTitle>
                       <span className="text-sm text-muted-foreground">
@@ -472,6 +614,67 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
                     </button>
                   </div>
                   <div className="flex items-center gap-4">
+                    {/* Estado del Rol */}
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={rol.estado === 'Activo' ? 'default' : 'secondary'}
+                        className="text-xs"
+                      >
+                        {rol.estado === 'Activo' ? (
+                          <>
+                            <Eye className="h-3 w-3 mr-1" />
+                            Activo
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="h-3 w-3 mr-1" />
+                            Inactivo
+                          </>
+                        )}
+                      </Badge>
+                      
+                      {/* Botones de activación/desactivación */}
+                      <div className="flex items-center gap-1">
+                        {rol.estado === 'Activo' ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => inactivarRolCompleto(rol.id)}
+                            disabled={saving}
+                            className="h-7 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            title="Inactivar rol completo"
+                          >
+                            <PowerOff className="h-3 w-3" />
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => reactivarRol(rol.id)}
+                            disabled={saving}
+                            className="h-7 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            title="Reactivar rol"
+                          >
+                            <Power className="h-3 w-3" />
+                          </Button>
+                        )}
+                        
+                        {/* Botón para inactivar solo estructura */}
+                        {rol.estado === 'Activo' && estructurasRol.length > 0 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => inactivarEstructura(rol.id)}
+                            disabled={saving}
+                            className="h-7 px-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                            title="Inactivar solo estructura de sueldo"
+                          >
+                            <Settings className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    
                     <div className="text-right">
                       <p className="text-sm text-muted-foreground">Sueldo Base</p>
                       <p className="text-base font-semibold text-primary">
@@ -482,6 +685,12 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
                       <p className="text-sm text-muted-foreground">Total</p>
                       <p className="text-lg font-bold">
                         ${totalRol.toLocaleString('es-CL')}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground" title="Fonasa + AFP Modelo">Líquido</p>
+                      <p className="text-lg font-bold text-emerald-600 tabular-nums">
+                        ${ (Math.round(liquidoPorRol[rol.id] || 0)).toLocaleString('es-CL') }
                       </p>
                     </div>
                     {!sueldoBase ? (
@@ -532,14 +741,29 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
                               <TableRow key={bono.id || `new-${index}`} className={esSueldoBase ? 'bg-primary/5' : ''}>
                                 <TableCell>
                                   {bono.isEditing ? (
-                                    <Input
-                                      value={bono.nombre_bono}
-                                      onChange={(e) => actualizarBono(bonoIndex, 'nombre_bono', e.target.value)}
-                                      placeholder="Ej: Movilización, Colación..."
-                                      className="h-8"
-                                      autoFocus
-                                      disabled={esSueldoBase} // No permitir cambiar el nombre del sueldo base
-                                    />
+                                    esSueldoBase ? (
+                                      <Input value={bono.nombre_bono} disabled className="h-8" />
+                                    ) : (
+                                      <select
+                                        className="h-8 w-full rounded-md bg-background border px-2 text-sm"
+                                        value={bono.nombre_bono}
+                                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                                          const value = e.target.value;
+                                          actualizarBono(bonoIndex, 'nombre_bono', value);
+                                          const selected = bonosGlobales.find(bg => bg.nombre === value);
+                                          if (selected) {
+                                            actualizarBono(bonoIndex, 'imponible', selected.imponible);
+                                          }
+                                        }}
+                                      >
+                                        <option value="">Seleccione bono…</option>
+                                        {bonosGlobales.map((bg) => (
+                                          <option key={bg.id} value={bg.nombre}>
+                                            {bg.nombre} {bg.imponible ? '(Imp)' : '(No Imp)'}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    )
                                   ) : (
                                     <div className="flex items-center gap-2">
                                       {esSueldoBase ? (
@@ -565,6 +789,7 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
                                       type="number"
                                       value={bono.monto}
                                       onChange={(e) => actualizarBono(bonoIndex, 'monto', parseInt(e.target.value) || 0)}
+                                      onBlur={() => programarRecalculo(bono.rol_servicio_id, 0)}
                                       className="h-8 text-right"
                                       min="0"
                                     />
@@ -575,19 +800,12 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
                                   )}
                                 </TableCell>
                                 <TableCell className="text-center">
-                                  {bono.isEditing ? (
-                                    <Switch
-                                      checked={bono.imponible}
-                                      onCheckedChange={(checked) => actualizarBono(bonoIndex, 'imponible', checked)}
-                                    />
-                                  ) : (
-                                    <Badge 
-                                      variant={bono.imponible ? "default" : "secondary"}
-                                      className="text-xs"
-                                    >
-                                      {bono.imponible ? 'Sí' : 'No'}
-                                    </Badge>
-                                  )}
+                                  <Badge 
+                                    variant={bono.imponible ? "default" : "secondary"}
+                                    className="text-xs"
+                                  >
+                                    {bono.imponible ? 'Sí' : 'No'}
+                                  </Badge>
                                 </TableCell>
                                 <TableCell className="text-right">
                                   {bono.isEditing ? (

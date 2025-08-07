@@ -16,9 +16,14 @@ import {
   AlertTriangle,
   CheckCircle,
   Search,
-  Filter
+  Filter,
+  Clock,
+  XCircle
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { calcularEstadoOS10, obtenerEstadisticasOS10 } from "../../lib/utils/os10-status";
+import { OS10StatusBadge } from "../../components/ui/os10-status-badge";
+import { OS10StatsModal } from "../../components/ui/os10-stats-modal";
 
 // Importar componentes genéricos
 import { DataTable, Column } from "../../components/ui/data-table";
@@ -39,20 +44,22 @@ const KPIBox = ({
   value, 
   icon: Icon, 
   color = "blue",
-  trend = null 
+  trend = null,
+  onClick = null
 }: {
   title: string;
   value: string | number;
   icon: React.ComponentType<any>;
   color?: string;
   trend?: { value: number; isPositive: boolean } | null;
+  onClick?: (() => void) | null;
 }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5 }}
   >
-    <Card className="h-full">
+    <Card className={`h-full ${onClick ? 'cursor-pointer hover:bg-muted/50 transition-colors' : ''}`} onClick={onClick}>
       <CardContent className="p-3 sm:p-4 md:p-6 flex flex-col justify-between h-full">
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
@@ -80,7 +87,10 @@ export default function GuardiasPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("activo");
   const [instalacionFilter, setInstalacionFilter] = useState<string>("all");
+  const [os10Filter, setOs10Filter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [os10ModalOpen, setOs10ModalOpen] = useState(false);
+  const [os10ModalTipo, setOs10ModalTipo] = useState<'por_vencer' | 'vencido' | 'sin_fecha' | null>(null);
 
   // Hooks para modales y operaciones CRUD
   const { 
@@ -119,7 +129,8 @@ export default function GuardiasPage() {
     total: 0,
     activos: 0,
     inactivos: 0,
-    alertasOS10: 0
+    os10PorVencer: 0,
+    os10Vencidos: 0
   });
 
   // Cargar datos de guardias
@@ -137,12 +148,17 @@ export default function GuardiasPage() {
         const total = data.guardias?.length || 0;
         const activos = data.guardias?.filter((g: any) => g.activo).length || 0;
         const inactivos = total - activos;
-        const alertasOS10 = data.guardias?.filter((g: any) => {
-          // Lógica para detectar alertas OS10 usando la estructura real
-          return g.alerta_os10?.tiene_alerta;
-        }).length || 0;
+        
+        // Calcular estadísticas de OS10
+        const estadisticasOS10 = obtenerEstadisticasOS10(data.guardias || []);
 
-        setKpis({ total, activos, inactivos, alertasOS10 });
+        setKpis({ 
+          total, 
+          activos, 
+          inactivos, 
+          os10PorVencer: estadisticasOS10.por_vencer,
+          os10Vencidos: estadisticasOS10.vencidos
+        });
       } catch (error) {
         console.error("Error cargando guardias:", error);
         showToast("Error al cargar guardias", "error");
@@ -170,9 +186,16 @@ export default function GuardiasPage() {
       const matchesInstalacion = instalacionFilter === "all" || 
         guardia.instalacion_asignada === instalacionFilter;
 
-      return matchesSearch && matchesStatus && matchesInstalacion;
+      // Filtro de OS10
+      const estadoOS10 = calcularEstadoOS10(guardia.fecha_os10);
+      const matchesOS10 = os10Filter === "all" || 
+        (os10Filter === "por_vencer" && estadoOS10.estado === 'por_vencer') ||
+        (os10Filter === "vencido" && estadoOS10.estado === 'vencido') ||
+        (os10Filter === "sin_fecha" && estadoOS10.estado === 'sin_fecha');
+
+      return matchesSearch && matchesStatus && matchesInstalacion && matchesOS10;
     });
-  }, [guardias, searchTerm, statusFilter, instalacionFilter]);
+  }, [guardias, searchTerm, statusFilter, instalacionFilter, os10Filter]);
 
   // Columnas de la tabla
   const columns: Column<any>[] = [
@@ -227,20 +250,7 @@ export default function GuardiasPage() {
       key: "os10",
       label: "Estado OS10",
       render: (guardia) => {
-        const alerta = guardia.alerta_os10;
-        if (!alerta || alerta.estado === 'sin_fecha') {
-          return <Badge variant="secondary">Sin OS10</Badge>;
-        }
-
-        if (alerta.estado === 'vencido') {
-          return <Badge variant="destructive">Vencido</Badge>;
-        } else if (alerta.estado === 'alerta') {
-          return <Badge variant="outline" className="text-orange-600 border-orange-600">
-            Por vencer ({alerta.dias_restantes} días)
-          </Badge>;
-        } else {
-          return <Badge variant="default">Vigente</Badge>;
-        }
+        return <OS10StatusBadge fechaOS10={guardia.fecha_os10} />;
       },
     },
     {
@@ -282,12 +292,30 @@ export default function GuardiasPage() {
           value={kpis.activos}
           icon={CheckCircle}
           color="green"
+          onClick={() => {
+            setStatusFilter("activo");
+            setOs10Filter("all");
+          }}
         />
         <KPIBox
-          title="Alertas OS10"
-          value={kpis.alertasOS10}
-          icon={AlertTriangle}
+          title="OS10 Por Vencer"
+          value={kpis.os10PorVencer}
+          icon={Clock}
+          color="yellow"
+          onClick={() => {
+            setOs10ModalTipo("por_vencer");
+            setOs10ModalOpen(true);
+          }}
+        />
+        <KPIBox
+          title="OS10 Vencidos"
+          value={kpis.os10Vencidos}
+          icon={XCircle}
           color="red"
+          onClick={() => {
+            setOs10ModalTipo("vencido");
+            setOs10ModalOpen(true);
+          }}
         />
       </div>
 
@@ -351,6 +379,31 @@ export default function GuardiasPage() {
                   </option>
                 ))}
               </select>
+              <select
+                value={os10Filter}
+                onChange={(e) => setOs10Filter(e.target.value)}
+                className="px-3 py-2 border rounded-md bg-background text-sm w-full sm:w-48"
+              >
+                <option value="all">Todos los OS10</option>
+                <option value="por_vencer">OS10 Por Vencer</option>
+                <option value="vencido">OS10 Vencidos</option>
+                <option value="sin_fecha">Sin OS10</option>
+              </select>
+            </div>
+            <div className="flex justify-end mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setStatusFilter("activo");
+                  setInstalacionFilter("all");
+                  setOs10Filter("all");
+                  setSearchTerm("");
+                }}
+                className="text-xs"
+              >
+                Limpiar Filtros
+              </Button>
             </div>
           </motion.div>
         )}
@@ -417,22 +470,7 @@ export default function GuardiasPage() {
                         </div>
                         
                         <div className="flex-shrink-0 ml-2">
-                          {(() => {
-                            const alerta = (guardia as any).alerta_os10;
-                            if (!alerta || alerta.estado === 'sin_fecha') {
-                              return <Badge variant="secondary" className="text-xs">Sin OS10</Badge>;
-                            }
-
-                            if (alerta.estado === 'vencido') {
-                              return <Badge variant="destructive" className="text-xs">Vencido</Badge>;
-                            } else if (alerta.estado === 'alerta') {
-                              return <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs">
-                                Por vencer ({alerta.dias_restantes} días)
-                              </Badge>;
-                            } else {
-                              return <Badge variant="default" className="text-xs">Vigente</Badge>;
-                            }
-                          })()}
+                          <OS10StatusBadge fechaOS10={guardia.fecha_os10} showDays={false} className="text-xs" />
                         </div>
                       </div>
                     </div>
@@ -459,7 +497,6 @@ export default function GuardiasPage() {
         </CardContent>
       </Card>
 
-      {/* Modal placeholder */}
       {/* Modal editable de guardias */}
       <GuardiaModal
         guardia={isCreateOpen ? null : selectedEntity}
@@ -470,6 +507,17 @@ export default function GuardiasPage() {
           // Recargar la lista de guardias
           window.location.reload();
         }}
+      />
+
+      {/* Modal de estadísticas OS10 */}
+      <OS10StatsModal
+        isOpen={os10ModalOpen}
+        onClose={() => {
+          setOs10ModalOpen(false);
+          setOs10ModalTipo(null);
+        }}
+        guardias={guardias}
+        tipo={os10ModalTipo}
       />
 
       {/* Toast placeholder */}

@@ -1,6 +1,7 @@
 export interface RolServicio {
   id: string;
   nombre: string; // Calculado automáticamente
+  descripcion?: string;
   dias_trabajo: number;
   dias_descanso: number;
   horas_turno: number; // Calculado automáticamente

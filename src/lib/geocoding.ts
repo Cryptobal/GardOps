@@ -82,39 +82,73 @@ export async function geocodificarDireccion(direccion: string): Promise<Geocodin
           if (result.address_components) {
             console.log('Componentes de dirección encontrados:', result.address_components);
             
+            // Primera pasada: recolectar todos los componentes
+            const localityComponents: string[] = [];
+            const sublocalityComponents: string[] = [];
+            let administrativeLevel2 = '';
+            let administrativeLevel1 = '';
+            let administrativeLevel3 = '';
+
             result.address_components.forEach((component) => {
               const types = component.types;
-              console.log('Componente:', component.long_name, 'Tipos:', types);
+              const name = component.long_name;
+              console.log('Componente:', name, 'Tipos:', types);
 
-              // Para Chile, la estructura puede variar. Intentar diferentes estrategias:
-              
-              // 1. administrative_area_level_2 es generalmente la comuna (ej: Lo Barnechea, Providencia)
-              if (types.includes('administrative_area_level_2')) {
-                componentes.comuna = component.long_name;
-                console.log('Comuna encontrada (level_2):', component.long_name);
-              } 
-              // 2. locality también puede ser la comuna
-              else if (types.includes('locality') && !componentes.comuna) {
-                componentes.comuna = component.long_name;
-                console.log('Comuna encontrada (locality):', component.long_name);
-              }
-              // 3. administrative_area_level_1 es la región (ej: Región Metropolitana)
-              else if (types.includes('administrative_area_level_1')) {
-                componentes.region = component.long_name;
-                console.log('Región encontrada:', component.long_name);
-              } 
-              // 4. Para ciudad, usar administrative_area_level_3 o sublocality
-              else if (types.includes('administrative_area_level_3')) {
-                componentes.ciudad = component.long_name;
-                console.log('Ciudad encontrada (level_3):', component.long_name);
-              }
-              else if (types.includes('sublocality') && !componentes.ciudad) {
-                componentes.ciudad = component.long_name;
-                console.log('Ciudad encontrada (sublocality):', component.long_name);
+              if (types.includes('locality')) {
+                localityComponents.push(name);
+              } else if (types.includes('sublocality')) {
+                sublocalityComponents.push(name);
+              } else if (types.includes('administrative_area_level_2')) {
+                administrativeLevel2 = name;
+              } else if (types.includes('administrative_area_level_1')) {
+                administrativeLevel1 = name;
+              } else if (types.includes('administrative_area_level_3')) {
+                administrativeLevel3 = name;
               }
             });
 
-            // Si no se encontró comuna, intentar extraerla de la dirección formateada
+            // Lógica específica para Chile
+            // Para direcciones como "Av. La Dehesa 224, Santiago, Lo Barnechea, Región Metropolitana"
+            
+            // Determinar comuna: priorizar sublocality sobre locality
+            if (sublocalityComponents.length > 0) {
+              // Si hay sublocality, es probablemente la comuna (ej: Lo Barnechea)
+              componentes.comuna = sublocalityComponents[0];
+              console.log('Comuna encontrada (sublocality):', sublocalityComponents[0]);
+              // Y locality es la ciudad (ej: Santiago)
+              if (localityComponents.length > 0) {
+                componentes.ciudad = localityComponents[0];
+                console.log('Ciudad encontrada (locality):', localityComponents[0]);
+              }
+            } else if (localityComponents.length > 0) {
+              // Si no hay sublocality, locality puede ser la comuna
+              componentes.comuna = localityComponents[0];
+              console.log('Comuna encontrada (locality):', localityComponents[0]);
+              // Usar administrative_area_level_2 como ciudad si está disponible
+              if (administrativeLevel2) {
+                componentes.ciudad = administrativeLevel2;
+                console.log('Ciudad encontrada (level_2):', administrativeLevel2);
+              }
+            }
+
+            // Si no se determinó ciudad, usar administrative_area_level_2 o level_3
+            if (!componentes.ciudad) {
+              if (administrativeLevel2) {
+                componentes.ciudad = administrativeLevel2;
+                console.log('Ciudad encontrada (level_2):', administrativeLevel2);
+              } else if (administrativeLevel3) {
+                componentes.ciudad = administrativeLevel3;
+                console.log('Ciudad encontrada (level_3):', administrativeLevel3);
+              }
+            }
+
+            // Región
+            if (administrativeLevel1) {
+              componentes.region = administrativeLevel1;
+              console.log('Región encontrada:', administrativeLevel1);
+            }
+
+            // Si no se determinó comuna, buscar en la dirección formateada
             if (!componentes.comuna) {
               const direccionParts = result.formatted_address.split(', ');
               for (const part of direccionParts) {
@@ -133,10 +167,10 @@ export async function geocodificarDireccion(direccion: string): Promise<Geocodin
               }
             }
 
-            // Si no se encontró ciudad, usar la comuna como ciudad
-            if (!componentes.ciudad && componentes.comuna) {
-              componentes.ciudad = componentes.comuna;
-              console.log('Usando comuna como ciudad:', componentes.comuna);
+            // Fallback: si no se determinó ciudad, usar la región
+            if (!componentes.ciudad && componentes.region) {
+              componentes.ciudad = componentes.region;
+              console.log('Usando región como ciudad:', componentes.region);
             }
           }
 
