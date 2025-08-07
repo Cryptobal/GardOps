@@ -479,7 +479,7 @@ export default function TurnosInstalacion({
                 <SelectContent>
                   {Array.isArray(rolesServicio) ? rolesServicio.map((rol) => (
                     <SelectItem key={rol.id} value={rol.id}>
-                      {rol.nombre} ({formatearCiclo(rol.dias_trabajo, rol.dias_descanso)} - {formatearHorario(rol.hora_inicio, rol.hora_termino)})
+                      {rol.nombre} {rol.activo ? '(Activo)' : '(Inactivo)'}
                     </SelectItem>
                   )) : (
                     <SelectItem value="" disabled>
