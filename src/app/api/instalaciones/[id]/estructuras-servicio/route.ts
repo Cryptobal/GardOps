@@ -12,8 +12,7 @@ export async function GET(
     const rows = await query(`
       SELECT 
         es.*,
-        rs.nombre as rol_nombre,
-        rs.descripcion as rol_descripcion
+        rs.nombre as rol_nombre
       FROM sueldo_estructuras_servicio es
       INNER JOIN as_turnos_roles_servicio rs ON es.rol_servicio_id = rs.id
       WHERE es.instalacion_id = $1

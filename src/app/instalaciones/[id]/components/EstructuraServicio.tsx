@@ -99,19 +99,31 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
     setExpandedRoles(newExpanded);
   };
 
-  const agregarBono = (rolId: string) => {
+  const agregarBono = (rolId: string, nombrePredefinido?: string) => {
     const nuevoBono: EstructuraBono = {
       instalacion_id: instalacionId,
       rol_servicio_id: rolId,
-      nombre_bono: '',
+      nombre_bono: nombrePredefinido || '',
       monto: 0,
-      imponible: true,
+      imponible: nombrePredefinido === 'Sueldo Base' ? true : true,
       isNew: true,
       isEditing: true
     };
     
     setEstructuras([...estructuras, nuevoBono]);
     setExpandedRoles(new Set([...expandedRoles, rolId]));
+  };
+  
+  const inicializarSueldoBase = async (rolId: string) => {
+    // Verificar si ya existe un sueldo base
+    const tieneSueldoBase = estructuras.some(e => 
+      e.rol_servicio_id === rolId && e.nombre_bono === 'Sueldo Base'
+    );
+    
+    if (!tieneSueldoBase) {
+      // Agregar sueldo base automáticamente
+      agregarBono(rolId, 'Sueldo Base');
+    }
   };
 
   const editarBono = (bonoId: string) => {
@@ -207,6 +219,13 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
   };
 
   const eliminarBono = async (bonoId: string) => {
+    // No permitir eliminar sueldo base
+    const bono = estructuras.find(e => e.id === bonoId);
+    if (bono && bono.nombre_bono === 'Sueldo Base') {
+      alert('El Sueldo Base no puede ser eliminado');
+      return;
+    }
+    
     if (!confirm('¿Estás seguro de eliminar este bono?')) return;
 
     try {
@@ -230,7 +249,19 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
   };
 
   const obtenerEstructurasRol = (rolId: string) => {
-    return estructuras.filter(e => e.rol_servicio_id === rolId);
+    const estructurasRol = estructuras.filter(e => e.rol_servicio_id === rolId);
+    // Ordenar para que Sueldo Base aparezca primero
+    return estructurasRol.sort((a, b) => {
+      if (a.nombre_bono === 'Sueldo Base') return -1;
+      if (b.nombre_bono === 'Sueldo Base') return 1;
+      return a.nombre_bono.localeCompare(b.nombre_bono);
+    });
+  };
+  
+  const obtenerSueldoBase = (rolId: string) => {
+    return estructuras.find(e => 
+      e.rol_servicio_id === rolId && e.nombre_bono === 'Sueldo Base'
+    );
   };
 
   const calcularTotalRol = (rolId: string) => {
@@ -280,6 +311,7 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
       <div className="space-y-4">
         {roles.map((rol) => {
           const estructurasRol = obtenerEstructurasRol(rol.id);
+          const sueldoBase = obtenerSueldoBase(rol.id);
           const totalRol = calcularTotalRol(rol.id);
           const imponibleRol = calcularImponibleRol(rol.id);
           const isExpanded = expandedRoles.has(rol.id);
@@ -302,25 +334,40 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
+                      <p className="text-sm text-muted-foreground">Sueldo Base</p>
+                      <p className="text-base font-semibold text-primary">
+                        ${sueldoBase ? sueldoBase.monto.toLocaleString('es-CL') : '0'}
+                      </p>
+                    </div>
+                    <div className="text-right">
                       <p className="text-sm text-muted-foreground">Total</p>
                       <p className="text-lg font-bold">
                         ${totalRol.toLocaleString('es-CL')}
                       </p>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => agregarBono(rol.id)}
-                      disabled={saving}
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Agregar Bono
-                    </Button>
+                    {!sueldoBase ? (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => agregarBono(rol.id, 'Sueldo Base')}
+                        disabled={saving}
+                      >
+                        <DollarSign className="h-3 w-3 mr-1" />
+                        Definir Sueldo Base
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => agregarBono(rol.id)}
+                        disabled={saving}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Agregar Bono
+                      </Button>
+                    )}
                   </div>
                 </div>
-                {rol.descripcion && (
-                  <p className="text-sm text-muted-foreground mt-1">{rol.descripcion}</p>
-                )}
               </CardHeader>
 
               {isExpanded && (
@@ -340,21 +387,36 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
                           {estructurasRol.map((bono, index) => {
                             const bonoIndex = estructuras.findIndex(e => e === bono);
                             
+                            const esSueldoBase = bono.nombre_bono === 'Sueldo Base';
+                            
                             return (
-                              <TableRow key={bono.id || `new-${index}`}>
+                              <TableRow key={bono.id || `new-${index}`} className={esSueldoBase ? 'bg-primary/5' : ''}>
                                 <TableCell>
                                   {bono.isEditing ? (
                                     <Input
                                       value={bono.nombre_bono}
                                       onChange={(e) => actualizarBono(bonoIndex, 'nombre_bono', e.target.value)}
-                                      placeholder="Ej: Sueldo base, Movilización..."
+                                      placeholder="Ej: Movilización, Colación..."
                                       className="h-8"
                                       autoFocus
+                                      disabled={esSueldoBase} // No permitir cambiar el nombre del sueldo base
                                     />
                                   ) : (
                                     <div className="flex items-center gap-2">
-                                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                                      <span className="font-medium">{bono.nombre_bono}</span>
+                                      {esSueldoBase ? (
+                                        <>
+                                          <Badge variant="default" className="h-5">
+                                            <DollarSign className="h-3 w-3 mr-1" />
+                                            BASE
+                                          </Badge>
+                                          <span className="font-semibold">{bono.nombre_bono}</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <DollarSign className="h-4 w-4 text-muted-foreground" />
+                                          <span className="font-medium">{bono.nombre_bono}</span>
+                                        </>
+                                      )}
                                     </div>
                                   )}
                                 </TableCell>
@@ -421,15 +483,17 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
                                       >
                                         <Edit2 className="h-4 w-4" />
                                       </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => eliminarBono(bono.id!)}
-                                        disabled={saving}
-                                        className="h-7 w-7 p-0"
-                                      >
-                                        <Trash2 className="h-4 w-4 text-red-600" />
-                                      </Button>
+                                      {!esSueldoBase && (
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => eliminarBono(bono.id!)}
+                                          disabled={saving}
+                                          className="h-7 w-7 p-0"
+                                        >
+                                          <Trash2 className="h-4 w-4 text-red-600" />
+                                        </Button>
+                                      )}
                                     </div>
                                   )}
                                 </TableCell>
@@ -456,16 +520,17 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
                       <DollarSign className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No hay bonos configurados para este rol</p>
+                      <p className="text-sm mb-2">No hay estructura de sueldo configurada para este rol</p>
+                      <p className="text-xs mb-4">Comienza definiendo el sueldo base</p>
                       <Button
                         size="sm"
-                        variant="outline"
-                        onClick={() => agregarBono(rol.id)}
+                        variant="default"
+                        onClick={() => agregarBono(rol.id, 'Sueldo Base')}
                         className="mt-3"
                         disabled={saving}
                       >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Agregar primer bono
+                        <DollarSign className="h-3 w-3 mr-1" />
+                        Definir Sueldo Base
                       </Button>
                     </div>
                   )}
