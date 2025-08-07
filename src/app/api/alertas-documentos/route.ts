@@ -101,24 +101,52 @@ export async function GET(request: NextRequest) {
         AND (dg.fecha_vencimiento::date - CURRENT_DATE) >= -365
     `;
 
+    // Query para alertas de OS10 de guardias
+    const alertasOS10Query = `
+      SELECT 
+        g.id as documento_id,
+        'OS10 - Curso de Seguridad' as documento_nombre,
+        g.fecha_os10 as fecha_vencimiento,
+        CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', g.apellido_materno) as entidad_nombre,
+        g.id as entidad_id,
+        'OS10' as tipo_documento_nombre,
+        30 as dias_antes_alarma,
+        (g.fecha_os10::date - CURRENT_DATE) as dias_restantes,
+        CASE 
+          WHEN g.fecha_os10::date < CURRENT_DATE THEN 'El curso OS10 ha vencido'
+          WHEN g.fecha_os10::date = CURRENT_DATE THEN 'El curso OS10 vence hoy'
+          WHEN (g.fecha_os10::date - CURRENT_DATE) = 1 THEN 'El curso OS10 vence mañana'
+          ELSE 'El curso OS10 vence en ' || (g.fecha_os10::date - CURRENT_DATE) || ' días'
+        END as mensaje,
+        'guardias_os10' as modulo
+      FROM guardias g
+      WHERE g.fecha_os10 IS NOT NULL
+        AND (g.fecha_os10::date - CURRENT_DATE) <= 30
+        AND (g.fecha_os10::date - CURRENT_DATE) >= -365
+        AND g.activo = true
+    `;
+
     console.log('🔍 Ejecutando queries de alertas...');
     
-    // Ejecutar las tres queries
-    const [resultClientes, resultInstalaciones, resultGuardias] = await Promise.all([
+    // Ejecutar las cuatro queries
+    const [resultClientes, resultInstalaciones, resultGuardias, resultOS10] = await Promise.all([
       query(alertasClientesQuery),
       query(alertasInstalacionesQuery),
-      query(alertasGuardiasQuery)
+      query(alertasGuardiasQuery),
+      query(alertasOS10Query)
     ]);
 
     console.log(`📊 Query clientes retornó ${resultClientes.rows.length} registros`);
     console.log(`📊 Query instalaciones retornó ${resultInstalaciones.rows.length} registros`);
     console.log(`📊 Query guardias retornó ${resultGuardias.rows.length} registros`);
+    console.log(`📊 Query OS10 retornó ${resultOS10.rows.length} registros`);
     
     // Combinar todos los resultados
     const todasLasAlertas = [
       ...resultClientes.rows,
       ...resultInstalaciones.rows,
-      ...resultGuardias.rows
+      ...resultGuardias.rows,
+      ...resultOS10.rows
     ];
 
     // Crear alertas con IDs únicos y campo módulo

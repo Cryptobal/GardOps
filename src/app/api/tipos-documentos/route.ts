@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
         requiere_vencimiento,
         dias_antes_alarma,
         creado_en
-      FROM tipos_documentos 
+      FROM documentos_tipos 
     `;
     
     const params: string[] = [];
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     // Verificar si ya existe un tipo con el mismo nombre en el módulo
     const existeResult = await query(`
-      SELECT id FROM tipos_documentos 
+      SELECT id FROM documentos_tipos 
       WHERE modulo = $1 AND nombre = $2
     `, [modulo, nombre]);
     
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     }
     
     const result = await query(`
-      INSERT INTO tipos_documentos (
+      INSERT INTO documentos_tipos (
         id,
         modulo,
         nombre,

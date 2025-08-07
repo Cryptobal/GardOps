@@ -5,13 +5,14 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Building2, MapPin, Phone, Mail, Calendar, FileText, Settings, Edit, RefreshCw, Users, Clock, Shield } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, Phone, Mail, Calendar, FileText, Settings, Edit, RefreshCw, Users, Clock, Shield, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import { GoogleMap } from '@/components/ui/google-map';
 import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@/lib/geocoding';
 import { getInstalacion, actualizarInstalacion, obtenerClientes, obtenerComunas, obtenerDatosCompletosInstalacion } from '@/lib/api/instalaciones';
 import { Instalacion, Cliente, Comuna } from '@/lib/schemas/instalaciones';
 import TurnosInstalacion from './components/TurnosInstalacion';
+import EstructuraServicio from './components/EstructuraServicio';
 import { DocumentManager } from '@/components/shared/document-manager';
 
 
@@ -348,7 +349,7 @@ export default function InstalacionDetallePage() {
 
       {/* Pestañas optimizadas para móviles */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 h-auto">
+        <TabsList className="grid w-full grid-cols-4 h-auto">
           <TabsTrigger value="informacion" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
             <Building2 className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Información</span>
@@ -358,6 +359,11 @@ export default function InstalacionDetallePage() {
             <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Asignaciones</span>
             <span className="sm:hidden">Asign</span>
+          </TabsTrigger>
+          <TabsTrigger value="estructura" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
+            <DollarSign className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Estructura</span>
+            <span className="sm:hidden">Estruct</span>
           </TabsTrigger>
           <TabsTrigger value="documentos" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
             <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -501,6 +507,14 @@ export default function InstalacionDetallePage() {
             ppcsPrecargados={ppcsPrecargados} 
             guardiasPrecargados={guardiasPrecargados} 
             rolesPrecargados={rolesPrecargados} 
+          />
+        </TabsContent>
+
+        {/* Contenido de la pestaña Estructura de Servicio */}
+        <TabsContent value="estructura" className="mt-4 sm:mt-6">
+          <EstructuraServicio 
+            instalacionId={instalacionId}
+            rolesPrecargados={rolesPrecargados}
           />
         </TabsContent>
 

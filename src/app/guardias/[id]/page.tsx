@@ -13,6 +13,7 @@ import PermisosGuardia from './components/PermisosGuardia';
 import FiniquitoGuardia from './components/FiniquitoGuardia';
 import DatosBancarios from './components/DatosBancarios';
 import TurnosExtrasGuardia from './components/TurnosExtrasGuardia';
+import HistorialMensual from './components/HistorialMensual';
 import { GoogleMap } from '@/components/ui/google-map';
 import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@/lib/geocoding';
 
@@ -27,6 +28,7 @@ interface Guardia {
   latitud?: number;
   longitud?: number;
   estado: string;
+  fecha_os10?: string;
   created_at: string;
   updated_at: string;
 }
@@ -134,6 +136,8 @@ export default function GuardiaDetallePage() {
       setPendingEstado(null);
     }
   };
+
+
 
   if (loading) {
     return (
@@ -313,6 +317,17 @@ export default function GuardiaDetallePage() {
               <Clock className="h-4 w-4 flex-shrink-0" />
               <span>Turnos Extras</span>
             </button>
+            <button
+              onClick={() => setActiveTab('historial-mensual')}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'historial-mensual' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Calendar className="h-4 w-4 flex-shrink-0" />
+              <span>Historial Mensual</span>
+            </button>
           </div>
 
           {/* Móvil: Diseño en 2 filas de 3 pestañas cada una */}
@@ -385,98 +400,135 @@ export default function GuardiaDetallePage() {
               <AlertTriangle className="h-4 w-4" />
               <span>Finiquito</span>
             </button>
+            <button
+              onClick={() => setActiveTab('turnos-extras')}
+              className={`flex flex-col items-center gap-1 px-3 py-4 text-xs font-medium rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'turnos-extras' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Clock className="h-4 w-4" />
+              <span>Extras</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('historial-mensual')}
+              className={`flex flex-col items-center gap-1 px-3 py-4 text-xs font-medium rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'historial-mensual' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Calendar className="h-4 w-4" />
+              <span>Historial</span>
+            </button>
           </div>
         </div>
       </div>
 
-              {/* Contenido de la pestaña Información */}
+        {/* Contenido de las pestañas */}
         {activeTab === 'informacion' && (
-          <div className="mt-6">
+          <div className="mt-6 space-y-4">
+            {/* Sección 1: Información Personal */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <User className="h-4 w-4" />
                   Información Personal
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">Nombre Completo</label>
-                      <p className="text-lg font-semibold">{guardia.nombre} {guardia.apellidos}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">RUT</label>
-                      <p className="text-lg">{guardia.rut}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                        <Mail className="h-4 w-4" />
-                        Email
-                      </label>
-                      <p className="text-lg">{guardia.email}</p>
-                    </div>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                      Nombre Completo
+                    </label>
+                    <p className="text-sm font-medium">
+                      {guardia.nombre} {guardia.apellidos}
+                    </p>
                   </div>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                        <Phone className="h-4 w-4" />
-                        Teléfono
-                      </label>
-                      <p className="text-lg">{guardia.telefono}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        Dirección
-                      </label>
-                      <p className="text-lg">{guardia.direccion}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        Fecha de Registro
-                      </label>
-                      <p className="text-lg">
-                        {new Date(guardia.created_at).toLocaleDateString('es-ES', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </p>
-                    </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                      RUT
+                    </label>
+                    <p className="text-sm">{guardia.rut}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1">
+                      <Mail className="h-3 w-3" />
+                      Email
+                    </label>
+                    <p className="text-sm">{guardia.email}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1">
+                      <Phone className="h-3 w-3" />
+                      Teléfono
+                    </label>
+                    <p className="text-sm">{guardia.telefono}</p>
                   </div>
                 </div>
-
-                {/* Información geográfica */}
-                {geocodingData && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {geocodingData.comuna && (
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Comuna</label>
-                          <p className="text-lg">{geocodingData.comuna}</p>
-                        </div>
-                      )}
-                      {geocodingData.ciudad && (
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Ciudad</label>
-                          <p className="text-lg">{geocodingData.ciudad}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Mapa de Google Maps */}
-                {geocodingData && (
-                  <div className="space-y-4">
-                    <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                      <MapPin className="h-4 w-4" />
-                      Ubicación
+                
+                {/* Vencimiento OS10 en fila adicional */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                      Vencimiento OS10
                     </label>
-                    <div className="rounded-xl shadow-md overflow-hidden">
+                    <p className="text-sm">
+                      {guardia.fecha_os10 
+                        ? new Date(guardia.fecha_os10).toLocaleDateString('es-ES', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })
+                        : 'No especificada'
+                      }
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Sección 2: Ubicación */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <MapPin className="h-4 w-4" />
+                  Ubicación
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0 space-y-3">
+                {/* Información de ubicación - Lado izquierdo */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                        Dirección
+                      </label>
+                      <p className="text-sm">{guardia.direccion}</p>
+                    </div>
+                    {geocodingData?.comuna && (
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                          Comuna
+                        </label>
+                        <p className="text-sm">{geocodingData.comuna}</p>
+                      </div>
+                    )}
+                    {geocodingData?.ciudad && (
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                          Ciudad
+                        </label>
+                        <p className="text-sm">{geocodingData.ciudad}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Mapa - Lado derecho, cuadrado más pequeño */}
+                  {geocodingData && (
+                    <div className="rounded-lg shadow-sm overflow-hidden border">
                       <GoogleMap
                         center={{
                           lat: geocodingData.latitud,
@@ -491,39 +543,56 @@ export default function GuardiaDetallePage() {
                           title: `${guardia.nombre} ${guardia.apellidos}`,
                           info: geocodingData.direccionCompleta
                         }]}
-                        height="240px"
+                        height="200px"
                         className="w-full"
                       />
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
 
-                {/* Estado de carga del mapa */}
+                {/* Estados del mapa */}
                 {mapLoading && (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-white"></div>
-                    <span className="ml-2 text-sm text-gray-600">Cargando mapa...</span>
+                  <div className="flex items-center justify-center py-3">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    <span className="ml-2 text-xs text-muted-foreground">Cargando mapa...</span>
                   </div>
                 )}
 
-                {/* Error del mapa */}
                 {mapError && (
-                  <div className="text-center py-8">
-                    <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500 mb-4">{mapError}</p>
+                  <div className="text-center py-3">
+                    <MapPin className="h-6 w-6 text-muted-foreground mx-auto mb-1" />
+                    <p className="text-xs text-muted-foreground mb-1">{mapError}</p>
                     <Button 
                       onClick={handleReintentarGeocodificacion}
                       variant="outline" 
                       size="sm"
-                      className="flex items-center gap-2 mx-auto"
+                      className="flex items-center gap-1 mx-auto text-xs h-6 px-2"
                     >
-                      <RefreshCw className="h-4 w-4" />
+                      <RefreshCw className="h-3 w-3" />
                       Reintentar
                     </Button>
                   </div>
                 )}
               </CardContent>
             </Card>
+
+            {/* Sección 3: Historial en una sola línea sutil */}
+            <div className="flex justify-between text-xs text-muted-foreground mt-2 px-4">
+              <span>
+                Registro: {new Date(guardia.created_at).toLocaleDateString('es-ES', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                })}
+              </span>
+              <span>
+                Última actualización: {new Date(guardia.updated_at).toLocaleDateString('es-ES', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                })}
+              </span>
+            </div>
           </div>
         )}
 
@@ -587,6 +656,13 @@ export default function GuardiaDetallePage() {
           </div>
         )}
 
+        {/* Contenido de la pestaña Historial Mensual */}
+        {activeTab === 'historial-mensual' && (
+          <div className="mt-6">
+            <HistorialMensual guardiaId={guardiaId} />
+          </div>
+        )}
+
       {/* Modal de confirmación */}
       {showConfirmModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -621,6 +697,8 @@ export default function GuardiaDetallePage() {
           </div>
         </div>
       )}
+
+
     </div>
   );
 } 

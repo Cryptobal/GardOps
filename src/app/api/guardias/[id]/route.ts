@@ -59,11 +59,12 @@ export async function PUT(
         direccion = $7,
         ciudad = $8,
         comuna = $9,
-        banco = $10,
-        tipo_cuenta = $11,
-        numero_cuenta = $12,
+        fecha_os10 = $10,
+        banco = $11,
+        tipo_cuenta = $12,
+        numero_cuenta = $13,
         updated_at = NOW()
-      WHERE id = $13 AND tenant_id = $14
+      WHERE id = $14 AND tenant_id = $15
       RETURNING *
     `, [
       body.nombre,
@@ -75,6 +76,7 @@ export async function PUT(
       body.direccion,
       body.ciudad || null,
       body.comuna || null,
+      body.fecha_os10 || null,
       body.banco_id || null,
       body.tipo_cuenta || null,
       body.numero_cuenta || null,
@@ -117,6 +119,7 @@ export async function PUT(
       ciudad: guardiaActualizado.ciudad || '',
       comuna: guardiaActualizado.comuna || '',
       estado: guardiaActualizado.activo ? 'activo' : 'inactivo',
+      fecha_os10: guardiaActualizado.fecha_os10,
       banco: guardiaActualizado.banco,
       tipo_cuenta: guardiaActualizado.tipo_cuenta,
       numero_cuenta: guardiaActualizado.numero_cuenta,
@@ -218,6 +221,7 @@ export async function GET(
       banco: guardia.banco,
       tipo_cuenta: guardia.tipo_cuenta,
       numero_cuenta: guardia.numero_cuenta,
+      fecha_os10: guardia.fecha_os10,
       created_at: guardia.created_at,
       updated_at: guardia.updated_at,
       instalacion_nombre: guardia.instalacion_nombre,

@@ -20,6 +20,7 @@ interface Guardia {
   telefono: string;
   direccion: string;
   estado: string;
+  fecha_os10?: string;
   banco?: string;
   tipo_cuenta?: string;
   numero_cuenta?: string;
@@ -54,6 +55,7 @@ export default function EditarGuardiaPage() {
     email: '',
     telefono: '',
     direccion: '',
+    fecha_os10: '',
     banco_id: '',
     tipo_cuenta: '',
     numero_cuenta: ''
@@ -82,6 +84,7 @@ export default function EditarGuardiaPage() {
         email: guardiaData.email || '',
         telefono: guardiaData.telefono || '',
         direccion: guardiaData.direccion || '',
+        fecha_os10: guardiaData.fecha_os10 ? guardiaData.fecha_os10.split('T')[0] : '',
         banco_id: guardiaData.banco || '',
         tipo_cuenta: guardiaData.tipo_cuenta || '',
         numero_cuenta: guardiaData.numero_cuenta || ''
@@ -295,6 +298,17 @@ export default function EditarGuardiaPage() {
                   placeholder="Buscar dirección con Google Maps..."
                   showMap={false}
                   showClearButton={true}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="fecha_os10" className="text-sm font-medium text-gray-600">Fecha Vencimiento OS10</label>
+                <Input
+                  id="fecha_os10"
+                  name="fecha_os10"
+                  type="date"
+                  value={formData.fecha_os10}
+                  onChange={handleInputChange}
+                  placeholder="Seleccionar fecha"
                 />
               </div>
             </div>

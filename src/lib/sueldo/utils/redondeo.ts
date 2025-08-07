@@ -13,13 +13,13 @@ export function redondearCLP(valor: number): number {
  * @returns Objeto con valores redondeados
  */
 export function redondearObjetoCLP<T extends Record<string, any>>(objeto: T): T {
-  const resultado = { ...objeto };
+  const resultado = { ...objeto } as T;
   
   for (const [clave, valor] of Object.entries(resultado)) {
     if (typeof valor === 'number') {
-      resultado[clave] = redondearCLP(valor);
+      (resultado as any)[clave] = redondearCLP(valor);
     } else if (typeof valor === 'object' && valor !== null && !Array.isArray(valor)) {
-      resultado[clave] = redondearObjetoCLP(valor);
+      (resultado as any)[clave] = redondearObjetoCLP(valor);
     }
   }
   

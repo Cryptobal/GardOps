@@ -153,11 +153,11 @@ export default function AlertasPage() {
     return () => clearInterval(interval);
   }, [cargarAlertas]);
 
-  // Calcular KPIs basados en alertas filtradas
-  const vencidos = alertasFiltradas.filter((a: AlertaDocumento) => a.dias_restantes < 0).length;
-  const vencenHoy = alertasFiltradas.filter((a: AlertaDocumento) => a.dias_restantes === 0).length;
-  const criticos = alertasFiltradas.filter((a: AlertaDocumento) => a.dias_restantes > 0 && a.dias_restantes <= 7).length;
-  const proximosVencer = alertasFiltradas.filter((a: AlertaDocumento) => a.dias_restantes > 7 && a.dias_restantes <= 30).length;
+  // Calcular KPIs basados en todas las alertas (no filtradas)
+  const vencidos = alertas.filter((a: AlertaDocumento) => a.dias_restantes < 0).length;
+  const vencenHoy = alertas.filter((a: AlertaDocumento) => a.dias_restantes === 0).length;
+  const criticos = alertas.filter((a: AlertaDocumento) => a.dias_restantes > 0 && a.dias_restantes <= 7).length;
+  const proximosVencer = alertas.filter((a: AlertaDocumento) => a.dias_restantes > 7 && a.dias_restantes <= 30).length;
 
   const abrirModalEditar = (alerta: AlertaDocumento) => {
     setDocumentoEditando(alerta);
@@ -201,19 +201,24 @@ export default function AlertasPage() {
         case 'guardias':
           endpoint = `/api/documentos-guardias?id=${documentoEditando.documento_id}`;
           break;
+        case 'guardias_os10':
+          endpoint = `/api/guardias/${documentoEditando.documento_id}/fecha-os10`;
+          break;
         default:
           toast.error("Módulo no soportado");
           return;
       }
+
+      const body = documentoEditando.modulo === 'guardias_os10' 
+        ? { fecha_os10: nuevaFecha }
+        : { fecha_vencimiento: nuevaFecha };
 
       const response = await fetch(endpoint, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          fecha_vencimiento: nuevaFecha
-        })
+        body: JSON.stringify(body)
       });
 
       const data = await response.json();
@@ -289,6 +294,7 @@ export default function AlertasPage() {
       case 'clientes': return Users;
       case 'instalaciones': return Building;
       case 'guardias': return Shield;
+      case 'guardias_os10': return AlertTriangle;
       default: return FileText;
     }
   };
@@ -298,6 +304,7 @@ export default function AlertasPage() {
       case 'clientes': return 'Cliente';
       case 'instalaciones': return 'Instalación';
       case 'guardias': return 'Guardia';
+      case 'guardias_os10': return 'OS10';
       default: return 'Documento';
     }
   };
@@ -454,6 +461,7 @@ export default function AlertasPage() {
                         <SelectItem value="clientes">Clientes</SelectItem>
                         <SelectItem value="instalaciones">Instalaciones</SelectItem>
                         <SelectItem value="guardias">Guardias</SelectItem>
+                        <SelectItem value="guardias_os10">OS10</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -535,7 +543,7 @@ export default function AlertasPage() {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
                   {alertasFiltradas.map((alerta) => {
                     const EstadoIcon = getIconoEstado(alerta.dias_restantes);
                     const ModuloIcon = getModuloIcon(alerta.modulo || '');
@@ -546,14 +554,14 @@ export default function AlertasPage() {
                           alerta.leida ? 'opacity-75' : ''
                         }`}
                       >
-                        <CardContent className="p-4">
-                          <div className="space-y-3">
+                        <CardContent className="p-3">
+                          <div className="space-y-2">
                             {/* Header del documento */}
                             <div className="flex items-start justify-between">
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                  <p className={`text-sm font-medium truncate ${
+                                <div className="flex items-center gap-1 mb-1">
+                                  <FileText className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                  <p className={`text-xs font-medium truncate ${
                                     alerta.leida ? 'text-muted-foreground' : 'text-white'
                                   }`}>
                                     {alerta.documento_nombre}
@@ -564,14 +572,14 @@ export default function AlertasPage() {
                                 </p>
                               </div>
                               {!alerta.leida && (
-                                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse flex-shrink-0"></div>
+                                <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse flex-shrink-0"></div>
                               )}
                             </div>
 
                             {/* Información del módulo y entidad */}
                             <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <ModuloIcon className="h-3 w-3 text-muted-foreground" />
+                              <div className="flex items-center gap-1">
+                                <ModuloIcon className="h-2.5 w-2.5 text-muted-foreground" />
                                 <span className="text-xs capitalize text-muted-foreground">
                                   {getModuloNombre(alerta.modulo || '')}
                                 </span>
@@ -583,14 +591,13 @@ export default function AlertasPage() {
 
                             {/* Estado y vencimiento */}
                             <div className="space-y-1">
-                              <Badge className={`text-xs ${getBadgeColor(alerta.dias_restantes)}`}>
-                                <EstadoIcon className="h-3 w-3 mr-1" />
+                              <Badge className={`text-xs px-2 py-0.5 ${getBadgeColor(alerta.dias_restantes)}`}>
+                                <EstadoIcon className="h-2.5 w-2.5 mr-1" />
                                 {getEstadoTexto(alerta.dias_restantes)}
                               </Badge>
                               <p className="text-xs text-muted-foreground">
                                 {alerta.fecha_vencimiento 
                                   ? new Date(alerta.fecha_vencimiento).toLocaleDateString('es-ES', {
-                                      weekday: 'short',
                                       day: '2-digit',
                                       month: 'short',
                                       year: '2-digit'
@@ -602,20 +609,20 @@ export default function AlertasPage() {
 
                             {/* Fecha de alerta */}
                             <p className="text-xs text-muted-foreground">
-                              Alerta: {new Date(alerta.creada_en).toLocaleString('es-ES')}
+                              {new Date(alerta.creada_en).toLocaleDateString('es-ES')}
                             </p>
 
                             {/* Acciones */}
-                            <div className="flex items-center justify-between pt-2">
+                            <div className="flex items-center justify-between pt-1">
                               <div className="flex items-center gap-1">
                                 <Button
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => abrirModalEditar(alerta)}
                                   title="Editar fecha"
-                                  className="h-7 w-7 p-0 hover:bg-orange-600/20"
+                                  className="h-6 w-6 p-0 hover:bg-orange-600/20"
                                 >
-                                  <CalendarDays className="h-3 w-3" />
+                                  <CalendarDays className="h-2.5 w-2.5" />
                                 </Button>
                                 {!alerta.leida && (
                                   <Button
@@ -623,9 +630,9 @@ export default function AlertasPage() {
                                     variant="ghost"
                                     onClick={() => marcarComoLeida(alerta.id)}
                                     title="Marcar como leída"
-                                    className="h-7 w-7 p-0 hover:bg-green-600/20"
+                                    className="h-6 w-6 p-0 hover:bg-green-600/20"
                                   >
-                                    <CheckCircle className="h-3 w-3" />
+                                    <CheckCircle className="h-2.5 w-2.5" />
                                   </Button>
                                 )}
                               </div>

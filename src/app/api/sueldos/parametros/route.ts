@@ -1,156 +1,96 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/database';
+import { sql } from '@/lib/database-vercel';
+import { 
+  obtenerParametrosMensuales, 
+  obtenerAFPsMensuales, 
+  obtenerTramosImpuesto, 
+  obtenerAsignacionFamiliar,
+  obtenerPeriodosDisponibles,
+  actualizarParametroGeneral,
+  actualizarAFP,
+  actualizarTramoImpuesto,
+  actualizarAsignacionFamiliar,
+  obtenerValoresUF,
+  actualizarValorUF,
+  eliminarValorUF,
+  actualizarValorUFExistente
+} from '@/lib/sueldo/db/parametros';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const tipo = searchParams.get('tipo') || 'all';
+    const periodo = searchParams.get('periodo') || '2025-08';
+    const tipo = searchParams.get('tipo');
 
     let data: any = {};
 
-    if (tipo === 'all' || tipo === 'uf') {
-      const resultUF = await query(
-        `SELECT * FROM sueldo_valor_uf 
-         ORDER BY fecha DESC 
-         LIMIT 24`
-      );
-      data.uf = resultUF.rows;
-    }
+    if (tipo === 'all' || !tipo) {
+      // Cargar todos los tipos de parámetros
+      try {
+        // Cargar parámetros básicos
+        const [parametros, afps, impuestos, asignacionFamiliar] = await Promise.all([
+          obtenerParametrosMensuales(periodo),
+          obtenerAFPsMensuales(periodo),
+          obtenerTramosImpuesto(periodo),
+          obtenerAsignacionFamiliar(periodo)
+        ]);
 
-    if (tipo === 'all' || tipo === 'parametros') {
-      const resultParametros = await query(
-        `SELECT * FROM sueldo_parametros_generales 
-         ORDER BY parametro`
-      );
-      data.parametros = resultParametros.rows;
-    }
+        // Cargar valores de UF por separado
+        let valoresUF: any[] = [];
+        try {
+          valoresUF = await obtenerValoresUF();
+        } catch (ufError) {
+          console.error('❌ Error cargando valores UF:', ufError);
+          valoresUF = [];
+        }
 
-    if (tipo === 'all' || tipo === 'afp') {
-      const resultAFP = await query(
-        `SELECT id, nombre, comision, porcentaje_fondo 
-         FROM sueldo_afp 
-         ORDER BY nombre`
-      );
-      data.afp = resultAFP.rows;
-    }
-
-    if (tipo === 'all' || tipo === 'isapre') {
-      const resultIsapre = await query(
-        `SELECT * FROM sueldo_isapre 
-         ORDER BY nombre`
-      );
-      data.isapre = resultIsapre.rows;
-    }
-
-    if (tipo === 'all' || tipo === 'mutualidad') {
-      const resultMutualidad = await query(
-        `SELECT * FROM sueldo_mutualidad 
-         ORDER BY entidad`
-      );
-      data.mutualidad = resultMutualidad.rows;
-    }
-
-    if (tipo === 'all' || tipo === 'impuesto') {
-      const resultImpuesto = await query(
-        `SELECT * FROM sueldo_tramos_impuesto 
-         ORDER BY tramo`
-      );
-      data.impuesto = resultImpuesto.rows;
+        data = {
+          parametros,
+          afp: afps,
+          impuesto: impuestos,
+          asignacionFamiliar,
+          uf: valoresUF
+        };
+      } catch (error) {
+        console.error('❌ Error cargando parámetros:', error);
+        throw error;
+      }
+    } else {
+      // Cargar solo el tipo específico
+      switch (tipo) {
+        case 'parametros':
+          data.parametros = await obtenerParametrosMensuales(periodo);
+          break;
+        case 'afp':
+          data.afp = await obtenerAFPsMensuales(periodo);
+          break;
+        case 'impuesto':
+          data.impuesto = await obtenerTramosImpuesto(periodo);
+          break;
+        case 'asignacionFamiliar':
+          data.asignacionFamiliar = await obtenerAsignacionFamiliar(periodo);
+          break;
+        case 'uf':
+          data.uf = await obtenerValoresUF();
+          break;
+        default:
+          return NextResponse.json(
+            { success: false, error: 'Tipo de parámetro no válido' },
+            { status: 400 }
+          );
+      }
     }
 
     return NextResponse.json({
       success: true,
-      data
+      data,
+      periodo
     });
 
   } catch (error) {
-    console.error('Error al obtener parámetros:', error);
+    console.error('❌ Error obteniendo parámetros:', error);
     return NextResponse.json(
-      {
-        error: 'Error al obtener parámetros',
-        detalles: error instanceof Error ? error.message : 'Error desconocido'
-      },
-      { status: 500 }
-    );
-  }
-}
-
-export async function PUT(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { tipo, id, campo, valor } = body;
-
-    let querySQL = '';
-    let params: any[] = [];
-
-    switch (tipo) {
-      case 'parametros':
-        querySQL = `UPDATE sueldo_parametros_generales SET valor = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
-        params = [valor, id];
-        break;
-
-      case 'uf':
-        querySQL = `UPDATE sueldo_valor_uf SET valor = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
-        params = [valor, id];
-        break;
-
-      case 'afp':
-        if (campo === 'tasa_cotizacion') {
-          querySQL = `UPDATE sueldo_afp SET tasa_cotizacion = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
-        } else if (campo === 'comision') {
-          querySQL = `UPDATE sueldo_afp SET comision = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
-        } else if (campo === 'sis') {
-          querySQL = `UPDATE sueldo_afp SET sis = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
-        }
-        params = [valor, id];
-        break;
-
-      case 'isapre':
-        querySQL = `UPDATE sueldo_isapre SET nombre = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
-        params = [valor, id];
-        break;
-
-      case 'mutualidad':
-        if (campo === 'tasa_base') {
-          querySQL = `UPDATE sueldo_mutualidad SET tasa_base = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
-        } else if (campo === 'tasa_adicional') {
-          querySQL = `UPDATE sueldo_mutualidad SET tasa_adicional = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
-        }
-        params = [valor, id];
-        break;
-
-      case 'impuesto':
-        if (campo === 'factor') {
-          querySQL = `UPDATE sueldo_tramos_impuesto SET factor = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
-        } else if (campo === 'rebaja') {
-          querySQL = `UPDATE sueldo_tramos_impuesto SET rebaja = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
-        }
-        params = [valor, id];
-        break;
-
-      default:
-        return NextResponse.json(
-          { error: 'Tipo de parámetro no válido' },
-          { status: 400 }
-        );
-    }
-
-    if (querySQL) {
-      await query(querySQL, params);
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Parámetro actualizado correctamente'
-    });
-
-  } catch (error) {
-    console.error('Error al actualizar parámetro:', error);
-    return NextResponse.json(
-      {
-        error: 'Error al actualizar parámetro',
-        detalles: error instanceof Error ? error.message : 'Error desconocido'
-      },
+      { success: false, error: `Error al obtener parámetros: ${error instanceof Error ? error.message : 'Error desconocido'}` },
       { status: 500 }
     );
   }
@@ -159,62 +99,54 @@ export async function PUT(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { tipo, data } = body;
+    const { tipo, data: itemData } = body;
 
     switch (tipo) {
-      case 'uf':
-        await query(
-          `INSERT INTO sueldo_valor_uf (fecha, valor) 
-           VALUES ($1, $2) 
-           ON CONFLICT (fecha) 
-           DO UPDATE SET valor = $2, updated_at = CURRENT_TIMESTAMP`,
-          [data.fecha, data.valor]
+      case 'parametros':
+        await actualizarParametroGeneral(
+          itemData.periodo,
+          itemData.parametro,
+          itemData.valor,
+          itemData.descripcion
         );
         break;
-
-      case 'parametro':
-        await query(
-          `INSERT INTO sueldo_parametros_generales (parametro, valor) 
-           VALUES ($1, $2)`,
-          [data.parametro, data.valor]
-        );
-        break;
-
       case 'afp':
-        await query(
-          `INSERT INTO sueldo_afp (codigo, nombre, tasa_cotizacion, comision, sis, fecha_vigencia) 
-           VALUES ($1, $2, $3, $4, $5, $6)`,
-          [data.codigo, data.nombre, data.tasa_cotizacion, data.comision, data.sis, data.fecha_vigencia]
+        await actualizarAFP(
+          itemData.periodo,
+          itemData.codigo,
+          itemData.nombre,
+          itemData.tasa
         );
         break;
-
-      case 'isapre':
-        await query(
-          `INSERT INTO sueldo_isapre (codigo, nombre) 
-           VALUES ($1, $2)`,
-          [data.codigo, data.nombre]
-        );
-        break;
-
-      case 'mutualidad':
-        await query(
-          `INSERT INTO sueldo_mutualidad (codigo, nombre, tasa_base, fecha_vigencia) 
-           VALUES ($1, $2, $3, $4)`,
-          [data.codigo, data.nombre, data.tasa_base, data.fecha_vigencia]
-        );
-        break;
-
       case 'impuesto':
-        await query(
-          `INSERT INTO sueldo_tramos_impuesto (tramo, desde, hasta, factor, rebaja, fecha_vigencia) 
-           VALUES ($1, $2, $3, $4, $5, $6)`,
-          [data.tramo, data.desde, data.hasta, data.factor, data.rebaja, data.fecha_vigencia]
+        await actualizarTramoImpuesto(
+          itemData.periodo,
+          itemData.tramo,
+          itemData.desde,
+          itemData.hasta,
+          itemData.factor,
+          itemData.rebaja,
+          itemData.tasa_max
         );
         break;
-
+      case 'asignacionFamiliar':
+        await actualizarAsignacionFamiliar(
+          itemData.periodo,
+          itemData.tramo,
+          itemData.desde,
+          itemData.hasta,
+          itemData.monto
+        );
+        break;
+      case 'uf':
+        await actualizarValorUF(
+          itemData.fecha,
+          itemData.valor
+        );
+        break;
       default:
         return NextResponse.json(
-          { error: 'Tipo de parámetro no válido' },
+          { success: false, error: 'Tipo de parámetro no válido' },
           { status: 400 }
         );
     }
@@ -225,12 +157,67 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error al agregar parámetro:', error);
+    console.error('Error agregando parámetro:', error);
     return NextResponse.json(
-      {
-        error: 'Error al agregar parámetro',
-        detalles: error instanceof Error ? error.message : 'Error desconocido'
-      },
+      { success: false, error: 'Error al agregar parámetro' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { tipo, id, campo, valor, periodo, fecha } = body;
+
+    switch (tipo) {
+      case 'parametros':
+        await sql`
+          UPDATE sueldo_parametros_generales 
+          SET valor = ${valor}, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ${id} AND periodo = ${periodo}
+        `;
+        break;
+      case 'afp':
+        await sql`
+          UPDATE sueldo_afp 
+          SET tasa = ${valor}, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ${id} AND periodo = ${periodo}
+        `;
+        break;
+      case 'impuesto':
+        await sql`
+          UPDATE sueldo_tramos_impuesto 
+          SET factor = ${valor}, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ${id} AND periodo = ${periodo}
+        `;
+        break;
+      case 'asignacionFamiliar':
+        await sql`
+          UPDATE sueldo_asignacion_familiar 
+          SET monto = ${valor}, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ${id} AND periodo = ${periodo}
+        `;
+        break;
+      case 'uf':
+        await actualizarValorUFExistente(fecha, valor);
+        break;
+      default:
+        return NextResponse.json(
+          { success: false, error: 'Tipo de parámetro no válido' },
+          { status: 400 }
+        );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Parámetro actualizado correctamente'
+    });
+
+  } catch (error) {
+    console.error('Error actualizando parámetro:', error);
+    return NextResponse.json(
+      { success: false, error: 'Error al actualizar parámetro' },
       { status: 500 }
     );
   }
@@ -241,36 +228,47 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const tipo = searchParams.get('tipo');
     const id = searchParams.get('id');
+    const periodo = searchParams.get('periodo');
+    const fecha = searchParams.get('fecha');
 
-    if (!tipo || !id) {
+    if (!tipo || (!id && tipo !== 'uf') || (tipo === 'uf' && !fecha)) {
       return NextResponse.json(
-        { error: 'Tipo e ID son requeridos' },
+        { success: false, error: 'Faltan parámetros requeridos' },
         { status: 400 }
       );
     }
 
     switch (tipo) {
-      case 'uf':
-        await query(`DELETE FROM sueldo_valor_uf WHERE id = $1`, [id]);
-        break;
-      case 'parametro':
-        await query(`DELETE FROM sueldo_parametros_generales WHERE id = $1`, [id]);
+      case 'parametros':
+        await sql`
+          DELETE FROM sueldo_parametros_generales 
+          WHERE id = ${id} AND periodo = ${periodo}
+        `;
         break;
       case 'afp':
-        await query(`UPDATE sueldo_afp SET activo = false WHERE id = $1`, [id]);
-        break;
-      case 'isapre':
-        await query(`UPDATE sueldo_isapre SET activo = false WHERE id = $1`, [id]);
-        break;
-      case 'mutualidad':
-        await query(`UPDATE sueldo_mutualidad SET activo = false WHERE id = $1`, [id]);
+        await sql`
+          DELETE FROM sueldo_afp 
+          WHERE id = ${id} AND periodo = ${periodo}
+        `;
         break;
       case 'impuesto':
-        await query(`UPDATE sueldo_tramos_impuesto SET activo = false WHERE id = $1`, [id]);
+        await sql`
+          DELETE FROM sueldo_tramos_impuesto 
+          WHERE id = ${id} AND periodo = ${periodo}
+        `;
+        break;
+      case 'asignacionFamiliar':
+        await sql`
+          DELETE FROM sueldo_asignacion_familiar 
+          WHERE id = ${id} AND periodo = ${periodo}
+        `;
+        break;
+      case 'uf':
+        await eliminarValorUF(fecha!);
         break;
       default:
         return NextResponse.json(
-          { error: 'Tipo de parámetro no válido' },
+          { success: false, error: 'Tipo de parámetro no válido' },
           { status: 400 }
         );
     }
@@ -281,12 +279,9 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error al eliminar parámetro:', error);
+    console.error('Error eliminando parámetro:', error);
     return NextResponse.json(
-      {
-        error: 'Error al eliminar parámetro',
-        detalles: error instanceof Error ? error.message : 'Error desconocido'
-      },
+      { success: false, error: 'Error al eliminar parámetro' },
       { status: 500 }
     );
   }

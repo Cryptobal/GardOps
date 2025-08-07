@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
         d.fecha_vencimiento,
         td.nombre as tipo_documento_nombre
       FROM documentos d
-      LEFT JOIN tipos_documentos td ON d.tipo_documento_id = td.id
+      LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id
       WHERE d.${entidadField} = $1
       ORDER BY d.creado_en DESC
     `;

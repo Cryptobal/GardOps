@@ -16,7 +16,7 @@ export async function obtenerDocumentosCliente(clienteId: string): Promise<Docum
         dc.tipo_documento_id,
         td.nombre as tipo_documento_nombre
       FROM documentos_clientes dc
-      LEFT JOIN tipos_documentos td ON dc.tipo_documento_id = td.id
+      LEFT JOIN documentos_tipos td ON dc.tipo_documento_id = td.id
       WHERE dc.cliente_id = $1
       ORDER BY dc.created_at DESC
       LIMIT 100
