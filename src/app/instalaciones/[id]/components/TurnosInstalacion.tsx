@@ -207,6 +207,9 @@ export default function TurnosInstalacion({
         getRolesServicio().catch(error => {
           console.error('Error cargando roles:', error);
           return [];
+        }).then(roles => {
+          console.log('Roles cargados:', roles);
+          return Array.isArray(roles) ? roles : [];
         }),
         getPPCsInstalacion(instalacionId).catch(error => {
           console.error('Error cargando PPCs:', error);
@@ -220,10 +223,10 @@ export default function TurnosInstalacion({
       
       const [turnosData, rolesData, ppcsData, guardiasData] = await Promise.all(promises);
       
-      setTurnos(turnosData);
-      setRolesServicio(rolesData);
-      setPpcs(ppcsData);
-      setGuardiasDisponibles(guardiasData);
+      setTurnos(Array.isArray(turnosData) ? turnosData : []);
+      setRolesServicio(Array.isArray(rolesData) ? rolesData : []);
+      setPpcs(Array.isArray(ppcsData) ? ppcsData : []);
+      setGuardiasDisponibles(Array.isArray(guardiasData) ? guardiasData : []);
       
       // Preservar los estados de filtros y selects
       // No limpiar filtrosGuardias ni selectsOpen aquí
@@ -474,11 +477,15 @@ export default function TurnosInstalacion({
                 placeholder="Seleccionar rol"
               >
                 <SelectContent>
-                  {rolesServicio.map((rol) => (
+                  {Array.isArray(rolesServicio) ? rolesServicio.map((rol) => (
                     <SelectItem key={rol.id} value={rol.id}>
                       {rol.nombre} ({formatearCiclo(rol.dias_trabajo, rol.dias_descanso)} - {formatearHorario(rol.hora_inicio, rol.hora_termino)})
                     </SelectItem>
-                  ))}
+                  )) : (
+                    <SelectItem value="" disabled>
+                      Cargando roles...
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </SafeSelect>
             </div>
