@@ -14,7 +14,8 @@ import {
   CalendarDays,
   Activity,
   DollarSign,
-  Calculator
+  Calculator,
+  Building
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -95,6 +96,11 @@ export const navigationItems: NavigationItem[] = [
         name: "Roles de Servicio",
         href: "/configuracion/roles-servicio",
         icon: Clock
+      },
+      {
+        name: "Estructuras de Servicio",
+        href: "/configuracion/estructuras-servicio",
+        icon: Building
       }
     ]
   },

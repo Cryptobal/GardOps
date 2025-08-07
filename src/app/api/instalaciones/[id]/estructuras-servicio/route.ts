@@ -16,6 +16,7 @@ export async function GET(
       FROM sueldo_estructuras_servicio es
       INNER JOIN as_turnos_roles_servicio rs ON es.rol_servicio_id = rs.id
       WHERE es.instalacion_id = $1
+        AND rs.estado = 'Activo'
       ORDER BY rs.nombre, es.nombre_bono
     `, [instalacionId]);
     

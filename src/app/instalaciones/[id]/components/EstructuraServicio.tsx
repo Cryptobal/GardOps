@@ -17,7 +17,10 @@ import {
   Building2,
   Edit2,
   X,
-  Check
+  Check,
+  EyeOff,
+  RotateCcw,
+  AlertTriangle
 } from 'lucide-react';
 import {
   Table,
@@ -89,6 +92,28 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
           : (estructurasData.rows || []);
         setEstructuras(estructurasArray);
         console.log("✅ Estructura de servicio cargada para la instalación");
+
+        // Complementar lista de roles con aquellos presentes en las estructuras
+        const rolesMap: Record<string, RolServicio> = {};
+        roles.forEach(r => { rolesMap[r.id] = r; });
+        estructurasArray.forEach((e: any) => {
+          if (!rolesMap[e.rol_servicio_id]) {
+            rolesMap[e.rol_servicio_id] = {
+              id: e.rol_servicio_id,
+              nombre: e.rol_nombre || 'Rol sin nombre',
+              dias_trabajo: e.dias_trabajo || 0,
+              dias_descanso: e.dias_descanso || 0,
+              horas_turno: e.horas_turno || 0,
+              hora_inicio: e.hora_inicio || '00:00',
+              hora_termino: e.hora_termino || '00:00',
+              estado: e.rol_estado || 'Activo',
+              tenant_id: null,
+              created_at: e.created_at || new Date().toISOString(),
+              updated_at: e.updated_at || new Date().toISOString()
+            } as RolServicio;
+          }
+        });
+        setRoles(Object.values(rolesMap));
       }
     } catch (error) {
       console.error('Error cargando datos:', error);
@@ -280,6 +305,112 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
     return obtenerEstructurasRol(rolId)
       .filter(e => e.imponible)
       .reduce((sum, e) => sum + e.monto, 0);
+  };
+
+  // Nueva función para inactivar rol de servicio completamente
+  const inactivarRolCompleto = async (rolId: string) => {
+    const motivo = prompt('Ingrese el motivo de la inactivación (opcional):');
+    
+    if (!confirm(`¿Estás seguro de inactivar completamente el rol "${roles.find(r => r.id === rolId)?.nombre}"?\n\nEsto inactivará el rol, la estructura asociada y liberará todos los guardias asignados.`)) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const response = await fetch(`/api/roles-servicio/${rolId}/inactivar`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ motivo, usuario_id: null })
+      });
+
+      if (response.ok) {
+        const resultado = await response.json();
+        alert(`✅ Rol inactivado exitosamente.\n\nGuardias liberados: ${resultado.guardias_liberados}\nEstructura inactivada: ${resultado.estructura_inactivada ? 'Sí' : 'No'}`);
+        
+        // Recargar datos
+        await cargarDatos();
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al inactivar el rol');
+      }
+    } catch (error) {
+      console.error('Error inactivando rol:', error);
+      alert(`❌ Error al inactivar el rol: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Nueva función para reactivar rol de servicio
+  const reactivarRol = async (rolId: string) => {
+    if (!confirm(`¿Estás seguro de reactivar el rol "${roles.find(r => r.id === rolId)?.nombre}"?`)) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const response = await fetch(`/api/roles-servicio/${rolId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reactivar' })
+      });
+
+      if (response.ok) {
+        alert('✅ Rol reactivado exitosamente');
+        await cargarDatos();
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al reactivar el rol');
+      }
+    } catch (error) {
+      console.error('Error reactivando rol:', error);
+      alert(`❌ Error al reactivar el rol: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Nueva función para inactivar estructura independientemente
+  const inactivarEstructura = async (rolId: string) => {
+    const rol = roles.find(r => r.id === rolId);
+    const crearNueva = confirm(`¿Desea crear una nueva estructura automáticamente al inactivar la estructura del rol "${rol?.nombre}"?`);
+    const motivo = prompt('Ingrese el motivo de la inactivación (opcional):');
+
+    try {
+      setSaving(true);
+      
+      // Primero obtener la estructura activa del rol
+      const estructurasRol = obtenerEstructurasRol(rolId);
+      if (estructurasRol.length === 0) {
+        alert('No hay estructura activa para inactivar');
+        return;
+      }
+
+      // Inactivar la estructura (usando la API de estructuras-sueldo)
+      const response = await fetch(`/api/estructuras-sueldo/${rolId}/inactivar`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          motivo, 
+          usuario_id: null, 
+          crear_nueva_automaticamente: crearNueva 
+        })
+      });
+
+      if (response.ok) {
+        const resultado = await response.json();
+        alert(`✅ Estructura inactivada exitosamente.\n\nNueva estructura creada: ${resultado.nueva_estructura_creada ? 'Sí' : 'No'}`);
+        await cargarDatos();
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al inactivar la estructura');
+      }
+    } catch (error) {
+      console.error('Error inactivando estructura:', error);
+      alert(`❌ Error al inactivar la estructura: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {

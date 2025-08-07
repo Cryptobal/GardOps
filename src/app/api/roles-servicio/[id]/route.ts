@@ -1,5 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/database';
+import { sql } from '@vercel/postgres';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params;
+    const { searchParams } = new URL(request.url);
+    const tenantId = searchParams.get('tenantId') || '1';
+
+    const query = 'SELECT * FROM get_rol_servicio_by_id($1, $2)';
+    const result = await sql.query(query, [id, tenantId]);
+
+    if (result.rows.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Rol de servicio no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error al obtener rol de servicio:', error);
+    return NextResponse.json(
+      { success: false, error: 'Error interno del servidor' },
+      { status: 500 }
+    );
+  }
+}
 
 export async function PUT(
   request: NextRequest,
@@ -8,50 +40,34 @@ export async function PUT(
   try {
     const { id } = params;
     const body = await request.json();
-    const { nombre, dias_trabajo, dias_descanso, horas_turno, hora_inicio, hora_termino, estado } = body;
+    const { nombre, descripcion, activo, tenantId = '1' } = body;
 
-    // Validaciones
-    if (!nombre || !dias_trabajo || !dias_descanso || !horas_turno || !hora_inicio || !hora_termino || !estado) {
+    if (!nombre) {
       return NextResponse.json(
-        { error: 'Faltan campos requeridos' },
+        { success: false, error: 'El nombre es requerido' },
         { status: 400 }
       );
     }
 
-    // Verificar que no existe otro rol con el mismo nombre (excluyendo el actual)
-    const existingRole = await query(
-      'SELECT id FROM roles_servicio WHERE nombre = $1 AND id != $2',
-      [nombre, id]
-    );
+    const query = 'SELECT * FROM update_rol_servicio($1, $2, $3, $4, $5)';
+    const result = await sql.query(query, [id, nombre, descripcion, activo, tenantId]);
 
-    if (existingRole.rows.length > 0) {
+    if (result.rows[0]?.error) {
       return NextResponse.json(
-        { error: 'Ya existe un rol de servicio con este nombre' },
-        { status: 409 }
+        { success: false, error: result.rows[0].error },
+        { status: 400 }
       );
     }
 
-    // Actualizar el rol
-    const result = await query(`
-      UPDATE roles_servicio 
-      SET nombre = $1, dias_trabajo = $2, dias_descanso = $3, horas_turno = $4, 
-          hora_inicio = $5, hora_termino = $6, estado = $7, updated_at = NOW()
-      WHERE id = $8
-      RETURNING *
-    `, [nombre, dias_trabajo, dias_descanso, horas_turno, hora_inicio, hora_termino, estado, id]);
-
-    if (result.rows.length === 0) {
-      return NextResponse.json(
-        { error: 'Rol de servicio no encontrado' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(result.rows[0]);
+    return NextResponse.json({
+      success: true,
+      data: result.rows[0],
+      message: 'Rol de servicio actualizado exitosamente'
+    });
   } catch (error) {
-    console.error('Error actualizando rol de servicio:', error);
+    console.error('Error al actualizar rol de servicio:', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { success: false, error: 'Error interno del servidor' },
       { status: 500 }
     );
   }
@@ -63,90 +79,78 @@ export async function DELETE(
 ) {
   try {
     const { id } = params;
+    const { searchParams } = new URL(request.url);
+    const tenantId = searchParams.get('tenantId') || '1';
 
-    // Obtener todos los turnos que usan este rol
-    const turnosResult = await query(`
-      SELECT id FROM turnos_instalacion 
-      WHERE rol_servicio_id = $1
-    `, [id]);
+    const query = 'SELECT * FROM delete_rol_servicio($1, $2)';
+    const result = await sql.query(query, [id, tenantId]);
 
-    const turnosIds = turnosResult.rows.map((t: { id: string }) => t.id);
+    if (result.rows[0]?.error) {
+      return NextResponse.json(
+        { success: false, error: result.rows[0].error },
+        { status: 400 }
+      );
+    }
 
-    // Iniciar transacción para eliminar todo en orden
-    await query('BEGIN');
+    return NextResponse.json({
+      success: true,
+      message: 'Rol de servicio eliminado exitosamente'
+    });
+  } catch (error) {
+    console.error('Error al eliminar rol de servicio:', error);
+    return NextResponse.json(
+      { success: false, error: 'Error interno del servidor' },
+      { status: 500 }
+    );
+  }
+}
 
-    try {
-      if (turnosIds.length > 0) {
-        // 1. Eliminar asignaciones de guardias para todos los turnos
-        await query(`
-          DELETE FROM asignaciones_guardias 
-          WHERE requisito_puesto_id IN (
-            SELECT id FROM requisitos_puesto 
-            WHERE turno_instalacion_id = ANY($1)
-          )
-        `, [turnosIds]);
+// Agregar nueva función para reactivar
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = params;
+    const body = await request.json();
+    const { action } = body;
 
-        // 2. Obtener requisitos_puesto asociados a estos turnos
-        const requisitosResult = await query(`
-          SELECT id FROM requisitos_puesto 
-          WHERE rol_servicio_id = $1
-        `, [id]);
-
-        const requisitosIds = requisitosResult.rows.map((r: { id: string }) => r.id);
-
-        if (requisitosIds.length > 0) {
-          // 3. Eliminar puestos_por_cubrir asociados a estos requisitos
-          await query(`
-            DELETE FROM puestos_por_cubrir 
-            WHERE requisito_puesto_id = ANY($1)
-          `, [requisitosIds]);
-
-          // 4. Eliminar requisitos_puesto
-          await query(`
-            DELETE FROM requisitos_puesto 
-            WHERE id = ANY($1)
-          `, [requisitosIds]);
-        }
-
-        // 5. Eliminar todos los turnos que usan este rol
-        await query(`
-          DELETE FROM turnos_instalacion 
-          WHERE id = ANY($1)
-        `, [turnosIds]);
-      }
-
-      // 6. Finalmente eliminar el rol de servicio
-      const result = await query(`
-        DELETE FROM roles_servicio 
+    if (action === 'reactivar') {
+      const result = await sql.query(`
+        UPDATE as_turnos_roles_servicio 
+        SET 
+          activo = true,
+          estado = 'Activo',
+          fecha_inactivacion = NULL,
+          updated_at = NOW()
         WHERE id = $1
+        RETURNING *
       `, [id]);
 
-      await query('COMMIT');
-
-      if (result.rowCount === 0) {
+      if (result.rows.length === 0) {
         return NextResponse.json(
           { error: 'Rol de servicio no encontrado' },
           { status: 404 }
         );
       }
 
-      return NextResponse.json({
+      console.log(`✅ Rol de servicio reactivado: ${id}`);
+      
+      return NextResponse.json({ 
         success: true,
-        message: `Rol de servicio eliminado correctamente${turnosIds.length > 0 ? ` junto con ${turnosIds.length} turno${turnosIds.length > 1 ? 's' : ''} asociado${turnosIds.length > 1 ? 's' : ''}` : ''}`
+        message: 'Rol de servicio reactivado exitosamente',
+        rol: result.rows[0]
       });
-
-    } catch (error: any) {
-      await query('ROLLBACK');
-      console.error('Error eliminando rol de servicio:', error);
-      return NextResponse.json(
-        { error: error.message || 'Error interno del servidor' },
-        { status: 500 }
-      );
     }
-  } catch (error: any) {
-    console.error('Error eliminando rol de servicio:', error);
+
     return NextResponse.json(
-      { error: error.message || 'Error interno del servidor' },
+      { error: 'Acción no válida' },
+      { status: 400 }
+    );
+  } catch (error: any) {
+    console.error('Error en operación PATCH:', error);
+    return NextResponse.json(
+      { error: error.message || 'Error en la operación' },
       { status: 500 }
     );
   }

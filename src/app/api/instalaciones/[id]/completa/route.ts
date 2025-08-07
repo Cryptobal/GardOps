@@ -141,22 +141,24 @@ export async function GET(
     let rolesResult;
     try {
       rolesResult = await query(`
-        SELECT 
-          id,
-          nombre,
-          dias_trabajo,
-          dias_descanso,
-          horas_turno,
-          hora_inicio,
-          hora_termino,
-          estado,
-          tenant_id,
-          created_at,
-          updated_at
-        FROM as_turnos_roles_servicio 
-        WHERE estado = 'Activo'
-        ORDER BY nombre
-      `);
+        SELECT DISTINCT
+          rs.id,
+          rs.nombre,
+          rs.dias_trabajo,
+          rs.dias_descanso,
+          rs.horas_turno,
+          rs.hora_inicio,
+          rs.hora_termino,
+          rs.estado,
+          rs.tenant_id,
+          rs.created_at,
+          rs.updated_at
+        FROM as_turnos_roles_servicio rs
+        INNER JOIN as_turnos_puestos_operativos po ON po.rol_id = rs.id
+        WHERE po.instalacion_id = $1
+          AND rs.estado = 'Activo'
+        ORDER BY rs.nombre
+      `, [instalacionId]);
       console.log(`✅ Roles de servicio encontrados: ${rolesResult.rows.length}`);
     } catch (error) {
       console.error('❌ Error consultando roles de servicio:', error);

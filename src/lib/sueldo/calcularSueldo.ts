@@ -5,7 +5,7 @@ import { calcularImponible } from './calculos/imponible';
 import { calcularCotizaciones } from './calculos/cotizaciones';
 import { calcularImpuestoUnico } from './calculos/impuesto';
 import { calcularEmpleador } from './calculos/empleador';
-import { query } from '../database';
+import { sql } from '@vercel/postgres';
 
 /**
  * Obtiene los parámetros desde la base de datos
@@ -15,36 +15,33 @@ async function obtenerParametros(input: SueldoInput): Promise<ParametrosSueldo> 
     const fechaPrimerDia = new Date(input.fecha.getFullYear(), input.fecha.getMonth(), 1);
     
     // 1. Obtener valor UF para el mes
-    const resultUF = await query(
-      `SELECT valor FROM sueldo_valor_uf 
-       WHERE fecha = $1
-       LIMIT 1`,
-      [fechaPrimerDia.toISOString().split('T')[0]]
-    );
+    const resultUF = await sql`
+      SELECT valor FROM sueldo_valor_uf 
+      WHERE fecha = ${fechaPrimerDia.toISOString().split('T')[0]}
+      LIMIT 1
+    `;
     
     let valorUf = 38000; // Valor por defecto
     if (resultUF.rows.length > 0) {
       valorUf = Number(resultUF.rows[0].valor);
     } else {
       // Si no hay valor exacto, buscar el más cercano anterior
-      const resultUFCercano = await query(
-        `SELECT valor FROM sueldo_valor_uf 
-         WHERE fecha <= $1
-         ORDER BY fecha DESC
-         LIMIT 1`,
-        [fechaPrimerDia.toISOString().split('T')[0]]
-      );
+      const resultUFCercano = await sql`
+        SELECT valor FROM sueldo_valor_uf 
+        WHERE fecha <= ${fechaPrimerDia.toISOString().split('T')[0]}
+        ORDER BY fecha DESC
+        LIMIT 1
+      `;
       if (resultUFCercano.rows.length > 0) {
         valorUf = Number(resultUFCercano.rows[0].valor);
       }
     }
     
     // 2. Obtener tope imponible y otros parámetros generales
-    const resultParametros = await query(
-      `SELECT parametro, valor FROM sueldo_parametros_generales 
-       ORDER BY id`,
-      []
-    );
+    const resultParametros = await sql`
+      SELECT parametro, valor FROM sueldo_parametros_generales 
+      ORDER BY id
+    `;
     
     const parametrosMap: { [key: string]: number } = {};
     resultParametros.rows.forEach((row: any) => {
@@ -52,14 +49,13 @@ async function obtenerParametros(input: SueldoInput): Promise<ParametrosSueldo> 
     });
     
     // 3. Obtener jornada semanal según fecha
-    const resultJornada = await query(
-      `SELECT valor 
-       FROM sueldo_parametros_generales 
-       WHERE parametro = 'HORAS_SEMANALES_JORNADA' 
-       ORDER BY id DESC 
-       LIMIT 1`,
-      []
-    );
+    const resultJornada = await sql`
+      SELECT valor 
+      FROM sueldo_parametros_generales 
+      WHERE parametro = 'HORAS_SEMANALES_JORNADA' 
+      ORDER BY id DESC 
+      LIMIT 1
+    `;
     
     let horasSemanalesJornada = 44; // Default: 44 horas desde abril 2024
     if (resultJornada.rows.length > 0) {
@@ -70,41 +66,25 @@ async function obtenerParametros(input: SueldoInput): Promise<ParametrosSueldo> 
     // Se usa una tasa default del 0.90% ya que no viene del input
     let tasaMutualidad = 0.90; // Default para cálculo del empleador
     
-    // 5. Obtener comisión AFP (aunque ya no se usa directamente)
-    let comisionAfp = 1.44; // Default
+    // 5. Obtener tasa AFP
+    let comisionAfp = 11.44; // Default
     if (input.afp) {
-      // Mapear código a nombre de AFP
-      const afpNombres: { [key: string]: string } = {
-        'capital': 'Capital',
-        'cuprum': 'Cuprum',
-        'habitat': 'Habitat',
-        'modelo': 'Modelo',
-        'planvital': 'PlanVital',
-        'provida': 'Provida',
-        'uno': 'Uno'
-      };
-      
-      const nombreAfp = afpNombres[input.afp.toLowerCase()] || input.afp;
-      
-      const resultAFP = await query(
-        `SELECT comision FROM sueldo_afp 
-         WHERE LOWER(nombre) = LOWER($1)
-         LIMIT 1`,
-        [nombreAfp]
-      );
+      const resultAFP = await sql`
+        SELECT tasa FROM sueldo_afp 
+        WHERE codigo = ${input.afp.toLowerCase()}
+        LIMIT 1
+      `;
       if (resultAFP.rows.length > 0) {
-        // La comisión en la BD está como decimal (0.1144), convertir a porcentaje (11.44)
-        comisionAfp = Number(resultAFP.rows[0].comision) * 100;
+        comisionAfp = Number(resultAFP.rows[0].tasa);
       }
     }
     
     // 6. Obtener tramos de impuesto
-    const resultTramos = await query(
-      `SELECT tramo, desde, hasta, factor, rebaja 
-       FROM sueldo_tramos_impuesto 
-       ORDER BY tramo ASC`,
-      []
-    );
+    const resultTramos = await sql`
+      SELECT tramo, desde, hasta, factor, rebaja 
+      FROM sueldo_tramos_impuesto 
+      ORDER BY tramo ASC
+    `;
     
     const tramosImpuesto = resultTramos.rows.map((row: any) => ({
       desde: Number(row.desde),
