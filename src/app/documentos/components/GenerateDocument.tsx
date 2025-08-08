@@ -6,11 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { toast } from '@/hooks/use-toast'
+import { useToast } from '@/components/ui/toast'
 
 interface Template { id: string; name: string; content: string; variables: string[] }
 
 export default function GenerateDocument() {
+  const { toast } = useToast()
   const [templates, setTemplates] = useState<Template[]>([])
   const [templateId, setTemplateId] = useState<string>('')
   const [entityType, setEntityType] = useState<'guardia'>('guardia')
@@ -45,20 +46,20 @@ export default function GenerateDocument() {
   }, [search])
 
   async function preview() {
-    if (!templateId || !entityId) { toast().error('Seleccione plantilla y entidad'); return }
+    if (!templateId || !entityId) { toast.error('Seleccione plantilla y entidad'); return }
     const res = await fetch('/api/doc/documents', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ templateId, entityType, entityId })
     })
     const json = await res.json()
-    if (!json.success) { toast().error(json.error || 'Error'); return }
+    if (!json.success) { toast.error(json.error || 'Error'); return }
     setRenderedHtml(json.data.html_rendered)
   }
 
   async function save() {
     await preview()
-    toast().success('Documento generado', 'Guardado en borrador')
+    toast.success('Guardado en borrador', 'Documento generado')
   }
 
   return (

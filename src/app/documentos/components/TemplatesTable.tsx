@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { toast } from '@/hooks/use-toast'
+import { useToast } from '@/components/ui/toast'
 
 interface Template {
   id: string
@@ -17,6 +17,7 @@ interface Template {
 }
 
 export default function TemplatesTable() {
+  const { toast } = useToast()
   const [templates, setTemplates] = useState<Template[]>([])
   const [loading, setLoading] = useState(false)
   const [openNew, setOpenNew] = useState(false)
@@ -46,14 +47,14 @@ export default function TemplatesTable() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error || 'Error')
-      toast().success('Plantilla creada', 'Se guardó correctamente')
+      toast.success('Se guardó correctamente', 'Plantilla creada')
       setOpenNew(false)
       setName('')
       setContent('')
       setVariables('')
       load()
     } catch (e: any) {
-      toast().error(e.message || 'Error creando plantilla')
+      toast.error(e.message || 'Error creando plantilla')
     }
   }
 
@@ -62,10 +63,10 @@ export default function TemplatesTable() {
     const res = await fetch(`/api/doc/templates/${id}`, { method: 'DELETE' })
     const json = await res.json()
     if (json.success) {
-      toast().success('Eliminada', 'Plantilla eliminada')
+      toast.success('Plantilla eliminada', 'Eliminada')
       load()
     } else {
-      toast().error(json.error || 'Error al eliminar')
+      toast.error(json.error || 'Error al eliminar')
     }
   }
 

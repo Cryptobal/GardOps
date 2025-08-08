@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import SignaturePad from 'signature_pad'
 import { Input } from '@/components/ui/input'
-import { toast } from '@/hooks/use-toast'
+import { useToast } from '@/components/ui/toast'
 
 export default function FirmarDocumentoPage() {
+  const { toast } = useToast()
   const params = useParams<{ id: string }>()
   const router = useRouter()
   const [documento, setDocumento] = useState<any>(null)
@@ -36,16 +37,16 @@ export default function FirmarDocumentoPage() {
   function clear() { padRef.current?.clear() }
 
   async function sign() {
-    if (!signerName) { toast().error('Ingrese nombre del firmante'); return }
-    if (!padRef.current || padRef.current.isEmpty()) { toast().error('Realice la firma'); return }
+    if (!signerName) { toast.error('Ingrese nombre del firmante'); return }
+    if (!padRef.current || padRef.current.isEmpty()) { toast.error('Realice la firma'); return }
     const dataUrl = padRef.current.toDataURL('image/png')
     const res = await fetch('/api/doc/sign', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ documentId: params.id, signerName, signerEmail, signaturePng: dataUrl })
     })
     const json = await res.json()
-    if (!json.success) { toast().error(json.error || 'Error al firmar'); return }
-    toast().success('Documento firmado')
+    if (!json.success) { toast.error(json.error || 'Error al firmar'); return }
+    toast.success('Documento firmado')
     router.push('/documentos')
   }
 
