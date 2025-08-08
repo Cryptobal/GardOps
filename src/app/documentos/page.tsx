@@ -21,7 +21,8 @@ import {
   Eye,
   CalendarDays,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Plus
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,13 +31,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import TemplatesTable from "./components/TemplatesTable";
-import GenerateDocument from "./components/GenerateDocument";
-import DocumentsList from "./components/DocumentsList";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DocumentViewer } from "@/components/shared/document-viewer";
 import { Modal } from "@/components/ui/modal";
+import { useRouter } from "next/navigation";
 
 interface DocumentoGlobal {
   id: string;
@@ -67,7 +64,7 @@ interface TipoDocumento {
 }
 
 export default function DocumentosGlobalesPage() {
-  const [tab, setTab] = useState('plantillas');
+  const router = useRouter();
   const [documentos, setDocumentos] = useState<DocumentoGlobal[]>([]);
   const [stats, setStats] = useState<DocumentosStats>({
     total: 0,
@@ -259,7 +256,7 @@ export default function DocumentosGlobalesPage() {
         throw new Error('Error al actualizar la fecha');
       }
     } catch (error) {
-      toast.error("No se pudo actualizar la fecha de vencimiento", "Error");
+              toast.error("No se pudo actualizar la fecha de vencimiento", "Error");
     }
   };
 
@@ -282,16 +279,25 @@ export default function DocumentosGlobalesPage() {
                 Gestión centralizada de documentos de clientes, instalaciones y guardias
           </p>
         </div>
-            <Button
-              onClick={() => setRefreshTrigger(prev => prev + 1)}
-              variant="outline"
-              size="sm"
-              disabled={cargando}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${cargando ? 'animate-spin' : ''}`} />
-              Actualizar
-            </Button>
-          </div>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => router.push('/documentos/plantillas')}
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Plantillas
+          </Button>
+          <Button
+            onClick={() => setRefreshTrigger(prev => prev + 1)}
+            variant="outline"
+            size="sm"
+            disabled={cargando}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${cargando ? 'animate-spin' : ''}`} />
+            Actualizar
+          </Button>
+        </div>
+      </div>
         </motion.div>
 
         {/* KPIs - Optimizado para móviles */}
@@ -496,29 +502,6 @@ export default function DocumentosGlobalesPage() {
           </Card>
         </motion.div>
 
-        {/* Tabs Plantillas | Documentos */}
-        <Card className="bg-card/50 border-border/50">
-          <CardContent>
-            <Tabs value={tab} onValueChange={setTab}>
-              <TabsList className="mb-4">
-                <TabsTrigger value="plantillas">Plantillas</TabsTrigger>
-                <TabsTrigger value="documentos">Documentos</TabsTrigger>
-              </TabsList>
-              <TabsContent value="plantillas">
-                <TemplatesTable />
-              </TabsContent>
-              <TabsContent value="documentos">
-                <div className="space-y-6">
-                  {/* Generar y listar documentos */}
-                  <GenerateDocument />
-                  <DocumentsList />
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-
-        {/* Tabla de documentos globales actual */}
         {/* Tabla de documentos - Optimizada para móviles */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

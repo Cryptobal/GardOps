@@ -1,51 +1,133 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { query } from '@/lib/db'
-import { extractVariables } from '@/lib/templating'
-export const dynamic = 'force-dynamic'
+import { NextRequest, NextResponse } from 'next/server';
+import { query } from '@/lib/database';
+import { extractVars } from '@/lib/vars';
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+// Configuración para evitar errores de Dynamic Server Usage
+export const dynamic = 'force-dynamic';
+
+// GET /api/doc/templates/[id] - Obtener plantilla por ID
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const { id } = params
-    const result = await query(`SELECT id, name, content, variables, created_at FROM doc_templates WHERE id = $1`, [id])
-    if (result.rows.length === 0) return NextResponse.json({ success: false, error: 'No encontrado' }, { status: 404 })
-    return NextResponse.json({ success: true, data: result.rows[0] })
+    const { id } = params;
+    
+    const result = await query(`
+      SELECT id, name, content_html, variables, created_at, updated_at
+      FROM doc_templates
+      WHERE id = $1
+    `, [id]);
+    
+    if (result.rows.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Plantilla no encontrada' },
+        { status: 404 }
+      );
+    }
+    
+    return NextResponse.json({ 
+      success: true, 
+      data: result.rows[0] 
+    });
   } catch (error) {
-    console.error('❌ GET /api/doc/templates/[id] error', error)
-    return NextResponse.json({ success: false, error: 'Error obteniendo plantilla' }, { status: 500 })
+    console.error('❌ Error en GET /api/doc/templates/[id]:', error);
+    return NextResponse.json(
+      { success: false, error: 'Error al obtener plantilla' },
+      { status: 500 }
+    );
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+// PUT /api/doc/templates/[id] - Actualizar plantilla
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const { id } = params
-    const body = await req.json()
-    const { name, content, variables } = body as { name?: string; content?: string; variables?: string[] }
-    const current = await query(`SELECT * FROM doc_templates WHERE id = $1`, [id])
-    if (current.rows.length === 0) return NextResponse.json({ success: false, error: 'No encontrado' }, { status: 404 })
-    const prev = current.rows[0]
-    const nextName = name ?? prev.name
-    const nextContent = content ?? prev.content
-    const autoVars = extractVariables(nextContent)
-    const nextVars = variables ? Array.from(new Set([...(variables || []), ...autoVars])) : Array.from(new Set([...(prev.variables || []), ...autoVars]))
-    const result = await query(
-      `UPDATE doc_templates SET name = $1, content = $2, variables = $3 WHERE id = $4 RETURNING id, name, content, variables, created_at`,
-      [nextName, nextContent, nextVars, id]
-    )
-    return NextResponse.json({ success: true, data: result.rows[0] })
-  } catch (error) {
-    console.error('❌ PUT /api/doc/templates/[id] error', error)
-    return NextResponse.json({ success: false, error: 'Error actualizando plantilla' }, { status: 500 })
+    const { id } = params;
+    const body = await request.json();
+    const { name, content_html } = body;
+    
+    // Validar datos requeridos
+    if (!name || !content_html) {
+      return NextResponse.json(
+        { success: false, error: 'Nombre y contenido son requeridos' },
+        { status: 400 }
+      );
+    }
+    
+    // Verificar que la plantilla existe
+    const checkResult = await query(`
+      SELECT id FROM doc_templates WHERE id = $1
+    `, [id]);
+    
+    if (checkResult.rows.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Plantilla no encontrada' },
+        { status: 404 }
+      );
+    }
+    
+    // Extraer variables del contenido HTML
+    const variables = extractVars(content_html);
+    
+    // Actualizar plantilla
+    const result = await query(`
+      UPDATE doc_templates 
+      SET name = $1, content_html = $2, variables = $3, updated_at = NOW()
+      WHERE id = $4
+      RETURNING id, name, content_html, variables, created_at, updated_at
+    `, [name, content_html, variables, id]);
+    
+    return NextResponse.json({
+      success: true,
+      data: result.rows[0],
+      message: 'Plantilla actualizada correctamente'
+    });
+  } catch (error: any) {
+    console.error('❌ Error en PUT /api/doc/templates/[id]:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Error al actualizar plantilla' },
+      { status: 500 }
+    );
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+// DELETE /api/doc/templates/[id] - Eliminar plantilla
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const { id } = params
-    await query(`DELETE FROM doc_templates WHERE id = $1`, [id])
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('❌ DELETE /api/doc/templates/[id] error', error)
-    return NextResponse.json({ success: false, error: 'Error eliminando plantilla' }, { status: 500 })
+    const { id } = params;
+    
+    // Verificar que la plantilla existe
+    const checkResult = await query(`
+      SELECT id FROM doc_templates WHERE id = $1
+    `, [id]);
+    
+    if (checkResult.rows.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Plantilla no encontrada' },
+        { status: 404 }
+      );
+    }
+    
+    // Eliminar plantilla
+    await query(`
+      DELETE FROM doc_templates WHERE id = $1
+    `, [id]);
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Plantilla eliminada correctamente'
+    });
+  } catch (error: any) {
+    console.error('❌ Error en DELETE /api/doc/templates/[id]:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Error al eliminar plantilla' },
+      { status: 500 }
+    );
   }
 }
-

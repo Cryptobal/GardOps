@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Moon, Sun, ChevronLeft, ChevronRight } from "lucide-react";
+import { Menu, X, Moon, Sun, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { navigationItems } from "../../lib/navigation";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
@@ -25,6 +25,7 @@ export function Sidebar({
 }: SidebarProps) {
   const [internalIsCollapsed, setInternalIsCollapsed] = useState(false);
   const [isDark, setIsDark] = useState(true);
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const pathname = usePathname();
 
   // Usar el estado externo si está disponible, sino usar el interno
@@ -43,6 +44,110 @@ export function Sidebar({
 
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
+  };
+
+  const toggleExpanded = (itemName: string) => {
+    setExpandedItems(prev => 
+      prev.includes(itemName) 
+        ? prev.filter(name => name !== itemName)
+        : [...prev, itemName]
+    );
+  };
+
+  const isItemActive = (item: any) => {
+    if (item.href === pathname) return true;
+    if (item.children) {
+      return item.children.some((child: any) => child.href === pathname);
+    }
+    return false;
+  };
+
+  const renderNavigationItem = (item: any, level: number = 0) => {
+    const isActive = isItemActive(item);
+    const hasChildren = item.children && item.children.length > 0;
+    const isExpanded = expandedItems.includes(item.name);
+    const isChildActive = hasChildren && item.children.some((child: any) => child.href === pathname);
+
+    return (
+      <div key={item.href}>
+        <div className="relative">
+          <Link
+            href={item.href}
+            onClick={() => {
+              onMobileClose?.();
+              if (hasChildren) {
+                toggleExpanded(item.name);
+              }
+            }}
+            className={cn(
+              "sidebar-item text-xs sm:text-sm md:text-base touch-manipulation active:scale-[0.98] transition-all",
+              isActive && "active",
+              isCollapsed && "justify-center px-1 sm:px-1.5 md:px-2",
+              level > 0 && "ml-4",
+              hasChildren && "cursor-pointer"
+            )}
+            title={isCollapsed ? item.name : undefined}
+          >
+            <item.icon className="h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5 flex-shrink-0" />
+            {!isCollapsed && (
+              <>
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium truncate text-xs sm:text-sm md:text-base">{item.name}</span>
+                  {item.description && (
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                      {item.description}
+                    </p>
+                  )}
+                </div>
+                {hasChildren && (
+                  <ChevronDown 
+                    className={cn(
+                      "h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 flex-shrink-0 transition-transform duration-200",
+                      isExpanded && "rotate-180"
+                    )} 
+                  />
+                )}
+              </>
+            )}
+          </Link>
+        </div>
+
+        {/* Submenú */}
+        {hasChildren && !isCollapsed && (
+          <div className={cn(
+            "overflow-hidden transition-all duration-300 ease-in-out",
+            isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          )}>
+            <div className="space-y-1 mt-1">
+              {item.children.map((child: any) => {
+                const isChildActive = child.href === pathname;
+                return (
+                  <Link
+                    key={child.href}
+                    href={child.href}
+                    onClick={() => onMobileClose?.()}
+                    className={cn(
+                      "sidebar-item text-xs sm:text-sm md:text-base touch-manipulation active:scale-[0.98] transition-all ml-4",
+                      isChildActive && "active"
+                    )}
+                  >
+                    <child.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-4.5 md:w-4.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium truncate text-xs sm:text-sm md:text-base">{child.name}</span>
+                      {child.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                          {child.description}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -100,35 +205,7 @@ export function Sidebar({
 
           {/* Navigation - Ultra Responsive */}
           <nav className="flex-1 p-2 sm:p-3 md:p-4 space-y-1 sm:space-y-1.5 md:space-y-2 overflow-y-auto">
-            {navigationItems.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <div key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={() => onMobileClose?.()}
-                    className={cn(
-                      "sidebar-item text-xs sm:text-sm md:text-base touch-manipulation active:scale-[0.98] transition-all",
-                      isActive && "active",
-                      isCollapsed && "justify-center px-1 sm:px-1.5 md:px-2"
-                    )}
-                    title={isCollapsed ? item.name : undefined}
-                  >
-                    <item.icon className="h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5 flex-shrink-0" />
-                    {!isCollapsed && (
-                      <div className="flex-1 min-w-0">
-                        <span className="font-medium truncate text-xs sm:text-sm md:text-base">{item.name}</span>
-                        {item.description && (
-                          <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                            {item.description}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </Link>
-                </div>
-              );
-            })}
+            {navigationItems.map((item) => renderNavigationItem(item))}
           </nav>
 
           {/* Footer - Ultra Responsive */}

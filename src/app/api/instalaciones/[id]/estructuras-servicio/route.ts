@@ -40,7 +40,7 @@ export async function GET(
           b.fecha_inactivacion
         FROM base b
         INNER JOIN as_turnos_roles_servicio rs ON b.rol_servicio_id = rs.id
-        WHERE b.rn = 1 AND b.activo = $2
+        WHERE (CASE WHEN $2 = true THEN b.rn = 1 AND b.activo = true ELSE b.activo = false END)
       )
       UNION ALL
       (

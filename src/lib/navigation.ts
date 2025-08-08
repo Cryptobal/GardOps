@@ -15,7 +15,8 @@ import {
   Activity,
   DollarSign,
   Calculator,
-  Building
+  Building,
+  FileText as FileTextIcon
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -75,7 +76,19 @@ export const navigationItems: NavigationItem[] = [
   {
     name: "Documentos",
     href: "/documentos",
-    icon: FolderOpen
+    icon: FolderOpen,
+    children: [
+      {
+        name: "Todos los Documentos",
+        href: "/documentos",
+        icon: FileText
+      },
+      {
+        name: "Plantillas",
+        href: "/documentos/plantillas",
+        icon: FileTextIcon
+      }
+    ]
   },
   {
     name: "Alertas y KPIs",
@@ -100,14 +113,13 @@ export const navigationItems: NavigationItem[] = [
       {
         name: "Estructuras de Servicio",
         href: "/configuracion/estructuras-servicio",
-        icon: Building
+        icon: Activity
+      },
+      {
+        name: "Tipos de Documentos",
+        href: "/configuracion/tipos-documentos",
+        icon: FileText
       }
     ]
-  },
-  {
-    name: "Logs del Sistema",
-    href: "/logs",
-    icon: Activity,
-    description: "Auditoría y seguimiento de actividades"
   }
 ]; 
