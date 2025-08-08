@@ -1,3 +1,66 @@
+"use client"
+import { useEffect, useState } from 'react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import TemplatesTable from './components/TemplatesTable'
+import GenerateDocument from './components/GenerateDocument'
+import DocumentsList from './components/DocumentsList'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { toast } from '@/hooks/use-toast'
+
+export default function DocumentosPage() {
+  const [tab, setTab] = useState('plantillas')
+  const [stats, setStats] = useState<{ plantillas: number; documentos: number; firmas: number }>({ plantillas: 0, documentos: 0, firmas: 0 })
+
+  useEffect(() => {
+    console.log("Documentos MVP listo")
+    alert("Documentos: plantillas, documentos y firma simple operativos")
+    ;(async () => {
+      try {
+        const [tpl, docs, sig] = await Promise.all([
+          fetch('/api/doc/templates').then(r => r.json()),
+          fetch('/api/documents-count').then(r => r.json()).catch(() => ({ success: true, data: { count: 0 } })),
+          fetch('/api/signatures-count').then(r => r.json()).catch(() => ({ success: true, data: { count: 0 } })),
+        ])
+        setStats({ plantillas: tpl?.data?.length || 0, documentos: docs?.data?.count || 0, firmas: sig?.data?.count || 0 })
+        toast().success('Módulo Documentos cargado')
+      } catch {}
+    })()
+  }, [])
+
+  return (
+    <div className="p-4 max-w-7xl mx-auto space-y-4">
+      <Alert>
+        <AlertTitle>Documentos</AlertTitle>
+        <AlertDescription>
+          Plantillas: {stats.plantillas} · Documentos: {stats.documentos} · Firmas: {stats.firmas}
+        </AlertDescription>
+      </Alert>
+      <Card>
+        <CardHeader>
+          <CardTitle>Documentos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList>
+              <TabsTrigger value="plantillas">Plantillas</TabsTrigger>
+              <TabsTrigger value="documentos">Documentos</TabsTrigger>
+            </TabsList>
+            <TabsContent value="plantillas">
+              <TemplatesTable />
+            </TabsContent>
+            <TabsContent value="documentos">
+              <div className="space-y-4">
+                <GenerateDocument />
+                <DocumentsList />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
 "use client";
 
 import { useState, useEffect, useMemo } from "react";

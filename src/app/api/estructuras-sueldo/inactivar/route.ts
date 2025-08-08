@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
       // 1. Obtener la estructura actual antes de inactivarla
       const estructuraActual = await client.query(`
-        SELECT * FROM sueldo_estructuras_roles 
+        SELECT * FROM sueldo_estructuras_servicio 
         WHERE id = $1
       `, [estructuraId]);
 
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
       // 2. Inactivar la estructura actual
       const resultInactivacion = await client.query(`
-        UPDATE sueldo_estructuras_roles 
+        UPDATE sueldo_estructuras_servicio 
         SET activo = false, fecha_inactivacion = NOW(), updated_at = NOW()
         WHERE id = $1
         RETURNING id, rol_servicio_id, sueldo_base, activo, fecha_inactivacion
@@ -57,49 +57,38 @@ export async function POST(request: NextRequest) {
       };
 
       const resultNuevaEstructura = await client.query(`
-        INSERT INTO sueldo_estructuras_roles (
+        INSERT INTO sueldo_estructuras_servicio (
+          instalacion_id,
           rol_servicio_id, 
-          sueldo_base, 
-          bono_asistencia, 
-          bono_responsabilidad,
-          bono_noche, 
-          bono_feriado, 
-          bono_riesgo, 
-          otros_bonos, 
-          activo, 
-          created_at, 
+          sueldo_base,
+          bono_id,
+          monto,
+          activo,
+          created_at,
           updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+        ) VALUES ($1, $2, $3, NULL, 0, true, NOW(), NOW())
         RETURNING *
       `, [
-        nuevaEstructuraData.rol_servicio_id,
-        nuevaEstructuraData.sueldo_base,
-        nuevaEstructuraData.bono_asistencia,
-        nuevaEstructuraData.bono_responsabilidad,
-        nuevaEstructuraData.bono_noche,
-        nuevaEstructuraData.bono_feriado,
-        nuevaEstructuraData.bono_riesgo,
-        JSON.stringify(nuevaEstructuraData.otros_bonos),
-        nuevaEstructuraData.activo
+        estructura.instalacion_id,
+        estructura.rol_servicio_id,
+        nuevaEstructuraData.sueldo_base
       ]);
 
       // 4. Crear registro en historial
       await client.query(`
-        INSERT INTO historial_estructuras_servicio (
-          estructura_anterior_id,
-          estructura_nueva_id,
+        INSERT INTO sueldo_historial_estructuras (
           rol_servicio_id,
+          estructura_id,
           accion,
-          motivo,
           fecha_accion,
+          detalles,
+          usuario_id,
           datos_anteriores,
           datos_nuevos
-        ) VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7)
+        ) VALUES ($1, $2, 'REEMPLAZO', NOW(), $3, NULL, $4, $5)
       `, [
-        estructuraId,
-        resultNuevaEstructura.rows[0].id,
         estructura.rol_servicio_id,
-        'REEMPLAZO',
+        resultNuevaEstructura.rows[0].id,
         motivo,
         JSON.stringify(estructura),
         JSON.stringify(resultNuevaEstructura.rows[0])

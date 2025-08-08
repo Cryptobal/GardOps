@@ -9,16 +9,18 @@ export async function PUT(
   try {
     const { id } = params;
     const body = await request.json();
-    const { motivo, usuario_id, crear_nueva_automaticamente = true } = body;
+    const { motivo = '', usuario_id = null, crear_nueva_automaticamente = false } = body;
 
-    // Validar que la estructura existe
+    // Validar que la estructura existe y obtener datos actuales
     const estructuraExiste = await query(`
       SELECT 
         es.*,
         rs.nombre as rol_nombre,
-        rs.estado as rol_estado
-      FROM sueldo_estructuras_roles es
+        rs.estado as rol_estado,
+        i.nombre as instalacion_nombre
+      FROM sueldo_estructuras_servicio es
       INNER JOIN as_turnos_roles_servicio rs ON es.rol_servicio_id = rs.id
+      INNER JOIN instalaciones i ON es.instalacion_id = i.id
       WHERE es.id = $1
     `, [id]);
 
@@ -48,7 +50,7 @@ export async function PUT(
 
     // Inactivar la estructura actual
     await query(`
-      UPDATE sueldo_estructuras_roles
+      UPDATE sueldo_estructuras_servicio
       SET 
         activo = false,
         fecha_inactivacion = NOW(),
@@ -68,20 +70,13 @@ export async function PUT(
         datos_anteriores,
         datos_nuevos
       ) VALUES (
-        $1,
-        $2,
-        'INACTIVACION',
-        NOW(),
-        $3,
-        $4,
-        $5,
-        $6
+        $1, $2, 'INACTIVACION', NOW(), $3, $4, $5, $6
       )
     `, [
       estructura.rol_servicio_id,
       id,
-      COALESCE(motivo, 'Estructura inactivada manualmente'),
-      usuario_id || null,
+      motivo || 'Estructura inactivada manualmente',
+      usuario_id,
       JSON.stringify(estructura),
       JSON.stringify({ ...estructura, activo: false, fecha_inactivacion: new Date() })
     ]);
@@ -90,46 +85,62 @@ export async function PUT(
 
     // Crear nueva estructura automáticamente si se solicita
     if (crear_nueva_automaticamente && estructura.rol_estado === 'Activo') {
-      try {
-        const resultadoNuevaEstructura = await query(`
-          SELECT crear_nueva_estructura_servicio($1, $2, $3, $4, $5)
+      const resultadoNuevaEstructura = await query(`
+        INSERT INTO sueldo_estructuras_servicio (
+          instalacion_id,
+          rol_servicio_id,
+          sueldo_base,
+          bono_id,
+          monto,
+          activo
+        )
+        SELECT 
+          instalacion_id,
+          rol_servicio_id,
+          sueldo_base,
+          bono_id,
+          monto,
+          true
+        FROM sueldo_estructuras_servicio
+        WHERE id = $1
+        RETURNING *
+      `, [id]);
+
+      if (resultadoNuevaEstructura.rows.length > 0) {
+        nuevaEstructura = resultadoNuevaEstructura.rows[0];
+        
+        // Registrar creación en historial
+        await query(`
+          INSERT INTO historial_estructuras_servicio (
+            rol_servicio_id,
+            estructura_id,
+            accion,
+            fecha_accion,
+            detalles,
+            usuario_id,
+            datos_anteriores,
+            datos_nuevos
+          ) VALUES (
+            $1, $2, 'CREACION', NOW(), $3, $4, NULL, $5
+          )
         `, [
           estructura.rol_servicio_id,
-          estructura.sueldo_base,
-          JSON.stringify({
-            bono_asistencia: estructura.bono_asistencia,
-            bono_responsabilidad: estructura.bono_responsabilidad,
-            bono_noche: estructura.bono_noche,
-            bono_feriado: estructura.bono_feriado,
-            bono_riesgo: estructura.bono_riesgo,
-            otros_bonos: estructura.otros_bonos || []
-          }),
+          nuevaEstructura.id,
           'Nueva estructura creada automáticamente al inactivar la anterior',
-          usuario_id || null
+          usuario_id,
+          JSON.stringify(nuevaEstructura)
         ]);
-
-        nuevaEstructura = resultadoNuevaEstructura.rows[0].crear_nueva_estructura_servicio;
-      } catch (error) {
-        console.error('Error creando nueva estructura automáticamente:', error);
-        // No fallar la operación si no se puede crear la nueva estructura
       }
     }
-
-    // Obtener información actualizada
-    const estructuraActualizada = await query(`
-      SELECT 
-        es.*,
-        rs.nombre as rol_nombre,
-        rs.estado as rol_estado
-      FROM sueldo_estructuras_roles es
-      INNER JOIN as_turnos_roles_servicio rs ON es.rol_servicio_id = rs.id
-      WHERE es.id = $1
-    `, [id]);
 
     return NextResponse.json({
       success: true,
       message: 'Estructura de servicio inactivada exitosamente',
-      estructura: estructuraActualizada.rows[0],
+      estructura: {
+        ...estructura,
+        activo: false,
+        fecha_inactivacion: new Date().toISOString()
+      },
       nueva_estructura_creada: nuevaEstructura !== null,
       nueva_estructura: nuevaEstructura,
       fecha_inactivacion: new Date().toISOString(),

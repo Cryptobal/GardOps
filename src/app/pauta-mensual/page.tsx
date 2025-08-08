@@ -462,11 +462,20 @@ export default function PautaMensualPage() {
                 key={instalacion.id}
                 instalacion={instalacion}
                 tipo={instalacion.tipo}
-                onAction={() =>
-                  instalacion.tipo === 'con_pauta'
-                    ? verPauta(instalacion.id)
-                    : generarPautaAutomatica(instalacion.id)
-                }
+                onAction={() => {
+                  if (instalacion.tipo === 'con_pauta') {
+                    verPauta(instalacion.id);
+                    return;
+                  }
+                  // Si no tiene pauta, decidir según si tiene roles de servicio
+                  const roles = (instalacion as any)?.roles as Array<any> | undefined;
+                  const tieneRoles = Array.isArray(roles) && roles.length > 0;
+                  if (!tieneRoles) {
+                    router.push(`/instalaciones/${instalacion.id}`);
+                  } else {
+                    generarPautaAutomatica(instalacion.id);
+                  }
+                }}
                 onEdit={instalacion.tipo === 'con_pauta' ? () => verPauta(instalacion.id) : undefined}
                 onDelete={instalacion.tipo === 'con_pauta' ? () => abrirModalEliminar(instalacion.id, instalacion.nombre) : undefined}
                 loading={loadingInstalacion === instalacion.id}

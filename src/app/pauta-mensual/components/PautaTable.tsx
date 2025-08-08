@@ -236,15 +236,15 @@ const ModalAutocompletarPauta = ({
   );
 };
 
-// Función centralizada para obtener el display del estado - DISEÑO MINIMALISTA MEJORADO
+// Función centralizada para obtener el display del estado - DISEÑO MINIMALISTA
 const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean = false) => {
   // Si es PPC cubierto (tiene cobertura), mostrar estado especial
   if (esPPC && cobertura && (estado === 'A' || estado === 'trabajado' || estado === 'a')) {
     return { 
       icon: "🛡️", 
       text: "", 
-      className: "bg-amber-500/10 dark:bg-amber-500/20 border-2 border-amber-500 dark:border-amber-400 shadow-sm",
-      iconColor: "text-amber-600 dark:text-amber-400 text-xl",
+      className: "bg-transparent border-0",
+      iconColor: "text-amber-500 dark:text-amber-400 text-xl",
       tooltip: `PPC Cubierto por: ${cobertura.nombre}`
     };
   }
@@ -264,8 +264,8 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
       return { 
         icon: "●", 
         text: "", 
-        className: "bg-blue-500/10 dark:bg-blue-500/20 border-2 border-blue-500 dark:border-blue-400 hover:border-blue-400 dark:hover:border-blue-300",
-        iconColor: "text-blue-700 dark:text-blue-300 text-xl font-bold",
+        className: "bg-transparent border-0",
+        iconColor: "text-blue-500 dark:text-blue-300 text-xl font-bold",
         tooltip: "Turno Planificado"
       };
     case "a":
@@ -274,16 +274,16 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
         return { 
           icon: "🛡️", 
           text: "", 
-          className: "bg-amber-500/10 dark:bg-amber-500/20 border-2 border-amber-500 dark:border-amber-400 shadow-sm",
-          iconColor: "text-amber-600 dark:text-amber-400 text-xl",
+          className: "bg-transparent border-0",
+          iconColor: "text-amber-500 dark:text-amber-400 text-xl",
           tooltip: `PPC Cubierto por: ${cobertura.nombre}`
         };
       }
       return { 
         icon: "✓", 
         text: "", 
-        className: "bg-green-500/10 dark:bg-green-500/20 border-2 border-green-500 dark:border-green-400 hover:border-green-400 dark:hover:border-green-300",
-        iconColor: "text-green-700 dark:text-green-400 text-xl font-bold",
+        className: "bg-transparent border-0",
+        iconColor: "text-green-600 dark:text-green-400 text-xl font-bold",
         tooltip: "Asistió (Confirmado)"
       };
     case "i":
@@ -291,8 +291,8 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
       return { 
         icon: esPPC ? "▲" : "✗", 
         text: "", 
-        className: "bg-red-500/15 dark:bg-red-500/25 border-2 border-red-500 dark:border-red-400 hover:border-red-400 dark:hover:border-red-300 animate-pulse-subtle",
-        iconColor: "text-red-700 dark:text-red-400 text-xl font-bold",
+        className: "bg-transparent border-0",
+        iconColor: "text-red-600 dark:text-red-400 text-xl font-bold",
         tooltip: esPPC ? "Sin Cobertura" : "Falta"
       };
     case "r":
@@ -301,15 +301,15 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
         return { 
           icon: "🛡️", 
           text: "", 
-          className: "bg-amber-500/10 dark:bg-amber-500/20 border-2 border-amber-500 dark:border-amber-400 shadow-sm",
-          iconColor: "text-amber-600 dark:text-amber-400 text-xl",
+          className: "bg-transparent border-0",
+          iconColor: "text-amber-500 dark:text-amber-400 text-xl",
           tooltip: `PPC Cubierto por: ${cobertura?.nombre || 'Guardia asignado'}`
         };
       }
       return { 
         icon: "⟲", 
         text: "", 
-        className: "bg-orange-500/10 dark:bg-orange-500/20 border-2 border-orange-500 dark:border-orange-400 hover:border-orange-400 dark:hover:border-orange-300",
+        className: "bg-transparent border-0",
         iconColor: "text-orange-600 dark:text-orange-400 text-xl font-bold",
         tooltip: `Reemplazo${tooltipExtra}`
       };
@@ -317,8 +317,8 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
       return { 
         icon: "▲", 
         text: "", 
-        className: "bg-red-500/15 dark:bg-red-500/25 border-2 border-red-500 dark:border-red-400 hover:border-red-400 dark:hover:border-red-300",
-        iconColor: "text-red-700 dark:text-red-400 text-xl font-bold",
+        className: "bg-transparent border-0",
+        iconColor: "text-red-600 dark:text-red-400 text-xl font-bold",
         tooltip: "Sin Cobertura"
       };
     case "libre":
@@ -326,7 +326,7 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
       return { 
         icon: "○", 
         text: "", 
-        className: "bg-gray-100 dark:bg-gray-800/50 border border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500",
+        className: "bg-transparent border-0",
         iconColor: "text-gray-400 dark:text-gray-500 text-lg",
         tooltip: "Libre"
       };
@@ -334,7 +334,7 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
       return { 
         icon: "🏖", 
         text: "", 
-        className: "bg-indigo-500/10 dark:bg-indigo-500/20 border-2 border-indigo-500 dark:border-indigo-400 hover:border-indigo-400 dark:hover:border-indigo-300",
+        className: "bg-transparent border-0",
         iconColor: "text-indigo-600 dark:text-indigo-400 text-xl",
         tooltip: "Permiso"
       };
@@ -342,7 +342,7 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
       return { 
         icon: "🌴", 
         text: "", 
-        className: "bg-purple-500/10 dark:bg-purple-500/20 border-2 border-purple-500 dark:border-purple-400 hover:border-purple-400 dark:hover:border-purple-300",
+        className: "bg-transparent border-0",
         iconColor: "text-purple-600 dark:text-purple-400 text-xl",
         tooltip: "Vacaciones"
       };
@@ -350,7 +350,7 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
       return { 
         icon: "🏥", 
         text: "", 
-        className: "bg-pink-500/10 dark:bg-pink-500/20 border-2 border-pink-500 dark:border-pink-400 hover:border-pink-400 dark:hover:border-pink-300",
+        className: "bg-transparent border-0",
         iconColor: "text-pink-600 dark:text-pink-400 text-xl",
         tooltip: "Licencia Médica"
       };
@@ -358,7 +358,7 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
       return { 
         icon: "·", 
         text: "", 
-        className: "bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700",
+        className: "bg-transparent border-0",
         iconColor: "text-gray-300 dark:text-gray-600 text-lg",
         tooltip: "Sin asignar"
       };
@@ -397,9 +397,10 @@ const DiaCell = ({
   const esDiaEspecial = esFinDeSemana || esFeriado;
   const isDiaGuardado = diasGuardados?.has(`${guardiaNombre}-${diaNumero}`);
   
-  const clasesEspeciales = ''; // Eliminado el ring amber
-  const clasesFeriado = esFeriado ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/30' : '';
-  const clasesFinDeSemana = esFinDeSemana ? 'bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20' : '';
+  const clasesEspeciales = '';
+  // Sin fondos para feriados/fin de semana en celdas; acento solo en header
+  const clasesFeriado = '';
+  const clasesFinDeSemana = '';
   
   // Clases para edición - ahora PPCs también son editables
   const clasesModoEdicion = modoEdicion 
@@ -442,8 +443,8 @@ const DiaCell = ({
           </span>
         )}
         
-        <div className="flex items-center justify-center">
-          <span className={`${icon === '⟲' ? 'text-2xl' : 'text-xl'} font-bold ${iconColor || 'text-gray-400'} drop-shadow-sm`}>
+        <div className={`flex items-center justify-center`}>
+          <span className={`${icon === '⟲' ? 'text-3xl' : 'text-xl'} font-bold ${iconColor || 'text-gray-400'} drop-shadow-sm`}>
             {icon}
           </span>
           {/* Indicador adicional para estados críticos */}
@@ -721,21 +722,23 @@ export default function PautaTable({
         <div className="border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-x-auto">
           <div className="min-w-max">
             <Table className="w-full">
-              <TableHeader>
-                <TableRow className="bg-gradient-to-r from-gray-50/50 to-gray-100/50 dark:from-gray-800/50 dark:to-gray-900/50">
-                  <TableHead className="font-semibold text-left p-4 border-0 sticky left-0 bg-gradient-to-r from-gray-50/50 to-gray-100/50 dark:from-gray-800/50 dark:to-gray-900/50 z-10 text-gray-500 dark:text-gray-400" style={{width: '200px', minWidth: '200px'}}>
+            <TableHeader>
+              <TableRow className="bg-transparent">
+                <TableHead className="font-semibold text-left p-4 border-0 sticky left-0 bg-transparent z-10 text-gray-500 dark:text-gray-400" style={{width: '200px', minWidth: '200px'}}>
                     Guardia
                   </TableHead>
                   {diasDelMes.map((dia) => {
                     const diaInfo = diasSemana[dia - 1];
                     const esFinDeSemana = diaInfo?.diaSemana === 'Sáb' || diaInfo?.diaSemana === 'Dom';
                     const esFeriado = diaInfo?.esFeriado || feriadosChile.includes(dia);
-                    const clasesEspeciales = esFeriado ? 'bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-900/40' : 
-                                               esFinDeSemana ? 'bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30' : 
-                                               'bg-gray-50/30 dark:bg-gray-900/30';
+                  const clasesEspeciales = esFeriado
+                    ? 'bg-transparent border-t-2 border-red-500/40'
+                    : esFinDeSemana
+                      ? 'bg-transparent border-t-2 border-amber-400/40'
+                      : 'bg-transparent border-t border-gray-200 dark:border-gray-700';
                     
                     return (
-                      <TableHead key={dia} className={`font-semibold text-center p-2 border-0 ${clasesEspeciales}`} style={{width: '35px', minWidth: '35px'}}>
+                    <TableHead key={dia} className={`font-semibold text-center p-2 ${clasesEspeciales}`} style={{width: '35px', minWidth: '35px'}}>
                         <div className={`text-xs font-bold ${
                           esFeriado ? 'text-red-700 dark:text-red-300' : 
                           esFinDeSemana ? 'text-amber-700 dark:text-amber-300' : 
@@ -759,11 +762,7 @@ export default function PautaTable({
                 {pautaDataOrdenada.map((guardia, guardiaIndex) => (
                   <TableRow 
                     key={guardiaIndex} 
-                    className={`group border-0 ${
-                      guardia.es_ppc 
-                        ? 'bg-gradient-to-r from-red-50/30 to-red-100/30 dark:from-red-900/10 dark:to-red-800/10 hover:from-red-50/50 hover:to-red-100/50 dark:hover:from-red-900/20 dark:hover:to-red-800/20' 
-                        : 'hover:bg-gray-50/50 dark:hover:bg-gray-800/50'
-                    }`}
+                  className={`group border-0 hover:bg-gray-50/50 dark:hover:bg-gray-800/50`}
                   >
                     <TableCell className="p-4 border-0 whitespace-nowrap relative sticky left-0 bg-white dark:bg-gray-900 z-10">
                       <div className="flex items-center gap-3">

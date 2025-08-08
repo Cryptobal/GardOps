@@ -1,131 +1,103 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@vercel/postgres';
+import { query } from '@/lib/database';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 Iniciando proceso de activación...');
     const body = await request.json();
-    const { rolId, motivo = 'Activación manual' } = body;
+    const { rolId, instalacionId, motivo = 'Activación manual' } = body;
+
+    console.log('🔍 Datos recibidos:', { rolId, motivo });
 
     if (!rolId) {
+      console.log('❌ Error: rolId no proporcionado');
       return NextResponse.json(
         { success: false, error: 'El rolId es requerido' },
         { status: 400 }
       );
     }
+    if (!instalacionId) {
+      console.log('❌ Error: instalacionId no proporcionado');
+      return NextResponse.json(
+        { success: false, error: 'El instalacionId es requerido' },
+        { status: 400 }
+      );
+    }
 
     // Iniciar transacción
-    const client = await sql.connect();
+    await query('BEGIN');
 
     try {
-      await client.query('BEGIN');
-
-      // 1. Activar el rol de servicio
-      const resultRol = await client.query(`
-        UPDATE as_turnos_roles_servicio 
-        SET estado = 'Activo', updated_at = NOW()
-        WHERE id = $1
-        RETURNING id, nombre, estado
-      `, [rolId]);
+      // 1. Verificar que el rol existe (no cambiamos estado global)
+      const resultRol = await query(
+        `SELECT id, nombre FROM as_turnos_roles_servicio WHERE id = $1 LIMIT 1`,
+        [rolId]
+      );
 
       if (resultRol.rowCount === 0) {
-        await client.query('ROLLBACK');
+        await query('ROLLBACK');
+        console.log('❌ Error: Rol de servicio no encontrado');
         return NextResponse.json(
           { success: false, error: 'Rol de servicio no encontrado' },
           { status: 404 }
         );
       }
 
-      // 2. Activar la estructura de sueldo asociada (si existe)
-      const resultEstructura = await client.query(`
-        UPDATE sueldo_estructuras_roles 
+      console.log('🔍 Activando estructuras de servicio SOLO en la instalación indicada...');
+      // 2. Activar las estructuras de sueldo asociadas del rol en esa instalación
+      const resultEstructura = await query(`
+        UPDATE sueldo_estructuras_servicio 
         SET activo = true, fecha_inactivacion = NULL, updated_at = NOW()
-        WHERE rol_servicio_id = $1
+        WHERE rol_servicio_id = $1 AND instalacion_id = $2
         RETURNING id, rol_servicio_id, sueldo_base, activo
-      `, [rolId]);
+      `, [rolId, instalacionId]);
 
-      // 3. Si no hay estructura activa, crear una nueva
-      let estructuraCreada = null;
-      if (resultEstructura.rowCount === 0) {
-        // Obtener datos del rol para crear estructura por defecto
-        const rolData = await client.query(`
-          SELECT * FROM as_turnos_roles_servicio WHERE id = $1
-        `, [rolId]);
-
-        if (rolData.rows.length > 0) {
-          const nuevaEstructura = await client.query(`
-            INSERT INTO sueldo_estructuras_roles (
-              rol_servicio_id, 
-              sueldo_base, 
-              bono_asistencia, 
-              bono_responsabilidad,
-              bono_noche, 
-              bono_feriado, 
-              bono_riesgo, 
-              otros_bonos, 
-              activo, 
-              created_at, 
-              updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
-            RETURNING *
-          `, [
-            rolId,
-            500000, // Sueldo base por defecto
-            0, // Bono asistencia
-            0, // Bono responsabilidad
-            0, // Bono noche
-            0, // Bono feriado
-            0, // Bono riesgo
-            JSON.stringify([]), // Otros bonos
-            true // Activo
-          ]);
-          estructuraCreada = nuevaEstructura.rows[0];
-        }
-      }
-
-      // 4. Crear registro en historial
-      await client.query(`
-        INSERT INTO historial_roles_servicio (
+      console.log('🔍 Registrando en historial...');
+      // 3. Crear registro en historial
+      await query(`
+        INSERT INTO sueldo_historial_roles (
           rol_servicio_id, 
           accion, 
-          motivo, 
-          fecha_accion, 
-          datos_anteriores
-        ) VALUES ($1, $2, $3, NOW(), $4)
+          fecha_accion,
+          detalles,
+          datos_anteriores,
+          datos_nuevos
+        ) VALUES ($1, $2, NOW(), $3, $4, $5)
       `, [
         rolId,
-        'ACTIVACION',
+        'REACTIVACION',
         motivo,
         JSON.stringify({
           rol: resultRol.rows[0],
-          estructura: resultEstructura.rows[0] || estructuraCreada
+          instalacion_id: instalacionId,
+          estructuras_activadas: resultEstructura.rows.length
+        }),
+        JSON.stringify({
+          rol_estado: 'Inactivo',
+          estructuras_activas: 0
         })
       ]);
 
-      await client.query('COMMIT');
+      await query('COMMIT');
 
+      console.log('✅ Activación completada exitosamente');
       return NextResponse.json({
         success: true,
-        message: 'Rol de servicio activado exitosamente',
+        message: 'Rol activado correctamente',
         data: {
           rol: resultRol.rows[0],
-          estructura: resultEstructura.rows[0] || estructuraCreada,
-          historial: {
-            accion: 'ACTIVACION',
-            motivo,
-            fecha: new Date().toISOString()
-          }
+          estructuras_activadas: resultEstructura.rows.length
         }
       });
 
     } catch (error) {
-      await client.query('ROLLBACK');
+      await query('ROLLBACK');
+      console.error('❌ Error en activación:', error);
       throw error;
-    } finally {
-      client.release();
     }
 
   } catch (error) {
-    console.error('Error al activar rol de servicio:', error);
+    console.error('❌ Error al activar rol de servicio:', error);
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }

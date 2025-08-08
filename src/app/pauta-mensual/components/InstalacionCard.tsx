@@ -76,6 +76,7 @@ export default function InstalacionCard({
   const irAInstalacion = () => {
     router.push(`/instalaciones/${instalacion.id}`);
   };
+  const tieneRoles = !isConPauta && (instalacionSinPauta.roles?.length || 0) > 0;
 
   return (
     <Card className="hover:shadow-md transition-shadow duration-200 border border-gray-200 dark:border-gray-700 h-64 flex flex-col">
@@ -161,7 +162,7 @@ export default function InstalacionCard({
               onClick={onAction}
               disabled={loading}
               size="sm"
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              className={`flex-1 ${tieneRoles ? "bg-red-600 hover:bg-red-700 text-white" : "bg-yellow-500 hover:bg-yellow-600 text-black"}`}
             >
               {loading ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -169,7 +170,7 @@ export default function InstalacionCard({
                 <Plus className="h-3 w-3" />
               )}
               <span className="ml-1 text-xs">
-                Generar pauta
+                {tieneRoles ? "Generar pauta" : "Asignar rol"}
               </span>
             </Button>
           )}

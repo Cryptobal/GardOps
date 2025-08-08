@@ -1,3 +1,67 @@
+"use client"
+import * as React from "react"
+import { ChevronDown } from "lucide-react"
+import { cn } from "@/lib/utils"
+
+interface SelectContextType {
+  value: string
+  onValueChange: (v: string) => void
+  open: boolean
+  setOpen: (v: boolean) => void
+}
+const SelectContext = React.createContext<SelectContextType | null>(null)
+const useCtx = () => {
+  const c = React.useContext(SelectContext)
+  if (!c) throw new Error('Select.* debe usarse dentro de <Select>')
+  return c
+}
+
+export function Select({ value, onValueChange, children }: { value?: string; onValueChange?: (v: string) => void; children: React.ReactNode }) {
+  const [val, setVal] = React.useState(value || '')
+  const [open, setOpen] = React.useState(false)
+  React.useEffect(() => { if (value !== undefined) setVal(value) }, [value])
+  const ctx: SelectContextType = {
+    value: val,
+    onValueChange: (v) => { setVal(v); onValueChange?.(v); setOpen(false) },
+    open,
+    setOpen,
+  }
+  return <SelectContext.Provider value={ctx}>{children}</SelectContext.Provider>
+}
+
+export function SelectTrigger({ children, className }: { children?: React.ReactNode; className?: string }) {
+  const { open, setOpen } = useCtx()
+  return (
+    <button type="button" onClick={() => setOpen(!open)} className={cn("w-full inline-flex items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm", className)}>
+      <span className="truncate">{children}</span>
+      <ChevronDown className="h-4 w-4" />
+    </button>
+  )
+}
+
+export function SelectValue({ placeholder }: { placeholder?: string }) {
+  const { value } = useCtx()
+  return <span className="truncate text-left w-full">{value || placeholder || 'Seleccionar'}</span>
+}
+
+export function SelectContent({ children, className }: { children: React.ReactNode; className?: string }) {
+  const { open } = useCtx()
+  if (!open) return null
+  return (
+    <div className={cn("mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow", className)}>
+      {children}
+    </div>
+  )
+}
+
+export function SelectItem({ value, children }: { value: string; children: React.ReactNode }) {
+  const { onValueChange } = useCtx()
+  return (
+    <div role="option" onClick={() => onValueChange(value)} className="px-3 py-2 cursor-pointer hover:bg-accent">
+      {children}
+    </div>
+  )
+}
 "use client";
 
 import * as React from "react";

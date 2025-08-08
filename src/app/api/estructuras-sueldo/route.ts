@@ -14,19 +14,13 @@ export async function GET(request: NextRequest) {
         es.rol_servicio_id as rol_id,
         rs.nombre as rol_nombre,
         es.sueldo_base,
-        es.bono_asistencia,
-        es.bono_responsabilidad,
-        es.bono_noche,
-        es.bono_feriado,
-        es.bono_riesgo,
-        es.otros_bonos,
         es.activo,
         es.fecha_inactivacion,
         es.created_at,
         es.updated_at
-      FROM sueldo_estructuras_roles es
+      FROM sueldo_estructuras_servicio es
       LEFT JOIN as_turnos_roles_servicio rs ON es.rol_servicio_id = rs.id
-      WHERE 1=1
+      WHERE es.bono_id IS NULL
     `;
     const params: any[] = [];
     let paramIndex = 1;

@@ -1,3 +1,15 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { query } from '@/lib/db'
+
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const r = await query('SELECT * FROM doc_documents WHERE id = $1', [params.id])
+    if (r.rows.length === 0) return NextResponse.json({ success: false, error: 'No encontrado' }, { status: 404 })
+    return NextResponse.json({ success: true, data: r.rows[0] })
+  } catch (e) {
+    return NextResponse.json({ success: false, error: 'Error' }, { status: 500 })
+  }
+}
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/database";
 
