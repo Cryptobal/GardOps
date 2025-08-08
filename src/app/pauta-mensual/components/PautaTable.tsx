@@ -444,7 +444,7 @@ const DiaCell = ({
         )}
         
         <div className={`flex items-center justify-center`}>
-          <span className={`${(icon === '⟲' || icon === '▲') ? 'text-3xl' : 'text-xl'} font-bold ${iconColor || 'text-gray-400'} drop-shadow-sm`}>
+          <span className={`${icon === '⟲' ? 'text-4xl' : icon === '▲' ? 'text-3xl' : 'text-xl'} font-bold ${iconColor || 'text-gray-400'} drop-shadow-sm`}>
             {icon}
           </span>
           {/* Indicador adicional para estados críticos */}

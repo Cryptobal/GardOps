@@ -30,6 +30,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import TemplatesTable from "./components/TemplatesTable";
+import GenerateDocument from "./components/GenerateDocument";
+import DocumentsList from "./components/DocumentsList";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DocumentViewer } from "@/components/shared/document-viewer";
 import { Modal } from "@/components/ui/modal";
 
@@ -62,6 +67,7 @@ interface TipoDocumento {
 }
 
 export default function DocumentosGlobalesPage() {
+  const [tab, setTab] = useState('plantillas');
   const [documentos, setDocumentos] = useState<DocumentoGlobal[]>([]);
   const [stats, setStats] = useState<DocumentosStats>({
     total: 0,
@@ -490,6 +496,29 @@ export default function DocumentosGlobalesPage() {
           </Card>
         </motion.div>
 
+        {/* Tabs Plantillas | Documentos */}
+        <Card className="bg-card/50 border-border/50">
+          <CardContent>
+            <Tabs value={tab} onValueChange={setTab}>
+              <TabsList className="mb-4">
+                <TabsTrigger value="plantillas">Plantillas</TabsTrigger>
+                <TabsTrigger value="documentos">Documentos</TabsTrigger>
+              </TabsList>
+              <TabsContent value="plantillas">
+                <TemplatesTable />
+              </TabsContent>
+              <TabsContent value="documentos">
+                <div className="space-y-6">
+                  {/* Generar y listar documentos */}
+                  <GenerateDocument />
+                  <DocumentsList />
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* Tabla de documentos globales actual */}
         {/* Tabla de documentos - Optimizada para móviles */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
