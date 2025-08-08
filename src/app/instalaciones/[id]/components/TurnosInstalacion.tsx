@@ -479,7 +479,7 @@ export default function TurnosInstalacion({
                 <SelectContent>
                   {Array.isArray(rolesServicio) ? rolesServicio.map((rol) => (
                     <SelectItem key={rol.id} value={rol.id}>
-                      {rol.nombre} {rol.activo ? '(Activo)' : '(Inactivo)'}
+                      {rol.nombre}
                     </SelectItem>
                   )) : (
                     <SelectItem value="" disabled>
@@ -555,13 +555,6 @@ export default function TurnosInstalacion({
                       />
                       <div className="flex items-center gap-2">
                         <h3 className="text-sm font-medium">{turno.rol_servicio.nombre}</h3>
-                        {/* Badge de estado del rol */}
-                        <Badge 
-                          variant={turno.rol_servicio.estado === 'Activo' ? 'default' : 'secondary'}
-                          className="text-xs"
-                        >
-                          {turno.rol_servicio.estado === 'Activo' ? 'Activo' : 'Inactivo'}
-                        </Badge>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
