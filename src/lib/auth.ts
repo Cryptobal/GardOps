@@ -36,7 +36,10 @@ export function comparePassword(plainPassword: string, hashedPassword: string): 
 
 // Funciones del cliente (frontend)
 export function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === 'undefined') {
+    console.log('🔍 getToken: Ejecutando en servidor, retornando null');
+    return null;
+  }
   
   // Intentar obtener de cookies primero (nuevo sistema)
   try {
@@ -80,6 +83,12 @@ export function logout(): void {
 }
 
 export function isAuthenticated(): boolean {
+  // Verificar si estamos en el servidor
+  if (typeof window === 'undefined') {
+    console.log('🔍 isAuthenticated: Ejecutando en servidor, retornando false');
+    return false;
+  }
+  
   const token = getToken();
   console.log(`🔍 isAuthenticated: Token encontrado: ${token ? 'SÍ (' + token.substring(0, 20) + '...)' : 'NO'}`);
   

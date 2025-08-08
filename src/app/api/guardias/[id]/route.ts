@@ -46,6 +46,9 @@ export async function PUT(
       apellidoMaterno = body.apellido_materno || '';
     }
 
+    // Convertir estado a booleano para la base de datos
+    const activo = body.estado === 'activo';
+
     // Query para actualizar el guardia
     const result = await query(`
       UPDATE guardias 
@@ -63,8 +66,10 @@ export async function PUT(
         banco = $11,
         tipo_cuenta = $12,
         numero_cuenta = $13,
+        tipo_guardia = $14,
+        activo = $15,
         updated_at = NOW()
-      WHERE id = $14 AND tenant_id = $15
+      WHERE id = $16 AND tenant_id = $17
       RETURNING *
     `, [
       body.nombre,
@@ -80,6 +85,8 @@ export async function PUT(
       body.banco_id || null,
       body.tipo_cuenta || null,
       body.numero_cuenta || null,
+      body.tipo_guardia || 'contratado',
+      activo,
       guardiaId,
       tenantId
     ]);
@@ -119,6 +126,7 @@ export async function PUT(
       ciudad: guardiaActualizado.ciudad || '',
       comuna: guardiaActualizado.comuna || '',
       estado: guardiaActualizado.activo ? 'activo' : 'inactivo',
+      tipo_guardia: guardiaActualizado.tipo_guardia || 'contratado',
       fecha_os10: guardiaActualizado.fecha_os10,
       banco: guardiaActualizado.banco,
       tipo_cuenta: guardiaActualizado.tipo_cuenta,
@@ -218,6 +226,7 @@ export async function GET(
       ciudad: guardia.ciudad || '',
       comuna: guardia.comuna || '',
       estado: guardia.activo ? 'activo' : 'inactivo',
+      tipo_guardia: guardia.tipo_guardia || 'contratado',
       banco: guardia.banco,
       tipo_cuenta: guardia.tipo_cuenta,
       numero_cuenta: guardia.numero_cuenta,

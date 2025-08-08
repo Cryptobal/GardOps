@@ -60,6 +60,7 @@ interface FormData {
   ciudad: string;
   comuna: string;
   estado: "Activo" | "Inactivo";
+  tipo_guardia: "contratado" | "esporadico";
   instalacion_id?: string;
   fecha_os10?: string;
   banco_id?: string;
@@ -94,6 +95,7 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
       ciudad: '',
       comuna: '',
       estado: 'Activo',
+      tipo_guardia: 'contratado',
       instalacion_id: '',
       fecha_os10: ''
     }
@@ -132,6 +134,7 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
           ciudad: guardia.ciudad || '',
           comuna: guardia.comuna || '',
           estado: guardia.estado || 'Activo',
+          tipo_guardia: guardia.tipo_guardia || 'contratado',
           instalacion_id: guardia.instalacion_id || '',
           fecha_os10: guardia.fecha_os10 || ''
         });
@@ -152,6 +155,7 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
           ciudad: '',
           comuna: '',
           estado: 'Activo',
+          tipo_guardia: 'contratado',
           instalacion_id: '',
           fecha_os10: ''
         });
@@ -336,7 +340,7 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <label className="text-sm font-medium">RUT *</label>
               <Input
@@ -347,6 +351,19 @@ function GuardiaModal({ guardia, isOpen, onClose, onSuccess }: GuardiaModalProps
               {errors.rut && (
                 <p className="text-sm text-red-500">{errors.rut.message}</p>
               )}
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium">Tipo de Guardia *</label>
+              <Select value={watch('tipo_guardia') || 'contratado'} onValueChange={(v) => setValue('tipo_guardia', v as 'contratado' | 'esporadico')}>
+                <SelectTrigger className="w-full h-9">
+                  <SelectValue placeholder="Seleccione tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="contratado">Contratado</SelectItem>
+                  <SelectItem value="esporadico">Esporádico</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             <div>

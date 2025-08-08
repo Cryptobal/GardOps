@@ -17,6 +17,7 @@ export interface Guardia {
   region: string | null;
   activo: boolean;
   estado: "Activo" | "Inactivo";
+  tipo_guardia: "contratado" | "esporadico";
   instalacion_id?: string;
   instalacion_nombre?: string;
   instalacion_asignada?: string;
@@ -50,6 +51,7 @@ export interface CrearGuardiaData {
   fecha_nacimiento: string;
   fecha_ingreso: string;
   estado: "Activo" | "Inactivo";
+  tipo_guardia: "contratado" | "esporadico";
   tipo_contrato: "Indefinido" | "Plazo Fijo" | "Por Obra";
   sueldo_base: number;
   instalacion_id?: string;
@@ -71,6 +73,7 @@ export interface ActualizarGuardiaData {
   fecha_nacimiento?: string;
   fecha_ingreso?: string;
   estado?: "Activo" | "Inactivo";
+  tipo_guardia?: "contratado" | "esporadico";
   tipo_contrato?: "Indefinido" | "Plazo Fijo" | "Por Obra";
   sueldo_base?: number;
   instalacion_id?: string;
@@ -92,6 +95,7 @@ export const crearGuardiaSchema = z.object({
   fecha_nacimiento: z.string().min(1, 'La fecha de nacimiento es requerida'),
   fecha_ingreso: z.string().min(1, 'La fecha de ingreso es requerida'),
   estado: z.enum(['Activo', 'Inactivo']).default('Activo'),
+  tipo_guardia: z.enum(['contratado', 'esporadico']).default('contratado'),
   tipo_contrato: z.enum(['Indefinido', 'Plazo Fijo', 'Por Obra']).default('Indefinido'),
   sueldo_base: z.coerce.number().min(0, 'El sueldo debe ser mayor o igual a 0'),
   instalacion_id: z.string().uuid('ID de instalación inválido').optional(),
@@ -113,6 +117,7 @@ export const actualizarGuardiaSchema = z.object({
   fecha_nacimiento: z.string().min(1, 'La fecha de nacimiento es requerida').optional(),
   fecha_ingreso: z.string().min(1, 'La fecha de ingreso es requerida').optional(),
   estado: z.enum(['Activo', 'Inactivo']).optional(),
+  tipo_guardia: z.enum(['contratado', 'esporadico']).optional(),
   tipo_contrato: z.enum(['Indefinido', 'Plazo Fijo', 'Por Obra']).optional(),
   sueldo_base: z.coerce.number().min(0, 'El sueldo debe ser mayor o igual a 0').optional(),
   instalacion_id: z.string().uuid('ID de instalación inválido').optional(),

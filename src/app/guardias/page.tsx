@@ -59,7 +59,7 @@ const KPIBox = ({
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5 }}
   >
-    <Card className={`h-full ${onClick ? 'cursor-pointer hover:bg-muted/50 transition-colors' : ''}`} onClick={onClick}>
+    <Card className={`h-full ${onClick ? 'cursor-pointer hover:bg-muted/50 transition-colors' : ''}`} onClick={onClick || undefined}>
       <CardContent className="p-3 sm:p-4 md:p-6 flex flex-col justify-between h-full">
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
@@ -86,6 +86,7 @@ export default function GuardiasPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("activo");
+  const [tipoFilter, setTipoFilter] = useState<string>("all");
   const [instalacionFilter, setInstalacionFilter] = useState<string>("all");
   const [os10Filter, setOs10Filter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
@@ -183,6 +184,10 @@ export default function GuardiasPage() {
         (statusFilter === "activo" && guardia.activo === true) ||
         (statusFilter === "inactivo" && guardia.activo === false);
 
+      const matchesTipo = tipoFilter === "all" || 
+        (tipoFilter === "contratado" && guardia.tipo_guardia === 'contratado') ||
+        (tipoFilter === "esporadico" && guardia.tipo_guardia === 'esporadico');
+
       const matchesInstalacion = instalacionFilter === "all" || 
         guardia.instalacion_asignada === instalacionFilter;
 
@@ -193,9 +198,9 @@ export default function GuardiasPage() {
         (os10Filter === "vencido" && estadoOS10.estado === 'vencido') ||
         (os10Filter === "sin_fecha" && estadoOS10.estado === 'sin_fecha');
 
-      return matchesSearch && matchesStatus && matchesInstalacion && matchesOS10;
+      return matchesSearch && matchesStatus && matchesTipo && matchesInstalacion && matchesOS10;
     });
-  }, [guardias, searchTerm, statusFilter, instalacionFilter, os10Filter]);
+  }, [guardias, searchTerm, statusFilter, tipoFilter, instalacionFilter, os10Filter]);
 
   // Columnas de la tabla
   const columns: Column<any>[] = [
@@ -212,6 +217,22 @@ export default function GuardiasPage() {
             <p className="text-sm text-muted-foreground">{guardia.rut}</p>
           </div>
         </div>
+      ),
+    },
+    {
+      key: "tipo",
+      label: "Tipo",
+      render: (guardia) => (
+        <Badge 
+          variant={guardia.tipo_guardia === 'contratado' ? 'default' : 'secondary'}
+          className={`${
+            guardia.tipo_guardia === 'contratado' 
+              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+          }`}
+        >
+          {guardia.tipo_guardia === 'contratado' ? 'Contratado' : 'Esporádico'}
+        </Badge>
       ),
     },
     {
@@ -368,6 +389,15 @@ export default function GuardiasPage() {
                 <option value="inactivo">Inactivos</option>
               </select>
               <select
+                value={tipoFilter}
+                onChange={(e) => setTipoFilter(e.target.value)}
+                className="px-3 py-2 border rounded-md bg-background text-sm w-full sm:w-48"
+              >
+                <option value="all">Todos los tipos</option>
+                <option value="contratado">Contratados</option>
+                <option value="esporadico">Esporádicos</option>
+              </select>
+              <select
                 value={instalacionFilter}
                 onChange={(e) => setInstalacionFilter(e.target.value)}
                 className="px-3 py-2 border rounded-md bg-background text-sm w-full sm:w-48"
@@ -396,6 +426,7 @@ export default function GuardiasPage() {
                 size="sm"
                 onClick={() => {
                   setStatusFilter("activo");
+                  setTipoFilter("all");
                   setInstalacionFilter("all");
                   setOs10Filter("all");
                   setSearchTerm("");
@@ -429,11 +460,23 @@ export default function GuardiasPage() {
                       <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
                         <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                       </div>
-                      <ToggleStatus
-                        checked={guardia.activo}
-                        disabled
-                        size="sm"
-                      />
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant={guardia.tipo_guardia === 'contratado' ? 'default' : 'secondary'}
+                          className={`text-xs ${
+                            guardia.tipo_guardia === 'contratado' 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                          }`}
+                        >
+                          {guardia.tipo_guardia === 'contratado' ? 'Contratado' : 'Esporádico'}
+                        </Badge>
+                        <ToggleStatus
+                          checked={guardia.activo}
+                          disabled
+                          size="sm"
+                        />
+                      </div>
                     </div>
                     
                     <div className="space-y-1">
@@ -470,7 +513,7 @@ export default function GuardiasPage() {
                         </div>
                         
                         <div className="flex-shrink-0 ml-2">
-                          <OS10StatusBadge fechaOS10={guardia.fecha_os10} showDays={false} className="text-xs" />
+                          <OS10StatusBadge fechaOS10={guardia.fecha_os10 || null} showDays={false} className="text-xs" />
                         </div>
                       </div>
                     </div>

@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
         g.comuna,
         g.region,
         g.activo,
+        g.tipo_guardia,
         g.fecha_os10,
         g.instalacion_id,
         i.nombre as instalacion_nombre,

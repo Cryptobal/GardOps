@@ -20,6 +20,7 @@ interface Guardia {
   telefono: string;
   direccion: string;
   estado: string;
+  tipo_guardia: string;
   fecha_os10?: string;
   banco?: string;
   tipo_cuenta?: string;
@@ -55,6 +56,8 @@ export default function EditarGuardiaPage() {
     email: '',
     telefono: '',
     direccion: '',
+    estado: 'activo',
+    tipo_guardia: 'contratado',
     fecha_os10: '',
     banco_id: '',
     tipo_cuenta: '',
@@ -84,6 +87,8 @@ export default function EditarGuardiaPage() {
         email: guardiaData.email || '',
         telefono: guardiaData.telefono || '',
         direccion: guardiaData.direccion || '',
+        estado: guardiaData.estado || 'activo',
+        tipo_guardia: guardiaData.tipo_guardia || 'contratado',
         fecha_os10: guardiaData.fecha_os10 ? guardiaData.fecha_os10.split('T')[0] : '',
         banco_id: guardiaData.banco || '',
         tipo_cuenta: guardiaData.tipo_cuenta || '',
@@ -299,6 +304,36 @@ export default function EditarGuardiaPage() {
                   showMap={false}
                   showClearButton={true}
                 />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="estado" className="text-sm font-medium text-gray-600">Estado</label>
+                <Select
+                  value={formData.estado}
+                  onValueChange={(value) => handleSelectChange('estado', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="activo">Activo</SelectItem>
+                    <SelectItem value="inactivo">Inactivo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="tipo_guardia" className="text-sm font-medium text-gray-600">Tipo de Guardia</label>
+                <Select
+                  value={formData.tipo_guardia}
+                  onValueChange={(value) => handleSelectChange('tipo_guardia', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="contratado">Contratado</SelectItem>
+                    <SelectItem value="esporadico">Esporádico</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <label htmlFor="fecha_os10" className="text-sm font-medium text-gray-600">Fecha Vencimiento OS10</label>

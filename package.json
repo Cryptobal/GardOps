@@ -23,7 +23,17 @@
     "check:sueldo-data": "npx ts-node scripts/check-sueldo-data.ts",
     "update:sueldo-values": "npx ts-node scripts/update-sueldo-values.ts",
     "test:sueldo-calculo": "npx ts-node scripts/test-calculo-sueldo.ts",
-    "migrate:ids-numericos": "npx ts-node scripts/migrar-ids-numericos-a-uuid.ts"
+    "migrate:ids-numericos": "npx ts-node scripts/migrar-ids-numericos-a-uuid.ts",
+    "dump:full": "dotenv -e .env -- bash scripts/db/dump_all.sh full",
+    "dump:schema": "dotenv -e .env -- bash scripts/db/dump_all.sh schema",
+    "dump:data": "dotenv -e .env -- bash scripts/db/dump_all.sh data",
+    "dump:all": "dotenv -e .env -- bash scripts/db/dump_all.sh all",
+    "dump:globals": "dotenv -e .env -- bash scripts/db/dump_all.sh globals",
+    "dump:full:win": "dotenv -e .env -- pwsh -File scripts/db/dump_all.ps1 -Mode full",
+    "dump:schema:win": "dotenv -e .env -- bash scripts/db/dump_all.sh schema",
+    "dump:data:win": "dotenv -e .env -- bash scripts/db/dump_all.sh data",
+    "dump:all:win": "dotenv -e .env -- bash scripts/db/dump_all.sh all",
+    "dump:globals:win": "dotenv -e .env -- bash scripts/db/dump_all.sh globals"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.850.0",
@@ -95,6 +105,7 @@
     "@types/mustache": "^4.2.6",
     "@types/uuid": "^10.0.0",
     "depcheck": "^1.4.7",
+    "dotenv-cli": "^7.4.2",
     "eslint": "^8.57.1",
     "eslint-config-next": "14.0.0",
     "mustache": "^4.2.0",

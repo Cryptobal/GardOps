@@ -28,6 +28,7 @@ interface Guardia {
   latitud?: number;
   longitud?: number;
   estado: string;
+  tipo_guardia?: 'contratado' | 'esporadico';
   fecha_os10?: string;
   created_at: string;
   updated_at: string;
@@ -43,8 +44,7 @@ export default function GuardiaDetallePage() {
   const [geocodingData, setGeocodingData] = useState<GeocodingResult | null>(null);
   const [mapLoading, setMapLoading] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [pendingEstado, setPendingEstado] = useState<string | null>(null);
+
 
   useEffect(() => {
     cargarGuardia();
@@ -105,37 +105,7 @@ export default function GuardiaDetallePage() {
     }
   };
 
-  const handleToggleEstado = () => {
-    if (!guardia) return;
-    const nuevoEstado = guardia.estado === 'activo' ? 'inactivo' : 'activo';
-    setPendingEstado(nuevoEstado);
-    setShowConfirmModal(true);
-  };
 
-  const confirmarCambioEstado = async () => {
-    if (!guardia || !pendingEstado) return;
-    
-    try {
-      const response = await fetch(`/api/guardias/${guardia.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: pendingEstado })
-      });
-      
-      if (!response.ok) throw new Error('Error al cambiar estado');
-      
-      setGuardia({ ...guardia, estado: pendingEstado });
-      setShowConfirmModal(false);
-      setPendingEstado(null);
-      
-      console.log(`Guardia ${pendingEstado === 'activo' ? 'activado' : 'inactivado'} correctamente`);
-    } catch (e) {
-      console.error('Error al cambiar estado:', e);
-    } finally {
-      setShowConfirmModal(false);
-      setPendingEstado(null);
-    }
-  };
 
 
 
@@ -187,40 +157,18 @@ export default function GuardiaDetallePage() {
         </div>
         <div className="flex items-center gap-2">
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+            guardia.tipo_guardia === 'contratado' 
+              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+          }`}>
+            {guardia.tipo_guardia === 'contratado' ? 'Contratado' : 'Esporádico'}
+          </span>
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
             guardia.estado === 'activo' 
               ? 'bg-green-100 text-green-800' 
               : 'bg-red-100 text-red-800'
           }`}>
             {guardia.estado === 'activo' ? 'Activo' : 'Inactivo'}
-            <button
-              onClick={handleToggleEstado}
-              className="ml-2 focus:outline-none"
-              title={guardia.estado === 'activo' ? 'Inactivar guardia' : 'Activar guardia'}
-              style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              <span style={{
-                display: 'inline-block',
-                width: 24,
-                height: 14,
-                borderRadius: 7,
-                background: guardia.estado === 'activo' ? '#22c55e' : '#d1d5db',
-                position: 'relative',
-                verticalAlign: 'middle',
-                transition: 'background 0.2s'
-              }}>
-                <span style={{
-                  display: 'inline-block',
-                  width: 12,
-                  height: 12,
-                  borderRadius: '50%',
-                  background: '#fff',
-                  position: 'absolute',
-                  left: guardia.estado === 'activo' ? 10 : 2,
-                  top: 1,
-                  transition: 'left 0.2s'
-                }} />
-              </span>
-            </button>
           </span>
           <Button 
             onClick={handleEditarGuardia}
@@ -469,8 +417,22 @@ export default function GuardiaDetallePage() {
                   </div>
                 </div>
                 
-                {/* Vencimiento OS10 en fila adicional */}
+                {/* Tipo de Guardia y Vencimiento OS10 en fila adicional */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                      Tipo de Guardia
+                    </label>
+                    <p className="text-sm font-medium">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        guardia.tipo_guardia === 'contratado' 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+                      }`}>
+                        {guardia.tipo_guardia === 'contratado' ? 'Contratado' : 'Esporádico'}
+                      </span>
+                    </p>
+                  </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
                       Vencimiento OS10
@@ -664,39 +626,7 @@ export default function GuardiaDetallePage() {
         )}
 
       {/* Modal de confirmación */}
-      {showConfirmModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold mb-4">
-                {pendingEstado === 'activo' ? 'Activar Guardia' : 'Inactivar Guardia'}
-              </h3>
-              <p className="text-gray-600 mb-6">
-                ¿Estás seguro de que quieres {pendingEstado === 'activo' ? 'activar' : 'inactivar'} a {guardia?.nombre} {guardia?.apellidos}?
-              </p>
-              <div className="flex gap-3 justify-center">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowConfirmModal(false)}
-                  className="px-4"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={confirmarCambioEstado}
-                  className={`px-4 ${
-                    pendingEstado === 'activo' 
-                      ? 'bg-green-600 hover:bg-green-700' 
-                      : 'bg-red-600 hover:bg-red-700'
-                  }`}
-                >
-                  {pendingEstado === 'activo' ? 'Activar' : 'Inactivar'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
 
 
     </div>
