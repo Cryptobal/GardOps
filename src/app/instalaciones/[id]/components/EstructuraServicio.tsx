@@ -153,11 +153,11 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
       for (const e of estructurasInactivasArray) touch(e, 'Inactivo');
       setRoles(Object.values(rolesMapFinal));
 
-      // Cargar bonos globales
-      const bonosResponse = await fetch('/api/bonos-globales?activo=true');
-      if (bonosResponse.ok) {
-        const bonosData = await bonosResponse.json();
-        const rows = Array.isArray(bonosData.data) ? bonosData.data : (bonosData.rows || bonosData);
+      // Cargar ítems globales
+      const itemsResponse = await fetch('/api/payroll/items?clase=HABER&activo=true');
+      if (itemsResponse.ok) {
+        const itemsData = await itemsResponse.json();
+        const rows = Array.isArray(itemsData.data) ? itemsData.data : (itemsData.rows || itemsData);
         setBonosGlobales(rows || []);
       } else {
         setBonosGlobales([]);

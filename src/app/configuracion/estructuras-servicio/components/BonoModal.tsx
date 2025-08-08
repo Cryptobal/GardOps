@@ -8,9 +8,14 @@ import { useState, useEffect } from "react";
 
 interface BonoGlobal {
   id: string;
+  codigo: string;
   nombre: string;
+  clase: 'HABER' | 'DESCUENTO';
+  naturaleza: 'IMPONIBLE' | 'NO_IMPONIBLE';
   descripcion?: string;
-  imponible: boolean;
+  formula_json?: any;
+  tope_modo: 'NONE' | 'MONTO' | 'PORCENTAJE';
+  tope_valor?: number;
   activo: boolean;
 }
 
@@ -29,18 +34,18 @@ export default function BonoModal({
 }: BonoModalProps) {
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [imponible, setImponible] = useState(false);
+  const [naturaleza, setNaturaleza] = useState<'IMPONIBLE' | 'NO_IMPONIBLE'>('IMPONIBLE');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (bono) {
       setNombre(bono.nombre);
       setDescripcion(bono.descripcion || "");
-      setImponible(bono.imponible);
+      setNaturaleza(bono.naturaleza);
     } else {
       setNombre("");
       setDescripcion("");
-      setImponible(false);
+      setNaturaleza('IMPONIBLE');
     }
   }, [bono]);
 
@@ -51,7 +56,7 @@ export default function BonoModal({
       await onSave({
         nombre,
         descripcion: descripcion || undefined,
-        imponible,
+        naturaleza,
       });
       onClose();
     } finally {
@@ -88,13 +93,18 @@ export default function BonoModal({
               rows={3}
             />
           </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="imponible"
-              checked={imponible}
-              onCheckedChange={(checked) => setImponible(checked as boolean)}
-            />
-            <Label htmlFor="imponible">Imponible</Label>
+          <div className="space-y-2">
+            <Label htmlFor="naturaleza">Naturaleza</Label>
+            <select
+              id="naturaleza"
+              value={naturaleza}
+              onChange={(e) => setNaturaleza(e.target.value as 'IMPONIBLE' | 'NO_IMPONIBLE')}
+              className="w-full p-2 border rounded-md"
+              required
+            >
+              <option value="IMPONIBLE">Imponible</option>
+              <option value="NO_IMPONIBLE">No Imponible</option>
+            </select>
           </div>
           <div className="flex justify-end space-x-2">
             <Button

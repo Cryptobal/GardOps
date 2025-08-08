@@ -16,7 +16,8 @@ import {
   DollarSign,
   Calculator,
   Building,
-  FileText as FileTextIcon
+  FileText as FileTextIcon,
+  CreditCard
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -62,6 +63,23 @@ export const navigationItems: NavigationItem[] = [
     name: "Turnos Extras",
     href: "/pauta-diaria/turnos-extras",
     icon: DollarSign
+  },
+  {
+    name: "Payroll",
+    href: "/payroll",
+    icon: CreditCard,
+    children: [
+      {
+        name: "Ítems Globales",
+        href: "/payroll/items-globales",
+        icon: DollarSign
+      },
+      {
+        name: "Ítems Extras",
+        href: "/payroll/items-extras",
+        icon: FileText
+      }
+    ]
   },
   {
     name: "Sueldos",

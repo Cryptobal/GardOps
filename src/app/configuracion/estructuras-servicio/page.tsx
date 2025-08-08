@@ -30,9 +30,14 @@ import { useToast } from '@/hooks/use-toast';
 
 interface BonoGlobal {
   id: string;
+  codigo: string;
   nombre: string;
+  clase: 'HABER' | 'DESCUENTO';
+  naturaleza: 'IMPONIBLE' | 'NO_IMPONIBLE';
   descripcion?: string;
-  imponible: boolean;
+  formula_json?: any;
+  tope_modo: 'NONE' | 'MONTO' | 'PORCENTAJE';
+  tope_valor?: number;
   activo: boolean;
   created_at: string;
   updated_at: string;
@@ -93,11 +98,11 @@ export default function EstructurasServicioPage() {
         setEstructuras(estructurasData.data);
       }
 
-      // Cargar bonos
-      const bonosResponse = await fetch('/api/bonos-globales');
-      const bonosData = await bonosResponse.json();
-      if (bonosData.success) {
-        setBonos(bonosData.data);
+      // Cargar ítems globales
+      const itemsResponse = await fetch('/api/payroll/items?clase=HABER&activo=true');
+      const itemsData = await itemsResponse.json();
+      if (itemsData.success) {
+        setBonos(itemsData.data);
       }
     } catch (error) {
       console.error('Error cargando datos:', error);
@@ -121,8 +126,8 @@ export default function EstructurasServicioPage() {
   const guardarBono = async (data: Partial<BonoGlobal>) => {
     try {
       const url = bonoSeleccionado 
-        ? `/api/bonos-globales/${bonoSeleccionado.id}`
-        : '/api/bonos-globales';
+        ? `/api/payroll/items/${bonoSeleccionado.id}`
+        : '/api/payroll/items';
       
       const method = bonoSeleccionado ? 'PUT' : 'POST';
       
@@ -134,22 +139,22 @@ export default function EstructurasServicioPage() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Error al guardar el bono');
+        throw new Error(errorData.error || 'Error al guardar el ítem');
       }
 
       await cargarDatos();
       setIsBonoModalOpen(false);
-      success("Éxito", `Bono ${bonoSeleccionado ? 'actualizado' : 'creado'} correctamente`);
+      success("Éxito", `Ítem ${bonoSeleccionado ? 'actualizado' : 'creado'} correctamente`);
     } catch (error) {
-      console.error('Error guardando bono:', error);
-      showError("Error", error instanceof Error ? error.message : "No se pudo guardar el bono");
+      console.error('Error guardando ítem:', error);
+      showError("Error", error instanceof Error ? error.message : "No se pudo guardar el ítem");
     }
   };
 
   const toggleActivoBono = async (bono: BonoGlobal) => {
     try {
       setSavingBonoId(bono.id);
-      const res = await fetch(`/api/bonos-globales/${bono.id}`, {
+      const res = await fetch(`/api/payroll/items/${bono.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ activo: !bono.activo }),
@@ -157,14 +162,14 @@ export default function EstructurasServicioPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error((data && data.error) || 'No se pudo cambiar el estado del bono');
+        throw new Error((data && data.error) || 'No se pudo cambiar el estado del ítem');
       }
 
       await cargarDatos();
-      success("Éxito", `Bono ${bono.activo ? 'inactivado' : 'activado'} correctamente`);
+      success("Éxito", `Ítem ${bono.activo ? 'inactivado' : 'activado'} correctamente`);
     } catch (error) {
-      console.error('Error cambiando estado de bono:', error);
-      showError("Error", "No se pudo cambiar el estado del bono");
+      console.error('Error cambiando estado de ítem:', error);
+      showError("Error", "No se pudo cambiar el estado del ítem");
     } finally {
       setSavingBonoId(null);
     }
@@ -172,20 +177,20 @@ export default function EstructurasServicioPage() {
 
   const eliminarBono = async (bono: BonoGlobal) => {
     try {
-      if (!confirm(`¿Eliminar el bono "${bono.nombre}"? Esta acción no se puede deshacer.`)) return;
+      if (!confirm(`¿Eliminar el ítem "${bono.nombre}"? Esta acción no se puede deshacer.`)) return;
       setSavingBonoId(bono.id);
-      const res = await fetch(`/api/bonos-globales/${bono.id}`, {
+      const res = await fetch(`/api/payroll/items/${bono.id}`, {
         method: 'DELETE',
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error((data && data.error) || 'No se pudo eliminar el bono');
+        throw new Error((data && data.error) || 'No se pudo eliminar el ítem');
       }
       await cargarDatos();
-      success("Éxito", "Bono eliminado correctamente");
+      success("Éxito", "Ítem eliminado correctamente");
     } catch (error) {
-      console.error('Error eliminando bono:', error);
-      showError("Error", error instanceof Error ? error.message : "No se pudo eliminar el bono");
+      console.error('Error eliminando ítem:', error);
+      showError("Error", error instanceof Error ? error.message : "No se pudo eliminar el ítem");
     } finally {
       setSavingBonoId(null);
     }
@@ -502,8 +507,8 @@ export default function EstructurasServicioPage() {
                         <TableCell className="font-medium">{bono.nombre}</TableCell>
                         <TableCell>{bono.descripcion || '-'}</TableCell>
                         <TableCell>
-                          <Badge variant={bono.imponible ? "default" : "secondary"}>
-                            {bono.imponible ? "Sí" : "No"}
+                          <Badge variant={bono.naturaleza === "IMPONIBLE" ? "default" : "secondary"}>
+                            {bono.naturaleza === "IMPONIBLE" ? "Sí" : "No"}
                           </Badge>
                         </TableCell>
                         <TableCell>
