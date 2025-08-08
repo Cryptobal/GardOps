@@ -5,4 +5,12 @@ if (process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
   process.env.POSTGRES_URL = process.env.DATABASE_URL;
 }
 
+// Log de conexión (sin credenciales)
+try {
+  if (process.env.DATABASE_URL) {
+    const u = new URL(process.env.DATABASE_URL);
+    console.log('[DB]', u.host, u.pathname);
+  }
+} catch {}
+
 export { sql };

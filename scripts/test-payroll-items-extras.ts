@@ -42,7 +42,7 @@ async function testPayrollItemsExtras() {
     `);
 
     console.log('📊 Ítems en catálogo por tipo:');
-    sueldoItems.rows.forEach(row => {
+    sueldoItems.rows.forEach((row: any) => {
       const tipo = `${row.clase} ${row.naturaleza}`;
       console.log(`   - ${tipo}: ${row.count} ítems`);
     });
@@ -119,9 +119,9 @@ async function testPayrollItemsExtras() {
     console.log(`   - Haberes imponibles: ${stat.haberes_imponibles}`);
     console.log(`   - Haberes no imponibles: ${stat.haberes_no_imponibles}`);
     console.log(`   - Descuentos: ${stat.descuentos}`);
-    console.log(`   - Total haberes: $${parseInt(stat.total_haberes || 0).toLocaleString('es-CL')}`);
-    console.log(`   - Total descuentos: $${parseInt(stat.total_descuentos || 0).toLocaleString('es-CL')}`);
-    console.log(`   - Neto: $${parseInt((stat.total_haberes || 0) - (stat.total_descuentos || 0)).toLocaleString('es-CL')}`);
+    console.log(`   - Total haberes: $${parseInt(String(stat.total_haberes || 0)).toLocaleString('es-CL')}`);
+    console.log(`   - Total descuentos: $${parseInt(String(stat.total_descuentos || 0)).toLocaleString('es-CL')}`);
+    console.log(`   - Neto: $${parseInt(String((stat.total_haberes || 0) - (stat.total_descuentos || 0))).toLocaleString('es-CL')}`);
 
     console.log('✅ Todas las pruebas pasaron exitosamente');
     console.log('🎉 El sistema de ítems extras está funcionando correctamente');

@@ -26,7 +26,33 @@ export async function POST(request: NextRequest) {
     await query('BEGIN');
 
     try {
-      // 1. Obtener o crear la estructura
+      // 1. Validar que el ítem sea de tipo HÁBERES (no descuento)
+      // Resolver item por tabla sueldo_item
+      let itemRow;
+      if (item_id && item_id.length === 36) {
+        const r = await query(`SELECT id, codigo, nombre, clase, naturaleza FROM sueldo_item WHERE id = $1 AND activo = TRUE LIMIT 1`, [item_id]);
+        itemRow = Array.isArray(r) ? r[0] : (r.rows || [])[0];
+      } else {
+        const r = await query(`SELECT id, codigo, nombre, clase, naturaleza FROM sueldo_item WHERE codigo = $1 AND activo = TRUE LIMIT 1`, [item_id]);
+        itemRow = Array.isArray(r) ? r[0] : (r.rows || [])[0];
+      }
+      if (!itemRow) {
+        await query('ROLLBACK');
+        return NextResponse.json(
+          { success: false, error: 'Ítem no encontrado o inactivo' },
+          { status: 400 }
+        );
+      }
+      if (String(itemRow.clase).toUpperCase() !== 'HABER') {
+        await query('ROLLBACK');
+        return NextResponse.json(
+          { success: false, error: 'Solo se permiten ítems de tipo HÁBER en las estructuras de servicio' },
+          { status: 400 }
+        );
+      }
+      const itemCodigo = itemRow.codigo;
+
+      // 2. Obtener o crear la estructura
       let estructuraQuery = `
         SELECT id, version 
         FROM sueldo_estructura_instalacion 
@@ -51,25 +77,23 @@ export async function POST(request: NextRequest) {
         estructura = Array.isArray(nuevaEstructuraResult) ? nuevaEstructuraResult[0] : (nuevaEstructuraResult.rows || [])[0];
       }
 
-      // 2. Validar que no haya solapamiento de vigencia para el mismo ítem
+      // 3. Validar que no haya solapamiento de vigencia para el mismo ítem usando daterange
       const solapamientoQuery = `
-        SELECT id 
-        FROM sueldo_estructura_inst_item 
-        WHERE estructura_id = $1 
-          AND item_id = $2 
-          AND activo = true
-          AND (
-            (vigencia_desde <= $3 AND (vigencia_hasta IS NULL OR vigencia_hasta >= $3))
-            OR (vigencia_desde <= $4 AND (vigencia_hasta IS NULL OR vigencia_hasta >= $4))
-            OR ($3 <= vigencia_desde AND ($4 IS NULL OR $4 >= vigencia_desde))
-          )
+        SELECT 1
+        FROM sueldo_estructura_inst_item x
+        WHERE x.estructura_id = $1
+          AND x.item_codigo = $2
+          AND x.activo = TRUE
+          AND daterange(x.vigencia_desde, COALESCE(x.vigencia_hasta, 'infinity'::date), '[]') 
+            && daterange($3::date, COALESCE($4::date, 'infinity'::date), '[]')
+        LIMIT 1
       `;
       
       const solapamientoResult = await query(solapamientoQuery, [
         estructura.id, 
-        item_id, 
+        itemCodigo, 
         vigencia_desde, 
-        vigencia_hasta || vigencia_desde
+        vigencia_hasta || null
       ]);
       
       const solapamiento = Array.isArray(solapamientoResult) ? solapamientoResult : (solapamientoResult.rows || []);
@@ -77,22 +101,29 @@ export async function POST(request: NextRequest) {
       if (solapamiento.length > 0) {
         await query('ROLLBACK');
         return NextResponse.json(
-          { success: false, error: 'Existe un solapamiento de vigencia para este ítem en la misma estructura' },
-          { status: 400 }
+          { 
+            success: false, 
+            error: 'Este ítem ya tiene una vigencia que se cruza con el período especificado',
+            code: 'ITEM_OVERLAP'
+          },
+          { status: 409 }
         );
       }
 
       // 3. Insertar el ítem
       const insertItemQuery = `
         INSERT INTO sueldo_estructura_inst_item (
-          estructura_id, item_id, monto, vigencia_desde, vigencia_hasta, activo
-        ) VALUES ($1, $2, $3, $4, $5, true)
+          estructura_id, item_codigo, item_nombre, item_clase, item_naturaleza, monto, vigencia_desde, vigencia_hasta, activo
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
         RETURNING id
       `;
       
       const insertItemResult = await query(insertItemQuery, [
-        estructura.id, 
-        item_id, 
+        estructura.id,
+        itemRow.codigo,
+        itemRow.nombre,
+        itemRow.clase,
+        itemRow.naturaleza,
         monto, 
         vigencia_desde, 
         vigencia_hasta || null

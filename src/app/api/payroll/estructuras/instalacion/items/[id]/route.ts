@@ -19,49 +19,46 @@ export async function PUT(
       );
     }
 
-    // Obtener el ítem actual
-    const itemQuery = `
-      SELECT seii.*, sei.instalacion_id, sei.rol_servicio_id
-      FROM sueldo_estructura_inst_item seii
-      INNER JOIN sueldo_estructura_instalacion sei ON seii.estructura_id = sei.id
-      WHERE seii.id = $1
-    `;
-    
-    const itemResult = await query(itemQuery, [itemId]);
-    const item = Array.isArray(itemResult) ? itemResult[0] : (itemResult.rows || [])[0];
-
-    if (!item) {
-      return NextResponse.json(
-        { success: false, error: 'Ítem no encontrado' },
-        { status: 404 }
-      );
-    }
-
-    // Iniciar transacción
     await query('BEGIN');
 
     try {
-      // Validar que no haya solapamiento de vigencia para el mismo ítem (excluyendo el actual)
-      const solapamientoQuery = `
-        SELECT id 
+      // 1. Obtener el ítem actual
+      const itemQuery = `
+        SELECT id, estructura_id, item_codigo, monto, vigencia_desde, vigencia_hasta
         FROM sueldo_estructura_inst_item 
-        WHERE estructura_id = $1 
-          AND item_id = $2 
-          AND id != $3
-          AND activo = true
-          AND (
-            (vigencia_desde <= $4 AND (vigencia_hasta IS NULL OR vigencia_hasta >= $4))
-            OR (vigencia_desde <= $5 AND (vigencia_hasta IS NULL OR vigencia_hasta >= $5))
-            OR ($4 <= vigencia_desde AND ($5 IS NULL OR $5 >= vigencia_desde))
-          )
+        WHERE id = $1 AND activo = true
+      `;
+      
+      const itemResult = await query(itemQuery, [itemId]);
+      const item = Array.isArray(itemResult) ? itemResult[0] : (itemResult.rows || [])[0];
+
+      if (!item) {
+        await query('ROLLBACK');
+        return NextResponse.json(
+          { success: false, error: 'Ítem no encontrado' },
+          { status: 404 }
+        );
+      }
+
+      // 2. Validar que no haya solapamiento con otros ítems del mismo tipo
+      const solapamientoQuery = `
+        SELECT 1
+        FROM sueldo_estructura_inst_item x
+        WHERE x.estructura_id = $1
+          AND x.item_codigo = $2
+          AND x.id != $3
+          AND x.activo = TRUE
+          AND daterange(x.vigencia_desde, COALESCE(x.vigencia_hasta, 'infinity'::date), '[]') 
+            && daterange($4::date, COALESCE($5::date, 'infinity'::date), '[]')
+        LIMIT 1
       `;
       
       const solapamientoResult = await query(solapamientoQuery, [
         item.estructura_id,
-        item.item_id,
+        item.item_codigo,
         itemId,
         vigencia_desde,
-        vigencia_hasta || vigencia_desde
+        vigencia_hasta || null
       ]);
       
       const solapamiento = Array.isArray(solapamientoResult) ? solapamientoResult : (solapamientoResult.rows || []);
@@ -69,17 +66,21 @@ export async function PUT(
       if (solapamiento.length > 0) {
         await query('ROLLBACK');
         return NextResponse.json(
-          { success: false, error: 'Existe un solapamiento de vigencia para este ítem en la misma estructura' },
-          { status: 400 }
+          { 
+            success: false, 
+            error: 'Este ítem ya tiene una vigencia que se cruza con el período especificado',
+            code: 'ITEM_OVERLAP'
+          },
+          { status: 409 }
         );
       }
 
-      // Actualizar el ítem
+      // 3. Actualizar el ítem
       const updateQuery = `
         UPDATE sueldo_estructura_inst_item 
         SET monto = $1, vigencia_desde = $2, vigencia_hasta = $3, updated_at = NOW()
         WHERE id = $4
-        RETURNING *
+        RETURNING id, monto, vigencia_desde, vigencia_hasta
       `;
       
       const updateResult = await query(updateQuery, [
@@ -121,37 +122,47 @@ export async function DELETE(
   try {
     const itemId = params.id;
 
-    // Verificar que el ítem existe
-    const itemQuery = `
-      SELECT id FROM sueldo_estructura_inst_item WHERE id = $1
-    `;
-    
-    const itemResult = await query(itemQuery, [itemId]);
-    const item = Array.isArray(itemResult) ? itemResult[0] : (itemResult.rows || [])[0];
+    await query('BEGIN');
 
-    if (!item) {
-      return NextResponse.json(
-        { success: false, error: 'Ítem no encontrado' },
-        { status: 404 }
-      );
+    try {
+      // 1. Verificar que el ítem existe
+      const itemQuery = `
+        SELECT id, item_id, monto
+        FROM sueldo_estructura_inst_item 
+        WHERE id = $1 AND activo = true
+      `;
+      
+      const itemResult = await query(itemQuery, [itemId]);
+      const item = Array.isArray(itemResult) ? itemResult[0] : (itemResult.rows || [])[0];
+
+      if (!item) {
+        await query('ROLLBACK');
+        return NextResponse.json(
+          { success: false, error: 'Ítem no encontrado' },
+          { status: 404 }
+        );
+      }
+
+      // 2. Soft delete
+      const deleteQuery = `
+        UPDATE sueldo_estructura_inst_item 
+        SET activo = false, updated_at = NOW()
+        WHERE id = $1
+      `;
+      
+      await query(deleteQuery, [itemId]);
+
+      await query('COMMIT');
+
+      return NextResponse.json({
+        success: true,
+        message: 'Ítem desactivado correctamente'
+      });
+
+    } catch (error) {
+      await query('ROLLBACK');
+      throw error;
     }
-
-    // Desactivar el ítem (soft delete)
-    const deleteQuery = `
-      UPDATE sueldo_estructura_inst_item 
-      SET activo = false, updated_at = NOW()
-      WHERE id = $1
-      RETURNING id
-    `;
-    
-    const deleteResult = await query(deleteQuery, [itemId]);
-    const deletedItem = Array.isArray(deleteResult) ? deleteResult[0] : (deleteResult.rows || [])[0];
-
-    return NextResponse.json({
-      success: true,
-      data: { id: deletedItem.id },
-      message: 'Ítem desactivado correctamente'
-    });
 
   } catch (error) {
     console.error('Error desactivando ítem de estructura:', error);

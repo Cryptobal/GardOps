@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, User, MapPin, Phone, Mail, Calendar, FileText, Settings, Edit, RefreshCw, AlertTriangle, CreditCard, Clock } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Phone, Mail, Calendar, FileText, Settings, Edit, RefreshCw, AlertTriangle, CreditCard, Clock, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import AsignacionOperativa from './components/AsignacionOperativa';
 import { DocumentManager } from '@/components/shared/document-manager';
@@ -14,6 +14,7 @@ import FiniquitoGuardia from './components/FiniquitoGuardia';
 import DatosBancarios from './components/DatosBancarios';
 import TurnosExtrasGuardia from './components/TurnosExtrasGuardia';
 import HistorialMensual from './components/HistorialMensual';
+import EstructuraGuardia from './components/EstructuraGuardia';
 import { GoogleMap } from '@/components/ui/google-map';
 import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@/lib/geocoding';
 
@@ -276,6 +277,17 @@ export default function GuardiaDetallePage() {
               <Calendar className="h-4 w-4 flex-shrink-0" />
               <span>Historial Mensual</span>
             </button>
+            <button
+              onClick={() => setActiveTab('estructura')}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'estructura' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <DollarSign className="h-4 w-4 flex-shrink-0" />
+              <span>Estructura</span>
+            </button>
           </div>
 
           {/* Móvil: Diseño en 2 filas de 3 pestañas cada una */}
@@ -369,6 +381,17 @@ export default function GuardiaDetallePage() {
             >
               <Calendar className="h-4 w-4" />
               <span>Historial</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('estructura')}
+              className={`flex flex-col items-center gap-1 px-3 py-4 text-xs font-medium rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'estructura' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <DollarSign className="h-4 w-4" />
+              <span>Estructura</span>
             </button>
           </div>
         </div>
@@ -622,6 +645,13 @@ export default function GuardiaDetallePage() {
         {activeTab === 'historial-mensual' && (
           <div className="mt-6">
             <HistorialMensual guardiaId={guardiaId} />
+          </div>
+        )}
+
+        {/* Contenido de la pestaña Estructura */}
+        {activeTab === 'estructura' && (
+          <div className="mt-6">
+            <EstructuraGuardia guardiaId={guardiaId} />
           </div>
         )}
 

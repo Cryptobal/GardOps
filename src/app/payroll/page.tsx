@@ -37,9 +37,17 @@ export default function PayrollPage() {
       title: 'Estructuras de Servicio',
       description: 'Configura las estructuras salariales por instalación y rol',
       icon: Building,
-      href: '/sueldos',
+      href: '/payroll/estructuras',
       status: 'active',
       color: 'bg-blue-50 border-blue-200'
+    },
+    {
+      title: 'Estructuras por Guardia',
+      description: 'Gestiona las estructuras salariales personalizadas por guardia',
+      icon: Users,
+      href: '/payroll/estructuras-guardia',
+      status: 'active',
+      color: 'bg-green-50 border-green-200'
     },
     {
       title: 'Cálculo de Sueldos',

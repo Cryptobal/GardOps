@@ -10,6 +10,12 @@ if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL no está configurada');
 }
 
+// Log de conexión (sin credenciales)
+try {
+  const u = new URL(process.env.DATABASE_URL);
+  console.log('[DB]', u.host, u.pathname);
+} catch {}
+
 // Configuración optimizada de la conexión PostgreSQL para resolver timeouts
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,

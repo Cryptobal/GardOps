@@ -130,7 +130,7 @@ export const navigationItems: NavigationItem[] = [
       },
       {
         name: "Estructuras de Servicio",
-        href: "/configuracion/estructuras-servicio",
+        href: "/estructuras",
         icon: Activity
       },
       {

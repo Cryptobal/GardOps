@@ -7,6 +7,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const instalacionId = searchParams.get('instalacion_id');
     const rolServicioId = searchParams.get('rol_servicio_id');
+    const anio = searchParams.get('anio');
+    const mes = searchParams.get('mes');
 
     if (!instalacionId || !rolServicioId) {
       return NextResponse.json(
@@ -15,65 +17,86 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Obtener la estructura activa más reciente
+    // Calcular fecha de corte para buscar estructura vigente
+    let fechaCorte = new Date();
+    if (anio && mes) {
+      fechaCorte = new Date(parseInt(anio), parseInt(mes) - 1, 1);
+    }
+
+    // Obtener la estructura vigente en la fecha de corte
     const estructuraQuery = `
       SELECT 
         sei.id,
         sei.instalacion_id,
         i.nombre as instalacion_nombre,
         sei.rol_servicio_id,
-        rs.nombre as rol_nombre,
+        r.name as rol_nombre,
         sei.version,
         sei.vigencia_desde,
+        sei.vigencia_hasta,
         sei.activo
       FROM sueldo_estructura_instalacion sei
       INNER JOIN instalaciones i ON sei.instalacion_id = i.id
-      INNER JOIN as_turnos_roles_servicio rs ON sei.rol_servicio_id = rs.id
+      INNER JOIN roles r ON sei.rol_servicio_id = r.id
       WHERE sei.instalacion_id = $1 
         AND sei.rol_servicio_id = $2 
         AND sei.activo = true
-      ORDER BY sei.version DESC, sei.created_at DESC
+        AND sei.vigencia_desde <= $3
+        AND (sei.vigencia_hasta IS NULL OR $3 <= sei.vigencia_hasta)
+      ORDER BY sei.vigencia_desde DESC
       LIMIT 1
     `;
 
-    const estructuraResult = await query(estructuraQuery, [instalacionId, rolServicioId]);
+    const estructuraResult = await query(estructuraQuery, [instalacionId, rolServicioId, fechaCorte.toISOString().split('T')[0]]);
     const estructura = Array.isArray(estructuraResult) ? estructuraResult[0] : (estructuraResult.rows || [])[0];
 
     if (!estructura) {
       return NextResponse.json(
-        { success: false, error: 'No se encontró una estructura activa para esta instalación y rol' },
-        { status: 404 }
+        { success: true, data: { estructura: null, items: [] } }
       );
     }
 
-    // Obtener los ítems de la estructura
-    const itemsQuery = `
+    // Obtener los ítems de la estructura vigentes al primer día del mes
+    let itemsQuery = `
       SELECT 
         seii.id,
         seii.estructura_id,
-        seii.item_id,
-        si.nombre as item_nombre,
-        si.codigo as item_codigo,
-        si.clase as item_clase,
-        si.naturaleza as item_naturaleza,
+        seii.item_codigo as item_id,
+        seii.item_nombre,
+        seii.item_codigo,
+        seii.item_clase,
+        seii.item_naturaleza,
         seii.monto,
         seii.vigencia_desde,
         seii.vigencia_hasta,
         seii.activo
       FROM sueldo_estructura_inst_item seii
-      INNER JOIN sueldo_item si ON seii.item_id = si.id
       WHERE seii.estructura_id = $1
-      ORDER BY si.clase DESC, si.nombre
+        AND seii.activo = TRUE
     `;
+    
+    const queryParams = [estructura.id];
+    
+    // Si se proporcionan año y mes, filtrar por vigencia
+    if (anio && mes) {
+      const primerDiaMes = `${anio}-${mes.toString().padStart(2, '0')}-01`;
+      itemsQuery += `
+        AND (seii.vigencia_desde <= $2)
+        AND (seii.vigencia_hasta IS NULL OR $2 <= seii.vigencia_hasta)
+      `;
+      queryParams.push(primerDiaMes);
+    }
+    
+    itemsQuery += ` ORDER BY seii.item_codigo`;
 
-    const itemsResult = await query(itemsQuery, [estructura.id]);
+    const itemsResult = await query(itemsQuery, queryParams);
     const items = Array.isArray(itemsResult) ? itemsResult : (itemsResult.rows || []);
 
     return NextResponse.json({
       success: true,
       data: {
-        ...estructura,
-        items
+        estructura: estructura,
+        items: items
       }
     });
   } catch (error) {

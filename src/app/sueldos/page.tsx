@@ -120,6 +120,37 @@ export default function SueldosPage() {
           </div>
         </div>
 
+        {/* Caja Calculadora de Sueldos */}
+        <div className="mb-6">
+          <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+            <CardContent className="p-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
+                    <Calculator className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-100">
+                      Calculadora de Sueldos
+                    </h2>
+                    <p className="text-blue-700 dark:text-blue-300 text-sm">
+                      Herramienta completa para el cálculo de remuneraciones según normativa chilena
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row items-center gap-2">
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                    Normativa 2025
+                  </Badge>
+                  <Badge variant="outline" className="border-blue-300 text-blue-700 dark:border-blue-600 dark:text-blue-300">
+                    AFP • Salud • Impuestos
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Formulario */}
           <div className="xl:col-span-1">
