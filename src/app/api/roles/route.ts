@@ -5,12 +5,15 @@ export async function GET(request: NextRequest) {
   try {
     const rolesQuery = `
       SELECT 
-        id,
-        name as nombre,
-        description as descripcion,
-        permissions as permisos
-      FROM roles 
-      ORDER BY name
+        r.id,
+        r.name AS nombre,
+        r.description AS descripcion,
+        COALESCE(json_agg(p.code ORDER BY p.code) FILTER (WHERE p.code IS NOT NULL), '[]') AS permisos
+      FROM rbac_roles r
+      LEFT JOIN rbac_roles_permisos rp ON rp.role_id = r.id
+      LEFT JOIN rbac_permisos p ON p.id = rp.permission_id
+      GROUP BY r.id, r.name, r.description
+      ORDER BY r.name
     `;
 
     const rolesResult = await query(rolesQuery);

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
+import { isFlagEnabled } from '@/lib/flags'
 
-export default function PautaDiariaPage() {
-  const today = new Date().toISOString().split('T')[0]
-  redirect(`/pauta-diaria/${today}`)
+export default async function Page() {
+  const on = await isFlagEnabled('ado_v2')
+  redirect(on ? '/pauta-diaria-v2' : '/legacy/pauta-diaria')
 }

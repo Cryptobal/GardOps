@@ -302,6 +302,27 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+
+    // Ruta rápida para logs simples de cliente: { event, payload? }
+    if (typeof body?.event === 'string') {
+      const event: string = body.event.trim();
+      const payload = body.payload;
+
+      if (!event) {
+        return NextResponse.json({ error: 'event es requerido' }, { status: 400 });
+      }
+      if (event.length > 64) {
+        return NextResponse.json({ error: 'event demasiado largo (máx 64)' }, { status: 400 });
+      }
+
+      console.info('[clientLog]', {
+        event,
+        payload,
+        at: new Date().toISOString(),
+      });
+      return new Response(null, { status: 204 });
+    }
+
     const { modulo, entidadId, accion, detalles, usuario = "Admin", tipo = "manual" } = body;
     
     if (!modulo || !entidadId || !accion) {

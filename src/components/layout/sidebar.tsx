@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Moon, Sun, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { navigationItems } from "../../lib/navigation";
+import { useFlag } from "@/lib/flags.client";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 
@@ -27,6 +28,7 @@ export function Sidebar({
   const [isDark, setIsDark] = useState(true);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const pathname = usePathname();
+  const adoV2On = useFlag('ado_v2');
 
   // Usar el estado externo si está disponible, sino usar el interno
   const isCollapsed = externalIsCollapsed !== undefined ? externalIsCollapsed : internalIsCollapsed;
@@ -92,7 +94,12 @@ export function Sidebar({
             {!isCollapsed && (
               <>
                 <div className="flex-1 min-w-0">
-                  <span className="font-medium truncate text-xs sm:text-sm md:text-base">{item.name}</span>
+                  <span className="font-medium truncate text-xs sm:text-sm md:text-base flex items-center gap-2">
+                    {item.name}
+                    {item.href === "/pauta-diaria" && adoV2On && (
+                      <span className="ml-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] uppercase tracking-wide">v2</span>
+                    )}
+                  </span>
                   {item.description && (
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">
                       {item.description}
@@ -207,6 +214,11 @@ export function Sidebar({
           <nav className="flex-1 p-2 sm:p-3 md:p-4 space-y-1 sm:space-y-1.5 md:space-y-2 overflow-y-auto">
             {navigationItems.map((item) => renderNavigationItem(item))}
           </nav>
+
+          {/* Legacy access hidden (solo por URL cuando ado_v2=false) */}
+          {!adoV2On && (
+            <a href="/legacy/pauta-diaria" className="hidden">fallback</a>
+          )}
 
           {/* Footer - Ultra Responsive */}
           <div className="p-3 sm:p-4 md:p-5 lg:p-6 border-t border-border/50">

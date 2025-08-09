@@ -249,3 +249,53 @@ export function getCurrentUserServer(request: Request): {
     return null;
   }
 } 
+
+// =====================
+// Server-side helpers (RBAC)
+// =====================
+
+/**
+ * Obtiene la referencia del usuario actual desde headers `x-user`.
+ * Si no existe o no puede acceder a headers() (por entorno de test/cliente),
+ * usa `process.env.DEV_USER_REF ?? null` como fallback.
+ */
+export async function getCurrentUserRef(): Promise<string | null> {
+  // Evitar romper en cliente o entorno de test sin Next runtime
+  try {
+    const mod = await import('next/headers');
+    const h = mod.headers?.();
+    const userFromHeader = h?.get?.('x-user') ?? null;
+    if (userFromHeader) return userFromHeader;
+  } catch {
+    // ignore
+  }
+  return process.env.DEV_USER_REF ?? null;
+}
+
+/**
+ * Verifica si el usuario actual posee el permiso indicado usando función RBAC en la BD.
+ */
+export async function userHas(permission: string): Promise<boolean> {
+  const userRef = await getCurrentUserRef();
+  if (!userRef) return false;
+  try {
+    const { query } = await import('@/lib/database');
+    const result = await query(
+      'select rbac_fn_usuario_tiene_permiso($1,$2) as ok',
+      [userRef, permission]
+    );
+    return Boolean(result?.rows?.[0]?.ok);
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Exige que el usuario tenga el permiso; lanza Error('FORBIDDEN') si no.
+ */
+export async function requirePermission(permission: string): Promise<void> {
+  const ok = await userHas(permission);
+  if (!ok) {
+    throw new Error('FORBIDDEN');
+  }
+}
