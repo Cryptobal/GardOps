@@ -1,8 +1,7 @@
-/** @jest-environment jsdom */
-import { act, renderHook } from '@testing-library/react';
-import { useCan } from './can';
+/** @jest-environment node */
+import { fetchCan } from './can';
 
-describe('useCan', () => {
+describe('fetchCan', () => {
   beforeEach(() => {
     // @ts-ignore
     global.fetch = jest.fn();
@@ -10,20 +9,14 @@ describe('useCan', () => {
 
   it('retorna true cuando el endpoint responde 204', async () => {
     (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true });
-    const { result } = renderHook(() => useCan('perm.x'));
-    await act(async () => {
-      await Promise.resolve();
-    });
-    expect(result.current).toBe(true);
+    const ok = await fetchCan('perm.x');
+    expect(ok).toBe(true);
   });
 
   it('retorna false cuando el endpoint responde 403', async () => {
     (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false });
-    const { result } = renderHook(() => useCan('perm.y'));
-    await act(async () => {
-      await Promise.resolve();
-    });
-    expect(result.current).toBe(false);
+    const ok = await fetchCan('perm.y');
+    expect(ok).toBe(false);
   });
 });
 

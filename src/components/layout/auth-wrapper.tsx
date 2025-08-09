@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { isAuthenticated } from '../../lib/auth'
+import { isAuthenticated } from '../../lib/auth-client'
 import { Sidebar } from './sidebar'
 import { Navbar } from './navbar'
 import { cn } from '../../lib/utils'

@@ -5,7 +5,7 @@ import VersionBanner from '@/components/VersionBanner'
 export default async function PautaDiariaV2Page() {
   const isOn = await isFlagEnabled('ado_v2')
   if (!isOn) {
-    redirect('/legacy/pauta-diaria')
+    redirect('/pauta-diaria')
   }
   return (
     <div className="max-w-6xl mx-auto p-4 space-y-4">

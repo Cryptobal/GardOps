@@ -12,7 +12,7 @@ export default function VersionBanner({ version }: { version: string }) {
       <span>
         Estás viendo: <span className="font-medium">{version}</span>
       </span>
-      <a href="/legacy/pauta-diaria" className="text-blue-700 hover:underline">
+      <a href="/pauta-diaria" className="text-blue-700 hover:underline">
         ver v1
       </a>
     </div>

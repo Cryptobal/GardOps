@@ -215,10 +215,6 @@ export function Sidebar({
             {navigationItems.map((item) => renderNavigationItem(item))}
           </nav>
 
-          {/* Legacy access hidden (solo por URL cuando ado_v2=false) */}
-          {!adoV2On && (
-            <a href="/legacy/pauta-diaria" className="hidden">fallback</a>
-          )}
 
           {/* Footer - Ultra Responsive */}
           <div className="p-3 sm:p-4 md:p-5 lg:p-6 border-t border-border/50">

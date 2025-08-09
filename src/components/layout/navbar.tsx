@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { navigationItems } from "../../lib/navigation";
-import { logout, getToken } from "../../lib/auth";
+import { logout, getToken } from "../../lib/auth-client";
 import { Button } from "../ui/button";
 import { LogOut, User, Menu, Moon, Sun } from "lucide-react";
 import { useState } from "react";
