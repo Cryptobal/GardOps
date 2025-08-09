@@ -18,11 +18,11 @@ describe('PautaDiariaV2Page', () => {
     isFlagEnabled.mockReset()
   })
 
-  it('redirige a /pauta-diaria cuando ado_v2=false', async () => {
+  it('redirige a /legacy/pauta-diaria cuando ado_v2=false', async () => {
     isFlagEnabled.mockResolvedValue(false)
     const mod = await import('./page')
     await mod.default()
-    expect(redirect).toHaveBeenCalledWith('/pauta-diaria')
+    expect(redirect).toHaveBeenCalledWith('/legacy/pauta-diaria')
   })
 
   it('renderiza título cuando ado_v2=true', async () => {

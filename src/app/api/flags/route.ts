@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/database';
 
-export const revalidate = 30;
+// Forzar respuesta dinámica (sin cache) para reflejar flags inmediatamente
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
