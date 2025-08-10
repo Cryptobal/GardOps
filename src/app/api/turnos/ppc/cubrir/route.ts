@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { withPermission } from '@/app/api/_middleware/withPermission';
 import { getClient } from '@/lib/database';
 import { getCurrentUserRef } from '@/lib/auth';
@@ -30,35 +30,35 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
           `select pm.id, make_date(pm.anio, pm.mes, pm.dia) as fecha, pm.estado, pm.meta
            from as_turnos.fn_marcar_asistencia(
              $1,'reemplazo',
-             jsonb_build_object('reemplazo_guardia_id',$2),
+             jsonb_build_object('reemplazo_guardia_id',$2::text),
              $3
            ) x
            join public.as_turnos_pauta_mensual pm on pm.id = $1`,
           [pauta_id, guardia_id, actor]
         );
-        return Response.json(rows[0] ?? null);
+        return NextResponse.json(rows[0] ?? null);
       } else {
         // Fallback: actualizar directamente
         await client.query(
           `UPDATE public.as_turnos_pauta_mensual
            SET estado = 'reemplazo',
                meta = jsonb_build_object(
-                 'actor_ref', $2,
+                 'actor_ref', $2::text,
                  'timestamp', NOW()::text,
                  'action', 'reemplazo',
-                 'reemplazo_guardia_id', $3
+                 'reemplazo_guardia_id', $3::text
                )
-           WHERE id = $1`,
+           WHERE id = $1::bigint`,
           [pauta_id, actor, guardia_id]
         );
         
         const { rows } = await client.query(
           `SELECT id, make_date(anio, mes, dia) as fecha, estado, meta
            FROM public.as_turnos_pauta_mensual
-           WHERE id = $1`,
+           WHERE id = $1::bigint`,
           [pauta_id]
         );
-        return Response.json(rows[0] ?? null);
+        return NextResponse.json(rows[0] ?? null);
       }
     } finally {
       client.release?.();

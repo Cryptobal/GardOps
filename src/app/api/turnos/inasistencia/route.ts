@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { withPermission } from '@/app/api/_middleware/withPermission';
 import { getClient } from '@/lib/database';
 import { getCurrentUserRef } from '@/lib/auth';
@@ -32,39 +32,39 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
              $1,'inasistencia',
              jsonb_build_object(
                'falta_sin_aviso',$2,
-               'motivo',$3,
-               'reemplazo_guardia_id',$4
+               'motivo',$3::text,
+               'reemplazo_guardia_id',$4::text
              ),
              $5
            ) x
            join public.as_turnos_pauta_mensual pm on pm.id = $1`,
           [pauta_id, !!falta_sin_aviso, motivo ?? null, cubierto_por ?? null, actor]
         );
-        return Response.json(rows[0] ?? null);
+        return NextResponse.json(rows[0] ?? null);
       } else {
         // Fallback: actualizar directamente
         await client.query(
           `UPDATE public.as_turnos_pauta_mensual
            SET estado = 'inasistencia',
                meta = jsonb_build_object(
-                 'actor_ref', $2,
+                 'actor_ref', $2::text,
                  'timestamp', NOW()::text,
                  'action', 'inasistencia',
                  'falta_sin_aviso', $3,
-                 'motivo', $4,
-                 'reemplazo_guardia_id', $5
+                 'motivo', $4::text,
+                 'reemplazo_guardia_id', $5::text
                )
-           WHERE id = $1`,
+           WHERE id = $1::bigint`,
           [pauta_id, actor, !!falta_sin_aviso, motivo ?? null, cubierto_por ?? null]
         );
         
         const { rows } = await client.query(
           `SELECT id, make_date(anio, mes, dia) as fecha, estado, meta
            FROM public.as_turnos_pauta_mensual
-           WHERE id = $1`,
+           WHERE id = $1::bigint`,
           [pauta_id]
         );
-        return Response.json(rows[0] ?? null);
+        return NextResponse.json(rows[0] ?? null);
       }
     } finally {
       client.release?.();
