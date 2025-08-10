@@ -54,6 +54,11 @@ pool.on('remove', (client) => {
 
 export default pool;
 
+// Función para obtener un cliente del pool
+export async function getClient() {
+  return await pool.connect();
+}
+
 export async function query(text: string, params?: any[]): Promise<any> {
   const client = await pool.connect();
   try {
