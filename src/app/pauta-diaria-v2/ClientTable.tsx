@@ -265,7 +265,7 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
   // Reglas de visibilidad de botones según el prompt:
   const isTitularPlan = (r: PautaRow) => r.es_ppc === false && r.estado_ui === 'plan';
   const isPpcPlan     = (r: PautaRow) => r.es_ppc === true  && r.estado_ui === 'plan';
-  const canUndo       = (r: PautaRow) => ['asistido','reemplazo','sin_cobertura'].includes(r.estado_ui);
+  const canUndo       = (r: PautaRow) => ['asistido','reemplazo','sin_cobertura','inasistencia'].includes(r.estado_ui);
 
   // Detectar guardias duplicados en la misma fecha
   const guardiasDuplicados = useMemo(() => {
