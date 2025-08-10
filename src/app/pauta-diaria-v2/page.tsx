@@ -58,10 +58,11 @@ export default async function PautaDiariaV2Page({
 }) {
   noStore() // Evita caché en esta request
   
+  // Verificar flag fuera del try/catch para que redirect funcione correctamente
+  const isOn = await isFlagEnabled('ado_v2')
+  if (!isOn) redirect('/legacy/pauta-diaria')
+  
   try {
-    const isOn = await isFlagEnabled('ado_v2')
-    if (!isOn) redirect('/legacy/pauta-diaria')
-
     const fecha = searchParams?.fecha ?? new Date().toISOString().slice(0,10);
     const incluirLibres = searchParams?.incluir_libres === 'true';
     const rows = await getRows(fecha, incluirLibres);
@@ -130,7 +131,12 @@ export default async function PautaDiariaV2Page({
         )}
       </div>
     )
-  } catch (error) {
+  } catch (error: any) {
+    // Si es un error de redirect de Next.js, re-lanzarlo para que funcione correctamente
+    if (error?.message === 'NEXT_REDIRECT' || error?.digest?.startsWith('NEXT_REDIRECT')) {
+      throw error;
+    }
+    
     console.error('Error en PautaDiariaV2Page:', error);
     return (
       <div className="max-w-6xl mx-auto p-4">
