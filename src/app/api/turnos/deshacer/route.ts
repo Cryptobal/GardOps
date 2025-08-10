@@ -24,7 +24,6 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
       `);
       
       const functionExists = parseInt(funcCheck[0].count) > 0;
-      console.log('[deshacer] fn_revertir_a_plan exists:', functionExists);
       
       if (functionExists) {
         // Usar la función si existe
@@ -49,8 +48,7 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
             [actor, pauta_id]
           );
         } catch (logErr) {
-          console.log('[deshacer] No se pudo insertar log (tabla puede no existir):', logErr);
-          // No fallar si el log no se puede insertar
+          // No fallar si el log no se puede insertar (tabla puede no existir)
         }
       }
       

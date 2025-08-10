@@ -24,7 +24,6 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
       `);
       
       const functionExists = parseInt(funcCheck[0].count) > 0;
-      console.log('[ppc/sin-cobertura] fn_marcar_asistencia exists:', functionExists);
       
       if (functionExists) {
         const { rows } = await client.query(

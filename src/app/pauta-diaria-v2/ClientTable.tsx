@@ -75,9 +75,9 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
   // Ya no necesitamos verificar permisos manualmente, useCan lo maneja
 
   const refetch = useCallback(() => {
-    // preserva filtros/fecha
-    router.replace(pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : ''));
-  }, [router, pathname, searchParams]);
+    // preserva filtros/fecha y fuerza recarga del servidor
+    router.refresh();
+  }, [router]);
 
   // Persistir filtros en URL
   useEffect(() => {
@@ -185,6 +185,7 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
         description: "Turno PPC cubierto",
         type: "success"
       });
+      setModal({open:false, pautaId:null, row:undefined});
       refetch();
     } catch (e:any) {
       addToast({
@@ -488,10 +489,7 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
                                 size="sm" 
                                 variant="outline"
                                 disabled={isLoading} 
-                                onClick={() => {
-                                  console.log('Click No asistió - row:', r);
-                                  setModal({open:true, pautaId:r.pauta_id, row:r, type:'no_asistio'});
-                                }}
+                                onClick={() => setModal({open:true, pautaId:r.pauta_id, row:r, type:'no_asistio'})}
                               >
                                 No asistió
                               </Button>
@@ -505,10 +503,7 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
                                 size="sm" 
                                 variant="outline"
                                 disabled={isLoading} 
-                                onClick={() => {
-                                  console.log('Click Cubrir PPC - row:', r);
-                                  setModal({open:true, pautaId:r.pauta_id, row:r, type:'cubrir_ppc'});
-                                }}
+                                onClick={() => setModal({open:true, pautaId:r.pauta_id, row:r, type:'cubrir_ppc'})}
                               >
                                 Cubrir
                               </Button>
@@ -561,9 +556,7 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
         </Card>
 
         {modal.open && modal.pautaId != null && modal.type && (
-          <>
-            {console.log('Renderizando modal:', modal)}
-            <AsistenciaModal
+          <AsistenciaModal
               open={modal.open}
               pautaId={modal.pautaId}
               row={modal.row}
@@ -571,8 +564,7 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
               onClose={() => setModal({open:false, pautaId:null, row:undefined})}
               onNoAsistioConfirm={onNoAsistioConfirm}
               onCubrirPPC={onCubrirPPC}
-            />
-          </>
+          />
         )}
       </>
     </TooltipProvider>
