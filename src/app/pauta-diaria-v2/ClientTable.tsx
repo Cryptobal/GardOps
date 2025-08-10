@@ -488,7 +488,10 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
                                 size="sm" 
                                 variant="outline"
                                 disabled={isLoading} 
-                                onClick={() => setModal({open:true, pautaId:r.pauta_id, row:r, type:'no_asistio'})}
+                                onClick={() => {
+                                  console.log('Click No asistió - row:', r);
+                                  setModal({open:true, pautaId:r.pauta_id, row:r, type:'no_asistio'});
+                                }}
                               >
                                 No asistió
                               </Button>
@@ -502,7 +505,10 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
                                 size="sm" 
                                 variant="outline"
                                 disabled={isLoading} 
-                                onClick={() => setModal({open:true, pautaId:r.pauta_id, row:r, type:'cubrir_ppc'})}
+                                onClick={() => {
+                                  console.log('Click Cubrir PPC - row:', r);
+                                  setModal({open:true, pautaId:r.pauta_id, row:r, type:'cubrir_ppc'});
+                                }}
                               >
                                 Cubrir
                               </Button>
@@ -555,15 +561,18 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
         </Card>
 
         {modal.open && modal.pautaId != null && modal.type && (
-          <AsistenciaModal
-            open={modal.open}
-            pautaId={modal.pautaId}
-            row={modal.row}
-            modalType={modal.type}
-            onClose={() => setModal({open:false, pautaId:null, row:undefined})}
-            onNoAsistioConfirm={onNoAsistioConfirm}
-            onCubrirPPC={onCubrirPPC}
-          />
+          <>
+            {console.log('Renderizando modal:', modal)}
+            <AsistenciaModal
+              open={modal.open}
+              pautaId={modal.pautaId}
+              row={modal.row}
+              modalType={modal.type}
+              onClose={() => setModal({open:false, pautaId:null, row:undefined})}
+              onNoAsistioConfirm={onNoAsistioConfirm}
+              onCubrirPPC={onCubrirPPC}
+            />
+          </>
         )}
       </>
     </TooltipProvider>

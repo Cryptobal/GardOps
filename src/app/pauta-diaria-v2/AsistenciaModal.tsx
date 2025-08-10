@@ -134,6 +134,7 @@ export default function AsistenciaModal({
     }
   };
 
+  console.log('AsistenciaModal - open:', open, 'pautaId:', pautaId, 'modalType:', modalType);
   if (!open) return null;
   
   const isNoAsistio = modalType === 'no_asistio';
