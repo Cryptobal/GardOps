@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     // Verificar algunos datos de muestra
     try {
       const { rows: sample } = await client.query(`
-        SELECT id, estado, meta, fecha
+        SELECT id, estado, meta, anio, mes, dia
         FROM as_turnos_pauta_mensual
         WHERE estado != 'planificado'
         LIMIT 5
