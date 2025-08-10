@@ -215,7 +215,7 @@ const ModalAutocompletarPauta = ({
                     `}
                     title={`Día ${i + 1} del ciclo - ${esDiaTrabajo ? 'Trabajando' : 'Libre'}`}
                   >
-                    {esDiaTrabajo ? 'T' : 'L'}
+                    {esDiaTrabajo ? 'planificado' : 'L'}
                   </button>
                 );
               })}
@@ -260,7 +260,7 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
   const estadoNormalizado = estado?.toLowerCase() || '';
   
   switch (estadoNormalizado) {
-    case "t":
+    case "planificado":
       return { 
         icon: "●", 
         text: "", 
@@ -525,28 +525,16 @@ export default function PautaTable({
   };
 
   const cambiarEstadoDia = (guardiaIndex: number, diaIndex: number) => {
-    if (!modoEdicion) {
-      // Si no está en modo edición, navegar a pauta diaria
-      navegarAPautaDiaria(diaIndex + 1);
-      return;
-    }
+    if (!modoEdicion) return;
     
     const guardiaOrdenada = pautaDataOrdenada[guardiaIndex];
-    
-    console.log('🔄 Cambiando estado de día:', { guardiaIndex, diaIndex });
     const estadoActual = guardiaOrdenada.dias[diaIndex];
-    
-    // No permitir editar estados que vienen de pauta diaria
-    if (['A', 'I', 'R', 'S'].includes(estadoActual)) {
-      console.log('🔒 No se puede editar este estado (viene de pauta diaria):', estadoActual);
-      return;
-    }
     
     // Encontrar el índice original en pautaData
     const indiceOriginal = pautaData.findIndex(g => g.id === guardiaOrdenada.id);
     
-    // Solo permitir alternar entre T y L para planificación
-    const nuevoEstado = estadoActual === "T" ? "L" : "T";
+    // Solo permitir alternar entre planificado y L para planificación
+    const nuevoEstado = estadoActual === "planificado" ? "L" : "planificado";
     console.log('🔄 Estado actual:', estadoActual, '-> Nuevo estado:', nuevoEstado);
     console.log('🔄 Índice ordenado:', guardiaIndex, '-> Índice original:', indiceOriginal);
     onUpdatePauta(indiceOriginal, diaIndex, nuevoEstado);
@@ -601,7 +589,7 @@ export default function PautaTable({
       const diaDelCiclo = (diaInicio + diferenciaDesdeSeleccionado - 1) % cicloCompleto;
       const esDiaTrabajo = diaDelCiclo < patron.trabajo;
       
-      onUpdatePauta(indiceOriginal, i, esDiaTrabajo ? "T" : "L");
+      onUpdatePauta(indiceOriginal, i, esDiaTrabajo ? "planificado" : "L");
     }
     
     setAutocompletadoModal({ isOpen: false, guardiaIndex: 0, diaIndex: 0, diaSeleccionado: 1, diaSemanaSeleccionado: '' });

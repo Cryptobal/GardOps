@@ -156,21 +156,7 @@ export function buscarUbicacionesCercanas(
 
 // Obtener tenant ID del usuario actual
 export function getCurrentTenantId(): string {
-  // Importar la función de autenticación de forma segura
-  try {
-    const { getTenantId } = require('../auth');
-    const tenantId = getTenantId();
-    
-    console.log('Tenant ID obtenido:', tenantId);
-    
-    if (!tenantId) {
-      console.warn('No se pudo obtener el tenant ID, usando valor por defecto');
-      return 'default-tenant-id';
-    }
-    
-    return tenantId;
-  } catch (error) {
-    console.warn('Error obteniendo tenant ID, usando valor por defecto:', error);
-    return 'default-tenant-id';
-  }
+  // Por ahora usar un tenant ID por defecto
+  // En el futuro se puede implementar obtención desde cookies o contexto
+  return 'accebf8a-bacc-41fa-9601-ed39cb320a52';
 } 

@@ -191,7 +191,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
 
   // Calcular estadísticas basadas en todos los puestos (no filtrados)
   const estadisticas = {
-    asignados: puestos.filter(p => p.estado === 'T').length,
+    asignados: puestos.filter(p => p.estado === 'planificado').length,
     trabajados: puestos.filter(p => p.estado === 'trabajado').length,
     reemplazos: puestos.filter(p => p.estado === 'reemplazo').length,
     sin_cobertura: puestos.filter(p => p.estado === 'sin_cobertura').length
@@ -448,8 +448,8 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
     }
 
     const config = {
-      T: { 
-        label: 'Asignado', 
+      planificado: { 
+        label: 'Planificado', 
         variant: 'default', 
         icon: '📋', 
         color: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-200' 
@@ -713,7 +713,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
         {puesto.es_ppc && (
           <>
             {/* Botón Cobertura - solo para PPCs sin cobertura */}
-            {(!puesto.cobertura_real && (puesto.estado === 'T' || puesto.estado === 'libre')) && (
+            {(!puesto.cobertura_real && (puesto.estado === 'planificado' || puesto.estado === 'libre')) && (
               <Popover 
                 open={openPopovers.cobertura === popoverId} 
                 onOpenChange={(open) => {
@@ -1289,7 +1289,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Todos los estados</SelectItem>
-                        <SelectItem value="T">Asignado</SelectItem>
+                        <SelectItem value="planificado">Planificado</SelectItem>
                         <SelectItem value="trabajado">Trabajado</SelectItem>
                         <SelectItem value="reemplazo">Reemplazo</SelectItem>
                         <SelectItem value="sin_cobertura">Sin cobertura</SelectItem>

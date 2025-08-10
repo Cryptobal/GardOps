@@ -115,7 +115,7 @@ export default function EditarPautaMensualPage() {
           patron_turno: guardia.patron_turno || '4x4',
           dias: guardia.dias.map((dia: string) => {
             switch (dia) {
-              case 'T': return 'TRABAJA';
+              case 'planificado': return 'TRABAJA';
               case 'L': return 'LIBRE';
               case 'P': return 'PERMISO';
               case 'LIC': return 'LICENCIA';
@@ -178,7 +178,7 @@ export default function EditarPautaMensualPage() {
         guardia_id: guardia.es_ppc ? guardia.id : (guardia.guardia_id || guardia.id), // Para PPCs usar el ID del puesto, para guardias usar guardia_id
         dias: guardia.dias.map(dia => {
           switch (dia) {
-            case 'TRABAJA': return 'T';
+            case 'TRABAJA': return 'planificado';
             case 'LIBRE': return 'L';
             case 'PERMISO': return 'P';
             case 'LICENCIA': return 'LIC';

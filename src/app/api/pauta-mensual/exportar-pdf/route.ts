@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
     // Función para obtener el color del estado
     const getColorEstado = (estado: string): string => {
       switch (estado) {
-        case 'T':
+        case 'planificado':
           return '#3B82F6'; // Azul (Turno Planificado)
         case 'trabajado':
         case 'A':
@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
     // Función para obtener el texto del estado
     const getTextoEstado = (estado: string): string => {
       switch (estado) {
-        case 'T':
+        case 'planificado':
           return 'T';
         case 'trabajado':
         case 'A':

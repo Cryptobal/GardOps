@@ -352,8 +352,8 @@ export default function PautaMensualUnificadaPage() {
           
           // CAMBIO: Enviar todos los días, incluso los vacíos para limpiarlos
           let estadoDB = null; // null significa eliminar el registro
-          if (estado === 'T') {
-            estadoDB = 'T'; // CORREGIDO: Guardar como 'T' para que aparezca en pauta diaria
+          if (estado === 'planificado') {
+            estadoDB = 'planificado'; // CORREGIDO: Guardar como 'planificado' para que aparezca en pauta diaria
           } else if (estado === 'L') {
             estadoDB = 'libre';
           }
@@ -419,8 +419,8 @@ export default function PautaMensualUnificadaPage() {
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] 🔄 actualizarPauta:`, { guardiaIndex, diaIndex, nuevoEstado });
     
-    // Solo permitir estados T y L
-    if (nuevoEstado !== 'T' && nuevoEstado !== 'L') {
+    // Solo permitir estados planificado y L
+    if (nuevoEstado !== 'planificado' && nuevoEstado !== 'L') {
       console.log('🚫 Estado no permitido:', nuevoEstado);
       return;
     }

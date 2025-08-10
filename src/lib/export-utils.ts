@@ -25,51 +25,48 @@ const generarIdCortoPuesto = (puestoId: string | number) => {
 
 // Función para obtener el estado formateado
 const getEstadoFormateado = (puesto: Puesto) => {
-  if (puesto.es_ppc && puesto.estado === 'trabajado' && puesto.cobertura_real) {
-    return 'PPC Cubierto';
-  }
-  
   switch (puesto.estado) {
-    case 'T': return 'Asignado';
     case 'trabajado': return 'Trabajado';
     case 'reemplazo': return 'Reemplazo';
     case 'sin_cobertura': return 'Sin Cobertura';
     case 'inasistencia': return 'Inasistencia';
     case 'libre': return 'Libre';
+    case 'planificado': return 'Asignado';
+    case 'vacaciones': return 'Vacaciones';
+    case 'permiso': return 'Permiso';
+    case 'licencia': return 'Licencia';
     default: return puesto.estado;
   }
 };
 
 // Función para obtener el icono del estado
 const getEstadoIcono = (puesto: Puesto) => {
-  if (puesto.es_ppc && puesto.estado === 'trabajado' && puesto.cobertura_real) {
-    return '🛡️';
-  }
-  
   switch (puesto.estado) {
-    case 'T': return '📋';
-    case 'trabajado': return '✅';
-    case 'reemplazo': return '🔄';
-    case 'sin_cobertura': return '❌';
-    case 'inasistencia': return '❌';
-    case 'libre': return '🆓';
-    default: return '❓';
+    case 'trabajado': return '✓';
+    case 'reemplazo': return '⟲';
+    case 'sin_cobertura': return '▲';
+    case 'inasistencia': return '✗';
+    case 'libre': return '○';
+    case 'planificado': return '📋';
+    case 'vacaciones': return '🌴';
+    case 'permiso': return '🏖';
+    case 'licencia': return '🏥';
+    default: return '·';
   }
 };
 
 // Función para obtener el color del estado
 const getEstadoColor = (puesto: Puesto) => {
-  if (puesto.es_ppc && puesto.estado === 'trabajado' && puesto.cobertura_real) {
-    return '#8B5CF6'; // Purple
-  }
-  
   switch (puesto.estado) {
-    case 'T': return '#3B82F6'; // Blue
     case 'trabajado': return '#10B981'; // Green
-    case 'reemplazo': return '#F59E0B'; // Orange
+    case 'reemplazo': return '#F59E0B'; // Amber
     case 'sin_cobertura': return '#EF4444'; // Red
     case 'inasistencia': return '#EF4444'; // Red
     case 'libre': return '#6B7280'; // Gray
+    case 'planificado': return '#3B82F6'; // Blue
+    case 'vacaciones': return '#8B5CF6'; // Purple
+    case 'permiso': return '#6366F1'; // Indigo
+    case 'licencia': return '#EC4899'; // Pink
     default: return '#6B7280'; // Gray
   }
 };
@@ -94,7 +91,7 @@ export const exportarPautaPDF = (puestos: Puesto[], fecha: string) => {
   
   // Estadísticas
   const estadisticas = {
-    asignados: puestos.filter(p => p.estado === 'T').length,
+    asignados: puestos.filter(p => p.estado === 'planificado').length,
     trabajados: puestos.filter(p => p.estado === 'trabajado').length,
     reemplazos: puestos.filter(p => p.estado === 'reemplazo').length,
     sin_cobertura: puestos.filter(p => p.estado === 'sin_cobertura').length
@@ -215,7 +212,7 @@ export const exportarPautaExcel = (puestos: Puesto[], fecha: string) => {
   
   // Crear hoja de estadísticas
   const estadisticas = {
-    asignados: puestos.filter(p => p.estado === 'T').length,
+    asignados: puestos.filter(p => p.estado === 'planificado').length,
     trabajados: puestos.filter(p => p.estado === 'trabajado').length,
     reemplazos: puestos.filter(p => p.estado === 'reemplazo').length,
     sin_cobertura: puestos.filter(p => p.estado === 'sin_cobertura').length,
@@ -245,7 +242,7 @@ export const exportarPautaExcel = (puestos: Puesto[], fecha: string) => {
     acc[instalacion].total++;
     
     switch (puesto.estado) {
-      case 'T': acc[instalacion].asignados++; break;
+      case 'planificado': acc[instalacion].asignados++; break;
       case 'trabajado': acc[instalacion].trabajados++; break;
       case 'reemplazo': acc[instalacion].reemplazos++; break;
       case 'sin_cobertura': acc[instalacion].sin_cobertura++; break;
@@ -298,7 +295,7 @@ export const exportarPautaMensualPDF = (pautaData: any[], diasDelMes: number[], 
       ...guardia.dias.map((dia: string) => {
         // Mapear estados a iconos
         switch (dia) {
-          case 'T': return '●';
+          case 'planificado': return '📋';
           case 'trabajado':
           case 'A': return '✓';
           case 'I': return '✗';
@@ -337,7 +334,7 @@ export const exportarPautaMensualPDF = (pautaData: any[], diasDelMes: number[], 
       if (data.column.index > 1) { // Columnas de días
         const estado = data.cell.text[0];
         switch (estado) {
-          case '●': // Turno Planificado
+          case '📋': // Turno Planificado
             data.cell.styles.textColor = [59, 130, 246]; // Blue
             break;
           case '✓': // Asistió

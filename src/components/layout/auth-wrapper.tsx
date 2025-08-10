@@ -42,7 +42,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     }
 
     checkAuth()
-  }, [pathname, router, isPublicRoute])
+  }, [pathname, isPublicRoute])
 
   // Cerrar menú móvil al cambiar de página
   useEffect(() => {

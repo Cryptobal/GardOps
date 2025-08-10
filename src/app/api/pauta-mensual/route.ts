@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
         const estado = pautaDia?.estado || '';
         // Convertir estado de BD a formato frontend
         switch (estado) {
-          case 'T':
+          case 'planificado':
             return 'T';          // Planificado/Asignado
           case 'trabajado':
             return 'A';          // Asistió (confirmado)

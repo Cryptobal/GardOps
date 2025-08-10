@@ -70,11 +70,11 @@ export async function POST(req: NextRequest) {
             if (g.guardia_id === puesto.id && puesto.es_ppc) {
               // Es un PPC, verificar si tiene asignación para este día
               const diaIndex = dia - 1;
-              return g.dias && g.dias[diaIndex] === 'T'; // 'T' = TRABAJA
+              return g.dias && g.dias[diaIndex] === 'planificado'; // 'planificado' = TRABAJA
             } else if (g.guardia_id === puesto.guardia_id && !puesto.es_ppc) {
               // Es un guardia asignado, verificar si trabaja este día
               const diaIndex = dia - 1;
-              return g.dias && g.dias[diaIndex] === 'T'; // 'T' = TRABAJA
+              return g.dias && g.dias[diaIndex] === 'planificado'; // 'planificado' = TRABAJA
             }
             return false;
           });
@@ -156,8 +156,8 @@ async function procesarTurnos(turnos: any[]) {
         console.log(`🗑️ Eliminado turno para puesto ${puesto_id}, día ${dia}`);
       } else {
         // Validación de estado solo si no es null
-        if (!['trabajado', 'libre', 'T'].includes(estado)) {
-          errores.push(`Estado inválido: ${estado} - debe ser 'trabajado', 'libre', 'T', o null para eliminar`);
+        if (!['trabajado', 'libre', 'planificado'].includes(estado)) {
+          errores.push(`Estado inválido: ${estado} - debe ser 'trabajado', 'libre', 'planificado', o null para eliminar`);
           continue;
         }
 

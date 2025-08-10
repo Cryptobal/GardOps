@@ -275,7 +275,7 @@ export default function HistorialMensual({ guardiaId }: HistorialMensualProps) {
               <div>
                 <span className="text-gray-600">Trabajados:</span>
                 <span className="ml-2 font-medium text-green-600">
-                  {historial.filter(h => h.estado === 'trabajado' || h.estado === 'T').length}
+                  {historial.filter(h => h.estado === 'trabajado' || h.estado === 'planificado').length}
                 </span>
               </div>
               <div>
@@ -287,7 +287,7 @@ export default function HistorialMensual({ guardiaId }: HistorialMensualProps) {
               <div>
                 <span className="text-gray-600">Otros:</span>
                 <span className="ml-2 font-medium text-gray-600">
-                  {historial.filter(h => !['trabajado', 'T', 'reemplazo'].includes(h.estado)).length}
+                  {historial.filter(h => !['trabajado', 'planificado', 'reemplazo'].includes(h.estado)).length}
                 </span>
               </div>
             </div>

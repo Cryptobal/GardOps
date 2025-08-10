@@ -72,7 +72,7 @@ export async function GET(
         pm.dia,
         CASE 
           -- Días planificados con turno se muestran como 'turno'
-          WHEN pm.estado = 'T' THEN 'turno'
+          WHEN pm.estado = 'planificado' THEN 'turno'
           -- Días confirmados como trabajado se mantienen como 'trabajado'
           WHEN pm.estado = 'trabajado' THEN 'trabajado'
           -- Días de inasistencia se mantienen como 'inasistencia'

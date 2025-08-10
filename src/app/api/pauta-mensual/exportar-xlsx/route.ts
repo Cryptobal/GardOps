@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
     // Función para obtener el texto del estado
     const getTextoEstado = (estado: string): string => {
       switch (estado) {
-        case 'T':
+        case 'planificado':
           return 'T';
         case 'trabajado':
         case 'A':
@@ -365,7 +365,7 @@ export async function GET(request: NextRequest) {
     resumenData.push(['Total de puestos', puestosResult.rows.length]);
     resumenData.push(['Días del mes', diasDelMes.length]);
     resumenData.push(['Total de asignaciones', totalDias]);
-    resumenData.push(['Días trabajados', estadisticas['T'] || 0]);
+    resumenData.push(['Días trabajados', estadisticas['planificado'] || 0]);
     resumenData.push(['Días con inasistencia', estadisticas['I'] || 0]);
     resumenData.push(['Días con reemplazo', estadisticas['R'] || 0]);
 
