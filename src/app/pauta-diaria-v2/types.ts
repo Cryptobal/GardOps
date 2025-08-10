@@ -7,6 +7,7 @@ export interface PautaRow {
   instalacion_id: number;
   instalacion_nombre: string;
   estado: string;
+  estado_ui: string; // Estado normalizado para UI: 'plan' | 'libre' | 'asistido' | 'reemplazo' | 'sin_cobertura', etc.
   meta: number;
   guardia_trabajo_id: number | null;
   guardia_trabajo_nombre: string | null;

@@ -28,17 +28,15 @@ const addDays = (d: string, delta: number) => {
   return t.toISOString().slice(0,10);
 };
 
-// Helpers para estados
-const isAsistido = (estado:string) =>
-  estado === 'trabajado' || estado === 'reemplazo' || estado === 'asistido';
-const isPlan = (estado:string) => estado === 'planificado' || estado === 'plan';
-const isSinCobertura = (estado:string) => estado === 'sin_cobertura';
+// Helpers para estados usando estado_ui
+const isAsistido = (estadoUI: string) => {
+  return estadoUI === 'asistido' || estadoUI === 'reemplazo';
+};
+const isPlan = (estadoUI: string) => estadoUI === 'plan';
+const isSinCobertura = (estadoUI: string) => estadoUI === 'sin_cobertura';
+const isLibre = (estadoUI: string) => estadoUI === 'libre';
 
-const renderEstado = (raw: string, isFalta: boolean) => {
-  const estado = raw === 'trabajado' ? 'asistido'
-               : raw === 'planificado'         ? 'plan'
-               : raw;
-  
+const renderEstado = (estadoUI: string, isFalta: boolean) => {
   const cls: Record<string,string> = {
     asistido:       'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20',
     reemplazo:      'bg-sky-500/10 text-sky-400 ring-sky-500/20',
@@ -48,11 +46,11 @@ const renderEstado = (raw: string, isFalta: boolean) => {
     plan:           'bg-amber-500/10 text-amber-400 ring-amber-500/20',
   };
   
-  const base = cls[estado] ?? 'bg-gray-500/10 text-gray-400 ring-gray-500/20';
+  const base = cls[estadoUI] ?? 'bg-gray-500/10 text-gray-400 ring-gray-500/20';
   
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded ring-1 ${base}`}>
-      {estado}
+      {estadoUI}
       {isFalta && <span className="ml-1 rounded px-1 text-[10px] ring-1 bg-red-500/10 text-red-400 ring-red-500/20">falta</span>}
     </span>
   );
@@ -219,13 +217,13 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
 
   const filtered = useMemo(() => {
     return (rows ?? []).filter((r:any) => {
-      // Filtrar libres si no se muestran
-      if (!mostrarLibres && r.es_ppc && r.estado === 'planificado') return false;
+      // Filtrar libres si no se muestran (solo si es_ppc Y estado_ui es 'libre')
+      if (!mostrarLibres && r.es_ppc && r.estado_ui === 'libre') return false;
 
       if (f.instalacion && `${r.instalacion_id}` !== f.instalacion && r.instalacion_nombre !== f.instalacion) return false;
       if (f.estado && f.estado !== 'todos') {
-        const estadoUI = r.estado === 'trabajado' ? 'asistido' : (r.estado === 'planificado' ? 'plan' : r.estado);
-        if (estadoUI !== f.estado) return false;
+        // Ahora usamos estado_ui directamente para filtrar
+        if (r.estado_ui !== f.estado) return false;
       }
       if (f.ppc !== 'all') {
         const want = f.ppc === true;
@@ -409,11 +407,24 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
                           : '—'}
                       </TableCell>
                       <TableCell>{r.rol_nombre || '—'}</TableCell>
-                      <TableCell>{renderEstado(r.estado, r.es_falta_sin_aviso)}</TableCell>
+                      <TableCell>{renderEstado(r.estado_ui, r.es_falta_sin_aviso)}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          {/* Planificado (no PPC) → mostrar Asistió y No asistió */}
-                          {isPlan(r.estado) && !r.es_ppc && canMark && (
+                          {/* Si estado_ui === 'asistido' → NO mostrar botón "Asistió" */}
+                          {/* Si es_ppc = true → mostrar "Cubrir" */}
+                          {r.es_ppc && canMark && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              disabled={isLoading} 
+                              onClick={()=>setModal({open:true, pautaId:r.pauta_id, row:r})}
+                            >
+                              Cubrir
+                            </Button>
+                          )}
+
+                          {/* Si estado_ui === 'plan' y !es_ppc → mostrar "Asistió / No asistió" */}
+                          {r.estado_ui === 'plan' && !r.es_ppc && canMark && (
                             <>
                               <Button 
                                 size="sm" 
@@ -433,8 +444,8 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
                             </>
                           )}
 
-                          {/* Asistido → solo mostrar Deshacer */}
-                          {isAsistido(r.estado) && canMark && (
+                          {/* Si estado_ui === 'asistido' o 'reemplazo' → Deshacer */}
+                          {isAsistido(r.estado_ui) && canMark && (
                             <Button 
                               size="sm" 
                               variant="secondary"
@@ -446,7 +457,7 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
                           )}
 
                           {/* PPC sin cobertura → mostrar Asignar cobertura */}
-                          {r.es_ppc && isSinCobertura(r.estado) && canMark && (
+                          {r.es_ppc && isSinCobertura(r.estado_ui) && canMark && (
                             <Button 
                               size="sm" 
                               variant="outline"
@@ -456,6 +467,9 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
                               Asignar cobertura
                             </Button>
                           )}
+
+                          {/* Si estado_ui === 'libre' → en general no hay acción */}
+                          {/* (o "Asignar" si habilitas esa funcionalidad más adelante) */}
 
                           {/* Sin permisos → mostrar mensaje */}
                           {!canMark && (

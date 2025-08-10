@@ -17,30 +17,11 @@ async function getRows(fecha: string, incluirLibres: boolean = false): Promise<P
     console.log(`🔍 Obteniendo datos de pauta diaria para fecha: ${fecha}, incluirLibres: ${incluirLibres}`);
     
     const { rows } = await pool.query<PautaRow>(`
-      SELECT DISTINCT ON (fecha, guardia_trabajo_id)
-        pauta_id, 
-        fecha, 
-        puesto_id,
-        instalacion_id, 
-        instalacion_nombre,
-        estado, 
-        meta,
-        guardia_trabajo_id, 
-        guardia_trabajo_nombre,
-        guardia_titular_id, 
-        guardia_titular_nombre,
-        es_ppc, 
-        es_reemplazo, 
-        es_sin_cobertura, 
-        es_falta_sin_aviso,
-        hora_inicio,
-        hora_fin,
-        rol_nombre
-      FROM as_turnos_v_pauta_diaria
+      SELECT *
+      FROM as_turnos_v_pauta_diaria_dedup
       WHERE fecha = $1::date
-        AND ($2::boolean = true OR estado != 'libre')
-      ORDER BY fecha, guardia_trabajo_id, hora_inicio
-    `, [fecha, incluirLibres]);
+      ORDER BY es_ppc DESC, instalacion_nombre NULLS LAST, puesto_id, pauta_id DESC
+    `, [fecha]);
     
     console.log(`✅ Datos obtenidos exitosamente: ${rows.length} registros`);
     
@@ -50,7 +31,7 @@ async function getRows(fecha: string, incluirLibres: boolean = false): Promise<P
       
       const { rows: fechasDisponibles } = await pool.query(`
         SELECT DISTINCT fecha 
-        FROM as_turnos_v_pauta_diaria 
+        FROM as_turnos_v_pauta_diaria_dedup 
         ORDER BY fecha 
         LIMIT 5
       `);
@@ -91,7 +72,7 @@ export default async function PautaDiariaV2Page({
       try {
         const { rows: fechas } = await pool.query(`
           SELECT DISTINCT fecha 
-          FROM as_turnos_v_pauta_diaria 
+          FROM as_turnos_v_pauta_diaria_dedup 
           ORDER BY fecha 
           LIMIT 5
         `);
