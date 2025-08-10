@@ -217,8 +217,8 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
 
   const filtered = useMemo(() => {
     return (rows ?? []).filter((r:any) => {
-      // Filtrar libres si no se muestran (solo si es_ppc Y estado_ui es 'libre')
-      if (!mostrarLibres && r.es_ppc && r.estado_ui === 'libre') return false;
+      // Filtrar filas con estado_ui === 'libre' cuando mostrarLibres === false
+      if (!mostrarLibres && r.estado_ui === 'libre') return false;
 
       if (f.instalacion && `${r.instalacion_id}` !== f.instalacion && r.instalacion_nombre !== f.instalacion) return false;
       if (f.estado && f.estado !== 'todos') {
@@ -410,9 +410,8 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
                       <TableCell>{renderEstado(r.estado_ui, r.es_falta_sin_aviso)}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          {/* Si estado_ui === 'asistido' → NO mostrar botón "Asistió" */}
-                          {/* Si es_ppc = true → mostrar "Cubrir" */}
-                          {r.es_ppc && canMark && (
+                          {/* Mostrar Cubrir cuando row.necesita_cobertura === true */}
+                          {r.necesita_cobertura && canMark && (
                             <Button 
                               size="sm" 
                               variant="outline"
@@ -424,6 +423,7 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
                           )}
 
                           {/* Si estado_ui === 'plan' y !es_ppc → mostrar "Asistió / No asistió" */}
+                          {/* Ocultar Asistió/No asistió si estado_ui === 'asistido' */}
                           {r.estado_ui === 'plan' && !r.es_ppc && canMark && (
                             <>
                               <Button 
@@ -455,21 +455,6 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
                               {isLoading ? 'Guardando...' : 'Deshacer'}
                             </Button>
                           )}
-
-                          {/* PPC sin cobertura → mostrar Asignar cobertura */}
-                          {r.es_ppc && isSinCobertura(r.estado_ui) && canMark && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              disabled={isLoading} 
-                              onClick={()=>handleAsignarCobertura(r)}
-                            >
-                              Asignar cobertura
-                            </Button>
-                          )}
-
-                          {/* Si estado_ui === 'libre' → en general no hay acción */}
-                          {/* (o "Asignar" si habilitas esa funcionalidad más adelante) */}
 
                           {/* Sin permisos → mostrar mensaje */}
                           {!canMark && (

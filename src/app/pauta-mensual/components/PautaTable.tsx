@@ -76,6 +76,12 @@ const acortarNombrePPC = (nombre: string): string => {
   return nombre;
 };
 
+// Función para truncar UUID mostrando inicio y fin
+const truncateMiddle = (s: string, head: number = 8, tail: number = 6): string => {
+  if (!s || s.length <= head + tail + 3) return s;
+  return `${s.slice(0, head)}…${s.slice(-tail)}`;
+};
+
 // Función para obtener feriados de Chile (2024-2025)
 const getFeriadosChile = (year: number, month: number): number[] => {
   const feriados = {
@@ -787,6 +793,12 @@ export default function PautaTable({
                                 PPC
                               </span>
                             )}
+                          </div>
+                          {/* UUID del puesto truncado */}
+                          <div className="text-xs text-muted-foreground">
+                            <span title={guardia.id} className="cursor-help">
+                              {truncateMiddle(guardia.id)}
+                            </span>
                           </div>
                         </div>
                       </div>

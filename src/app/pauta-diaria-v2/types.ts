@@ -17,6 +17,7 @@ export interface PautaRow {
   es_reemplazo: boolean;
   es_sin_cobertura: boolean;
   es_falta_sin_aviso: boolean;
+  necesita_cobertura: boolean; // Flag para indicar si necesita cobertura (PPC libre o titular sin cobertura)
   hora_inicio: string | null;
   hora_fin: string | null;
   rol_nombre: string | null;
