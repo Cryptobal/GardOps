@@ -7,7 +7,6 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { marcarAsistencia } from '@/lib/api/turnos';
 
 interface Guardia {
   id: string;
@@ -15,8 +14,18 @@ interface Guardia {
 }
 
 export default function NoAsistenciaModal({
-  open, onClose, pautaId, onDone
-}: { open: boolean; onClose: () => void; pautaId: number; onDone: () => void; }) {
+  open, onClose, pautaId, onConfirm
+}: { 
+  open: boolean; 
+  onClose: () => void; 
+  pautaId: number; 
+  onConfirm: (data: {
+    pauta_id: number;
+    falta_sin_aviso: boolean;
+    motivo?: string;
+    cubierto_por?: string | null;
+  }) => Promise<void>;
+}) {
   const { addToast } = useToast();
   const [motivo, setMotivo] = useState<'con_aviso' | 'sin_aviso' | 'licencia' | 'permiso' | 'vacaciones' | 'finiquito'>('sin_aviso');
   const [asignarCobertura, setAsignarCobertura] = useState(false);
@@ -61,46 +70,21 @@ export default function NoAsistenciaModal({
 
     setLoading(true);
     try {
-      let response;
-      
-      if (asignarCobertura && guardiaReemplazo) {
-        // Con reemplazo
-        response = await marcarAsistencia({
-          pautaId,
-          estado: 'reemplazo',
-          motivo,
-          reemplazo_guardia_id: parseInt(guardiaReemplazo)
-        });
-      } else {
-        // Sin reemplazo - primero marcar inasistencia
-        response = await marcarAsistencia({
-          pautaId,
-          estado: 'inasistencia',
-          motivo
-        });
-        
-        if (response.ok) {
-          // Luego marcar sin cobertura
-          response = await marcarAsistencia({
-            pautaId,
-            estado: 'sin_cobertura'
-          });
-        }
-      }
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Error ${response.status}`);
-      }
-      
-      addToast({
-        title: "Éxito",
-        description: "Estado actualizado correctamente",
-        type: "success"
+      const falta_sin_aviso = motivo === 'sin_aviso';
+      const motivoText = motivo === 'sin_aviso' ? 'Falta sin aviso' : 
+                        motivo === 'con_aviso' ? 'Falta con aviso' :
+                        motivo === 'licencia' ? 'Licencia médica' :
+                        motivo === 'permiso' ? 'Permiso' :
+                        motivo === 'vacaciones' ? 'Vacaciones' :
+                        motivo === 'finiquito' ? 'Finiquito' : motivo;
+
+      await onConfirm({
+        pauta_id: pautaId,
+        falta_sin_aviso,
+        motivo: motivoText,
+        cubierto_por: asignarCobertura && guardiaReemplazo ? guardiaReemplazo : null
       });
       
-      onClose(); 
-      onDone();
     } catch (error) {
       console.error('Error enviando datos:', error);
       addToast({

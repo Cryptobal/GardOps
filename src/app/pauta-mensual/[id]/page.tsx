@@ -23,7 +23,8 @@ import {
   Plus,
   FileText,
   Download,
-  FileSpreadsheet
+  FileSpreadsheet,
+  RefreshCw
 } from "lucide-react";
 import { obtenerPautaMensual, guardarPautaMensual, crearPautaMensualAutomatica, exportarPautaMensualPDF, exportarPautaMensualXLSX } from "../../../lib/api/pauta-mensual";
 import { useToast } from "../../../hooks/use-toast";
@@ -568,6 +569,16 @@ export default function PautaMensualUnificadaPage() {
             <>
               {!editando ? (
                 <>
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.location.reload()} 
+                    className="w-full sm:w-auto"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Actualizar</span>
+                    <span className="sm:hidden">Actualizar</span>
+                  </Button>
+                  
                   <Button onClick={() => setEditando(true)} className="w-full sm:w-auto">
                     <Edit className="h-4 w-4 mr-2" />
                     <span className="hidden sm:inline">Editar Pauta</span>

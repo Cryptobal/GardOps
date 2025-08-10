@@ -1,5 +1,5 @@
 'use client';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useCan } from '@/lib/can';
 import { Button } from '@/components/ui/button';
@@ -12,9 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronLeft, ChevronRight, Calendar, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
-import NoAsistenciaModal from './NoAsistenciaModal';
+import AsistenciaModal from './AsistenciaModal';
 import { PautaRow, PautaDiariaV2Props } from './types';
-import { marcarAsistencia, deshacerAsistencia, verificarPermisos } from '@/lib/api/turnos';
 
 type Filtros = {
   instalacion?: string;
@@ -58,12 +57,13 @@ const renderEstado = (estadoUI: string, isFalta: boolean) => {
 
 export default function ClientTable({ rows, fecha, incluirLibres = false }: PautaDiariaV2Props) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { addToast } = useToast();
   const canMark = useCan('turnos.marcar_asistencia');
-  const [modal, setModal] = useState<{open:boolean; pautaId:number|null; row?:PautaRow}>({open:false, pautaId:null});
+  const [modal, setModal] = useState<{open:boolean; pautaId:number|null; row?:PautaRow; type?:'no_asistio'|'cubrir_ppc'}>({open:false, pautaId:null});
   const [mostrarLibres, setMostrarLibres] = useState(incluirLibres);
-  const [loadingStates, setLoadingStates] = useState<Set<number>>(new Set());
+  const [savingId, setSavingId] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [f, setF] = useState<Filtros>(() => ({ 
     ppc: 'all',
@@ -73,6 +73,11 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
   }));
 
   // Ya no necesitamos verificar permisos manualmente, useCan lo maneja
+
+  const refetch = useCallback(() => {
+    // preserva filtros/fecha
+    router.replace(pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : ''));
+  }, [router, pathname, searchParams]);
 
   // Persistir filtros en URL
   useEffect(() => {
@@ -108,87 +113,141 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
     return () => window.removeEventListener('keydown', onKey);
   }, [go]);
 
-  const marcarAsistio = useCallback(async (pauta_id:number) => {
-    setLoadingStates(prev => new Set(prev).add(pauta_id));
+  async function onAsistio(id: number) {
     try {
-      const response = await marcarAsistencia({ pautaId: pauta_id, estado: 'asistio' });
-      
-      if (!response.ok) {
-        if (response.status === 403) {
-          addToast({
-            title: "Error",
-            description: "Sin permiso para marcar asistencia",
-            type: "error"
-          });
-          return;
-        }
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Error ${response.status}`);
-      }
-      
+      setSavingId(id);
+      const res = await fetch('/api/turnos/asistencia', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ pauta_id: id }),
+      });
+      if (!res.ok) throw new Error(await res.text());
       addToast({
         title: "Éxito",
-        description: "Asistencia marcada correctamente",
+        description: "Asistencia marcada",
         type: "success"
       });
-      
-      router.refresh();
-    } catch (error) {
-      console.error('Error marcando asistencia:', error);
+      refetch();
+    } catch (e:any) {
       addToast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Error al marcar asistencia",
+        description: `Error al marcar asistencia: ${e.message ?? e}`,
         type: "error"
       });
     } finally {
-      setLoadingStates(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(pauta_id);
-        return newSet;
-      });
+      setSavingId(null);
     }
-  }, [router, addToast]);
+  }
 
-  const revertir = useCallback(async (pauta_id:number) => {
-    setLoadingStates(prev => new Set(prev).add(pauta_id));
+  async function onNoAsistioConfirm(data: {
+    pauta_id: number;
+    falta_sin_aviso: boolean;
+    motivo?: string;
+    cubierto_por?: string | null;
+  }) {
     try {
-      const response = await marcarAsistencia({ pautaId: pauta_id, estado: 'deshacer' });
-      
-      if (!response.ok) {
-        if (response.status === 403) {
-          addToast({
-            title: "Error",
-            description: "Sin permiso para deshacer asistencia",
-            type: "error"
-          });
-          return;
-        }
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Error ${response.status}`);
-      }
-      
+      setSavingId(data.pauta_id);
+      const res = await fetch('/api/turnos/inasistencia', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      addToast({
+        title: "Éxito",
+        description: "Inasistencia registrada",
+        type: "success"
+      });
+      setModal({open:false, pautaId:null, row:undefined});
+      refetch();
+    } catch (e:any) {
+      addToast({
+        title: "Error",
+        description: `Error al registrar inasistencia: ${e.message ?? e}`,
+        type: "error"
+      });
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  async function onCubrirPPC(pauta_id: number, guardia_id: string) {
+    try {
+      setSavingId(pauta_id);
+      const res = await fetch('/api/turnos/ppc/cubrir', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ pauta_id, guardia_id }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      addToast({
+        title: "Éxito",
+        description: "Turno PPC cubierto",
+        type: "success"
+      });
+      refetch();
+    } catch (e:any) {
+      addToast({
+        title: "Error",
+        description: `Error al cubrir turno PPC: ${e.message ?? e}`,
+        type: "error"
+      });
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  async function onSinCoberturaPPC(pauta_id: number) {
+    try {
+      setSavingId(pauta_id);
+      const res = await fetch('/api/turnos/ppc/sin-cobertura', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ pauta_id }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      addToast({
+        title: "Éxito",
+        description: "Marcado sin cobertura",
+        type: "success"
+      });
+      refetch();
+    } catch (e:any) {
+      addToast({
+        title: "Error",
+        description: `Error al marcar sin cobertura: ${e.message ?? e}`,
+        type: "error"
+      });
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  async function onDeshacer(pauta_id: number) {
+    try {
+      setSavingId(pauta_id);
+      const res = await fetch('/api/turnos/deshacer', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ pauta_id }),
+      });
+      if (!res.ok) throw new Error(await res.text());
       addToast({
         title: "Éxito",
         description: "Estado revertido a planificado",
         type: "success"
       });
-      
-      router.refresh();
-    } catch (error) {
-      console.error('Error deshaciendo asistencia:', error);
+      refetch();
+    } catch (e:any) {
       addToast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Error al deshacer",
+        description: `Error al deshacer: ${e.message ?? e}`,
         type: "error"
       });
     } finally {
-      setLoadingStates(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(pauta_id);
-        return newSet;
-      });
+      setSavingId(null);
     }
-  }, [router, addToast]);
+  }
 
   const onCoberturaDone = useCallback(() => { 
     setModal({open:false, pautaId:null, row:undefined}); 
@@ -202,6 +261,11 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
       type: "success" // cambiar a success ya que info puede no estar disponible
     });
   }, [addToast]);
+
+  // Reglas de visibilidad de botones según el prompt:
+  const isTitularPlan = (r: PautaRow) => r.es_ppc === false && r.estado_ui === 'plan';
+  const isPpcPlan     = (r: PautaRow) => r.es_ppc === true  && r.estado_ui === 'plan';
+  const canUndo       = (r: PautaRow) => ['asistido','reemplazo','sin_cobertura'].includes(r.estado_ui);
 
   // Detectar guardias duplicados en la misma fecha
   const guardiasDuplicados = useMemo(() => {
@@ -359,7 +423,7 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
               <TableBody>
                 {filtered.map((r:PautaRow) => {
                   const esDuplicado = r.guardia_trabajo_id && (guardiasDuplicados.get(`${r.fecha}-${r.guardia_trabajo_id}`) || 0) > 1;
-                  const isLoading = loadingStates.has(r.pauta_id);
+                  const isLoading = savingId === r.pauta_id;
                   const esPPC = r.es_ppc || !r.guardia_trabajo_id;
                   
                   return (
@@ -410,26 +474,13 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
                       <TableCell>{renderEstado(r.estado_ui, r.es_falta_sin_aviso)}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          {/* Mostrar Cubrir cuando row.necesita_cobertura === true */}
-                          {r.necesita_cobertura && canMark && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              disabled={isLoading} 
-                              onClick={()=>setModal({open:true, pautaId:r.pauta_id, row:r})}
-                            >
-                              Cubrir
-                            </Button>
-                          )}
-
-                          {/* Si estado_ui === 'plan' y !es_ppc → mostrar "Asistió / No asistió" */}
-                          {/* Ocultar Asistió/No asistió si estado_ui === 'asistido' */}
-                          {r.estado_ui === 'plan' && !r.es_ppc && canMark && (
+                          {/* Titular en plan: Asistió / No asistió */}
+                          {isTitularPlan(r) && canMark && (
                             <>
                               <Button 
                                 size="sm" 
                                 disabled={isLoading} 
-                                onClick={()=>marcarAsistio(r.pauta_id)}
+                                onClick={() => onAsistio(r.pauta_id)}
                               >
                                 {isLoading ? 'Guardando...' : 'Asistió'}
                               </Button>
@@ -437,20 +488,42 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
                                 size="sm" 
                                 variant="outline"
                                 disabled={isLoading} 
-                                onClick={()=>setModal({open:true, pautaId:r.pauta_id, row:r})}
+                                onClick={() => setModal({open:true, pautaId:r.pauta_id, row:r, type:'no_asistio'})}
                               >
                                 No asistió
                               </Button>
                             </>
                           )}
 
-                          {/* Si estado_ui === 'asistido' o 'reemplazo' → Deshacer */}
-                          {isAsistido(r.estado_ui) && canMark && (
+                          {/* PPC en plan: Cubrir / Sin cobertura */}
+                          {isPpcPlan(r) && canMark && (
+                            <>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                disabled={isLoading} 
+                                onClick={() => setModal({open:true, pautaId:r.pauta_id, row:r, type:'cubrir_ppc'})}
+                              >
+                                Cubrir
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                disabled={isLoading} 
+                                onClick={() => onSinCoberturaPPC(r.pauta_id)}
+                              >
+                                Sin cobertura
+                              </Button>
+                            </>
+                          )}
+
+                          {/* Deshacer para estados asistido/reemplazo/sin_cobertura */}
+                          {canUndo(r) && canMark && (
                             <Button 
                               size="sm" 
                               variant="secondary"
                               disabled={isLoading} 
-                              onClick={()=>revertir(r.pauta_id)}
+                              onClick={() => onDeshacer(r.pauta_id)}
                             >
                               {isLoading ? 'Guardando...' : 'Deshacer'}
                             </Button>
@@ -481,12 +554,15 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
           </CardContent>
         </Card>
 
-        {modal.open && modal.pautaId != null && (
-          <NoAsistenciaModal
+        {modal.open && modal.pautaId != null && modal.type && (
+          <AsistenciaModal
             open={modal.open}
             pautaId={modal.pautaId}
+            row={modal.row}
+            modalType={modal.type}
             onClose={() => setModal({open:false, pautaId:null, row:undefined})}
-            onDone={onCoberturaDone}
+            onNoAsistioConfirm={onNoAsistioConfirm}
+            onCubrirPPC={onCubrirPPC}
           />
         )}
       </>

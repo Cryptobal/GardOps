@@ -17,7 +17,11 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
     try {
       const { rows } = await client.query(
         `select pm.id, make_date(pm.anio, pm.mes, pm.dia) as fecha, pm.estado, pm.meta
-           from as_turnos.fn_marcar_asistencia($1,'asistio',null,$2) x
+           from as_turnos.fn_marcar_asistencia(
+             $1,'sin_cobertura',
+             jsonb_build_object('origen','ppc'),
+             $2
+           ) x
            join public.as_turnos_pauta_mensual pm on pm.id = $1`,
         [pauta_id, actor]
       );
@@ -26,7 +30,7 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
       client.release?.();
     }
   } catch (err:any) {
-    console.error('[asistencia] error', err);
+    console.error('[ppc/sin-cobertura] error', err);
     return new Response(err?.message ?? 'error', { status: 500 });
   }
 });
