@@ -1,96 +1,122 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pool, { query } from '@/lib/database';
-import { logCRUD } from '@/lib/logging';
+import { getClient } from '@/lib/database';
+import { unstable_noStore as noStore } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
+  noStore();
+  const client = await getClient();
   try {
     const url = new URL(req.url);
     const q = (url.searchParams.get('q') ?? '').trim();
+    const estado = url.searchParams.get('estado')?.trim();
     
-    // Primero intentar con la tabla guardias
+    // Intentar primero con la tabla rrhh_guardias
     try {
       const params: any[] = [];
       let sql = `
-        SELECT id::text, trim(concat_ws(' ', nombre, apellido_paterno, apellido_materno)) AS nombre
-        FROM public.guardias WHERE activo = true
+        SELECT id::text, nombre, estado
+        FROM public.rrhh_guardias
+        WHERE 1=1
       `;
-      if (q) {
-        sql += ` AND (unaccent(nombre) ILIKE unaccent($1) OR unaccent(apellido_paterno) ILIKE unaccent($1) OR unaccent(apellido_materno) ILIKE unaccent($1))`;
-        params.push(`%${q}%`);
-      }
-      sql += ` ORDER BY nombre LIMIT 50`;
-      const { rows } = await pool.query(sql, params);
-      return NextResponse.json({ guardias: rows });
-    } catch (err) {
-      console.log('[guardias] Tabla guardias no disponible, usando datos de pauta diaria');
+      let paramCount = 1;
       
-      // Fallback: obtener guardias únicos de la vista de pauta diaria
+      if (q) {
+        sql += ` AND nombre ILIKE $${paramCount}`;
+        params.push(`%${q}%`);
+        paramCount++;
+      }
+      
+      if (estado) {
+        sql += ` AND estado = $${paramCount}`;
+        params.push(estado);
+        paramCount++;
+      }
+      
+      sql += ` ORDER BY nombre LIMIT 100`;
+      const { rows } = await client.query(sql, params);
+      return NextResponse.json({ items: rows });
+    } catch (err) {
+      console.log('[guardias] Tabla rrhh_guardias no disponible, probando tabla guardias');
+      
+      // Segundo intento: tabla guardias
       try {
-        const { rows } = await pool.query(`
-          SELECT DISTINCT 
-            guardia_trabajo_id::text as id,
-            guardia_trabajo_nombre as nombre
-          FROM as_turnos_v_pauta_diaria_dedup
-          WHERE guardia_trabajo_id IS NOT NULL
-            AND guardia_trabajo_nombre IS NOT NULL
-          ORDER BY guardia_trabajo_nombre
-          LIMIT 50
-        `);
+        const params: any[] = [];
+        let sql = `
+          SELECT id::text, 
+                 trim(concat_ws(' ', nombre, apellido_paterno, apellido_materno)) AS nombre, 
+                 CASE WHEN activo THEN 'activo' ELSE 'inactivo' END as estado
+          FROM public.guardias
+          WHERE 1=1
+        `;
+        let paramCount = 1;
         
-        // Si no hay datos en la vista, crear algunos guardias de ejemplo
-        if (rows.length === 0) {
-          console.log('[guardias] Sin datos en vista, devolviendo guardias de ejemplo');
-          return NextResponse.json({ 
-            guardias: [
-              { id: '1', nombre: 'Juan Pérez González' },
-              { id: '2', nombre: 'María Silva Rojas' },
-              { id: '3', nombre: 'Carlos López Martínez' },
-              { id: '4', nombre: 'Ana Torres Díaz' },
-              { id: '5', nombre: 'Pedro Ramírez Castro' },
-              { id: '6', nombre: 'Laura Morales Vargas' },
-              { id: '7', nombre: 'Diego Fernández Soto' },
-              { id: '8', nombre: 'Carmen Ruiz Herrera' }
-            ]
-          });
+        if (estado) {
+          if (estado === 'activo') {
+            sql += ` AND activo = true`;
+          } else if (estado === 'inactivo') {
+            sql += ` AND activo = false`;
+          }
         }
         
-        return NextResponse.json({ guardias: rows });
-      } catch (viewErr) {
-        console.error('[guardias] Error con vista pauta diaria:', viewErr);
+        if (q) {
+          sql += ` AND (unaccent(nombre) ILIKE unaccent($${paramCount}) OR unaccent(apellido_paterno) ILIKE unaccent($${paramCount}) OR unaccent(apellido_materno) ILIKE unaccent($${paramCount}))`;
+          params.push(`%${q}%`);
+          paramCount++;
+        }
         
-        // Fallback final: devolver guardias de ejemplo
-        return NextResponse.json({ 
-          guardias: [
-            { id: '1', nombre: 'Juan Pérez González' },
-            { id: '2', nombre: 'María Silva Rojas' },
-            { id: '3', nombre: 'Carlos López Martínez' },
-            { id: '4', nombre: 'Ana Torres Díaz' },
-            { id: '5', nombre: 'Pedro Ramírez Castro' },
-            { id: '6', nombre: 'Laura Morales Vargas' },
-            { id: '7', nombre: 'Diego Fernández Soto' },
-            { id: '8', nombre: 'Carmen Ruiz Herrera' }
-          ]
-        });
+        sql += ` ORDER BY nombre LIMIT 100`;
+        const { rows } = await client.query(sql, params);
+        return NextResponse.json({ items: rows });
+      } catch (err2) {
+        console.log('[guardias] Tabla guardias no disponible, usando vista de pauta diaria');
+        
+        // Fallback: obtener guardias únicos de la vista de pauta diaria
+        try {
+          const { rows } = await client.query(`
+            SELECT DISTINCT 
+              guardia_trabajo_id::text as id,
+              guardia_trabajo_nombre as nombre,
+              'activo' as estado
+            FROM as_turnos_v_pauta_diaria_dedup
+            WHERE guardia_trabajo_id IS NOT NULL
+              AND guardia_trabajo_nombre IS NOT NULL
+            ORDER BY guardia_trabajo_nombre
+            LIMIT 100
+          `);
+          
+          // Si no hay datos, devolver array vacío
+          if (rows.length === 0) {
+            console.log('[guardias] Sin datos disponibles');
+            return NextResponse.json({ items: [] });
+          }
+          
+          return NextResponse.json({ items: rows });
+        } catch (viewErr) {
+          console.error('[guardias] Error con vista pauta diaria:', viewErr);
+          return NextResponse.json({ items: [] });
+        }
       }
     }
-  } catch (error) {
-    console.error('[guardias] Error general:', error);
-    // En caso de error total, devolver lista vacía para no romper el modal
-    return NextResponse.json({ guardias: [] });
+  } catch (error:any) {
+    console.error('[guardias] error:', error);
+    return new Response(error?.message ?? 'error', { status: 500 });
+  } finally {
+    client.release?.();
   }
 }
 
 // POST /api/guardias - Crear nuevo guardia
 export async function POST(request: NextRequest) {
+  noStore();
   console.log('🔍 API Guardias - Creando nuevo guardia');
   
   // Por ahora usar un tenant_id fijo para testing
   const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
   const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
   
+  const client = await getClient();
   try {
     const body = await request.json();
     
@@ -204,7 +230,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      const bancoCheck = await query('SELECT 1 FROM bancos WHERE id = $1 LIMIT 1', [body.banco_id]);
+      const bancoCheck = await client.query('SELECT 1 FROM bancos WHERE id = $1 LIMIT 1', [body.banco_id]);
       if (bancoCheck.rows.length === 0) {
         return NextResponse.json(
           { error: 'Banco no encontrado. Seleccione un banco válido.' },
@@ -214,12 +240,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar duplicados por RUT y Email dentro del tenant
-    const dupRut = await query(
+    const dupRut = await client.query(
       'SELECT id, nombre, apellido_paterno, rut FROM guardias WHERE rut = $1 AND tenant_id = $2 LIMIT 1',
       [rutNormalizado, tenantId]
     );
     
-    const dupEmail = await query(
+    const dupEmail = await client.query(
       'SELECT id, nombre, apellido_paterno, email FROM guardias WHERE email = $1 AND tenant_id = $2 LIMIT 1',
       [email, tenantId]
     );
@@ -280,7 +306,7 @@ export async function POST(request: NextRequest) {
     console.log('🔍 API Guardias - Valores a insertar:', insertValues);
 
     // Query para crear el guardia - corregido para coincidir con la estructura real
-    const result = await query(`
+    const result = await client.query(`
       INSERT INTO guardias (
         tenant_id,
         nombre,
@@ -308,47 +334,20 @@ export async function POST(request: NextRequest) {
 
     const nuevoGuardia = result.rows[0];
 
-    // Log de creación
-    await logCRUD(
-      'guardias',
-      nuevoGuardia.id,
-      'CREATE',
-      usuario,
-      null, // No hay datos anteriores en creación
-      nuevoGuardia,
-      tenantId
-    );
-
     return NextResponse.json({ 
       success: true, 
       guardia: nuevoGuardia 
     });
-  } catch (error) {
+  } catch (error:any) {
     console.error('Error creando guardia:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack available');
-    
-    // Log del error
-    await logCRUD(
-      'guardias',
-      'NEW',
-      'CREATE',
-      'admin@test.com',
-      null,
-      {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        endpoint: '/api/guardias',
-        method: 'POST'
-      },
-      tenantId
-    );
-    
     return NextResponse.json(
       {
         error: 'Error interno del servidor',
-        detalles: error instanceof Error ? error.message : String(error)
+        detalles: error?.message ?? String(error)
       },
       { status: 500 }
     );
+  } finally {
+    client.release?.();
   }
 }

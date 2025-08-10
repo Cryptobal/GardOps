@@ -137,21 +137,34 @@ export default function GuardiasPage() {
   // Cargar datos de guardias
   useEffect(() => {
     const fetchGuardias = async () => {
+      console.log("🔍 GuardiasPage: Iniciando carga de guardias...");
       try {
         setLoading(true);
+        console.log("🔍 GuardiasPage: Llamando a /api/guardias...");
         const response = await fetch("/api/guardias");
-        if (!response.ok) throw new Error("Error al cargar guardias");
+        console.log("🔍 GuardiasPage: Respuesta recibida:", response.status, response.ok);
+        
+        if (!response.ok) {
+          console.error("🔍 GuardiasPage: Error en respuesta:", response.status, response.statusText);
+          throw new Error(`Error al cargar guardias: ${response.status}`);
+        }
         
         const data = await response.json();
-        setGuardias(data.guardias || []);
+        console.log("🔍 GuardiasPage: Datos recibidos:", data);
+        console.log("🔍 GuardiasPage: Items array:", data.items);
+        console.log("🔍 GuardiasPage: Cantidad de guardias:", data.items?.length || 0);
+        
+        // Usar data.items en lugar de data.guardias
+        const guardiasData = data.items || [];
+        setGuardias(guardiasData);
         
         // Calcular KPIs
-        const total = data.guardias?.length || 0;
-        const activos = data.guardias?.filter((g: any) => g.activo).length || 0;
+        const total = guardiasData.length || 0;
+        const activos = guardiasData.filter((g: any) => g.estado === 'activo' || g.activo === true).length || 0;
         const inactivos = total - activos;
         
         // Calcular estadísticas de OS10
-        const estadisticasOS10 = obtenerEstadisticasOS10(data.guardias || []);
+        const estadisticasOS10 = obtenerEstadisticasOS10(guardiasData);
 
         setKpis({ 
           total, 
@@ -160,11 +173,21 @@ export default function GuardiasPage() {
           os10PorVencer: estadisticasOS10.por_vencer,
           os10Vencidos: estadisticasOS10.vencidos
         });
+        
+        console.log("🔍 GuardiasPage: KPIs calculados:", { 
+          total, 
+          activos, 
+          inactivos, 
+          os10PorVencer: estadisticasOS10.por_vencer,
+          os10Vencidos: estadisticasOS10.vencidos
+        });
       } catch (error) {
-        console.error("Error cargando guardias:", error);
+        console.error("🔍 GuardiasPage: Error cargando guardias:", error);
+        console.error("🔍 GuardiasPage: Stack trace:", error instanceof Error ? error.stack : 'No stack');
         showToast("Error al cargar guardias", "error");
       } finally {
         setLoading(false);
+        console.log("🔍 GuardiasPage: Carga finalizada, loading = false");
       }
     };
 
@@ -175,14 +198,15 @@ export default function GuardiasPage() {
   const filteredGuardias = useMemo(() => {
     return guardias.filter((guardia: any) => {
       const matchesSearch = 
+        guardia.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         guardia.nombre_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         guardia.rut?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         guardia.telefono?.includes(searchTerm) ||
         guardia.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesStatus = statusFilter === "all" || 
-        (statusFilter === "activo" && guardia.activo === true) ||
-        (statusFilter === "inactivo" && guardia.activo === false);
+        (statusFilter === "activo" && (guardia.estado === 'activo' || guardia.activo === true)) ||
+        (statusFilter === "inactivo" && (guardia.estado === 'inactivo' || guardia.activo === false));
 
       const matchesTipo = tipoFilter === "all" || 
         (tipoFilter === "contratado" && guardia.tipo_guardia === 'contratado') ||
@@ -213,8 +237,8 @@ export default function GuardiasPage() {
             <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <p className="font-medium">{guardia.nombre_completo}</p>
-            <p className="text-sm text-muted-foreground">{guardia.rut}</p>
+            <p className="font-medium">{guardia.nombre || guardia.nombre_completo || 'Sin nombre'}</p>
+            <p className="text-sm text-muted-foreground">{guardia.rut || guardia.id}</p>
           </div>
         </div>
       ),
@@ -279,11 +303,16 @@ export default function GuardiasPage() {
       label: "Estado",
       render: (guardia) => (
         <div className="flex items-center justify-center">
-          <ToggleStatus
-            checked={guardia.activo}
-            disabled
-            size="sm"
-          />
+          <Badge 
+            variant={guardia.estado === 'activo' || guardia.activo === true ? 'success' : 'secondary'}
+            className={`${
+              guardia.estado === 'activo' || guardia.activo === true
+                ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+                : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
+            }`}
+          >
+            {guardia.estado || (guardia.activo === true ? 'activo' : 'inactivo')}
+          </Badge>
         </div>
       ),
     },
@@ -480,8 +509,8 @@ export default function GuardiasPage() {
                     </div>
                     
                     <div className="space-y-1">
-                      <h3 className="font-medium text-sm truncate">{guardia.nombre_completo}</h3>
-                      <p className="text-xs text-muted-foreground truncate">{guardia.rut}</p>
+                      <h3 className="font-medium text-sm truncate">{guardia.nombre || guardia.nombre_completo || 'Sin nombre'}</h3>
+                      <p className="text-xs text-muted-foreground truncate">{guardia.rut || guardia.id}</p>
                       
                       <div className="flex items-center space-x-1">
                         <span className="text-xs font-medium">{guardia.telefono}</span>

@@ -1,61 +1,36 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/database';
+import { NextRequest } from 'next/server';
+import { unstable_noStore as noStore } from 'next/cache';
+import { withPermission } from '@/app/api/_middleware/withPermission';
+import { getClient } from '@/lib/database';
 
-// Configuración para evitar errores de Dynamic Server Usage
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+export const GET = withPermission('turnos.marcar_asistencia', async (req: NextRequest) => {
+  noStore();
   try {
-    const { searchParams } = new URL(request.url);
-    const fecha = searchParams.get('fecha');
-    const instalacionId = searchParams.get('instalacionId');
+    const { searchParams } = new URL(req.url);
+    const fecha = searchParams.get('fecha');              // 'YYYY-MM-DD'
+    const instalacionId = searchParams.get('instalacion_id'); // uuid
+    const rolId = searchParams.get('rol_id');             // uuid
+    const guardiaTitular = searchParams.get('guardia_titular'); // uuid opcional
 
-    // Consulta para obtener guardias activos con información de instalación actual
-    let sqlQuery = `
-      SELECT 
-        g.id,
-        g.nombre,
-        g.apellido_paterno,
-        g.apellido_materno,
-        g.rut,
-        g.activo,
-        CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, '')) as nombre_completo,
-        po.instalacion_id as instalacion_actual_id,
-        i.nombre as instalacion_actual_nombre
-      FROM guardias g
-      LEFT JOIN as_turnos_puestos_operativos po ON g.id = po.guardia_id
-      LEFT JOIN instalaciones i ON po.instalacion_id = i.id
-      WHERE g.activo = true 
-    `;
-
-    const params: any[] = [];
-
-    if (fecha) {
-      // Excluir guardias que ya tienen turno en esa fecha específica
-      sqlQuery += `
-        AND g.id NOT IN (
-          SELECT DISTINCT pm2.guardia_id
-          FROM as_turnos_pauta_mensual pm2
-          WHERE pm2.anio = EXTRACT(YEAR FROM $1::date)
-            AND pm2.mes = EXTRACT(MONTH FROM $1::date)
-            AND pm2.dia = EXTRACT(DAY FROM $1::date)
-            AND pm2.guardia_id IS NOT NULL
-        )
-      `;
-      params.push(fecha);
+    if (!fecha || !instalacionId || !rolId) {
+      return new Response('fecha, instalacion_id y rol_id requeridos', { status: 400 });
     }
 
-    sqlQuery += ` ORDER BY g.nombre, g.apellido_paterno, g.apellido_materno`;
-
-    const guardias = await query(sqlQuery, params);
-
-    return NextResponse.json(guardias.rows);
-
-  } catch (error) {
-    console.error('❌ Error obteniendo guardias disponibles:', error);
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    );
+    const client = await getClient();
+    try {
+      const { rows } = await client.query(
+        `SELECT guardia_id, nombre, estado_empleo
+         FROM as_turnos.fn_guardias_disponibles($1::date, $2::uuid, $3::uuid, $4::uuid)`,
+        [fecha, instalacionId, rolId, guardiaTitular ?? null]
+      );
+      return Response.json({ items: rows });
+    } finally {
+      client.release?.();
+    }
+  } catch (err:any) {
+    console.error('[guardias/disponibles] error', err);
+    return new Response(err?.message ?? 'error', { status: 500 });
   }
-} 
+});

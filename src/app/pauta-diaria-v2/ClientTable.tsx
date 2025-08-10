@@ -472,7 +472,16 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
                           : '—'}
                       </TableCell>
                       <TableCell>{r.rol_nombre || '—'}</TableCell>
-                      <TableCell>{renderEstado(r.estado_ui, r.es_falta_sin_aviso)}</TableCell>
+                      <TableCell>
+                        <div>
+                          {renderEstado(r.estado_ui, r.es_falta_sin_aviso)}
+                          {r.estado_ui === 'reemplazo' && r.reemplazo_guardia_nombre && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Reemplazado por: {r.reemplazo_guardia_nombre}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
                           {/* Titular en plan: Asistió / No asistió */}
@@ -564,6 +573,10 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
               onClose={() => setModal({open:false, pautaId:null, row:undefined})}
               onNoAsistioConfirm={onNoAsistioConfirm}
               onCubrirPPC={onCubrirPPC}
+              fecha={fecha}
+              instalacionId={modal.row?.instalacion_id?.toString()}
+              rolId={modal.row?.puesto_id}
+              guardiaTitular={modal.type === 'no_asistio' && modal.row?.guardia_trabajo_id ? modal.row.guardia_trabajo_id.toString() : undefined}
           />
         )}
       </>

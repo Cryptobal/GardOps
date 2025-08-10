@@ -21,6 +21,7 @@ export interface PautaRow {
   hora_inicio: string | null;
   hora_fin: string | null;
   rol_nombre: string | null;
+  reemplazo_guardia_nombre?: string | null;
 }
 
 export interface PautaDiariaV2Props {

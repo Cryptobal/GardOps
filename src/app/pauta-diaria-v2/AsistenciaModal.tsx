@@ -10,8 +10,9 @@ import { useToast } from '@/hooks/use-toast';
 import { PautaRow } from './types';
 
 interface Guardia {
-  id: string;
+  guardia_id: string;
   nombre: string;
+  estado_empleo?: string;
 }
 
 type ModalType = 'no_asistio' | 'cubrir_ppc';
@@ -23,7 +24,11 @@ export default function AsistenciaModal({
   row,
   modalType,
   onNoAsistioConfirm,
-  onCubrirPPC
+  onCubrirPPC,
+  fecha,
+  instalacionId,
+  rolId,
+  guardiaTitular
 }: { 
   open: boolean; 
   onClose: () => void; 
@@ -37,6 +42,10 @@ export default function AsistenciaModal({
     cubierto_por?: string | null;
   }) => Promise<void>;
   onCubrirPPC: (pauta_id: number, guardia_id: string) => Promise<void>;
+  fecha?: string;
+  instalacionId?: string;
+  rolId?: string;
+  guardiaTitular?: string;
 }) {
   const { addToast } = useToast();
   const [motivo, setMotivo] = useState<'con_aviso' | 'sin_aviso' | 'licencia' | 'permiso' | 'vacaciones' | 'finiquito'>('sin_aviso');
@@ -44,12 +53,68 @@ export default function AsistenciaModal({
   const [guardias, setGuardias] = useState<Guardia[]>([]);
   const [guardiaReemplazo, setGuardiaReemplazo] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingGuardias, setLoadingGuardias] = useState(false);
 
   useEffect(() => { 
-    if (open) {
+    if (open && fecha && instalacionId && rolId) {
+      // Usar el nuevo endpoint con los parámetros necesarios
+      const url = new URL('/api/guardias/disponibles', location.origin);
+      url.searchParams.set('fecha', fecha);
+      url.searchParams.set('instalacion_id', instalacionId);
+      url.searchParams.set('rol_id', rolId);
+      
+      // Para el caso de "No asistió con cobertura" de un titular, pasar el guardia_titular
+      if (modalType === 'no_asistio' && guardiaTitular) {
+        url.searchParams.set('guardia_titular', guardiaTitular);
+      }
+
+      setLoadingGuardias(true);
+      fetch(url.toString())
+        .then(r => {
+          if (!r.ok) {
+            return r.text().then(t => { throw new Error(t); });
+          }
+          return r.json();
+        })
+        .then(({ items }) => {
+          setGuardias(items.map((x: any) => ({ 
+            guardia_id: x.guardia_id, 
+            nombre: x.nombre,
+            estado_empleo: x.estado_empleo
+          })));
+        })
+        .catch(err => {
+          console.error('Error cargando guardias disponibles:', err);
+          addToast({
+            title: "Error",
+            description: `Error listando guardias: ${err.message}`,
+            type: "error"
+          });
+          // Fallback al endpoint anterior si falla
+          fetch('/api/guardias')
+            .then(r => r.json())
+            .then(d => {
+              const guardiasData = d.guardias || d.data || [];
+              setGuardias(guardiasData.map((g: any) => ({
+                guardia_id: g.id || g.guardia_id,
+                nombre: g.nombre
+              })));
+            })
+            .catch(() => setGuardias([]));
+        })
+        .finally(() => setLoadingGuardias(false));
+    } else if (open) {
+      // Si no tenemos todos los parámetros, usar el endpoint genérico como fallback
+      setLoadingGuardias(true);
       fetch('/api/guardias')
         .then(r => r.json())
-        .then(d => setGuardias(d.data ?? []))
+        .then(d => {
+          const guardiasData = d.guardias || d.data || [];
+          setGuardias(guardiasData.map((g: any) => ({
+            guardia_id: g.id || g.guardia_id,
+            nombre: g.nombre
+          })));
+        })
         .catch(err => {
           console.error('Error cargando guardias:', err);
           addToast({
@@ -57,9 +122,11 @@ export default function AsistenciaModal({
             description: "No se pudieron cargar los guardias",
             type: "error"
           });
-        });
+          setGuardias([]);
+        })
+        .finally(() => setLoadingGuardias(false));
     }
-  }, [open, addToast]);
+  }, [open, fecha, instalacionId, rolId, modalType, guardiaTitular, addToast]);
 
   const submit = async () => {
     if (modalType === 'no_asistio') {
@@ -188,9 +255,20 @@ export default function AsistenciaModal({
                   <SelectValue placeholder="Selecciona guardia" />
                 </SelectTrigger>
                 <SelectContent>
-                  {guardias.map(g => (
-                    <SelectItem key={g.id} value={g.id}>{g.nombre}</SelectItem>
-                  ))}
+                  {loadingGuardias ? (
+                    <SelectItem value="loading" disabled>Cargando guardias...</SelectItem>
+                  ) : guardias.length === 0 ? (
+                    <SelectItem value="empty" disabled>No hay guardias disponibles</SelectItem>
+                  ) : (
+                    guardias.map(g => (
+                      <SelectItem key={g.guardia_id} value={g.guardia_id}>
+                        {g.nombre}
+                        {g.estado_empleo && g.estado_empleo !== 'ACTIVO' && (
+                          <span className="ml-2 text-xs text-muted-foreground">({g.estado_empleo})</span>
+                        )}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
