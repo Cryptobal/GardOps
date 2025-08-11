@@ -40,6 +40,8 @@ export async function GET(request: NextRequest) {
         pm.guardia_id,
         pm.dia,
         pm.estado,
+        pm.estado_ui,
+        pm.meta,
         po.nombre_puesto,
         po.es_ppc,
         g.nombre as guardia_nombre,
@@ -48,18 +50,22 @@ export async function GET(request: NextRequest) {
         rs.nombre as rol_nombre,
         CONCAT(rs.dias_trabajo, 'x', rs.dias_descanso) as patron_turno,
         
-        -- Información de cobertura desde turnos_extras
-        te.guardia_id as cobertura_guardia_id,
+        -- Información de cobertura tomada desde meta
+        (pm.meta->>'cobertura_guardia_id') as cobertura_guardia_id,
         rg.nombre as cobertura_nombre,
         rg.apellido_paterno as cobertura_apellido_paterno,
         rg.apellido_materno as cobertura_apellido_materno,
-        te.estado as tipo_cobertura
+        CASE 
+          WHEN (pm.meta->>'te_origen') IS NOT NULL THEN (pm.meta->>'te_origen')
+          WHEN (pm.meta->>'cobertura_guardia_id') IS NOT NULL AND po.es_ppc THEN 'ppc'
+          WHEN (pm.meta->>'cobertura_guardia_id') IS NOT NULL THEN 'reemplazo'
+          ELSE NULL
+        END as tipo_cobertura
       FROM as_turnos_pauta_mensual pm
       INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
       LEFT JOIN guardias g ON pm.guardia_id = g.id
       LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-      LEFT JOIN TE_turnos_extras te ON pm.id = te.pauta_id
-      LEFT JOIN guardias rg ON te.guardia_id = rg.id
+      LEFT JOIN guardias rg ON rg.id::text = (pm.meta->>'cobertura_guardia_id')
       WHERE po.instalacion_id = $1 
         AND pm.anio = $2 
         AND pm.mes = $3
