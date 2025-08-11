@@ -69,6 +69,17 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
+        // Verificar si ya existe antes de insertar
+        const { rows: existing } = await query(
+          'SELECT id FROM TE_turnos_extras WHERE pauta_id = $1',
+          [cobertura.pauta_id]
+        );
+        
+        if (existing.length > 0) {
+          console.log(`⚠️ Turno extra ya existe para pauta ${cobertura.pauta_id}`);
+          continue;
+        }
+        
         // Insertar el turno extra
         await query(`
           INSERT INTO TE_turnos_extras (
@@ -83,7 +94,6 @@ export async function POST(request: NextRequest) {
             created_at
           )
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-          ON CONFLICT (pauta_id) DO NOTHING
         `, [
           cobertura.cobertura_guardia_id,
           cobertura.instalacion_id,

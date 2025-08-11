@@ -59,6 +59,20 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
         });
         console.log('Respuesta:', rows[0]);
         
+        // Crear turno extra automáticamente
+        try {
+          const syncResponse = await fetch(`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/pauta-diaria/turno-extra/sync-coberturas`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (syncResponse.ok) {
+            console.log('✅ Turno extra sincronizado automáticamente');
+          }
+        } catch (error) {
+          console.log('⚠️ No se pudo sincronizar turno extra:', error);
+        }
+        
         return NextResponse.json(rows[0] ?? null);
       } else {
         // Fallback: actualizar directamente
