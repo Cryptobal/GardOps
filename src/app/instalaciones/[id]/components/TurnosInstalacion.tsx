@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SafeSelect } from '@/components/ui/safe-select';
-import { SelectContent, SelectItem } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
@@ -501,7 +500,7 @@ export default function TurnosInstalacion({
         },
         body: JSON.stringify({
           nombre_puesto: nuevoNombrePuesto.trim(),
-          tipo_puesto_id: tipoPuestoSeleccionado
+          tipo_puesto_id: tipoPuestoSeleccionado === 'none' ? null : tipoPuestoSeleccionado
         })
       });
 
@@ -907,15 +906,15 @@ export default function TurnosInstalacion({
                 Tipo
               </label>
               <Select
-                value={tipoPuestoSeleccionado || ''}
-                onValueChange={setTipoPuestoSeleccionado}
+                value={tipoPuestoSeleccionado || 'none'}
+                onValueChange={(value) => setTipoPuestoSeleccionado(value === 'none' ? null : value)}
                 disabled={guardandoNombre}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Seleccionar tipo de puesto" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sin tipo</SelectItem>
+                  <SelectItem value="none">Sin tipo</SelectItem>
                   {tiposPuesto.map((tipo) => (
                     <SelectItem key={tipo.id} value={tipo.id}>
                       <span className="flex items-center gap-2">

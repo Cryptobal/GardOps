@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
     SELECT
       t.fecha::text,
       t.instalacion_id::text,
-      COALESCE(t.instalacion_nombre, NULL) AS instalacion_nombre,
+      i.nombre AS instalacion_nombre,
       COALESCE(t.puesto_id::text, NULL) AS puesto_id,
       COALESCE(t.rol_id::text, NULL)    AS rol_id,
       t.origen,
@@ -84,6 +84,7 @@ export async function GET(req: NextRequest) {
       COALESCE(t.cobertura_guardia_nombre, NULL)   AS cobertura_guardia_nombre,
       COALESCE(t.extra_uid, NULL) AS extra_uid
     FROM __VIEW__ t
+    LEFT JOIN instalaciones i ON i.id = t.instalacion_id
     ${whereSql}
     ORDER BY t.fecha DESC, t.puesto_id NULLS LAST
     LIMIT 1000
@@ -91,19 +92,24 @@ export async function GET(req: NextRequest) {
 
   try {
     // Intentamos con la vista completa con nombres
-    const query = baseSelect.replace("__VIEW__", fromView);
-    const result = await sql.query(query, args);
+    let queryText = baseSelect.replace("__VIEW__", fromView);
+    
+    // Construir la consulta usando template literals de @vercel/postgres
+    const result = await sql.query(queryText, args);
+    
     return NextResponse.json({ ok: true, rows: result.rows as Row[] });
   } catch (e) {
+    console.log('Error con vista completa, intentando con minimal:', e);
     try {
       // fallback a la minimal y resolvemos nombres en front si fuese necesario
-      const query = baseSelect.replace("__VIEW__", fromViewFallback);
-      const result = await sql.query(query, args);
+      let queryText = baseSelect.replace("__VIEW__", fromViewFallback);
+      const result = await sql.query(queryText, args);
+      
       return NextResponse.json({ ok: true, rows: result.rows as Row[], fallback: true });
     } catch (error) {
       console.error('Error fetching turnos extras:', error);
       return NextResponse.json(
-        { ok: false, error: 'Error al obtener turnos extras' },
+        { ok: false, error: 'Error al obtener turnos extras', details: error instanceof Error ? error.message : 'Unknown error' },
         { status: 500 }
       );
     }
