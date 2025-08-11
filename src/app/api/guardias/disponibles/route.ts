@@ -38,63 +38,59 @@ export async function GET(request: NextRequest) {
   }
   
   try {
-    // Ejecutar la función de Neon
+    // Ejecutar consulta directa simplificada
     let query: string;
     let params: any[];
     
-    if (rol_id) {
-      // Si tenemos rol_id, usar la función original
-      query = `
-        SELECT 
-          id, 
-          nombre, 
-          apellido_paterno, 
-          apellido_materno
-        FROM as_turnos.fn_guardias_disponibles($1::date, $2::uuid, $3::uuid, $4::text)
-      `;
-      
-      params = [
-        fecha,
-        instalacion_id,
-        rol_id,
-        excluir_guardia_id || null
-      ];
-    } else {
-      // Si no tenemos rol_id, buscar guardias disponibles sin filtro de rol usando consulta directa
-      query = `
-        SELECT 
-          g.id, 
-          g.nombre, 
-          g.apellido_paterno, 
-          g.apellido_materno
-        FROM guardias g
-        WHERE g.activo = true
-          AND g.id NOT IN (
-            SELECT DISTINCT po.guardia_id 
-            FROM as_turnos_puestos_operativos po
-            INNER JOIN as_turnos_pauta_mensual pm ON po.id = pm.puesto_id
-            WHERE pm.anio = EXTRACT(YEAR FROM $1::date)
-              AND pm.mes = EXTRACT(MONTH FROM $1::date)
-              AND pm.dia = EXTRACT(DAY FROM $1::date)
-              AND po.guardia_id IS NOT NULL
-          )
-          ${excluir_guardia_id ? 'AND g.id != $3::uuid' : ''}
-        ORDER BY g.nombre, g.apellido_paterno, g.apellido_materno
-        LIMIT 50
-      `;
-      
-      params = excluir_guardia_id 
-        ? [fecha, instalacion_id, excluir_guardia_id]
-        : [fecha, instalacion_id];
+    // Consulta simplificada para buscar guardias disponibles
+    // Por ahora, simplemente buscar guardias activos que no estén asignados ese día
+    let baseQuery = `
+      SELECT DISTINCT
+        g.id, 
+        g.nombre, 
+        g.apellido_paterno, 
+        g.apellido_materno
+      FROM guardias g
+      WHERE g.activo = true
+    `;
+
+    // Agregar condición para excluir guardias ya asignados ese día
+    baseQuery += `
+        AND g.id NOT IN (
+          SELECT DISTINCT guardia_id 
+          FROM as_turnos_pauta_mensual
+          WHERE anio = EXTRACT(YEAR FROM $1::date)
+            AND mes = EXTRACT(MONTH FROM $1::date)
+            AND dia = EXTRACT(DAY FROM $1::date)
+            AND guardia_id IS NOT NULL
+        )
+    `;
+
+    // Si hay un guardia a excluir, agregarlo
+    if (excluir_guardia_id) {
+      baseQuery += ` AND g.id != $2::uuid `;
+    }
+
+    // Ordenar y limitar resultados
+    baseQuery += `
+      ORDER BY g.nombre, g.apellido_paterno, g.apellido_materno
+      LIMIT 100
+    `;
+
+    query = baseQuery;
+    
+    // Construir parámetros basados en lo que está presente
+    params = [fecha];
+    if (excluir_guardia_id) {
+      params.push(excluir_guardia_id);
     }
     
-      console.log('Llamando función de guardias disponibles con params:', {
-        fecha,
-        instalacion_id,
-        rol_id: rol_id || 'sin filtro',
-        excluir_guardia_id: excluir_guardia_id || null,
-        query: rol_id ? 'fn_guardias_disponibles' : 'consulta_directa'
-      });
+    console.log('Ejecutando consulta de guardias disponibles con params:', {
+      fecha,
+      instalacion_id,
+      rol_id: rol_id || 'sin filtro',
+      excluir_guardia_id: excluir_guardia_id || null
+    });
     
     const result = await client.query(query, params);
     

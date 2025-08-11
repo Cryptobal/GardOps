@@ -460,7 +460,8 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                         {r.rol_nombre ? (
                           <div className="flex flex-col">
                             <span className="font-medium">
-                              {r.rol_alias || r.rol_nombre} 4x4x12
+                              {/* Extraer solo el patrón del rol (antes del slash) */}
+                              {r.rol_alias || r.rol_nombre.split('/')[0].trim()}
                             </span>
                             {r.hora_inicio && r.hora_fin && (
                               <span className="text-xs text-muted-foreground">
