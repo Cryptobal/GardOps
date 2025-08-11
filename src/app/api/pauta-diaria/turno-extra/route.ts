@@ -220,89 +220,110 @@ export async function GET(req: Request) {
     const pagado = searchParams.get('pagado');
     const busqueda = searchParams.get('busqueda');
 
-    let queryString = `
+    // 1) TE materializados en turnos_extras (canónico)
+    let qMat = `
       SELECT 
-        te.*,
+        te.id,
+        te.guardia_id,
         g.nombre as guardia_nombre,
         g.apellido_paterno as guardia_apellido_paterno,
         g.apellido_materno as guardia_apellido_materno,
         g.rut as guardia_rut,
+        te.instalacion_id,
         i.nombre as instalacion_nombre,
-        po.nombre_puesto
-      FROM TE_turnos_extras te
-      JOIN guardias g ON g.id = te.guardia_id
-      JOIN instalaciones i ON i.id = te.instalacion_id
-      JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
+        te.puesto_id,
+        po.nombre_puesto,
+        te.pauta_id,
+        te.fecha,
+        te.estado,
+        te.valor,
+        te.pagado,
+        te.fecha_pago,
+        te.observaciones_pago,
+        te.usuario_pago,
+        te.planilla_id,
+        te.created_at,
+        'materializado' as source
+      FROM turnos_extras te
+      LEFT JOIN guardias g ON te.guardia_id = g.id
+      LEFT JOIN instalaciones i ON te.instalacion_id = i.id
+      LEFT JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
       WHERE 1=1
     `;
-    const params: any[] = [];
-    let paramIndex = 1;
+    const pMat: any[] = [];
 
-    if (guardia_id) {
-      queryString += ` AND te.guardia_id = $${paramIndex}`;
-      params.push(guardia_id);
-      paramIndex++;
-    }
-
-    if (instalacion_id) {
-      queryString += ` AND te.instalacion_id = $${paramIndex}`;
-      params.push(instalacion_id);
-      paramIndex++;
-    }
-
-    if (fecha_inicio) {
-      queryString += ` AND te.fecha >= $${paramIndex}`;
-      params.push(fecha_inicio);
-      paramIndex++;
-    }
-
-    if (fecha_fin) {
-      queryString += ` AND te.fecha <= $${paramIndex}`;
-      params.push(fecha_fin);
-      paramIndex++;
-    }
-
-    if (estado && estado !== 'all') {
-      queryString += ` AND te.estado = $${paramIndex}`;
-      params.push(estado);
-      paramIndex++;
-    }
-
+    if (guardia_id) { qMat += ` AND te.guardia_id = $${pMat.length+1}`; pMat.push(guardia_id); }
+    if (instalacion_id) { qMat += ` AND te.instalacion_id = $${pMat.length+1}`; pMat.push(instalacion_id); }
+    if (fecha_inicio) { qMat += ` AND te.fecha >= $${pMat.length+1}`; pMat.push(fecha_inicio); }
+    if (fecha_fin) { qMat += ` AND te.fecha <= $${pMat.length+1}`; pMat.push(fecha_fin); }
+    if (estado && estado !== 'all') { qMat += ` AND te.estado = $${pMat.length+1}`; pMat.push(estado); }
     if (pagado && pagado !== 'all') {
-      if (pagado === 'pending') {
-        // Pendientes: no pagados pero con planilla_id
-        queryString += ` AND te.pagado = false AND te.planilla_id IS NOT NULL`;
-      } else if (pagado === 'false') {
-        // No pagados: no pagados y sin planilla_id
-        queryString += ` AND te.pagado = false AND te.planilla_id IS NULL`;
-      } else {
-        // Pagados: pagado = true
-        queryString += ` AND te.pagado = $${paramIndex}`;
-        params.push(pagado === 'true');
-        paramIndex++;
-      }
+      if (pagado === 'pending') qMat += ` AND te.pagado = false AND te.planilla_id IS NOT NULL`;
+      else if (pagado === 'false') qMat += ` AND te.pagado = false AND te.planilla_id IS NULL`;
+      else { qMat += ` AND te.pagado = $${pMat.length+1}`; pMat.push(pagado === 'true'); }
     }
-
     if (busqueda) {
-      queryString += ` AND (
-        g.nombre ILIKE $${paramIndex} OR 
-        g.apellido_paterno ILIKE $${paramIndex} OR 
-        g.rut ILIKE $${paramIndex} OR 
-        i.nombre ILIKE $${paramIndex}
+      qMat += ` AND (
+        g.nombre ILIKE $${pMat.length+1} OR 
+        g.apellido_paterno ILIKE $${pMat.length+1} OR 
+        g.rut ILIKE $${pMat.length+1} OR 
+        i.nombre ILIKE $${pMat.length+1}
       )`;
-      params.push(`%${busqueda}%`);
-      paramIndex++;
+      pMat.push(`%${busqueda}%`);
     }
+    qMat += ` ORDER BY te.fecha DESC, te.created_at DESC`;
 
-    queryString += ` ORDER BY te.fecha DESC, te.created_at DESC`;
+    const { rows: materializados } = await query(qMat, pMat);
 
-    console.log('🔍 Query turnos extras:', queryString);
-    console.log('🔍 Params:', params);
+    // 2) TE virtuales desde pauta mensual (pm.meta) que no estén materializados
+    let qVirt = `
+      SELECT 
+        ('pm-'||pm.id)::text as id,
+        (pm.meta->>'cobertura_guardia_id')::uuid as guardia_id,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        po.instalacion_id,
+        i.nombre as instalacion_nombre,
+        pm.puesto_id,
+        pm.id as pauta_id,
+        make_date(pm.anio, pm.mes, pm.dia) as fecha,
+        CASE WHEN po.es_ppc THEN 'ppc' ELSE 'reemplazo' END as estado,
+        COALESCE(i.valor_turno_extra, 0) as valor,
+        false as pagado,
+        NULL::timestamp as fecha_pago,
+        NULL::text as observaciones_pago,
+        NULL::text as usuario_pago,
+        NULL::bigint as planilla_id,
+        NOW() as created_at,
+        'virtual' as source
+      FROM as_turnos_pauta_mensual pm
+      JOIN as_turnos_puestos_operativos po ON po.id = pm.puesto_id
+      JOIN instalaciones i ON i.id = po.instalacion_id
+      JOIN guardias g ON g.id::text = (pm.meta->>'cobertura_guardia_id')
+      WHERE pm.meta->>'cobertura_guardia_id' IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM turnos_extras tx WHERE tx.pauta_id = pm.id)
+    `;
+    const pVirt: any[] = [];
+    if (instalacion_id) { qVirt += ` AND po.instalacion_id = $${pVirt.length+1}`; pVirt.push(instalacion_id); }
+    if (fecha_inicio) { qVirt += ` AND make_date(pm.anio, pm.mes, pm.dia) >= $${pVirt.length+1}`; pVirt.push(fecha_inicio); }
+    if (fecha_fin) { qVirt += ` AND make_date(pm.anio, pm.mes, pm.dia) <= $${pVirt.length+1}`; pVirt.push(fecha_fin); }
+    if (estado && estado !== 'all') { qVirt += ` AND (CASE WHEN po.es_ppc THEN 'ppc' ELSE 'reemplazo' END) = $${pVirt.length+1}`; pVirt.push(estado); }
+    if (busqueda) {
+      qVirt += ` AND (
+        g.nombre ILIKE $${pVirt.length+1} OR 
+        g.apellido_paterno ILIKE $${pVirt.length+1} OR 
+        g.rut ILIKE $${pVirt.length+1} OR 
+        i.nombre ILIKE $${pVirt.length+1}
+      )`;
+      pVirt.push(`%${busqueda}%`);
+    }
+    qVirt += ` ORDER BY fecha DESC`;
 
-    const { rows } = await query(queryString, params);
+    const { rows: virtuales } = await query(qVirt, pVirt);
 
-    console.log('📊 Turnos extras obtenidos:', rows.length);
-    console.log('📊 Primer turno (ejemplo):', rows[0]);
+    const rows = [...materializados, ...virtuales];
 
     return NextResponse.json({ 
       ok: true, 

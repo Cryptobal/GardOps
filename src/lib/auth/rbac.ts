@@ -7,25 +7,68 @@ export function jsonError(status: number, message: string) {
 }
 
 export async function getUserEmail(req: NextRequest): Promise<string | null> {
-  // Intentar desde sesión (cookie auth_token decodificada por getCurrentUserServer)
-  const user = getCurrentUserServer(req as any);
-  if (user?.email) return user.email;
-  // Fallback en local: header x-user-email
+  // 1) Priorizar header explícito
   const emailHeader = req.headers.get('x-user-email');
   if (emailHeader) return emailHeader;
+
+  // 2) Intentar desde la sesión/cookie si existe
+  try {
+    const user = getCurrentUserServer(req as any);
+    if (user?.email) return user.email;
+  } catch {}
+
+  // 3) Fallback en desarrollo a variable de entorno
+  const devEmail = process.env.NEXT_PUBLIC_DEV_USER_EMAIL;
+  const isDev = process.env.NODE_ENV !== 'production';
+  if (isDev && devEmail) return devEmail;
+
+  // 4) Sin email
   return null;
 }
 
-export async function requirePlatformAdmin(req: NextRequest): Promise<void> {
-  const email = await getUserEmail(req);
-  if (!email) throw new Error('UNAUTHORIZED');
+export async function getUserIdByEmail(email: string): Promise<string | null> {
   try {
-    const result = await vercelSql`
-      select public.fn_usuario_tiene_permiso(${email}, 'rbac.platform_admin') as allowed
+    const row = await vercelSql<{ id: string }>`
+      select id::text as id from public.usuarios where lower(email)=lower(${email}) limit 1
     `;
-    const allowed = Boolean((result as any)?.rows?.[0]?.allowed ?? (result as any)?.[0]?.allowed);
-    if (!allowed) throw new Error('FORBIDDEN');
-  } catch (e) {
+    return row?.rows?.[0]?.id ?? null;
+  } catch (error) {
+    // Delegar manejo a caller (endpoints deben devolver 500 JSON)
+    throw error;
+  }
+}
+
+export async function userHasPerm(userId: string, perm: string): Promise<boolean> {
+  const result = await vercelSql<{ ok: boolean }>`
+    select public.fn_usuario_tiene_permiso(${userId}::uuid, ${perm}::text) as ok
+  `;
+  return Boolean(result?.rows?.[0]?.ok);
+}
+
+export async function requirePlatformAdmin(
+  req: NextRequest
+): Promise<{ ok: true; userId: string; email: string } | { ok: false; status: number; error: string }> {
+  const email = await getUserEmail(req);
+  if (!email) {
+    // Mantener compatibilidad: lanzar para endpoints existentes
+    throw new Error('UNAUTHORIZED');
+  }
+
+  try {
+    const userId = await getUserIdByEmail(email);
+    if (!userId) {
+      throw new Error('FORBIDDEN');
+    }
+
+    const allowed = await userHasPerm(userId, 'rbac.platform_admin');
+    if (!allowed) {
+      throw new Error('FORBIDDEN');
+    }
+
+    return { ok: true, userId, email };
+  } catch (error: any) {
+    // Para errores SQL u otros
+    // Lanzar para mantener comportamiento previo y permitir que endpoints manejen
     throw new Error('FORBIDDEN');
   }
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { sql } from "@vercel/postgres";
 import { headers as nextHeaders } from "next/headers";
+import { getUserEmail, getUserIdByEmail, userHasPerm } from "@/lib/auth/rbac";
 
 function detectEmail(req: Request) {
   const emailFromHeader = req.headers.get("x-user-email");
@@ -9,30 +9,16 @@ function detectEmail(req: Request) {
 }
 
 export async function GET(req: Request) {
+  // Mantener compatibilidad en dev leyendo header/env directo
   const email = detectEmail(req);
 
   let canPlatformAdmin = false;
   let userId: string | null = null;
   if (email) {
     try {
-      const user = await sql<{ id: string }>`
-        select id::text as id from usuarios where lower(email)=lower(${email}) limit 1
-      `;
-      userId = user?.rows?.[0]?.id ?? null;
-
+      userId = await getUserIdByEmail(email);
       if (userId) {
-        const byId = await sql<{ ok: boolean }>`
-          select fn_usuario_tiene_permiso(${userId}::uuid, 'rbac.platform_admin') as ok
-        `;
-        canPlatformAdmin = Boolean(byId?.rows?.[0]?.ok);
-      } else {
-        // Fallback a variante por email si existe
-        try {
-          const byEmail = await sql<{ ok: boolean }>`
-            select public.fn_usuario_tiene_permiso(${email}::text, 'rbac.platform_admin'::text) as ok
-          `;
-          canPlatformAdmin = Boolean(byEmail?.rows?.[0]?.ok);
-        } catch {}
+        canPlatformAdmin = await userHasPerm(userId, 'rbac.platform_admin');
       }
     } catch (e) {
       console.error('[debug/whoami] error verificando permiso:', e);
