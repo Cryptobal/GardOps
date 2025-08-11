@@ -494,21 +494,14 @@ export default function TurnosInstalacion({
           : ppc
       ));
 
-      toast({
-        title: "✅ Éxito",
-        description: "Nombre del puesto actualizado correctamente",
-      });
+      toast.success("Nombre del puesto actualizado correctamente", "✅ Éxito");
 
       // Cerrar el modal
       setEditandoPuesto(null);
       setNuevoNombrePuesto('');
     } catch (error) {
       console.error('Error actualizando nombre del puesto:', error);
-      toast({
-        title: "❌ Error",
-        description: "No se pudo actualizar el nombre del puesto",
-        variant: "destructive"
-      });
+      toast.error("No se pudo actualizar el nombre del puesto", "❌ Error");
     } finally {
       setGuardandoNombre(false);
     }
