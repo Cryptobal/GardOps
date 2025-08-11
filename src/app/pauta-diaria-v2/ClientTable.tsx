@@ -469,26 +469,18 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                       </TableCell>
                       <TableCell>
                         {r.es_ppc ? (
-                          <div className="flex items-center gap-2">
-                            <span>—</span>
-                            <span className="rounded-md border px-1.5 py-0.5 text-[10px]
-                              bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20">
-                              PPC
-                            </span>
-                          </div>
+                          <span className="rounded-md border px-1.5 py-0.5 text-[10px]
+                            bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20">
+                            PPC
+                          </span>
                         ) : (
-                          r.guardia_trabajo_nombre ?? '—'
+                          r.guardia_titular_nombre || r.guardia_trabajo_nombre || '—'
                         )}
                         {esDuplicado && (
                           <Badge variant="destructive" className="text-xs mt-1">
                             <AlertTriangle className="h-3 w-3 mr-1" />
                             Duplicado
                           </Badge>
-                        )}
-                        {r.es_reemplazo && r.guardia_titular_nombre && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Titular: {r.guardia_titular_nombre}
-                          </div>
                         )}
                       </TableCell>
                       <TableCell>
@@ -532,11 +524,6 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                       <TableCell>
                         <div>
                           {renderEstado(r.estado_ui, r.es_falta_sin_aviso)}
-                          {r.estado_ui === 'reemplazo' && r.reemplazo_guardia_nombre && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Reemplazado por: {r.reemplazo_guardia_nombre}
-                            </div>
-                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -640,7 +627,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
               onCubrirPPC={onCubrirPPC}
               fecha={fechaStr}
               instalacionId={modal.row?.instalacion_id?.toString()}
-              rolId={modal.row?.rol_id}
+              rolId={modal.row?.rol_id || undefined}
               guardiaTitularId={modal.type === 'no_asistio' && modal.row?.guardia_trabajo_id ? modal.row.guardia_trabajo_id : undefined}
           />
         )}
