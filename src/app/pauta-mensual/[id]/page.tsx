@@ -581,8 +581,8 @@ export default function PautaMensualUnificadaPage() {
                   
                   <Button onClick={() => setEditando(true)} className="w-full sm:w-auto">
                     <Edit className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Editar Pauta</span>
-                    <span className="sm:hidden">Editar</span>
+                    <span className="hidden sm:inline">Ver Pauta</span>
+                    <span className="sm:hidden">Ver</span>
                   </Button>
                   
                   {/* Botones de exportación */}

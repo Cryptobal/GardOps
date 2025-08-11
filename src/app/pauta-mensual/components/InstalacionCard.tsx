@@ -185,7 +185,7 @@ export default function InstalacionCard({
             >
               <Edit className="h-3 w-3" />
               <span className="ml-1 text-xs">
-                Editar pauta
+                Ver pauta
               </span>
             </Button>
           )}
