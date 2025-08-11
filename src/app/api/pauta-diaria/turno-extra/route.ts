@@ -93,7 +93,7 @@ export async function POST(req: Request) {
 
     // Validación mejorada: Verificar que el guardia no tenga ningún turno extra para la misma fecha
     const { rows: existingRows } = await query(
-      `SELECT id, estado, valor FROM turnos_extras 
+      `SELECT id, estado, valor FROM TE_turnos_extras 
        WHERE guardia_id = $1 AND fecha = $2 AND tenant_id = $3`,
       [guardia_id, fecha, tenantId]
     );
@@ -141,7 +141,7 @@ export async function POST(req: Request) {
 
     // Insertar el turno extra con referencia al turno original
     const { rows: insertRows } = await query(
-      `INSERT INTO turnos_extras 
+      `INSERT INTO TE_turnos_extras 
        (guardia_id, instalacion_id, puesto_id, pauta_id, fecha, estado, valor, tenant_id, turno_original_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING id`,
@@ -220,7 +220,7 @@ export async function GET(req: Request) {
     const pagado = searchParams.get('pagado');
     const busqueda = searchParams.get('busqueda');
 
-    // 1) TE materializados en turnos_extras (canónico)
+    // 1) TE materializados (canónico)
     let qMat = `
       SELECT 
         te.id,
@@ -244,7 +244,7 @@ export async function GET(req: Request) {
         te.planilla_id,
         te.created_at,
         'materializado' as source
-      FROM turnos_extras te
+      FROM TE_turnos_extras te
       LEFT JOIN guardias g ON te.guardia_id = g.id
       LEFT JOIN instalaciones i ON te.instalacion_id = i.id
       LEFT JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
@@ -303,7 +303,7 @@ export async function GET(req: Request) {
       JOIN instalaciones i ON i.id = po.instalacion_id
       JOIN guardias g ON g.id::text = (pm.meta->>'cobertura_guardia_id')
       WHERE pm.meta->>'cobertura_guardia_id' IS NOT NULL
-        AND NOT EXISTS (SELECT 1 FROM turnos_extras tx WHERE tx.pauta_id = pm.id)
+        AND NOT EXISTS (SELECT 1 FROM TE_turnos_extras tx WHERE tx.pauta_id = pm.id)
     `;
     const pVirt: any[] = [];
     if (instalacion_id) { qVirt += ` AND po.instalacion_id = $${pVirt.length+1}`; pVirt.push(instalacion_id); }
