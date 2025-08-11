@@ -45,7 +45,7 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
         // Intentar insertar log si la tabla existe
         try {
           await client.query(
-            `INSERT INTO public.as_turnos_logs(actor_ref, action, pauta_id, before_state, after_state, timestamp)
+            `INSERT INTO public.as_turnos_logs(actor_ref, action, pauta_id, before_state, after_state, created_at)
              VALUES ($1, 'revertir_asistencia', $2, NULL, 'planificado', NOW())`,
             [actor, pauta_id]
           );
