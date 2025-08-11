@@ -1,17 +1,17 @@
 // Tipos compartidos para Pauta Diaria v2
 export interface PautaRow {
-  pauta_id: number;
+  pauta_id: string;
   fecha: string;
   puesto_id: string;
   puesto_nombre?: string;
-  instalacion_id: number;
+  instalacion_id: string;
   instalacion_nombre: string;
   estado: string;
   estado_ui: string; // Estado normalizado para UI: 'plan' | 'libre' | 'asistido' | 'reemplazo' | 'sin_cobertura', etc.
   meta: any; // Metadatos JSON con cobertura_guardia_id, ausente_guardia_id, etc.
-  guardia_trabajo_id: number | null;
+  guardia_trabajo_id: string | null;
   guardia_trabajo_nombre: string | null;
-  guardia_titular_id: number | null;
+  guardia_titular_id: string | null;
   guardia_titular_nombre: string | null;
   es_ppc: boolean;
   es_reemplazo: boolean;
