@@ -62,7 +62,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { addToast } = useToast();
-  const canMark = useCan('turnos.marcar_asistencia');
+  const { allowed: canMark, loading: loadingPerms } = useCan('turnos.marcar_asistencia');
   const [modal, setModal] = useState<{open:boolean; pautaId:string|null; row?:PautaRow; type?:'no_asistio'|'cubrir_ppc'}>({open:false, pautaId:null});
   const [mostrarLibres, setMostrarLibres] = useState(incluirLibres);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -541,8 +541,16 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
+                          {/* Cargando permisos */}
+                          {loadingPerms && (
+                            <div className="flex items-center gap-2">
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                              <span className="text-xs text-muted-foreground">Cargando...</span>
+                            </div>
+                          )}
+
                           {/* Titular en plan: Asistió / No asistió */}
-                          {isTitularPlan(r) && canMark && (
+                          {!loadingPerms && isTitularPlan(r) && canMark && (
                             <>
                               <Button 
                                 size="sm" 
@@ -563,7 +571,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                           )}
 
                           {/* PPC en plan: Cubrir / Sin cobertura */}
-                          {isPpcPlan(r) && canMark && (
+                          {!loadingPerms && isPpcPlan(r) && canMark && (
                             <>
                               <Button 
                                 size="sm" 
@@ -585,7 +593,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                           )}
 
                           {/* Deshacer para estados asistido/reemplazo/sin_cobertura */}
-                          {canUndo(r) && canMark && (
+                          {!loadingPerms && canUndo(r) && canMark && (
                             <Button 
                               size="sm" 
                               variant="secondary"
@@ -597,7 +605,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                           )}
 
                           {/* Sin permisos → mostrar mensaje */}
-                          {!canMark && (
+                          {!loadingPerms && !canMark && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div className="opacity-50 pointer-events-none">
