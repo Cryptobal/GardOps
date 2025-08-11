@@ -26,12 +26,7 @@ export async function GET(request: NextRequest) {
     );
   }
   
-  if (!rol_id) {
-    return NextResponse.json(
-      { error: 'El parámetro "rol_id" es obligatorio' },
-      { status: 400 }
-    );
-  }
+  // rol_id es opcional, si no está presente se buscarán guardias sin filtro de rol
   
   // Validar formato de fecha
   const fechaRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -44,28 +39,62 @@ export async function GET(request: NextRequest) {
   
   try {
     // Ejecutar la función de Neon
-    const query = `
-      SELECT 
-        id, 
-        nombre, 
-        apellido_paterno, 
-        apellido_materno
-      FROM as_turnos.fn_guardias_disponibles($1::date, $2::uuid, $3::uuid, $4::text)
-    `;
+    let query: string;
+    let params: any[];
     
-    const params = [
-      fecha,
-      instalacion_id,
-      rol_id,
-      excluir_guardia_id || null
-    ];
+    if (rol_id) {
+      // Si tenemos rol_id, usar la función original
+      query = `
+        SELECT 
+          id, 
+          nombre, 
+          apellido_paterno, 
+          apellido_materno
+        FROM as_turnos.fn_guardias_disponibles($1::date, $2::uuid, $3::uuid, $4::text)
+      `;
+      
+      params = [
+        fecha,
+        instalacion_id,
+        rol_id,
+        excluir_guardia_id || null
+      ];
+    } else {
+      // Si no tenemos rol_id, buscar guardias disponibles sin filtro de rol usando consulta directa
+      query = `
+        SELECT 
+          g.id, 
+          g.nombre, 
+          g.apellido_paterno, 
+          g.apellido_materno
+        FROM guardias g
+        WHERE g.activo = true
+          AND g.id NOT IN (
+            SELECT DISTINCT po.guardia_id 
+            FROM as_turnos_puestos_operativos po
+            INNER JOIN as_turnos_pauta_mensual pm ON po.id = pm.puesto_id
+            WHERE pm.anio = EXTRACT(YEAR FROM $1::date)
+              AND pm.mes = EXTRACT(MONTH FROM $1::date)
+              AND pm.dia = EXTRACT(DAY FROM $1::date)
+              AND po.guardia_id IS NOT NULL
+          )
+          ${excluir_guardia_id ? 'AND g.id != $3::uuid' : ''}
+        ORDER BY g.nombre, g.apellido_paterno, g.apellido_materno
+        LIMIT 50
+      `;
+      
+      params = excluir_guardia_id 
+        ? [fecha, instalacion_id, excluir_guardia_id]
+        : [fecha, instalacion_id];
+    }
     
-    console.log('Llamando fn_guardias_disponibles con params:', {
-      fecha,
-      instalacion_id,
-      rol_id,
-      excluir_guardia_id: excluir_guardia_id || null
-    });
+      console.log('Llamando función de guardias disponibles con params:', {
+        fecha,
+        instalacion_id,
+        rol_id: rol_id || 'sin filtro',
+        excluir_guardia_id: excluir_guardia_id || null,
+        query: rol_id ? 'fn_guardias_disponibles' : 'consulta_directa'
+      });
     
     const result = await client.query(query, params);
     

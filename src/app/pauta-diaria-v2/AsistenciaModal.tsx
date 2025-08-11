@@ -69,7 +69,7 @@ export default function AsistenciaModal({
   }, [guardias, filtro]);
 
   useEffect(() => { 
-    if (open && fecha && instalacionId && rolId) {
+    if (open && fecha && instalacionId) {
       // Normalizar fecha a string YYYY-MM-DD
       const fechaNorm = toYmd(fecha);
       console.log('[Modal] fecha=', fechaNorm, 'instalacion=', instalacionId, 'rol=', rolId, 'excluir=', guardiaTitularId);
@@ -78,7 +78,11 @@ export default function AsistenciaModal({
       const url = new URL('/api/guardias/disponibles', location.origin);
       url.searchParams.set('fecha', fechaNorm);
       url.searchParams.set('instalacion_id', instalacionId);
-      url.searchParams.set('rol_id', rolId);
+      
+      // Solo incluir rol_id si está disponible
+      if (rolId) {
+        url.searchParams.set('rol_id', rolId);
+      }
       
       // Para el caso de "No asistió con cobertura" de un titular, excluir al titular
       if (modalType === 'no_asistio' && asignarCobertura && guardiaTitularId) {

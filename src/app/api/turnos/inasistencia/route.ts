@@ -31,7 +31,7 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
       
       if (functionExists) {
         const { rows } = await client.query(
-          `select pm.id, make_date(pm.anio, pm.mes, pm.dia) as fecha, pm.estado, pm.meta, pm.estado_ui
+          `select pm.id, make_date(pm.anio, pm.mes, pm.dia) as fecha, pm.estado, pm.meta
            from as_turnos.fn_marcar_asistencia(
              $1,'inasistencia',
              jsonb_build_object(
@@ -61,21 +61,21 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
         await client.query(
           `UPDATE public.as_turnos_pauta_mensual
            SET estado = 'inasistencia',
-               estado_ui = $6::text,
                meta = jsonb_build_object(
                  'actor_ref', $2::text,
                  'timestamp', NOW()::text,
                  'action', 'inasistencia',
                  'falta_sin_aviso', $3,
                  'motivo', $4::text,
-                 'cobertura_guardia_id', $5::text
+                 'cobertura_guardia_id', $5::text,
+                 'estado_ui', $6::text
                )
            WHERE id = $1::bigint`,
           [pauta_id || turno_id, actor, !!falta_sin_aviso, motivo ?? null, guardiaReemplazoId, nuevoEstado]
         );
         
         const { rows } = await client.query(
-          `SELECT id, make_date(anio, mes, dia) as fecha, estado, estado_ui, meta
+          `SELECT id, make_date(anio, mes, dia) as fecha, estado, meta
            FROM public.as_turnos_pauta_mensual
            WHERE id = $1::bigint`,
           [pauta_id || turno_id]
