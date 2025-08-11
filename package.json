@@ -17,6 +17,7 @@
     "diagnostic": "npx ts-node scripts/diagnosticar-servidor.ts",
     "clean": "rm -rf .next && rm -rf node_modules/.cache",
     "reset": "npm run clean && npm install && npm run dev",
+    "test:rbac-adapter": "npx ts-node scripts/test-rbac-adapter.ts",
     "verify:ids": "npx ts-node scripts/verificar-ids-instalaciones.ts",
     "init:sueldo-db": "npx ts-node scripts/init-sueldo-db.ts",
     "check:sueldo-tables": "npx ts-node scripts/check-sueldo-tables.ts",
