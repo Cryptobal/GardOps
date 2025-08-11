@@ -25,21 +25,30 @@ export async function GET(req: NextRequest) {
     const actorTenantId = userRow.rows[0]?.tenant_id ?? null;
 
     let rows;
-    const like = q ? `%${q}%` : null;
-
     if (tenantParam.toLowerCase() === 'null') {
       // Roles globales: requieren platform_admin
       if (!isPlatformAdmin) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
-      rows = await sql`
-        SELECT id, nombre, descripcion, tenant_id
-        FROM public.roles
-        WHERE tenant_id IS NULL
-          ${like ? sql`AND lower(nombre) LIKE ${like}` : sql``}
-        ORDER BY nombre ASC
-        LIMIT ${limit} OFFSET ${offset};
-      `;
+      if (q) {
+        const like = `%${q}%`;
+        rows = await sql`
+          SELECT id, nombre, descripcion, tenant_id
+          FROM public.roles
+          WHERE tenant_id IS NULL
+            AND lower(nombre) LIKE ${like}
+          ORDER BY nombre ASC
+          LIMIT ${limit} OFFSET ${offset};
+        `;
+      } else {
+        rows = await sql`
+          SELECT id, nombre, descripcion, tenant_id
+          FROM public.roles
+          WHERE tenant_id IS NULL
+          ORDER BY nombre ASC
+          LIMIT ${limit} OFFSET ${offset};
+        `;
+      }
     } else {
       // tenant específico o current
       const targetTenantId = tenantParam && tenantParam.toLowerCase() !== 'current'
@@ -56,14 +65,25 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
 
-      rows = await sql`
-        SELECT id, nombre, descripcion, tenant_id
-        FROM public.roles
-        WHERE tenant_id = ${targetTenantId}
-          ${like ? sql`AND lower(nombre) LIKE ${like}` : sql``}
-        ORDER BY nombre ASC
-        LIMIT ${limit} OFFSET ${offset};
-      `;
+      if (q) {
+        const like = `%${q}%`;
+        rows = await sql`
+          SELECT id, nombre, descripcion, tenant_id
+          FROM public.roles
+          WHERE tenant_id = ${targetTenantId}
+            AND lower(nombre) LIKE ${like}
+          ORDER BY nombre ASC
+          LIMIT ${limit} OFFSET ${offset};
+        `;
+      } else {
+        rows = await sql`
+          SELECT id, nombre, descripcion, tenant_id
+          FROM public.roles
+          WHERE tenant_id = ${targetTenantId}
+          ORDER BY nombre ASC
+          LIMIT ${limit} OFFSET ${offset};
+        `;
+      }
     }
 
     return NextResponse.json({ ok: true, items: rows.rows });
