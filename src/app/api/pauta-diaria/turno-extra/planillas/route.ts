@@ -50,6 +50,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Utilidad simple para detectar UUID
+function isUuid(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+}
+
 // POST - Crear nueva planilla con turnos extras seleccionados
 export async function POST(request: NextRequest) {
   try {
@@ -65,12 +70,12 @@ export async function POST(request: NextRequest) {
     
     // Si no hay usuario, usar valores por defecto para pruebas
     if (!user) {
-      user = { email: 'admin@test.com' };
+      user = { email: 'admin@test.com' } as any;
       console.log('⚠️ Usando usuario de prueba para desarrollo');
     }
 
     const body = await request.json();
-    const { turnoIds, observaciones } = body;
+    const { turnoIds, observaciones } = body as { turnoIds: string[]; observaciones?: string };
     
     if (!turnoIds || turnoIds.length === 0) {
       return NextResponse.json({ 
@@ -78,21 +83,93 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log('📊 Creando planilla con', turnoIds.length, 'turnos');
+    console.log('📊 Solicitud de planilla con IDs:', turnoIds);
 
-    // Verificar que los turnos existan y no estén ya en otra planilla
-    const { rows: turnosValidos } = await query(`
-      SELECT 
-        id, 
-        valor,
-        guardia_id,
-        instalacion_id,
-        fecha
-      FROM TE_turnos_extras 
-      WHERE id = ANY($1::uuid[])
-        AND planilla_id IS NULL
-        AND pagado = false
-    `, [turnoIds]);
+    // Separar IDs: UUIDs ya materializados y IDs virtuales tipo 'pm-<id>'
+    const uuidIds: string[] = [];
+    const pmIds: number[] = [];
+    for (const id of turnoIds) {
+      if (isUuid(id)) {
+        uuidIds.push(id);
+      } else if (id.startsWith('pm-')) {
+        const num = parseInt(id.replace('pm-',''), 10);
+        if (!isNaN(num)) pmIds.push(num);
+      }
+    }
+
+    console.log('🧩 UUIDs:', uuidIds.length, '| PM IDs:', pmIds.length);
+
+    // 1) Materializar TE para los PM seleccionados que aún no existen
+    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const materializedIds: string[] = [];
+
+    if (pmIds.length > 0) {
+      // Buscar PM válidos con cobertura y sin TE ya existente
+      const { rows: candidatos } = await query(
+        `SELECT 
+           pm.id as pauta_id,
+           (pm.meta->>'cobertura_guardia_id')::uuid as guardia_id,
+           po.instalacion_id,
+           pm.puesto_id,
+           make_date(pm.anio, pm.mes, pm.dia) as fecha,
+           CASE WHEN po.es_ppc THEN 'ppc' ELSE 'reemplazo' END as estado,
+           COALESCE(i.valor_turno_extra, 0) as valor
+         FROM as_turnos_pauta_mensual pm
+         JOIN as_turnos_puestos_operativos po ON po.id = pm.puesto_id
+         JOIN instalaciones i ON i.id = po.instalacion_id
+         WHERE pm.id = ANY($1::int[])
+           AND pm.meta->>'cobertura_guardia_id' IS NOT NULL
+           AND NOT EXISTS (SELECT 1 FROM TE_turnos_extras te WHERE te.pauta_id = pm.id)
+        `,
+        [pmIds]
+      );
+
+      console.log('🧱 PM candidatos a materializar:', candidatos.length);
+
+      // Insertar TE por cada candidato
+      for (const c of candidatos) {
+        const ins = await query(
+          `INSERT INTO TE_turnos_extras (
+             guardia_id, instalacion_id, puesto_id, pauta_id, fecha, estado, valor, tenant_id
+           ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+           RETURNING id`,
+          [c.guardia_id, c.instalacion_id, c.puesto_id, c.pauta_id, c.fecha, c.estado, c.valor, tenantId]
+        );
+        materializedIds.push(ins.rows[0].id);
+      }
+
+      // Incluir los que ya existían para esos PM
+      const { rows: existentes } = await query(
+        `SELECT id FROM TE_turnos_extras WHERE pauta_id = ANY($1::int[])`,
+        [pmIds]
+      );
+      for (const r of existentes) {
+        materializedIds.push(r.id);
+      }
+    }
+
+    const allIds: string[] = [...uuidIds, ...materializedIds];
+
+    if (allIds.length === 0) {
+      return NextResponse.json({ 
+        error: 'No se encontraron turnos válidos para incluir en la planilla' 
+      }, { status: 400 });
+    }
+
+    // 2) Verificar que los turnos existan y no estén ya en otra planilla
+    const { rows: turnosValidos } = await query(
+      `SELECT 
+         id, 
+         valor,
+         guardia_id,
+         instalacion_id,
+         fecha
+       FROM TE_turnos_extras 
+       WHERE id = ANY($1::uuid[])
+         AND planilla_id IS NULL
+         AND pagado = false
+      `, [allIds]
+    );
 
     if (turnosValidos.length === 0) {
       return NextResponse.json({ 
@@ -100,8 +177,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    if (turnosValidos.length !== turnoIds.length) {
-      console.log(`⚠️ Solo ${turnosValidos.length} de ${turnoIds.length} turnos son válidos`);
+    if (turnosValidos.length !== allIds.length) {
+      console.log(`⚠️ Solo ${turnosValidos.length} de ${allIds.length} turnos son válidos para planilla`);
     }
 
     // Calcular monto total
@@ -148,7 +225,7 @@ export async function POST(request: NextRequest) {
       SET planilla_id = $1,
           updated_at = NOW()
       WHERE id = ANY($2::uuid[])
-    `, [planillaId, turnosValidos.map(t => t.id)]);
+    `, [planillaId, turnosValidos.map((t: any) => t.id)]);
 
     console.log('✅ Planilla creada con ID:', planillaId);
 
