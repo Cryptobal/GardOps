@@ -438,10 +438,10 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
               <TableHeader>
                 <TableRow>
                   <TableHead>Instalación</TableHead>
+                  <TableHead>Rol</TableHead>
                   <TableHead>Puesto</TableHead>
                   <TableHead>Guardia</TableHead>
                   <TableHead>Cobertura</TableHead>
-                  <TableHead>Rol</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
@@ -455,6 +455,23 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                   return (
                     <TableRow key={r.pauta_id} className={esDuplicado ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}>
                       <TableCell>{r.instalacion_nombre}</TableCell>
+                      <TableCell>
+                        {/* Rol con formato especial */}
+                        {r.rol_nombre ? (
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {r.rol_alias || r.rol_nombre} 4x4x12
+                            </span>
+                            {r.hora_inicio && r.hora_fin && (
+                              <span className="text-xs text-muted-foreground">
+                                {r.hora_inicio.slice(0,5)} - {r.hora_fin.slice(0,5)}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          '—'
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -500,23 +517,6 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                           <span className="text-emerald-600 dark:text-emerald-400">
                             {r.cobertura_guardia_nombre}
                           </span>
-                        ) : (
-                          '—'
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {/* Rol con formato especial */}
-                        {r.rol_nombre ? (
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {r.rol_alias || r.rol_nombre} 4x4x12
-                            </span>
-                            {r.hora_inicio && r.hora_fin && (
-                              <span className="text-xs text-muted-foreground">
-                                {r.hora_inicio.slice(0,5)} - {r.hora_fin.slice(0,5)}
-                              </span>
-                            )}
-                          </div>
                         ) : (
                           '—'
                         )}
