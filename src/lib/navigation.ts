@@ -134,6 +134,11 @@ export const navigationItems: NavigationItem[] = [
         icon: Activity
       },
       {
+        name: "Tipos de Puesto",
+        href: "/configuracion/tipos-puesto",
+        icon: MapPin
+      },
+      {
         name: "Tipos de Documentos",
         href: "/configuracion/tipos-documentos",
         icon: FileText

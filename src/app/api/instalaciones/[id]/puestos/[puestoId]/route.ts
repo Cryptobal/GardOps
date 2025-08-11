@@ -43,7 +43,7 @@ export async function GET(
   }
 }
 
-// PATCH - Actualizar nombre del puesto
+// PATCH - Actualizar nombre y/o tipo del puesto
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string; puestoId: string } }
@@ -51,17 +51,18 @@ export async function PATCH(
   try {
     const { puestoId } = params;
     const body = await request.json();
-    const { nombre_puesto } = body;
+    const { nombre_puesto, tipo_puesto_id } = body;
 
-    if (!nombre_puesto || nombre_puesto.trim().length === 0) {
+    // Validar que al menos un campo sea proporcionado
+    if (!nombre_puesto && !tipo_puesto_id) {
       return NextResponse.json(
-        { error: 'El nombre del puesto es requerido' },
+        { error: 'Debe proporcionar al menos un campo para actualizar' },
         { status: 400 }
       );
     }
 
-    // Validar que el nombre no sea muy largo
-    if (nombre_puesto.length > 255) {
+    // Validar nombre si se proporciona
+    if (nombre_puesto && nombre_puesto.length > 255) {
       return NextResponse.json(
         { error: 'El nombre del puesto no puede exceder 255 caracteres' },
         { status: 400 }
@@ -81,25 +82,65 @@ export async function PATCH(
       );
     }
 
-    // Actualizar el nombre del puesto
+    // Si se proporciona tipo_puesto_id, verificar que existe
+    if (tipo_puesto_id) {
+      const tipoCheck = await query(
+        'SELECT id FROM cat_tipos_puesto WHERE id = $1 AND activo = true',
+        [tipo_puesto_id]
+      );
+      
+      if (tipoCheck.rows.length === 0) {
+        return NextResponse.json(
+          { error: 'Tipo de puesto no encontrado o inactivo' },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Construir la query de actualización dinámicamente
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    if (nombre_puesto !== undefined) {
+      updates.push(`nombre_puesto = $${paramCount}`);
+      values.push(nombre_puesto?.trim() || null);
+      paramCount++;
+    }
+
+    if (tipo_puesto_id !== undefined) {
+      updates.push(`tipo_puesto_id = $${paramCount}`);
+      values.push(tipo_puesto_id);
+      paramCount++;
+    }
+
+    updates.push(`actualizado_en = NOW()`);
+    values.push(puestoId);
+
+    // Actualizar el puesto
     const updateResult = await query(`
       UPDATE as_turnos_puestos_operativos 
-      SET 
-        nombre_puesto = $1,
-        actualizado_en = NOW()
-      WHERE id = $2
-      RETURNING id, nombre_puesto
-    `, [nombre_puesto.trim(), puestoId]);
+      SET ${updates.join(', ')}
+      WHERE id = $${paramCount}
+      RETURNING 
+        po.*,
+        tp.nombre as tipo_nombre,
+        tp.emoji as tipo_emoji,
+        tp.color as tipo_color
+      FROM as_turnos_puestos_operativos po
+      LEFT JOIN cat_tipos_puesto tp ON po.tipo_puesto_id = tp.id
+      WHERE po.id = $${paramCount}
+    `, values);
 
-    console.log(`✅ Nombre del puesto ${puestoId} actualizado a: ${nombre_puesto}`);
+    console.log(`✅ Puesto ${puestoId} actualizado`);
 
     return NextResponse.json({
       success: true,
-      message: 'Nombre del puesto actualizado exitosamente',
+      message: 'Puesto actualizado exitosamente',
       data: updateResult.rows[0]
     });
   } catch (error) {
-    console.error('Error actualizando nombre del puesto:', error);
+    console.error('Error actualizando puesto:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
