@@ -80,6 +80,7 @@ export async function GET(
           po.es_ppc,
           po.creado_en,
           po.tenant_id,
+          po.tipo_puesto_id,
           rs.nombre as rol_nombre,
           rs.dias_trabajo,
           rs.dias_descanso,
@@ -89,10 +90,14 @@ export async function GET(
           rs.estado as rol_estado,
           rs.created_at as rol_created_at,
           rs.updated_at as rol_updated_at,
-          g.nombre || ' ' || g.apellido_paterno || ' ' || COALESCE(g.apellido_materno, '') as guardia_nombre
+          g.nombre || ' ' || g.apellido_paterno || ' ' || COALESCE(g.apellido_materno, '') as guardia_nombre,
+          tp.nombre as tipo_nombre,
+          tp.emoji as tipo_emoji,
+          tp.color as tipo_color
         FROM as_turnos_puestos_operativos po
         LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
         LEFT JOIN guardias g ON po.guardia_id = g.id
+        LEFT JOIN cat_tipos_puesto tp ON po.tipo_puesto_id = tp.id
         WHERE po.instalacion_id = $1
         ORDER BY po.rol_id, po.nombre_puesto, po.creado_en
       `, [instalacionId]);
@@ -238,7 +243,11 @@ export async function GET(
         nombre_puesto: row.nombre_puesto,
         es_ppc: row.es_ppc,
         guardia_asignado_id: row.guardia_id,
-        guardia_nombre: row.guardia_nombre
+        guardia_nombre: row.guardia_nombre,
+        tipo_puesto_id: row.tipo_puesto_id,
+        tipo_nombre: row.tipo_nombre,
+        tipo_emoji: row.tipo_emoji,
+        tipo_color: row.tipo_color
       });
       
       // Actualizar contadores
@@ -281,7 +290,11 @@ export async function GET(
         estado: row.guardia_id ? 'Asignado' : 'Pendiente',
         guardia_asignado_id: row.guardia_id,
         guardia_nombre: row.guardia_nombre,
-        nombre_puesto: row.nombre_puesto // Agregar el campo nombre_puesto
+        nombre_puesto: row.nombre_puesto, // Agregar el campo nombre_puesto
+        tipo_puesto_id: row.tipo_puesto_id,
+        tipo_nombre: row.tipo_nombre,
+        tipo_emoji: row.tipo_emoji,
+        tipo_color: row.tipo_color
       }));
 
     console.log(`📊 PPCs encontrados: ${ppcs.length}`);

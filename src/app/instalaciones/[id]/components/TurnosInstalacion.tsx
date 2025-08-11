@@ -71,6 +71,10 @@ interface PPC {
   guardia_asignado_id?: string;
   guardia_nombre?: string;
   nombre_puesto?: string;
+  tipo_puesto_id?: string;
+  tipo_nombre?: string;
+  tipo_emoji?: string;
+  tipo_color?: string;
 }
 
 interface GuardiaDisponible {
@@ -117,10 +121,9 @@ export default function TurnosInstalacion({
     nombre: string;
     isOpen: boolean;
   } | null>(null);
-  const [nuevoNombrePuesto, setNuevoNombrePuesto] = useState('');
   const [guardandoNombre, setGuardandoNombre] = useState(false);
   const [tiposPuesto, setTiposPuesto] = useState<Array<{id: string; nombre: string; emoji: string; color: string}>>([]);
-  const [tipoPuestoSeleccionado, setTipoPuestoSeleccionado] = useState<string | null>(null);
+  const [tipoPuestoSeleccionado, setTipoPuestoSeleccionado] = useState<{id: string | null; nombre: string}>({id: null, nombre: ''});
 
   // Función para filtrar guardias por nombre, apellido o RUT
   const getGuardiasFiltrados = (filtro: string) => {
@@ -466,22 +469,32 @@ export default function TurnosInstalacion({
     }
   };
 
-  // Funciones para editar nombre del puesto
+  // Funciones para editar tipo del puesto
   const handleEditarNombrePuesto = async (ppcId: string, nombreActual: string) => {
     setEditandoPuesto({
       id: ppcId,
       nombre: nombreActual,
       isOpen: true
     });
-    setNuevoNombrePuesto(nombreActual);
-    setTipoPuestoSeleccionado(null);
+    
+    // Intentar encontrar el tipo actual basado en el nombre
+    setTipoPuestoSeleccionado({id: null, nombre: nombreActual});
     
     // Cargar tipos de puesto
     try {
       const response = await fetch('/api/tipos-puesto');
       const data = await response.json();
       if (data.success) {
-        setTiposPuesto(data.data.filter((tipo: any) => tipo.activo));
+        const tiposActivos = data.data.filter((tipo: any) => tipo.activo);
+        setTiposPuesto(tiposActivos);
+        
+        // Si el nombre actual coincide con algún tipo, seleccionarlo
+        const tipoExistente = tiposActivos.find((tipo: any) => 
+          tipo.nombre.toLowerCase() === nombreActual.toLowerCase()
+        );
+        if (tipoExistente) {
+          setTipoPuestoSeleccionado({id: tipoExistente.id, nombre: tipoExistente.nombre});
+        }
       }
     } catch (error) {
       console.error('Error cargando tipos de puesto:', error);
@@ -489,7 +502,10 @@ export default function TurnosInstalacion({
   };
 
   const handleGuardarNombrePuesto = async () => {
-    if (!editandoPuesto || !nuevoNombrePuesto.trim()) return;
+    if (!editandoPuesto || !tipoPuestoSeleccionado.id) {
+      toast.error('Por favor selecciona un tipo de puesto');
+      return;
+    }
 
     setGuardandoNombre(true);
     try {
@@ -499,8 +515,8 @@ export default function TurnosInstalacion({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          nombre_puesto: nuevoNombrePuesto.trim(),
-          tipo_puesto_id: tipoPuestoSeleccionado === 'none' ? null : tipoPuestoSeleccionado
+          nombre_puesto: tipoPuestoSeleccionado.nombre,
+          tipo_puesto_id: tipoPuestoSeleccionado.id
         })
       });
 
@@ -509,9 +525,17 @@ export default function TurnosInstalacion({
       }
 
       // Actualizar el estado local de PPCs
+      const tipoSeleccionado = tiposPuesto.find(t => t.id === tipoPuestoSeleccionado.id);
       setPpcs(prev => prev.map(ppc => 
         ppc.id === editandoPuesto.id 
-          ? { ...ppc, nombre_puesto: nuevoNombrePuesto.trim() }
+          ? { 
+              ...ppc, 
+              nombre_puesto: tipoPuestoSeleccionado.nombre,
+              tipo_puesto_id: tipoPuestoSeleccionado.id,
+              tipo_nombre: tipoPuestoSeleccionado.nombre,
+              tipo_emoji: tipoSeleccionado?.emoji,
+              tipo_color: tipoSeleccionado?.color
+            }
           : ppc
       ));
 
@@ -519,8 +543,7 @@ export default function TurnosInstalacion({
 
       // Cerrar el modal
       setEditandoPuesto(null);
-      setNuevoNombrePuesto('');
-      setTipoPuestoSeleccionado(null);
+      setTipoPuestoSeleccionado({id: null, nombre: ''});
     } catch (error) {
       console.error('Error actualizando nombre del puesto:', error);
       toast.error("No se pudo actualizar el nombre del puesto", "❌ Error");
@@ -724,8 +747,9 @@ export default function TurnosInstalacion({
                                 <div className="flex items-center justify-between pr-6">
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-1">
-                                      <div className="font-medium text-xs truncate text-red-800 dark:text-red-200">
-                                        {ppc.nombre_puesto || `Puesto #${index + 1}`}
+                                      <div className="font-medium text-xs truncate text-red-800 dark:text-red-200 flex items-center gap-1">
+                                        {ppc.tipo_emoji && <span className="text-sm">{ppc.tipo_emoji}</span>}
+                                        {ppc.tipo_nombre || ppc.nombre_puesto || `Puesto #${index + 1}`}
                                       </div>
                                       <Button
                                         variant="ghost"
@@ -733,7 +757,7 @@ export default function TurnosInstalacion({
                                         className="h-4 w-4 p-0 hover:bg-transparent"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          handleEditarNombrePuesto(ppc.id, ppc.nombre_puesto || `Puesto #${index + 1}`);
+                                          handleEditarNombrePuesto(ppc.id, ppc.tipo_nombre || ppc.nombre_puesto || `Puesto #${index + 1}`);
                                         }}
                                       >
                                         <Edit2 className="h-3 w-3 text-gray-500 hover:text-gray-700" />
@@ -794,8 +818,9 @@ export default function TurnosInstalacion({
                                 <div className="flex items-start justify-between pr-6">
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-1">
-                                      <div className="font-medium text-xs text-green-800 dark:text-green-200">
-                                        {ppc.nombre_puesto || `Puesto #${index + 1}`}
+                                      <div className="font-medium text-xs text-green-800 dark:text-green-200 flex items-center gap-1">
+                                        {ppc.tipo_emoji && <span className="text-sm">{ppc.tipo_emoji}</span>}
+                                        {ppc.tipo_nombre || ppc.nombre_puesto || `Puesto #${index + 1}`}
                                       </div>
                                       <Button
                                         variant="ghost"
@@ -803,7 +828,7 @@ export default function TurnosInstalacion({
                                         className="h-4 w-4 p-0 hover:bg-transparent"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          handleEditarNombrePuesto(ppc.id, ppc.nombre_puesto || `Puesto #${index + 1}`);
+                                          handleEditarNombrePuesto(ppc.id, ppc.tipo_nombre || ppc.nombre_puesto || `Puesto #${index + 1}`);
                                         }}
                                       >
                                         <Edit2 className="h-3 w-3 text-gray-500 hover:text-gray-700" />
@@ -888,37 +913,40 @@ export default function TurnosInstalacion({
         onOpenChange={(open) => {
           if (!open) {
             setEditandoPuesto(null);
-            setNuevoNombrePuesto('');
-            setTipoPuestoSeleccionado(null);
+            setTipoPuestoSeleccionado({id: null, nombre: ''});
           }
         }}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar Nombre del Puesto</DialogTitle>
+            <DialogTitle>Seleccionar Tipo de Puesto</DialogTitle>
             <DialogDescription>
-              Personaliza el nombre del puesto para identificarlo fácilmente
+              Elige el tipo de puesto operativo para identificarlo fácilmente
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="tipo" className="text-right">
-                Tipo
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Tipo de Puesto
               </label>
               <Select
-                value={tipoPuestoSeleccionado || 'none'}
-                onValueChange={(value) => setTipoPuestoSeleccionado(value === 'none' ? null : value)}
+                value={tipoPuestoSeleccionado.id || ''}
+                onValueChange={(value) => {
+                  const tipo = tiposPuesto.find(t => t.id === value);
+                  if (tipo) {
+                    setTipoPuestoSeleccionado({id: tipo.id, nombre: tipo.nombre});
+                  }
+                }}
                 disabled={guardandoNombre}
               >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Seleccionar tipo de puesto" />
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un tipo de puesto" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Sin tipo</SelectItem>
                   {tiposPuesto.map((tipo) => (
                     <SelectItem key={tipo.id} value={tipo.id}>
                       <span className="flex items-center gap-2">
-                        <span>{tipo.emoji}</span>
+                        <span className="text-lg">{tipo.emoji}</span>
                         <span>{tipo.nombre}</span>
                       </span>
                     </SelectItem>
@@ -926,30 +954,28 @@ export default function TurnosInstalacion({
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="nombre" className="text-right">
-                Nombre
-              </label>
-              <Input
-                id="nombre"
-                value={nuevoNombrePuesto}
-                onChange={(e) => setNuevoNombrePuesto(e.target.value)}
-                className="col-span-3"
-                placeholder="Ej: Portería Principal, CCTV, Guardia Ronda..."
-                disabled={guardandoNombre}
-              />
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Puedes seleccionar un tipo predefinido o escribir un nombre personalizado
-            </div>
+            {tipoPuestoSeleccionado.id && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground mb-1">Se guardará como:</p>
+                <p className="font-medium flex items-center gap-2">
+                  <span className="text-lg">
+                    {tiposPuesto.find(t => t.id === tipoPuestoSeleccionado.id)?.emoji}
+                  </span>
+                  {tipoPuestoSeleccionado.nombre}
+                </p>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Si necesitas un tipo que no está en la lista, puedes agregarlo desde 
+              <br />Configuración → Tipos de Puesto
+            </p>
           </div>
           <DialogFooter>
             <Button 
               variant="outline" 
               onClick={() => {
                 setEditandoPuesto(null);
-                setNuevoNombrePuesto('');
-                setTipoPuestoSeleccionado(null);
+                setTipoPuestoSeleccionado({id: null, nombre: ''});
               }}
               disabled={guardandoNombre}
             >
@@ -957,7 +983,7 @@ export default function TurnosInstalacion({
             </Button>
             <Button 
               onClick={handleGuardarNombrePuesto}
-              disabled={guardandoNombre || !nuevoNombrePuesto.trim()}
+              disabled={guardandoNombre || !tipoPuestoSeleccionado.id}
             >
               {guardandoNombre ? (
                 <>

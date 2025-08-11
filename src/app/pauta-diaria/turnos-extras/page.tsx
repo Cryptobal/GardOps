@@ -448,7 +448,12 @@ export default function TurnosExtrasPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Turnos Pago, Turnos Extras</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+            💰 Turnos Extras y Reemplazos
+          </h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            Gestión de pagos para PPC cubierto y reemplazos de titular
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={cargarTurnosExtras} variant="outline" size="sm" disabled={loading}>
@@ -478,6 +483,15 @@ export default function TurnosExtrasPage() {
           >
             <CalendarIcon className="h-4 w-4 mr-2" />
             {!isMobile && "Ver Historial"}
+          </Button>
+          <Button 
+            onClick={exportarExcel} 
+            variant="outline" 
+            size="sm"
+            className="border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            {!isMobile && "Exportar XLSX"}
           </Button>
         </div>
       </div>

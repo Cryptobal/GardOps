@@ -122,22 +122,32 @@ export async function PATCH(
       UPDATE as_turnos_puestos_operativos 
       SET ${updates.join(', ')}
       WHERE id = $${paramCount}
-      RETURNING 
-        po.*,
-        tp.nombre as tipo_nombre,
-        tp.emoji as tipo_emoji,
-        tp.color as tipo_color
-      FROM as_turnos_puestos_operativos po
-      LEFT JOIN cat_tipos_puesto tp ON po.tipo_puesto_id = tp.id
-      WHERE po.id = $${paramCount}
+      RETURNING *
     `, values);
+    
+    // Si se actualizó el tipo, obtener la información del tipo
+    let responseData = updateResult.rows[0];
+    if (tipo_puesto_id) {
+      const tipoResult = await query(`
+        SELECT nombre as tipo_nombre, emoji as tipo_emoji, color as tipo_color
+        FROM cat_tipos_puesto 
+        WHERE id = $1
+      `, [tipo_puesto_id]);
+      
+      if (tipoResult.rows.length > 0) {
+        responseData = {
+          ...responseData,
+          ...tipoResult.rows[0]
+        };
+      }
+    }
 
     console.log(`✅ Puesto ${puestoId} actualizado`);
 
     return NextResponse.json({
       success: true,
       message: 'Puesto actualizado exitosamente',
-      data: updateResult.rows[0]
+      data: responseData
     });
   } catch (error) {
     console.error('Error actualizando puesto:', error);
