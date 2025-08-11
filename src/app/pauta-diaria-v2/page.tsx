@@ -26,8 +26,8 @@ async function getRows(fecha: string, incluirLibres: boolean = false): Promise<P
           ELSE NULL
         END AS cobertura_guardia_nombre
       FROM as_turnos_v_pauta_diaria_dedup pd
-      LEFT JOIN public.rrhh_guardias g ON g.id::text = pd.meta->>'cobertura_guardia_id'
-      WHERE pd.fecha = $1::text
+      LEFT JOIN guardias g ON g.id::text = pd.meta->>'cobertura_guardia_id'
+      WHERE pd.fecha = $1
       ORDER BY pd.es_ppc DESC, pd.instalacion_nombre NULLS LAST, pd.puesto_id, pd.pauta_id DESC
     `, [fecha]);
     

@@ -14,7 +14,7 @@ WITH pauta_dedup AS (
     pm.anio,
     pm.mes,
     pm.dia,
-    TO_DATE(CONCAT(pm.anio, '-', pm.mes, '-', pm.dia), 'YYYY-MM-DD')::text as fecha,
+    TO_DATE(CONCAT(pm.anio, '-', pm.mes, '-', pm.dia), 'YYYY-MM-DD') as fecha,
     pm.estado,
     pm.observaciones,
     
@@ -58,7 +58,7 @@ WITH pauta_dedup AS (
 )
 SELECT 
   pd.pauta_id,
-  pd.fecha,
+  pd.fecha::text,
   pd.puesto_id::text,
   pd.puesto_nombre,
   pd.instalacion_id::text,
