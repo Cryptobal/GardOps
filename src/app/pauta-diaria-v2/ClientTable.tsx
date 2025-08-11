@@ -44,6 +44,7 @@ const renderEstado = (estadoUI: string, isFalta: boolean) => {
     inasistencia:   'bg-rose-500/10 text-rose-400 ring-rose-500/20',
     libre:          'bg-gray-500/10 text-gray-400 ring-gray-500/20',
     plan:           'bg-amber-500/10 text-amber-400 ring-amber-500/20',
+    ppc_libre:      'bg-amber-500/10 text-amber-400 ring-amber-500/20',
   };
   
   const base = cls[estadoUI] ?? 'bg-gray-500/10 text-gray-400 ring-gray-500/20';
@@ -394,6 +395,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                 <SelectContent>
                   <SelectItem value="todos">Estado (todos)</SelectItem>
                   <SelectItem value="plan">Plan</SelectItem>
+                  <SelectItem value="ppc_libre">PPC Libre</SelectItem>
                   <SelectItem value="asistido">Asistido</SelectItem>
                   <SelectItem value="libre">Libre</SelectItem>
                   <SelectItem value="reemplazo">Reemplazo</SelectItem>
