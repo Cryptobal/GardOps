@@ -29,6 +29,8 @@ import {
 import { obtenerPautaMensual, guardarPautaMensual, crearPautaMensualAutomatica, exportarPautaMensualPDF, exportarPautaMensualXLSX } from "../../../lib/api/pauta-mensual";
 import { useToast } from "../../../hooks/use-toast";
 import PautaTable from "../components/PautaTable";
+import PautaTableMobile from "../components/PautaTableMobile";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs";
 
 interface Guardia {
   id: string;
@@ -113,6 +115,30 @@ export default function PautaMensualUnificadaPage() {
   const [exportandoPDF, setExportandoPDF] = useState(false);
   const [exportandoXLSX, setExportandoXLSX] = useState(false);
   const [actualizando, setActualizando] = useState(false);
+  const [tab, setTab] = useState<'dia' | 'semana' | 'mes'>(typeof window !== 'undefined' && window.innerWidth >= 640 ? 'mes' : 'dia');
+  // Calcular inicio de semana (lunes) para el día actual o 1
+  const calcularInicioSemana = (dia: number) => {
+    const fecha = new Date(anio, mes - 1, dia);
+    // getDay(): 0=Dom,1=Lun,...6=Sáb; queremos lunes como inicio
+    const day = fecha.getDay();
+    const offset = day === 0 ? 6 : day - 1; // Dom -> 6, Lun -> 0, ...
+    return Math.max(1, dia - offset);
+  };
+  const [semanaInicio, setSemanaInicio] = useState<number>(calcularInicioSemana(new Date().getDate())); // 1-based
+
+  // Detectar cambios locales vs baseline
+  const hayCambios = useCallback(() => {
+    if (pautaData.length !== pautaDataOriginal.length) return true;
+    for (let i = 0; i < pautaData.length; i++) {
+      const a = pautaData[i];
+      const b = pautaDataOriginal[i];
+      if (!b || a.id !== b.id || a.dias.length !== b.dias.length) return true;
+      for (let d = 0; d < a.dias.length; d++) {
+        if (a.dias[d] !== b.dias[d]) return true;
+      }
+    }
+    return false;
+  }, [pautaData, pautaDataOriginal]);
 
   // Seguimiento del estado de edición
   useEffect(() => {
@@ -357,31 +383,56 @@ export default function PautaMensualUnificadaPage() {
     try {
       console.log(`[${timestamp}] 🚀 Iniciando guardado de pauta`);
       
-      // Preparar datos para el nuevo formato de guardado
-      const actualizaciones = [];
+      // Preparar datos: solo enviar cambios reales y estados de planificación
+      // Evitar borrar TE u otros estados no manejados por la planificación mensual
+      const actualizaciones: any[] = [];
+      
+      // Mapa para buscar el original por `id` (puesto_id)
+      const originalById = new Map<string, any>(
+        (pautaDataOriginal || []).map((g) => [g.id, g])
+      );
       
       for (const guardia of pautaData) {
+        const original = originalById.get(guardia.id);
+        
         for (let diaIndex = 0; diaIndex < guardia.dias.length; diaIndex++) {
-          const estado = guardia.dias[diaIndex];
+          const estadoActual = guardia.dias[diaIndex];
+          const estadoOriginal = original?.dias?.[diaIndex];
           
-          // CAMBIO: Enviar todos los días, incluso los vacíos para limpiarlos
-          let estadoDB = null; // null significa eliminar el registro
-          if (estado === 'planificado') {
-            estadoDB = 'planificado'; // CORREGIDO: Guardar como 'planificado' para que aparezca en pauta diaria
-          } else if (estado === 'L') {
+          // Política: siempre enviar planificación explícita (planificado/L)
+          // y solo eliminar si antes era planificación
+          let estadoDB: string | null | undefined;
+          if (estadoActual === 'planificado') {
+            estadoDB = 'planificado';
+          } else if (estadoActual === 'L') {
             estadoDB = 'libre';
+          } else if (estadoActual === '') {
+            if (estadoOriginal === 'planificado' || estadoOriginal === 'L') {
+              estadoDB = null; // limpiar solo si antes era planificación
+            } else {
+              continue; // no tocar estados de diaria
+            }
+          } else {
+            continue; // ignorar A, I, R, P, V, M, etc.
           }
-          // Para días vacíos, estadoDB se mantiene como null
           
           actualizaciones.push({
-            puesto_id: guardia.id, // Para PPCs y guardias, usar el ID del puesto
-            guardia_id: guardia.es_ppc ? null : (guardia.guardia_id || guardia.id), // null para PPCs
+            puesto_id: guardia.id,
+            guardia_id: guardia.es_ppc ? null : (guardia.guardia_id || guardia.id),
             anio: parseInt(anio.toString()),
             mes: parseInt(mes.toString()),
             dia: diaIndex + 1,
-            estado: estadoDB // Puede ser 'trabajado', 'libre', o null (para eliminar)
+            estado: estadoDB,
           });
         }
+      }
+
+      if (actualizaciones.length === 0) {
+        console.log(`[${timestamp}] ℹ️ No hay cambios para guardar`);
+        toast.success('Sin cambios', 'No se detectaron cambios en la pauta');
+        setEditando(false);
+        setGuardando(false);
+        return;
       }
 
       const response = await fetch('/api/pauta-mensual/guardar', {
@@ -403,9 +454,11 @@ export default function PautaMensualUnificadaPage() {
       const result = await response.json();
       console.log(`[${timestamp}] ✅ Pauta guardada exitosamente:`, result);
 
+      // Recargar desde backend para reflejar inmediatamente TE/reemplazos/diaria
+      await cargarDatos(false);
+
       toast.success('Pauta guardada', 'Los cambios se han guardado exitosamente');
       setEditando(false);
-      actualizarDiasGuardados();
 
       // Resumen final en consola
       console.log(`[${timestamp}] 📊 Resumen guardado:`, {
@@ -446,7 +499,11 @@ export default function PautaMensualUnificadaPage() {
 
   const eliminarGuardia = (guardiaIndex: number) => {
     const nuevaPautaData = [...pautaData];
-    nuevaPautaData[guardiaIndex].dias = nuevaPautaData[guardiaIndex].dias.map(() => "");
+    // Solo limpiar planificación (planificado/L). Preservar estados de diaria (R/A/I/P/V/M/S)
+    nuevaPautaData[guardiaIndex].dias = nuevaPautaData[guardiaIndex].dias.map((estado) => {
+      if (estado === 'planificado' || estado === 'L') return '';
+      return estado;
+    });
     setPautaData(nuevaPautaData);
   };
 
@@ -562,7 +619,7 @@ export default function PautaMensualUnificadaPage() {
           </div>
           <div className="min-w-0 flex-1">
             <h1 className="text-lg sm:text-2xl font-bold truncate">
-              {pautaExiste ? "Ver Pauta Mensual" : "Crear Pauta Mensual"}
+              {pautaExiste ? "Editar Pauta Mensual" : "Crear Pauta Mensual"}
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground truncate">
               <Link 
@@ -605,8 +662,8 @@ export default function PautaMensualUnificadaPage() {
                   
                   <Button onClick={() => setEditando(true)} className="w-full sm:w-auto">
                     <Edit className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Ver Pauta</span>
-                    <span className="sm:hidden">Ver</span>
+                    <span className="hidden sm:inline">Editar</span>
+                    <span className="sm:hidden">Editar</span>
                   </Button>
                   
                   {/* Botones de exportación */}
@@ -779,18 +836,100 @@ export default function PautaMensualUnificadaPage() {
         </Card>
       )}
 
-      {/* Calendario de la pauta */}
-      <PautaTable
-        pautaData={pautaData}
-        diasDelMes={diasDelMes}
-        diasSemana={diasSemana}
-        onUpdatePauta={actualizarPauta}
-        onDeleteGuardia={eliminarGuardia}
-        modoEdicion={editando}
-        diasGuardados={diasGuardados}
-        mes={mes}
-        anio={anio}
-      />
+      {/* Calendario de la pauta con tabs Día/Semana/Mes (móvil abre en Día) */}
+      <Tabs
+        value={tab}
+        onValueChange={(v) => setTab(v as any)}
+        className="w-full"
+      >
+        <TabsList className="w-full justify-between">
+          {/* En desktop ocultamos el tab Día; en móvil lo mostramos */}
+          <TabsTrigger value="dia" className="flex-1 sm:hidden">Día</TabsTrigger>
+          <TabsTrigger value="semana" className="flex-1">Semana</TabsTrigger>
+          <TabsTrigger value="mes" className="flex-1">Mes</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dia">
+          <div className="sm:hidden">
+            <PautaTableMobile
+              pautaData={pautaData}
+              diasDelMes={diasDelMes}
+              diasSemana={diasSemana}
+              onUpdatePauta={actualizarPauta}
+              modoEdicion={editando}
+              mes={mes}
+              anio={anio}
+            />
+          </div>
+          <div className="hidden sm:block">
+            <PautaTable
+              pautaData={pautaData}
+              diasDelMes={diasDelMes}
+              diasSemana={diasSemana}
+              onUpdatePauta={actualizarPauta}
+              onDeleteGuardia={eliminarGuardia}
+              modoEdicion={editando}
+              diasGuardados={diasGuardados}
+              mes={mes}
+              anio={anio}
+            />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="semana">
+          <div className="flex items-center justify-between py-2">
+            <Button variant="outline" size="sm" onClick={() => setSemanaInicio((s) => Math.max(1, s - 7))}>◀ Semana</Button>
+            <div className="text-sm text-muted-foreground">Días {semanaInicio}-{Math.min(semanaInicio + 6, diasDelMes.length)}</div>
+            <Button variant="outline" size="sm" onClick={() => setSemanaInicio((s) => Math.min(Math.max(1, diasDelMes.length - 6), s + 7))}>Semana ▶</Button>
+          </div>
+          <PautaTable
+            pautaData={pautaData}
+            diasDelMes={diasDelMes}
+            diasSemana={diasSemana}
+            onUpdatePauta={actualizarPauta}
+            onDeleteGuardia={eliminarGuardia}
+            modoEdicion={editando}
+            diasGuardados={diasGuardados}
+            mes={mes}
+            anio={anio}
+            startDay={semanaInicio}
+            endDay={Math.min(semanaInicio + 6, diasDelMes.length)}
+          />
+        </TabsContent>
+        <TabsContent value="mes">
+          <PautaTable
+            pautaData={pautaData}
+            diasDelMes={diasDelMes}
+            diasSemana={diasSemana}
+            onUpdatePauta={actualizarPauta}
+            onDeleteGuardia={eliminarGuardia}
+            modoEdicion={editando}
+            diasGuardados={diasGuardados}
+            mes={mes}
+            anio={anio}
+          />
+        </TabsContent>
+      </Tabs>
+
+      {/* Bottom action bar móvil */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-3 flex items-center justify-between gap-2 z-40">
+        <Button variant="outline" size="sm" onClick={() => cargarDatos(true)} disabled={actualizando}>
+          {actualizando ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => router.push(`/pauta-diaria/${anio}-${String(mes).padStart(2,'0')}-${String(Math.max(semanaInicio,1)).padStart(2,'0')}`)}>
+          Ver Diaria
+        </Button>
+        {editando ? (
+          <Button size="sm" onClick={guardarPauta} disabled={guardando} className="flex-1">
+            {guardando ? (<><Loader2 className="h-4 w-4 animate-spin mr-2"/>Guardando</>) : 'Guardar'}
+          </Button>
+        ) : (
+          <Button size="sm" onClick={() => setEditando(true)} className="flex-1">
+            Editar
+          </Button>
+        )}
+        {hayCambios() && <span className="text-[11px] text-amber-600">Cambios sin guardar</span>}
+      </div>
     </div>
   );
 } 

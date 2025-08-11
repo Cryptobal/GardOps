@@ -9,6 +9,7 @@ import { useCan } from "@/lib/permissions";
 import { Key, Search, Shield, Hash } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { rbacFetch } from "@/lib/rbacClient";
+import BackToSecurity from "@/components/BackToSecurity";
 
 interface Permiso {
   id: string;
@@ -138,6 +139,7 @@ export default function PermisosPage() {
         <p className="text-muted-foreground mt-1">
           Vista de todos los permisos disponibles en el sistema (solo lectura)
         </p>
+        <BackToSecurity />
       </div>
 
       {/* Barra de búsqueda */}

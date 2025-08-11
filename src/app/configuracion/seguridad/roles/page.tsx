@@ -6,51 +6,35 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 import { useCan } from "@/lib/permissions";
-import { Shield, Plus, Edit2, Trash2, Save, X, Users } from "lucide-react";
+import { Shield, Plus, Save, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { rbacFetch } from "@/lib/rbacClient";
-
-interface Permiso {
-  id: string;
-  codigo: string;
-  nombre: string;
-  descripcion: string;
-  categoria: string;
-}
+import BackToSecurity from "@/components/BackToSecurity";
 
 interface Rol {
   id: string;
   nombre: string;
   descripcion: string;
-  es_sistema: boolean;
-  activo: boolean;
-  permisos: Permiso[];
-  usuarios_count: number;
-  created_at: string;
-  updated_at: string;
 }
 
 export default function RolesPage() {
   const [roles, setRoles] = useState<Rol[]>([]);
-  const [permisosDisponibles, setPermisosDisponibles] = useState<Record<string, Permiso[]>>({});
   const [cargando, setCargando] = useState(true);
   const [creandoRol, setCreandoRol] = useState(false);
-  const [editandoRol, setEditandoRol] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [formData, setFormData] = useState({
     nombre: "",
     descripcion: "",
-    permisos: [] as string[]
   });
   const { allowed: canAdminRbac, loading: permissionLoading } = useCan('rbac.admin');
-  const { toast } = useToast();
+  const { success: toastSuccess, error: toastError } = useToast();
   const router = useRouter();
 
   useEffect(() => {
     if (!permissionLoading && !canAdminRbac) {
-      toast.error("No tienes permisos para acceder a esta sección");
+      toastError("No tienes permisos para acceder a esta sección");
       router.push("/");
     }
   }, [canAdminRbac, permissionLoading, router, toast]);
@@ -58,9 +42,9 @@ export default function RolesPage() {
   const cargarRoles = async () => {
     try {
       setCargando(true);
-      const response = await rbacFetch('/api/admin/rbac/roles');
+      const response = await rbacFetch('/api/admin/rbac/roles?tenant_id=current');
       if (response.status === 403) {
-        toast.error("No tienes permisos suficientes.");
+        toastError("No tienes permisos suficientes.");
         return;
       }
       
@@ -70,80 +54,49 @@ export default function RolesPage() {
 
       const data = await response.json();
       
-      if (data.success) {
-        setRoles(data.data);
-      }
+      const items = Array.isArray(data.items) ? data.items : [];
+      setRoles(items.map((r: any) => ({
+        id: r.id,
+        nombre: r.nombre,
+        descripcion: r.descripcion || '',
+      })));
     } catch (error) {
       console.error('Error:', error);
-      toast.error("Error al cargar roles");
+      toastError("Error al cargar roles");
     } finally {
       setCargando(false);
-    }
-  };
-
-  const cargarPermisos = async () => {
-    try {
-      const response = await rbacFetch('/api/admin/rbac/permisos');
-      if (response.status === 403) {
-        toast.error("No tienes permisos suficientes.");
-        return;
-      }
-      const data = await response.json();
-      
-      if (data.success) {
-        setPermisosDisponibles(data.byCategory || {});
-      }
-    } catch (error) {
-      console.error('Error cargando permisos:', error);
     }
   };
 
   useEffect(() => {
     if (canAdminRbac) {
       cargarRoles();
-      cargarPermisos();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canAdminRbac]);
 
   const iniciarCreacion = () => {
     setCreandoRol(true);
-    setFormData({ nombre: "", descripcion: "", permisos: [] });
-  };
-
-  const iniciarEdicion = (rol: Rol) => {
-    if (rol.es_sistema) {
-      toast.error("No se pueden editar roles del sistema");
-      return;
-    }
-    setEditandoRol(rol.id);
-    setFormData({
-      nombre: rol.nombre,
-      descripcion: rol.descripcion || "",
-      permisos: rol.permisos.map(p => p.id)
-    });
+    setFormData({ nombre: "", descripcion: "" });
   };
 
   const cancelarEdicion = () => {
     setCreandoRol(false);
-    setEditandoRol(null);
-    setFormData({ nombre: "", descripcion: "", permisos: [] });
+    setFormData({ nombre: "", descripcion: "" });
   };
 
   const guardarRol = async () => {
     if (!formData.nombre.trim()) {
-      toast.error("El nombre del rol es requerido");
+      toastError("El nombre del rol es requerido");
       return;
     }
 
     try {
       setGuardando(true);
       
-      const url = editandoRol ? '/api/admin/rbac/roles' : '/api/admin/rbac/roles';
-      const method = editandoRol ? 'PUT' : 'POST';
-      const body = editandoRol 
-        ? { id: editandoRol, ...formData }
-        : formData;
+      const url = '/api/admin/rbac/roles';
+      const method = 'POST';
+      const body = { nombre: formData.nombre, descripcion: formData.descripcion || undefined };
 
       const response = await rbacFetch(url, {
         method,
@@ -151,22 +104,27 @@ export default function RolesPage() {
         body: JSON.stringify(body)
       });
       if (response.status === 403) {
-        toast.error("No tienes permisos suficientes.");
+        toastError("No tienes permisos suficientes.");
         return;
       }
 
-      const data = await response.json();
-      
-      if (data.success) {
-        toast.success(editandoRol ? 'Rol actualizado exitosamente' : 'Rol creado exitosamente');
-        cancelarEdicion();
-        await cargarRoles();
-      } else {
-        toast.error(data.error || 'Error al guardar rol');
+      if (response.status === 409) {
+        const data = await response.json().catch(() => ({} as any));
+        toastError(data?.error === 'nombre_duplicado' ? 'Ese nombre ya existe en este tenant' : 'Nombre duplicado');
+        return;
       }
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({} as any));
+        throw new Error(data?.error || 'Error al guardar rol');
+      }
+
+      toastSuccess('Rol creado exitosamente');
+      cancelarEdicion();
+      await cargarRoles();
     } catch (error) {
       console.error('Error:', error);
-      toast.error('Error al guardar rol');
+      toastError('Error al guardar rol');
     } finally {
       setGuardando(false);
     }
@@ -245,6 +203,7 @@ export default function RolesPage() {
           <p className="text-muted-foreground mt-1">
             Administra roles y sus permisos asociados
           </p>
+          <BackToSecurity />
         </div>
         <Button onClick={iniciarCreacion} disabled={creandoRol}>
           <Plus className="h-4 w-4 mr-2" />
@@ -252,18 +211,15 @@ export default function RolesPage() {
         </Button>
       </div>
 
-      {/* Formulario de creación/edición */}
-      {(creandoRol || editandoRol) && (
+      {/* Formulario de creación */}
+      {creandoRol && (
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>
-              {creandoRol ? 'Crear Nuevo Rol' : 'Editar Rol'}
+              Crear Nuevo Rol
             </CardTitle>
             <CardDescription>
-              {creandoRol 
-                ? 'Define el nombre, descripción y permisos del nuevo rol'
-                : 'Modifica los datos y permisos del rol'
-              }
+              Define el nombre y la descripción del nuevo rol
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -286,41 +242,6 @@ export default function RolesPage() {
                 className="mt-1"
                 rows={3}
               />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Permisos</label>
-              <div className="mt-2 space-y-4 max-h-96 overflow-y-auto border rounded-lg p-4">
-                {Object.entries(permisosDisponibles).map(([categoria, permisos]) => (
-                  <div key={categoria}>
-                    <h4 className="font-medium text-sm mb-2 text-muted-foreground">
-                      {categoria}
-                    </h4>
-                    <div className="space-y-2 ml-4">
-                      {permisos.map((permiso) => (
-                        <label
-                          key={permiso.id}
-                          className="flex items-start space-x-2 cursor-pointer hover:bg-muted/50 p-2 rounded"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={formData.permisos.includes(permiso.id)}
-                            onChange={() => togglePermiso(permiso.id)}
-                            className="mt-1 rounded border-gray-300"
-                          />
-                          <div className="flex-1">
-                            <div className="font-medium text-sm">{permiso.nombre}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {permiso.codigo}
-                              {permiso.descripcion && ` - ${permiso.descripcion}`}
-                            </div>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
 
             <div className="flex justify-end gap-2">
@@ -361,72 +282,21 @@ export default function RolesPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {roles.map((rol) => (
-            <Card key={rol.id} className={rol.es_sistema ? 'border-muted' : ''}>
+            <Card key={rol.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <CardTitle className="text-lg flex items-center gap-2">
                       {rol.nombre}
-                      {rol.es_sistema && (
-                        <Badge variant="secondary" className="text-xs">
-                          Sistema
-                        </Badge>
-                      )}
                     </CardTitle>
                     <CardDescription className="mt-1">
                       {rol.descripcion || 'Sin descripción'}
                     </CardDescription>
                   </div>
-                  {!rol.es_sistema && (
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => iniciarEdicion(rol)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => eliminarRol(rol)}
-                        disabled={rol.usuarios_count > 0}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Users className="h-4 w-4" />
-                    <span>{rol.usuarios_count} usuario(s)</span>
-                  </div>
-                  
-                  <div>
-                    <div className="text-sm font-medium mb-2">
-                      Permisos ({rol.permisos.length})
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {rol.permisos.length > 0 ? (
-                        rol.permisos.slice(0, 5).map((permiso) => (
-                          <Badge key={permiso.id} variant="outline" className="text-xs">
-                            {permiso.codigo}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Sin permisos</span>
-                      )}
-                      {rol.permisos.length > 5 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{rol.permisos.length - 5} más
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <div className="text-xs text-muted-foreground">ID: {rol.id}</div>
               </CardContent>
             </Card>
           ))}

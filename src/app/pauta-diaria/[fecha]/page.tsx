@@ -88,6 +88,20 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
   const [puestoEnEdicion, setPuestoEnEdicion] = useState<Puesto | null>(null);
   const [observaciones, setObservaciones] = useState<string>('');
   const [motivoInasistencia, setMotivoInasistencia] = useState<string>('');
+  // Detección robusta de móvil (no depender solo de clases responsive)
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(max-width: 767px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    if (mq.addEventListener) mq.addEventListener('change', update);
+    else if ((mq as any).addListener) (mq as any).addListener(update);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', update);
+      else if ((mq as any).removeListener) (mq as any).removeListener(update);
+    };
+  }, []);
   
   // Estados para filtros
   const [filtros, setFiltros] = useState({
@@ -1334,8 +1348,9 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
           </Card>
         ) : (
           <>
-            {/* Vista de escritorio - Tabla */}
-            <Card className="hidden md:block">
+            {/* Vista de escritorio - Tabla (forzada a desktop cuando no es móvil) */}
+            {!isMobile && (
+            <Card className="md:block">
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
                   <Table>
@@ -1454,9 +1469,11 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                 )}
               </CardContent>
             </Card>
+            )}
 
-            {/* Vista móvil - Contenedores de dos en dos */}
-            <div className="md:hidden space-y-4">
+            {/* Vista móvil - Cards (forzada a móviles cuando isMobile=true) */}
+            {isMobile && (
+            <div className="space-y-4">
               {puestosFiltrados.map((puesto, index) => (
                 <Card key={puesto.puesto_id} className="border-2 hover:border-blue-300 transition-colors">
                   <CardContent className="p-4">
@@ -1539,6 +1556,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                 </Card>
               )}
             </div>
+            )}
           </>
         )}
       </div>
