@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 
 interface Rol {
   id: string;
+  codigo: string;
   nombre: string;
   descripcion: string;
 }
@@ -98,6 +99,7 @@ export default function UsuariosPage() {
       cargarUsuarios();
       cargarRoles();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busqueda, page, canAdminRbac]);
 
   const toggleActivoUsuario = async (usuario: Usuario) => {

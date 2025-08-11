@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { neon } from '@neon-tech/serverless';
+import { sql } from '@/lib/db';
 import { getCurrentUserRef } from '@/lib/auth';
-
-const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,7 +22,7 @@ export async function GET(request: NextRequest) {
     const roles = await sql`
       WITH rol_permisos AS (
         SELECT 
-          rp.rol_id,
+          rp.rol_codigo,
           COALESCE(
             json_agg(
               json_build_object(
@@ -32,29 +30,30 @@ export async function GET(request: NextRequest) {
                 'codigo', p.codigo,
                 'nombre', p.nombre,
                 'descripcion', p.descripcion,
-                'categoria', p.categoria
-              ) ORDER BY p.categoria, p.codigo
-            ) FILTER (WHERE p.id IS NOT NULL),
+                'categoria', 'General'
+              ) ORDER BY p.codigo
+            ) FILTER (WHERE p.codigo IS NOT NULL),
             '[]'::json
           ) as permisos
-        FROM rbac_rol_permiso rp
-        LEFT JOIN rbac_permisos p ON rp.permiso_id = p.id
-        GROUP BY rp.rol_id
+        FROM rbac_roles_permisos rp
+        LEFT JOIN rbac_permisos p ON rp.permiso_cod = p.codigo
+        WHERE rp.granted = true
+        GROUP BY rp.rol_codigo
       )
       SELECT 
         r.id,
+        r.codigo,
         r.nombre,
         r.descripcion,
-        r.es_sistema,
-        r.activo,
+        false as es_sistema,
+        true as activo,
         r.created_at,
         r.updated_at,
         COALESCE(rp.permisos, '[]'::json) as permisos,
-        (SELECT COUNT(*) FROM rbac_usuario_rol ur WHERE ur.rol_id = r.id) as usuarios_count
+        (SELECT COUNT(*) FROM rbac_usuarios_roles ur WHERE ur.rol_codigo = r.codigo) as usuarios_count
       FROM rbac_roles r
-      LEFT JOIN rol_permisos rp ON r.id = rp.rol_id
-      WHERE r.activo = true
-      ORDER BY r.es_sistema DESC, r.nombre
+      LEFT JOIN rol_permisos rp ON r.codigo = rp.rol_codigo
+      ORDER BY r.nombre
     `;
 
     return NextResponse.json({

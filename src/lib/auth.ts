@@ -84,7 +84,7 @@ export function getCurrentUserServer(request: Request): {
 // =====================
 
 /**
- * Obtiene la referencia del usuario actual desde headers `x-user`.
+ * Obtiene la referencia del usuario actual desde el token JWT.
  * Si no existe o no puede acceder a headers() (por entorno de test/cliente),
  * usa `process.env.DEV_USER_REF ?? null` como fallback.
  */
@@ -92,6 +92,17 @@ export async function getCurrentUserRef(): Promise<string | null> {
   // Evitar romper en cliente o entorno de test sin Next runtime
   try {
     const mod = await import('next/headers');
+    const cookiesStore = mod.cookies?.();
+    const token = cookiesStore?.get?.('auth_token')?.value;
+    
+    if (token) {
+      const decoded = verifyToken(token);
+      if (decoded && decoded.user_id) {
+        return decoded.user_id;
+      }
+    }
+    
+    // Fallback al header x-user si existe
     const h = mod.headers?.();
     const userFromHeader = h?.get?.('x-user') ?? null;
     if (userFromHeader) return userFromHeader;

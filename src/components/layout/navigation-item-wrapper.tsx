@@ -29,6 +29,7 @@ export function NavigationItemWrapper({
   const { allowed, loading } = item.permission 
     ? useCan(item.permission)
     : { allowed: true, loading: false };
+  const adoV2On = useFlag('ado_v2');
 
   // Si tiene permiso requerido y está cargando, no mostrar nada
   if (item.permission && loading) {
@@ -77,14 +78,26 @@ export function NavigationItemWrapper({
           <item.icon className="h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5 flex-shrink-0" />
           {!isCollapsed && (
             <>
-              <span className="sidebar-item-text">{item.name}</span>
-              {hasVisibleChildren && (
-                <span className={cn(
-                  "ml-auto transition-transform",
-                  isExpanded && "rotate-90"
-                )}>
-                  ›
+              <div className="flex-1 min-w-0">
+                <span className="font-medium truncate text-xs sm:text-sm md:text-base flex items-center gap-2">
+                  {item.name}
+                  {item.href === "/pauta-diaria" && adoV2On && (
+                    <span className="ml-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] uppercase tracking-wide">v2</span>
+                  )}
                 </span>
+                {item.description && (
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                    {item.description}
+                  </p>
+                )}
+              </div>
+              {hasVisibleChildren && (
+                <ChevronDown 
+                  className={cn(
+                    "h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 flex-shrink-0 transition-transform duration-200",
+                    isExpanded && "rotate-180"
+                  )} 
+                />
               )}
             </>
           )}

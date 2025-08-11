@@ -386,21 +386,43 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       const result = await api.deshacerMarcado(pauta_id);
       console.log('✅ Resultado de deshacer:', result);
       
-      addToast({
-        title: "✅ Éxito",
-        description: "Estado revertido a planificado",
-        type: "success"
-      });
-      
-      // Forzar actualización completa de la página
-      console.log('🔄 Refrescando página...');
-      router.refresh();
-      refetch();
-      
-      // También podemos intentar una recarga más agresiva si es necesario
-      setTimeout(() => {
-        router.refresh();
-      }, 500);
+      // Verificar si el resultado es exitoso
+      if (result && result.ok !== false) {
+        addToast({
+          title: "✅ Éxito",
+          description: "Estado revertido a planificado",
+          type: "success"
+        });
+        
+        // Cerrar el panel expandido si está abierto
+        if (expandedRowId === pauta_id) {
+          setExpandedRowId(null);
+          setRowPanelData(prev => {
+            const newData = { ...prev };
+            delete newData[pauta_id];
+            return newData;
+          });
+        }
+        
+        // Forzar actualización completa de la página
+        console.log('🔄 Refrescando página completamente...');
+        
+        // Opción 1: Usar window.location.reload para forzar recarga completa
+        // Esto es más agresivo pero garantiza que todo se actualice
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
+        
+        // Opción 2 (comentada): Usar router.refresh múltiples veces
+        // router.refresh();
+        // refetch();
+        // setTimeout(() => {
+        //   router.refresh();
+        // }, 500);
+      } else {
+        // Si hay un error en la respuesta
+        throw new Error(result?.error || 'Error al deshacer');
+      }
     } catch (e:any) {
       console.error('❌ Error al deshacer:', e);
       addToast({
@@ -408,7 +430,6 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
         description: `Error al deshacer: ${e.message ?? e}`,
         type: "error"
       });
-    } finally {
       setSavingId(null);
     }
   }

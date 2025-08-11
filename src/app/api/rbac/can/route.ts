@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserRef } from '@/lib/auth';
-import { query } from '@/lib/database';
+import { sql } from '@/lib/db';
 
 /**
  * Endpoint para verificar permisos usando el nuevo sistema RBAC
@@ -22,6 +22,8 @@ export async function GET(request: NextRequest) {
     // Obtener el usuario actual desde headers
     const userId = await getCurrentUserRef();
     
+    console.log(`[rbac] getCurrentUserRef devolvió: ${userId}`);
+    
     if (!userId) {
       return NextResponse.json(
         { ok: false, error: 'Usuario no autenticado' },
@@ -31,15 +33,14 @@ export async function GET(request: NextRequest) {
     
     try {
       // Llamar a la función RBAC en la BD
-      const result = await query(
-        'SELECT fn_usuario_tiene_permiso($1, $2) as tiene_permiso',
-        [userId, permiso]
-      );
+      const result = await sql`
+        SELECT fn_usuario_tiene_permiso(${userId}::uuid, ${permiso}) as tiene_permiso
+      `;
       
-      const allowed = Boolean(result?.rows?.[0]?.tiene_permiso);
+      const allowed = Boolean(result[0]?.tiene_permiso);
       
       // Log discreto para debug
-      console.log(`[rbac] Permiso verificado: usuario=${userId}, permiso=${permiso}, allowed=${allowed}`);
+      console.log(`[rbac] Permiso verificado: usuario=${userId}, permiso=${permiso}, allowed=${allowed}, result=${JSON.stringify(result[0])}`);
       
       return NextResponse.json({
         ok: true,
@@ -89,12 +90,11 @@ export async function POST(request: NextRequest) {
     }
     
     try {
-      const result = await query(
-        'SELECT fn_usuario_tiene_permiso($1, $2) as tiene_permiso',
-        [userId, permiso]
-      );
+      const result = await sql`
+        SELECT fn_usuario_tiene_permiso(${userId}::uuid, ${permiso}) as tiene_permiso
+      `;
       
-      const allowed = Boolean(result?.rows?.[0]?.tiene_permiso);
+      const allowed = Boolean(result[0]?.tiene_permiso);
       
       console.log(`[rbac] POST Permiso verificado: usuario=${userId}, permiso=${permiso}, allowed=${allowed}`);
       

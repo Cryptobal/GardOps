@@ -94,6 +94,7 @@ export default function RolesPage() {
       cargarRoles();
       cargarPermisos();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canAdminRbac]);
 
   const iniciarCreacion = () => {

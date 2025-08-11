@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { neon } from '@neon-tech/serverless';
+import { sql } from '@/lib/db';
 import { getCurrentUserRef } from '@/lib/auth';
-
-const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,21 +29,21 @@ export async function GET(request: NextRequest) {
     const usuarios = await sql`
       WITH usuario_roles AS (
         SELECT 
-          ur.usuario_id,
+          ur.usuario_ref::uuid as usuario_id,
           COALESCE(
             json_agg(
               json_build_object(
                 'id', r.id,
+                'codigo', r.codigo,
                 'nombre', r.nombre,
                 'descripcion', r.descripcion
               ) ORDER BY r.nombre
-            ) FILTER (WHERE r.id IS NOT NULL),
+            ) FILTER (WHERE r.codigo IS NOT NULL),
             '[]'::json
           ) as roles
-        FROM rbac_usuario_rol ur
-        LEFT JOIN rbac_roles r ON ur.rol_id = r.id
-        WHERE r.activo = true
-        GROUP BY ur.usuario_id
+        FROM rbac_usuarios_roles ur
+        LEFT JOIN rbac_roles r ON ur.rol_codigo = r.codigo
+        GROUP BY ur.usuario_ref
       )
       SELECT 
         u.id,
@@ -134,17 +132,23 @@ export async function PUT(request: NextRequest) {
       if (roles !== undefined && Array.isArray(roles)) {
         // Eliminar roles existentes
         await sql`
-          DELETE FROM rbac_usuario_rol 
-          WHERE usuario_id = ${id}
+          DELETE FROM rbac_usuarios_roles 
+          WHERE usuario_ref = ${id}
         `;
 
         // Insertar nuevos roles
         if (roles.length > 0) {
-          const values = roles.map(rolId => ({ usuario_id: id, rol_id: rolId }));
-          await sql`
-            INSERT INTO rbac_usuario_rol (usuario_id, rol_id)
-            SELECT * FROM ${sql(values)}
+          // Los roles vienen como IDs, necesitamos obtener los códigos
+          const rolesCodigos = await sql`
+            SELECT codigo FROM rbac_roles WHERE id = ANY(${roles}::int[])
           `;
+          
+          for (const rol of rolesCodigos.rows) {
+            await sql`
+              INSERT INTO rbac_usuarios_roles (usuario_ref, rol_codigo)
+              VALUES (${id}, ${rol.codigo})
+            `;
+          }
         }
       }
 

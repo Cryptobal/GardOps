@@ -1,8 +1,13 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { Settings, Save, FileText, Users, Building, Shield, Clock, DollarSign, MapPin } from "lucide-react";
+import { Settings, Save, FileText, Users, Building, Shield, Clock, DollarSign, MapPin, Lock, Key } from "lucide-react";
 import Link from "next/link";
+import { useCan } from "@/lib/permissions";
 
 export default function ConfiguracionPage() {
+  const { allowed: canAdminRbac } = useCan('rbac.admin');
+  
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex items-center justify-between">
@@ -135,23 +140,44 @@ export default function ConfiguracionPage() {
           </CardContent>
         </Card>
 
-        {/* Configuración de Seguridad */}
-        <Card className="card-elegant opacity-60">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-gray-500" />
-              Seguridad
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground text-sm">
-              Configurar políticas de seguridad y auditoría
-            </p>
-            <div className="mt-4 text-gray-400 text-sm">
-              Próximamente
-            </div>
-          </CardContent>
-        </Card>
+        {/* Administración de Seguridad RBAC */}
+        {canAdminRbac ? (
+          <Link href="/configuracion/seguridad">
+            <Card className="card-elegant hover:shadow-lg transition-all duration-200 cursor-pointer group">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lock className="h-5 w-5 text-red-500" />
+                  🔒 Seguridad
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  Administrar usuarios, roles y permisos del sistema (RBAC)
+                </p>
+                <div className="mt-4 flex items-center text-red-500 text-sm group-hover:underline">
+                  Gestionar seguridad →
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        ) : (
+          <Card className="card-elegant opacity-60">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5 text-gray-500" />
+                🔒 Seguridad
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm">
+                Administrar usuarios, roles y permisos del sistema (RBAC)
+              </p>
+              <div className="mt-4 text-gray-400 text-sm">
+                Requiere permiso: rbac.admin
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Configuración General */}
         <Card className="card-elegant opacity-60">

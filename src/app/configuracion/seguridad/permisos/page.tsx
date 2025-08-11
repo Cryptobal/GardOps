@@ -62,6 +62,7 @@ export default function PermisosPage() {
     if (canAdminRbac) {
       cargarPermisos();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canAdminRbac]);
 
   // Filtrar permisos según búsqueda

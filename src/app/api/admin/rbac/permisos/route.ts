@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { neon } from '@neon-tech/serverless';
+import { sql } from '@/lib/db';
 import { getCurrentUserRef } from '@/lib/auth';
-
-const sql = neon(process.env.DATABASE_URL!);
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,22 +18,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Sin permisos para administrar seguridad' }, { status: 403 });
     }
 
-    // Obtener todos los permisos agrupados por categoría
+    // Obtener todos los permisos
     const permisos = await sql`
       SELECT 
         p.id,
         p.codigo,
         p.nombre,
         p.descripcion,
-        p.categoria,
+        'General' as categoria,
         p.created_at,
         (
-          SELECT COUNT(DISTINCT rp.rol_id)
-          FROM rbac_rol_permiso rp
-          WHERE rp.permiso_id = p.id
+          SELECT COUNT(DISTINCT rp.rol_codigo)
+          FROM rbac_roles_permisos rp
+          WHERE rp.permiso_cod = p.codigo
         ) as roles_count
       FROM rbac_permisos p
-      ORDER BY p.categoria, p.codigo
+      ORDER BY p.codigo
     `;
 
     // Agrupar por categoría
