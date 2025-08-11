@@ -404,7 +404,20 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   // Reglas de visibilidad de botones según el prompt:
   const isTitularPlan = (r: PautaRow) => r.es_ppc === false && r.estado_ui === 'plan';
   const isPpcPlan     = (r: PautaRow) => r.es_ppc === true  && (r.estado_ui === 'plan' || r.estado_ui === 'ppc_libre');
-  const canUndo       = (r: PautaRow) => ['asistido','reemplazo','sin_cobertura'].includes(r.estado_ui);
+  const canUndo       = (r: PautaRow) => {
+    // Debug: log para ver por qué no aparece el botón deshacer
+    const canUndoResult = ['asistido','reemplazo','sin_cobertura','inasistencia'].includes(r.estado_ui);
+    if (r.guardia_trabajo_id && r.estado_ui !== 'plan' && r.estado_ui !== 'libre') {
+      console.log('🔍 Debug canUndo:', {
+        pauta_id: r.pauta_id,
+        estado_ui: r.estado_ui,
+        es_ppc: r.es_ppc,
+        guardia_trabajo_id: r.guardia_trabajo_id,
+        canUndoResult
+      });
+    }
+    return canUndoResult;
+  };
 
   // Detectar guardias duplicados en la misma fecha
   const guardiasDuplicados = useMemo(() => {
@@ -1003,7 +1016,25 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                         </TableCell>
                         <TableCell>
                           {/* Botón de acciones que expande el panel */}
-                          {!loadingPerms && canMarkOverride && (isTitularPlan(r) || isPpcPlan(r) || canUndo(r)) ? (
+                          {(() => {
+                            const showButton = !loadingPerms && canMarkOverride && (isTitularPlan(r) || isPpcPlan(r) || canUndo(r));
+                            
+                            // Debug log para entender por qué no aparece el botón
+                            if (!showButton && r.estado_ui !== 'plan' && r.estado_ui !== 'libre') {
+                              console.log('🚫 Botón no visible para:', {
+                                pauta_id: r.pauta_id,
+                                estado_ui: r.estado_ui,
+                                es_ppc: r.es_ppc,
+                                isTitularPlan: isTitularPlan(r),
+                                isPpcPlan: isPpcPlan(r),
+                                canUndo: canUndo(r),
+                                loadingPerms,
+                                canMarkOverride
+                              });
+                            }
+                            
+                            return showButton;
+                          })() ? (
                             <Button
                               size="sm"
                               variant={isExpanded ? "default" : "outline"}
@@ -1041,7 +1072,10 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                               <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                               <span className="text-xs text-muted-foreground">Cargando...</span>
                             </div>
-                          ) : null}
+                          ) : (
+                            // Mostrar un placeholder cuando no hay acciones disponibles
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                       </TableRow>
                       

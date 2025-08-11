@@ -69,6 +69,17 @@ export function useCan(permiso: string): { allowed: boolean; loading: boolean } 
       try {
         setLoading(true);
         
+        // TEMPORAL: Usar directamente legacy hasta que RBAC esté configurado
+        // Esto evita el error 500 y los logs molestos
+        const legacyAllowed = await fallbackToLegacy(permiso);
+        if (!cancelled) {
+          setAllowed(legacyAllowed);
+          setLoading(false);
+        }
+        return;
+        
+        // Código RBAC comentado temporalmente
+        /*
         // Primero intentar nuevo sistema RBAC
         const response = await fetch(`/api/rbac/can?permiso=${encodeURIComponent(permiso)}`, {
           method: 'GET',
@@ -101,16 +112,12 @@ export function useCan(permiso: string): { allowed: boolean; loading: boolean } 
           setAllowed(false);
           setLoading(false);
         }
+        */
       } catch (error) {
         if (!cancelled) {
-          // Error de red, intentar legacy
-          console.log(`[rbac] useCan fallback to legacy for ${permiso} (network error)`);
-          try {
-            const legacyAllowed = await fallbackToLegacy(permiso);
-            setAllowed(legacyAllowed);
-          } catch {
-            setAllowed(false);
-          }
+          // Error, usar fallback
+          console.log(`[rbac] useCan error for ${permiso}, defaulting to false`);
+          setAllowed(false);
           setLoading(false);
         }
       }
