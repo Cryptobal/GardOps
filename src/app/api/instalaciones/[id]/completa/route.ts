@@ -280,7 +280,8 @@ export async function GET(
         cantidad_faltante: 1,
         estado: row.guardia_id ? 'Asignado' : 'Pendiente',
         guardia_asignado_id: row.guardia_id,
-        guardia_nombre: row.guardia_nombre
+        guardia_nombre: row.guardia_nombre,
+        nombre_puesto: row.nombre_puesto // Agregar el campo nombre_puesto
       }));
 
     console.log(`📊 PPCs encontrados: ${ppcs.length}`);

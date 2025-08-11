@@ -30,6 +30,15 @@ import {
 import AsignarGuardiaDropdown from './AsignarGuardiaDropdown';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 import InfoTurnos from './InfoTurnos';
+import { Edit2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface TurnosInstalacionProps {
   instalacionId: string;
@@ -55,6 +64,7 @@ interface PPC {
   estado: string;
   guardia_asignado_id?: string;
   guardia_nombre?: string;
+  nombre_puesto?: string;
 }
 
 interface GuardiaDisponible {
@@ -94,6 +104,15 @@ export default function TurnosInstalacion({
     rol_servicio_id: '',
     cantidad_guardias: 1
   });
+
+  // Estado para el modal de edición de nombre de puesto
+  const [editandoPuesto, setEditandoPuesto] = useState<{
+    id: string;
+    nombre: string;
+    isOpen: boolean;
+  } | null>(null);
+  const [nuevoNombrePuesto, setNuevoNombrePuesto] = useState('');
+  const [guardandoNombre, setGuardandoNombre] = useState(false);
 
   // Función para filtrar guardias por nombre, apellido o RUT
   const getGuardiasFiltrados = (filtro: string) => {
@@ -439,6 +458,62 @@ export default function TurnosInstalacion({
     }
   };
 
+  // Funciones para editar nombre del puesto
+  const handleEditarNombrePuesto = (ppcId: string, nombreActual: string) => {
+    setEditandoPuesto({
+      id: ppcId,
+      nombre: nombreActual,
+      isOpen: true
+    });
+    setNuevoNombrePuesto(nombreActual);
+  };
+
+  const handleGuardarNombrePuesto = async () => {
+    if (!editandoPuesto || !nuevoNombrePuesto.trim()) return;
+
+    setGuardandoNombre(true);
+    try {
+      const response = await fetch(`/api/instalaciones/${instalacionId}/puestos/${editandoPuesto.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre_puesto: nuevoNombrePuesto.trim()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al actualizar el nombre del puesto');
+      }
+
+      // Actualizar el estado local de PPCs
+      setPpcs(prev => prev.map(ppc => 
+        ppc.id === editandoPuesto.id 
+          ? { ...ppc, nombre_puesto: nuevoNombrePuesto.trim() }
+          : ppc
+      ));
+
+      toast({
+        title: "✅ Éxito",
+        description: "Nombre del puesto actualizado correctamente",
+      });
+
+      // Cerrar el modal
+      setEditandoPuesto(null);
+      setNuevoNombrePuesto('');
+    } catch (error) {
+      console.error('Error actualizando nombre del puesto:', error);
+      toast({
+        title: "❌ Error",
+        description: "No se pudo actualizar el nombre del puesto",
+        variant: "destructive"
+      });
+    } finally {
+      setGuardandoNombre(false);
+    }
+  };
+
   if (loading) {
     return (
       <Card>
@@ -633,8 +708,21 @@ export default function TurnosInstalacion({
 
                                 <div className="flex items-center justify-between pr-6">
                                   <div className="flex-1 min-w-0">
-                                    <div className="font-medium text-xs truncate text-red-800 dark:text-red-200">
-                                      P-{ppc.id.slice(-4).toUpperCase()}
+                                    <div className="flex items-center gap-1">
+                                      <div className="font-medium text-xs truncate text-red-800 dark:text-red-200">
+                                        {ppc.nombre_puesto || `Puesto #${index + 1}`}
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-4 w-4 p-0 hover:bg-transparent"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditarNombrePuesto(ppc.id, ppc.nombre_puesto || `Puesto #${index + 1}`);
+                                        }}
+                                      >
+                                        <Edit2 className="h-3 w-3 text-gray-500 hover:text-gray-700" />
+                                      </Button>
                                     </div>
                                     <div className="text-xs text-red-600 dark:text-red-400 truncate">
                                       {ppc.rol_servicio_nombre}
@@ -690,7 +778,22 @@ export default function TurnosInstalacion({
 
                                 <div className="flex items-start justify-between pr-6">
                                   <div className="flex-1 min-w-0">
-                                    <div className="font-medium text-xs text-green-800 dark:text-green-200">P-{ppc.id.slice(-4).toUpperCase()}</div>
+                                    <div className="flex items-center gap-1">
+                                      <div className="font-medium text-xs text-green-800 dark:text-green-200">
+                                        {ppc.nombre_puesto || `Puesto #${index + 1}`}
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-4 w-4 p-0 hover:bg-transparent"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditarNombrePuesto(ppc.id, ppc.nombre_puesto || `Puesto #${index + 1}`);
+                                        }}
+                                      >
+                                        <Edit2 className="h-3 w-3 text-gray-500 hover:text-gray-700" />
+                                      </Button>
+                                    </div>
                                     <div className="text-xs text-green-600 dark:text-green-400 break-words">
                                       Guardia: 
                                       {ppc.guardia_asignado_id ? (
@@ -764,6 +867,68 @@ export default function TurnosInstalacion({
 
       {/* Console log para confirmar que la refactorización se completó */}
       {(() => { console.log("✅ Refactor visual de asignación de turnos completado sin afectar la lógica"); return null; })()}
+      {/* Modal de edición de nombre de puesto */}
+      <Dialog 
+        open={editandoPuesto?.isOpen || false} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditandoPuesto(null);
+            setNuevoNombrePuesto('');
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Nombre del Puesto</DialogTitle>
+            <DialogDescription>
+              Personaliza el nombre del puesto para identificarlo fácilmente
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="nombre" className="text-right">
+                Nombre
+              </label>
+              <Input
+                id="nombre"
+                value={nuevoNombrePuesto}
+                onChange={(e) => setNuevoNombrePuesto(e.target.value)}
+                className="col-span-3"
+                placeholder="Ej: Portería Principal, CCTV, Guardia Ronda..."
+                disabled={guardandoNombre}
+              />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Ejemplos: Portería Principal, CCTV Exterior, Guardia Perimetral, Recepción
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setEditandoPuesto(null);
+                setNuevoNombrePuesto('');
+              }}
+              disabled={guardandoNombre}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleGuardarNombrePuesto}
+              disabled={guardandoNombre || !nuevoNombrePuesto.trim()}
+            >
+              {guardandoNombre ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Guardando...
+                </>
+              ) : (
+                'Guardar'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 
