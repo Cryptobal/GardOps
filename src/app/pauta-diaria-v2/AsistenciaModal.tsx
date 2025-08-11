@@ -35,16 +35,16 @@ export default function AsistenciaModal({
 }: { 
   open: boolean; 
   onClose: () => void; 
-  pautaId: number; 
+  pautaId: string; 
   row?: PautaRow;
   modalType: ModalType;
   onNoAsistioConfirm: (data: {
-    pauta_id: number;
+    pauta_id: string;
     falta_sin_aviso: boolean;
     motivo?: string;
     cubierto_por?: string | null;
   }) => Promise<void>;
-  onCubrirPPC: (pauta_id: number, guardia_id: string) => Promise<void>;
+  onCubrirPPC: (pauta_id: string, guardia_id: string) => Promise<void>;
   fecha?: string;
   instalacionId?: string;
   rolId?: string;

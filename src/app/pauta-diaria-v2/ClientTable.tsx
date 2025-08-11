@@ -62,9 +62,9 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   const searchParams = useSearchParams();
   const { addToast } = useToast();
   const canMark = useCan('turnos.marcar_asistencia');
-  const [modal, setModal] = useState<{open:boolean; pautaId:number|null; row?:PautaRow; type?:'no_asistio'|'cubrir_ppc'}>({open:false, pautaId:null});
+  const [modal, setModal] = useState<{open:boolean; pautaId:string|null; row?:PautaRow; type?:'no_asistio'|'cubrir_ppc'}>({open:false, pautaId:null});
   const [mostrarLibres, setMostrarLibres] = useState(incluirLibres);
-  const [savingId, setSavingId] = useState<number | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [f, setF] = useState<Filtros>(() => ({ 
     ppc: 'all',
@@ -126,7 +126,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     return () => window.removeEventListener('keydown', onKey);
   }, [go]);
 
-  async function onAsistio(id: number) {
+  async function onAsistio(id: string) {
     try {
       setSavingId(id);
       const res = await fetch('/api/turnos/asistencia', {
@@ -153,7 +153,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   }
 
   async function onNoAsistioConfirm(data: {
-    pauta_id: number;
+    pauta_id: string;
     falta_sin_aviso: boolean;
     motivo?: string;
     cubierto_por?: string | null;
@@ -184,7 +184,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     }
   }
 
-  async function onCubrirPPC(pauta_id: number, guardia_id: string) {
+  async function onCubrirPPC(pauta_id: string, guardia_id: string) {
     try {
       setSavingId(pauta_id);
       const res = await fetch('/api/turnos/ppc/cubrir', {
@@ -211,7 +211,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     }
   }
 
-  async function onSinCoberturaPPC(pauta_id: number) {
+  async function onSinCoberturaPPC(pauta_id: string) {
     try {
       setSavingId(pauta_id);
       const res = await fetch('/api/turnos/ppc/sin-cobertura', {
@@ -237,7 +237,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     }
   }
 
-  async function onDeshacer(pauta_id: number) {
+  async function onDeshacer(pauta_id: string) {
     try {
       setSavingId(pauta_id);
       const res = await fetch('/api/turnos/deshacer', {
@@ -278,7 +278,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
 
   // Reglas de visibilidad de botones según el prompt:
   const isTitularPlan = (r: PautaRow) => r.es_ppc === false && r.estado_ui === 'plan';
-  const isPpcPlan     = (r: PautaRow) => r.es_ppc === true  && r.estado_ui === 'plan';
+  const isPpcPlan     = (r: PautaRow) => r.es_ppc === true  && (r.estado_ui === 'plan' || r.estado_ui === 'ppc_libre');
   const canUndo       = (r: PautaRow) => ['asistido','reemplazo','sin_cobertura'].includes(r.estado_ui);
 
   // Detectar guardias duplicados en la misma fecha
