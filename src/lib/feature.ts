@@ -15,21 +15,17 @@ export const useNewTurnosApi = () =>
  * Prioriza NEXT_PUBLIC_ sobre la variable de servidor
  */
 export const useNewTurnosApiClient = () => {
-  // TEMPORAL: Desactivar la nueva API hasta que se creen las funciones en la base de datos
-  // La función fn_deshacer no existe aún, causando problemas
-  return false;
+  // Usar la nueva API por defecto ya que fn_deshacer ya existe
+  // Se puede desactivar con NEXT_PUBLIC_USE_NEW_TURNOS_API=false si es necesario
   
-  // Código original comentado temporalmente
-  /*
   // En el cliente, primero intentamos con NEXT_PUBLIC_
   if (typeof window !== 'undefined') {
     const publicFlag = process.env.NEXT_PUBLIC_USE_NEW_TURNOS_API;
     if (publicFlag !== undefined) {
-      return publicFlag.toLowerCase() === 'true';
+      return publicFlag.toLowerCase() !== 'false'; // Cambio: true por defecto
     }
   }
   
-  // Fallback a la variable de servidor
-  return (process.env.USE_NEW_TURNOS_API ?? 'false').toLowerCase() === 'true';
-  */
+  // Por defecto usar la nueva API
+  return true;
 };

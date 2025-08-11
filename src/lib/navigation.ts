@@ -27,6 +27,7 @@ export interface NavigationItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   description?: string;
+  permission?: string; // Permiso requerido para mostrar el ítem
   children?: NavigationItem[];
 }
 
@@ -144,6 +145,32 @@ export const navigationItems: NavigationItem[] = [
         name: "Tipos de Documentos",
         href: "/configuracion/tipos-documentos",
         icon: FileText
+      },
+      {
+        name: "🔒 Seguridad",
+        href: "/configuracion/seguridad",
+        icon: Lock,
+        permission: "rbac.admin",
+        children: [
+          {
+            name: "👥 Usuarios",
+            href: "/configuracion/seguridad/usuarios",
+            icon: Users,
+            permission: "rbac.admin"
+          },
+          {
+            name: "🛡️ Roles",
+            href: "/configuracion/seguridad/roles",
+            icon: Shield,
+            permission: "rbac.admin"
+          },
+          {
+            name: "🔑 Permisos",
+            href: "/configuracion/seguridad/permisos",
+            icon: Key,
+            permission: "rbac.admin"
+          }
+        ]
       }
     ]
   }

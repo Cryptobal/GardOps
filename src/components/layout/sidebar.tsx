@@ -8,6 +8,7 @@ import { navigationItems } from "../../lib/navigation";
 import { useFlag } from "@/lib/flags.client";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
+import { NavigationItemWrapper } from "./navigation-item-wrapper";
 
 interface SidebarProps {
   className?: string;
@@ -212,7 +213,17 @@ export function Sidebar({
 
           {/* Navigation - Ultra Responsive */}
           <nav className="flex-1 p-2 sm:p-3 md:p-4 space-y-1 sm:space-y-1.5 md:space-y-2 overflow-y-auto">
-            {navigationItems.map((item) => renderNavigationItem(item))}
+            {navigationItems.map((item) => (
+              <NavigationItemWrapper
+                key={item.href}
+                item={item}
+                isCollapsed={isCollapsed}
+                pathname={pathname}
+                onItemClick={onMobileClose}
+                expandedItems={expandedItems}
+                onToggleExpanded={toggleExpanded}
+              />
+            ))}
           </nav>
 
 
