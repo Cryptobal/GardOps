@@ -32,12 +32,12 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
           [pauta_id, actor]
         );
       } else {
-        // Fallback: actualizar directamente
+        // Fallback: actualizar directamente - limpiar completamente el estado
         await client.query(
           `UPDATE public.as_turnos_pauta_mensual
            SET estado = 'planificado', 
-               estado_ui = 'plan',
-               meta = '{}'::jsonb
+               estado_ui = NULL,  -- NULL para permitir nuevas asignaciones
+               meta = NULL  -- Limpiar completamente el meta
            WHERE id = $1::bigint`,
           [pauta_id]
         );
