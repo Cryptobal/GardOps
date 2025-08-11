@@ -110,29 +110,38 @@ export async function GET(request: NextRequest) {
       // Crear array de días para este puesto
       const dias = diasDelMes.map(dia => {
         const pautaDia = pautaPuesto.find((p: any) => p.dia === dia);
-        const estado = pautaDia?.estado || '';
-        // Convertir estado de BD a formato frontend
-        switch (estado) {
-          case 'planificado':
-            return 'T';          // Planificado/Asignado
+        const estadoUi = (pautaDia?.estado_ui || '').toLowerCase();
+        const hasCobertura = Boolean(pautaDia?.cobertura_guardia_id);
+        const isTE = (pautaDia?.meta?.tipo === 'turno_extra') || hasCobertura || estadoUi === 'te';
+        // Unificación: si es TE, devolvemos 'R' para que el front lo muestre como TE por cobertura
+        switch (estadoUi) {
           case 'trabajado':
-            return 'A';          // Asistió (confirmado)
+          case 'a':
+            return isTE ? 'R' : 'A';
+          case 'asistido':
+            return isTE ? 'R' : 'A';
+          case 'plan':
+          case 'planificado':
+            return 'planificado';
           case 'inasistencia':
-            return 'I';          // Inasistencia
+            return 'I';
           case 'reemplazo':
-            return 'R';          // Con reemplazo
+            return 'R';
           case 'sin_cobertura':
-            return 'S';          // Sin cobertura
+            return 'S';
           case 'libre':
-            return 'L';          // Libre
+            return 'L';
           case 'permiso':
-            return 'P';          // Permiso
+            return 'P';
           case 'vacaciones':
-            return 'V';          // Vacaciones
+            return 'V';
           case 'licencia':
-            return 'M';          // Licencia médica
+            return 'M';
+          case 'te':
+            return 'R';
           default:
-            return '';           // Sin asignar
+            // Si no hay estado claro pero hay cobertura, tratar como TE
+            return isTE ? 'R' : '';
         }
       });
 
