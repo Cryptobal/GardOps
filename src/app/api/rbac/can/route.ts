@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   try {
     // Obtener el parámetro permiso
     const searchParams = request.nextUrl.searchParams;
-    const permiso = searchParams.get('permiso');
+    const permiso = searchParams.get('permiso') || searchParams.get('perm');
     
     if (!permiso) {
       return NextResponse.json(

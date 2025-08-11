@@ -15,89 +15,112 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
 
     const client = await getClient();
     try {
-      // Determinar el estado_ui basado en si hay cobertura o no
-      const nuevoEstado = (cubierto_por || cobertura_guardia_id || con_cobertura) ? 'reemplazo' : 'sin_cobertura';
+      const id = pauta_id || turno_id;
       const guardiaReemplazoId = cobertura_guardia_id || cubierto_por || null;
-      
-      // Verificar si la función existe
+      const hasCobertura = Boolean(guardiaReemplazoId || con_cobertura);
+
+      // Verificar si existen funciones nuevas
       const { rows: funcCheck } = await client.query(`
-        SELECT COUNT(*) as count 
-        FROM pg_proc 
-        WHERE proname = 'fn_marcar_asistencia' 
-        AND pronamespace = 'as_turnos'::regnamespace
+        SELECT proname FROM pg_proc WHERE pronamespace = 'as_turnos'::regnamespace
+          AND proname IN ('fn_marcar_asistencia','fn_registrar_reemplazo')
       `);
-      
-      const functionExists = parseInt(funcCheck[0].count) > 0;
-      
-      if (functionExists) {
-        // Primero ejecutar la función para actualizar
+      const hasFnMarcar = funcCheck.some((r: any) => r.proname === 'fn_marcar_asistencia');
+      const hasFnReemplazo = funcCheck.some((r: any) => r.proname === 'fn_registrar_reemplazo');
+
+      if (hasCobertura && hasFnReemplazo) {
+        // Caso: titular con falta y hay cobertura → TE (origen reemplazo)
+        await client.query(
+          `SELECT * FROM as_turnos.fn_registrar_reemplazo(
+             $1::bigint,
+             $2::uuid,
+             $3::text,
+             $4::text
+           )`,
+          [id, guardiaReemplazoId, actor, motivo ?? null]
+        );
+        // Añadir metadata de falta
+        await client.query(
+          `UPDATE public.as_turnos_pauta_mensual
+             SET meta = COALESCE(meta,'{}'::jsonb) || jsonb_build_object(
+               'falta_sin_aviso', $2::boolean,
+               'motivo', $3::text
+             )
+           WHERE id = $1::bigint`,
+          [id, !!falta_sin_aviso, motivo ?? null]
+        );
+
+        const { rows } = await client.query(
+          `SELECT id, make_date(anio, mes, dia) as fecha, estado, meta
+           FROM public.as_turnos_pauta_mensual
+           WHERE id = $1::bigint`,
+          [id]
+        );
+        return NextResponse.json(rows[0] ?? null);
+      }
+
+      if (hasFnMarcar) {
+        // Caso: sin cobertura → inasistencia (no escribir meta.estado_ui)
         await client.query(
           `SELECT * FROM as_turnos.fn_marcar_asistencia(
              $1::bigint,
              'inasistencia',
              jsonb_build_object(
                'falta_sin_aviso', $2::boolean,
-               'motivo', $3::text,
-               'cobertura_guardia_id', $4::text,
-               'estado_ui', $5::text
+               'motivo', $3::text
              ),
-             $6::text
+             $4::text
            )`,
-          [pauta_id || turno_id, !!falta_sin_aviso, motivo ?? null, guardiaReemplazoId, nuevoEstado, actor]
+          [id, !!falta_sin_aviso, motivo ?? null, actor]
         );
-        
-        // Luego obtener los datos actualizados
-        const { rows } = await client.query(
-          `SELECT pm.id, make_date(pm.anio, pm.mes, pm.dia) as fecha, pm.estado, pm.meta
-           FROM public.as_turnos_pauta_mensual pm
-           WHERE pm.id = $1::bigint`,
-          [pauta_id || turno_id]
-        );
-        
-        console.log('POST /api/turnos/inasistencia - Payload recibido:', {
-          pauta_id: pauta_id || turno_id,
-          falta_sin_aviso,
-          motivo,
-          cobertura_guardia_id: guardiaReemplazoId,
-          con_cobertura: con_cobertura || !!guardiaReemplazoId
-        });
-        console.log('Respuesta:', rows[0]);
-        
-        return NextResponse.json(rows[0] ?? null);
-      } else {
-        // Fallback: actualizar directamente
-        await client.query(
-          `UPDATE public.as_turnos_pauta_mensual
-           SET estado = 'inasistencia',
-               meta = jsonb_build_object(
-                 'actor_ref', $2::text,
-                 'timestamp', NOW()::text,
-                 'action', 'inasistencia',
-                 'falta_sin_aviso', $3::boolean,
-                 'motivo', $4::text,
-                 'cobertura_guardia_id', $5::text,
-                 'estado_ui', $6::text
-               )
-           WHERE id = $1::bigint`,
-          [pauta_id || turno_id, actor, !!falta_sin_aviso, motivo ?? null, guardiaReemplazoId, nuevoEstado]
-        );
-        
+
         const { rows } = await client.query(
           `SELECT id, make_date(anio, mes, dia) as fecha, estado, meta
            FROM public.as_turnos_pauta_mensual
            WHERE id = $1::bigint`,
-          [pauta_id || turno_id]
+          [id]
         );
-        
-        console.log('POST /api/turnos/inasistencia - Payload recibido:', {
-          pauta_id: pauta_id || turno_id,
-          falta_sin_aviso,
-          motivo,
-          cobertura_guardia_id: guardiaReemplazoId,
-          con_cobertura: con_cobertura || !!guardiaReemplazoId
-        });
-        console.log('Respuesta:', rows[0]);
-        
+        return NextResponse.json(rows[0] ?? null);
+      } else {
+        // Fallback legacy
+        if (hasCobertura) {
+          // TE (origen reemplazo)
+          await client.query(
+            `UPDATE public.as_turnos_pauta_mensual
+             SET estado = 'trabajado',
+                 estado_ui = 'te',
+                 meta = COALESCE(meta,'{}'::jsonb) || jsonb_build_object(
+                   'tipo','turno_extra',
+                   'te_origen','reemplazo',
+                   'cobertura_guardia_id', $2::text,
+                   'falta_sin_aviso', $3::boolean,
+                   'motivo', $4::text,
+                   'actor_ref', $5::text
+                 )
+             WHERE id = $1::bigint`,
+            [id, guardiaReemplazoId, !!falta_sin_aviso, motivo ?? null, actor]
+          );
+        } else {
+          // Inasistencia sin cobertura
+          await client.query(
+            `UPDATE public.as_turnos_pauta_mensual
+             SET estado = 'inasistencia',
+                 meta = jsonb_build_object(
+                   'actor_ref', $2::text,
+                   'timestamp', NOW()::text,
+                   'action', 'inasistencia',
+                   'falta_sin_aviso', $3::boolean,
+                   'motivo', $4::text
+                 )
+             WHERE id = $1::bigint`,
+            [id, actor, !!falta_sin_aviso, motivo ?? null]
+          );
+        }
+        const { rows } = await client.query(
+          `SELECT id, make_date(anio, mes, dia) as fecha, estado, meta
+           FROM public.as_turnos_pauta_mensual
+           WHERE id = $1::bigint`,
+          [id]
+        );
         return NextResponse.json(rows[0] ?? null);
       }
     } finally {
