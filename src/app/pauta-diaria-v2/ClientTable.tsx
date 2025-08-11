@@ -235,13 +235,9 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       // Cargar guardias si es necesario
       if (actionType === 'cubrir_ppc') {
         loadGuardias(row);
-      } else if (actionType === 'no_asistio') {
-        // Solo cargar si el usuario elige "con cobertura"
-        const currentData = rowPanelData[row.pauta_id];
-        if (currentData?.tipoCobertura === 'con_cobertura') {
-          loadGuardias(row, row.guardia_trabajo_id || undefined);
-        }
       }
+      // Para 'no_asistio', NO cargar guardias automáticamente
+      // Se cargarán cuando el usuario haga clic en "Con cobertura"
     }
   }, [expandedRowId, rowPanelData, loadGuardias]);
 
@@ -486,12 +482,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       }));
     };
 
-    // Cargar guardias cuando se cambia el tipo de cobertura
-    useEffect(() => {
-      if (panelData.type === 'no_asistio' && panelData.tipoCobertura === 'con_cobertura' && !panelData.guardias) {
-        loadGuardias(row, row.guardia_trabajo_id || undefined);
-      }
-    }, [panelData.tipoCobertura]);
+    // No usar useEffect para cargar guardias, se hace directamente en onClick para evitar loops
 
     return (
       <TableRow>
@@ -554,7 +545,13 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                       <Button
                         size="sm"
                         variant={panelData.tipoCobertura === 'con_cobertura' ? 'default' : 'outline'}
-                        onClick={() => updatePanelData({ tipoCobertura: 'con_cobertura' })}
+                        onClick={() => {
+                          updatePanelData({ tipoCobertura: 'con_cobertura' });
+                          // Cargar guardias inmediatamente si no están cargados
+                          if (!panelData.guardias && !panelData.loadingGuardias) {
+                            loadGuardias(row, row.guardia_trabajo_id || undefined);
+                          }
+                        }}
                         className="flex-1"
                       >
                         ✅ Con cobertura
@@ -728,7 +725,12 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                         className="flex-1"
                         disabled={isLoading} 
                         onClick={() => {
-                          updatePanelData({ type: 'no_asistio' });
+                          updatePanelData({ 
+                            type: 'no_asistio',
+                            tipoCobertura: 'sin_cobertura', // Inicializar con sin_cobertura por defecto
+                            guardias: undefined,
+                            loadingGuardias: false
+                          });
                         }}
                       >
                         ❌ No asistió
@@ -745,8 +747,15 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                         className="flex-1"
                         disabled={isLoading} 
                         onClick={() => {
-                          updatePanelData({ type: 'cubrir_ppc' });
-                          loadGuardias(row);
+                          updatePanelData({ 
+                            type: 'cubrir_ppc',
+                            guardias: undefined,
+                            loadingGuardias: false,
+                            guardiaReemplazo: '',
+                            filtroGuardias: ''
+                          });
+                          // Cargar guardias para PPC
+                          setTimeout(() => loadGuardias(row), 0);
                         }}
                       >
                         👥 Cubrir
