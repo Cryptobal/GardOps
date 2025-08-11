@@ -244,24 +244,18 @@ const ModalAutocompletarPauta = ({
 
 // Función centralizada para obtener el display del estado - DISEÑO MINIMALISTA
 const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean = false) => {
-  // Si es PPC cubierto (tiene cobertura), mostrar estado especial
-  if (esPPC && cobertura && (estado === 'A' || estado === 'trabajado' || estado === 'a')) {
-    return { 
-      icon: "🛡️", 
-      text: "", 
+  // Unificación TE: si hay cobertura (PPC cubierto o reemplazo), mostrar TE
+  if (cobertura) {
+    return {
+      icon: "TE",
+      text: "",
       className: "bg-transparent border-0",
-      iconColor: "text-amber-500 dark:text-amber-400 text-xl",
-      tooltip: `PPC Cubierto por: ${cobertura.nombre}`
+      iconColor: "text-fuchsia-600 dark:text-fuchsia-400 text-xs font-extrabold",
+      tooltip: `TE: Cubierto por ${cobertura?.nombre || 'guardia'}`
     };
   }
-  
-  // Lógica mejorada para distinguir Falta vs Sin Cobertura
-  // Si hay cobertura (reemplazo), mejorar tooltip
-  let tooltipExtra = '';
-  if (cobertura && cobertura.tipo === 'reemplazo' && !esPPC) {
-    tooltipExtra = ` - Reemplazo: ${cobertura.nombre}`;
-  }
-  
+
+  // Sin cobertura: conservar mapping minimal
   // Normalizar el estado para comparación
   const estadoNormalizado = estado?.toLowerCase() || '';
   
@@ -275,16 +269,7 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
         tooltip: "Turno Planificado"
       };
     case "a":
-      // Si es PPC con cobertura, mostrar escudo
-      if (esPPC && cobertura) {
-        return { 
-          icon: "🛡️", 
-          text: "", 
-          className: "bg-transparent border-0",
-          iconColor: "text-amber-500 dark:text-amber-400 text-xl",
-          tooltip: `PPC Cubierto por: ${cobertura.nombre}`
-        };
-      }
+    case "trabajado":
       return { 
         icon: "✓", 
         text: "", 
@@ -293,31 +278,21 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
         tooltip: "Asistió (Confirmado)"
       };
     case "i":
-      // Lógica corregida: Si es PPC -> Sin Cobertura (triángulo rojo), Si es Guardia -> Falta (X roja)
       return { 
-        icon: esPPC ? "▲" : "✗", 
+        icon: "✗", 
         text: "", 
         className: "bg-transparent border-0",
         iconColor: "text-red-600 dark:text-red-400 text-xl font-bold",
-        tooltip: esPPC ? "Sin Cobertura" : "Falta"
+        tooltip: "Falta"
       };
     case "r":
-      // Si es PPC, no mostrar icono de reemplazo
-      if (esPPC) {
-        return { 
-          icon: "🛡️", 
-          text: "", 
-          className: "bg-transparent border-0",
-          iconColor: "text-amber-500 dark:text-amber-400 text-xl",
-          tooltip: `PPC Cubierto por: ${cobertura?.nombre || 'Guardia asignado'}`
-        };
-      }
+      // Con la unificación, solo entrará aquí si no hay 'cobertura' y se dejó r como dato heredado
       return { 
-        icon: "⟲", 
+        icon: "TE", 
         text: "", 
         className: "bg-transparent border-0",
-        iconColor: "text-orange-600 dark:text-orange-400 text-xl font-bold",
-        tooltip: `Reemplazo${tooltipExtra}`
+        iconColor: "text-fuchsia-600 dark:text-fuchsia-400 text-xs font-extrabold",
+        tooltip: "TE"
       };
     case "s":
       return { 
@@ -658,9 +633,9 @@ export default function PautaTable({
           </div>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md flex items-center justify-center">
-              <span className="text-orange-600 dark:text-orange-400 text-xl font-bold">↻</span>
+              <span className="text-fuchsia-600 dark:text-fuchsia-400 text-xs font-extrabold">TE</span>
             </div>
-            <span className="text-gray-700 dark:text-gray-300 font-medium">Reemplazo</span>
+            <span className="text-gray-700 dark:text-gray-300 font-medium">Turno Extra</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-600 rounded-md flex items-center justify-center">
@@ -680,12 +655,7 @@ export default function PautaTable({
             </div>
             <span className="text-gray-700 dark:text-gray-300 font-medium">Vacaciones</span>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md flex items-center justify-center">
-              <span className="text-purple-600 dark:text-purple-400 text-sm">🛡️</span>
-            </div>
-            <span className="text-gray-700 dark:text-gray-300 font-medium">PPC Cubierto</span>
-          </div>
+          {/* Se eliminan badges específicos de Reemplazo y PPC cubierto; todo es TE */}
         </div>
       </div>
 

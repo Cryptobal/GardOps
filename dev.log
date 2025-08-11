@@ -1,0 +1,38 @@
+
+> gardops@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.31
+  - Local:        http://localhost:3000
+  - Environments: .env.local, .env
+  - Experiments (use with caution):
+    · webpackBuildWorker
+
+ ✓ Starting...
+ ✓ Ready in 2.1s
+ ✓ Compiled /api/debug/whoami in 183ms (91 modules)
+ GET /api/debug/whoami 500 in 1010ms
+ ✓ Compiled /api/flags in 237ms (98 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1347ms
+ GET /api/flags 200 in 1328ms
+ GET /api/flags 200 in 1330ms
+ GET /api/flags 200 in 1335ms
+ GET /api/flags 200 in 1337ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 170ms
+ GET /api/flags 200 in 181ms
+ GET /api/flags 200 in 173ms
+ GET /api/flags 200 in 181ms
+ GET /api/flags 200 in 184ms
+ GET /api/flags 200 in 155ms
+ GET /api/flags 200 in 156ms
+ GET /api/flags 200 in 1676ms
+ GET /api/flags 200 in 157ms
+ GET /api/flags 200 in 158ms

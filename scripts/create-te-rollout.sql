@@ -94,7 +94,7 @@ WITH pauta_dedup AS (
     pm.estado, pm.observaciones, pm.meta, pm.estado_ui AS estado_ui_tabla,
     i.id AS instalacion_id, i.nombre AS instalacion_nombre,
     g.id AS guardia_titular_id,
-    concat(g.apellido_paterno,' ',g.apellido_materno,', ',g.nombre) AS guardia_titular_nombre,
+    CASE WHEN g.id IS NOT NULL THEN concat(g.apellido_paterno,' ',g.apellido_materno,', ',g.nombre) ELSE NULL END AS guardia_titular_nombre,
     po.nombre_puesto AS puesto_nombre, po.es_ppc,
     rs.id AS rol_id, rs.nombre AS rol_nombre, rs.hora_inicio, rs.hora_termino AS hora_fin
   FROM as_turnos_pauta_mensual pm
