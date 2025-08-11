@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/toast";
 import { useCan } from "@/lib/permissions";
 import { Shield, Plus, Edit2, Trash2, Save, X, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { rbacFetch } from "@/lib/rbacClient";
 
 interface Permiso {
   id: string;
@@ -57,7 +58,11 @@ export default function RolesPage() {
   const cargarRoles = async () => {
     try {
       setCargando(true);
-      const response = await fetch('/api/admin/rbac/roles');
+      const response = await rbacFetch('/api/admin/rbac/roles');
+      if (response.status === 403) {
+        toast.error("No tienes permisos suficientes.");
+        return;
+      }
       
       if (!response.ok) {
         throw new Error('Error al cargar roles');
@@ -78,7 +83,11 @@ export default function RolesPage() {
 
   const cargarPermisos = async () => {
     try {
-      const response = await fetch('/api/admin/rbac/permisos');
+      const response = await rbacFetch('/api/admin/rbac/permisos');
+      if (response.status === 403) {
+        toast.error("No tienes permisos suficientes.");
+        return;
+      }
       const data = await response.json();
       
       if (data.success) {
@@ -136,11 +145,15 @@ export default function RolesPage() {
         ? { id: editandoRol, ...formData }
         : formData;
 
-      const response = await fetch(url, {
+      const response = await rbacFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
+      if (response.status === 403) {
+        toast.error("No tienes permisos suficientes.");
+        return;
+      }
 
       const data = await response.json();
       
@@ -175,9 +188,13 @@ export default function RolesPage() {
     }
 
     try {
-      const response = await fetch(`/api/admin/rbac/roles?id=${rol.id}`, {
+      const response = await rbacFetch(`/api/admin/rbac/roles?id=${rol.id}`, {
         method: 'DELETE'
       });
+      if (response.status === 403) {
+        toast.error("No tienes permisos suficientes.");
+        return;
+      }
 
       const data = await response.json();
       

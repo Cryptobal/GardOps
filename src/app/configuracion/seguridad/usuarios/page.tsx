@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/toast";
 import { useCan } from "@/lib/permissions";
 import { Search, Users, Shield, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { rbacFetch } from "@/lib/rbacClient";
 
 interface Rol {
   id: string;
@@ -54,7 +55,11 @@ export default function UsuariosPage() {
   const cargarUsuarios = async () => {
     try {
       setCargando(true);
-      const response = await fetch(`/api/admin/rbac/usuarios?q=${busqueda}&page=${page}&limit=20`);
+      const response = await rbacFetch(`/api/admin/rbac/usuarios?q=${busqueda}&page=${page}&limit=20`);
+      if (response.status === 403) {
+        toast.error("No tienes permisos suficientes.");
+        return;
+      }
       
       if (!response.ok) {
         throw new Error('Error al cargar usuarios');
@@ -83,7 +88,11 @@ export default function UsuariosPage() {
 
   const cargarRoles = async () => {
     try {
-      const response = await fetch('/api/admin/rbac/roles');
+      const response = await rbacFetch('/api/admin/rbac/roles');
+      if (response.status === 403) {
+        toast.error("No tienes permisos suficientes.");
+        return;
+      }
       const data = await response.json();
       
       if (data.success) {
@@ -106,7 +115,7 @@ export default function UsuariosPage() {
     try {
       setGuardando(usuario.id);
       
-      const response = await fetch('/api/admin/rbac/usuarios', {
+      const response = await rbacFetch('/api/admin/rbac/usuarios', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -114,6 +123,10 @@ export default function UsuariosPage() {
           activo: !usuario.activo
         })
       });
+      if (response.status === 403) {
+        toast.error("No tienes permisos suficientes.");
+        return;
+      }
 
       const data = await response.json();
       
@@ -135,7 +148,7 @@ export default function UsuariosPage() {
     try {
       setGuardando(usuarioId);
       
-      const response = await fetch('/api/admin/rbac/usuarios', {
+      const response = await rbacFetch('/api/admin/rbac/usuarios', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -143,6 +156,10 @@ export default function UsuariosPage() {
           roles: rolesSeleccionados[usuarioId] || []
         })
       });
+      if (response.status === 403) {
+        toast.error("No tienes permisos suficientes.");
+        return;
+      }
 
       const data = await response.json();
       

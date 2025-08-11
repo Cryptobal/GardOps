@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserRef } from '@/lib/auth';
 import { sql } from '@vercel/postgres';
+import { getUserEmail } from '@/lib/auth/rbac';
 
 /**
  * Endpoint para verificar permisos usando el nuevo sistema RBAC
@@ -19,73 +19,19 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Obtener el usuario actual desde headers
-    const userId = await getCurrentUserRef();
-    
-    console.log(`[rbac] getCurrentUserRef devolvió: ${userId}`);
-    console.log(`[rbac] Tipo de userId: ${typeof userId}`);
-    console.log(`[rbac] DEV_USER_REF env: ${process.env.DEV_USER_REF}`);
-    
-    if (!userId) {
+    // Obtener email del usuario actual
+    const email = await getUserEmail(request);
+    if (!email) {
       return NextResponse.json(
         { ok: false, error: 'Usuario no autenticado' },
         { status: 401 }
       );
     }
-    
-    // Verificar si es un UUID válido
-    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
-    console.log(`[rbac] Es UUID válido: ${isValidUUID}`);
-    
-    if (!isValidUUID) {
-      console.error(`[rbac] userId no es un UUID válido: ${userId}`);
-      // Si no es UUID, intentar obtener el UUID del usuario por email
-      try {
-        const userResult = await sql`
-          SELECT id FROM usuarios WHERE email = ${userId} LIMIT 1
-        `;
-        if (userResult.rows.length > 0) {
-          const realUserId = userResult.rows[0].id;
-          console.log(`[rbac] UUID obtenido de la BD: ${realUserId}`);
-          const result = await sql`
-            SELECT fn_usuario_tiene_permiso(${realUserId}::uuid, ${permiso}) as tiene_permiso
-          `;
-          const allowed = Boolean(result.rows[0]?.tiene_permiso);
-          console.log(`[rbac] Permiso verificado con UUID real: usuario=${realUserId}, permiso=${permiso}, allowed=${allowed}`);
-          return NextResponse.json({
-            ok: true,
-            allowed
-          });
-        }
-      } catch (e) {
-        console.error('[rbac] Error obteniendo UUID por email:', e);
-      }
-    }
-    
-    try {
-      // Llamar a la función RBAC en la BD
-      const result = await sql`
-        SELECT fn_usuario_tiene_permiso(${userId}::uuid, ${permiso}) as tiene_permiso
-      `;
-      
-      const allowed = Boolean(result.rows[0]?.tiene_permiso);
-      
-      // Log discreto para debug
-      console.log(`[rbac] Permiso verificado: usuario=${userId}, permiso=${permiso}, allowed=${allowed}, result=${JSON.stringify(result.rows[0])}`);
-      
-      return NextResponse.json({
-        ok: true,
-        allowed
-      });
-      
-    } catch (dbError) {
-      // Si hay error en la BD (función no existe, etc), devolver 500
-      console.error('[rbac] Error verificando permiso en BD:', dbError);
-      return NextResponse.json(
-        { ok: false, error: 'Error verificando permiso en base de datos' },
-        { status: 500 }
-      );
-    }
+    const result = await sql`
+      select public.fn_usuario_tiene_permiso(${email}, ${permiso}) as tiene_permiso
+    `;
+    const allowed = Boolean(result.rows?.[0]?.tiene_permiso ?? (result as any)[0]?.tiene_permiso);
+    return NextResponse.json({ ok: true, allowed });
     
   } catch (error) {
     // Error general del endpoint

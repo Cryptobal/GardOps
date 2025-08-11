@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/toast";
 import { useCan } from "@/lib/permissions";
 import { Key, Search, Shield, Hash } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { rbacFetch } from "@/lib/rbacClient";
 
 interface Permiso {
   id: string;
@@ -38,7 +39,11 @@ export default function PermisosPage() {
   const cargarPermisos = async () => {
     try {
       setCargando(true);
-      const response = await fetch('/api/admin/rbac/permisos');
+      const response = await rbacFetch('/api/admin/rbac/permisos');
+      if (response.status === 403) {
+        toast.error("No tienes permisos suficientes.");
+        return;
+      }
       
       if (!response.ok) {
         throw new Error('Error al cargar permisos');

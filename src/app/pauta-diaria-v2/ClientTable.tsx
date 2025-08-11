@@ -40,7 +40,7 @@ const addDays = (d: string, delta: number) => {
 
 // Helpers para estados usando estado_ui
 const isAsistido = (estadoUI: string) => {
-  return estadoUI === 'asistido' || estadoUI === 'reemplazo';
+  return estadoUI === 'asistido' || estadoUI === 'reemplazo' || estadoUI === 'te';
 };
 const isPlan = (estadoUI: string) => estadoUI === 'plan';
 const isSinCobertura = (estadoUI: string) => estadoUI === 'sin_cobertura';
@@ -55,13 +55,15 @@ const renderEstado = (estadoUI: string, isFalta: boolean) => {
     libre:          'bg-gray-500/10 text-gray-400 ring-gray-500/20',
     plan:           'bg-amber-500/10 text-amber-400 ring-amber-500/20',
     ppc_libre:      'bg-amber-500/10 text-amber-400 ring-amber-500/20',
+    te:             'bg-fuchsia-500/10 text-fuchsia-400 ring-fuchsia-500/20',
   };
   
   const base = cls[estadoUI] ?? 'bg-gray-500/10 text-gray-400 ring-gray-500/20';
+  const label = estadoUI === 'te' ? 'TE' : estadoUI;
   
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded ring-1 ${base}`}>
-      {estadoUI}
+      {label}
       {isFalta && <span className="ml-1 rounded px-1 text-[10px] ring-1 bg-red-500/10 text-red-400 ring-red-500/20">falta</span>}
     </span>
   );
@@ -439,7 +441,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   const isPpcPlan     = (r: PautaRow) => r.es_ppc === true  && (r.estado_ui === 'plan' || r.estado_ui === 'ppc_libre');
   const canUndo       = (r: PautaRow) => {
     // Debug: log para ver por qué no aparece el botón deshacer
-    const canUndoResult = ['asistido','reemplazo','sin_cobertura','inasistencia'].includes(r.estado_ui);
+    const canUndoResult = ['asistido','reemplazo','sin_cobertura','inasistencia','te'].includes(r.estado_ui);
     if (r.guardia_trabajo_id && r.estado_ui !== 'plan' && r.estado_ui !== 'libre') {
       console.log('🔍 Debug canUndo:', {
         pauta_id: r.pauta_id,
@@ -1023,10 +1025,10 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                         </TableCell>
                         <TableCell>
                           {/* Columna Cobertura - mostrar guardia que cubre si existe */}
-                          {r.estado_ui === 'reemplazo' && (r.cobertura_guardia_nombre || r.meta?.cobertura_guardia_id) ? (
+                          {r.estado_ui === 'te' && (r.cobertura_guardia_nombre || r.meta?.cobertura_guardia_id) ? (
                             <div className="flex flex-col">
                               <span className="font-medium">
-                                {r.cobertura_guardia_nombre || r.reemplazo_guardia_nombre || 'Guardia de reemplazo'}
+                                {r.cobertura_guardia_nombre || r.reemplazo_guardia_nombre || 'Guardia de cobertura'}
                               </span>
                               {r.meta?.motivo && (
                                 <span className="text-xs text-muted-foreground">
@@ -1034,10 +1036,6 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                                 </span>
                               )}
                             </div>
-                          ) : r.es_ppc && r.estado_ui === 'asistido' && r.cobertura_guardia_nombre ? (
-                            <span className="text-emerald-600 dark:text-emerald-400">
-                              {r.cobertura_guardia_nombre}
-                            </span>
                           ) : (
                             '—'
                           )}

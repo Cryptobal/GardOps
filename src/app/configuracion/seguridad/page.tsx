@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Users, Shield, Key, Lock } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
 export default function SeguridadPage() {
   const { allowed: canAdminRbac, loading: permissionLoading } = useCan('rbac.admin');
+  const { allowed: isPlatformAdmin } = useCan('rbac.platform_admin');
   const router = useRouter();
 
   useEffect(() => {
@@ -56,12 +58,25 @@ export default function SeguridadPage() {
     }
   ];
 
+  if (isPlatformAdmin) {
+    sections.push({
+      title: "🏢 Tenants",
+      description: "Administra Tenants de la plataforma (solo Super Admin)",
+      icon: Users,
+      href: "/configuracion/seguridad/tenants",
+      color: "bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/20"
+    });
+  }
+
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold flex items-center gap-3">
           <Lock className="h-8 w-8" />
           Administración de Seguridad
+          {isPlatformAdmin && (
+            <Badge variant="secondary" className="text-xs">Super Admin</Badge>
+          )}
         </h1>
         <p className="text-muted-foreground mt-2">
           Gestiona usuarios, roles y permisos del sistema (RBAC)
