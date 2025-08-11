@@ -478,8 +478,13 @@ export default function GuardiasPage() {
             loading={loading}
             emptyMessage="No se encontraron guardias"
             onRowClick={(guardia) => {
-              console.log("Ver detalles de guardia", guardia.id);
-              router.push(`/guardias/${guardia.id}`);
+              if (guardia?.id) {
+                console.log("Ver detalles de guardia", guardia.id);
+                router.push(`/guardias/${guardia.id}`);
+              } else {
+                console.log("Guardia sin ID:", guardia);
+                showToast("No se puede ver el detalle de este guardia", "error");
+              }
             }}
             mobileCard={(guardia) => (
               <Card className="cursor-pointer hover:bg-muted/50 transition-colors h-full">
@@ -555,7 +560,12 @@ export default function GuardiasPage() {
                         className="flex-1 text-xs"
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push(`/guardias/${guardia.id}`);
+                          if (guardia?.id) {
+                            router.push(`/guardias/${guardia.id}`);
+                          } else {
+                            console.log("Guardia sin ID:", guardia);
+                            showToast("No se puede ver el detalle de este guardia", "error");
+                          }
                         }}
                       >
                         Ver
@@ -570,16 +580,18 @@ export default function GuardiasPage() {
       </Card>
 
       {/* Modal editable de guardias */}
-      <GuardiaModal
-        guardia={isCreateOpen ? null : selectedEntity}
-        isOpen={isCreateOpen || isDetailOpen}
-        onClose={closeAll}
-        onSuccess={(guardia: any) => {
-          console.log("✅ Guardia guardado exitosamente:", guardia);
-          // Recargar la lista de guardias
-          window.location.reload();
-        }}
-      />
+      {(isCreateOpen || isDetailOpen) && (
+        <GuardiaModal
+          guardia={isCreateOpen ? null : selectedEntity}
+          isOpen={isCreateOpen || isDetailOpen}
+          onClose={closeAll}
+          onSuccess={(guardia: any) => {
+            console.log("✅ Guardia guardado exitosamente:", guardia);
+            // Recargar la lista de guardias
+            window.location.reload();
+          }}
+        />
+      )}
 
       {/* Modal de estadísticas OS10 */}
       <OS10StatsModal

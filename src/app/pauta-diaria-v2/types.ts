@@ -8,7 +8,7 @@ export interface PautaRow {
   instalacion_nombre: string;
   estado: string;
   estado_ui: string; // Estado normalizado para UI: 'plan' | 'libre' | 'asistido' | 'reemplazo' | 'sin_cobertura', etc.
-  meta: number;
+  meta: any; // Metadatos JSON con cobertura_guardia_id, ausente_guardia_id, etc.
   guardia_trabajo_id: number | null;
   guardia_trabajo_nombre: string | null;
   guardia_titular_id: number | null;
@@ -20,8 +20,11 @@ export interface PautaRow {
   necesita_cobertura: boolean; // Flag para indicar si necesita cobertura (PPC libre o titular sin cobertura)
   hora_inicio: string | null;
   hora_fin: string | null;
+  rol_id?: string | null;
   rol_nombre: string | null;
+  rol_alias?: string | null;
   reemplazo_guardia_nombre?: string | null;
+  cobertura_guardia_nombre?: string | null; // Nombre del guardia que cubre (PPC o reemplazo)
 }
 
 export interface PautaDiariaV2Props {

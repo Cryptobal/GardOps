@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,11 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { PautaRow } from './types';
+import { toYmd } from '@/lib/date';
 
 interface Guardia {
-  guardia_id: string;
+  id: string;
   nombre: string;
-  estado_empleo?: string;
+  apellido_paterno: string;
+  apellido_materno: string;
+  nombre_completo: string;
 }
 
 type ModalType = 'no_asistio' | 'cubrir_ppc';
@@ -28,7 +31,7 @@ export default function AsistenciaModal({
   fecha,
   instalacionId,
   rolId,
-  guardiaTitular
+  guardiaTitularId
 }: { 
   open: boolean; 
   onClose: () => void; 
@@ -45,7 +48,7 @@ export default function AsistenciaModal({
   fecha?: string;
   instalacionId?: string;
   rolId?: string;
-  guardiaTitular?: string;
+  guardiaTitularId?: string;
 }) {
   const { addToast } = useToast();
   const [motivo, setMotivo] = useState<'con_aviso' | 'sin_aviso' | 'licencia' | 'permiso' | 'vacaciones' | 'finiquito'>('sin_aviso');
@@ -54,79 +57,70 @@ export default function AsistenciaModal({
   const [guardiaReemplazo, setGuardiaReemplazo] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingGuardias, setLoadingGuardias] = useState(false);
+  const [filtro, setFiltro] = useState('');
+
+  // Filtrar guardias client-side
+  const guardiasFiltradas = useMemo(() => {
+    if (!filtro) return guardias;
+    const filtroLower = filtro.toLowerCase();
+    return guardias.filter(g => 
+      g.nombre_completo.toLowerCase().includes(filtroLower)
+    );
+  }, [guardias, filtro]);
 
   useEffect(() => { 
     if (open && fecha && instalacionId && rolId) {
+      // Normalizar fecha a string YYYY-MM-DD
+      const fechaNorm = toYmd(fecha);
+      console.log('[Modal] fecha=', fechaNorm, 'instalacion=', instalacionId, 'rol=', rolId, 'excluir=', guardiaTitularId);
+      
       // Usar el nuevo endpoint con los parámetros necesarios
       const url = new URL('/api/guardias/disponibles', location.origin);
-      url.searchParams.set('fecha', fecha);
+      url.searchParams.set('fecha', fechaNorm);
       url.searchParams.set('instalacion_id', instalacionId);
       url.searchParams.set('rol_id', rolId);
       
-      // Para el caso de "No asistió con cobertura" de un titular, pasar el guardia_titular
-      if (modalType === 'no_asistio' && guardiaTitular) {
-        url.searchParams.set('guardia_titular', guardiaTitular);
+      // Para el caso de "No asistió con cobertura" de un titular, excluir al titular
+      if (modalType === 'no_asistio' && asignarCobertura && guardiaTitularId) {
+        url.searchParams.set('excluir_guardia_id', guardiaTitularId);
       }
 
+      console.log(`Llamando a ${url.pathname}${url.search}`);
+      
       setLoadingGuardias(true);
       fetch(url.toString())
         .then(r => {
           if (!r.ok) {
-            return r.text().then(t => { throw new Error(t); });
+            return r.json().then(data => { 
+              throw new Error(data.error || 'Error desconocido'); 
+            });
           }
           return r.json();
         })
-        .then(({ items }) => {
-          setGuardias(items.map((x: any) => ({ 
-            guardia_id: x.guardia_id, 
-            nombre: x.nombre,
-            estado_empleo: x.estado_empleo
-          })));
+        .then((data) => {
+          console.log('Guardias disponibles recibidos:', data);
+          if (data.items) {
+            setGuardias(data.items);
+          } else {
+            setGuardias([]);
+          }
         })
         .catch(err => {
           console.error('Error cargando guardias disponibles:', err);
           addToast({
             title: "Error",
-            description: `Error listando guardias: ${err.message}`,
-            type: "error"
-          });
-          // Fallback al endpoint anterior si falla
-          fetch('/api/guardias')
-            .then(r => r.json())
-            .then(d => {
-              const guardiasData = d.guardias || d.data || [];
-              setGuardias(guardiasData.map((g: any) => ({
-                guardia_id: g.id || g.guardia_id,
-                nombre: g.nombre
-              })));
-            })
-            .catch(() => setGuardias([]));
-        })
-        .finally(() => setLoadingGuardias(false));
-    } else if (open) {
-      // Si no tenemos todos los parámetros, usar el endpoint genérico como fallback
-      setLoadingGuardias(true);
-      fetch('/api/guardias')
-        .then(r => r.json())
-        .then(d => {
-          const guardiasData = d.guardias || d.data || [];
-          setGuardias(guardiasData.map((g: any) => ({
-            guardia_id: g.id || g.guardia_id,
-            nombre: g.nombre
-          })));
-        })
-        .catch(err => {
-          console.error('Error cargando guardias:', err);
-          addToast({
-            title: "Error",
-            description: "No se pudieron cargar los guardias",
+            description: err.message || "No se pudieron cargar los guardias disponibles",
             type: "error"
           });
           setGuardias([]);
         })
         .finally(() => setLoadingGuardias(false));
+    } else if (open) {
+      // Si no tenemos todos los parámetros, no cargar guardias
+      console.warn('Faltan parámetros para cargar guardias disponibles:', { fecha, instalacionId, rolId });
+      setGuardias([]);
     }
-  }, [open, fecha, instalacionId, rolId, modalType, guardiaTitular, addToast]);
+  }, [open, fecha, instalacionId, rolId, modalType, asignarCobertura, guardiaTitularId, addToast]);
 
   const submit = async () => {
     if (modalType === 'no_asistio') {
@@ -148,6 +142,16 @@ export default function AsistenciaModal({
         return;
       }
 
+      // Validar que no se seleccione el mismo guardia titular como reemplazo
+      if (asignarCobertura && guardiaReemplazo === guardiaTitularId) {
+        addToast({
+          title: "Error",
+          description: "No se puede seleccionar al mismo guardia titular como reemplazo",
+          type: "error"
+        });
+        return;
+      }
+
       setLoading(true);
       try {
         const falta_sin_aviso = motivo === 'sin_aviso';
@@ -157,6 +161,13 @@ export default function AsistenciaModal({
                           motivo === 'permiso' ? 'Permiso' :
                           motivo === 'vacaciones' ? 'Vacaciones' :
                           motivo === 'finiquito' ? 'Finiquito' : motivo;
+
+        console.log('Enviando inasistencia:', {
+          pauta_id: pautaId,
+          falta_sin_aviso,
+          motivo: motivoText,
+          cubierto_por: asignarCobertura && guardiaReemplazo ? guardiaReemplazo : null
+        });
 
         await onNoAsistioConfirm({
           pauta_id: pautaId,
@@ -187,6 +198,11 @@ export default function AsistenciaModal({
 
       setLoading(true);
       try {
+        console.log('Cubriendo PPC:', {
+          pauta_id: pautaId,
+          guardia_id: guardiaReemplazo
+        });
+        
         await onCubrirPPC(pautaId, guardiaReemplazo);
       } catch (error) {
         console.error('Error cubriendo turno PPC:', error);
@@ -246,31 +262,59 @@ export default function AsistenciaModal({
           )}
 
           {(asignarCobertura || isCubrirPPC) && (
-            <div className="space-y-2">
-              <Label htmlFor="guardia">
-                {isCubrirPPC ? 'Guardia para cubrir' : 'Guardia de reemplazo'}
-              </Label>
-              <Select value={guardiaReemplazo} onValueChange={setGuardiaReemplazo}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona guardia" />
-                </SelectTrigger>
-                <SelectContent>
-                  {loadingGuardias ? (
-                    <SelectItem value="loading" disabled>Cargando guardias...</SelectItem>
-                  ) : guardias.length === 0 ? (
-                    <SelectItem value="empty" disabled>No hay guardias disponibles</SelectItem>
-                  ) : (
-                    guardias.map(g => (
-                      <SelectItem key={g.guardia_id} value={g.guardia_id}>
-                        {g.nombre}
-                        {g.estado_empleo && g.estado_empleo !== 'ACTIVO' && (
-                          <span className="ml-2 text-xs text-muted-foreground">({g.estado_empleo})</span>
-                        )}
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="guardia">
+                  {isCubrirPPC ? 'Guardia para cubrir' : 'Guardia de reemplazo'}
+                </Label>
+                
+                {/* Input de búsqueda/filtro */}
+                <Input
+                  type="text"
+                  placeholder="Buscar guardia por nombre..."
+                  value={filtro}
+                  onChange={(e) => setFiltro(e.target.value)}
+                  className="mb-2"
+                />
+                
+                <Select 
+                  value={guardiaReemplazo} 
+                  onValueChange={setGuardiaReemplazo}
+                  disabled={loadingGuardias || guardiasFiltradas.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona guardia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {loadingGuardias ? (
+                      <SelectItem value="loading" disabled>Cargando guardias disponibles...</SelectItem>
+                    ) : guardiasFiltradas.length === 0 ? (
+                      <SelectItem value="empty" disabled>
+                        {filtro ? 'No se encontraron guardias con ese filtro' : 'No hay guardias disponibles'}
                       </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+                    ) : (
+                      guardiasFiltradas.map(g => (
+                        <SelectItem 
+                          key={g.id} 
+                          value={g.id}
+                          disabled={g.id === guardiaTitularId}
+                        >
+                          {g.nombre_completo}
+                          {g.id === guardiaTitularId && (
+                            <span className="ml-2 text-xs text-muted-foreground">(Titular actual)</span>
+                          )}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                
+                {guardiasFiltradas.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {guardiasFiltradas.length} guardia{guardiasFiltradas.length !== 1 ? 's' : ''} disponible{guardiasFiltradas.length !== 1 ? 's' : ''}
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
@@ -280,7 +324,11 @@ export default function AsistenciaModal({
             </Button>
             <Button 
               onClick={submit}
-              disabled={loading}
+              disabled={
+                loading || 
+                (isCubrirPPC && !guardiaReemplazo) ||
+                (isNoAsistio && asignarCobertura && !guardiaReemplazo)
+              }
             >
               {loading ? 'Guardando...' : 'Confirmar'}
             </Button>

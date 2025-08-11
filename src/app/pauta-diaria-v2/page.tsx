@@ -5,6 +5,7 @@ import pool from '@/lib/database'
 import VersionBanner from '@/components/VersionBanner'
 import ClientTable from '@/app/pauta-diaria-v2/ClientTable'
 import { PautaRow } from './types'
+import { toYmd, toDisplay } from '@/lib/date'
 
 // Forzar respuesta dinámica sin caché
 export const dynamic = 'force-dynamic'
@@ -17,10 +18,17 @@ async function getRows(fecha: string, incluirLibres: boolean = false): Promise<P
     console.log(`🔍 Obteniendo datos de pauta diaria para fecha: ${fecha}, incluirLibres: ${incluirLibres}`);
     
     const { rows } = await pool.query<PautaRow>(`
-      SELECT *
-      FROM as_turnos_v_pauta_diaria_dedup
-      WHERE fecha = $1::date
-      ORDER BY es_ppc DESC, instalacion_nombre NULLS LAST, puesto_id, pauta_id DESC
+      SELECT 
+        pd.*,
+        CASE 
+          WHEN pd.meta->>'cobertura_guardia_id' IS NOT NULL THEN
+            CONCAT(g.apellido_paterno, ' ', g.apellido_materno, ', ', g.nombre)
+          ELSE NULL
+        END AS cobertura_guardia_nombre
+      FROM as_turnos_v_pauta_diaria_dedup pd
+      LEFT JOIN public.rrhh_guardias g ON g.id::text = pd.meta->>'cobertura_guardia_id'
+      WHERE pd.fecha = $1::date
+      ORDER BY pd.es_ppc DESC, pd.instalacion_nombre NULLS LAST, pd.puesto_id, pd.pauta_id DESC
     `, [fecha]);
     
     console.log(`✅ Datos obtenidos exitosamente: ${rows.length} registros`);
@@ -63,7 +71,7 @@ export default async function PautaDiariaV2Page({
   if (!isOn) redirect('/legacy/pauta-diaria')
   
   try {
-    const fecha = searchParams?.fecha ?? new Date().toISOString().slice(0,10);
+    const fecha = toYmd(searchParams?.fecha || new Date());
     const incluirLibres = searchParams?.incluir_libres === 'true';
     const rows = await getRows(fecha, incluirLibres);
 
@@ -77,7 +85,7 @@ export default async function PautaDiariaV2Page({
           ORDER BY fecha 
           LIMIT 5
         `);
-        fechasDisponibles = fechas.map(r => r.fecha);
+        fechasDisponibles = fechas.map(r => toYmd(r.fecha));
       } catch (error) {
         console.error('Error obteniendo fechas disponibles:', error);
       }
@@ -98,7 +106,7 @@ export default async function PautaDiariaV2Page({
               </div>
               <div>
                 <h2 className="text-yellow-800 dark:text-yellow-200 font-semibold">No hay datos para esta fecha</h2>
-                <p className="text-yellow-600 dark:text-yellow-300">No se encontraron registros de pauta diaria para el {fecha}.</p>
+                <p className="text-yellow-600 dark:text-yellow-300">No se encontraron registros de pauta diaria para el {toDisplay(fecha)}.</p>
               </div>
             </div>
             
@@ -112,7 +120,7 @@ export default async function PautaDiariaV2Page({
                       href={`/pauta-diaria-v2?fecha=${fechaDisponible}`}
                       className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-md text-sm hover:bg-yellow-200 transition-colors dark:bg-yellow-900/30 dark:text-yellow-200 dark:hover:bg-yellow-900/50"
                     >
-                      {fechaDisponible}
+                      {toDisplay(fechaDisponible)}
                     </a>
                   ))}
                 </div>

@@ -35,7 +35,9 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
         // Fallback: actualizar directamente
         await client.query(
           `UPDATE public.as_turnos_pauta_mensual
-           SET estado = 'planificado', meta = '{}'::jsonb
+           SET estado = 'planificado', 
+               estado_ui = 'plan',
+               meta = '{}'::jsonb
            WHERE id = $1::bigint`,
           [pauta_id]
         );

@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useToast } from '@/hooks/use-toast';
 import AsistenciaModal from './AsistenciaModal';
 import { PautaRow, PautaDiariaV2Props } from './types';
+import { toYmd, toDisplay } from '@/lib/date';
 
 type Filtros = {
   instalacion?: string;
@@ -55,7 +56,7 @@ const renderEstado = (estadoUI: string, isFalta: boolean) => {
   );
 };
 
-export default function ClientTable({ rows, fecha, incluirLibres = false }: PautaDiariaV2Props) {
+export default function ClientTable({ rows: rawRows, fecha, incluirLibres = false }: PautaDiariaV2Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -71,6 +72,18 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
     estado: searchParams.get('estado') || 'todos',
     q: searchParams.get('q') || undefined
   }));
+  
+  // Normalizar fecha a string YYYY-MM-DD
+  const fechaStr = toYmd(fecha);
+  
+  // Normalizar fechas en las filas por si vienen como Date objects
+  const rows = useMemo(() => {
+    if (!rawRows) return [];
+    return rawRows.map(row => ({
+      ...row,
+      fecha: toYmd(row.fecha)
+    }));
+  }, [rawRows]);
 
   // Ya no necesitamos verificar permisos manualmente, useCan lo maneja
 
@@ -88,9 +101,9 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
     if (f.q) params.set('q', f.q);
     if (mostrarLibres) params.set('incluir_libres', 'true');
     
-    const newUrl = `/pauta-diaria-v2?fecha=${fecha}${params.toString() ? '&' + params.toString() : ''}`;
+    const newUrl = `/pauta-diaria-v2?fecha=${fechaStr}${params.toString() ? '&' + params.toString() : ''}`;
     router.replace(newUrl, { scroll: false });
-  }, [f.instalacion, f.estado, f.ppc, f.q, mostrarLibres, fecha]);
+  }, [f.instalacion, f.estado, f.ppc, f.q, mostrarLibres, fechaStr]);
 
   const go = useCallback((delta:number) => {
     const params = new URLSearchParams();
@@ -100,9 +113,9 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
     if (f.q) params.set('q', f.q);
     if (mostrarLibres) params.set('incluir_libres', 'true');
     
-    const newUrl = `/pauta-diaria-v2?fecha=${addDays(fecha, delta)}${params.toString() ? '&' + params.toString() : ''}`;
+    const newUrl = `/pauta-diaria-v2?fecha=${addDays(fechaStr, delta)}${params.toString() ? '&' + params.toString() : ''}`;
     router.push(newUrl);
-  }, [f.instalacion, f.estado, f.ppc, f.q, mostrarLibres, fecha, router]);
+  }, [f.instalacion, f.estado, f.ppc, f.q, mostrarLibres, fechaStr, router]);
   
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -266,7 +279,7 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
   // Reglas de visibilidad de botones según el prompt:
   const isTitularPlan = (r: PautaRow) => r.es_ppc === false && r.estado_ui === 'plan';
   const isPpcPlan     = (r: PautaRow) => r.es_ppc === true  && r.estado_ui === 'plan';
-  const canUndo       = (r: PautaRow) => ['asistido','reemplazo','sin_cobertura','inasistencia'].includes(r.estado_ui);
+  const canUndo       = (r: PautaRow) => ['asistido','reemplazo','sin_cobertura'].includes(r.estado_ui);
 
   // Detectar guardias duplicados en la misma fecha
   const guardiasDuplicados = useMemo(() => {
@@ -305,7 +318,7 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
     });
   }, [rows, f.instalacion, f.estado, f.ppc, f.q, mostrarLibres]);
 
-  if (!rows?.length) return <p className="text-sm opacity-70">Sin datos para {fecha}.</p>;
+  if (!rows?.length) return <p className="text-sm opacity-70">Sin datos para {toDisplay(fechaStr)}.</p>;
 
   return (
     <TooltipProvider>
@@ -314,7 +327,7 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
         <Card className="mb-4">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={()=>go(-1)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -323,7 +336,7 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
                     ref={inputRef}
                     type="date"
                     className="w-auto"
-                    value={fecha}
+                    value={fechaStr}
                     onChange={(e)=>router.push(`/pauta-diaria-v2?fecha=${e.target.value}`)}
                   />
                   <Button
@@ -335,6 +348,16 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
                     <Calendar className="h-4 w-4" />
                   </Button>
                 </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    const hoy = toYmd(new Date());
+                    router.push(`/pauta-diaria-v2?fecha=${hoy}`);
+                  }}
+                >
+                  Hoy
+                </Button>
                 <Button variant="outline" size="sm" onClick={()=>go(1)}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -415,7 +438,7 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
                   <TableHead>Instalación</TableHead>
                   <TableHead>Puesto</TableHead>
                   <TableHead>Guardia</TableHead>
-                  <TableHead>Horario</TableHead>
+                  <TableHead>Cobertura</TableHead>
                   <TableHead>Rol</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Acciones</TableHead>
@@ -467,11 +490,43 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
                         )}
                       </TableCell>
                       <TableCell>
-                        {r.hora_inicio && r.hora_fin 
-                          ? `${r.hora_inicio.slice(0,5)}–${r.hora_fin.slice(0,5)}`
-                          : '—'}
+                        {/* Columna Cobertura - mostrar guardia que cubre si existe */}
+                        {r.estado_ui === 'reemplazo' && (r.cobertura_guardia_nombre || r.meta?.cobertura_guardia_id) ? (
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {r.cobertura_guardia_nombre || r.reemplazo_guardia_nombre || 'Guardia de reemplazo'}
+                            </span>
+                            {r.meta?.motivo && (
+                              <span className="text-xs text-muted-foreground">
+                                {r.meta.motivo}
+                              </span>
+                            )}
+                          </div>
+                        ) : r.es_ppc && r.estado_ui === 'asistido' && r.cobertura_guardia_nombre ? (
+                          <span className="text-emerald-600 dark:text-emerald-400">
+                            {r.cobertura_guardia_nombre}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
                       </TableCell>
-                      <TableCell>{r.rol_nombre || '—'}</TableCell>
+                      <TableCell>
+                        {/* Rol con formato especial */}
+                        {r.rol_nombre ? (
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {r.rol_alias || r.rol_nombre} 4x4x12
+                            </span>
+                            {r.hora_inicio && r.hora_fin && (
+                              <span className="text-xs text-muted-foreground">
+                                {r.hora_inicio.slice(0,5)} - {r.hora_fin.slice(0,5)}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          '—'
+                        )}
+                      </TableCell>
                       <TableCell>
                         <div>
                           {renderEstado(r.estado_ui, r.es_falta_sin_aviso)}
@@ -573,10 +628,10 @@ export default function ClientTable({ rows, fecha, incluirLibres = false }: Paut
               onClose={() => setModal({open:false, pautaId:null, row:undefined})}
               onNoAsistioConfirm={onNoAsistioConfirm}
               onCubrirPPC={onCubrirPPC}
-              fecha={fecha}
+              fecha={fechaStr}
               instalacionId={modal.row?.instalacion_id?.toString()}
-              rolId={modal.row?.puesto_id}
-              guardiaTitular={modal.type === 'no_asistio' && modal.row?.guardia_trabajo_id ? modal.row.guardia_trabajo_id.toString() : undefined}
+              rolId={modal.row?.rol_id}
+              guardiaTitularId={modal.type === 'no_asistio' && modal.row?.guardia_trabajo_id ? modal.row.guardia_trabajo_id : undefined}
           />
         )}
       </>
