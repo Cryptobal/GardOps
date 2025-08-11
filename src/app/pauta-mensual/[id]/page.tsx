@@ -112,6 +112,7 @@ export default function PautaMensualUnificadaPage() {
   const [generando, setGenerando] = useState(false);
   const [exportandoPDF, setExportandoPDF] = useState(false);
   const [exportandoXLSX, setExportandoXLSX] = useState(false);
+  const [actualizando, setActualizando] = useState(false);
 
   // Seguimiento del estado de edición
   useEffect(() => {
@@ -139,170 +140,182 @@ export default function PautaMensualUnificadaPage() {
     actualizarDiasGuardados();
   }, [pautaData, actualizarDiasGuardados]);
 
-  // Cargar datos iniciales
-  useEffect(() => {
-    const cargarDatosIniciales = async () => {
+  // Función para cargar o actualizar datos
+  const cargarDatos = async (mostrarToast = false) => {
+    try {
+      if (mostrarToast) {
+        setActualizando(true);
+      } else {
+        setLoading(true);
+      }
+      
+      console.log('🔄 Cargando datos...');
+      
+      // Cargar información de la instalación
+      const instalacionResponse = await fetch(`/api/instalaciones/${instalacionId}/completa`);
+      let instalacionInfo: InstalacionInfo | null = null;
+      
+      if (instalacionResponse.ok) {
+        const responseData = await instalacionResponse.json();
+        console.log('📥 Datos de instalación recibidos:', responseData);
+        
+        if (responseData.success && responseData.data) {
+          instalacionInfo = {
+            id: responseData.data.instalacion.id,
+            nombre: responseData.data.instalacion.nombre,
+            direccion: responseData.data.instalacion.direccion,
+            cliente_nombre: responseData.data.instalacion.cliente_nombre,
+            guardias: responseData.data.guardias || [],
+            ppcs: responseData.data.ppcs || []
+          };
+          
+          console.log('🏢 Información de instalación procesada:', {
+            nombre: instalacionInfo.nombre,
+            guardias: instalacionInfo.guardias.length,
+            ppcs: instalacionInfo.ppcs.length
+          });
+          
+          setInstalacion(instalacionInfo);
+        }
+      }
+
+      // Intentar cargar pauta existente
       try {
-        console.log('🔄 Cargando datos iniciales...');
+        const pautaResponse = await obtenerPautaMensual(instalacionId, anio, mes);
         
-        // Cargar información de la instalación
-        const instalacionResponse = await fetch(`/api/instalaciones/${instalacionId}/completa`);
-        let instalacionInfo: InstalacionInfo | null = null;
-        
-        if (instalacionResponse.ok) {
-          const responseData = await instalacionResponse.json();
-          console.log('📥 Datos de instalación recibidos:', responseData);
+        if (pautaResponse && instalacionInfo) {
+          setPautaExiste(true);
           
-          if (responseData.success && responseData.data) {
-            instalacionInfo = {
-              id: responseData.data.instalacion.id,
-              nombre: responseData.data.instalacion.nombre,
-              direccion: responseData.data.instalacion.direccion,
-              cliente_nombre: responseData.data.instalacion.cliente_nombre,
-              guardias: responseData.data.guardias || [],
-              ppcs: responseData.data.ppcs || []
+          const diasDelMesArray = Array.from(
+            { length: new Date(anio, mes, 0).getDate() }, 
+            (_, i) => i + 1
+          );
+          setDiasDelMes(diasDelMesArray);
+
+          // Función para obtener feriados de Chile
+                    const getFeriadosChile = (year: number, month: number): number[] => {
+                        const feriados = {
+                            2024: {
+                1: [1], 2: [], 3: [29], 4: [1], 5: [1], 6: [7],
+                7: [16], 8: [15], 9: [18, 19], 10: [12], 11: [1], 12: [8, 25]
+              },
+                            2025: {
+                1: [1], 2: [], 3: [18, 19], 4: [], 5: [1], 6: [7],
+                7: [16], 8: [15], 9: [18, 19], 10: [12], 11: [1], 12: [8, 25]
+              }
             };
             
-            console.log('🏢 Información de instalación procesada:', {
-              nombre: instalacionInfo.nombre,
-              guardias: instalacionInfo.guardias.length,
-              ppcs: instalacionInfo.ppcs.length
-            });
-            
-            setInstalacion(instalacionInfo);
-          }
-        }
+            return feriados[year as keyof typeof feriados]?.[month as keyof typeof feriados[2024]] || [];
+          };
 
-        // Intentar cargar pauta existente
-        try {
-          const pautaResponse = await obtenerPautaMensual(instalacionId, anio, mes);
-          
-          if (pautaResponse && instalacionInfo) {
-            setPautaExiste(true);
+          const feriadosChile = getFeriadosChile(anio, mes);
+                    const diasSemanaArray = diasDelMesArray.map(dia => {
+            const fecha = new Date(anio, mes - 1, dia);
+            const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+            const diaSemana = diasSemana[fecha.getDay()];
+            const esFeriado = feriadosChile.includes(dia);
             
-            const diasDelMesArray = Array.from(
-              { length: new Date(anio, mes, 0).getDate() }, 
-              (_, i) => i + 1
-            );
-            setDiasDelMes(diasDelMesArray);
+            return { dia, diaSemana, esFeriado };
+          });
+          setDiasSemana(diasSemanaArray);
 
-            // Función para obtener feriados de Chile
-            const getFeriadosChile = (year: number, month: number): number[] => {
-              const feriados = {
-                2024: {
-                  1: [1], 2: [], 3: [29], 4: [1], 5: [1], 6: [7],
-                  7: [16], 8: [15], 9: [18, 19], 10: [12], 11: [1], 12: [8, 25]
-                },
-                2025: {
-                  1: [1], 2: [], 3: [18, 19], 4: [], 5: [1], 6: [7],
-                  7: [16], 8: [15], 9: [18, 19], 10: [12], 11: [1], 12: [8, 25]
-                }
-              };
+          // Transformar la pauta al formato esperado
+                    const pautaTransformada = pautaResponse.pauta.map((guardiaPauta: any) => {
+            // Buscar el puesto operativo correspondiente
+            const puestoOperativo = instalacionInfo.guardias.find(g => g.id === guardiaPauta.id);
               
-              return feriados[year as keyof typeof feriados]?.[month as keyof typeof feriados[2024]] || [];
+            // Generar el turno completo basado en el rol del puesto
+            let turnoCompleto = guardiaPauta.nombre_puesto; // fallback
+            if (puestoOperativo?.rol_servicio) {
+              const { dias_trabajo, dias_descanso, horas_turno, hora_inicio, hora_termino } = puestoOperativo.rol_servicio;
+              turnoCompleto = `Día ${dias_trabajo}x${dias_descanso}x${horas_turno} / ${hora_inicio} ${hora_termino}`;
+            }
+            
+                        return {
+              id: guardiaPauta.id,
+              nombre: guardiaPauta.nombre,
+              nombre_puesto: guardiaPauta.nombre_puesto,
+              patron_turno: guardiaPauta.patron_turno,
+              dias: guardiaPauta.dias,
+              tipo: puestoOperativo?.tipo,
+              es_ppc: guardiaPauta.es_ppc,
+              guardia_id: guardiaPauta.guardia_id,
+              rol_nombre: turnoCompleto
             };
-
-            const feriadosChile = getFeriadosChile(anio, mes);
-            const diasSemanaArray = diasDelMesArray.map(dia => {
-              const fecha = new Date(anio, mes - 1, dia);
-              const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-              const diaSemana = diasSemana[fecha.getDay()];
-              const esFeriado = feriadosChile.includes(dia);
-              
-              return { dia, diaSemana, esFeriado };
-            });
-            setDiasSemana(diasSemanaArray);
-
-            // Transformar la pauta al formato esperado
-            const pautaTransformada = pautaResponse.pauta.map((guardiaPauta: any) => {
-              // Buscar el puesto operativo correspondiente
-              const puestoOperativo = instalacionInfo.guardias.find(g => g.id === guardiaPauta.id);
-              
-              // Generar el turno completo basado en el rol del puesto
-              let turnoCompleto = guardiaPauta.nombre_puesto; // fallback
-              if (puestoOperativo?.rol_servicio) {
-                const { dias_trabajo, dias_descanso, horas_turno, hora_inicio, hora_termino } = puestoOperativo.rol_servicio;
-                turnoCompleto = `Día ${dias_trabajo}x${dias_descanso}x${horas_turno} / ${hora_inicio} ${hora_termino}`;
-              }
-              
-              return {
-                id: guardiaPauta.id,
-                nombre: guardiaPauta.nombre,
-                nombre_puesto: guardiaPauta.nombre_puesto,
-                patron_turno: guardiaPauta.patron_turno,
-                dias: guardiaPauta.dias,
-                tipo: puestoOperativo?.tipo,
-                es_ppc: guardiaPauta.es_ppc,
-                guardia_id: guardiaPauta.guardia_id,
-                rol_nombre: turnoCompleto
-              };
-            });
+          });
             
-            setPautaData(pautaTransformada);
-            setPautaDataOriginal(JSON.parse(JSON.stringify(pautaTransformada)));
-            console.log('✅ Pauta existente cargada');
-          }
-        } catch (error) {
-          console.log('ℹ️ No existe pauta, se creará una nueva');
-          setPautaExiste(false);
-          
-          // Crear estructura inicial sin pauta - se creará automáticamente al guardar
-          if (instalacionInfo) {
-            const diasEnMes = new Date(anio, mes - 1, 0).getDate();
-            const diasArray = Array.from({ length: diasEnMes }, (_, i) => i + 1);
-            setDiasDelMes(diasArray);
-
-            const diasSemanaArray: DiaSemana[] = diasArray.map(dia => {
-              const fecha = new Date(anio, mes - 1, dia);
-              const diaSemana = fecha.toLocaleDateString('es-ES', { weekday: 'short' });
-              return { dia, diaSemana, esFeriado: false };
-            });
-            setDiasSemana(diasSemanaArray);
-
-            // Crear estructura inicial con días vacíos - se llenará automáticamente
-            const pautaInicial: PautaGuardia[] = [];
-            
-            // Procesar todos los puestos (guardias y PPCs)
-            instalacionInfo.guardias.forEach((puesto: any) => {
-              // Generar el turno completo basado en el rol del puesto
-              let turnoCompleto = puesto.nombre_completo; // fallback
-              if (puesto.rol_servicio) {
-                const { dias_trabajo, dias_descanso, horas_turno, hora_inicio, hora_termino } = puesto.rol_servicio;
-                turnoCompleto = `Día ${dias_trabajo}x${dias_descanso}x${horas_turno} / ${hora_inicio} ${hora_termino}`;
-              }
-              
-              const nombreMostrar = puesto.tipo === 'ppc' 
-                ? `${puesto.nombre_completo} (PPC)` 
-                : puesto.nombre_completo;
-              
-              pautaInicial.push({
-                id: puesto.id,
-                nombre: nombreMostrar,
-                nombre_puesto: puesto.nombre_completo,
-                patron_turno: puesto.rol_servicio ? `${puesto.rol_servicio.dias_trabajo}x${puesto.rol_servicio.dias_descanso}` : '4x4',
-                dias: Array.from({ length: diasEnMes }, () => ''), // Días vacíos por defecto
-                tipo: puesto.tipo,
-                es_ppc: puesto.tipo === 'ppc',
-                guardia_id: puesto.id,
-                rol_nombre: turnoCompleto
-              });
-            });
-            
-            setPautaData(pautaInicial);
-            setPautaDataOriginal(JSON.parse(JSON.stringify(pautaInicial)));
-          }
+          setPautaData(pautaTransformada);
+          setPautaDataOriginal(JSON.parse(JSON.stringify(pautaTransformada)));
+          console.log('✅ Pauta existente cargada');
         }
+            } catch (error) {
+        console.log('ℹ️ No existe pauta, se creará una nueva');
+        setPautaExiste(false);
+        
+        // Crear estructura inicial sin pauta - se creará automáticamente al guardar
+        if (instalacionInfo) {
+          const diasEnMes = new Date(anio, mes - 1, 0).getDate();
+          const diasArray = Array.from({ length: diasEnMes }, (_, i) => i + 1);
+          setDiasDelMes(diasArray);
 
-      } catch (error) {
-        console.error('Error cargando datos:', error);
-        toast.error('Error', 'No se pudo cargar la información de la pauta mensual');
-      } finally {
+          const diasSemanaArray: DiaSemana[] = diasArray.map(dia => {
+            const fecha = new Date(anio, mes - 1, dia);
+            const diaSemana = fecha.toLocaleDateString('es-ES', { weekday: 'short' });
+            return { dia, diaSemana, esFeriado: false };
+          });
+          setDiasSemana(diasSemanaArray);
+
+          // Crear estructura inicial con días vacíos - se llenará automáticamente
+          const pautaInicial: PautaGuardia[] = [];
+          
+          // Procesar todos los puestos (guardias y PPCs)
+          instalacionInfo.guardias.forEach((puesto: any) => {
+            // Generar el turno completo basado en el rol del puesto
+            let turnoCompleto = puesto.nombre_completo; // fallback
+            if (puesto.rol_servicio) {
+              const { dias_trabajo, dias_descanso, horas_turno, hora_inicio, hora_termino } = puesto.rol_servicio;
+              turnoCompleto = `Día ${dias_trabajo}x${dias_descanso}x${horas_turno} / ${hora_inicio} ${hora_termino}`;
+            }
+              
+            const nombreMostrar = puesto.tipo === 'ppc' 
+              ? `${puesto.nombre_completo} (PPC)` 
+              : puesto.nombre_completo;
+            
+            pautaInicial.push({
+              id: puesto.id,
+              nombre: nombreMostrar,
+              nombre_puesto: puesto.nombre_completo,
+              patron_turno: puesto.rol_servicio ? `${puesto.rol_servicio.dias_trabajo}x${puesto.rol_servicio.dias_descanso}` : '4x4',
+              dias: Array.from({ length: diasEnMes }, () => ''), // Días vacíos por defecto
+              tipo: puesto.tipo,
+              es_ppc: puesto.tipo === 'ppc',
+              guardia_id: puesto.id,
+              rol_nombre: turnoCompleto
+            });
+          });
+            
+          setPautaData(pautaInicial);
+          setPautaDataOriginal(JSON.parse(JSON.stringify(pautaInicial)));
+        }
+      }
+
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+      toast.error('Error', 'No se pudo cargar la información de la pauta mensual');
+    } finally {
+      if (mostrarToast) {
+        setActualizando(false);
+        toast.success('Actualizado', 'Los datos se han actualizado correctamente');
+      } else {
         setLoading(false);
       }
-    };
+    }
+  };
 
+  // Cargar datos iniciales
+  useEffect(() => {
     if (instalacionId) {
-      cargarDatosIniciales();
+      cargarDatos(false);
     }
   }, [instalacionId, anio, mes]);
 
@@ -321,8 +334,8 @@ export default function PautaMensualUnificadaPage() {
         toast.success('Pauta creada', 'La pauta mensual se ha creado exitosamente');
         setPautaExiste(true);
         
-        // Recargar la página para mostrar la pauta creada
-        window.location.reload();
+        // Recargar los datos para mostrar la pauta creada
+        await cargarDatos(false);
       } else {
         toast.error('Error', response.error || 'Error al crear la pauta mensual');
       }
@@ -571,12 +584,23 @@ export default function PautaMensualUnificadaPage() {
                 <>
                   <Button 
                     variant="outline"
-                    onClick={() => window.location.reload()} 
+                    onClick={() => cargarDatos(true)} 
+                    disabled={actualizando}
                     className="w-full sm:w-auto"
                   >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Actualizar</span>
-                    <span className="sm:hidden">Actualizar</span>
+                    {actualizando ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <span className="hidden sm:inline">Actualizando...</span>
+                        <span className="sm:hidden">...</span>
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">Actualizar</span>
+                        <span className="sm:hidden">Actualizar</span>
+                      </>
+                    )}
                   </Button>
                   
                   <Button onClick={() => setEditando(true)} className="w-full sm:w-auto">
