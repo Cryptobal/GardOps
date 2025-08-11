@@ -1,18 +1,19 @@
 'use client';
+import React from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useCan } from '@/lib/can';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, Calendar, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Eye, EyeOff, AlertTriangle, MoreHorizontal, ChevronDown, ChevronUp, Users, X } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
-import AsistenciaModal from './AsistenciaModal';
 import { PautaRow, PautaDiariaV2Props } from './types';
 import { toYmd, toDisplay } from '@/lib/date';
 
@@ -22,6 +23,14 @@ type Filtros = {
   ppc?: boolean | 'all';
   q?: string;
 };
+
+interface Guardia {
+  id: string;
+  nombre: string;
+  apellido_paterno: string;
+  apellido_materno: string;
+  nombre_completo: string;
+}
 
 const addDays = (d: string, delta: number) => {
   const t = new Date(d + 'T00:00:00'); t.setDate(t.getDate() + delta);
@@ -63,10 +72,24 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   const searchParams = useSearchParams();
   const { addToast } = useToast();
   const { allowed: canMark, loading: loadingPerms } = useCan('turnos.marcar_asistencia');
-  const [modal, setModal] = useState<{open:boolean; pautaId:string|null; row?:PautaRow; type?:'no_asistio'|'cubrir_ppc'}>({open:false, pautaId:null});
   const [mostrarLibres, setMostrarLibres] = useState(incluirLibres);
   const [savingId, setSavingId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Estado para controlar qué fila está expandida
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [rowPanelData, setRowPanelData] = useState<{
+    [key: string]: {
+      type?: 'no_asistio' | 'cubrir_ppc';
+      tipoCobertura?: 'con_cobertura' | 'sin_cobertura';
+      motivo?: 'con_aviso' | 'sin_aviso' | 'licencia' | 'permiso' | 'vacaciones' | 'finiquito';
+      guardiaReemplazo?: string;
+      guardias?: Guardia[];
+      loadingGuardias?: boolean;
+      filtroGuardias?: string;
+    }
+  }>({});
+  
   const [f, setF] = useState<Filtros>(() => ({ 
     ppc: 'all',
     instalacion: searchParams.get('instalacion') || undefined,
@@ -85,8 +108,6 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       fecha: toYmd(row.fecha)
     }));
   }, [rawRows]);
-
-  // Ya no necesitamos verificar permisos manualmente, useCan lo maneja
 
   const refetch = useCallback(() => {
     // preserva filtros/fecha y fuerza recarga del servidor
@@ -127,7 +148,111 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     return () => window.removeEventListener('keydown', onKey);
   }, [go]);
 
+  // Función para cargar guardias disponibles
+  const loadGuardias = useCallback(async (row: PautaRow, excluirGuardiaId?: string) => {
+    const fechaNorm = toYmd(fecha);
+    const url = new URL('/api/guardias/disponibles', location.origin);
+    url.searchParams.set('fecha', fechaNorm);
+    url.searchParams.set('instalacion_id', row.instalacion_id.toString());
+    
+    if (row.rol_id) {
+      url.searchParams.set('rol_id', row.rol_id);
+    }
+    
+    if (excluirGuardiaId) {
+      url.searchParams.set('excluir_guardia_id', excluirGuardiaId);
+    }
+
+    setRowPanelData(prev => ({
+      ...prev,
+      [row.pauta_id]: {
+        ...prev[row.pauta_id],
+        loadingGuardias: true
+      }
+    }));
+
+    try {
+      const res = await fetch(url.toString());
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Error desconocido');
+      }
+      const data = await res.json();
+      
+      setRowPanelData(prev => ({
+        ...prev,
+        [row.pauta_id]: {
+          ...prev[row.pauta_id],
+          guardias: data.items || [],
+          loadingGuardias: false
+        }
+      }));
+    } catch (err: any) {
+      console.error('Error cargando guardias disponibles:', err);
+      addToast({
+        title: "Error",
+        description: err.message || "No se pudieron cargar los guardias disponibles",
+        type: "error"
+      });
+      setRowPanelData(prev => ({
+        ...prev,
+        [row.pauta_id]: {
+          ...prev[row.pauta_id],
+          guardias: [],
+          loadingGuardias: false
+        }
+      }));
+    }
+  }, [fecha, addToast]);
+
+  // Función para expandir/colapsar panel con tipo de acción
+  const toggleRowPanel = useCallback((row: PautaRow, actionType?: 'no_asistio' | 'cubrir_ppc') => {
+    if (expandedRowId === row.pauta_id && !actionType) {
+      // Colapsar si ya está expandido y no hay nuevo tipo
+      setExpandedRowId(null);
+      setRowPanelData(prev => {
+        const newData = { ...prev };
+        delete newData[row.pauta_id];
+        return newData;
+      });
+    } else {
+      // Expandir con el tipo de acción
+      setExpandedRowId(row.pauta_id);
+      
+      // Inicializar datos del panel
+      setRowPanelData(prev => ({
+        ...prev,
+        [row.pauta_id]: {
+          type: actionType,
+          tipoCobertura: 'sin_cobertura',
+          motivo: 'sin_aviso',
+          guardiaReemplazo: '',
+          filtroGuardias: '',
+          ...prev[row.pauta_id]
+        }
+      }));
+
+      // Cargar guardias si es necesario
+      if (actionType === 'cubrir_ppc') {
+        loadGuardias(row);
+      } else if (actionType === 'no_asistio') {
+        // Solo cargar si el usuario elige "con cobertura"
+        const currentData = rowPanelData[row.pauta_id];
+        if (currentData?.tipoCobertura === 'con_cobertura') {
+          loadGuardias(row, row.guardia_trabajo_id || undefined);
+        }
+      }
+    }
+  }, [expandedRowId, rowPanelData, loadGuardias]);
+
+  // Manejadores de acciones optimizadas con optimistic UI
   async function onAsistio(id: string) {
+    // Optimistic update
+    const originalRow = rows.find(r => r.pauta_id === id);
+    if (originalRow) {
+      // Aquí aplicaríamos el cambio optimista si tuviéramos estado local
+    }
+
     try {
       setSavingId(id);
       const res = await fetch('/api/turnos/asistencia', {
@@ -137,30 +262,42 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       });
       if (!res.ok) throw new Error(await res.text());
       addToast({
-        title: "Éxito",
+        title: "✅ Éxito",
         description: "Asistencia marcada",
         type: "success"
       });
       refetch();
     } catch (e:any) {
       addToast({
-        title: "Error",
+        title: "❌ Error",
         description: `Error al marcar asistencia: ${e.message ?? e}`,
         type: "error"
       });
+      // Revertir cambio optimista aquí si fuera necesario
     } finally {
       setSavingId(null);
     }
   }
 
-  async function onNoAsistioConfirm(data: {
-    pauta_id: string;
-    falta_sin_aviso: boolean;
-    motivo?: string;
-    cubierto_por?: string | null;
-  }) {
+  async function onNoAsistioConfirm(row: PautaRow) {
+    const panelData = rowPanelData[row.pauta_id];
+    if (!panelData) return;
+
+    const data = {
+      pauta_id: row.pauta_id,
+      falta_sin_aviso: panelData.motivo === 'sin_aviso',
+      motivo: panelData.motivo === 'sin_aviso' ? 'Falta sin aviso' : 
+              panelData.motivo === 'con_aviso' ? 'Falta con aviso' :
+              panelData.motivo === 'licencia' ? 'Licencia médica' :
+              panelData.motivo === 'permiso' ? 'Permiso' :
+              panelData.motivo === 'vacaciones' ? 'Vacaciones' :
+              panelData.motivo === 'finiquito' ? 'Finiquito' : panelData.motivo,
+      cubierto_por: panelData.tipoCobertura === 'con_cobertura' && panelData.guardiaReemplazo ? 
+                    panelData.guardiaReemplazo : null
+    };
+
     try {
-      setSavingId(data.pauta_id);
+      setSavingId(row.pauta_id);
       const res = await fetch('/api/turnos/inasistencia', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -168,15 +305,20 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       });
       if (!res.ok) throw new Error(await res.text());
       addToast({
-        title: "Éxito",
+        title: "✅ Éxito",
         description: "Inasistencia registrada",
         type: "success"
       });
-      setModal({open:false, pautaId:null, row:undefined});
+      setExpandedRowId(null);
+      setRowPanelData(prev => {
+        const newData = { ...prev };
+        delete newData[row.pauta_id];
+        return newData;
+      });
       refetch();
     } catch (e:any) {
       addToast({
-        title: "Error",
+        title: "❌ Error",
         description: `Error al registrar inasistencia: ${e.message ?? e}`,
         type: "error"
       });
@@ -185,25 +327,36 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     }
   }
 
-  async function onCubrirPPC(pauta_id: string, guardia_id: string) {
+  async function onCubrirPPC(row: PautaRow) {
+    const panelData = rowPanelData[row.pauta_id];
+    if (!panelData?.guardiaReemplazo) return;
+
     try {
-      setSavingId(pauta_id);
+      setSavingId(row.pauta_id);
       const res = await fetch('/api/turnos/ppc/cubrir', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ pauta_id, guardia_id }),
+        body: JSON.stringify({ 
+          pauta_id: row.pauta_id, 
+          guardia_id: panelData.guardiaReemplazo 
+        }),
       });
       if (!res.ok) throw new Error(await res.text());
       addToast({
-        title: "Éxito",
+        title: "✅ Éxito",
         description: "Turno PPC cubierto",
         type: "success"
       });
-      setModal({open:false, pautaId:null, row:undefined});
+      setExpandedRowId(null);
+      setRowPanelData(prev => {
+        const newData = { ...prev };
+        delete newData[row.pauta_id];
+        return newData;
+      });
       refetch();
     } catch (e:any) {
       addToast({
-        title: "Error",
+        title: "❌ Error",
         description: `Error al cubrir turno PPC: ${e.message ?? e}`,
         type: "error"
       });
@@ -222,14 +375,14 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       });
       if (!res.ok) throw new Error(await res.text());
       addToast({
-        title: "Éxito",
+        title: "✅ Éxito",
         description: "Marcado sin cobertura",
         type: "success"
       });
       refetch();
     } catch (e:any) {
       addToast({
-        title: "Error",
+        title: "❌ Error",
         description: `Error al marcar sin cobertura: ${e.message ?? e}`,
         type: "error"
       });
@@ -248,14 +401,14 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       });
       if (!res.ok) throw new Error(await res.text());
       addToast({
-        title: "Éxito",
+        title: "✅ Éxito",
         description: "Estado revertido a planificado",
         type: "success"
       });
       refetch();
     } catch (e:any) {
       addToast({
-        title: "Error",
+        title: "❌ Error",
         description: `Error al deshacer: ${e.message ?? e}`,
         type: "error"
       });
@@ -263,19 +416,6 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       setSavingId(null);
     }
   }
-
-  const onCoberturaDone = useCallback(() => { 
-    setModal({open:false, pautaId:null, row:undefined}); 
-    router.refresh(); 
-  }, [router]);
-
-  const handleAsignarCobertura = useCallback((row: PautaRow) => {
-    addToast({
-      title: "Asignar cobertura",
-      description: "Funcionalidad disponible pronto",
-      type: "success" // cambiar a success ya que info puede no estar disponible
-    });
-  }, [addToast]);
 
   // Reglas de visibilidad de botones según el prompt:
   const isTitularPlan = (r: PautaRow) => r.es_ppc === false && r.estado_ui === 'plan';
@@ -321,14 +461,337 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
 
   if (!rows?.length) return <p className="text-sm opacity-70">Sin datos para {toDisplay(fechaStr)}.</p>;
 
+  // Componente de panel inline para una fila
+  const RowPanel = ({ row }: { row: PautaRow }) => {
+    const panelData = rowPanelData[row.pauta_id] || {};
+    const isLoading = savingId === row.pauta_id;
+    
+    // Filtrar guardias client-side
+    const guardiasFiltradas = useMemo(() => {
+      if (!panelData.guardias) return [];
+      if (!panelData.filtroGuardias) return panelData.guardias;
+      const filtroLower = panelData.filtroGuardias.toLowerCase();
+      return panelData.guardias.filter((g: Guardia) => 
+        g.nombre_completo.toLowerCase().includes(filtroLower)
+      );
+    }, [panelData.guardias, panelData.filtroGuardias]);
+
+    const updatePanelData = (updates: Partial<typeof panelData>) => {
+      setRowPanelData(prev => ({
+        ...prev,
+        [row.pauta_id]: {
+          ...prev[row.pauta_id],
+          ...updates
+        }
+      }));
+    };
+
+    // Cargar guardias cuando se cambia el tipo de cobertura
+    useEffect(() => {
+      if (panelData.type === 'no_asistio' && panelData.tipoCobertura === 'con_cobertura' && !panelData.guardias) {
+        loadGuardias(row, row.guardia_trabajo_id || undefined);
+      }
+    }, [panelData.tipoCobertura]);
+
+    return (
+      <TableRow>
+        <TableCell colSpan={7} className="p-0">
+          <div className="bg-muted/50 dark:bg-muted/20 border-t">
+            <div className="p-4 space-y-4">
+              {/* Header del panel con título y botón cerrar */}
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-sm">
+                  {panelData.type === 'no_asistio' ? '📝 Registrar No Asistencia' : 
+                   panelData.type === 'cubrir_ppc' ? '👥 Cubrir Turno PPC' : 
+                   '⚙️ Acciones'}
+                </h4>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => toggleRowPanel(row)}
+                  className="h-6 w-6 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Contenido según el tipo de panel */}
+              {panelData.type === 'no_asistio' && (
+                <div className="space-y-4">
+                  {/* Selector de motivo */}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Motivo de inasistencia</Label>
+                    <Select 
+                      value={panelData.motivo || 'sin_aviso'} 
+                      onValueChange={(value: any) => updatePanelData({ motivo: value })}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Seleccione motivo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="con_aviso">Con aviso</SelectItem>
+                        <SelectItem value="sin_aviso">Sin aviso</SelectItem>
+                        <SelectItem value="licencia">Licencia</SelectItem>
+                        <SelectItem value="permiso">Permiso</SelectItem>
+                        <SelectItem value="vacaciones">Vacaciones</SelectItem>
+                        <SelectItem value="finiquito">Finiquito</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Botones toggle para tipo de cobertura */}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Tipo de cobertura</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant={panelData.tipoCobertura === 'sin_cobertura' ? 'default' : 'outline'}
+                        onClick={() => updatePanelData({ tipoCobertura: 'sin_cobertura' })}
+                        className="flex-1"
+                      >
+                        ⛔ Sin cobertura
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={panelData.tipoCobertura === 'con_cobertura' ? 'default' : 'outline'}
+                        onClick={() => updatePanelData({ tipoCobertura: 'con_cobertura' })}
+                        className="flex-1"
+                      >
+                        ✅ Con cobertura
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Selector de guardia si es con cobertura */}
+                  {panelData.tipoCobertura === 'con_cobertura' && (
+                    <div className="space-y-2">
+                      <Label className="text-sm">Guardia de reemplazo</Label>
+                      
+                      {/* Input de búsqueda */}
+                      <Input
+                        type="text"
+                        placeholder="🔍 Buscar guardia por nombre..."
+                        value={panelData.filtroGuardias || ''}
+                        onChange={(e) => updatePanelData({ filtroGuardias: e.target.value })}
+                        className="mb-2"
+                      />
+                      
+                      <Select 
+                        value={panelData.guardiaReemplazo || ''} 
+                        onValueChange={(value) => updatePanelData({ guardiaReemplazo: value })}
+                        disabled={panelData.loadingGuardias || guardiasFiltradas.length === 0}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecciona guardia" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {panelData.loadingGuardias ? (
+                            <SelectItem value="loading" disabled>Cargando guardias disponibles...</SelectItem>
+                          ) : guardiasFiltradas.length === 0 ? (
+                            <SelectItem value="empty" disabled>
+                              {panelData.filtroGuardias ? 'No se encontraron guardias con ese filtro' : 'No hay guardias disponibles'}
+                            </SelectItem>
+                          ) : (
+                            guardiasFiltradas.map((g: Guardia) => (
+                              <SelectItem 
+                                key={g.id} 
+                                value={g.id}
+                                disabled={g.id === row.guardia_trabajo_id}
+                              >
+                                {g.nombre_completo}
+                                {g.id === row.guardia_trabajo_id && (
+                                  <span className="ml-2 text-xs text-muted-foreground">(Titular actual)</span>
+                                )}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      
+                      {guardiasFiltradas.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {guardiasFiltradas.length} guardia{guardiasFiltradas.length !== 1 ? 's' : ''} disponible{guardiasFiltradas.length !== 1 ? 's' : ''}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Botones de acción */}
+                  <div className="flex gap-2 justify-end">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => toggleRowPanel(row)} 
+                      disabled={isLoading}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button 
+                      size="sm"
+                      onClick={() => onNoAsistioConfirm(row)}
+                      disabled={
+                        isLoading || 
+                        (panelData.tipoCobertura === 'con_cobertura' && !panelData.guardiaReemplazo)
+                      }
+                    >
+                      {isLoading ? 'Guardando...' : 'Confirmar'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {panelData.type === 'cubrir_ppc' && (
+                <div className="space-y-4">
+                  {/* Selector de guardia para PPC */}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Guardia para cubrir turno</Label>
+                    
+                    {/* Input de búsqueda */}
+                    <Input
+                      type="text"
+                      placeholder="🔍 Buscar guardia por nombre..."
+                      value={panelData.filtroGuardias || ''}
+                      onChange={(e) => updatePanelData({ filtroGuardias: e.target.value })}
+                      className="mb-2"
+                    />
+                    
+                    <Select 
+                      value={panelData.guardiaReemplazo || ''} 
+                      onValueChange={(value) => updatePanelData({ guardiaReemplazo: value })}
+                      disabled={panelData.loadingGuardias || guardiasFiltradas.length === 0}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecciona guardia" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {panelData.loadingGuardias ? (
+                          <SelectItem value="loading" disabled>Cargando guardias disponibles...</SelectItem>
+                        ) : guardiasFiltradas.length === 0 ? (
+                          <SelectItem value="empty" disabled>
+                            {panelData.filtroGuardias ? 'No se encontraron guardias con ese filtro' : 'No hay guardias disponibles'}
+                          </SelectItem>
+                        ) : (
+                          guardiasFiltradas.map((g: Guardia) => (
+                            <SelectItem key={g.id} value={g.id}>
+                              {g.nombre_completo}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    
+                    {guardiasFiltradas.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {guardiasFiltradas.length} guardia{guardiasFiltradas.length !== 1 ? 's' : ''} disponible{guardiasFiltradas.length !== 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Botones de acción */}
+                  <div className="flex gap-2 justify-end">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => toggleRowPanel(row)} 
+                      disabled={isLoading}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button 
+                      size="sm"
+                      onClick={() => onCubrirPPC(row)}
+                      disabled={isLoading || !panelData.guardiaReemplazo}
+                    >
+                      {isLoading ? 'Guardando...' : 'Confirmar'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Panel genérico de acciones cuando no hay tipo específico */}
+              {!panelData.type && (
+                <div className="space-y-3">
+                  {/* Titular en plan: Asistió / No asistió */}
+                  {isTitularPlan(row) && canMark && (
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        className="flex-1"
+                        disabled={isLoading} 
+                        onClick={() => onAsistio(row.pauta_id)}
+                      >
+                        {isLoading ? 'Guardando...' : '✅ Asistió'}
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="flex-1"
+                        disabled={isLoading} 
+                        onClick={() => {
+                          updatePanelData({ type: 'no_asistio' });
+                        }}
+                      >
+                        ❌ No asistió
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* PPC en plan: Cubrir / Sin cobertura */}
+                  {isPpcPlan(row) && canMark && (
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="flex-1"
+                        disabled={isLoading} 
+                        onClick={() => {
+                          updatePanelData({ type: 'cubrir_ppc' });
+                          loadGuardias(row);
+                        }}
+                      >
+                        👥 Cubrir
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="flex-1"
+                        disabled={isLoading} 
+                        onClick={() => onSinCoberturaPPC(row.pauta_id)}
+                      >
+                        ⛔ Sin cobertura
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Deshacer para estados asistido/reemplazo/sin_cobertura */}
+                  {canUndo(row) && canMark && (
+                    <Button 
+                      size="sm" 
+                      variant="secondary"
+                      className="w-full"
+                      disabled={isLoading} 
+                      onClick={() => onDeshacer(row.pauta_id)}
+                    >
+                      {isLoading ? 'Guardando...' : '↩️ Deshacer'}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  };
+
   return (
     <TooltipProvider>
       <>
         {/* Header fecha + nav */}
         <Card className="mb-4">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={()=>go(-1)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -432,14 +895,15 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
           </CardContent>
         </Card>
 
+        {/* Tabla principal con paneles inline */}
         <Card>
-          <CardContent className="p-0">
+          <CardContent className="p-0 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Instalación</TableHead>
                   <TableHead>Rol</TableHead>
-                  <TableHead>Puesto</TableHead>
+                  <TableHead className="hidden md:table-cell">Puesto</TableHead>
                   <TableHead>Guardia</TableHead>
                   <TableHead>Cobertura</TableHead>
                   <TableHead>Estado</TableHead>
@@ -447,153 +911,111 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((r:PautaRow) => {
+                {filtered.map((r:PautaRow, idx: number) => {
                   const esDuplicado = r.guardia_trabajo_id && (guardiasDuplicados.get(`${r.fecha}-${r.guardia_trabajo_id}`) || 0) > 1;
                   const isLoading = savingId === r.pauta_id;
                   const esPPC = r.es_ppc || !r.guardia_trabajo_id;
+                  const isExpanded = expandedRowId === r.pauta_id;
                   
                   return (
-                    <TableRow key={r.pauta_id} className={esDuplicado ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}>
-                      <TableCell>{r.instalacion_nombre}</TableCell>
-                      <TableCell>
-                        {/* Rol con formato especial */}
-                        {r.rol_nombre ? (
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {/* Extraer solo el patrón del rol (antes del slash) */}
-                              {r.rol_alias || r.rol_nombre.split('/')[0].trim()}
-                            </span>
-                            {r.hora_inicio && r.hora_fin && (
-                              <span className="text-xs text-muted-foreground">
-                                {r.hora_inicio.slice(0,5)} - {r.hora_fin.slice(0,5)}
+                    <React.Fragment key={r.pauta_id}>
+                      <TableRow className={esDuplicado ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}>
+                        <TableCell>{r.instalacion_nombre}</TableCell>
+                        <TableCell>
+                          {/* Rol con formato especial */}
+                          {r.rol_nombre ? (
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {/* Extraer solo el patrón del rol (antes del slash) */}
+                                {r.rol_alias || r.rol_nombre.split('/')[0].trim()}
                               </span>
-                            )}
-                          </div>
-                        ) : (
-                          '—'
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="font-mono text-xs cursor-help">
-                              {r.puesto_nombre ?? `${r.puesto_id.slice(0,8)}…`}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>UUID: {r.puesto_id}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell>
-                        {r.es_ppc ? (
-                          <span className="rounded-md border px-1.5 py-0.5 text-[10px]
-                            bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20">
-                            PPC
-                          </span>
-                        ) : (
-                          r.guardia_titular_nombre || r.guardia_trabajo_nombre || '—'
-                        )}
-                        {esDuplicado && (
-                          <Badge variant="destructive" className="text-xs mt-1">
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            Duplicado
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {/* Columna Cobertura - mostrar guardia que cubre si existe */}
-                        {r.estado_ui === 'reemplazo' && (r.cobertura_guardia_nombre || r.meta?.cobertura_guardia_id) ? (
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {r.cobertura_guardia_nombre || r.reemplazo_guardia_nombre || 'Guardia de reemplazo'}
-                            </span>
-                            {r.meta?.motivo && (
-                              <span className="text-xs text-muted-foreground">
-                                {r.meta.motivo}
-                              </span>
-                            )}
-                          </div>
-                        ) : r.es_ppc && r.estado_ui === 'asistido' && r.cobertura_guardia_nombre ? (
-                          <span className="text-emerald-600 dark:text-emerald-400">
-                            {r.cobertura_guardia_nombre}
-                          </span>
-                        ) : (
-                          '—'
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          {renderEstado(r.estado_ui, r.es_falta_sin_aviso)}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          {/* Cargando permisos */}
-                          {loadingPerms && (
-                            <div className="flex items-center gap-2">
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                              <span className="text-xs text-muted-foreground">Cargando...</span>
+                              {r.hora_inicio && r.hora_fin && (
+                                <span className="text-xs text-muted-foreground">
+                                  {r.hora_inicio.slice(0,5)} - {r.hora_fin.slice(0,5)}
+                                </span>
+                              )}
                             </div>
+                          ) : (
+                            '—'
                           )}
-
-                          {/* Titular en plan: Asistió / No asistió */}
-                          {!loadingPerms && isTitularPlan(r) && canMark && (
-                            <>
-                              <Button 
-                                size="sm" 
-                                disabled={isLoading} 
-                                onClick={() => onAsistio(r.pauta_id)}
-                              >
-                                {isLoading ? 'Guardando...' : 'Asistió'}
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                disabled={isLoading} 
-                                onClick={() => setModal({open:true, pautaId:r.pauta_id, row:r, type:'no_asistio'})}
-                              >
-                                No asistió
-                              </Button>
-                            </>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="font-mono text-xs cursor-help">
+                                {r.puesto_nombre ?? `${r.puesto_id.slice(0,8)}…`}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>UUID: {r.puesto_id}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell>
+                          {r.es_ppc ? (
+                            <span className="rounded-md border px-1.5 py-0.5 text-[10px]
+                              bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20">
+                              PPC
+                            </span>
+                          ) : (
+                            r.guardia_titular_nombre || r.guardia_trabajo_nombre || '—'
                           )}
-
-                          {/* PPC en plan: Cubrir / Sin cobertura */}
-                          {!loadingPerms && isPpcPlan(r) && canMark && (
-                            <>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                disabled={isLoading} 
-                                onClick={() => setModal({open:true, pautaId:r.pauta_id, row:r, type:'cubrir_ppc'})}
-                              >
-                                Cubrir
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                disabled={isLoading} 
-                                onClick={() => onSinCoberturaPPC(r.pauta_id)}
-                              >
-                                Sin cobertura
-                              </Button>
-                            </>
+                          {esDuplicado && (
+                            <Badge variant="destructive" className="text-xs mt-1">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              Duplicado
+                            </Badge>
                           )}
-
-                          {/* Deshacer para estados asistido/reemplazo/sin_cobertura */}
-                          {!loadingPerms && canUndo(r) && canMark && (
-                            <Button 
-                              size="sm" 
-                              variant="secondary"
-                              disabled={isLoading} 
-                              onClick={() => onDeshacer(r.pauta_id)}
+                        </TableCell>
+                        <TableCell>
+                          {/* Columna Cobertura - mostrar guardia que cubre si existe */}
+                          {r.estado_ui === 'reemplazo' && (r.cobertura_guardia_nombre || r.meta?.cobertura_guardia_id) ? (
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {r.cobertura_guardia_nombre || r.reemplazo_guardia_nombre || 'Guardia de reemplazo'}
+                              </span>
+                              {r.meta?.motivo && (
+                                <span className="text-xs text-muted-foreground">
+                                  {r.meta.motivo}
+                                </span>
+                              )}
+                            </div>
+                          ) : r.es_ppc && r.estado_ui === 'asistido' && r.cobertura_guardia_nombre ? (
+                            <span className="text-emerald-600 dark:text-emerald-400">
+                              {r.cobertura_guardia_nombre}
+                            </span>
+                          ) : (
+                            '—'
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            {renderEstado(r.estado_ui, r.es_falta_sin_aviso)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {/* Botón de acciones que expande el panel */}
+                          {!loadingPerms && canMark && (isTitularPlan(r) || isPpcPlan(r) || canUndo(r)) ? (
+                            <Button
+                              size="sm"
+                              variant={isExpanded ? "default" : "outline"}
+                              onClick={() => toggleRowPanel(r)}
+                              disabled={isLoading}
+                              className="gap-1"
                             >
-                              {isLoading ? 'Guardando...' : 'Deshacer'}
+                              {isExpanded ? (
+                                <>
+                                  <ChevronUp className="h-4 w-4" />
+                                  Cerrar
+                                </>
+                              ) : (
+                                <>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  Acciones
+                                </>
+                              )}
                             </Button>
-                          )}
-
-                          {/* Sin permisos → mostrar mensaje */}
-                          {!loadingPerms && !canMark && (
+                          ) : !loadingPerms && !canMark ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div className="opacity-50 pointer-events-none">
@@ -606,35 +1028,25 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                                 Sin permiso para marcar asistencia
                               </TooltipContent>
                             </Tooltip>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                          ) : loadingPerms ? (
+                            <div className="flex items-center gap-2">
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                              <span className="text-xs text-muted-foreground">Cargando...</span>
+                            </div>
+                          ) : null}
+                        </TableCell>
+                      </TableRow>
+                      
+                      {/* Panel inline expandible */}
+                      {isExpanded && <RowPanel row={r} />}
+                    </React.Fragment>
                   );
                 })}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
-
-        {modal.open && modal.pautaId != null && modal.type && (
-          <AsistenciaModal
-              open={modal.open}
-              pautaId={modal.pautaId}
-              row={modal.row}
-              modalType={modal.type}
-              onClose={() => setModal({open:false, pautaId:null, row:undefined})}
-              onNoAsistioConfirm={onNoAsistioConfirm}
-              onCubrirPPC={onCubrirPPC}
-              fecha={fechaStr}
-              instalacionId={modal.row?.instalacion_id?.toString()}
-              rolId={modal.row?.rol_id || undefined}
-              guardiaTitularId={modal.type === 'no_asistio' && modal.row?.guardia_trabajo_id ? modal.row.guardia_trabajo_id : undefined}
-          />
-        )}
       </>
     </TooltipProvider>
   );
 }
-
-
