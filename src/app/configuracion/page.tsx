@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { Settings, Save, FileText, Users, Building, Shield, Clock, DollarSign } from "lucide-react";
+import { Settings, Save, FileText, Users, Building, Shield, Clock, DollarSign, MapPin } from "lucide-react";
 import Link from "next/link";
 
 export default function ConfiguracionPage() {
@@ -54,6 +54,26 @@ export default function ConfiguracionPage() {
               </p>
               <div className="mt-4 flex items-center text-green-500 text-sm group-hover:underline">
                 Gestionar roles →
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Tipos de Puesto */}
+        <Link href="/configuracion/tipos-puesto">
+          <Card className="card-elegant hover:shadow-lg transition-all duration-200 cursor-pointer group">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-orange-500" />
+                Tipos de Puesto
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm">
+                Configurar tipos de puestos operativos con emojis y colores personalizados
+              </p>
+              <div className="mt-4 flex items-center text-orange-500 text-sm group-hover:underline">
+                Gestionar tipos →
               </div>
             </CardContent>
           </Card>

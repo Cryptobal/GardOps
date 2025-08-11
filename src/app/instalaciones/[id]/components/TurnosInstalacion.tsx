@@ -39,6 +39,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface TurnosInstalacionProps {
   instalacionId: string;
@@ -113,6 +120,8 @@ export default function TurnosInstalacion({
   } | null>(null);
   const [nuevoNombrePuesto, setNuevoNombrePuesto] = useState('');
   const [guardandoNombre, setGuardandoNombre] = useState(false);
+  const [tiposPuesto, setTiposPuesto] = useState<Array<{id: string; nombre: string; emoji: string; color: string}>>([]);
+  const [tipoPuestoSeleccionado, setTipoPuestoSeleccionado] = useState<string | null>(null);
 
   // Función para filtrar guardias por nombre, apellido o RUT
   const getGuardiasFiltrados = (filtro: string) => {
@@ -459,13 +468,25 @@ export default function TurnosInstalacion({
   };
 
   // Funciones para editar nombre del puesto
-  const handleEditarNombrePuesto = (ppcId: string, nombreActual: string) => {
+  const handleEditarNombrePuesto = async (ppcId: string, nombreActual: string) => {
     setEditandoPuesto({
       id: ppcId,
       nombre: nombreActual,
       isOpen: true
     });
     setNuevoNombrePuesto(nombreActual);
+    setTipoPuestoSeleccionado(null);
+    
+    // Cargar tipos de puesto
+    try {
+      const response = await fetch('/api/tipos-puesto');
+      const data = await response.json();
+      if (data.success) {
+        setTiposPuesto(data.data.filter((tipo: any) => tipo.activo));
+      }
+    } catch (error) {
+      console.error('Error cargando tipos de puesto:', error);
+    }
   };
 
   const handleGuardarNombrePuesto = async () => {
@@ -479,7 +500,8 @@ export default function TurnosInstalacion({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          nombre_puesto: nuevoNombrePuesto.trim()
+          nombre_puesto: nuevoNombrePuesto.trim(),
+          tipo_puesto_id: tipoPuestoSeleccionado
         })
       });
 
@@ -499,6 +521,7 @@ export default function TurnosInstalacion({
       // Cerrar el modal
       setEditandoPuesto(null);
       setNuevoNombrePuesto('');
+      setTipoPuestoSeleccionado(null);
     } catch (error) {
       console.error('Error actualizando nombre del puesto:', error);
       toast.error("No se pudo actualizar el nombre del puesto", "❌ Error");
@@ -867,6 +890,7 @@ export default function TurnosInstalacion({
           if (!open) {
             setEditandoPuesto(null);
             setNuevoNombrePuesto('');
+            setTipoPuestoSeleccionado(null);
           }
         }}
       >
@@ -878,6 +902,31 @@ export default function TurnosInstalacion({
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="tipo" className="text-right">
+                Tipo
+              </label>
+              <Select
+                value={tipoPuestoSeleccionado || ''}
+                onValueChange={setTipoPuestoSeleccionado}
+                disabled={guardandoNombre}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Seleccionar tipo de puesto" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Sin tipo</SelectItem>
+                  {tiposPuesto.map((tipo) => (
+                    <SelectItem key={tipo.id} value={tipo.id}>
+                      <span className="flex items-center gap-2">
+                        <span>{tipo.emoji}</span>
+                        <span>{tipo.nombre}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <label htmlFor="nombre" className="text-right">
                 Nombre
@@ -892,7 +941,7 @@ export default function TurnosInstalacion({
               />
             </div>
             <div className="text-sm text-muted-foreground">
-              Ejemplos: Portería Principal, CCTV Exterior, Guardia Perimetral, Recepción
+              Puedes seleccionar un tipo predefinido o escribir un nombre personalizado
             </div>
           </div>
           <DialogFooter>
@@ -901,6 +950,7 @@ export default function TurnosInstalacion({
               onClick={() => {
                 setEditandoPuesto(null);
                 setNuevoNombrePuesto('');
+                setTipoPuestoSeleccionado(null);
               }}
               disabled={guardandoNombre}
             >

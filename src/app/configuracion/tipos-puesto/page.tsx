@@ -548,7 +548,7 @@ export default function TiposPuestoPage() {
               </div>
             </div>
 
-            {editando && tipo.cantidad_puestos_usando > 0 && (
+            {editando && editando.cantidad_puestos_usando > 0 && (
               <div className="col-span-4">
                 <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                   <AlertCircle className="h-4 w-4 text-yellow-600" />
