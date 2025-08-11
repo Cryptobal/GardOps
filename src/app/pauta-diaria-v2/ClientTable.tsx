@@ -380,17 +380,29 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   }
 
   async function onDeshacer(pauta_id: string) {
+    console.log('🔄 Iniciando deshacer para pauta_id:', pauta_id);
     try {
       setSavingId(pauta_id);
-      await api.deshacerMarcado(pauta_id);
+      const result = await api.deshacerMarcado(pauta_id);
+      console.log('✅ Resultado de deshacer:', result);
+      
       addToast({
         title: "✅ Éxito",
         description: "Estado revertido a planificado",
         type: "success"
       });
+      
+      // Forzar actualización completa de la página
+      console.log('🔄 Refrescando página...');
       router.refresh();
       refetch();
+      
+      // También podemos intentar una recarga más agresiva si es necesario
+      setTimeout(() => {
+        router.refresh();
+      }, 500);
     } catch (e:any) {
+      console.error('❌ Error al deshacer:', e);
       addToast({
         title: "❌ Error",
         description: `Error al deshacer: ${e.message ?? e}`,
@@ -1017,17 +1029,25 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                         <TableCell>
                           {/* Botón de acciones que expande el panel */}
                           {(() => {
-                            const showButton = !loadingPerms && canMarkOverride && (isTitularPlan(r) || isPpcPlan(r) || canUndo(r));
+                            // Calcular cada condición por separado para mejor debugging
+                            const isTitular = isTitularPlan(r);
+                            const isPpc = isPpcPlan(r);
+                            const canUndoResult = canUndo(r);
                             
-                            // Debug log para entender por qué no aparece el botón
-                            if (!showButton && r.estado_ui !== 'plan' && r.estado_ui !== 'libre') {
-                              console.log('🚫 Botón no visible para:', {
-                                pauta_id: r.pauta_id,
+                            // El botón debe mostrarse si cualquiera de estas condiciones es true
+                            const hasActions = isTitular || isPpc || canUndoResult;
+                            const showButton = !loadingPerms && canMarkOverride && hasActions;
+                            
+                            // Debug log mejorado
+                            if (r.estado_ui !== 'plan' && r.estado_ui !== 'libre' && r.estado_ui !== 'ppc_libre') {
+                              console.log('📊 Estado del botón para pauta_id:', r.pauta_id, {
                                 estado_ui: r.estado_ui,
                                 es_ppc: r.es_ppc,
-                                isTitularPlan: isTitularPlan(r),
-                                isPpcPlan: isPpcPlan(r),
-                                canUndo: canUndo(r),
+                                isTitular,
+                                isPpc,
+                                canUndoResult,
+                                hasActions,
+                                showButton,
                                 loadingPerms,
                                 canMarkOverride
                               });

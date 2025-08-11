@@ -17,7 +17,9 @@ import {
   Calculator,
   Building,
   FileText as FileTextIcon,
-  CreditCard
+  CreditCard,
+  Key,
+  Lock
 } from "lucide-react";
 
 export interface NavigationItem {
