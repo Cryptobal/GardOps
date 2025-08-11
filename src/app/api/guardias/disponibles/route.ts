@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClient } from '@/lib/database';
+import { sql } from '@/lib/db';
+import { useNewTurnosApi } from '@/lib/feature';
 
 export async function GET(request: NextRequest) {
-  const client = await getClient();
   const searchParams = request.nextUrl.searchParams;
   
   // Obtener parámetros de query
@@ -38,6 +39,39 @@ export async function GET(request: NextRequest) {
   }
   
   try {
+    // Verificar si usamos la nueva API con funciones de Neon
+    if (useNewTurnosApi()) {
+      console.info('[guardias/disponibles] Usando función de Neon fn_guardias_disponibles');
+      
+      // Usar función de Neon para obtener guardias disponibles
+      const { rows } = await sql`
+        SELECT * FROM as_turnos.fn_guardias_disponibles(
+          ${fecha}::date,
+          ${instalacion_id}::uuid,
+          ${rol_id || null}::uuid,
+          ${excluir_guardia_id || null}::uuid
+        );
+      `;
+      
+      // La función retorna guardia_id y nombre
+      const items = rows.map(row => ({
+        id: row.guardia_id,
+        nombre_completo: row.nombre,
+        // Para compatibilidad con el frontend
+        nombre: row.nombre?.split(',')[1]?.trim() || row.nombre,
+        apellido_paterno: row.nombre?.split(',')[0]?.split(' ')[0] || '',
+        apellido_materno: row.nombre?.split(',')[0]?.split(' ')[1] || ''
+      }));
+      
+      console.log(`[Neon] Guardias disponibles encontrados: ${items.length}`);
+      return NextResponse.json({ items });
+    }
+    
+    // Flujo legacy con query directa
+    console.info('[guardias/disponibles] Usando query legacy');
+    const client = await getClient();
+    
+    try {
     // Ejecutar consulta directa simplificada
     let query: string;
     let params: any[];
@@ -103,17 +137,28 @@ export async function GET(request: NextRequest) {
       nombre_completo: `${row.apellido_paterno || ''} ${row.apellido_materno || ''}, ${row.nombre || ''}`.trim()
     }));
     
-    console.log(`Guardias disponibles encontrados: ${items.length}`);
+    console.log(`[Legacy] Guardias disponibles encontrados: ${items.length}`);
     
     return NextResponse.json({ items });
     
+    } finally {
+      client.release();
+    }
+    
   } catch (error) {
     console.error('Error al obtener guardias disponibles:', error);
+    
+    // Si el error es específico, proporcionar más detalles
+    if (error instanceof Error && error.message.includes('does not exist')) {
+      return NextResponse.json(
+        { error: 'Función fn_guardias_disponibles no encontrada. Asegúrese de ejecutar las migraciones.' },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Error al obtener guardias disponibles' },
       { status: 500 }
     );
-  } finally {
-    client.release();
   }
 }
