@@ -30,20 +30,28 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
       const functionExists = parseInt(funcCheck[0].count) > 0;
       
       if (functionExists) {
-        const { rows } = await client.query(
-          `select pm.id, make_date(pm.anio, pm.mes, pm.dia) as fecha, pm.estado, pm.meta
-           from as_turnos.fn_marcar_asistencia(
-             $1,'inasistencia',
+        // Primero ejecutar la función para actualizar
+        await client.query(
+          `SELECT * FROM as_turnos.fn_marcar_asistencia(
+             $1::bigint,
+             'inasistencia',
              jsonb_build_object(
-               'falta_sin_aviso',$2,
-               'motivo',$3::text,
-               'cobertura_guardia_id',$4::text,
-               'estado_ui',$5::text
+               'falta_sin_aviso', $2::boolean,
+               'motivo', $3::text,
+               'cobertura_guardia_id', $4::text,
+               'estado_ui', $5::text
              ),
-             $6
-           ) x
-           join public.as_turnos_pauta_mensual pm on pm.id = $1`,
+             $6::text
+           )`,
           [pauta_id || turno_id, !!falta_sin_aviso, motivo ?? null, guardiaReemplazoId, nuevoEstado, actor]
+        );
+        
+        // Luego obtener los datos actualizados
+        const { rows } = await client.query(
+          `SELECT pm.id, make_date(pm.anio, pm.mes, pm.dia) as fecha, pm.estado, pm.meta
+           FROM public.as_turnos_pauta_mensual pm
+           WHERE pm.id = $1::bigint`,
+          [pauta_id || turno_id]
         );
         
         console.log('POST /api/turnos/inasistencia - Payload recibido:', {
@@ -65,7 +73,7 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
                  'actor_ref', $2::text,
                  'timestamp', NOW()::text,
                  'action', 'inasistencia',
-                 'falta_sin_aviso', $3,
+                 'falta_sin_aviso', $3::boolean,
                  'motivo', $4::text,
                  'cobertura_guardia_id', $5::text,
                  'estado_ui', $6::text

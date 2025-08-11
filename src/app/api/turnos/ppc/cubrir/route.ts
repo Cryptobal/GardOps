@@ -31,18 +31,26 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
       const functionExists = parseInt(funcCheck[0].count) > 0;
       
       if (functionExists) {
-        const { rows } = await client.query(
-          `select pm.id, make_date(pm.anio, pm.mes, pm.dia) as fecha, pm.estado, pm.meta
-           from as_turnos.fn_marcar_asistencia(
-             $1,'reemplazo',
+        // Primero ejecutar la función para actualizar
+        await client.query(
+          `SELECT * FROM as_turnos.fn_marcar_asistencia(
+             $1::bigint,
+             'reemplazo',
              jsonb_build_object(
-               'cobertura_guardia_id',$2::text,
-               'estado_ui','reemplazo'
+               'cobertura_guardia_id', $2::text,
+               'estado_ui', 'reemplazo'
              ),
-             $3
-           ) x
-           join public.as_turnos_pauta_mensual pm on pm.id = $1`,
+             $3::text
+           )`,
           [finalPautaId, finalGuardiaId, actor]
+        );
+        
+        // Luego obtener los datos actualizados
+        const { rows } = await client.query(
+          `SELECT pm.id, make_date(pm.anio, pm.mes, pm.dia) as fecha, pm.estado, pm.meta
+           FROM public.as_turnos_pauta_mensual pm
+           WHERE pm.id = $1::bigint`,
+          [finalPautaId]
         );
         
         console.log('POST /api/turnos/ppc/cubrir - Payload recibido:', {
