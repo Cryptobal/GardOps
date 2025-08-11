@@ -11,7 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, Calendar, Eye, EyeOff, AlertTriangle, MoreHorizontal, ChevronDown, ChevronUp, Users, X, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Eye, EyeOff, AlertTriangle, MoreHorizontal, ChevronDown, ChevronUp, Users, X, Zap, Info } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { PautaRow, PautaDiariaV2Props } from './types';
@@ -102,6 +104,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     estado: searchParams.get('estado') || 'todos',
     q: searchParams.get('q') || undefined
   }));
+  const [filtersOpen, setFiltersOpen] = useState(true);
   
   // Normalizar fecha a string YYYY-MM-DD
   const fechaStr = toYmd(fecha);
@@ -119,6 +122,19 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     // preserva filtros/fecha y fuerza recarga del servidor
     router.refresh();
   }, [router]);
+
+  // Detectar viewport móvil
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(max-width: 767px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener ? mq.addEventListener('change', update) : (mq as any).addListener(update);
+    return () => {
+      mq.removeEventListener ? mq.removeEventListener('change', update) : (mq as any).removeListener(update);
+    };
+  }, []);
 
   // Persistir filtros en URL
   useEffect(() => {
@@ -144,6 +160,17 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     const newUrl = `/pauta-diaria-v2?fecha=${addDays(fechaStr, delta)}${params.toString() ? '&' + params.toString() : ''}`;
     router.push(newUrl);
   }, [f.instalacion, f.estado, f.ppc, f.q, mostrarLibres, fechaStr, router]);
+
+  const goTo = useCallback((dateYmd: string) => {
+    const params = new URLSearchParams();
+    if (f.instalacion) params.set('instalacion', f.instalacion);
+    if (f.estado && f.estado !== 'todos') params.set('estado', f.estado);
+    if (f.ppc !== 'all') params.set('ppc', f.ppc === true ? 'true' : 'false');
+    if (f.q) params.set('q', f.q);
+    if (mostrarLibres) params.set('incluir_libres', 'true');
+    const newUrl = `/pauta-diaria-v2?fecha=${dateYmd}${params.toString() ? '&' + params.toString() : ''}`;
+    router.push(newUrl);
+  }, [f.instalacion, f.estado, f.ppc, f.q, mostrarLibres, router]);
   
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -153,6 +180,11 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [go]);
+
+  // Ajustar estado inicial de filtros según viewport
+  useEffect(() => {
+    setFiltersOpen(!isMobile);
+  }, [isMobile]);
 
   // Función para cargar guardias disponibles
   const loadGuardias = useCallback(async (row: PautaRow, excluirGuardiaId?: string) => {
@@ -829,6 +861,149 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     );
   };
 
+  // Componente Mobile: card por fila con panel embebido
+  const MobileRowCard: React.FC<{ row: PautaRow }> = ({ row }) => {
+    const isExpanded = expandedRowId === row.pauta_id;
+    const isLoading = savingId === row.pauta_id;
+    const esDuplicado = row.guardia_trabajo_id && (guardiasDuplicados.get(`${row.fecha}-${row.guardia_trabajo_id}`) || 0) > 1;
+    const esPPC = row.es_ppc || !row.guardia_trabajo_id;
+
+    const panelData = rowPanelData[row.pauta_id] || {};
+    const updatePanelData = (updates: any) => setRowPanelData(prev => ({ ...prev, [row.pauta_id]: { ...prev[row.pauta_id], ...updates } }));
+
+    // Filtrado de guardias en móvil
+    const guardiasFiltradas = useMemo(() => {
+      const list = panelData.guardias || [];
+      const q = (panelData.filtroGuardias || '').toLowerCase();
+      if (!q) return list;
+      return list.filter((g: Guardia) => g.nombre_completo.toLowerCase().includes(q));
+    }, [panelData.guardias, panelData.filtroGuardias]);
+
+    return (
+      <Card className={esDuplicado ? 'border-yellow-300' : ''}>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-xs text-muted-foreground">{row.instalacion_nombre}</div>
+              <div className="text-base font-semibold">
+                {row.rol_alias || row.rol_nombre?.split('/')[0]?.trim() || '—'}
+              </div>
+              {row.hora_inicio && row.hora_fin && (
+                <div className="text-xs text-muted-foreground">{row.hora_inicio.slice(0,5)} - {row.hora_fin.slice(0,5)}</div>
+              )}
+            </div>
+            <div>{renderEstado(row.estado_ui, row.es_falta_sin_aviso)}</div>
+          </div>
+
+          <div className="text-sm">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{esPPC ? 'PPC' : (row.guardia_titular_nombre || row.guardia_trabajo_nombre || '—')}</span>
+              {esDuplicado && (
+                <Badge variant="destructive" className="text-xs">Duplicado</Badge>
+              )}
+            </div>
+            {row.estado_ui === 'te' && (row.cobertura_guardia_nombre || row.meta?.cobertura_guardia_id) && (
+              <div className="text-xs text-muted-foreground mt-1">Cobertura: {row.cobertura_guardia_nombre || 'Guardia de cobertura'}</div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {isTitularPlan(row) && (
+              <>
+                <Button size="sm" disabled={isLoading} onClick={() => onAsistio(row.pauta_id)} className="flex-1">✅ Asistió</Button>
+                <Button size="sm" variant="outline" disabled={isLoading} className="flex-1" onClick={() => toggleRowPanel(row, 'no_asistio')}>❌ No asistió</Button>
+              </>
+            )}
+            {isPpcPlan(row) && (
+              <>
+                <Button size="sm" variant="outline" disabled={isLoading} className="flex-1" onClick={() => { toggleRowPanel(row, 'cubrir_ppc'); setTimeout(()=>loadGuardias(row),0); }}>👥 Cubrir</Button>
+                <Button size="sm" variant="outline" disabled={isLoading} className="flex-1" onClick={() => onSinCoberturaPPC(row.pauta_id)}>⛔ Sin cobertura</Button>
+              </>
+            )}
+            {canUndo(row) && (
+              <Button size="sm" variant="secondary" disabled={isLoading} className="w-full" onClick={() => onDeshacer(row.pauta_id)}>↩️ Deshacer</Button>
+            )}
+          </div>
+
+          {isExpanded && (
+            <div className="mt-2 p-3 rounded border bg-muted/30 space-y-3">
+              {panelData.type === 'no_asistio' && (
+                <>
+                  <div className="space-y-1">
+                    <Label className="text-sm">Motivo de inasistencia</Label>
+                    <Select value={panelData.motivo || 'sin_aviso'} onValueChange={(v:any)=>updatePanelData({ motivo: v })}>
+                      <SelectTrigger className="w-full"><SelectValue placeholder="Seleccione motivo"/></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="con_aviso">Con aviso</SelectItem>
+                        <SelectItem value="sin_aviso">Sin aviso</SelectItem>
+                        <SelectItem value="licencia">Licencia</SelectItem>
+                        <SelectItem value="permiso">Permiso</SelectItem>
+                        <SelectItem value="vacaciones">Vacaciones</SelectItem>
+                        <SelectItem value="finiquito">Finiquito</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">Tipo de cobertura</Label>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant={panelData.tipoCobertura==='sin_cobertura'?'default':'outline'} className="flex-1" onClick={()=>updatePanelData({ tipoCobertura: 'sin_cobertura' })}>⛔ Sin cobertura</Button>
+                      <Button size="sm" variant={panelData.tipoCobertura==='con_cobertura'?'default':'outline'} className="flex-1" onClick={()=>{ updatePanelData({ tipoCobertura: 'con_cobertura' }); if(!panelData.guardias && !panelData.loadingGuardias) loadGuardias(row, row.guardia_trabajo_id||undefined); }}>✅ Con cobertura</Button>
+                    </div>
+                  </div>
+                  {panelData.tipoCobertura==='con_cobertura' && (
+                    <div className="space-y-2">
+                      <Label className="text-sm">Guardia de reemplazo</Label>
+                      <Input placeholder="🔍 Buscar guardia…" value={panelData.filtroGuardias||''} onChange={(e)=>updatePanelData({ filtroGuardias: e.target.value })}/>
+                      <Select value={panelData.guardiaReemplazo || ''} onValueChange={(v)=>updatePanelData({ guardiaReemplazo: v })} disabled={panelData.loadingGuardias || guardiasFiltradas.length===0}>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="Selecciona guardia"/></SelectTrigger>
+                        <SelectContent>
+                          {panelData.loadingGuardias ? <SelectItem value="loading" disabled>Cargando…</SelectItem> : (
+                            guardiasFiltradas.length===0 ? <SelectItem value="empty" disabled>Sin resultados</SelectItem> : (
+                              guardiasFiltradas.map((g: Guardia)=>(<SelectItem key={g.id} value={g.id}>{g.nombre_completo}</SelectItem>))
+                            )
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="outline" size="sm" onClick={()=>toggleRowPanel(row)} disabled={isLoading}>Cancelar</Button>
+                    <Button size="sm" onClick={()=>onNoAsistioConfirm(row)} disabled={isLoading || (panelData.tipoCobertura==='con_cobertura' && !panelData.guardiaReemplazo)}>
+                      {isLoading?'Guardando…':'Confirmar'}
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {panelData.type === 'cubrir_ppc' && (
+                <>
+                  <div className="space-y-2">
+                    <Label className="text-sm">Guardia para cubrir</Label>
+                    <Input placeholder="🔍 Buscar guardia…" value={panelData.filtroGuardias||''} onChange={(e)=>updatePanelData({ filtroGuardias: e.target.value })}/>
+                    <Select value={panelData.guardiaReemplazo || ''} onValueChange={(v)=>updatePanelData({ guardiaReemplazo: v })} disabled={panelData.loadingGuardias || guardiasFiltradas.length===0}>
+                      <SelectTrigger className="w-full"><SelectValue placeholder="Selecciona guardia"/></SelectTrigger>
+                      <SelectContent>
+                        {panelData.loadingGuardias ? <SelectItem value="loading" disabled>Cargando…</SelectItem> : (
+                          guardiasFiltradas.length===0 ? <SelectItem value="empty" disabled>Sin resultados</SelectItem> : (
+                            guardiasFiltradas.map((g: Guardia)=>(<SelectItem key={g.id} value={g.id}>{g.nombre_completo}</SelectItem>))
+                          )
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="outline" size="sm" onClick={()=>toggleRowPanel(row)} disabled={isLoading}>Cancelar</Button>
+                    <Button size="sm" onClick={()=>onCubrirPPC(row)} disabled={isLoading || !panelData.guardiaReemplazo}>{isLoading?'Guardando…':'Confirmar'}</Button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <TooltipProvider>
       <>
@@ -837,40 +1012,44 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
           <CardContent className="p-4">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={()=>go(-1)}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <div className="flex items-stretch gap-1">
-                  <Input
-                    ref={inputRef}
-                    type="date"
-                    className="w-auto"
-                    value={fechaStr}
-                    onChange={(e)=>router.push(`/pauta-diaria-v2?fecha=${e.target.value}`)}
-                  />
-                  <Button
-                    aria-label="Abrir calendario"
-                    variant="outline"
-                    size="sm"
-                    onClick={()=>inputRef.current?.showPicker?.()}
-                  >
-                    <Calendar className="h-4 w-4" />
-                  </Button>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => {
-                    const hoy = toYmd(new Date());
-                    router.push(`/pauta-diaria-v2?fecha=${hoy}`);
-                  }}
-                >
-                  Hoy
-                </Button>
-                <Button variant="outline" size="sm" onClick={()=>go(1)}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                
+                {/* En móvil, ocultamos navegación superior para no duplicar con bottom bar */}
+                {!isMobile && (
+                  <>
+                    <Button variant="outline" size="sm" onClick={()=>go(-1)}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="flex items-stretch gap-1">
+                      <Input
+                        ref={inputRef}
+                        type="date"
+                        className="w-auto"
+                        value={fechaStr}
+                        onChange={(e)=>router.push(`/pauta-diaria-v2?fecha=${e.target.value}`)}
+                      />
+                      <Button
+                        aria-label="Abrir calendario"
+                        variant="outline"
+                        size="sm"
+                        onClick={()=>inputRef.current?.showPicker?.()}
+                      >
+                        <Calendar className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        const hoy = toYmd(new Date());
+                        router.push(`/pauta-diaria-v2?fecha=${hoy}`);
+                      }}
+                    >
+                      Hoy
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={()=>go(1)}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
                 {/* Badge de estado de API */}
                 <Badge 
                   variant={api.isNewApiEnabled() ? "default" : "secondary"}
@@ -900,6 +1079,15 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
         {/* Controles de filtro */}
         <Card className="mb-4">
           <CardContent className="p-4">
+            {/* Toggle filtros para móvil */}
+            {isMobile && (
+              <div className="mb-2 flex items-center justify-between">
+                <Button variant="outline" size="sm" onClick={()=>setFiltersOpen(o=>!o)}>
+                  {filtersOpen ? 'Ocultar filtros' : 'Mostrar filtros'}
+                </Button>
+              </div>
+            )}
+            {(!isMobile || filtersOpen) && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
               <Input
                 placeholder="Filtrar instalación…"
@@ -948,185 +1136,163 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                 Limpiar
               </Button>
             </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Tabla principal con paneles inline */}
-        <Card>
-          <CardContent className="p-0 overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Instalación</TableHead>
-                  <TableHead>Rol</TableHead>
-                  <TableHead className="hidden md:table-cell">Puesto</TableHead>
-                  <TableHead>Guardia</TableHead>
-                  <TableHead>Cobertura</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((r:PautaRow, idx: number) => {
-                  const esDuplicado = r.guardia_trabajo_id && (guardiasDuplicados.get(`${r.fecha}-${r.guardia_trabajo_id}`) || 0) > 1;
-                  const isLoading = savingId === r.pauta_id;
-                  const esPPC = r.es_ppc || !r.guardia_trabajo_id;
-                  const isExpanded = expandedRowId === r.pauta_id;
-                  
-                  return (
-                    <React.Fragment key={r.pauta_id}>
-                      <TableRow className={esDuplicado ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}>
-                        <TableCell>{r.instalacion_nombre}</TableCell>
-                        <TableCell>
-                          {/* Rol con formato especial */}
-                          {r.rol_nombre ? (
-                            <div className="flex flex-col">
-                              <span className="font-medium">
-                                {/* Extraer solo el patrón del rol (antes del slash) */}
-                                {r.rol_alias || r.rol_nombre.split('/')[0].trim()}
-                              </span>
-                              {r.hora_inicio && r.hora_fin && (
-                                <span className="text-xs text-muted-foreground">
-                                  {r.hora_inicio.slice(0,5)} - {r.hora_fin.slice(0,5)}
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            '—'
-                          )}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="font-mono text-xs cursor-help">
-                                {r.puesto_nombre ?? `${r.puesto_id.slice(0,8)}…`}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>UUID: {r.puesto_id}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell>
-                          {r.es_ppc ? (
-                            <span className="rounded-md border px-1.5 py-0.5 text-[10px]
-                              bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20">
-                              PPC
-                            </span>
-                          ) : (
-                            r.guardia_titular_nombre || r.guardia_trabajo_nombre || '—'
-                          )}
-                          {esDuplicado && (
-                            <Badge variant="destructive" className="text-xs mt-1">
-                              <AlertTriangle className="h-3 w-3 mr-1" />
-                              Duplicado
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {/* Columna Cobertura - mostrar guardia que cubre si existe */}
-                          {r.estado_ui === 'te' && (r.cobertura_guardia_nombre || r.meta?.cobertura_guardia_id) ? (
-                            <div className="flex flex-col">
-                              <span className="font-medium">
-                                {r.cobertura_guardia_nombre || r.reemplazo_guardia_nombre || 'Guardia de cobertura'}
-                              </span>
-                              {r.meta?.motivo && (
-                                <span className="text-xs text-muted-foreground">
-                                  {r.meta.motivo}
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            '—'
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            {renderEstado(r.estado_ui, r.es_falta_sin_aviso)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {/* Botón de acciones que expande el panel */}
-                          {(() => {
-                            // Calcular cada condición por separado para mejor debugging
-                            const isTitular = isTitularPlan(r);
-                            const isPpc = isPpcPlan(r);
-                            const canUndoResult = canUndo(r);
-                            
-                            // El botón debe mostrarse si cualquiera de estas condiciones es true
-                            const hasActions = isTitular || isPpc || canUndoResult;
-                            const showButton = !loadingPerms && canMarkOverride && hasActions;
-                            
-                            // Debug log mejorado
-                            if (r.estado_ui !== 'plan' && r.estado_ui !== 'libre' && r.estado_ui !== 'ppc_libre') {
-                              console.log('📊 Estado del botón para pauta_id:', r.pauta_id, {
-                                estado_ui: r.estado_ui,
-                                es_ppc: r.es_ppc,
-                                isTitular,
-                                isPpc,
-                                canUndoResult,
-                                hasActions,
-                                showButton,
-                                loadingPerms,
-                                canMarkOverride
-                              });
-                            }
-                            
-                            return showButton;
-                          })() ? (
-                            <Button
-                              size="sm"
-                              variant={isExpanded ? "default" : "outline"}
-                              onClick={() => toggleRowPanel(r)}
-                              disabled={isLoading}
-                              className="gap-1"
-                            >
-                              {isExpanded ? (
-                                <>
-                                  <ChevronUp className="h-4 w-4" />
-                                  Cerrar
-                                </>
-                              ) : (
-                                <>
-                                  <MoreHorizontal className="h-4 w-4" />
-                                  Acciones
-                                </>
-                              )}
-                            </Button>
-                          ) : !loadingPerms && !canMarkOverride ? (
+        {/* Vista Desktop (tabla) u opción Mobile (cards) */}
+        {!isMobile ? (
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Instalación</TableHead>
+                    <TableHead>Rol</TableHead>
+                    <TableHead className="hidden md:table-cell">Puesto</TableHead>
+                    <TableHead>Guardia</TableHead>
+                    <TableHead>Cobertura</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((r:PautaRow) => {
+                    const isExpanded = expandedRowId === r.pauta_id;
+                    const esDuplicado = r.guardia_trabajo_id && (guardiasDuplicados.get(`${r.fecha}-${r.guardia_trabajo_id}`) || 0) > 1;
+                    const isLoading = savingId === r.pauta_id;
+                    return (
+                      <React.Fragment key={r.pauta_id}>
+                        <TableRow className={esDuplicado ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}>
+                          <TableCell>{r.instalacion_nombre}</TableCell>
+                          <TableCell>
+                            {r.rol_nombre ? (
+                              <div className="flex flex-col">
+                                <span className="font-medium">{r.rol_alias || r.rol_nombre.split('/')[0].trim()}</span>
+                                {r.hora_inicio && r.hora_fin && (
+                                  <span className="text-xs text-muted-foreground">{r.hora_inicio.slice(0,5)} - {r.hora_fin.slice(0,5)}</span>
+                                )}
+                              </div>
+                            ) : '—'}
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <div className="opacity-50 pointer-events-none">
-                                  <Button size="sm" disabled>
-                                    Acciones
-                                  </Button>
-                                </div>
+                                <span className="font-mono text-xs cursor-help">{r.puesto_nombre ?? `${r.puesto_id.slice(0,8)}…`}</span>
                               </TooltipTrigger>
-                              <TooltipContent>
-                                Sin permiso para marcar asistencia
-                              </TooltipContent>
+                              <TooltipContent><p>UUID: {r.puesto_id}</p></TooltipContent>
                             </Tooltip>
-                          ) : loadingPerms ? (
-                            <div className="flex items-center gap-2">
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                              <span className="text-xs text-muted-foreground">Cargando...</span>
-                            </div>
-                          ) : (
-                            // Mostrar un placeholder cuando no hay acciones disponibles
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                      
-                      {/* Panel inline expandible */}
-                      {isExpanded && <RowPanel row={r} />}
-                    </React.Fragment>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                          </TableCell>
+                          <TableCell>
+                            {r.es_ppc ? (
+                              <span className="rounded-md border px-1.5 py-0.5 text-[10px] bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20">PPC</span>
+                            ) : (
+                              r.guardia_titular_nombre || r.guardia_trabajo_nombre || '—'
+                            )}
+                            {esDuplicado && (
+                              <Badge variant="destructive" className="text-xs mt-1"><AlertTriangle className="h-3 w-3 mr-1"/>Duplicado</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {r.estado_ui === 'te' && (r.cobertura_guardia_nombre || r.meta?.cobertura_guardia_id) ? (
+                              <div className="flex flex-col">
+                                <span className="font-medium">{r.cobertura_guardia_nombre || r.reemplazo_guardia_nombre || 'Guardia de cobertura'}</span>
+                                {r.meta?.motivo && (<span className="text-xs text-muted-foreground">{r.meta.motivo}</span>)}
+                              </div>
+                            ) : '—'}
+                          </TableCell>
+                          <TableCell>
+                            <div>{renderEstado(r.estado_ui, r.es_falta_sin_aviso)}</div>
+                          </TableCell>
+                          <TableCell>
+                            {(() => {
+                              const isTitular = isTitularPlan(r);
+                              const isPpc = isPpcPlan(r);
+                              const canUndoResult = canUndo(r);
+                              const hasActions = isTitular || isPpc || canUndoResult;
+                              const showButton = !loadingPerms && canMarkOverride && hasActions;
+                              return showButton;
+                            })() ? (
+                              <Button size="sm" variant={isExpanded? 'default':'outline'} onClick={()=>toggleRowPanel(r)} disabled={isLoading} className="gap-1">
+                                {isExpanded ? (<><ChevronUp className="h-4 w-4"/>Cerrar</>) : (<><MoreHorizontal className="h-4 w-4"/>Acciones</>)}
+                              </Button>
+                            ) : <span className="text-xs text-muted-foreground">—</span>}
+                          </TableCell>
+                        </TableRow>
+                        {isExpanded && <RowPanel row={r} />}
+                      </React.Fragment>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {filtered.map((r:PautaRow) => (
+              <MobileRowCard key={r.pauta_id} row={r} />
+            ))}
+          </div>
+        )}
+
+        {/* Bottom bar móvil: navegación + leyenda */}
+        {isMobile && (
+          <div className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-3 z-40">
+            <div className="w-full flex items-center justify-between">
+              {/* Placeholder para centrar grupo central */}
+              <div className="invisible">
+                <Button variant="outline" size="sm" className="gap-1">
+                  <Info className="h-4 w-4" />
+                  Leyenda
+                </Button>
+              </div>
+              <div className="flex items-center gap-2 mx-auto">
+                <Button variant="outline" size="sm" onClick={()=>go(-1)}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Calendar className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                      <DialogTitle>Ir a fecha</DialogTitle>
+                    </DialogHeader>
+                    <DatePicker value={fechaStr} onChange={(v)=> v && goTo(v)} />
+                  </DialogContent>
+                </Dialog>
+                <Button variant="outline" size="sm" onClick={()=>goTo(toYmd(new Date()))}>Hoy</Button>
+                <Button variant="outline" size="sm" onClick={()=>go(1)}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1">
+                    <Info className="h-4 w-4" />
+                    Leyenda
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-sm">
+                  <DialogHeader>
+                    <DialogTitle>Leyenda de estados</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <span className="inline-flex items-center gap-2"><span className="px-2 py-0.5 text-xs rounded ring-1 bg-amber-500/10 text-amber-400 ring-amber-500/20">plan</span> Planificado</span>
+                    <span className="inline-flex items-center gap-2"><span className="px-2 py-0.5 text-xs rounded ring-1 bg-gray-500/10 text-gray-400 ring-gray-500/20">libre</span> Libre</span>
+                    <span className="inline-flex items-center gap-2"><span className="px-2 py-0.5 text-xs rounded ring-1 bg-emerald-500/10 text-emerald-400 ring-emerald-500/20">asistido</span> Asistido</span>
+                    <span className="inline-flex items-center gap-2"><span className="px-2 py-0.5 text-xs rounded ring-1 bg-sky-500/10 text-sky-400 ring-sky-500/20">reemplazo</span> Reemplazo</span>
+                    <span className="inline-flex items-center gap-2"><span className="px-2 py-0.5 text-xs rounded ring-1 bg-fuchsia-500/10 text-fuchsia-400 ring-fuchsia-500/20">TE</span> Turno Extra</span>
+                    <span className="inline-flex items-center gap-2"><span className="px-2 py-0.5 text-xs rounded ring-1 bg-rose-500/10 text-rose-400 ring-rose-500/20">sin_cobertura</span> Sin cobertura</span>
+                    <span className="inline-flex items-center gap-2"><span className="px-2 py-0.5 text-xs rounded ring-1 bg-rose-500/10 text-rose-400 ring-rose-500/20">inasistencia</span> Inasistencia</span>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+        )}
       </>
     </TooltipProvider>
   );

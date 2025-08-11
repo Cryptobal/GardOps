@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
+import BackToSecurity from "@/components/BackToSecurity";
 
 interface Tenant {
   id: string;
@@ -71,6 +72,7 @@ export default function TenantsPage() {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">🏢 Tenants</h1>
       </div>
+      <BackToSecurity />
 
       <Card className="mb-6">
         <CardHeader>

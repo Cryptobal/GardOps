@@ -13,7 +13,24 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Eliminar todos los registros de la pauta mensual para la instalación, año y mes especificados
+    // Contar días protegidos (TE/cobertura)
+    const { rows: protegidosRows } = await query(`
+      SELECT COUNT(*)::int AS protegidos
+      FROM as_turnos_pauta_mensual pm
+      JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
+      WHERE po.instalacion_id = $1
+        AND pm.anio = $2
+        AND pm.mes = $3
+        AND (
+          COALESCE(pm.estado_ui, '') = 'te'
+          OR COALESCE(pm.meta->>'tipo', '') = 'turno_extra'
+          OR COALESCE(pm.meta->>'cobertura_guardia_id', '') <> ''
+        )
+    `, [instalacion_id, anio, mes]);
+
+    const protegidos = protegidosRows?.[0]?.protegidos ?? 0;
+
+    // Eliminar pauta planificada, preservando TE/coberturas
     const result = await query(`
       DELETE FROM as_turnos_pauta_mensual pm
       USING as_turnos_puestos_operativos po
@@ -21,14 +38,18 @@ export async function DELETE(request: NextRequest) {
         AND po.instalacion_id = $1 
         AND pm.anio = $2 
         AND pm.mes = $3
+        AND COALESCE(pm.estado_ui, '') <> 'te'
+        AND COALESCE(pm.meta->>'tipo', '') <> 'turno_extra'
+        AND COALESCE(pm.meta->>'cobertura_guardia_id', '') = ''
     `, [instalacion_id, anio, mes]);
 
-    console.log(`🗑️ Pauta mensual eliminada para instalación ${instalacion_id}, ${mes}/${anio} (${result.rowCount} registros)`);
+    console.log(`🗑️ Pauta mensual eliminada para instalación ${instalacion_id}, ${mes}/${anio} (${result.rowCount} registros, protegidos ${protegidos})`);
 
     return NextResponse.json({
       success: true,
-      message: 'Pauta mensual eliminada exitosamente',
-      deleted_count: result.rowCount
+      message: 'Pauta mensual eliminada exitosamente (TE/coberturas preservados)',
+      deleted_count: result.rowCount,
+      preserved_te: protegidos
     });
 
   } catch (error) {

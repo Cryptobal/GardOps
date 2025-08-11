@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
 import { Button } from "../../../components/ui/button";
 import { Trash2, Info, Calendar, Users, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../../components/ui/dialog";
 import ConfirmDeleteModal from "../../../components/ui/confirm-delete-modal";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -32,6 +33,8 @@ interface PautaTableProps {
   diasGuardados?: Set<string>; // Nuevo prop para indicar días guardados
   mes?: number; // Mes actual de la pauta
   anio?: number; // Año actual de la pauta
+  startDay?: number; // 1-based inclusive
+  endDay?: number;   // 1-based inclusive
 }
 
 interface ModalAutocompletarPautaProps {
@@ -447,7 +450,9 @@ export default function PautaTable({
   modoEdicion = false,
   diasGuardados,
   mes,
-  anio
+  anio,
+  startDay,
+  endDay
 }: PautaTableProps) {
   const router = useRouter();
   
@@ -505,9 +510,10 @@ export default function PautaTable({
     router.push(`/pauta-diaria/${fechaFormateada}`);
   };
 
-  const cambiarEstadoDia = (guardiaIndex: number, diaIndex: number) => {
+  const cambiarEstadoDia = (guardiaIndex: number, dayNumber: number) => {
     if (!modoEdicion) return;
     
+    const diaIndex = dayNumber - 1;
     const guardiaOrdenada = pautaDataOrdenada[guardiaIndex];
     const estadoActual = guardiaOrdenada.dias[diaIndex];
     
@@ -521,17 +527,18 @@ export default function PautaTable({
     onUpdatePauta(indiceOriginal, diaIndex, nuevoEstado);
   };
 
-  const handleRightClick = (e: React.MouseEvent, guardiaIndex: number, diaIndex: number) => {
+  const handleRightClick = (e: React.MouseEvent, guardiaIndex: number, dayNumber: number) => {
     if (!modoEdicion) return;
     
     e.preventDefault();
+    const diaIndex = dayNumber - 1;
     console.log('🖱️ Clic derecho detectado:', { guardiaIndex, diaIndex });
     const diaInfo = diasSemana[diaIndex];
     setAutocompletadoModal({
       isOpen: true,
       guardiaIndex,
       diaIndex,
-      diaSeleccionado: diaIndex + 1,
+      diaSeleccionado: dayNumber,
       diaSemanaSeleccionado: diaInfo?.diaSemana || ''
     });
   };
@@ -595,6 +602,11 @@ export default function PautaTable({
     }
   };
 
+  // Determinar días visibles (rango opcional)
+  const first = Math.max(1, startDay ?? 1);
+  const last = Math.min(diasDelMes.length, endDay ?? diasDelMes.length);
+  const visibleDays = diasDelMes.filter((d) => d >= first && d <= last);
+
   return (
     <div className="space-y-4">
       {/* Header con estadísticas */}
@@ -610,9 +622,8 @@ export default function PautaTable({
             </p>
           </div>
         </div>
-        
-        {/* Leyenda minimalista con iconos exactos */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+        {/* Leyenda: en desktop visible; en móvil compacta via diálogo */}
+        <div className="hidden sm:grid grid-cols-4 gap-4 text-sm">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md flex items-center justify-center">
               <span className="text-blue-600 dark:text-blue-400 text-lg font-bold">●</span>
@@ -637,25 +648,32 @@ export default function PautaTable({
             </div>
             <span className="text-gray-700 dark:text-gray-300 font-medium">Turno Extra</span>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-600 rounded-md flex items-center justify-center">
-              <span className="text-white dark:text-gray-200 text-lg font-bold">●</span>
-            </div>
-            <span className="text-gray-700 dark:text-gray-300 font-medium">Libre</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md flex items-center justify-center">
-              <span className="text-red-600 dark:text-red-400 text-lg font-bold">▲</span>
-            </div>
-            <span className="text-gray-700 dark:text-gray-300 font-medium">Sin Cobertura</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md flex items-center justify-center">
-              <span className="text-teal-600 dark:text-teal-400 text-sm">🌴</span>
-            </div>
-            <span className="text-gray-700 dark:text-gray-300 font-medium">Vacaciones</span>
-          </div>
           {/* Se eliminan badges específicos de Reemplazo y PPC cubierto; todo es TE */}
+        </div>
+        <div className="sm:hidden">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Info className="h-4 w-4" />
+                Leyenda
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Leyenda</DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="flex items-center gap-3"><span className="text-blue-600 text-lg font-bold">●</span> Turno</div>
+                <div className="flex items-center gap-3"><span className="text-gray-500 text-lg font-bold">○</span> Libre</div>
+                <div className="flex items-center gap-3"><span className="text-green-600 text-lg font-bold">✓</span> Asistió</div>
+                <div className="flex items-center gap-3"><span className="text-red-600 text-lg font-bold">✗</span> Falta</div>
+                <div className="flex items-center gap-3"><span className="text-fuchsia-600 text-sm font-extrabold">TE</span> Turno Extra</div>
+                <div className="flex items-center gap-3"><span className="text-red-600 text-lg font-bold">▲</span> Sin Cobertura</div>
+                <div className="flex items-center gap-3"><span className="text-indigo-600 text-lg">🏖</span> Permiso</div>
+                <div className="flex items-center gap-3"><span className="text-purple-600 text-lg">🌴</span> Vacaciones</div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -691,7 +709,7 @@ export default function PautaTable({
                 <TableHead className="font-semibold text-left p-4 border-0 sticky left-0 bg-transparent z-10 text-gray-500 dark:text-gray-400" style={{width: '200px', minWidth: '200px'}}>
                     Guardia
                   </TableHead>
-                  {diasDelMes.map((dia) => {
+                  {visibleDays.map((dia) => {
                     const diaInfo = diasSemana[dia - 1];
                     const esFinDeSemana = diaInfo?.diaSemana === 'Sáb' || diaInfo?.diaSemana === 'Dom';
                     const esFeriado = diaInfo?.esFeriado || feriadosChile.includes(dia);
@@ -773,18 +791,20 @@ export default function PautaTable({
                         </div>
                       </div>
                     </TableCell>
-                    {guardia.dias.map((estado, diaIndex) => {
+                    {visibleDays.map((day) => {
+                      const diaIndex = day - 1;
+                      const estado = guardia.dias[diaIndex];
                       const diaInfo = diasSemana[diaIndex];
-                      const esFeriado = diaInfo?.esFeriado || feriadosChile.includes(diaIndex + 1);
+                      const esFeriado = diaInfo?.esFeriado || feriadosChile.includes(day);
                       const cobertura = guardia.cobertura_por_dia ? guardia.cobertura_por_dia[diaIndex] : null;
                       return (
                         <DiaCell
-                          key={diaIndex}
+                          key={day}
                           estado={estado}
-                          onClick={() => cambiarEstadoDia(guardiaIndex, diaIndex)}
-                          onRightClick={(e) => handleRightClick(e, guardiaIndex, diaIndex)}
+                          onClick={() => cambiarEstadoDia(guardiaIndex, day)}
+                          onRightClick={(e) => handleRightClick(e, guardiaIndex, day)}
                           guardiaNombre={guardia.nombre}
-                          diaNumero={diaIndex + 1}
+                          diaNumero={day}
                           diaSemana={diaInfo?.diaSemana}
                           esFeriado={esFeriado}
                           modoEdicion={modoEdicion}

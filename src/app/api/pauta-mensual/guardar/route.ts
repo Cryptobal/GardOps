@@ -145,15 +145,27 @@ async function procesarTurnos(turnos: any[]) {
     }
 
     try {
-      // CAMBIO: Si estado es null, eliminar el registro
+      // CAMBIO: Si estado es null, intentar eliminar SOLO si no es TE/diaria ni tiene cobertura
       if (estado === null || estado === '') {
-        await query(
+        const { rowCount } = await query(
           `DELETE FROM as_turnos_pauta_mensual 
-           WHERE puesto_id = $1 AND anio = $2 AND mes = $3 AND dia = $4`,
+           WHERE puesto_id = $1 
+             AND anio = $2 
+             AND mes = $3 
+             AND dia = $4
+             AND COALESCE(estado_ui, '') <> 'te'
+             AND COALESCE(meta->>'tipo', '') <> 'turno_extra'
+             AND COALESCE(estado, '') NOT IN ('trabajado', 'inasistencia', 'permiso', 'vacaciones')
+             AND COALESCE(meta->>'cobertura_guardia_id', '') = ''`,
           [puesto_id, anio, mes, dia]
         );
-        eliminados++;
-        console.log(`🗑️ Eliminado turno para puesto ${puesto_id}, día ${dia}`);
+        if (rowCount && rowCount > 0) {
+          eliminados++;
+          console.log(`🗑️ Eliminado turno para puesto ${puesto_id}, día ${dia}`);
+        } else {
+          // No se eliminó por protección de TE/cobertura
+          errores.push(`Salto eliminación segura en puesto ${puesto_id}, día ${dia} (TE/cobertura protegida)`);
+        }
       } else {
         // Validación de estado solo si no es null
         if (!['trabajado', 'libre', 'planificado'].includes(estado)) {
@@ -175,6 +187,11 @@ async function procesarTurnos(turnos: any[]) {
             observaciones = EXCLUDED.observaciones,
             reemplazo_guardia_id = EXCLUDED.reemplazo_guardia_id,
             updated_at = NOW()
+          WHERE 
+            COALESCE(as_turnos_pauta_mensual.estado_ui, '') <> 'te'
+            AND COALESCE(as_turnos_pauta_mensual.meta->>'tipo', '') <> 'turno_extra'
+            AND COALESCE(as_turnos_pauta_mensual.estado, '') NOT IN ('trabajado', 'inasistencia', 'permiso', 'vacaciones')
+            AND COALESCE(as_turnos_pauta_mensual.meta->>'cobertura_guardia_id', '') = ''
         `,
           [
             puesto_id,

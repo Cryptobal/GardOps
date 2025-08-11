@@ -117,37 +117,61 @@ export async function GET(request: NextRequest) {
       const dias = diasDelMes.map(dia => {
         const pautaDia = pautaPuesto.find((p: any) => p.dia === dia);
         const estadoUi = (pautaDia?.estado_ui || '').toLowerCase();
+        const estadoDb = (pautaDia?.estado || '').toLowerCase();
         const hasCobertura = Boolean(pautaDia?.cobertura_guardia_id);
         const isTE = (pautaDia?.meta?.tipo === 'turno_extra') || hasCobertura || estadoUi === 'te';
-        // Unificación: si es TE, devolvemos 'R' para que el front lo muestre como TE por cobertura
-        switch (estadoUi) {
-          case 'trabajado':
-          case 'a':
-            return isTE ? 'R' : 'A';
-          case 'asistido':
-            return isTE ? 'R' : 'A';
-          case 'plan':
+        
+        // 1) Si es TE por meta/cobertura/estado_ui => siempre 'R'
+        if (isTE) return 'R';
+
+        // 2) Preferir estado_ui cuando existe
+        if (estadoUi) {
+          switch (estadoUi) {
+            case 'trabajado':
+            case 'a':
+            case 'asistido':
+              return 'A';
+            case 'plan':
+            case 'planificado':
+              return 'planificado';
+            case 'inasistencia':
+              return 'I';
+            case 'sin_cobertura':
+              return 'S';
+            case 'libre':
+              return 'L';
+            case 'permiso':
+              return 'P';
+            case 'vacaciones':
+              return 'V';
+            case 'licencia':
+              return 'M';
+            default:
+              break;
+          }
+        }
+
+        // 3) Fallback a estado de BD para no perder planificación planificado/libre
+        switch (estadoDb) {
           case 'planificado':
             return 'planificado';
-          case 'inasistencia':
-            return 'I';
-          case 'reemplazo':
-            return 'R';
-          case 'sin_cobertura':
-            return 'S';
           case 'libre':
             return 'L';
+          case 'trabajado':
+          case 'asistido':
+            return 'A';
+          case 'inasistencia':
+            return 'I';
           case 'permiso':
             return 'P';
           case 'vacaciones':
             return 'V';
           case 'licencia':
             return 'M';
-          case 'te':
-            return 'R';
+          case 'sin_cobertura':
+            return 'S';
           default:
-            // Si no hay estado claro pero hay cobertura, tratar como TE
-            return isTE ? 'R' : '';
+            return '';
         }
       });
 
