@@ -26,9 +26,9 @@ export function NavigationItemWrapper({
   expandedItems = [],
   onToggleExpanded
 }: NavigationItemWrapperProps) {
-  const { allowed, loading } = item.permission 
-    ? useCan(item.permission)
-    : { allowed: true, loading: false };
+  // Llamar hooks sin condicionales; si no hay permiso, asumimos true/false por defecto
+  const defaultPerm = item.permission ?? '';
+  const { allowed, loading } = useCan(defaultPerm);
   const adoV2On = useFlag('ado_v2');
 
   // Si tiene permiso requerido y está cargando, no mostrar nada

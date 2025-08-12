@@ -10,6 +10,10 @@
 export const useNewTurnosApi = () =>
   (process.env.USE_NEW_TURNOS_API ?? 'false').toLowerCase() === 'true';
 
+// Versiones no-Hook para evitar reglas de hooks en server/archivos utilitarios
+export const isNewTurnosApiEnabledServer = () =>
+  (process.env.USE_NEW_TURNOS_API ?? 'false').toLowerCase() === 'true';
+
 /**
  * Versión para cliente (navegador)
  * Prioriza NEXT_PUBLIC_ sobre la variable de servidor
@@ -28,4 +32,10 @@ export const useNewTurnosApiClient = () => {
   
   // Por defecto usar la nueva API
   return true;
+};
+
+// Helper unificado seguro para server/client
+export const isNewTurnosApiEnabled = () => {
+  if (typeof window === 'undefined') return isNewTurnosApiEnabledServer();
+  return useNewTurnosApiClient();
 };

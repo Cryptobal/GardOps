@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClient } from '@/lib/database';
 import { sql } from '@/lib/db';
-import { useNewTurnosApi } from '@/lib/feature';
+import { isNewTurnosApiEnabledServer } from '@/lib/feature';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -39,8 +39,8 @@ export async function GET(request: NextRequest) {
   }
   
   try {
-    // Verificar si usamos la nueva API con funciones de Neon (no es un React Hook)
-    if (useNewTurnosApi()) {
+    // Verificar si usamos la nueva API con funciones de Neon (server-safe)
+    if (isNewTurnosApiEnabledServer()) {
       console.info('[guardias/disponibles] Usando función de Neon fn_guardias_disponibles');
       
       // Usar función de Neon para obtener guardias disponibles
