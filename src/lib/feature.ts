@@ -37,5 +37,10 @@ export const useNewTurnosApiClient = () => {
 // Helper unificado seguro para server/client
 export const isNewTurnosApiEnabled = () => {
   if (typeof window === 'undefined') return isNewTurnosApiEnabledServer();
-  return useNewTurnosApiClient();
+  // Evitar regla de hooks: no llamar funciones que empiezan con use* aquí
+  const publicFlag = process.env.NEXT_PUBLIC_USE_NEW_TURNOS_API;
+  if (publicFlag !== undefined) {
+    return publicFlag.toLowerCase() !== 'false';
+  }
+  return true;
 };
