@@ -68,7 +68,7 @@ export function DatePicker({
           {selectedDate ? format(selectedDate, "PPP", { locale: es }) : placeholder}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 border shadow-lg" align="start">
+      <PopoverContent className="w-auto p-0 border shadow-lg bg-popover text-popover-foreground" align="start">
         <Calendar
           mode="single"
           selected={selectedDate}
@@ -76,7 +76,7 @@ export function DatePicker({
           initialFocus
           locale={es}
           showOutsideDays={true}
-          className="rounded-md border bg-background"
+           className="rounded-md border bg-background text-foreground"
           classNames={{
             months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
             month: "space-y-4",
