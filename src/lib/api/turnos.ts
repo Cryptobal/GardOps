@@ -35,7 +35,7 @@ export async function deshacerAsistencia(data: UndoRequest): Promise<Response> {
 
 export async function verificarPermisos(): Promise<boolean> {
   try {
-    const response = await fetch('/api/me/permissions?perm=turnos.marcar_asistencia', {
+  const response = await fetch('/api/me/permissions?perm=' + encodeURIComponent('turnos.marcar_asistencia'), {
       cache: 'no-store'
     });
     return response.ok;

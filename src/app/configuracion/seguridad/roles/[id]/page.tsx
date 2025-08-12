@@ -18,7 +18,9 @@ export default function RolDetallePage() {
   const id = String(params?.id || "");
 
   const { allowed, loading } = useCan("rbac.roles.read");
-  const canWrite = useCan("rbac.roles.write").allowed || useCan("rbac.platform_admin").allowed;
+  const { allowed: allowedWrite } = useCan("rbac.roles.write");
+  const { allowed: allowedAdmin } = useCan("rbac.platform_admin");
+  const canWrite = allowedWrite || allowedAdmin;
   const { addToast: toast, success: toastSuccess, error: toastError } = useToast();
 
   const [busy, setBusy] = useState(false);

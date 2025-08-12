@@ -14,7 +14,9 @@ export async function GET(req: Request) {
     const email = fromHeader || dev
     if (!email) return NextResponse.json({ ok:false, error:'no-auth', code:'UNAUTHENTICATED' }, { status:401 })
 
-    console.log('[me/permissions][GET] params', { email, perm })
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[me/permissions][GET] params', { email, perm })
+    }
     console.log('[me/permissions][GET] SQL', {
       text: 'with me as (select id from public.usuarios where lower(email)=lower($1) limit 1) select public.fn_usuario_tiene_permiso((select id from me), $2) as allowed',
       values: [email, perm]
@@ -26,6 +28,9 @@ export async function GET(req: Request) {
       select public.fn_usuario_tiene_permiso((select id from me), ${perm}) as allowed
     `
     const allowed = rows?.[0]?.allowed === true
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[me/permissions][GET] result', { email, perm, allowed })
+    }
     return NextResponse.json({ ok:true, email, perm, allowed })
   } catch (err:any) {
     console.error('[me/permissions][GET] error', err)

@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
-import { requirePlatformAdmin, jsonError } from '@/lib/auth/rbac';
+import { getUserEmail, getUserIdByEmail, userHasPerm, jsonError } from '@/lib/auth/rbac';
 
 export async function GET(req: NextRequest) {
   try {
-    await requirePlatformAdmin(req);
+    const email = await getUserEmail(req);
+    if (!email) return NextResponse.json({ ok:false, error:'unauthenticated', code:'UNAUTHENTICATED' }, { status:401 });
+    const userId = await getUserIdByEmail(email!);
+    if (!userId) return NextResponse.json({ ok:false, error:'user_not_found', code:'NOT_FOUND' }, { status:401 });
+    const allowed = (await userHasPerm(userId, 'rbac.platform_admin')) || (await userHasPerm(userId, 'rbac.tenants.read'));
+    if (!allowed) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.tenants.read', code:'FORBIDDEN' }, { status:403 });
     const searchParams = req.nextUrl.searchParams;
     const q = (searchParams.get('q') || '').trim();
     const page = Number(searchParams.get('page') || '1');
@@ -26,7 +31,7 @@ export async function GET(req: NextRequest) {
     const list = (rows as any).rows ?? (rows as any);
     const total = list[0]?.total ?? 0;
     return NextResponse.json({
-      success: true,
+      ok: true,
       data: list.map((r: any) => ({
         id: r.id,
         nombre: r.nombre,
@@ -37,10 +42,8 @@ export async function GET(req: NextRequest) {
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
   } catch (e: any) {
-    if (e?.message === 'UNAUTHORIZED') return jsonError(401, 'No autenticado');
-    if (e?.message === 'FORBIDDEN') return jsonError(403, 'No autorizado');
     console.error('Error listando tenants:', e);
-    return jsonError(500, 'Error interno');
+    return NextResponse.json({ ok:false, error:'internal', detail:String(e?.message ?? e), code:'INTERNAL' }, { status:500 });
   }
 }
 

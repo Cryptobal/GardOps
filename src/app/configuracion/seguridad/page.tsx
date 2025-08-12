@@ -7,8 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
 export default function SeguridadPage() {
+  const { allowed: canUsuarios } = useCan('usuarios.manage');
+  const { allowed: canRolesRead } = useCan('rbac.roles.read');
+  const { allowed: canPermisosRead } = useCan('rbac.permisos.read');
+  const { allowed: canTenantsRead } = useCan('rbac.tenants.read');
   const { allowed: isPlatformAdmin, loading } = useCan('rbac.platform_admin');
-  console.debug('[SeguridadPage] estado permisos', { isPlatformAdmin, loading });
 
   const sections = [
     {
@@ -16,37 +19,36 @@ export default function SeguridadPage() {
       description: "Gestiona usuarios del sistema, activa o desactiva cuentas y asigna roles",
       icon: Users,
       href: "/configuracion/seguridad/usuarios",
-      color: "bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/20"
+      color: "bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/20",
+      allowed: canUsuarios || canRolesRead || false,
     },
     {
       title: "🛡️ Roles",
       description: "Crea y edita roles, define conjuntos de permisos para diferentes funciones",
       icon: Shield,
       href: "/configuracion/seguridad/roles",
-      color: "bg-green-500/10 hover:bg-green-500/20 border-green-500/20"
+      color: "bg-green-500/10 hover:bg-green-500/20 border-green-500/20",
+      allowed: canRolesRead,
     },
     {
       title: "🔑 Permisos",
       description: "Consulta el catálogo completo de permisos disponibles en el sistema",
       icon: Key,
       href: "/configuracion/seguridad/permisos",
-      color: "bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20"
+      color: "bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20",
+      allowed: canPermisosRead,
     },
     {
       title: "🏢 Tenants",
       description: "Administra Tenants de la plataforma (puede requerir Super Admin)",
       icon: Users,
       href: "/configuracion/seguridad/tenants",
-      color: "bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/20"
+      color: "bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/20",
+      allowed: isPlatformAdmin || canTenantsRead,
     }
   ];
 
-  const filteredSections = sections.filter((s) => {
-    if (s.href === "/configuracion/seguridad/tenants") {
-      return isPlatformAdmin; // mostrar Tenants solo si es Super Admin
-    }
-    return true;
-  });
+  const filteredSections = sections.filter((s) => s.allowed !== false);
 
 
   return (

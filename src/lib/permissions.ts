@@ -5,8 +5,17 @@
 import { useEffect, useRef, useState } from "react";
 import { rbacFetch } from "@/lib/rbacClient";
 
-async function fetchCan(perm: string): Promise<boolean> {
-  const url = `/api/me/permissions?perm=${encodeURIComponent(perm)}`;
+const TTL_MS = 60_000; // 60s
+
+export async function fetchCan(perm: string): Promise<boolean> {
+  const normalized = (perm || "").trim();
+  if (!normalized) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[useCan] Llamada a /api/me/permissions con perm vacío. Se omite y se permite por defecto.");
+    }
+    return true;
+  }
+  const url = `/api/me/permissions?perm=${encodeURIComponent(normalized)}`;
   // Usar rbacFetch para que agregue x-user-email en dev
   const res = await rbacFetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`/permissions ${res.status}`);
@@ -14,8 +23,23 @@ async function fetchCan(perm: string): Promise<boolean> {
   return !!data?.allowed;
 }
 
-// Pequeño caché en memoria para evitar re-consultas durante la sesión
-const canCache = new Map<string, boolean>();
+// Caché en memoria con TTL para evitar flapping
+type CacheEntry = { value: boolean; expiresAt: number };
+const canCache = new Map<string, CacheEntry>();
+
+function getCachedPermission(perm: string): boolean | null {
+  const entry = canCache.get(perm);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    canCache.delete(perm);
+    return null;
+  }
+  return entry.value;
+}
+
+function setCachedPermission(perm: string, value: boolean) {
+  canCache.set(perm, { value, expiresAt: Date.now() + TTL_MS });
+}
 
 export function useCan(perm?: string) {
   const normalized = (perm || "").trim();
@@ -38,9 +62,10 @@ export function useCan(perm?: string) {
       return;
     }
 
-    // ¿Ya lo tenemos cacheado?
-    if (canCache.has(normalized)) {
-      setAllowed(canCache.get(normalized) ?? false);
+    // ¿Ya lo tenemos cacheado y vigente?
+    const cached = getCachedPermission(normalized);
+    if (cached !== null) {
+      setAllowed(cached);
       setLoading(false);
       setError(null);
       return;
@@ -52,7 +77,7 @@ export function useCan(perm?: string) {
     fetchCan(normalized)
       .then((ok) => {
         if (cancel || !mounted.current) return;
-        canCache.set(normalized, ok);
+        setCachedPermission(normalized, ok);
         setAllowed(ok);
       })
       .catch((e) => {
@@ -74,9 +99,11 @@ export function useCan(perm?: string) {
 // Helper sin hook (por si se usa en server actions)
 export async function can(perm: string): Promise<boolean> {
   if (!perm?.trim()) return true;
-  if (canCache.has(perm)) return canCache.get(perm) ?? false;
-  const ok = await fetchCan(perm);
-  canCache.set(perm, ok);
+  const normalized = perm.trim();
+  const cached = getCachedPermission(normalized);
+  if (cached !== null) return cached;
+  const ok = await fetchCan(normalized);
+  setCachedPermission(normalized, ok);
   return ok;
 }
 

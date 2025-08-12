@@ -24,7 +24,9 @@ export default function TenantsPage() {
   const [form, setForm] = useState({ nombre: "", slug: "", owner_email: "", owner_nombre: "" });
   const [submitting, setSubmitting] = useState<boolean>(false);
   const { addToast: toast, error: toastError, success: toastSuccess } = useToast();
-  const { allowed: isPlatformAdmin, loading: loadingPerm } = useCan('rbac.platform_admin');
+  const { allowed: isPlatformAdmin } = useCan('rbac.platform_admin');
+  const { allowed: canTenantsRead } = useCan('rbac.tenants.read');
+  const loadingPerm = false; // useCan ya retorna allowed=true cuando perm es falsy y no flapea
 
   async function loadTenants() {
     try {
@@ -46,7 +48,7 @@ export default function TenantsPage() {
     }
   }
 
-  useEffect(() => { if (isPlatformAdmin) loadTenants(); }, [isPlatformAdmin]);
+  useEffect(() => { if (isPlatformAdmin || canTenantsRead) loadTenants(); }, [isPlatformAdmin, canTenantsRead]);
 
   async function createTenant() {
     try {
@@ -84,7 +86,7 @@ export default function TenantsPage() {
     );
   }
 
-  if (!isPlatformAdmin) {
+  if (!(isPlatformAdmin || canTenantsRead)) {
     return (
       <div className="p-6">
         <div className="rounded-xl border p-6">

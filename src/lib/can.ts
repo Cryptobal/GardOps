@@ -12,7 +12,9 @@ export { useCan, fetchCan } from '@/lib/permissions';
 
 // Mantener la función legacy original como respaldo (solo para tests o debug)
 export async function fetchCanLegacy(permission: string): Promise<boolean> {
-  const r = await fetch('/api/me/permissions?perm=' + encodeURIComponent(permission), { cache: 'no-store' });
+  const normalized = (permission || '').trim();
+  if (!normalized) return true;
+  const r = await fetch('/api/me/permissions?perm=' + encodeURIComponent(normalized), { cache: 'no-store' });
   return r.ok;
 }
 

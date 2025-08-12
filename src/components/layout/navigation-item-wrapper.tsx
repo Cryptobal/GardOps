@@ -26,19 +26,20 @@ export function NavigationItemWrapper({
   expandedItems = [],
   onToggleExpanded
 }: NavigationItemWrapperProps) {
-  // Resolver permiso; si viene vacío, no llamar API
-  const perm = item.permission?.trim() || null;
-  const { allowed, loading } = useCan(perm as any);
-  console.debug('nav-item', { label: (item as any).label ?? item.name, perm, allowed });
+  // Resolver permiso; si viene vacío, no llamar API y permitir por defecto
+  const perm = (item.permission || '').trim();
+  const shouldCheck = !!perm;
+  const { allowed: checkedAllowed, loading } = useCan(shouldCheck ? perm : undefined);
+  const allowed = shouldCheck ? checkedAllowed : true;
   const adoV2On = useFlag('ado_v2');
 
   // Si tiene permiso requerido y está cargando, no mostrar nada
-  if (item.permission && loading) {
+  if (shouldCheck && loading) {
     return null;
   }
 
   // Si tiene permiso requerido y no está permitido, no mostrar nada
-  if (item.permission && !allowed) {
+  if (shouldCheck && !allowed) {
     return null;
   }
 

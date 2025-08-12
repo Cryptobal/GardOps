@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
-import { requirePlatformAdmin, jsonError } from '@/lib/auth/rbac';
+import { getUserEmail, getUserIdByEmail, userHasPerm, jsonError } from '@/lib/auth/rbac';
 
 export async function POST(req: NextRequest) {
   try {
-    await requirePlatformAdmin(req);
+    const email = await getUserEmail(req);
+    if (!email) return NextResponse.json({ ok:false, error:'unauthenticated', code:'UNAUTHENTICATED' }, { status:401 });
+    const userId = await getUserIdByEmail(email!);
+    if (!userId) return NextResponse.json({ ok:false, error:'user_not_found', code:'NOT_FOUND' }, { status:401 });
+    const allowed = (await userHasPerm(userId, 'rbac.platform_admin')) || (await userHasPerm(userId, 'rbac.tenants.read'));
+    if (!allowed) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.tenants.read', code:'FORBIDDEN' }, { status:403 });
 
     const body = await req.json();
     const { nombre, slug, owner_email, owner_nombre } = body || {};
@@ -18,7 +23,7 @@ export async function POST(req: NextRequest) {
     const row = (result as any).rows?.[0] || (result as any)[0];
 
     return NextResponse.json({
-      success: true,
+      ok: true,
       data: {
         tenant_id: row?.tenant_id,
         owner_id: row?.owner_id,
@@ -26,10 +31,8 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (e: any) {
-    if (e?.message === 'UNAUTHORIZED') return jsonError(401, 'No autenticado');
-    if (e?.message === 'FORBIDDEN') return jsonError(403, 'No autorizado');
     console.error('Error creando tenant:', e);
-    return jsonError(500, 'Error interno');
+    return NextResponse.json({ ok:false, error:'internal', detail:String(e?.message ?? e), code:'INTERNAL' }, { status:500 });
   }
 }
 
