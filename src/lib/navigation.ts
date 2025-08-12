@@ -16,7 +16,7 @@ import {
   DollarSign,
   Calculator,
   Building,
-  FileText as FileTextIcon,
+  
   CreditCard,
   Key,
   Lock
@@ -70,19 +70,7 @@ export const navigationItems: NavigationItem[] = [
   {
     name: "Payroll",
     href: "/payroll",
-    icon: CreditCard,
-    children: [
-      {
-        name: "Ítems Globales",
-        href: "/payroll/items-globales",
-        icon: DollarSign
-      },
-      {
-        name: "Ítems Extras",
-        href: "/payroll/items-extras",
-        icon: FileText
-      }
-    ]
+    icon: CreditCard
   },
   {
     name: "Sueldos",
@@ -97,19 +85,7 @@ export const navigationItems: NavigationItem[] = [
   {
     name: "Documentos",
     href: "/documentos",
-    icon: FolderOpen,
-    children: [
-      {
-        name: "Todos los Documentos",
-        href: "/documentos",
-        icon: FileText
-      },
-      {
-        name: "Plantillas",
-        href: "/documentos/plantillas",
-        icon: FileTextIcon
-      }
-    ]
+    icon: FolderOpen
   },
   {
     name: "Alertas y KPIs",
@@ -124,54 +100,6 @@ export const navigationItems: NavigationItem[] = [
   {
     name: "Configuración",
     href: "/configuracion",
-    icon: Settings,
-    children: [
-      {
-        name: "Roles de Servicio",
-        href: "/configuracion/roles-servicio",
-        icon: Clock
-      },
-      {
-        name: "Estructuras de Servicio",
-        href: "/estructuras",
-        icon: Activity
-      },
-      {
-        name: "Tipos de Puesto",
-        href: "/configuracion/tipos-puesto",
-        icon: MapPin
-      },
-      {
-        name: "Tipos de Documentos",
-        href: "/configuracion/tipos-documentos",
-        icon: FileText
-      },
-      {
-        name: "🔒 Seguridad",
-        href: "/configuracion/seguridad",
-        icon: Lock,
-        permission: "rbac.admin",
-        children: [
-          {
-            name: "👥 Usuarios",
-            href: "/configuracion/seguridad/usuarios",
-            icon: Users,
-            permission: "rbac.admin"
-          },
-          {
-            name: "🛡️ Roles",
-            href: "/configuracion/seguridad/roles",
-            icon: Shield,
-            permission: "rbac.admin"
-          },
-          {
-            name: "🔑 Permisos",
-            href: "/configuracion/seguridad/permisos",
-            icon: Key,
-            permission: "rbac.admin"
-          }
-        ]
-      }
-    ]
+    icon: Settings
   }
 ]; 
