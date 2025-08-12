@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
   }
   
   try {
-    // Verificar si usamos la nueva API con funciones de Neon
+    // Verificar si usamos la nueva API con funciones de Neon (no es un React Hook)
     if (useNewTurnosApi()) {
       console.info('[guardias/disponibles] Usando función de Neon fn_guardias_disponibles');
       

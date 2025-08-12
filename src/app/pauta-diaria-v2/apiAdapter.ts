@@ -6,13 +6,16 @@
  * Con USE_NEW_TURNOS_API=false usa los endpoints existentes (fallback seguro)
  */
 
-import { useNewTurnosApiClient } from '@/lib/feature';
+// No usar Hooks aquí; estos helpers corren tanto en server como client
+import { useNewTurnosApi, useNewTurnosApiClient } from '@/lib/feature';
 
 /**
  * Verifica si la nueva API está habilitada
  * Expone el estado del feature flag para uso en componentes
  */
 export function isNewApiEnabled(): boolean {
+  // En entorno server no hay window; usar flag server-safe
+  if (typeof window === 'undefined') return useNewTurnosApi();
   return useNewTurnosApiClient();
 }
 
@@ -41,7 +44,7 @@ export async function postJson(url: string, body: any) {
  * Prioriza NEXT_PUBLIC_USE_NEW_TURNOS_API para poder cambiar desde el cliente
  */
 export function endpoints() {
-  const enabled = useNewTurnosApiClient();
+  const enabled = isNewApiEnabled();
   
   // Log para debugging
   if (typeof window !== 'undefined') {
