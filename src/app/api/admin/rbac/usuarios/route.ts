@@ -18,18 +18,20 @@ export async function GET(req: Request) {
     // 1) auth + permiso platform_admin
     const h = new Headers(req.headers);
     const email = h.get("x-user-email") || process.env.NEXT_PUBLIC_DEV_USER_EMAIL || undefined;
-    if (!email) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    if (!email) return NextResponse.json({ ok:false, error: "No autenticado", code:'UNAUTHENTICATED' }, { status: 401 });
 
+    console.log('[admin/rbac/usuarios][GET] requester', { email })
     const u = await sql<{ id: string }>`
       SELECT id FROM public.usuarios WHERE lower(email)=lower(${email}) LIMIT 1;
     `;
     const userId = u.rows[0]?.id;
-    if (!userId) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 401 });
+    if (!userId) return NextResponse.json({ ok:false, error: "Usuario no encontrado", code:'NOT_FOUND' }, { status: 401 });
 
+    console.log('[admin/rbac/usuarios][GET] SQL perm check', { text: 'select public.fn_usuario_tiene_permiso($1,$2) as allowed', values: [userId, 'rbac.platform_admin'] })
     const perm = await sql<{ allowed: boolean }>`
       SELECT public.fn_usuario_tiene_permiso(${userId}::uuid, ${"rbac.platform_admin"}) AS allowed;
     `;
-    if (!perm.rows[0]?.allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!perm.rows[0]?.allowed) return NextResponse.json({ ok:false, error: "Forbidden", code:'FORBIDDEN', perm:'rbac.platform_admin' }, { status: 403 });
 
     // 2) parámetros seguros
     const { searchParams } = new URL(req.url);
@@ -81,11 +83,12 @@ export async function GET(req: Request) {
       `;
     }
 
+    console.log('[admin/rbac/usuarios][GET] SQL list', { page, limit, q, activoParam })
     return NextResponse.json({ ok: true, items: rows.rows });
   } catch (err: any) {
-    console.error("[rbac/usuarios] error:", err?.message, err);
+    console.error("[rbac/usuarios][GET] error:", err);
     return NextResponse.json(
-      { error: `Error interno: ${err?.message ?? "unknown"}` },
+      { ok:false, error: 'internal', detail: String(err?.message ?? err), code:'INTERNAL' },
       { status: 500 }
     );
   }
@@ -93,79 +96,54 @@ export async function GET(req: Request) {
 
 export async function POST(req: NextRequest) {
   try {
-    // 1) Obtener requester por email
-    const requesterEmail = getEmail(req);
-    if (!requesterEmail) {
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
-    }
-
-    const requester = await sql<{ id: string; tenant_id: string | null }>`
-      SELECT id, tenant_id
-      FROM public.usuarios
-      WHERE lower(email) = lower(${requesterEmail})
-      LIMIT 1;
-    `;
-    const requesterId = requester.rows[0]?.id;
-    const requesterTenantId = requester.rows[0]?.tenant_id ?? null;
-    if (!requesterId) {
-      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 401 });
-    }
-
-    // 2) Permisos: platform_admin o usuarios.manage
-    const platformAdminRes = await sql<{ allowed: boolean }>`
-      SELECT public.fn_usuario_tiene_permiso(${requesterId}::uuid, ${'rbac.platform_admin'}) AS allowed;
-    `;
-    const isPlatformAdmin = !!platformAdminRes.rows[0]?.allowed;
-
-    let canManage = false;
-    if (!isPlatformAdmin) {
-      const manageRes = await sql<{ allowed: boolean }>`
-        SELECT public.fn_usuario_tiene_permiso(${requesterId}::uuid, ${'usuarios.manage'}) AS allowed;
-      `;
-      canManage = !!manageRes.rows[0]?.allowed;
-      if (!canManage) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
-    }
-
-    // 3) Parsear body y validar
+    // 1) Body básico y validaciones
     const body = await req.json().catch(() => null) as
-      | { email?: string; nombre?: string | null; tenant_id?: string | null }
+      | { email?: string; nombre?: string | null; tenantId?: string | null }
       | null;
     const email = (body?.email || '').trim().toLowerCase();
-    const nombre = (body?.nombre ?? null) || null;
-    const requestedTenantId = body?.tenant_id ?? null;
-
-    const emailRegex = /\S+@\S+\.\S+/;
-    if (!email || !emailRegex.test(email)) {
-      return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
+    const nombre = (body?.nombre ?? '').trim();
+    const tenantIdFromBody = body?.tenantId ?? null;
+    if (!email) {
+      return NextResponse.json({ ok:false, error: 'email_requerido', code:'BAD_REQUEST' }, { status: 400 });
     }
 
-    // 3b) Determinar tenant destino
-    const targetTenantId = isPlatformAdmin && requestedTenantId ? requestedTenantId : requesterTenantId;
-
-    // 4) Verificar duplicado por email
-    const exists = await sql<{ id: string }>`
-      SELECT id::text AS id FROM public.usuarios WHERE lower(email) = lower(${email}) LIMIT 1;
+    // 2) Obtener tenant del solicitante por header (o DEV fallback)
+    const requesterEmail = getEmail(req);
+    console.log('[admin/rbac/usuarios][POST] payload', { requesterEmail, email, nombre, tenantIdFromBody })
+    const creatorTenant = await sql<{ tenant_id: string | null }>`
+      SELECT tenant_id FROM public.usuarios WHERE lower(email)=lower(${requesterEmail}) LIMIT 1;
     `;
-    if (exists.rows[0]?.id) {
-      return NextResponse.json({ error: 'email_duplicado' }, { status: 409 });
+    const creatorTenantId = creatorTenant.rows[0]?.tenant_id ?? null;
+
+    // 3) Resolver tenant final
+    const tenantIdFinal = tenantIdFromBody ?? creatorTenantId ?? null;
+
+    // 4) Insert con defaults y password temporal; si existe, 409
+    console.log('[admin/rbac/usuarios][POST] SQL insert', { text: 'insert into public.usuarios(...) returning ...', values: { email, nombre, tenantIdFinal } })
+    const inserted = await sql<{ id: string; email: string; nombre: string | null; activo: boolean; tenant_id: string | null }>`
+      INSERT INTO public.usuarios (id, email, nombre, apellido, activo, tenant_id, password, rol)
+      VALUES (
+        gen_random_uuid(),
+        lower(${email}),
+        COALESCE(${nombre}, ''),
+        '',
+        true,
+        ${tenantIdFinal},
+        encode(digest('temporary','sha256'),'hex'),
+        'guardia'
+      )
+      ON CONFLICT (email) DO NOTHING
+      RETURNING id, email, nombre, activo, tenant_id;
+    `;
+
+    const item = inserted.rows[0];
+    if (!item) {
+      return NextResponse.json({ ok:false, error: 'Usuario ya existe', code:'CONFLICT' }, { status: 409 });
     }
 
-    // 5) Insertar usuario
-    const inserted = await sql<{ id: string }>`
-      INSERT INTO public.usuarios (id, email, nombre, activo, tenant_id)
-      VALUES (gen_random_uuid(), lower(${email}), ${nombre}, true, ${targetTenantId})
-      RETURNING id::text AS id;
-    `;
-
-    const id = inserted.rows[0]?.id;
-    return NextResponse.json({ ok: true, id }, { status: 201 });
+    return NextResponse.json({ ok: true, item }, { status: 201 });
   } catch (err: any) {
-    console.error('[rbac/usuarios POST] error:', err?.message, err);
-    if (err?.message === 'Forbidden') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    console.error('[rbac/usuarios][POST] error:', err);
+    return NextResponse.json({ ok:false, error: 'internal', detail: String(err?.message || err), code:'INTERNAL' }, { status: 500 });
   }
 }

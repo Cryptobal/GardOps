@@ -7,6 +7,8 @@ import { Search, Users } from "lucide-react";
 import BackToSecurity from "@/components/BackToSecurity";
 import { rbacFetch } from "@/lib/rbacClient";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 type UsuarioRow = { id: string; email: string; nombre: string | null; activo: boolean; tenant_id: string | null };
 
@@ -20,6 +22,8 @@ export default function UsuariosPage() {
   const [tenantId, setTenantId] = useState("");
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const { addToast: toast } = useToast();
+  const router = useRouter();
 
   async function toggleActivo(id: string, current: boolean) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, activo: !current } : r)));
@@ -251,23 +255,37 @@ export default function UsuariosPage() {
                     body: JSON.stringify({
                       email,
                       nombre: nombre || undefined,
-                      tenant_id: tenantId || undefined,
+                      tenantId: tenantId || undefined,
                     }),
                   });
-                  if (res.status === 403) {
+                  if (res.status === 409) {
+                    const json = await res.json().catch(() => ({} as any));
+                    const msg = (json as any)?.error === 'Usuario ya existe' || (json as any)?.error === 'email_duplicado'
+                      ? 'El email ya existe'
+                      : 'El email ya existe';
+                    toast ? toast({ title: 'Error', description: msg, type: 'error' }) : console.warn(msg);
+                  } else if (res.status === 403) {
                     setFormError("No tienes permisos suficientes (403)");
                   } else {
                     const json = await res.json().catch(() => ({} as any));
                     if (!res.ok || (json as any)?.ok === false) {
                       setFormError((json as any)?.error || "No se pudo crear el usuario");
                     } else {
-                      const user = (json as any)?.user as UsuarioRow | undefined;
-                      if (user) setRows((prev) => [user, ...prev]);
+                      const item = (json as any)?.item as UsuarioRow | undefined;
+                      if (item) {
+                        setRows((prev) => [item, ...prev]);
+                      } else if ((json as any)?.user) {
+                        // compat
+                        const user = (json as any)?.user as UsuarioRow;
+                        setRows((prev) => [user, ...prev]);
+                      }
+                      toast ? toast({ title: 'Usuario creado', type: 'success' }) : console.log('Usuario creado');
                       setShowNew(false);
                       setEmail("");
                       setNombre("");
                       setTenantId("");
                       setFormError(null);
+                      router.refresh();
                     }
                   }
                 } catch {

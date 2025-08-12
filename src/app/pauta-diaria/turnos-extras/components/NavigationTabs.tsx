@@ -48,7 +48,7 @@ export default function NavigationTabs({ activeTab, onTabChange }: NavigationTab
   ];
 
   return (
-    <div className={`flex gap-1 bg-muted/30 p-1 rounded-lg mb-6 ${
+    <div className={`flex gap-1 bg-muted/30 p-1 rounded-lg mb-4 sm:mb-6 ${
       isMobile ? 'grid grid-cols-3' : 'flex-wrap'
     }`}>
       {tabs.map((tab) => {

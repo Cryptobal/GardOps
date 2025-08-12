@@ -1,158 +1,120 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
-import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
+import { getUserEmail, getUserIdByEmail, userHasPerm, jsonError } from '@/lib/auth/rbac';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const tenantParam = (searchParams.get('tenant_id') || '').trim();
-    const q = (searchParams.get('q') || '').trim().toLowerCase();
-    const page = Math.max(1, Number(searchParams.get('page') || '1'));
-    const limit = Math.max(1, Math.min(100, Number(searchParams.get('limit') || '50')));
+    const page = Number(searchParams.get('page') || 1);
+    const limit = Number(searchParams.get('limit') || 20);
+    const q = (searchParams.get('q') || '').trim();
     const offset = (page - 1) * limit;
 
-    const email = await getUserEmail(req);
-    if (!email) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
-    const userId = await getUserIdByEmail(email);
-    if (!userId) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 403 });
+    // Nota: solo lectura UI; opcional proteger por 'rbac.roles.read' o 'rbac.platform_admin'
+    const email = await getUserEmail(req).catch(() => null);
+    if (!email) return NextResponse.json({ ok:false, error:'unauthenticated', code:'UNAUTHENTICATED' }, { status:401 });
+    const userId = await getUserIdByEmail(email!);
+    if (!userId) return NextResponse.json({ ok:false, error:'user_not_found', code:'NOT_FOUND' }, { status:401 });
+    const canRead = (await userHasPerm(userId, 'rbac.roles.read')) || (await userHasPerm(userId, 'rbac.platform_admin'));
+    if (!canRead) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.roles.read', code:'FORBIDDEN' }, { status:403 });
 
-    const isPlatformAdmin = await userHasPerm(userId, 'rbac.platform_admin');
-
-    // Obtener tenant del usuario actual
-    const userRow = await sql<{ tenant_id: string | null }>`
-      SELECT tenant_id FROM public.usuarios WHERE id = ${userId}::uuid LIMIT 1;
-    `;
-    const actorTenantId = userRow.rows[0]?.tenant_id ?? null;
-
+    // roles: columnas reales -> id, nombre, descripcion, tenant_id, created_at, updated_at
     let rows;
-    if (tenantParam.toLowerCase() === 'null') {
-      // Roles globales: requieren platform_admin
-      if (!isPlatformAdmin) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
-      if (q) {
-        const like = `%${q}%`;
-        rows = await sql`
-          SELECT id, nombre, descripcion, tenant_id
-          FROM public.roles
-          WHERE tenant_id IS NULL
-            AND lower(nombre) LIKE ${like}
-          ORDER BY nombre ASC
-          LIMIT ${limit} OFFSET ${offset};
-        `;
-      } else {
-        rows = await sql`
-          SELECT id, nombre, descripcion, tenant_id
-          FROM public.roles
-          WHERE tenant_id IS NULL
-          ORDER BY nombre ASC
-          LIMIT ${limit} OFFSET ${offset};
-        `;
-      }
+    if (q.length > 0) {
+      const like = `%${q.toLowerCase()}%`;
+      rows = await sql`
+        SELECT r.id, r.nombre, r.descripcion, r.tenant_id
+        FROM roles r
+        WHERE lower(r.nombre) LIKE ${like}
+        ORDER BY r.nombre ASC
+        LIMIT ${limit} OFFSET ${offset};
+      `;
     } else {
-      // tenant específico o current
-      const targetTenantId = tenantParam && tenantParam.toLowerCase() !== 'current'
-        ? tenantParam
-        : actorTenantId;
-
-      if (!targetTenantId) {
-        // Si no hay tenant asociado al actor y no pide globales, no hay nada que listar
-        return NextResponse.json({ ok: true, items: [] });
-      }
-
-      // Si pide un tenant distinto al propio, exigir platform_admin
-      if (actorTenantId && targetTenantId !== actorTenantId && !isPlatformAdmin) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
-
-      if (q) {
-        const like = `%${q}%`;
-        rows = await sql`
-          SELECT id, nombre, descripcion, tenant_id
-          FROM public.roles
-          WHERE tenant_id = ${targetTenantId}
-            AND lower(nombre) LIKE ${like}
-          ORDER BY nombre ASC
-          LIMIT ${limit} OFFSET ${offset};
-        `;
-      } else {
-        rows = await sql`
-          SELECT id, nombre, descripcion, tenant_id
-          FROM public.roles
-          WHERE tenant_id = ${targetTenantId}
-          ORDER BY nombre ASC
-          LIMIT ${limit} OFFSET ${offset};
-        `;
-      }
+      rows = await sql`
+        SELECT r.id, r.nombre, r.descripcion, r.tenant_id
+        FROM roles r
+        ORDER BY r.nombre ASC
+        LIMIT ${limit} OFFSET ${offset};
+      `;
     }
 
+    console.log('[admin/rbac/roles][GET]', { email, userId, q, page, limit })
     return NextResponse.json({ ok: true, items: rows.rows });
   } catch (err: any) {
-    console.error('[rbac/roles][GET]', err);
-    return NextResponse.json({ error: 'Error interno: ' + (err?.message || 'unknown') }, { status: 500 });
+    console.error('[admin/rbac/roles][GET] error:', err);
+    return NextResponse.json({ ok:false, error: 'internal', detail: String(err?.message || err), code:'INTERNAL' }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
+  const client = sql;
   try {
     const email = await getUserEmail(req);
-    if (!email) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    if (!email) return NextResponse.json({ ok:false, error:'unauthenticated', code:'UNAUTHENTICATED' }, { status:401 });
     const userId = await getUserIdByEmail(email);
-    if (!userId) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 403 });
+    if (!userId) return NextResponse.json({ ok:false, error:'user_not_found', code:'NOT_FOUND' }, { status:401 });
 
-    // Actor info
-    const actorRow = await sql<{ tenant_id: string | null }>`
-      SELECT tenant_id FROM public.usuarios WHERE id = ${userId}::uuid LIMIT 1;
-    `;
-    const actorTenantId = actorRow.rows[0]?.tenant_id ?? null;
-    const isPlatformAdmin = await userHasPerm(userId, 'rbac.platform_admin');
+    const canWrite = (await userHasPerm(userId, 'rbac.platform_admin')) || (await userHasPerm(userId, 'rbac.roles.write'));
+    if (!canWrite) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.roles.write', code:'FORBIDDEN' }, { status:403 });
 
-    const body = await req.json().catch(() => null) as { nombre?: string; descripcion?: string | null; tenant_id?: string | null } | null;
+    const body = await req.json().catch(() => null) as { nombre?: string; descripcion?: string; permisos?: string[] } | null;
     const nombre = (body?.nombre || '').trim();
-    const descripcion = (body?.descripcion ?? '').trim() || null;
-    const requestedTenantId = (body?.tenant_id ?? undefined);
+    const descripcion = (body?.descripcion || '').trim() || null;
+    const permisos = Array.isArray(body?.permisos) ? Array.from(new Set(body!.permisos!.map(String))) : [] as string[];
 
-    if (!nombre) {
-      return NextResponse.json({ error: 'faltan_campos: nombre' }, { status: 400 });
+    if (!nombre) return NextResponse.json({ ok:false, error:'nombre_requerido', code:'BAD_REQUEST' }, { status:400 });
+
+    // Obtener tenant del usuario
+    const tu = await sql<{ tenant_id: string | null }>`SELECT tenant_id FROM public.usuarios WHERE id=${userId}::uuid LIMIT 1`;
+    const tenantId = tu.rows[0]?.tenant_id ?? null;
+
+    console.log('[admin/rbac/roles][POST] payload', { email, userId, nombre, descripcion, permisos, tenantId })
+
+    // Insert rol
+    let newRoleId: string | null = null;
+    try {
+      const r = await sql<{ id: string }>`
+        INSERT INTO public.roles (id, nombre, descripcion, tenant_id)
+        VALUES (gen_random_uuid(), ${nombre}, ${descripcion}, ${tenantId})
+        RETURNING id::text as id
+      `;
+      newRoleId = r.rows[0]?.id ?? null;
+    } catch (e: any) {
+      // conflicto de unicidad
+      const msg = String(e?.message || '')
+      if (msg.toLowerCase().includes('unique') || msg.toLowerCase().includes('duplicate')) {
+        return NextResponse.json({ ok:false, error:'duplicate_nombre', code:'CONFLICT', detail: msg }, { status:409 });
+      }
+      throw e;
     }
 
-    // Determinar tenant destino
-    let targetTenantId: string | null;
-    if (typeof requestedTenantId === 'string') {
-      targetTenantId = requestedTenantId.trim() === '' ? null : requestedTenantId;
-    } else {
-      targetTenantId = actorTenantId ?? null;
+    if (!newRoleId) return NextResponse.json({ ok:false, error:'insert_failed', code:'INTERNAL' }, { status:500 });
+
+    // Asignar permisos si vienen
+    let permisosAsignados: string[] = [];
+    if (permisos.length > 0) {
+      const perms = await sql<{ id: string; clave: string }>`
+        SELECT id::text as id, clave FROM public.permisos WHERE clave = ANY(${permisos}::text[])
+      `;
+      const found = new Set(perms.rows.map(p => p.clave));
+      const faltantes = permisos.filter(p => !found.has(p));
+      if (faltantes.length > 0) {
+        return NextResponse.json({ ok:false, error:'permisos_no_existen', faltantes, code:'BAD_REQUEST' }, { status:400 });
+      }
+      console.log('[admin/rbac/roles][POST] asignando permisos', { newRoleId, permisos })
+      await sql`
+        INSERT INTO public.roles_permisos(rol_id, permiso_id)
+        SELECT ${newRoleId}::uuid, p.id
+        FROM public.permisos p
+        WHERE p.clave = ANY(${permisos}::text[])
+        ON CONFLICT DO NOTHING
+      `;
+      permisosAsignados = permisos;
     }
 
-    // Crear rol global (tenant_id NULL) requiere platform_admin
-    if (targetTenantId === null && !isPlatformAdmin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    // Si quiere crear en otro tenant diferente al del actor, exigir platform_admin
-    if (actorTenantId && targetTenantId && targetTenantId !== actorTenantId && !isPlatformAdmin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    // Chequear duplicado case-insensitive por tenant
-    const dup = await sql<{ id: string }>`
-      SELECT id FROM public.roles WHERE lower(nombre) = lower(${nombre}) AND (
-        (${targetTenantId}::uuid IS NULL AND tenant_id IS NULL) OR (tenant_id = ${targetTenantId})
-      ) LIMIT 1;
-    `;
-    if (dup.rows[0]?.id) {
-      return NextResponse.json({ error: 'nombre_duplicado' }, { status: 409 });
-    }
-
-    const inserted = await sql<{ id: string }>`
-      INSERT INTO public.roles (id, nombre, descripcion, tenant_id)
-      VALUES (gen_random_uuid(), ${nombre}, ${descripcion}, ${targetTenantId})
-      RETURNING id::text as id;
-    `;
-    const id = inserted.rows[0]?.id;
-    return NextResponse.json({ ok: true, id }, { status: 201 });
-  } catch (err: any) {
-    console.error('[rbac/roles][POST]', err);
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    return NextResponse.json({ ok:true, id: newRoleId, nombre, descripcion, tenant_id: tenantId, permisos_asignados: permisosAsignados }, { status:201 });
+  } catch (err:any) {
+    console.error('[admin/rbac/roles][POST] error', err);
+    return NextResponse.json({ ok:false, error:'internal', detail:String(err?.message ?? err), code:'INTERNAL' }, { status:500 });
   }
 }

@@ -23,7 +23,9 @@ import {
   Info,
   Shield,
   UserCheck,
-  Trash2
+  Trash2,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { obtenerResumenPautasMensuales, crearPautaMensualAutomatica, verificarRolesServicio, eliminarPautaMensual } from "../../lib/api/pauta-mensual";
 import { useToast } from "../../components/ui/toast";
@@ -68,7 +70,7 @@ interface ResumenPautas {
   anio: number;
 }
 
-// Componente KPI Box optimizado para móviles
+// Componente KPI Box optimizado para móviles (con clases estáticas para Tailwind)
 const KPIBox = ({ 
   title, 
   value, 
@@ -79,38 +81,50 @@ const KPIBox = ({
   title: string;
   value: string | number;
   icon: React.ComponentType<any>;
-  color?: string;
+  color?: "blue" | "green" | "orange" | "purple";
   subtitle?: string;
-}) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5 }}
-  >
-    <Card className="h-full">
-      <CardContent className="p-3 sm:p-4 md:p-6 flex flex-col justify-between h-full">
-        <div className="flex items-center justify-between">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs sm:text-sm font-medium text-muted-foreground leading-tight">{title}</p>
-            <p className="text-lg sm:text-xl md:text-2xl font-bold truncate">{value}</p>
-            {subtitle && (
-              <p className="text-xs text-muted-foreground mt-1 truncate">{subtitle}</p>
-            )}
+}) => {
+  const colorClassMap: Record<"blue" | "green" | "orange" | "purple", { bg: string; text: string }> = {
+    blue: { bg: "bg-blue-100 dark:bg-blue-900/20", text: "text-blue-600 dark:text-blue-400" },
+    green: { bg: "bg-green-100 dark:bg-green-900/20", text: "text-green-600 dark:text-green-400" },
+    orange: { bg: "bg-orange-100 dark:bg-orange-900/20", text: "text-orange-600 dark:text-orange-400" },
+    purple: { bg: "bg-purple-100 dark:bg-purple-900/20", text: "text-purple-600 dark:text-purple-400" },
+  };
+
+  const colorClasses = colorClassMap[color] ?? colorClassMap.blue;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <Card className="h-full overflow-hidden">
+        <CardContent className="p-3 sm:p-4 md:p-6 flex flex-col justify-between h-full">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground leading-tight">{title}</p>
+              <p className="text-lg sm:text-xl md:text-2xl font-bold truncate">{value}</p>
+              {subtitle && (
+                <p className="text-xs text-muted-foreground mt-1 truncate">{subtitle}</p>
+              )}
+            </div>
+            <div className={`p-2 sm:p-2.5 md:p-3 rounded-full ${colorClasses.bg} flex-shrink-0 ml-2 sm:ml-3`}>
+              <Icon className={`h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 ${colorClasses.text}`} />
+            </div>
           </div>
-          <div className={`p-2 sm:p-2.5 md:p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/20 flex-shrink-0 ml-2 sm:ml-3`}>
-            <Icon className={`h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-${color}-600 dark:text-${color}-400`} />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  </motion.div>
-);
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
 
 export default function PautaMensualPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [selectedMes, setSelectedMes] = useState<string>("");
   const [selectedAnio, setSelectedAnio] = useState<string>("");
+  const [isPeriodoOpen, setIsPeriodoOpen] = useState<boolean>(false);
   const [resumen, setResumen] = useState<ResumenPautas | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingInstalacion, setLoadingInstalacion] = useState<string | null>(null);
@@ -299,48 +313,74 @@ export default function PautaMensualPage() {
         </div>
       </div>
 
-      {/* Selector de Mes y Año optimizado para móviles */}
-      <Card>
-        <CardHeader className="pb-3 sm:pb-4">
-          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-            <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
-            Seleccionar Período
-          </CardTitle>
+      {/* Selector de Mes y Año - Mobile First con panel plegable */}
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-2 sm:pb-3">
+          <button
+            type="button"
+            onClick={() => setIsPeriodoOpen((v) => !v)}
+            className="w-full flex items-center justify-between gap-2"
+          >
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
+              Seleccionar período
+            </CardTitle>
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+              <span className="truncate">
+                {(() => {
+                  const mesLabel = meses.find((m) => m.value === selectedMes)?.label || "Mes";
+                  return `${mesLabel} ${selectedAnio || new Date().getFullYear()}`;
+                })()}
+              </span>
+              {isPeriodoOpen ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </div>
+          </button>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <div className="space-y-2 flex-1">
-              <label className="text-xs sm:text-sm font-medium">Mes</label>
-              <Select value={selectedMes} onValueChange={setSelectedMes}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar mes" />
-                </SelectTrigger>
-                <SelectContent>
-                  {meses.map((mes) => (
-                    <SelectItem key={mes.value} value={mes.value}>
-                      {mes.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <CardContent className="pt-0">
+          <motion.div
+            initial={false}
+            animate={{ height: isPeriodoOpen ? "auto" : 0, opacity: isPeriodoOpen ? 1 : 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="overflow-hidden"
+          >
+            <div className="pt-3 flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <div className="space-y-2 flex-1">
+                <label className="text-xs sm:text-sm font-medium">Mes</label>
+                <Select value={selectedMes} onValueChange={setSelectedMes}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Seleccionar mes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {meses.map((mes) => (
+                      <SelectItem key={mes.value} value={mes.value}>
+                        {mes.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-2 flex-1 sm:flex-none">
-              <label className="text-xs sm:text-sm font-medium">Año</label>
-              <Select value={selectedAnio} onValueChange={setSelectedAnio}>
-                <SelectTrigger className="w-full sm:w-32">
-                  <SelectValue placeholder="Año" />
-                </SelectTrigger>
-                <SelectContent>
-                  {anios.map((anio) => (
-                    <SelectItem key={anio} value={anio.toString()}>
-                      {anio}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2 flex-1 sm:flex-none">
+                <label className="text-xs sm:text-sm font-medium">Año</label>
+                <Select value={selectedAnio} onValueChange={setSelectedAnio}>
+                  <SelectTrigger className="w-full sm:w-32">
+                    <SelectValue placeholder="Año" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {anios.map((anio) => (
+                      <SelectItem key={anio} value={anio.toString()}>
+                        {anio}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
+          </motion.div>
         </CardContent>
       </Card>
 
@@ -452,7 +492,7 @@ export default function PautaMensualPage() {
         </Card>
       ) : resumen ? (
         <div className="space-y-3 sm:space-y-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
             {/* Mostrar todas las instalaciones, con o sin pauta */}
             {[
               ...resumen.instalaciones_con_pauta.map(inst => ({ ...inst, tipo: 'con_pauta' })),

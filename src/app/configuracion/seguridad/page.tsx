@@ -1,38 +1,14 @@
 "use client";
 
 import { useCan } from "@/lib/permissions";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { Users, Shield, Key, Lock } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
 export default function SeguridadPage() {
-  const { allowed: canAdminRbac, loading: permissionLoading } = useCan('rbac.admin');
-  const { allowed: isPlatformAdmin } = useCan('rbac.platform_admin');
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!permissionLoading && !canAdminRbac) {
-      router.push("/");
-    }
-  }, [canAdminRbac, permissionLoading, router]);
-
-  if (permissionLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Verificando permisos...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!canAdminRbac) {
-    return null;
-  }
+  const { allowed: isPlatformAdmin, loading } = useCan('rbac.platform_admin');
+  console.debug('[SeguridadPage] estado permisos', { isPlatformAdmin, loading });
 
   const sections = [
     {
@@ -55,18 +31,23 @@ export default function SeguridadPage() {
       icon: Key,
       href: "/configuracion/seguridad/permisos",
       color: "bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20"
-    }
-  ];
-
-  if (isPlatformAdmin) {
-    sections.push({
+    },
+    {
       title: "🏢 Tenants",
-      description: "Administra Tenants de la plataforma (solo Super Admin)",
+      description: "Administra Tenants de la plataforma (puede requerir Super Admin)",
       icon: Users,
       href: "/configuracion/seguridad/tenants",
       color: "bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/20"
-    });
-  }
+    }
+  ];
+
+  const filteredSections = sections.filter((s) => {
+    if (s.href === "/configuracion/seguridad/tenants") {
+      return isPlatformAdmin; // mostrar Tenants solo si es Super Admin
+    }
+    return true;
+  });
+
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl">
@@ -74,8 +55,11 @@ export default function SeguridadPage() {
         <h1 className="text-3xl font-bold flex items-center gap-3">
           <Lock className="h-8 w-8" />
           Administración de Seguridad
-          {isPlatformAdmin && (
-            <Badge variant="secondary" className="text-xs">Super Admin</Badge>
+          {loading && (
+            <Badge variant="secondary" className="text-xs ml-2">Verificando permisos...</Badge>
+          )}
+          {!loading && isPlatformAdmin && (
+            <Badge variant="secondary" className="text-xs ml-2">Super Admin</Badge>
           )}
         </h1>
         <p className="text-muted-foreground mt-2">
@@ -84,7 +68,7 @@ export default function SeguridadPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {sections.map((section) => (
+        {filteredSections.map((section) => (
           <Link key={section.href} href={section.href}>
             <Card className={`cursor-pointer transition-all hover:shadow-lg ${section.color}`}>
               <CardHeader>

@@ -12,6 +12,7 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
     const actorId = await getUserIdByEmail(email);
     if (!actorId) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 403 });
 
+    console.log('[admin/rbac/usuarios/:id/roles][GET]', { email, actorId, targetId: ctx.params.id })
     const usuarioId = ctx.params.id;
     const userRow = await sql<{ id: string }>`
       SELECT id::text AS id FROM public.usuarios WHERE id = ${usuarioId}::uuid LIMIT 1;
@@ -29,8 +30,8 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
     `;
     return NextResponse.json({ ok: true, roles: roles.rows });
   } catch (err: any) {
-    console.error('[rbac/usuarios/:id/roles][GET]', err);
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    console.error('[admin/rbac/usuarios/:id/roles][GET] error', err);
+    return NextResponse.json({ ok:false, error: 'internal', detail: String(err?.message ?? err), code:'INTERNAL' }, { status: 500 });
   }
 }
 
@@ -63,6 +64,7 @@ export async function POST(req: NextRequest, ctx: RouteContext | { params: { id:
       return jsonError(403, 'rol_de_otro_tenant');
     }
 
+    console.log('[admin/rbac/usuarios/:id/roles][POST]', { email, actorId, isPlatformAdmin, usuarioId, rol_id, action })
     if (action === 'add') {
       await sql`insert into usuarios_roles(usuario_id, rol_id) values (${usuarioId}::uuid, ${rol_id}::uuid) on conflict do nothing`;
     } else {
@@ -72,8 +74,8 @@ export async function POST(req: NextRequest, ctx: RouteContext | { params: { id:
   } catch (e: any) {
     if (e?.message === 'UNAUTHORIZED') return jsonError(401, 'No autenticado');
     if (e?.message === 'FORBIDDEN') return jsonError(403, 'No autorizado');
-    console.error('Error asignando rol a usuario:', e);
-    return jsonError(500, 'Error interno');
+    console.error('[admin/rbac/usuarios/:id/roles][POST] error:', e);
+    return NextResponse.json({ ok:false, error:'internal', detail:String(e?.message ?? e), code:'INTERNAL' }, { status:500 });
   }
 }
 

@@ -10,8 +10,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { CalendarIcon, Download, DollarSign, RefreshCw, CheckCircle, XCircle, AlertTriangle, BarChart3, FileSpreadsheet, Calendar } from 'lucide-react';
+import { es } from 'date-fns/locale';
+import { CalendarIcon, Download, DollarSign, RefreshCw, CheckCircle, XCircle, AlertTriangle, BarChart3, FileSpreadsheet, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSearchParams, useRouter } from 'next/navigation';
 import NavigationTabs from './components/NavigationTabs';
 import StatsCards from './components/StatsCards';
 import FiltrosAvanzados from './components/FiltrosAvanzados';
@@ -63,6 +65,8 @@ const getFechasMes = (mesString: string) => {
 };
 
 export default function TurnosExtrasPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [turnosExtras, setTurnosExtras] = useState<TurnoExtra[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTurnos, setSelectedTurnos] = useState<string[]>([]);
@@ -107,6 +111,7 @@ export default function TurnosExtrasPage() {
     montoTotal: number | string;
   } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [showFiltrosLocal, setShowFiltrosLocal] = useState(false);
 
   const { success, error } = useToast();
 
@@ -135,6 +140,34 @@ export default function TurnosExtrasPage() {
     }));
   }, []);
 
+  // Leer tab desde query (?tab=dashboard) para abrir Dashboard directamente
+  useEffect(() => {
+    const tabParam = searchParams?.get('tab');
+    if (tabParam === 'dashboard') {
+      setActiveTab('dashboard');
+      setShowDashboard(true);
+      setShowCalendarView(false);
+    }
+  }, [searchParams]);
+
+  // Construir resumen compacto del período
+  const buildPeriodoResumen = () => {
+    // Si hay un mes seleccionado, mostrar solo Mes Año (no duplicar con rango)
+    if (filtros.mes) {
+      const [y, m] = filtros.mes.split('-').map((v) => parseInt(v));
+      const date = new Date(y, (m || 1) - 1, 1);
+      const label = format(date, 'MMM yyyy', { locale: es });
+      return label.charAt(0).toUpperCase() + label.slice(1);
+    }
+    // Si hay rango, formatear dd/MM/yyyy → dd/MM/yyyy
+    if (filtros.fechaInicio && filtros.fechaFin) {
+      const fi = format(new Date(filtros.fechaInicio), 'dd/MM/yyyy');
+      const ff = format(new Date(filtros.fechaFin), 'dd/MM/yyyy');
+      return `${fi} → ${ff}`;
+    }
+    return 'Sin filtros';
+  };
+
   // Función para manejar el cambio de pestañas
   const handleTabChange = (tab: 'turnos' | 'dashboard' | 'historial') => {
     setActiveTab(tab);
@@ -142,11 +175,15 @@ export default function TurnosExtrasPage() {
     if (tab === 'dashboard') {
       setShowDashboard(true);
       setShowCalendarView(false);
+      const path = typeof window !== 'undefined' ? window.location.pathname : '/pauta-diaria/turnos-extras';
+      router.replace(`${path}?tab=dashboard`);
     } else if (tab === 'historial') {
-      window.location.href = '/pauta-diaria/turnos-extras/historial';
+      router.push('/pauta-diaria/turnos-extras/historial');
     } else {
       setShowDashboard(false);
       setShowCalendarView(false);
+      const path = typeof window !== 'undefined' ? window.location.pathname : '/pauta-diaria/turnos-extras';
+      router.replace(path);
     }
   };
 
@@ -441,68 +478,64 @@ export default function TurnosExtrasPage() {
   }, [filtros]);
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
       {/* Navigation Tabs */}
       <NavigationTabs activeTab={activeTab} onTabChange={handleTabChange} />
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
             💰 Turnos Extras y Reemplazos
           </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
             Gestión de pagos para PPC cubierto y reemplazos de titular
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={cargarTurnosExtras} variant="outline" size="sm" disabled={loading}>
-            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
-            {!isMobile && "Actualizar"}
-          </Button>
-          <Button 
-            onClick={() => setShowDashboard(!showDashboard)} 
-            variant={showDashboard ? "default" : "outline"} 
-            size="sm"
-          >
-            <BarChart3 className="h-4 w-4 mr-2" />
-            {!isMobile && (showDashboard ? 'Ocultar Dashboard' : 'Ver Dashboard')}
-          </Button>
-          <Button 
-            onClick={() => setShowCalendarView(!showCalendarView)} 
-            variant={showCalendarView ? "default" : "outline"} 
-            size="sm"
-          >
-            <Calendar className="h-4 w-4 mr-2" />
-            {!isMobile && (showCalendarView ? 'Ocultar Calendario' : 'Ver Calendario')}
-          </Button>
-          <Button 
-            onClick={() => window.location.href = '/pauta-diaria/turnos-extras/historial'} 
-            variant="outline" 
-            size="sm"
-          >
-            <CalendarIcon className="h-4 w-4 mr-2" />
-            {!isMobile && "Ver Historial"}
-          </Button>
-          <Button 
-            onClick={exportarExcel} 
-            variant="outline" 
-            size="sm"
-            className="border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            {!isMobile && "Exportar XLSX"}
-          </Button>
-        </div>
+        <div className="hidden" />
       </div>
+
+      {/* Selector de Período compacto (Mobile First) */}
+      <Card className="overflow-hidden">
+        <CardHeader className="py-3">
+          <button
+            type="button"
+            onClick={() => setShowFiltrosLocal((v) => !v)}
+            className="w-full flex items-center justify-between gap-2"
+          >
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Seleccionar período y filtros
+            </CardTitle>
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+              <span className="truncate">{buildPeriodoResumen()}</span>
+              {showFiltrosLocal ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </div>
+          </button>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className={`${showFiltrosLocal ? 'block' : 'hidden'}`}>
+            <FiltrosAvanzados
+              filtros={filtros}
+              setFiltros={setFiltros}
+              instalaciones={instalaciones}
+              embedded
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Dashboard de Estadísticas */}
       {showDashboard && (
         <DashboardStats filtros={filtros} />
       )}
 
-      {/* Vista de Calendario */}
-      {showCalendarView && (
+      {/* Vista de Calendario (opcional, desactivada al simplificar UI) */}
+      {false && showCalendarView && (
         <CalendarView 
           turnosExtras={turnosExtras}
           onDayClick={(date) => {
@@ -531,7 +564,7 @@ export default function TurnosExtrasPage() {
 
       {/* Acciones Masivas */}
       {selectedTurnos.length > 0 && (
-        <Card className="border-blue-600/50 bg-blue-900/20 dark:bg-blue-900/30">
+        <Card className="border-blue-600/50 bg-blue-900/20 dark:bg-blue-900/30 sm:static sticky bottom-2 left-0 right-0 z-20 backdrop-blur supports-[backdrop-filter]:bg-blue-900/30">
           <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-2">
@@ -586,15 +619,15 @@ export default function TurnosExtrasPage() {
               <p className="text-sm">Ajusta los filtros o crea nuevos turnos extras</p>
             </div>
           ) : isMobile ? (
-            // Vista Móvil - Contenedores de 2 por fila
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            // Vista Móvil - Contenedores responsivos
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {turnosExtras.map((turno) => {
                 const estadoTurno = getEstadoTurno(turno);
                 const isSelectable = !turno.pagado && !turno.planilla_id;
                 const isSelected = selectedTurnos.includes(turno.id);
                 
                 return (
-                  <Card key={turno.id} className={`border-l-4 ${
+                  <Card key={turno.id} className={`overflow-hidden border-l-4 ${
                     isSelected 
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
                       : estadoTurno.variant === 'destructive'
@@ -606,7 +639,7 @@ export default function TurnosExtrasPage() {
                     <CardContent className="p-4">
                       {/* Header con checkbox y estado */}
                       <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
                           {isSelectable && (
                             <Checkbox
                               checked={isSelected}
@@ -624,16 +657,16 @@ export default function TurnosExtrasPage() {
 
                       {/* Información del guardia */}
                       <div className="mb-3">
-                        <h4 className="font-semibold text-sm">
+                        <h4 className="font-semibold text-sm truncate">
                           {turno.guardia_nombre} {turno.guardia_apellido_paterno}
                         </h4>
-                        <p className="text-xs text-muted-foreground">{turno.guardia_rut}</p>
+                        <p className="text-xs text-muted-foreground truncate">{turno.guardia_rut}</p>
                       </div>
 
                       {/* Información de la instalación y puesto */}
-                      <div className="mb-3 space-y-1">
-                        <p className="text-sm font-medium">{turno.instalacion_nombre}</p>
-                        <p className="text-xs text-muted-foreground">{turno.nombre_puesto}</p>
+                      <div className="mb-3 space-y-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{turno.instalacion_nombre}</p>
+                        <p className="text-xs text-muted-foreground truncate">{turno.nombre_puesto}</p>
                       </div>
 
                       {/* Fecha y valor */}
@@ -668,8 +701,8 @@ export default function TurnosExtrasPage() {
             </div>
           ) : (
             // Vista Desktop - Tabla tradicional
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="overflow-x-auto -mx-2 sm:mx-0">
+              <table className="w-full min-w-[720px]">
                 <thead>
                   <tr className="border-b">
                     <th className="text-left p-2">
@@ -678,14 +711,14 @@ export default function TurnosExtrasPage() {
                         onCheckedChange={toggleSelectAll}
                       />
                     </th>
-                    <th className="text-left p-2">Guardia</th>
-                    <th className="text-left p-2">Instalación</th>
-                    <th className="text-left p-2">Puesto</th>
-                    <th className="text-left p-2">Fecha</th>
-                    <th className="text-left p-2">Tipo</th>
-                    <th className="text-left p-2">Valor</th>
-                    <th className="text-left p-2">Estado</th>
-                    <th className="text-left p-2">Acciones</th>
+                    <th className="text-left p-2 whitespace-nowrap">Guardia</th>
+                    <th className="text-left p-2 whitespace-nowrap">Instalación</th>
+                    <th className="text-left p-2 whitespace-nowrap">Puesto</th>
+                    <th className="text-left p-2 whitespace-nowrap">Fecha</th>
+                    <th className="text-left p-2 whitespace-nowrap">Tipo</th>
+                    <th className="text-left p-2 whitespace-nowrap">Valor</th>
+                    <th className="text-left p-2 whitespace-nowrap">Estado</th>
+                    <th className="text-left p-2 whitespace-nowrap">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -702,17 +735,17 @@ export default function TurnosExtrasPage() {
                           )}
                         </td>
                         <td className="p-2">
-                          <div>
-                            <div className="font-medium">
+                          <div className="min-w-0">
+                            <div className="font-medium truncate">
                               {turno.guardia_nombre} {turno.guardia_apellido_paterno}
                             </div>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-muted-foreground truncate">
                               {turno.guardia_rut}
                             </div>
                           </div>
                         </td>
-                        <td className="p-2">{turno.instalacion_nombre}</td>
-                        <td className="p-2">{turno.nombre_puesto}</td>
+                        <td className="p-2 truncate">{turno.instalacion_nombre}</td>
+                        <td className="p-2 truncate">{turno.nombre_puesto}</td>
                         <td className="p-2">{format(new Date(turno.fecha), 'dd/MM/yyyy')}</td>
                         <td className="p-2">
                           <Badge variant={turno.estado === 'reemplazo' ? 'default' : 'secondary'}>

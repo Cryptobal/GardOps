@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +30,7 @@ const formatCurrency = (amount: number | string): string => {
 };
 
 export default function HistorialPage() {
+  const router = useRouter();
   const [planillas, setPlanillas] = useState<Planilla[]>([]);
   const [loading, setLoading] = useState(true);
   const [descargando, setDescargando] = useState<number | null>(null);
@@ -156,9 +158,9 @@ export default function HistorialPage() {
   // Función para manejar el cambio de pestañas
   const handleTabChange = (tab: 'turnos' | 'dashboard' | 'historial') => {
     if (tab === 'turnos') {
-      window.location.href = '/pauta-diaria/turnos-extras';
+      router.push('/pauta-diaria/turnos-extras');
     } else if (tab === 'dashboard') {
-      window.location.href = '/pauta-diaria/turnos-extras/dashboard';
+      router.push('/pauta-diaria/turnos-extras?tab=dashboard');
     }
   };
 
@@ -178,7 +180,7 @@ export default function HistorialPage() {
   }, []);
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
       {/* Navigation Tabs */}
       <NavigationTabs activeTab="historial" onTabChange={handleTabChange} />
       
@@ -190,7 +192,7 @@ export default function HistorialPage() {
       {/* Lista de Planillas */}
       <Card>
         <CardHeader>
-          <CardTitle>Planillas Generadas</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Planillas Generadas</CardTitle>
           <CardDescription>
             Lista de planillas de turnos extras ({planillas.length} planillas)
           </CardDescription>
@@ -207,7 +209,7 @@ export default function HistorialPage() {
               <p className="text-sm">Genera planillas desde la sección de turnos extras</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {planillas.map((planilla) => {
                 const estadoPlanilla = getEstadoPlanilla(planilla);
                 const isProcesando = procesandoAccion === planilla.id;
@@ -217,34 +219,34 @@ export default function HistorialPage() {
                   <Card 
                     key={planilla.id} 
                     className={cn(
-                      "border-l-4",
+                      "border-l-4 overflow-hidden",
                       isPagada ? "border-l-green-500" : "border-l-blue-500"
                     )}
                   >
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
+                    <CardContent className="pt-4 sm:pt-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                           <div className="flex items-center gap-2">
                             <FileSpreadsheet className={cn("h-5 w-5", isPagada ? "text-green-600" : "text-blue-600")} />
                             <div>
-                              <h3 className="font-semibold">Planilla #{planilla.id}</h3>
-                              <p className="text-sm text-muted-foreground">
+                              <h3 className="font-semibold truncate">Planilla #{planilla.id}</h3>
+                              <p className="text-xs sm:text-sm text-muted-foreground truncate">
                                 Creada el {format(new Date(planilla.fecha_creacion), 'dd/MM/yyyy HH:mm')}
                               </p>
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-6">
+                          <div className="grid grid-cols-1 xs:grid-cols-2 sm:flex items-center gap-3 sm:gap-6">
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm">
+                              <span className="text-xs sm:text-sm">
                                 {planilla.cantidad_turnos} turno(s)
                               </span>
                             </div>
                             
                             <div className="flex items-center gap-2">
                               <DollarSign className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm font-medium">
+                              <span className="text-xs sm:text-sm font-medium">
                                 {formatCurrency(planilla.monto_total)}
                               </span>
                             </div>
@@ -255,7 +257,7 @@ export default function HistorialPage() {
                           </div>
                         </div>
                         
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap mt-3 sm:mt-0">
                           {/* Botón Eliminar (solo si no está pagada) */}
                           {!isPagada && (
                             <Button
@@ -286,7 +288,7 @@ export default function HistorialPage() {
                           )}
 
                           {/* Botón Descargar */}
-                          <Button
+                           <Button
                             onClick={() => descargarPlanilla(planilla.id)}
                             size="sm"
                             disabled={descargando === planilla.id || isProcesando}

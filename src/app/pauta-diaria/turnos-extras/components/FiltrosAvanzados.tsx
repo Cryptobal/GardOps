@@ -23,17 +23,19 @@ interface FiltrosAvanzadosProps {
     rangoFecha?: string;
   };
   setFiltros: (filtros: any) => void;
-  showFiltros: boolean;
-  setShowFiltros: (show: boolean) => void;
+  showFiltros?: boolean;
+  setShowFiltros?: (show: boolean) => void;
   instalaciones: Array<{ id: string; nombre: string }>;
+  embedded?: boolean; // Cuando es true, no renderiza Card/Accordion; solo el contenido
 }
 
 export default function FiltrosAvanzados({
   filtros,
   setFiltros,
-  showFiltros,
+  showFiltros = true,
   setShowFiltros,
-  instalaciones
+  instalaciones,
+  embedded = false,
 }: FiltrosAvanzadosProps) {
   const [isMobile, setIsMobile] = useState(false);
 
@@ -183,11 +185,221 @@ export default function FiltrosAvanzados({
     }));
   };
 
+  const Content = (
+    <>
+      {/* Filtros de Fecha */}
+      <div className="space-y-4 mb-6">
+        <h3 className="text-sm font-medium flex items-center gap-2">
+          <Calendar className="h-4 w-4" />
+          Filtros de Fecha
+        </h3>
+        <div className={`grid gap-4 ${
+          isMobile 
+            ? 'grid-cols-1'
+            : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
+        }`}>
+          {/* Rango de Fecha Predefinido */}
+          <div className="space-y-2">
+            <Label htmlFor="rango-fecha">Rango de Fecha</Label>
+            <Select 
+              value={filtros.rangoFecha || 'personalizado'} 
+              onValueChange={handleRangoFechaChange}
+            >
+              <SelectTrigger id="rango-fecha">
+                <SelectValue placeholder="Seleccionar rango" />
+              </SelectTrigger>
+              <SelectContent>
+                {rangosFecha.map((rango) => (
+                  <SelectItem key={rango.valor} value={rango.valor}>
+                    {rango.texto}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Selector de Mes */}
+          <div className="space-y-2">
+            <Label htmlFor="mes" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              {isMobile ? 'Mes' : 'Mes Específico'}
+            </Label>
+            <Select 
+              value={filtros.mes || 'all'} 
+              onValueChange={handleMesChange}
+            >
+              <SelectTrigger id="mes">
+                <SelectValue placeholder="Seleccionar mes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los meses</SelectItem>
+                {opcionesMeses.map((opcion) => (
+                  <SelectItem key={opcion.valor} value={opcion.valor}>
+                    {opcion.texto}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Fecha Inicio */}
+          <div className="space-y-2">
+            <Label htmlFor="fecha-inicio">{isMobile ? 'Desde' : 'Fecha Inicio'}</Label>
+            <DatePicker
+              date={fechaInicioDate}
+              onDateChange={handleFechaInicioChange}
+              placeholder="Fecha inicio"
+            />
+          </div>
+
+          {/* Fecha Fin */}
+          <div className="space-y-2">
+            <Label htmlFor="fecha-fin">{isMobile ? 'Hasta' : 'Fecha Fin'}</Label>
+            <DatePicker
+              date={fechaFinDate}
+              onDateChange={handleFechaFinChange}
+              placeholder="Fecha fin"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Filtros de Estado y Monto */}
+      <div className="space-y-4 mb-6">
+        <h3 className="text-sm font-medium flex items-center gap-2">
+          <CheckCircle className="h-4 w-4" />
+          Filtros de Estado y Monto
+        </h3>
+        <div className={`grid gap-4 ${
+          isMobile 
+            ? 'grid-cols-1'
+            : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
+        }`}>
+          {/* Estado */}
+          <div className="space-y-2">
+            <Label htmlFor="estado">{isMobile ? 'Tipo' : 'Tipo de Turno'}</Label>
+            <Select 
+              value={filtros.estado} 
+              onValueChange={(value) => setFiltros(prev => ({ ...prev, estado: value }))}
+            >
+              <SelectTrigger id="estado">
+                <SelectValue placeholder="Todos los estados" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="reemplazo">Reemplazo</SelectItem>
+                <SelectItem value="ppc">PPC</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Estado de Pago */}
+          <div className="space-y-2">
+            <Label htmlFor="pagado">{isMobile ? 'Pago' : 'Estado de Pago'}</Label>
+            <Select 
+              value={filtros.pagado} 
+              onValueChange={(value) => setFiltros(prev => ({ ...prev, pagado: value }))}
+            >
+              <SelectTrigger id="pagado">
+                <SelectValue placeholder="Todos los pagos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="false">No pagados</SelectItem>
+                <SelectItem value="pending">Pendientes</SelectItem>
+                <SelectItem value="true">Pagados</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Monto Mínimo */}
+          <div className="space-y-2">
+            <Label htmlFor="monto-min" className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              {isMobile ? 'Mínimo' : 'Monto Mínimo'}
+            </Label>
+            <Input
+              id="monto-min"
+              type="number"
+              placeholder="0"
+              value={filtros.montoMin || ''}
+              onChange={(e) => setFiltros(prev => ({ ...prev, montoMin: e.target.value }))}
+            />
+          </div>
+
+          {/* Monto Máximo */}
+          <div className="space-y-2">
+            <Label htmlFor="monto-max" className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              {isMobile ? 'Máximo' : 'Monto Máximo'}
+            </Label>
+            <Input
+              id="monto-max"
+              type="number"
+              placeholder="Sin límite"
+              value={filtros.montoMax || ''}
+              onChange={(e) => setFiltros(prev => ({ ...prev, montoMax: e.target.value }))}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Filtros de Ubicación y Búsqueda */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-medium flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4" />
+          Filtros de Ubicación y Búsqueda
+        </h3>
+        <div className={`grid gap-4 ${
+          isMobile 
+            ? 'grid-cols-1'
+            : 'grid-cols-1 md:grid-cols-2'
+        }`}>
+          {/* Instalación */}
+          <div className="space-y-2">
+            <Label htmlFor="instalacion">{isMobile ? 'Instalación' : 'Instalación'}</Label>
+            <Select 
+              value={filtros.instalacion} 
+              onValueChange={(value) => setFiltros(prev => ({ ...prev, instalacion: value }))}
+            >
+              <SelectTrigger id="instalacion">
+                <SelectValue placeholder="Todas las instalaciones" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                {instalaciones.map((instalacion) => (
+                  <SelectItem key={instalacion.id} value={instalacion.id}>
+                    {instalacion.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Búsqueda */}
+          <div className="space-y-2">
+            <Label htmlFor="busqueda">Buscar</Label>
+            <Input
+              id="busqueda"
+              placeholder={isMobile ? "Nombre, RUT..." : "Nombre, RUT, instalación..."}
+              value={filtros.busqueda}
+              onChange={(e) => setFiltros(prev => ({ ...prev, busqueda: e.target.value }))}
+            />
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  if (embedded) {
+    return <div>{Content}</div>;
+  }
+
   return (
     <Card>
       <CardHeader 
         className="cursor-pointer hover:bg-muted/50 transition-colors"
-        onClick={() => setShowFiltros(!showFiltros)}
+        onClick={() => setShowFiltros && setShowFiltros(!showFiltros)}
       >
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -216,212 +428,7 @@ export default function FiltrosAvanzados({
           </div>
         </div>
       </CardHeader>
-      
-      {showFiltros && (
-        <CardContent>
-          {/* Filtros de Fecha */}
-          <div className="space-y-4 mb-6">
-            <h3 className="text-sm font-medium flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Filtros de Fecha
-            </h3>
-            <div className={`grid gap-4 ${
-              isMobile 
-                ? 'grid-cols-1' // En móvil: 1 columna
-                : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' // En desktop: responsive
-            }`}>
-              {/* Rango de Fecha Predefinido */}
-              <div className="space-y-2">
-                <Label htmlFor="rango-fecha">Rango de Fecha</Label>
-                <Select 
-                  value={filtros.rangoFecha || 'personalizado'} 
-                  onValueChange={handleRangoFechaChange}
-                >
-                  <SelectTrigger id="rango-fecha">
-                    <SelectValue placeholder="Seleccionar rango" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {rangosFecha.map((rango) => (
-                      <SelectItem key={rango.valor} value={rango.valor}>
-                        {rango.texto}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Selector de Mes */}
-              <div className="space-y-2">
-                <Label htmlFor="mes" className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  {isMobile ? 'Mes' : 'Mes Específico'}
-                </Label>
-                <Select 
-                  value={filtros.mes || 'all'} 
-                  onValueChange={handleMesChange}
-                >
-                  <SelectTrigger id="mes">
-                    <SelectValue placeholder="Seleccionar mes" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los meses</SelectItem>
-                    {opcionesMeses.map((opcion) => (
-                      <SelectItem key={opcion.valor} value={opcion.valor}>
-                        {opcion.texto}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Fecha Inicio */}
-              <div className="space-y-2">
-                <Label htmlFor="fecha-inicio">{isMobile ? 'Desde' : 'Fecha Inicio'}</Label>
-                <DatePicker
-                  date={fechaInicioDate}
-                  onDateChange={handleFechaInicioChange}
-                  placeholder="Fecha inicio"
-                />
-              </div>
-
-              {/* Fecha Fin */}
-              <div className="space-y-2">
-                <Label htmlFor="fecha-fin">{isMobile ? 'Hasta' : 'Fecha Fin'}</Label>
-                <DatePicker
-                  date={fechaFinDate}
-                  onDateChange={handleFechaFinChange}
-                  placeholder="Fecha fin"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Filtros de Estado y Monto */}
-          <div className="space-y-4 mb-6">
-            <h3 className="text-sm font-medium flex items-center gap-2">
-              <CheckCircle className="h-4 w-4" />
-              Filtros de Estado y Monto
-            </h3>
-            <div className={`grid gap-4 ${
-              isMobile 
-                ? 'grid-cols-1' // En móvil: 1 columna
-                : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' // En desktop: responsive
-            }`}>
-              {/* Estado */}
-              <div className="space-y-2">
-                <Label htmlFor="estado">{isMobile ? 'Tipo' : 'Tipo de Turno'}</Label>
-                <Select 
-                  value={filtros.estado} 
-                  onValueChange={(value) => setFiltros(prev => ({ ...prev, estado: value }))}
-                >
-                  <SelectTrigger id="estado">
-                    <SelectValue placeholder="Todos los estados" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="reemplazo">Reemplazo</SelectItem>
-                    <SelectItem value="ppc">PPC</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Estado de Pago */}
-              <div className="space-y-2">
-                <Label htmlFor="pagado">{isMobile ? 'Pago' : 'Estado de Pago'}</Label>
-                <Select 
-                  value={filtros.pagado} 
-                  onValueChange={(value) => setFiltros(prev => ({ ...prev, pagado: value }))}
-                >
-                  <SelectTrigger id="pagado">
-                    <SelectValue placeholder="Todos los pagos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="false">No pagados</SelectItem>
-                    <SelectItem value="pending">Pendientes</SelectItem>
-                    <SelectItem value="true">Pagados</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Monto Mínimo */}
-              <div className="space-y-2">
-                <Label htmlFor="monto-min" className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  {isMobile ? 'Mínimo' : 'Monto Mínimo'}
-                </Label>
-                <Input
-                  id="monto-min"
-                  type="number"
-                  placeholder="0"
-                  value={filtros.montoMin || ''}
-                  onChange={(e) => setFiltros(prev => ({ ...prev, montoMin: e.target.value }))}
-                />
-              </div>
-
-              {/* Monto Máximo */}
-              <div className="space-y-2">
-                <Label htmlFor="monto-max" className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  {isMobile ? 'Máximo' : 'Monto Máximo'}
-                </Label>
-                <Input
-                  id="monto-max"
-                  type="number"
-                  placeholder="Sin límite"
-                  value={filtros.montoMax || ''}
-                  onChange={(e) => setFiltros(prev => ({ ...prev, montoMax: e.target.value }))}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Filtros de Ubicación y Búsqueda */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              Filtros de Ubicación y Búsqueda
-            </h3>
-            <div className={`grid gap-4 ${
-              isMobile 
-                ? 'grid-cols-1' // En móvil: 1 columna
-                : 'grid-cols-1 md:grid-cols-2' // En desktop: responsive
-            }`}>
-              {/* Instalación */}
-              <div className="space-y-2">
-                <Label htmlFor="instalacion">{isMobile ? 'Instalación' : 'Instalación'}</Label>
-                <Select 
-                  value={filtros.instalacion} 
-                  onValueChange={(value) => setFiltros(prev => ({ ...prev, instalacion: value }))}
-                >
-                  <SelectTrigger id="instalacion">
-                    <SelectValue placeholder="Todas las instalaciones" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    {instalaciones.map((instalacion) => (
-                      <SelectItem key={instalacion.id} value={instalacion.id}>
-                        {instalacion.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Búsqueda */}
-              <div className="space-y-2">
-                <Label htmlFor="busqueda">Buscar</Label>
-                <Input
-                  id="busqueda"
-                  placeholder={isMobile ? "Nombre, RUT..." : "Nombre, RUT, instalación..."}
-                  value={filtros.busqueda}
-                  onChange={(e) => setFiltros(prev => ({ ...prev, busqueda: e.target.value }))}
-                />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      )}
+      {showFiltros && <CardContent>{Content}</CardContent>}
     </Card>
   );
 } 

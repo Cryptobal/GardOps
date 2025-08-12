@@ -8,7 +8,7 @@ import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const perm = searchParams.get('permiso') || searchParams.get('perm');
+    const perm = searchParams.get('perm') || searchParams.get('permiso');
     if (!perm) {
       return NextResponse.json({ ok: false, error: 'Parámetro "perm"/"permiso" requerido' }, { status: 400 });
     }

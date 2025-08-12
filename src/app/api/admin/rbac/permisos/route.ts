@@ -1,38 +1,26 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
+import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const page = Number(searchParams.get('page') || 1);
-    const limit = Number(searchParams.get('limit') || 50);
-    const q = (searchParams.get('q') || '').trim();
-    const offset = (page - 1) * limit;
+    const email = await getUserEmail(req);
+    if (!email) return NextResponse.json({ ok:false, error:'unauthenticated', code:'UNAUTHENTICATED' }, { status:401 });
+    const userId = await getUserIdByEmail(email);
+    if (!userId) return NextResponse.json({ ok:false, error:'user_not_found', code:'NOT_FOUND' }, { status:401 });
+    const canRead = (await userHasPerm(userId, 'rbac.permisos.read')) || (await userHasPerm(userId, 'rbac.platform_admin'));
+    if (!canRead) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.permisos.read', code:'FORBIDDEN' }, { status:403 });
 
-    // permisos: columnas reales -> id, clave, descripcion, created_at, updated_at
-    // IMPORTANTE: NO existe tenant_id aquí.
-    let rows: any;
-    if (q.length > 0) {
-      const like = `%${q.toLowerCase()}%`;
-      rows = await sql`
-        SELECT p.id, p.clave, p.descripcion
-        FROM permisos p
-        WHERE lower(p.clave) LIKE ${like} OR lower(p.descripcion) LIKE ${like}
-        ORDER BY p.clave ASC
-        LIMIT ${limit} OFFSET ${offset};
-      `;
-    } else {
-      rows = await sql`
-        SELECT p.id, p.clave, p.descripcion
-        FROM permisos p
-        ORDER BY p.clave ASC
-        LIMIT ${limit} OFFSET ${offset};
-      `;
-    }
+    console.log('[admin/rbac/permisos][GET]', { email, userId, perms: ['rbac.permisos.read','rbac.platform_admin'], sql: 'SELECT id, clave, descripcion FROM public.permisos ORDER BY clave' })
+    const rows = await sql`
+      SELECT id, clave, descripcion
+      FROM public.permisos
+      ORDER BY clave ASC
+    `;
 
     return NextResponse.json({ ok: true, items: rows.rows });
   } catch (err: any) {
-    console.error('[RBAC/permisos][GET] error:', err?.message, err);
-    return NextResponse.json({ error: 'Error interno: ' + (err?.message || 'unknown') }, { status: 500 });
+    console.error('[admin/rbac/permisos][GET] error:', err);
+    return NextResponse.json({ ok:false, error:'internal', detail:String(err?.message ?? err), code:'INTERNAL' }, { status: 500 });
   }
 }

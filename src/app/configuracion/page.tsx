@@ -140,31 +140,12 @@ export default function ConfiguracionPage() {
           </CardContent>
         </Card>
 
-        {/* Administración de Seguridad RBAC */}
-        {canAdminRbac ? (
-          <Link href="/configuracion/seguridad">
-            <Card className="card-elegant hover:shadow-lg transition-all duration-200 cursor-pointer group">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Lock className="h-5 w-5 text-red-500" />
-                  🔒 Seguridad
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-sm">
-                  Administrar usuarios, roles y permisos del sistema (RBAC)
-                </p>
-                <div className="mt-4 flex items-center text-red-500 text-sm group-hover:underline">
-                  Gestionar seguridad →
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ) : (
-          <Card className="card-elegant opacity-60">
+        {/* Administración de Seguridad RBAC (siempre clickeable) */}
+        <Link href="/configuracion/seguridad">
+          <Card className="card-elegant hover:shadow-lg transition-all duration-200 cursor-pointer group">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Lock className="h-5 w-5 text-gray-500" />
+                <Lock className="h-5 w-5 text-red-500" />
                 🔒 Seguridad
               </CardTitle>
             </CardHeader>
@@ -172,12 +153,15 @@ export default function ConfiguracionPage() {
               <p className="text-muted-foreground text-sm">
                 Administrar usuarios, roles y permisos del sistema (RBAC)
               </p>
-              <div className="mt-4 text-gray-400 text-sm">
-                Requiere permiso: rbac.admin
+              <div className="mt-4 flex items-center text-red-500 text-sm group-hover:underline">
+                Gestionar seguridad →
               </div>
+              {!canAdminRbac && (
+                <div className="mt-2 text-gray-400 text-xs">Puede requerir permiso: rbac.admin</div>
+              )}
             </CardContent>
           </Card>
-        )}
+        </Link>
 
         {/* Configuración General */}
         <Card className="card-elegant opacity-60">

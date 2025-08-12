@@ -4,10 +4,11 @@ import { requirePlatformAdmin, jsonError } from '@/lib/auth/rbac';
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await requirePlatformAdmin(req);
+    const ctx = await requirePlatformAdmin(req);
     const { id } = params;
     const body = await req.json();
     const { nombre, activo, tenant_id } = body || {};
+    console.log('[admin/rbac/usuarios/:id][PUT]', { email: ctx.ok ? ctx.email : undefined, userId: ctx.ok ? ctx.userId : undefined, targetId: id, body })
 
     await sql`
       update usuarios set
@@ -20,22 +21,23 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   } catch (e: any) {
     if (e?.message === 'UNAUTHORIZED') return jsonError(401, 'No autenticado');
     if (e?.message === 'FORBIDDEN') return jsonError(403, 'No autorizado');
-    console.error('Error editando usuario:', e);
-    return jsonError(500, 'Error interno');
+    console.error('[admin/rbac/usuarios/:id][PUT] error:', e);
+    return NextResponse.json({ ok:false, error:'internal', detail:String(e?.message ?? e), code:'INTERNAL' }, { status:500 });
   }
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await requirePlatformAdmin(req);
+    const ctx = await requirePlatformAdmin(req);
     const { id } = params;
+    console.log('[admin/rbac/usuarios/:id][DELETE]', { email: ctx.ok ? ctx.email : undefined, userId: ctx.ok ? ctx.userId : undefined, targetId: id })
     await sql`delete from usuarios where id=${id}::uuid`;
     return NextResponse.json({ success: true });
   } catch (e: any) {
     if (e?.message === 'UNAUTHORIZED') return jsonError(401, 'No autenticado');
     if (e?.message === 'FORBIDDEN') return jsonError(403, 'No autorizado');
-    console.error('Error eliminando usuario:', e);
-    return jsonError(500, 'Error interno');
+    console.error('[admin/rbac/usuarios/:id][DELETE] error:', e);
+    return NextResponse.json({ ok:false, error:'internal', detail:String(e?.message ?? e), code:'INTERNAL' }, { status:500 });
   }
 }
 

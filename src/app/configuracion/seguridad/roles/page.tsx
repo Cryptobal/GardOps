@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useCan } from "@/lib/permissions";
 import { Shield, Plus, Save, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { rbacFetch } from "@/lib/rbacClient";
 import BackToSecurity from "@/components/BackToSecurity";
 
@@ -28,23 +28,19 @@ export default function RolesPage() {
     nombre: "",
     descripcion: "",
   });
-  const { allowed: canAdminRbac, loading: permissionLoading } = useCan('rbac.admin');
-  const { success: toastSuccess, error: toastError } = useToast();
-  const router = useRouter();
+  // Permitir lectura de roles a usuarios con permiso de lectura
+  const { allowed, loading, error } = useCan('rbac.roles.read');
+  const { success: toastSuccess, error: toastError, addToast: toast } = useToast();
 
-  useEffect(() => {
-    if (!permissionLoading && !canAdminRbac) {
-      toastError("No tienes permisos para acceder a esta sección");
-      router.push("/");
-    }
-  }, [canAdminRbac, permissionLoading, router, toast]);
+  // Cargar datos solo si está permitido
 
   const cargarRoles = async () => {
     try {
       setCargando(true);
       const response = await rbacFetch('/api/admin/rbac/roles?tenant_id=current');
       if (response.status === 403) {
-        toastError("No tienes permisos suficientes.");
+        const msg = "No tienes permisos suficientes.";
+        toast ? toast({ title: 'Error', description: msg, type: 'error' }) : console.warn(msg);
         return;
       }
       
@@ -62,18 +58,19 @@ export default function RolesPage() {
       })));
     } catch (error) {
       console.error('Error:', error);
-      toastError("Error al cargar roles");
+      const msg = "Error al cargar roles";
+      toast ? toast({ title: 'Error', description: msg, type: 'error' }) : console.warn(msg);
     } finally {
       setCargando(false);
     }
   };
 
   useEffect(() => {
-    if (canAdminRbac) {
+    if (allowed) {
       cargarRoles();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canAdminRbac]);
+  }, [allowed]);
 
   const iniciarCreacion = () => {
     setCreandoRol(true);
@@ -96,35 +93,28 @@ export default function RolesPage() {
       
       const url = '/api/admin/rbac/roles';
       const method = 'POST';
-      const body = { nombre: formData.nombre, descripcion: formData.descripcion || undefined };
+      const body = { nombre: formData.nombre, descripcion: formData.descripcion || undefined, permisos: [] as string[] };
 
       const response = await rbacFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
-      if (response.status === 403) {
-        toastError("No tienes permisos suficientes.");
-        return;
-      }
-
-      if (response.status === 409) {
-        const data = await response.json().catch(() => ({} as any));
-        toastError(data?.error === 'nombre_duplicado' ? 'Ese nombre ya existe en este tenant' : 'Nombre duplicado');
-        return;
-      }
-
+      const resBody = await response.json().catch(() => ({} as any));
       if (!response.ok) {
-        const data = await response.json().catch(() => ({} as any));
-        throw new Error(data?.error || 'Error al guardar rol');
+        console.error('roles.create error', { status: response.status, body: resBody });
+        if (response.status === 409) {
+          throw new Error('Ya existe un rol con ese nombre en este tenant.');
+        }
+        throw new Error(resBody?.detail || resBody?.error || `HTTP ${response.status}`);
       }
 
-      toastSuccess('Rol creado exitosamente');
+      toast ? toast({ title: 'Rol creado exitosamente', type: 'success' }) : console.warn('Rol creado exitosamente');
       cancelarEdicion();
       await cargarRoles();
     } catch (error) {
       console.error('Error:', error);
-      toastError('Error al guardar rol');
+      toast ? toast({ title: 'Error', description: String((error as any)?.message ?? 'Error al guardar rol'), type: 'error' }) : console.warn('Error al guardar rol');
     } finally {
       setGuardando(false);
     }
@@ -177,7 +167,7 @@ export default function RolesPage() {
     }));
   };
 
-  if (permissionLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -188,8 +178,20 @@ export default function RolesPage() {
     );
   }
 
-  if (!canAdminRbac) {
-    return null;
+  if (!allowed) {
+    return (
+      <div className="p-6">
+        <div className="rounded-xl border p-6">
+          <h2 className="text-lg font-semibold">Sin acceso</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            No tienes permisos para ver esta sección.
+          </p>
+          <Link href="/configuracion/seguridad" className="inline-flex mt-4 px-3 py-2 rounded-lg border">
+            ← Volver a Seguridad
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -282,23 +284,31 @@ export default function RolesPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {roles.map((rol) => (
-            <Card key={rol.id}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      {rol.nombre}
-                    </CardTitle>
-                    <CardDescription className="mt-1">
-                      {rol.descripcion || 'Sin descripción'}
-                    </CardDescription>
+            <Link
+              key={rol.id}
+              href={`/configuracion/seguridad/roles/${rol.id}`}
+              role="link"
+              tabIndex={0}
+              className="block focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-lg"
+            >
+              <Card className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        {rol.nombre}
+                      </CardTitle>
+                      <CardDescription className="mt-1">
+                        {rol.descripcion || 'Sin descripción'}
+                      </CardDescription>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-xs text-muted-foreground">ID: {rol.id}</div>
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-xs text-muted-foreground">ID: {rol.id}</div>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}

@@ -110,98 +110,107 @@ export default function DashboardStats({ filtros }: DashboardStatsProps) {
   }
 
   const { generales } = estadisticas;
-  const porcentajePendientes = generales.total_turnos > 0 ? (generales.turnos_pendientes / generales.total_turnos) * 100 : 0;
-  const porcentajePagados = generales.total_turnos > 0 ? (generales.turnos_pagados / generales.total_turnos) * 100 : 0;
-  const porcentajeReemplazos = generales.total_turnos > 0 ? (generales.turnos_reemplazo / generales.total_turnos) * 100 : 0;
-  const porcentajePPC = generales.total_turnos > 0 ? (generales.turnos_ppc / generales.total_turnos) * 100 : 0;
+  const porcentajePendientes = generales.total_turnos > 0 ? Math.round((generales.turnos_pendientes / generales.total_turnos) * 100) : 0;
+  const porcentajePagados = generales.total_turnos > 0 ? Math.round((generales.turnos_pagados / generales.total_turnos) * 100) : 0;
+  const porcentajeReemplazos = generales.total_turnos > 0 ? Math.round((generales.turnos_reemplazo / generales.total_turnos) * 100) : 0;
+  const porcentajePPC = generales.total_turnos > 0 ? Math.round((generales.turnos_ppc / generales.total_turnos) * 100) : 0;
 
   // Calcular indicadores de rendimiento
   const eficienciaPago = generales.total_turnos > 0 ? (generales.turnos_pagados / generales.total_turnos) * 100 : 0;
-  const promedioMontoPorTurno = generales.total_turnos > 0 ? generales.monto_total / generales.total_turnos : 0;
-  const ratioPendientes = generales.turnos_pendientes > 0 ? (generales.monto_pendiente / generales.turnos_pendientes) : 0;
+  const toInt = (val: any) => {
+    const n = typeof val === 'string' ? parseFloat(val) : Number(val);
+    return Number.isFinite(n) ? Math.round(n) : 0;
+  };
+  const formatThousands = (v: any) => toInt(v).toLocaleString('es-CL');
+  const promedioMontoPorTurno = generales.total_turnos > 0 ? toInt(generales.monto_total / generales.total_turnos) : 0;
+  const ratioPendientes = generales.turnos_pendientes > 0 ? (toInt(generales.monto_pendiente) / Math.max(1, toInt(generales.turnos_pendientes))) : 0;
 
   return (
-    <div className="space-y-6">
-      {/* Indicadores de Rendimiento */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2 text-blue-800">
+    <div className="space-y-5">
+      {/* Indicadores de Rendimiento - Mobile First (2 col en móvil, 3 en desktop) */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+        {/* Eficiencia de Pago */}
+        <Card className="bg-blue-950/40 border-blue-800">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2 text-blue-300">
               <Target className="h-4 w-4" />
               Eficiencia de Pago
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-900">{eficienciaPago.toFixed(1)}%</div>
-            <Progress value={eficienciaPago} className="mt-2" />
+          <CardContent className="pt-0">
+            <div className="text-lg sm:text-xl font-bold text-blue-200">{eficienciaPago.toFixed(1)}%</div>
+            <Progress value={eficienciaPago} className="mt-1 h-2" />
             <div className="flex items-center gap-2 mt-1">
-              <Badge variant="outline" className="text-xs border-blue-300 text-blue-700">
-                {generales.turnos_pagados} de {generales.total_turnos}
+              <Badge variant="outline" className="text-[11px] sm:text-xs border-blue-700 text-blue-300">
+                {formatThousands(generales.turnos_pagados)} de {formatThousands(generales.total_turnos)}
               </Badge>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2 text-green-800">
+        {/* Promedio por Turno */}
+        <Card className="bg-emerald-950/40 border-emerald-800">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2 text-emerald-300">
               <Zap className="h-4 w-4" />
               Promedio por Turno
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-900">${promedioMontoPorTurno.toLocaleString()}</div>
+          <CardContent className="pt-0">
+            <div className="text-lg sm:text-xl font-bold text-emerald-200">${formatThousands(promedioMontoPorTurno)}</div>
             <div className="flex items-center gap-2 mt-1">
-              <Badge variant="outline" className="text-xs border-green-300 text-green-700">
+              <Badge variant="outline" className="text-[11px] sm:text-xs border-emerald-700 text-emerald-300">
                 {generales.total_turnos} turnos
               </Badge>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2 text-orange-800">
+        {/* Pendientes Críticos */}
+        <Card className="bg-amber-950/40 border-amber-800">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2 text-amber-300">
               <AlertCircle className="h-4 w-4" />
               Pendientes Críticos
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-900">{generales.turnos_pendientes}</div>
+          <CardContent className="pt-0">
+            <div className="text-lg sm:text-xl font-bold text-amber-200">{formatThousands(generales.turnos_pendientes)}</div>
             <div className="flex items-center gap-2 mt-1">
-              <Badge variant="outline" className="text-xs border-orange-300 text-orange-700">
-                ${ratioPendientes.toLocaleString()} promedio
+              <Badge variant="outline" className="text-[11px] sm:text-xs border-amber-700 text-amber-300">
+                ${formatThousands(Math.round(ratioPendientes))} promedio
               </Badge>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2 text-purple-800">
+        {/* Distribución */}
+        <Card className="bg-violet-950/40 border-violet-800">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2 text-violet-300">
               <BarChart3 className="h-4 w-4" />
               Distribución
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
+          <CardContent className="pt-0">
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-[11px] sm:text-sm text-white/80">
                 <span>Reemplazos</span>
                 <span className="font-medium">{porcentajeReemplazos.toFixed(1)}%</span>
               </div>
-              <Progress value={porcentajeReemplazos} className="h-1" />
-              <div className="flex justify-between text-sm">
+              <Progress value={porcentajeReemplazos} className="h-1.5" />
+              <div className="flex justify-between text-[11px] sm:text-sm text-white/80">
                 <span>PPC</span>
                 <span className="font-medium">{porcentajePPC.toFixed(1)}%</span>
               </div>
-              <Progress value={porcentajePPC} className="h-1" />
+              <Progress value={porcentajePPC} className="h-1.5" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Estadísticas Generales Mejoradas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Estadísticas Generales Mejoradas - más compactas */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -210,7 +219,7 @@ export default function DashboardStats({ filtros }: DashboardStatsProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{generales.total_turnos}</div>
+            <div className="text-xl font-bold">{formatThousands(generales.total_turnos)}</div>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant="outline" className="text-xs">
                 {generales.turnos_reemplazo} reemplazos
@@ -222,7 +231,7 @@ export default function DashboardStats({ filtros }: DashboardStatsProps) {
           </CardContent>
         </Card>
 
-        <Card className={generales.turnos_pendientes > 0 ? 'border-orange-200 bg-orange-50' : ''}>
+        <Card className={generales.turnos_pendientes > 0 ? 'border-orange-200 bg-orange-50 dark:border-amber-800 dark:bg-amber-950/40' : ''}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2 text-orange-600">
               <TrendingDown className="h-4 w-4" />
@@ -230,13 +239,13 @@ export default function DashboardStats({ filtros }: DashboardStatsProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{generales.turnos_pendientes}</div>
+            <div className="text-xl font-bold text-orange-600">{formatThousands(generales.turnos_pendientes)}</div>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant="outline" className="text-xs">
                 {porcentajePendientes.toFixed(1)}%
               </Badge>
               <span className="text-xs text-muted-foreground">
-                ${generales.monto_pendiente.toLocaleString()}
+                ${formatThousands(generales.monto_pendiente)}
               </span>
             </div>
           </CardContent>
@@ -250,13 +259,13 @@ export default function DashboardStats({ filtros }: DashboardStatsProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{generales.turnos_pagados}</div>
+            <div className="text-xl font-bold text-green-600">{formatThousands(generales.turnos_pagados)}</div>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant="outline" className="text-xs">
                 {porcentajePagados.toFixed(1)}%
               </Badge>
               <span className="text-xs text-muted-foreground">
-                ${generales.monto_pagado.toLocaleString()}
+                ${formatThousands(generales.monto_pagado)}
               </span>
             </div>
           </CardContent>
@@ -270,10 +279,10 @@ export default function DashboardStats({ filtros }: DashboardStatsProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${generales.monto_total.toLocaleString()}</div>
+            <div className="text-xl font-bold">${formatThousands(generales.monto_total)}</div>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant="outline" className="text-xs">
-                ${generales.promedio_por_turno.toLocaleString()} promedio
+                ${formatThousands(Math.round(generales.promedio_por_turno))} promedio
               </Badge>
             </div>
           </CardContent>
@@ -309,7 +318,7 @@ export default function DashboardStats({ filtros }: DashboardStatsProps) {
       </div>
 
       {/* Top Instalaciones y Guardias */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Top Instalaciones */}
         <Card>
           <CardHeader>
@@ -322,9 +331,9 @@ export default function DashboardStats({ filtros }: DashboardStatsProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {estadisticas.porInstalacion.slice(0, 5).map((instalacion, index) => (
-                <div key={instalacion.instalacion_nombre} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={instalacion.instalacion_nombre} className="flex items-center justify-between p-3 bg-slate-900/40 rounded-lg">
                   <div className="flex items-center gap-3">
                     <Badge variant="outline" className="text-xs">
                       #{index + 1}
@@ -337,7 +346,7 @@ export default function DashboardStats({ filtros }: DashboardStatsProps) {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-medium">${instalacion.monto_total.toLocaleString()}</div>
+                     <div className="font-medium">${formatThousands(instalacion.monto_total)}</div>
                     <div className="text-sm text-muted-foreground">
                       {instalacion.turnos_pendientes} pendientes
                     </div>
@@ -360,9 +369,9 @@ export default function DashboardStats({ filtros }: DashboardStatsProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {estadisticas.topGuardias.slice(0, 5).map((guardia, index) => (
-                <div key={guardia.rut} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={guardia.rut} className="flex items-center justify-between p-3 bg-slate-900/40 rounded-lg">
                   <div className="flex items-center gap-3">
                     <Badge variant="outline" className="text-xs">
                       #{index + 1}
@@ -377,7 +386,7 @@ export default function DashboardStats({ filtros }: DashboardStatsProps) {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-medium">${guardia.monto_total.toLocaleString()}</div>
+                     <div className="font-medium">${formatThousands(guardia.monto_total)}</div>
                     <div className="text-sm text-muted-foreground">
                       {guardia.turnos_pendientes} pendientes
                     </div>
@@ -402,9 +411,9 @@ export default function DashboardStats({ filtros }: DashboardStatsProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {estadisticas.porMes.map((mes) => (
-                <div key={mes.mes} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={mes.mes} className="flex items-center justify-between p-3 bg-slate-900/40 rounded-lg">
                   <div>
                     <div className="font-medium">
                       {new Date(mes.mes).toLocaleDateString('es-ES', { 
@@ -417,7 +426,7 @@ export default function DashboardStats({ filtros }: DashboardStatsProps) {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-medium">${mes.monto_total.toLocaleString()}</div>
+                     <div className="font-medium">${formatThousands(mes.monto_total)}</div>
                     <div className="text-sm text-muted-foreground">
                       {mes.turnos_pendientes} pendientes
                     </div>
