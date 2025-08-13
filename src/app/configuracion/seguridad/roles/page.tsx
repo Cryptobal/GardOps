@@ -55,7 +55,14 @@ export default function RolesPage() {
         id: r.id,
         nombre: r.nombre,
         descripcion: r.descripcion || '',
-      })));
+      })).sort((a, b) => {
+        // Ordenar: Global primero, luego Tenant, alfabético
+        const aIsGlobal = a.nombre.includes('(Global)');
+        const bIsGlobal = b.nombre.includes('(Global)');
+        if (aIsGlobal && !bIsGlobal) return -1;
+        if (!aIsGlobal && bIsGlobal) return 1;
+        return a.nombre.localeCompare(b.nombre);
+      }));
     } catch (error) {
       console.error('Error:', error);
       const msg = "Error al cargar roles";
@@ -289,8 +296,14 @@ export default function RolesPage() {
                     <div className="flex-1">
                       <CardTitle className="text-lg flex items-center gap-2">
                         {rol.nombre}
+                        {rol.nombre.includes('(Global)') && (
+                          <Badge variant="secondary" className="text-xs">Global</Badge>
+                        )}
+                        {rol.nombre.includes('(Tenant)') && (
+                          <Badge variant="outline" className="text-xs">Tenant</Badge>
+                        )}
                       </CardTitle>
-                      <CardDescription className="mt-1">
+                      <CardDescription className="mt-1 text-sm leading-relaxed">
                         {rol.descripcion || 'Sin descripción'}
                       </CardDescription>
                     </div>
