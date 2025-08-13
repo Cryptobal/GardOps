@@ -442,12 +442,12 @@ export default function UsuariosPage() {
             </div>
             <div>
               <label className="text-xs text-muted-foreground">Rol inicial (opcional)</label>
-              <Select value={selectedRole || ""} onValueChange={setSelectedRole}>
+              <Select value={selectedRole || "none"} onValueChange={(value) => setSelectedRole(value === 'none' ? null : value)}>
                 <SelectTrigger className="w-full mt-1">
                   <SelectValue placeholder="Sin rol inicial" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sin rol</SelectItem>
+                  <SelectItem value="none">Sin rol</SelectItem>
                   {roles.map((rol) => (
                     <SelectItem key={rol.id} value={rol.id}>{rol.nombre}</SelectItem>
                   ))}
@@ -486,7 +486,7 @@ export default function UsuariosPage() {
                       email,
                       nombre: nombre || undefined,
                       password: password,
-                      roleId: selectedRole || undefined,
+                      roleId: selectedRole ?? undefined,
                     }),
                   });
                   if (res.status === 409) {
