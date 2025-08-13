@@ -17,6 +17,18 @@ export default function SeguridadLayout({
   const { allowed: canPermisosRead } = useCan('rbac.permisos.read');
   const { allowed: canTenantsRead } = useCan('rbac.tenants.read');
   const { allowed: isPlatformAdmin, loading } = useCan('rbac.platform_admin');
+  // No mostrar Configuración a menos que sea admin o platform_admin
+  let adminBypass = false;
+  try {
+    if (typeof document !== 'undefined') {
+      const m = (document.cookie || '').match(/(?:^|;\s*)auth_token=([^;]+)/);
+      const token = m?.[1] ? decodeURIComponent(m[1]) : null;
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1] || '')) || {};
+        adminBypass = payload?.rol === 'admin';
+      }
+    }
+  } catch {}
   let adminBypass = false;
   try {
     if (typeof document !== 'undefined') {
@@ -75,6 +87,15 @@ export default function SeguridadLayout({
   const activeSection = getActiveSection();
 
   // Si estamos en la página principal, no mostrar tabs
+  if (!adminBypass && !isPlatformAdmin) {
+    return (
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
+        <div className="rounded-xl border p-6 text-center text-muted-foreground">
+          No tienes permisos para acceder a Configuración.
+        </div>
+      </div>
+    );
+  }
   if (!activeSection) {
     return <>{children}</>;
   }

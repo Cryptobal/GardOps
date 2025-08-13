@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../../../lib/database';
 import { logCRUD } from '@/lib/logging';
+import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
 
 // PUT /api/guardias/[id]/fecha-os10 - Actualizar fecha de OS10
 export async function PUT(
@@ -10,6 +11,22 @@ export async function PUT(
   console.log('🔍 API Guardias - Actualizando fecha OS10:', params.id);
   
   try {
+    // Permisos: admin o guardias.edit / rbac.platform_admin
+    const email = await getUserEmail(request);
+    if (!email) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
+    const userId = await getUserIdByEmail(email);
+    if (!userId) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
+    let allowed = false;
+    try {
+      const { getCurrentUserServer } = await import('@/lib/auth');
+      const u = getCurrentUserServer(request as any);
+      allowed = u?.rol === 'admin';
+    } catch {}
+    if (!allowed) {
+      allowed = (await userHasPerm(userId, 'guardias.edit')) || (await userHasPerm(userId, 'rbac.platform_admin'));
+    }
+    if (!allowed) return NextResponse.json({ error: 'forbidden', perm: 'guardias.edit' }, { status: 403 });
+
     const guardiaId = params.id;
     const body = await request.json();
     
