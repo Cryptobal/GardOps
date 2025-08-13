@@ -31,9 +31,14 @@ export async function fetchCan(perm: string): Promise<boolean> {
       }
     }
   } catch {}
-  const url = `/api/me/permissions?perm=${encodeURIComponent(normalized)}`;
-  // Usar rbacFetch para que agregue x-user-email en dev
-  const res = await rbacFetch(url, { cache: "no-store" });
+  // Primero intentar el nuevo endpoint RBAC (más rápido y consistente)
+  const urlRbac = `/api/rbac/can?perm=${encodeURIComponent(normalized)}`;
+  let res = await rbacFetch(urlRbac, { cache: "no-store" });
+  if (!res.ok) {
+    // Fallback al legacy si falla
+    const urlLegacy = `/api/me/permissions?perm=${encodeURIComponent(normalized)}`;
+    res = await rbacFetch(urlLegacy, { cache: "no-store" });
+  }
   if (!res.ok) {
     // En caso de error 5xx, no bloquear toda la UI.
     if (process.env.NODE_ENV !== 'production') {

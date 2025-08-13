@@ -8,7 +8,17 @@ export async function GET(req: NextRequest) {
     if (!email) return NextResponse.json({ ok:false, error:'unauthenticated', code:'UNAUTHENTICATED' }, { status:401 });
     const userId = await getUserIdByEmail(email!);
     if (!userId) return NextResponse.json({ ok:false, error:'user_not_found', code:'NOT_FOUND' }, { status:401 });
-    const allowed = (await userHasPerm(userId, 'rbac.platform_admin')) || (await userHasPerm(userId, 'rbac.tenants.read'));
+    let allowed = false;
+    try {
+      const { getCurrentUserServer } = await import('@/lib/auth');
+      const u = getCurrentUserServer(req as any);
+      if (u?.rol === 'admin') {
+        allowed = true;
+      }
+    } catch {}
+    if (!allowed) {
+      allowed = (await userHasPerm(userId, 'rbac.platform_admin')) || (await userHasPerm(userId, 'rbac.tenants.read'));
+    }
     if (!allowed) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.tenants.read', code:'FORBIDDEN' }, { status:403 });
     
     const searchParams = req.nextUrl.searchParams;
@@ -73,7 +83,17 @@ export async function POST(req: NextRequest) {
     if (!email) return NextResponse.json({ ok:false, error:'unauthenticated', code:'UNAUTHENTICATED' }, { status:401 });
     const userId = await getUserIdByEmail(email!);
     if (!userId) return NextResponse.json({ ok:false, error:'user_not_found', code:'NOT_FOUND' }, { status:401 });
-    const allowed = (await userHasPerm(userId, 'rbac.platform_admin')) || (await userHasPerm(userId, 'rbac.tenants.create'));
+    let allowed = false;
+    try {
+      const { getCurrentUserServer } = await import('@/lib/auth');
+      const u = getCurrentUserServer(req as any);
+      if (u?.rol === 'admin') {
+        allowed = true;
+      }
+    } catch {}
+    if (!allowed) {
+      allowed = (await userHasPerm(userId, 'rbac.platform_admin')) || (await userHasPerm(userId, 'rbac.tenants.create'));
+    }
     if (!allowed) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.tenants.create', code:'FORBIDDEN' }, { status:403 });
 
     const body = await req.json();

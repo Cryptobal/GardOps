@@ -17,6 +17,17 @@ export default function SeguridadLayout({
   const { allowed: canPermisosRead } = useCan('rbac.permisos.read');
   const { allowed: canTenantsRead } = useCan('rbac.tenants.read');
   const { allowed: isPlatformAdmin, loading } = useCan('rbac.platform_admin');
+  let adminBypass = false;
+  try {
+    if (typeof document !== 'undefined') {
+      const m = (document.cookie || '').match(/(?:^|;\s*)auth_token=([^;]+)/);
+      const token = m?.[1] ? decodeURIComponent(m[1]) : null;
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1] || '')) || {};
+        adminBypass = payload?.rol === 'admin';
+      }
+    }
+  } catch {}
   const pathname = usePathname();
 
   const sections = [
@@ -50,7 +61,7 @@ export default function SeguridadLayout({
     }
   ];
 
-  const filteredSections = sections.filter((s) => s.allowed !== false);
+  const filteredSections = sections.filter((s) => adminBypass ? true : s.allowed !== false);
 
   // Determinar la sección activa basada en la URL
   const getActiveSection = () => {

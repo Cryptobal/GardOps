@@ -113,6 +113,14 @@ export const navigationItems: NavigationItem[] = [
     name: "Configuración",
     href: "/configuracion",
     icon: Settings,
-    permission: "config.manage"
+    // Dejar visible el menú contenedor; la visibilidad de Seguridad se controla por permiso
+    children: [
+      {
+        name: "Seguridad",
+        href: "/configuracion/seguridad",
+        icon: Lock,
+        permission: "rbac.platform_admin"
+      }
+    ]
   }
 ]; 

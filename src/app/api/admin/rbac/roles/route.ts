@@ -15,7 +15,20 @@ export async function GET(req: NextRequest) {
     if (!email) return NextResponse.json({ ok:false, error:'unauthenticated', code:'UNAUTHENTICATED' }, { status:401 });
     const userId = await getUserIdByEmail(email!);
     if (!userId) return NextResponse.json({ ok:false, error:'user_not_found', code:'NOT_FOUND' }, { status:401 });
-    const canRead = (await userHasPerm(userId, 'rbac.roles.read')) || (await userHasPerm(userId, 'rbac.platform_admin'));
+    // Si rol admin en JWT, permitir sin consultar
+    try {
+      const { getCurrentUserServer } = await import('@/lib/auth');
+      const u = getCurrentUserServer(req as any);
+      if (u?.rol === 'admin') {
+        // seguir
+      } else {
+        const canRead = (await userHasPerm(userId, 'rbac.roles.read')) || (await userHasPerm(userId, 'rbac.platform_admin'));
+        if (!canRead) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.roles.read', code:'FORBIDDEN' }, { status:403 });
+      }
+    } catch {
+      const canRead = (await userHasPerm(userId, 'rbac.roles.read')) || (await userHasPerm(userId, 'rbac.platform_admin'));
+      if (!canRead) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.roles.read', code:'FORBIDDEN' }, { status:403 });
+    }
     if (!canRead) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.roles.read', code:'FORBIDDEN' }, { status:403 });
 
     // Obtener tenant del usuario (aislamiento estricto por tenant)

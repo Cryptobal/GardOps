@@ -8,8 +8,17 @@ export async function GET(req: NextRequest) {
     if (!email) return NextResponse.json({ ok:false, error:'unauthenticated', code:'UNAUTHENTICATED' }, { status:401 });
     const userId = await getUserIdByEmail(email);
     if (!userId) return NextResponse.json({ ok:false, error:'user_not_found', code:'NOT_FOUND' }, { status:401 });
-    const canRead = (await userHasPerm(userId, 'rbac.permisos.read')) || (await userHasPerm(userId, 'rbac.platform_admin'));
-    if (!canRead) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.permisos.read', code:'FORBIDDEN' }, { status:403 });
+    try {
+      const { getCurrentUserServer } = await import('@/lib/auth');
+      const u = getCurrentUserServer(req as any);
+      if (u?.rol !== 'admin') {
+        const canRead = (await userHasPerm(userId, 'rbac.permisos.read')) || (await userHasPerm(userId, 'rbac.platform_admin'));
+        if (!canRead) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.permisos.read', code:'FORBIDDEN' }, { status:403 });
+      }
+    } catch {
+      const canRead = (await userHasPerm(userId, 'rbac.permisos.read')) || (await userHasPerm(userId, 'rbac.platform_admin'));
+      if (!canRead) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.permisos.read', code:'FORBIDDEN' }, { status:403 });
+    }
 
     console.log('[admin/rbac/permisos][GET]', { email, userId, perms: ['rbac.permisos.read','rbac.platform_admin'] })
     

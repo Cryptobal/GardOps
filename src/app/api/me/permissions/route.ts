@@ -35,10 +35,14 @@ export async function GET(req: Request) {
     // Buscar userId primero para evitar pasar NULL a la función
     let userId: string | null = null
     try {
-      const userRow = await sql<{ id: string }>`
-        select id::text as id from public.usuarios where lower(email)=lower(${email}) limit 1
+      const userRow = await sql<{ id: string; rol: string }>`
+        select id::text as id, rol from public.usuarios where lower(email)=lower(${email}) limit 1
       `
       userId = userRow?.rows?.[0]?.id ?? null
+      // Si el usuario en BD tiene rol admin, permitir también
+      if (userRow?.rows?.[0]?.rol === 'admin') {
+        return NextResponse.json({ ok:true, email, perm, allowed:true, override:'db_admin' })
+      }
     } catch (e:any) {
       console.error('[me/permissions][GET] user lookup error', e?.message || e)
       // Si falla la BD: no devolver 500 para no bloquear la UI

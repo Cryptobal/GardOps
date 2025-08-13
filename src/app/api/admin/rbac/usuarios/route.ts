@@ -21,17 +21,21 @@ export async function GET(req: Request) {
     if (!email) return NextResponse.json({ ok:false, error: "No autenticado", code:'UNAUTHENTICATED' }, { status: 401 });
 
     console.log('[admin/rbac/usuarios][GET] requester', { email })
-    const u = await sql<{ id: string }>`
-      SELECT id FROM public.usuarios WHERE lower(email)=lower(${email}) LIMIT 1;
+    const u = await sql<{ id: string; rol: string }>`
+      SELECT id, rol FROM public.usuarios WHERE lower(email)=lower(${email}) LIMIT 1;
     `;
     const userId = u.rows[0]?.id;
+    const rol = u.rows[0]?.rol;
     if (!userId) return NextResponse.json({ ok:false, error: "Usuario no encontrado", code:'NOT_FOUND' }, { status: 401 });
 
-    console.log('[admin/rbac/usuarios][GET] SQL perm check', { text: 'select public.fn_usuario_tiene_permiso($1,$2) as allowed', values: [userId, 'rbac.platform_admin'] })
-    const perm = await sql<{ allowed: boolean }>`
-      SELECT public.fn_usuario_tiene_permiso(${userId}::uuid, ${"rbac.platform_admin"}) AS allowed;
-    `;
-    if (!perm.rows[0]?.allowed) return NextResponse.json({ ok:false, error: "Forbidden", code:'FORBIDDEN', perm:'rbac.platform_admin' }, { status: 403 });
+    // Si el usuario es admin por rol en BD, bypass
+    if (rol !== 'admin') {
+      console.log('[admin/rbac/usuarios][GET] SQL perm check', { text: 'select public.fn_usuario_tiene_permiso($1,$2) as allowed', values: [userId, 'rbac.platform_admin'] })
+      const perm = await sql<{ allowed: boolean }>`
+        SELECT public.fn_usuario_tiene_permiso(${userId}::uuid, ${"rbac.platform_admin"}) AS allowed;
+      `;
+      if (!perm.rows[0]?.allowed) return NextResponse.json({ ok:false, error: "Forbidden", code:'FORBIDDEN', perm:'rbac.platform_admin' }, { status: 403 });
+    }
 
     // 2) parámetros seguros
     const { searchParams } = new URL(req.url);

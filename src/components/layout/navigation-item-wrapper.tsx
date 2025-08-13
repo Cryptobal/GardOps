@@ -30,16 +30,30 @@ export function NavigationItemWrapper({
   const perm = (item.permission || '').trim();
   const shouldCheck = !!perm;
   const { allowed: checkedAllowed, loading } = useCan(shouldCheck ? perm : undefined);
+  // Bypass rápido en cliente: si el JWT tiene rol admin, mostrar ítems sin esperar
+  let adminBypass = false;
+  try {
+    if (typeof document !== 'undefined') {
+      const m = (document.cookie || '').match(/(?:^|;\s*)auth_token=([^;]+)/);
+      const token = m?.[1] ? decodeURIComponent(m[1]) : null;
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1] || '')) || {};
+        adminBypass = payload?.rol === 'admin';
+      }
+    }
+  } catch {}
   const allowed = shouldCheck ? checkedAllowed : true;
   const adoV2On = useFlag('ado_v2');
 
   // Si tiene permiso requerido y está cargando, no mostrar nada
-  if (shouldCheck && loading) {
+  if (adminBypass) {
+    // nada
+  } else if (shouldCheck && loading) {
     return null;
   }
 
   // Si tiene permiso requerido y no está permitido, no mostrar nada
-  if (shouldCheck && !allowed) {
+  if (!adminBypass && shouldCheck && !allowed) {
     return null;
   }
 

@@ -48,6 +48,14 @@ export async function userHasPerm(userId: string, perm: string): Promise<boolean
 export async function requirePlatformAdmin(
   req: NextRequest
 ): Promise<{ ok: true; userId: string; email: string } | { ok: false; status: number; error: string }> {
+  // 0) Override JWT: si el token indica rol admin, permitir sin consultar BD
+  try {
+    const u = getCurrentUserServer(req as any);
+    if (u?.rol === 'admin' && u?.user_id && u?.email) {
+      return { ok: true, userId: u.user_id, email: u.email };
+    }
+  } catch {}
+
   const email = await getUserEmail(req);
   if (!email) {
     // Mantener compatibilidad: lanzar para endpoints existentes
