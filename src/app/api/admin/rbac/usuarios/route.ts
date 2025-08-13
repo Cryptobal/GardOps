@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
     console.log('[admin/rbac/usuarios][POST] SQL insert', { text: 'insert into public.usuarios(...) returning ...', values: { email, nombre, tenantIdFinal } })
     
     const inserted = await sql<{ id: string; email: string; nombre: string | null; activo: boolean; tenant_id: string | null }>`
-      INSERT INTO public.usuarios (id, email, nombre, apellido, activo, tenant_id, password, rol)
+      INSERT INTO public.usuarios (id, email, nombre, apellido, activo, tenant_id, password, rol, fecha_creacion)
       VALUES (
         gen_random_uuid(),
         lower(${email}),
@@ -141,7 +141,8 @@ export async function POST(req: NextRequest) {
         true,
         ${tenantIdFinal},
         crypt(${password}, gen_salt('bf')),
-        'guardia'
+        'guardia',
+        NOW()
       )
       ON CONFLICT (email) DO NOTHING
       RETURNING id, email, nombre, activo, tenant_id;
