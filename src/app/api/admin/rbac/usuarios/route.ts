@@ -111,8 +111,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok:false, error: 'password_requerido', code:'BAD_REQUEST' }, { status: 400 });
     }
 
-    // 2) Obtener tenant del solicitante por header (o DEV fallback)
-    const requesterEmail = getEmail(req);
+    // 2) Obtener tenant del solicitante desde JWT/header
+    const requesterEmail = await getUserEmail(req);
+    if (!requesterEmail) {
+      return NextResponse.json({ ok:false, error: 'No autenticado', code:'UNAUTHENTICATED' }, { status: 401 });
+    }
     console.log('[admin/rbac/usuarios][POST] payload', { requesterEmail, email, nombre, tenantIdFromBody })
     const creatorTenant = await sql<{ tenant_id: string | null }>`
       SELECT tenant_id FROM public.usuarios WHERE lower(email)=lower(${requesterEmail}) LIMIT 1;
@@ -121,6 +124,9 @@ export async function POST(req: NextRequest) {
 
     // 3) Resolver tenant final
     const tenantIdFinal = tenantIdFromBody ?? creatorTenantId ?? null;
+    if (!tenantIdFinal) {
+      return NextResponse.json({ ok:false, error:'tenant_no_resuelto', code:'BAD_REQUEST' }, { status: 400 });
+    }
 
     // 4) Insert con password obligatoria; si existe, 409
     console.log('[admin/rbac/usuarios][POST] SQL insert', { text: 'insert into public.usuarios(...) returning ...', values: { email, nombre, tenantIdFinal } })
