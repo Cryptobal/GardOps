@@ -1,5 +1,5 @@
 import { Usuario, CreateUsuarioData, LoginCredentials, AuthResponse } from '../schemas/usuarios';
-import { signToken, hashPassword } from '../auth';
+import { signToken, hashPassword, comparePassword } from '../auth';
 import { query } from '../database';
 import { sql as vercelSql } from '@vercel/postgres';
 
@@ -43,7 +43,7 @@ export async function createUser(data: CreateUsuarioData): Promise<Usuario | nul
 
 export async function authenticateUser(credentials: LoginCredentials): Promise<AuthResponse | null> {
   try {
-    // 1) Intentar en Vercel Postgres
+    // 1) Intentar en Vercel Postgres con crypt()
     let user: any = null;
     try {
       const rows = await vercelSql<{
@@ -66,6 +66,24 @@ export async function authenticateUser(credentials: LoginCredentials): Promise<A
       // Ignorar, probamos fallback
     }
 
+    // 1b) Si aún no, intentar Vercel Postgres trayendo hash y comparando con bcrypt (migraciones antiguas)
+    if (!user) {
+      try {
+        const rows = await vercelSql<{
+          id: string; email: string; password: string; nombre: string; apellido: string; rol: string; tenant_id: string;
+        }>`
+          SELECT id::text as id, email, password, nombre, apellido, rol, tenant_id::text as tenant_id
+          FROM public.usuarios
+          WHERE lower(email) = lower(${credentials.email}) AND activo = true
+          LIMIT 1
+        `;
+        const u = rows?.rows?.[0] ?? null;
+        if (u && comparePassword(credentials.password, u.password)) {
+          user = { id: u.id, email: u.email, nombre: u.nombre, apellido: u.apellido, rol: u.rol, tenant_id: u.tenant_id };
+        }
+      } catch {}
+    }
+
     // 2) Fallback a DATABASE_URL pool si no encontramos usuario
     if (!user) {
       try {
@@ -78,6 +96,23 @@ export async function authenticateUser(credentials: LoginCredentials): Promise<A
           [credentials.email, credentials.password]
         );
         user = res?.rows?.[0] ?? null;
+      } catch {}
+    }
+
+    if (!user) {
+      // 3) Fallback: comparar usando bcrypt en Node si el hash guardado es de ese formato
+      try {
+        const res2 = await query(
+          `SELECT id::text as id, email, password, nombre, apellido, rol, tenant_id::text as tenant_id
+           FROM public.usuarios
+           WHERE lower(email) = lower($1) AND activo = true
+           LIMIT 1`,
+          [credentials.email]
+        );
+        const u2 = res2?.rows?.[0] ?? null;
+        if (u2 && comparePassword(credentials.password, u2.password)) {
+          user = { id: u2.id, email: u2.email, nombre: u2.nombre, apellido: u2.apellido, rol: u2.rol, tenant_id: u2.tenant_id };
+        }
       } catch {}
     }
 
