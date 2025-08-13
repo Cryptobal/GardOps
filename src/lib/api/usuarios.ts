@@ -1,6 +1,7 @@
 import { Usuario, CreateUsuarioData, LoginCredentials, AuthResponse } from '../schemas/usuarios';
-import { signToken, hashPassword, comparePassword } from '../auth';
+import { signToken, hashPassword } from '../auth';
 import { query } from '../database';
+import { sql as vercelSql } from '@vercel/postgres';
 
 // Funciones para manejo de usuarios en base de datos PostgreSQL
 export async function createUser(data: CreateUsuarioData): Promise<Usuario | null> {
@@ -42,32 +43,58 @@ export async function createUser(data: CreateUsuarioData): Promise<Usuario | nul
 
 export async function authenticateUser(credentials: LoginCredentials): Promise<AuthResponse | null> {
   try {
-    // Buscar usuario por email
-    const result = await query(`
-      SELECT id, email, password, nombre, apellido, rol, tenant_id, activo
-      FROM usuarios 
-      WHERE email = $1 AND activo = true
-    `, [credentials.email]);
-
-    if (result.rows.length === 0) {
-      return null;
+    // 1) Intentar en Vercel Postgres
+    let user: any = null;
+    try {
+      const rows = await vercelSql<{
+        id: string;
+        email: string;
+        nombre: string;
+        apellido: string;
+        rol: string;
+        tenant_id: string;
+      }>`
+        SELECT id::text as id, email, nombre, apellido, rol, tenant_id::text as tenant_id
+        FROM public.usuarios
+        WHERE lower(email) = lower(${credentials.email})
+          AND activo = true
+          AND password = crypt(${credentials.password}, password)
+        LIMIT 1
+      `;
+      user = rows?.rows?.[0] ?? null;
+    } catch (e) {
+      // Ignorar, probamos fallback
     }
 
-    const user = result.rows[0];
-
-    // Verificar contraseña
-    if (!comparePassword(credentials.password, user.password)) {
-      return null;
+    // 2) Fallback a DATABASE_URL pool si no encontramos usuario
+    if (!user) {
+      try {
+        const res = await query(
+          `SELECT id::text as id, email, nombre, apellido, rol, tenant_id::text as tenant_id
+           FROM public.usuarios
+           WHERE lower(email) = lower($1) AND activo = true
+             AND password = crypt($2, password)
+           LIMIT 1`,
+          [credentials.email, credentials.password]
+        );
+        user = res?.rows?.[0] ?? null;
+      } catch {}
     }
+
+    if (!user) return null;
 
     // Actualizar último acceso
-    await query('UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = $1', [user.id]);
+    try {
+      await vercelSql`UPDATE public.usuarios SET ultimo_acceso = NOW() WHERE id = ${user.id}::uuid`;
+    } catch {
+      try { await query('UPDATE public.usuarios SET ultimo_acceso = NOW() WHERE id = $1::uuid', [user.id]); } catch {}
+    }
 
     // Crear JWT token con tenant_id
     const access_token = signToken({
       user_id: user.id,
       email: user.email,
-      rol: user.rol,
+      rol: user.rol as any,
       tenant_id: user.tenant_id
     });
 
@@ -258,18 +285,18 @@ export async function deleteUser(id: string): Promise<boolean> {
 
 export async function changeUserPassword(id: string, oldPassword: string, newPassword: string): Promise<boolean> {
   try {
-    const user = await findUserById(id);
-    if (!user) return false;
+    // Verificar contra el hash almacenado usando crypt() en la BD (compatible con bcrypt/pgcrypto)
+    const verify = await query(
+      `SELECT 1 FROM public.usuarios WHERE id = $1 AND password = crypt($2, password) LIMIT 1`,
+      [id, oldPassword]
+    );
+    if (verify.rows.length === 0) return false;
 
-    if (!comparePassword(oldPassword, user.password)) return false;
-
-    const hashedNewPassword = hashPassword(newPassword);
-    const result = await query(`
-      UPDATE usuarios 
-      SET password = $1 
-      WHERE id = $2
-    `, [hashedNewPassword, id]);
-
+    // Actualizar usando gen_salt('bf') para mantener formato bcrypt
+    const result = await query(
+      `UPDATE public.usuarios SET password = crypt($2, gen_salt('bf')) WHERE id = $1`,
+      [id, newPassword]
+    );
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error cambiando contraseña:', error);

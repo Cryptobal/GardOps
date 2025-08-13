@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     // También configurar el token como cookie para peticiones de APIs
     response.cookies.set('auth_token', authResult.access_token, {
-      httpOnly: false, // Permitir acceso desde JS para autenticación del cliente
+      httpOnly: false, // Mantener compatibilidad con el cliente actual que lee el token en JS
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
