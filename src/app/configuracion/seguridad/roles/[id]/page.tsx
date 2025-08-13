@@ -127,66 +127,91 @@ export default function RolDetallePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-5xl">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Detalle de Rol</h1>
-          <p className="text-sm text-muted-foreground">ID: {id}</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <Link 
-            href={`/configuracion/seguridad/roles/${id}/permisos`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            🎯 Interfaz de Matriz
-          </Link>
-          <Link href="/configuracion/seguridad/roles" className="inline-flex items-center gap-2 text-sm text-primary">
-            ← Volver a Roles
-          </Link>
+    <div className="container mx-auto px-4 py-6 max-w-7xl">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Link href="/configuracion/seguridad/roles" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                ← Volver a Roles
+              </Link>
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight">{rol?.nombre ?? "Rol"}</h1>
+            <p className="text-muted-foreground mt-1">
+              {rol?.descripcion || "Sin descripción"}
+            </p>
+            {rol?.tenant_id && (
+              <div className="text-xs text-muted-foreground mt-1">
+                Tenant: {rol.tenant_id}
+              </div>
+            )}
+          </div>
+          <div className="flex-shrink-0">
+            <div className="text-xs text-muted-foreground">ID: {id}</div>
+          </div>
         </div>
       </div>
 
       {error && (
-        <div className="mb-4 text-sm text-red-600">{error}</div>
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="text-sm text-red-600">{error}</div>
+        </div>
       )}
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>{rol?.nombre ?? "Rol"}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-sm text-muted-foreground">{rol?.descripcion || "Sin descripción"}</div>
-          {rol?.tenant_id && (
-            <div className="mt-2 text-xs text-muted-foreground">Tenant: {rol.tenant_id}</div>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-6 md:grid-cols-2">
+      {/* Interfaz de Matriz - Siempre visible */}
+      <div className="space-y-6">
+        {/* Sección de Permisos Asignados */}
         <Card>
           <CardHeader>
-            <CardTitle>Permisos asignados</CardTitle>
+            <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+              🎯 Matriz de Permisos
+              <span className="text-sm font-normal text-muted-foreground">
+                ({asignados.length} asignados)
+              </span>
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Permisos actualmente asignados a este rol
+            </p>
           </CardHeader>
           <CardContent>
             {busy ? (
-              <div className="text-sm text-muted-foreground">Cargando...</div>
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                  <p className="mt-2 text-sm text-muted-foreground">Cargando permisos...</p>
+                </div>
+              </div>
             ) : asignados.length === 0 ? (
-              <div className="text-sm text-muted-foreground">No hay permisos asignados.</div>
+              <div className="text-center py-8">
+                <div className="text-muted-foreground mb-2">🎯</div>
+                <p className="text-sm text-muted-foreground">No hay permisos asignados a este rol.</p>
+              </div>
             ) : (
-              <div className="flex flex-wrap gap-2">
+              <div className="space-y-3">
                 {asignados.map((p) => (
-                  <div key={p.id} className="flex items-center gap-2 border rounded-full px-3 py-1 text-sm">
-                    <span className="font-mono">{p.clave}</span>
-                    <span className="text-muted-foreground">— {p.descripcion || ""}</span>
-                    {(canWrite) && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2 text-red-600"
-                        onClick={() => updatePermisos({ remove: [p.id] })}
-                      >
-                        Quitar
-                      </Button>
+                  <div key={p.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono text-sm bg-muted px-2 py-1 rounded text-xs">
+                          {p.clave}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {p.descripcion || "Sin descripción"}
+                      </p>
+                    </div>
+                    {canWrite && (
+                      <div className="flex-shrink-0 ml-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => updatePermisos({ remove: [p.id] })}
+                        >
+                          Quitar
+                        </Button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -195,27 +220,80 @@ export default function RolDetallePage() {
           </CardContent>
         </Card>
 
+        {/* Sección de Agregar Permisos */}
+        {canWrite && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg sm:text-xl">➕ Agregar Permisos</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Selecciona permisos para agregar al rol
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Combobox
+                  items={noAsignados.map((p) => ({ 
+                    id: p.id, 
+                    codigo: p.clave, 
+                    nombre: p.descripcion || p.clave 
+                  }))}
+                  value={selectedPerm}
+                  onChange={setSelectedPerm}
+                  placeholder="Buscar y seleccionar permiso..."
+                  disabled={!canWrite}
+                  searchPlaceholder="Buscar permiso..."
+                  emptyMessage="No hay permisos disponibles para agregar"
+                />
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    onClick={() => selectedPerm && updatePermisos({ add: [selectedPerm] })}
+                    disabled={!canWrite || !selectedPerm}
+                    className="w-full sm:w-auto"
+                  >
+                    ➕ Agregar Permiso
+                  </Button>
+                  {selectedPerm && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setSelectedPerm(undefined)}
+                      className="w-full sm:w-auto"
+                    >
+                      Limpiar
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Información del Rol */}
         <Card>
           <CardHeader>
-            <CardTitle>Agregar permisos</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">ℹ️ Información del Rol</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <Combobox
-                items={noAsignados.map((p) => ({ id: p.id, codigo: p.clave, nombre: p.descripcion || p.clave }))}
-                value={selectedPerm}
-                onChange={setSelectedPerm}
-                placeholder="Selecciona un permiso..."
-                disabled={!canWrite}
-                searchPlaceholder="Buscar permiso..."
-                emptyMessage="No hay permisos disponibles"
-              />
-              <Button
-                onClick={() => selectedPerm && updatePermisos({ add: [selectedPerm] })}
-                disabled={!canWrite || !selectedPerm}
-              >
-                Agregar
-              </Button>
+              <div>
+                <label className="text-sm font-medium">Nombre</label>
+                <p className="text-sm text-muted-foreground mt-1">{rol?.nombre}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Descripción</label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {rol?.descripcion || "Sin descripción"}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Tipo</label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {rol?.tenant_id ? "Tenant" : "Global"}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">ID</label>
+                <p className="text-sm text-muted-foreground font-mono mt-1">{id}</p>
+              </div>
             </div>
           </CardContent>
         </Card>

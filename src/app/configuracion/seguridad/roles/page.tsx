@@ -203,12 +203,20 @@ export default function RolesPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <Button onClick={iniciarCreacion} disabled={creandoRol}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo Rol
-          </Button>
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Roles del Sistema</h1>
+            <p className="text-muted-foreground mt-1">
+              Gestiona los roles y sus permisos asignados
+            </p>
+          </div>
+          <div className="flex-shrink-0">
+            <Button onClick={iniciarCreacion} disabled={creandoRol} className="w-full sm:w-auto">
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo Rol
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -216,7 +224,7 @@ export default function RolesPage() {
       {creandoRol && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>
+            <CardTitle className="text-lg sm:text-xl">
               Crear Nuevo Rol
             </CardTitle>
             <CardDescription>
@@ -224,32 +232,33 @@ export default function RolesPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <label className="text-sm font-medium">Nombre del Rol</label>
               <Input
                 value={formData.nombre}
                 onChange={(e) => setFormData(prev => ({ ...prev, nombre: e.target.value }))}
                 placeholder="Ej: Supervisor de Operaciones"
-                className="mt-1"
+                className="w-full"
               />
             </div>
             
-            <div>
+            <div className="space-y-2">
               <label className="text-sm font-medium">Descripción</label>
               <Textarea
                 value={formData.descripcion}
                 onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
                 placeholder="Describe las responsabilidades de este rol..."
-                className="mt-1"
+                className="w-full"
                 rows={3}
               />
             </div>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
               <Button
                 variant="outline"
                 onClick={cancelarEdicion}
                 disabled={guardando}
+                className="w-full sm:w-auto"
               >
                 <X className="h-4 w-4 mr-2" />
                 Cancelar
@@ -257,6 +266,7 @@ export default function RolesPage() {
               <Button
                 onClick={guardarRol}
                 disabled={guardando}
+                className="w-full sm:w-auto"
               >
                 {guardando ? (
                   <>Guardando...</>
@@ -281,7 +291,7 @@ export default function RolesPage() {
           </div>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-2">
           {roles.map((rol) => (
             <Link
               key={rol.id}
@@ -290,27 +300,32 @@ export default function RolesPage() {
               tabIndex={0}
               className="block focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-lg"
             >
-              <Card className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        {rol.nombre}
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Shield className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <h3 className="font-medium text-sm sm:text-base truncate">
+                          {rol.nombre}
+                        </h3>
                         {rol.nombre.includes('(Global)') && (
-                          <Badge variant="secondary" className="text-xs">Global</Badge>
+                          <Badge variant="secondary" className="text-xs flex-shrink-0">Global</Badge>
                         )}
                         {rol.nombre.includes('(Tenant)') && (
-                          <Badge variant="outline" className="text-xs">Tenant</Badge>
+                          <Badge variant="outline" className="text-xs flex-shrink-0">Tenant</Badge>
                         )}
-                      </CardTitle>
-                      <CardDescription className="mt-1 text-sm leading-relaxed">
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                         {rol.descripcion || 'Sin descripción'}
-                      </CardDescription>
+                      </p>
+                    </div>
+                    <div className="flex-shrink-0 ml-4">
+                      <div className="text-xs text-muted-foreground hidden sm:block">
+                        ID: {rol.id.slice(0, 8)}...
+                      </div>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-xs text-muted-foreground">ID: {rol.id}</div>
                 </CardContent>
               </Card>
             </Link>
