@@ -25,14 +25,19 @@ export async function GET(
     console.log('[admin/rbac/roles/[id]/permisos][GET]', { email, userId, rolId: params.id });
 
     const rows = await sql`
-      SELECT rp.permiso_id, rp.rol_id
+      SELECT 
+        p.id,
+        p.clave,
+        p.descripcion
       FROM roles_permisos rp
+      JOIN permisos p ON p.id = rp.permiso_id
       WHERE rp.rol_id = ${params.id}
+      ORDER BY p.clave
     `;
 
     return NextResponse.json({ 
       ok: true, 
-      permisos: rows.rows
+      items: rows.rows
     });
   } catch (err: any) {
     console.error('[admin/rbac/roles/[id]/permisos][GET] error:', err);
