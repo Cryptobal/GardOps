@@ -29,17 +29,6 @@ export default function SeguridadLayout({
       }
     }
   } catch {}
-  let adminBypass = false;
-  try {
-    if (typeof document !== 'undefined') {
-      const m = (document.cookie || '').match(/(?:^|;\s*)auth_token=([^;]+)/);
-      const token = m?.[1] ? decodeURIComponent(m[1]) : null;
-      if (token) {
-        const payload = JSON.parse(atob(token.split('.')[1] || '')) || {};
-        adminBypass = payload?.rol === 'admin';
-      }
-    }
-  } catch {}
   const pathname = usePathname();
 
   const sections = [
