@@ -98,13 +98,17 @@ export async function POST(req: NextRequest) {
   try {
     // 1) Body básico y validaciones
     const body = await req.json().catch(() => null) as
-      | { email?: string; nombre?: string | null; tenantId?: string | null }
+      | { email?: string; nombre?: string | null; tenantId?: string | null; password?: string }
       | null;
     const email = (body?.email || '').trim().toLowerCase();
     const nombre = (body?.nombre ?? '').trim();
     const tenantIdFromBody = body?.tenantId ?? null;
+    const password = body?.password?.trim() || null;
     if (!email) {
       return NextResponse.json({ ok:false, error: 'email_requerido', code:'BAD_REQUEST' }, { status: 400 });
+    }
+    if (!password || password.trim().length < 6) {
+      return NextResponse.json({ ok:false, error: 'password_requerido', code:'BAD_REQUEST' }, { status: 400 });
     }
 
     // 2) Obtener tenant del solicitante por header (o DEV fallback)
@@ -118,8 +122,9 @@ export async function POST(req: NextRequest) {
     // 3) Resolver tenant final
     const tenantIdFinal = tenantIdFromBody ?? creatorTenantId ?? null;
 
-    // 4) Insert con defaults y password temporal; si existe, 409
+    // 4) Insert con password obligatoria; si existe, 409
     console.log('[admin/rbac/usuarios][POST] SQL insert', { text: 'insert into public.usuarios(...) returning ...', values: { email, nombre, tenantIdFinal } })
+    
     const inserted = await sql<{ id: string; email: string; nombre: string | null; activo: boolean; tenant_id: string | null }>`
       INSERT INTO public.usuarios (id, email, nombre, apellido, activo, tenant_id, password, rol)
       VALUES (
@@ -129,7 +134,7 @@ export async function POST(req: NextRequest) {
         '',
         true,
         ${tenantIdFinal},
-        encode(digest('temporary','sha256'),'hex'),
+        crypt(${password}, gen_salt('bf')),
         'guardia'
       )
       ON CONFLICT (email) DO NOTHING

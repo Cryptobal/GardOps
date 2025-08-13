@@ -1,40 +1,17 @@
-import { NextResponse } from "next/server";
-import { headers as nextHeaders } from "next/headers";
-import { getUserEmail, getUserIdByEmail, userHasPerm } from "@/lib/auth/rbac";
-
-function detectEmail(req: Request) {
-  const emailFromHeader = req.headers.get("x-user-email");
-  const emailFromEnv = process.env.NEXT_PUBLIC_DEV_USER_EMAIL;
-  return emailFromHeader || emailFromEnv || null;
-}
+export const runtime = 'edge';
 
 export async function GET(req: Request) {
-  // Mantener compatibilidad en dev leyendo header/env directo
-  const email = detectEmail(req);
+  // Lee headers igual que los usa la app
+  const fromFetch = req.headers.get('x-user-email') || null;
+  // Nota: next/headers no existe en edge, así evitamos cuelgues
 
-  let canPlatformAdmin = false;
-  let userId: string | null = null;
-  if (email) {
-    try {
-      userId = await getUserIdByEmail(email);
-      if (userId) {
-        canPlatformAdmin = await userHasPerm(userId, 'rbac.platform_admin');
-      }
-    } catch (e) {
-      console.error('[debug/whoami] error verificando permiso:', e);
-    }
-  }
+  const env = process.env.NEXT_PUBLIC_DEV_USER_EMAIL || null;
+  const now = Date.now();
 
-  return NextResponse.json({
-    email,
-    userId,
-    canPlatformAdmin,
-    receivedHeaders: {
-      "x-user-email": req.headers.get("x-user-email"),
-      "x-user-email(next/headers)": nextHeaders().get("x-user-email"),
-    },
-    envDevEmail: process.env.NEXT_PUBLIC_DEV_USER_EMAIL ?? null,
-  });
+  return new Response(
+    JSON.stringify({ ok: true, now, email: fromFetch, envDevEmail: env }),
+    { headers: { 'content-type': 'application/json' } }
+  );
 }
 
 

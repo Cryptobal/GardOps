@@ -65,6 +65,25 @@ export default async function PautaDiariaV2Page({
   searchParams: { fecha?: string; incluir_libres?: string } 
 }) {
   noStore() // Evita caché en esta request
+  // Gate SSR: requiere permiso para ver pautas
+  const { cookies } = await import('next/headers');
+  const { verifyToken } = await import('@/lib/auth');
+  const cookieStore = cookies();
+  const token = cookieStore.get('auth_token')?.value || '';
+  const { sql } = await import('@vercel/postgres');
+  try {
+    const decoded = token ? verifyToken(token as any) : null;
+    const userEmail = decoded?.email ?? null;
+    if (!userEmail) return redirect('/login');
+    // Admin absoluto (rol en JWT) tiene acceso total
+    if (decoded?.rol === 'admin') {
+      // skip check
+    } else {
+      const { rows } = await sql`with me as (select id from public.usuarios where lower(email)=lower(${userEmail}) limit 1) select public.fn_usuario_tiene_permiso((select id from me), ${'pautas.view'}) as allowed`;
+      const allowed = rows?.[0]?.allowed === true;
+      if (!allowed) return redirect('/');
+    }
+  } catch {}
   
   // Verificar flag fuera del try/catch para que redirect funcione correctamente
   const isOn = await isFlagEnabled('ado_v2')

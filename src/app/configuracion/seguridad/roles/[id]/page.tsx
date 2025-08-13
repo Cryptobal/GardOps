@@ -133,9 +133,17 @@ export default function RolDetallePage() {
           <h1 className="text-2xl font-bold">Detalle de Rol</h1>
           <p className="text-sm text-muted-foreground">ID: {id}</p>
         </div>
-        <Link href="/configuracion/seguridad/roles" className="inline-flex items-center gap-2 text-sm text-primary">
-          ← Volver a Roles
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link 
+            href={`/configuracion/seguridad/roles/${id}/permisos`}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            🎯 Interfaz de Matriz
+          </Link>
+          <Link href="/configuracion/seguridad/roles" className="inline-flex items-center gap-2 text-sm text-primary">
+            ← Volver a Roles
+          </Link>
+        </div>
       </div>
 
       {error && (

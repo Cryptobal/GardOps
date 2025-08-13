@@ -64,6 +64,9 @@ interface TipoDocumento {
 }
 
 export default function DocumentosGlobalesPage() {
+  // Gate UI: requiere permiso para ver documentos
+  const { useCan } = require("@/lib/permissions");
+  const { allowed, loading: permLoading } = useCan('documentos.view');
   const router = useRouter();
   const [documentos, setDocumentos] = useState<DocumentoGlobal[]>([]);
   const [stats, setStats] = useState<DocumentosStats>({
@@ -97,6 +100,7 @@ export default function DocumentosGlobalesPage() {
 
   // Cargar documentos globales
   const cargarDocumentos = async () => {
+    if (!allowed) return;
     try {
       setCargando(true);
       console.log('🔄 Cargando documentos globales con filtros:', filtros);
@@ -160,11 +164,12 @@ export default function DocumentosGlobalesPage() {
 
   useEffect(() => {
     cargarDocumentos();
-  }, [filtros.modulo, filtros.tipo_documento, filtros.estado, filtros.entidad_filter, filtros.fecha_desde, filtros.fecha_hasta, refreshTrigger]);
+  }, [allowed, filtros.modulo, filtros.tipo_documento, filtros.estado, filtros.entidad_filter, filtros.fecha_desde, filtros.fecha_hasta, refreshTrigger]);
 
   useEffect(() => {
+    if (!allowed) return;
     cargarTiposDocumentos();
-  }, []);
+  }, [allowed]);
 
   // Resetear filtros
   const resetearFiltros = () => {
@@ -259,6 +264,9 @@ export default function DocumentosGlobalesPage() {
               toast.error("No se pudo actualizar la fecha de vencimiento", "Error");
     }
   };
+
+  if (permLoading) return null;
+  if (!allowed) return (<div className="p-4 text-sm text-muted-foreground">Sin acceso</div>);
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">

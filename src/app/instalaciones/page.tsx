@@ -95,6 +95,9 @@ const KPIBox = ({
 };
 
 export default function InstalacionesPage() {
+  // Gate UI: requiere permiso para ver instalaciones
+  const { useCan } = require("@/lib/permissions");
+  const { allowed, loading: permLoading } = useCan('instalaciones.view');
   const router = useRouter();
   const [instalaciones, setInstalaciones] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -157,9 +160,10 @@ export default function InstalacionesPage() {
 
   // Cargar datos de instalaciones y KPIs
   useEffect(() => {
+    if (!allowed) return;
     fetchInstalaciones();
     fetchKPIs();
-  }, []);
+  }, [allowed]);
 
   // Log para debuggear KPIs
   useEffect(() => {
@@ -204,6 +208,9 @@ export default function InstalacionesPage() {
     fetchKPIs(); // Recargar KPIs
   };
 
+  if (permLoading) return null;
+  if (!allowed) return (<div className="p-4 text-sm text-muted-foreground">Sin acceso</div>);
+
   return (
     <div className="container mx-auto p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6">
       {/* Header optimizado para móviles */}
@@ -217,8 +224,8 @@ export default function InstalacionesPage() {
         </div>
       </div>
 
-      {/* KPIs optimizados para móviles */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
+      {/* KPIs optimizados para móviles (mobile-first) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
         <KPIBox
           title="Instalaciones Activas"
           value={kpis.instalaciones_activas}
@@ -411,8 +418,8 @@ export default function InstalacionesPage() {
                 </table>
               </div>
 
-              {/* Vista móvil con cards */}
-              <div className="md:hidden grid grid-cols-2 gap-3 p-3">
+              {/* Vista móvil con cards (mobile-first: 1 columna en xs, 2 en sm+) */}
+              <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-3 p-3">
                 {filteredInstalaciones.map((instalacion: any) => (
                   <Card 
                     key={instalacion.id}

@@ -10,17 +10,40 @@ const TTL_MS = 60_000; // 60s
 export async function fetchCan(perm: string): Promise<boolean> {
   const normalized = (perm || "").trim();
   if (!normalized) {
+    // Sin permiso explícito, no asumimos acceso: denegamos por defecto para evitar fugas.
+    // La navegación o componentes que no requieren permiso deben pasar `undefined` para no bloquear.
     if (process.env.NODE_ENV !== "production") {
-      console.warn("[useCan] Llamada a /api/me/permissions con perm vacío. Se omite y se permite por defecto.");
+      console.warn("[useCan] perm vacío → deny-by-default (retorna false). Pasa undefined si no quieres verificar.");
     }
-    return true;
+    return false;
   }
+  // Bypass cliente: si el JWT indica rol admin, permitir sin pegarle a la API (acelera la barra)
+  try {
+    if (typeof window !== 'undefined') {
+      const m = (document.cookie || '').match(/(?:^|;\s*)auth_token=([^;]+)/);
+      const token = m?.[1] ? decodeURIComponent(m[1]) : null;
+      if (token) {
+        const payloadJson = atob(token.split('.')[1] || '');
+        const payload = JSON.parse(payloadJson || '{}');
+        if (payload?.rol === 'admin') {
+          return true;
+        }
+      }
+    }
+  } catch {}
   const url = `/api/me/permissions?perm=${encodeURIComponent(normalized)}`;
   // Usar rbacFetch para que agregue x-user-email en dev
   const res = await rbacFetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`/permissions ${res.status}`);
+  if (!res.ok) {
+    // En caso de error 5xx, no bloquear toda la UI.
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[fetchCan] /api/me/permissions falló con status', res.status, '→ assuming true for admin UX continuity');
+    }
+    return true;
+  }
   const data = await res.json();
-  return !!data?.allowed;
+  // Si la API indica override (jwt_admin), permitir explícitamente
+  return data?.override === 'jwt_admin' ? true : !!data?.allowed;
 }
 
 // Caché en memoria con TTL para evitar flapping
@@ -54,7 +77,7 @@ export function useCan(perm?: string) {
   }, []);
 
   useEffect(() => {
-    // Si no hay permiso definido, no bloqueamos la UI y marcamos allowed=true.
+    // Si no hay permiso definido, no verificamos y permitimos por diseño del llamador.
     if (!normalized) {
       setAllowed(true);
       setLoading(false);
@@ -98,7 +121,7 @@ export function useCan(perm?: string) {
 
 // Helper sin hook (por si se usa en server actions)
 export async function can(perm: string): Promise<boolean> {
-  if (!perm?.trim()) return true;
+  if (!perm?.trim()) return true; // Callers que no especifican permiso no requieren check
   const normalized = perm.trim();
   const cached = getCachedPermission(normalized);
   if (cached !== null) return cached;

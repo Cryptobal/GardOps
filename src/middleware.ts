@@ -4,7 +4,15 @@ import { NextResponse } from "next/server";
 export function middleware(req: NextRequest) {
   // Solo en desarrollo y solo para rutas de API
   const devEmail = process.env.NEXT_PUBLIC_DEV_USER_EMAIL;
-  if (process.env.NODE_ENV === "development" && devEmail && req.nextUrl.pathname.startsWith("/api/")) {
+  const isDev = process.env.NODE_ENV !== "production";
+  if (isDev && devEmail && req.nextUrl.pathname.startsWith("/api/")) {
+    // No suplantar cuando hay un usuario autenticado real (JWT en cookie o Authorization)
+    const hasAuthHeader = !!req.headers.get("authorization");
+    const cookieHeader = req.headers.get("cookie") || "";
+    const hasAuthCookie = /(?:^|;\s*)auth_token=/.test(cookieHeader);
+    if (hasAuthHeader || hasAuthCookie) {
+      return NextResponse.next();
+    }
     const headers = new Headers(req.headers);
     headers.set("x-user-email", devEmail);
     return NextResponse.next({ request: { headers } });

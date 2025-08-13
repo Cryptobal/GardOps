@@ -302,8 +302,8 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* Stats Grid - 2 filas de 3 columnas en móvil */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 lg:gap-5 xl:gap-6 auto-rows-fr">
+      {/* Stats Grid - mobile-first: 2 cols en xs, 3 en sm+, auto-rows */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 md:gap-4 lg:gap-5 xl:gap-6 auto-rows-fr">
         {stats.map((stat) => (
           <div key={stat.title} className="h-full min-h-[140px] sm:min-h-[160px]">
             <Card 

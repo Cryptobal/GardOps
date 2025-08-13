@@ -18,23 +18,29 @@ export async function GET(req: NextRequest) {
     const canRead = (await userHasPerm(userId, 'rbac.roles.read')) || (await userHasPerm(userId, 'rbac.platform_admin'));
     if (!canRead) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.roles.read', code:'FORBIDDEN' }, { status:403 });
 
-    // roles: columnas reales -> id, nombre, descripcion, tenant_id, created_at, updated_at
+    // Obtener tenant del usuario (aislamiento estricto por tenant)
+    const tu = await sql<{ tenant_id: string | null }>`SELECT tenant_id FROM public.usuarios WHERE id=${userId}::uuid LIMIT 1`;
+    const userTenantId = tu.rows[0]?.tenant_id ?? null;
+
+    // roles: columnas reales -> id, nombre, descripcion, tenant_id
     let rows;
     if (q.length > 0) {
       const like = `%${q.toLowerCase()}%`;
       rows = await sql`
         SELECT r.id, r.nombre, r.descripcion, r.tenant_id
-        FROM roles r
-        WHERE lower(r.nombre) LIKE ${like}
+        FROM public.roles r
+        WHERE r.tenant_id = ${userTenantId}::uuid
+          AND lower(r.nombre) LIKE ${like}
         ORDER BY r.nombre ASC
-        LIMIT ${limit} OFFSET ${offset};
+        LIMIT ${limit} OFFSET ${offset}
       `;
     } else {
       rows = await sql`
         SELECT r.id, r.nombre, r.descripcion, r.tenant_id
-        FROM roles r
+        FROM public.roles r
+        WHERE r.tenant_id = ${userTenantId}::uuid
         ORDER BY r.nombre ASC
-        LIMIT ${limit} OFFSET ${offset};
+        LIMIT ${limit} OFFSET ${offset}
       `;
     }
 

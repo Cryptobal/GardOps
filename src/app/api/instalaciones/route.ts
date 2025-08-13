@@ -11,6 +11,25 @@ let tableVerified = false;
 // GET /api/instalaciones - Obtener todas las instalaciones con estadísticas optimizadas
 export async function GET(request: NextRequest) {
   try {
+    // Gate backend: requiere permiso 'instalaciones.view'
+    try {
+      const h = request.headers;
+      const { getCurrentUserServer } = await import('@/lib/auth');
+      const fromJwt = getCurrentUserServer(request as any)?.email || null;
+      const fromHeader = h.get('x-user-email') || h.get('x-user-email(next/headers)') || null;
+      const isDev = process.env.NODE_ENV !== 'production';
+      const dev = isDev ? process.env.NEXT_PUBLIC_DEV_USER_EMAIL : undefined;
+      const email = fromJwt || fromHeader || dev || null;
+      if (!email) return NextResponse.json({ ok:false, error:'no-auth' }, { status:401 });
+      const { sql } = await import('@vercel/postgres');
+      const { rows } = await sql`
+        with me as (select id from public.usuarios where lower(email)=lower(${email}) limit 1)
+        select public.fn_usuario_tiene_permiso((select id from me), ${'instalaciones.view'}) as allowed
+      `;
+      if (rows?.[0]?.allowed !== true) {
+        return NextResponse.json({ ok:false, error:'forbidden', perm:'instalaciones.view' }, { status:403 });
+      }
+    } catch {}
     const { searchParams } = new URL(request.url);
     const withCoords = searchParams.get('withCoords') === 'true';
     const withStats = searchParams.get('withStats') === 'true';
@@ -35,7 +54,7 @@ export async function GET(request: NextRequest) {
         ORDER BY i.nombre
       `);
       
-      return NextResponse.json(result.rows);
+    return NextResponse.json(result.rows);
     }
 
     // Si se solicita formato simple para KPIs

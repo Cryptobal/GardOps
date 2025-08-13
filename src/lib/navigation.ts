@@ -40,66 +40,79 @@ export const navigationItems: NavigationItem[] = [
   {
     name: "Clientes",
     href: "/clientes",
-    icon: Users
+    icon: Users,
+    permission: "clientes.view"
   },
   {
     name: "Instalaciones",
     href: "/instalaciones",
-    icon: Building2
+    icon: Building2,
+    permission: "instalaciones.view"
   },
   {
     name: "Guardias",
     href: "/guardias",
-    icon: Shield
+    icon: Shield,
+    permission: "guardias.view"
   },
   {
     name: "Pauta Mensual",
     href: "/pauta-mensual",
-    icon: Calendar
+    icon: Calendar,
+    permission: "pautas.view"
   },
   {
     name: "Pauta Diaria",
     href: "/pauta-diaria",
-    icon: CalendarDays
+    icon: CalendarDays,
+    permission: "pautas.view"
   },
   {
     name: "Turnos Extras",
     href: "/pauta-diaria/turnos-extras",
-    icon: DollarSign
+    icon: DollarSign,
+    permission: "turnos.view"
   },
   {
     name: "Payroll",
     href: "/payroll",
-    icon: CreditCard
+    icon: CreditCard,
+    permission: "payroll.view"
   },
   {
     name: "Sueldos",
     href: "/sueldos",
-    icon: Calculator
+    icon: Calculator,
+    permission: "sueldos.view"
   },
   {
     name: "PPC",
     href: "/ppc",
-    icon: FileText
+    icon: FileText,
+    permission: "ppc.view"
   },
   {
     name: "Documentos",
     href: "/documentos",
-    icon: FolderOpen
+    icon: FolderOpen,
+    permission: "documentos.view"
   },
   {
     name: "Alertas y KPIs",
     href: "/alertas",
-    icon: AlertTriangle
+    icon: AlertTriangle,
+    permission: "reportes.view"
   },
   {
     name: "Asignaciones",
     href: "/asignaciones",
-    icon: Target
+    icon: Target,
+    permission: "asignaciones.view"
   },
   {
     name: "Configuración",
     href: "/configuracion",
-    icon: Settings
+    icon: Settings,
+    permission: "config.manage"
   }
 ]; 

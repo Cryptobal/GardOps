@@ -139,9 +139,9 @@ export default function GuardiaDetallePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div className="flex items-center gap-4">
           <Link href="/guardias">
             <Button variant="outline" size="sm">
@@ -186,7 +186,7 @@ export default function GuardiaDetallePage() {
       {/* Pestañas */}
       <div className="w-full mb-6">
         {/* Contenedor de pestañas con fondo y bordes */}
-        <div className="bg-muted/30 rounded-xl p-3 shadow-sm border border-border/50">
+        <div className="bg-muted/30 rounded-xl p-3 shadow-sm border border-border/50 overflow-x-auto">
           {/* Desktop: Mejor distribución con espaciado */}
           <div className="hidden md:flex gap-4 w-full justify-center">
             <button

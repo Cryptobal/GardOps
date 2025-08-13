@@ -31,7 +31,15 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     const ctx = await requirePlatformAdmin(req);
     const { id } = params;
     console.log('[admin/rbac/usuarios/:id][DELETE]', { email: ctx.ok ? ctx.email : undefined, userId: ctx.ok ? ctx.userId : undefined, targetId: id })
-    await sql`delete from usuarios where id=${id}::uuid`;
+    
+    // Eliminar en una transacción para mantener consistencia
+    await sql`
+      with deleted_roles as (
+        delete from usuarios_roles where usuario_id = ${id}::uuid
+      )
+      delete from usuarios where id = ${id}::uuid
+    `;
+    
     return NextResponse.json({ success: true });
   } catch (e: any) {
     if (e?.message === 'UNAUTHORIZED') return jsonError(401, 'No autenticado');

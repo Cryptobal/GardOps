@@ -19,9 +19,9 @@ export const ToggleStatus: React.FC<ToggleStatusProps> = ({
   className
 }) => {
   const sizeClasses = {
-    sm: 'w-16 h-8 text-xs',
-    md: 'w-20 h-10 text-sm',
-    lg: 'w-24 h-12 text-base'
+    sm: 'w-12 h-6 text-[10px]',
+    md: 'w-16 h-8 text-xs',
+    lg: 'w-20 h-10 text-sm'
   };
 
   const handleClick = () => {
@@ -50,9 +50,9 @@ export const ToggleStatus: React.FC<ToggleStatusProps> = ({
       <div
         className={cn(
           'absolute left-1 top-1 bg-white rounded-full transition-all duration-300 ease-in-out shadow-sm',
-          size === 'sm' ? 'w-6 h-6' : size === 'md' ? 'w-8 h-8' : 'w-10 h-10',
+          size === 'sm' ? 'w-4 h-4' : size === 'md' ? 'w-6 h-6' : 'w-8 h-8',
           checked
-            ? size === 'sm' ? 'translate-x-8' : size === 'md' ? 'translate-x-10' : 'translate-x-12'
+            ? size === 'sm' ? 'translate-x-6' : size === 'md' ? 'translate-x-8' : 'translate-x-10'
             : 'translate-x-0'
         )}
       />

@@ -195,22 +195,14 @@ export default function RolesPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-7xl">
+    <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="h-6 w-6" />
-            Gestión de Roles
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Administra roles y sus permisos asociados
-          </p>
-          <BackToSecurity />
+          <Button onClick={iniciarCreacion} disabled={creandoRol}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nuevo Rol
+          </Button>
         </div>
-        <Button onClick={iniciarCreacion} disabled={creandoRol}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo Rol
-        </Button>
       </div>
 
       {/* Formulario de creación */}

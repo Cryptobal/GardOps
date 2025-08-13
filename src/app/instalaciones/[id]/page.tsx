@@ -179,7 +179,7 @@ export default function InstalacionDetallePage() {
   }
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
       {/* Header optimizado para móviles */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 gap-4 sm:gap-6">
         <div className="flex items-center gap-3 sm:gap-4">
@@ -252,7 +252,7 @@ export default function InstalacionDetallePage() {
       </div>
 
       {/* Cuadro de Resumen optimizado para móviles */}
-      <div className="mb-4 sm:mb-6">
+      <div className="mb-3 sm:mb-6">
         <Card className="border-0 shadow-sm bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
           <CardContent className="p-4 sm:p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -349,7 +349,7 @@ export default function InstalacionDetallePage() {
 
       {/* Pestañas optimizadas para móviles */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 h-auto">
+        <TabsList className="grid w-full grid-cols-4 h-auto sticky top-0 z-10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <TabsTrigger value="informacion" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
             <Building2 className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Información</span>

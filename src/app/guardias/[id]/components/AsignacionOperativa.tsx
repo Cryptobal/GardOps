@@ -227,7 +227,7 @@ export default function AsignacionOperativa({ guardiaId }: AsignacionOperativaPr
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Layout optimizado: Asignación Activa y Cambio de PPC en la misma línea */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Asignación Operativa Activa */}

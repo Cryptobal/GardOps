@@ -11,14 +11,38 @@ export async function GET(req: NextRequest) {
     const canRead = (await userHasPerm(userId, 'rbac.permisos.read')) || (await userHasPerm(userId, 'rbac.platform_admin'));
     if (!canRead) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.permisos.read', code:'FORBIDDEN' }, { status:403 });
 
-    console.log('[admin/rbac/permisos][GET]', { email, userId, perms: ['rbac.permisos.read','rbac.platform_admin'], sql: 'SELECT id, clave, descripcion FROM public.permisos ORDER BY clave' })
+    console.log('[admin/rbac/permisos][GET]', { email, userId, perms: ['rbac.permisos.read','rbac.platform_admin'] })
+    
+    // Obtener permisos con categorías
     const rows = await sql`
-      SELECT id, clave, descripcion
+      SELECT id, clave, descripcion, categoria
       FROM public.permisos
-      ORDER BY clave ASC
+      ORDER BY categoria ASC, clave ASC
     `;
 
-    return NextResponse.json({ ok: true, items: rows.rows });
+    // Contar categorías únicas
+    const categoriasCount = await sql`
+      SELECT COUNT(DISTINCT categoria) as total
+      FROM public.permisos
+      WHERE categoria IS NOT NULL
+    `;
+
+    // Contar permisos en uso (asignados a roles)
+    const permisosEnUso = await sql`
+      SELECT COUNT(DISTINCT p.id) as total
+      FROM public.permisos p
+      JOIN roles_permisos rp ON rp.permiso_id = p.id
+    `;
+
+    return NextResponse.json({ 
+      ok: true, 
+      items: rows.rows,
+      stats: {
+        total: rows.rows.length,
+        categorias: categoriasCount.rows[0].total,
+        permisosEnUso: permisosEnUso.rows[0].total
+      }
+    });
   } catch (err: any) {
     console.error('[admin/rbac/permisos][GET] error:', err);
     return NextResponse.json({ ok:false, error:'internal', detail:String(err?.message ?? err), code:'INTERNAL' }, { status: 500 });

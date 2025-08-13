@@ -6,7 +6,16 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const activo = searchParams.get('activo');
-    const tenantId = searchParams.get('tenantId');
+    let tenantId = searchParams.get('tenantId');
+
+    // Si no viene tenantId, inferirlo desde el usuario autenticado (multi-tenant estricto)
+    if (!tenantId) {
+      const email = request.headers.get('x-user-email');
+      if (email) {
+        const t = await sql`SELECT tenant_id::text AS tid FROM usuarios WHERE lower(email)=lower(${email}) LIMIT 1`;
+        tenantId = t.rows?.[0]?.tid || null;
+      }
+    }
 
     console.log('🔍 GET roles-servicio - Parámetros:', { activo, tenantId });
 
@@ -32,9 +41,12 @@ export async function GET(request: NextRequest) {
     let paramIndex = 1;
 
     if (tenantId) {
-      query += ` AND (tenant_id::text = $${paramIndex} OR (tenant_id IS NULL AND $${paramIndex} = '1'))`;
+      query += ` AND tenant_id::text = $${paramIndex}`;
       params.push(tenantId);
       paramIndex++;
+    } else {
+      // Sin tenant => no devolver nada
+      query += ` AND 1=0`;
     }
 
     if (activo !== null) {

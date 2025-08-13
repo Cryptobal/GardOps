@@ -12,10 +12,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (!canRead) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.roles.read', code:'FORBIDDEN' }, { status:403 });
 
     const { id } = params;
+    // Enfoque multi-tenant: el rol debe pertenecer al mismo tenant que el usuario
+    const tu = await sql<{ tenant_id: string | null }>`SELECT tenant_id FROM public.usuarios WHERE id=${userId}::uuid LIMIT 1`;
+    const userTenantId = tu.rows[0]?.tenant_id ?? null;
     const r = await sql<{ id: string; nombre: string; descripcion: string | null; tenant_id: string | null }>`
       SELECT id::text as id, nombre, descripcion, tenant_id::text as tenant_id
       FROM public.roles
-      WHERE id=${id}::uuid
+      WHERE id=${id}::uuid AND tenant_id=${userTenantId}::uuid
       LIMIT 1
     `;
     const item = r.rows?.[0] ?? null;
@@ -31,10 +34,16 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   try {
     const ctx = await requirePlatformAdmin(req);
     const { id } = params;
+    const tu = await sql<{ tenant_id: string | null }>`SELECT tenant_id FROM public.usuarios WHERE id=${ctx.userId}::uuid LIMIT 1`;
+    const userTenantId = tu.rows[0]?.tenant_id ?? null;
     const body = await req.json();
     const { nombre, clave, tenant_id } = body || {};
     console.log('[admin/rbac/roles/:id][PUT]', { email: ctx.ok ? ctx.email : undefined, userId: ctx.ok ? ctx.userId : undefined, id, body })
-    await sql`update roles set nombre=coalesce(${nombre},nombre), clave=coalesce(${clave},clave), tenant_id=coalesce(${tenant_id},tenant_id) where id=${id}::uuid`;
+    await sql`
+      UPDATE roles
+      SET nombre=coalesce(${nombre},nombre), clave=coalesce(${clave},clave)
+      WHERE id=${id}::uuid AND tenant_id=${userTenantId}::uuid
+    `;
     return NextResponse.json({ success: true });
   } catch (e: any) {
     if (e?.message === 'UNAUTHORIZED') return jsonError(401, 'No autenticado');
@@ -48,8 +57,10 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   try {
     const ctx = await requirePlatformAdmin(req);
     const { id } = params;
+    const tu = await sql<{ tenant_id: string | null }>`SELECT tenant_id FROM public.usuarios WHERE id=${ctx.userId}::uuid LIMIT 1`;
+    const userTenantId = tu.rows[0]?.tenant_id ?? null;
     console.log('[admin/rbac/roles/:id][DELETE]', { email: ctx.ok ? ctx.email : undefined, userId: ctx.ok ? ctx.userId : undefined, id })
-    await sql`delete from roles where id=${id}::uuid`;
+    await sql`DELETE FROM roles WHERE id=${id}::uuid AND tenant_id=${userTenantId}::uuid`;
     return NextResponse.json({ success: true });
   } catch (e: any) {
     if (e?.message === 'UNAUTHORIZED') return jsonError(401, 'No autenticado');

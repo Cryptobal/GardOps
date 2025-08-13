@@ -50,7 +50,6 @@ export default function SeguridadPage() {
 
   const filteredSections = sections.filter((s) => s.allowed !== false);
 
-
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl">
       <div className="mb-8">

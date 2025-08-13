@@ -23,7 +23,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Usuario no encontrado' }, { status: 403 });
     }
 
-    const allowed = await userHasPerm(userId, perm);
+    // Fallback maestro: si el usuario tiene rol 'admin' en JWT, permitir todo
+    try {
+      const { getCurrentUserServer } = await import('@/lib/auth');
+      const u = getCurrentUserServer(request as any);
+      if (u?.rol === 'admin') {
+        return NextResponse.json({ ok: true, email, userId, perm, allowed: true, override: 'jwt_admin' });
+      }
+    } catch {}
+
+    let allowed = await userHasPerm(userId, perm);
+    if (!allowed) {
+      // También permitir si es platform admin
+      const isPlatformAdmin = await userHasPerm(userId, 'rbac.platform_admin');
+      if (isPlatformAdmin) allowed = true;
+    }
     return NextResponse.json({ ok: true, email, userId, perm, allowed });
   } catch (error: any) {
     console.error('[rbac] Error en endpoint /api/rbac/can:', error);

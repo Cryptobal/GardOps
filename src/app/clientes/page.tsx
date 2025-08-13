@@ -66,6 +66,9 @@ const KPIBox = ({
 );
 
 export default function ClientesPage() {
+  // Gate UI: requiere permiso para ver clientes
+  const { useCan } = require("@/lib/permissions");
+  const { allowed, loading: permLoading } = useCan('clientes.view');
   const router = useRouter();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +78,7 @@ export default function ClientesPage() {
   // Cargar clientes
   useEffect(() => {
     const fetchClientes = async () => {
+      if (!allowed) return;
     try {
       setLoading(true);
       const response = await fetch("/api/clientes");
@@ -93,7 +97,7 @@ export default function ClientesPage() {
     };
 
     fetchClientes();
-  }, []);
+  }, [allowed]);
 
   // Filtrar clientes
   const filteredClientes = useMemo(() => {
@@ -245,6 +249,9 @@ export default function ClientesPage() {
     </Card>
   );
 
+  if (permLoading) return null;
+  if (!allowed) return (<div className="p-4 text-sm text-muted-foreground">Sin acceso</div>);
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -269,8 +276,8 @@ export default function ClientesPage() {
         </Button>
             </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-6">
+      {/* KPIs mobile-first: 1 col en xs, 2 en sm+ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
         <KPIBox
           title="Clientes Activos"
           value={kpis.activos}

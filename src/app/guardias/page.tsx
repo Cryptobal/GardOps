@@ -81,6 +81,10 @@ const KPIBox = ({
 );
 
 export default function GuardiasPage() {
+  // Gate UI: requiere permiso para ver guardias
+  const { useCan } = require("@/lib/permissions");
+  const { allowed, loading: permLoading } = useCan('guardias.view');
+
   const router = useRouter();
   const [guardias, setGuardias] = useState<Guardia[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,6 +141,7 @@ export default function GuardiasPage() {
   // Cargar datos de guardias
   useEffect(() => {
     const fetchGuardias = async () => {
+      if (!allowed) return; // no cargar si no tiene permiso
       console.log("🔍 GuardiasPage: Iniciando carga de guardias...");
       try {
         setLoading(true);
@@ -192,7 +197,7 @@ export default function GuardiasPage() {
     };
 
     fetchGuardias();
-  }, []);
+  }, [allowed]);
 
   // Filtrar guardias (con dependencias explícitas)
   const filteredGuardias = useMemo(() => {
@@ -322,6 +327,9 @@ export default function GuardiasPage() {
   // Obtener instalaciones únicas para el filtro
   const instalaciones = Array.from(new Set(guardias.map((g: any) => g.instalacion_asignada).filter(Boolean))).sort();
 
+  if (permLoading) return null;
+  if (!allowed) return (<div className="p-4 text-sm text-muted-foreground">Sin acceso</div>);
+
   return (
     <div className="container mx-auto p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6">
       {/* Header optimizado para móviles */}
@@ -335,8 +343,8 @@ export default function GuardiasPage() {
         </div>
       </div>
 
-      {/* KPIs optimizados para móviles */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
+      {/* KPIs mobile-first: 1 col en xs, 2 en sm+ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
         <KPIBox
           title="Guardias Activos"
           value={kpis.activos}
@@ -470,7 +478,7 @@ export default function GuardiasPage() {
       </div>
 
       {/* Tabla optimizada para móviles */}
-      <Card>
+      <Card className="overflow-hidden">
         <CardContent className="p-0">
           <DataTable
             data={filteredGuardias}

@@ -120,6 +120,9 @@ const KPIBox = ({
 };
 
 export default function PautaMensualPage() {
+  // Gate UI: requiere permiso para ver pautas
+  const { useCan } = require("@/lib/permissions");
+  const { allowed, loading: permLoading } = useCan('pautas.view');
   const router = useRouter();
   const { toast } = useToast();
   const [selectedMes, setSelectedMes] = useState<string>("");
@@ -159,12 +162,13 @@ export default function PautaMensualPage() {
     { value: "12", label: "Diciembre" }
   ];
 
-  // Cargar resumen cuando cambia mes/año
+  // Cargar resumen cuando cambia mes/año (solo si se permite)
   useEffect(() => {
+    if (!allowed) return;
     if (selectedMes && selectedAnio) {
       cargarResumen();
     }
-  }, [selectedMes, selectedAnio]);
+  }, [allowed, selectedMes, selectedAnio]);
 
   // Establecer valores por defecto
   useEffect(() => {
@@ -299,6 +303,10 @@ export default function PautaMensualPage() {
       console.log("✅ Pauta Mensual refactorizada y unificada con éxito");
     }
   }, [resumen]);
+
+  // Bloqueos de render según permiso (después de declarar todos los hooks)
+  if (permLoading) return null;
+  if (!allowed) return (<div className="p-4 text-sm text-muted-foreground">Sin acceso</div>);
 
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">

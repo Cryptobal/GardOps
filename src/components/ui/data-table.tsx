@@ -129,7 +129,8 @@ export function DataTable<T extends { id: string }>({
 
         {/* Vista móvil - Cards */}
         {mobileCard && (
-          <div className="lg:hidden grid grid-cols-2 gap-3 p-4 overflow-auto flex-1">
+          // Mobile-first: 1 col en xs para evitar solapamientos; 2 col en sm+
+          <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 sm:p-4 overflow-auto flex-1">
             {data.map((item) => (
               <motion.div
                 key={item.id}

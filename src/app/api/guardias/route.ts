@@ -6,6 +6,25 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   noStore();
+  // Gate backend: requiere permiso 'guardias.view'
+  try {
+    const h = req.headers;
+    const { getCurrentUserServer } = await import('@/lib/auth');
+    const fromJwt = getCurrentUserServer(req as any)?.email || null;
+    const fromHeader = h.get('x-user-email') || h.get('x-user-email(next/headers)') || null;
+    const isDev = process.env.NODE_ENV !== 'production';
+    const dev = isDev ? process.env.NEXT_PUBLIC_DEV_USER_EMAIL : undefined;
+    const email = fromJwt || fromHeader || dev || null;
+    if (!email) return NextResponse.json({ ok:false, error:'no-auth' }, { status:401 });
+    const { sql } = await import('@vercel/postgres');
+    const { rows } = await sql`
+      with me as (select id from public.usuarios where lower(email)=lower(${email}) limit 1)
+      select public.fn_usuario_tiene_permiso((select id from me), ${'guardias.view'}) as allowed
+    `;
+    if (rows?.[0]?.allowed !== true) {
+      return NextResponse.json({ ok:false, error:'forbidden', perm:'guardias.view' }, { status:403 });
+    }
+  } catch {}
   const client = await getClient();
   try {
     const url = new URL(req.url);

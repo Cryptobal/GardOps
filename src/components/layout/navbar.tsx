@@ -4,8 +4,9 @@ import { usePathname } from "next/navigation";
 import { navigationItems } from "../../lib/navigation";
 import { logout, getToken } from "../../lib/auth-client";
 import { Button } from "../ui/button";
-import { LogOut, User, Menu, Moon, Sun } from "lucide-react";
+import { LogOut, User, Menu, Moon, Sun, Settings } from "lucide-react";
 import { useState } from "react";
+import { ProfileModal } from "../shared/ProfileModal";
 
 interface NavbarProps {
   onMobileMenuToggle?: () => void;
@@ -14,6 +15,7 @@ interface NavbarProps {
 export function Navbar({ onMobileMenuToggle }: NavbarProps) {
   const pathname = usePathname();
   const [isDark, setIsDark] = useState(true);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   
   const currentPage = navigationItems.find(item => item.href === pathname);
   const pageTitle = currentPage?.name || "GardOps";
@@ -26,6 +28,10 @@ export function Navbar({ onMobileMenuToggle }: NavbarProps) {
   const toggleTheme = () => {
     setIsDark(!isDark);
     document.documentElement.classList.toggle("light");
+  };
+
+  const openProfileModal = () => {
+    setIsProfileModalOpen(true);
   };
 
   // Obtener información del usuario desde el token JWT
@@ -77,9 +83,19 @@ export function Navbar({ onMobileMenuToggle }: NavbarProps) {
             {isDark ? <Sun className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <Moon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
           </Button>
 
+          {/* Profile button - Responsive */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={openProfileModal}
+            className="h-7 w-7 sm:h-8 sm:w-8 p-0 rounded-lg hover:bg-primary/10 hover:text-primary touch-manipulation active:scale-95 transition-transform"
+            title="Mi Perfil"
+          >
+            <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          </Button>
+
           {/* User info - Responsive (hidden on very small screens) */}
           <div className="hidden sm:flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-accent/50 border border-border/30">
-            <User className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             <span className="text-xs sm:text-sm font-medium text-foreground max-w-[80px] sm:max-w-[120px] md:max-w-none truncate">
               {getUserDisplayName()}
             </span>
@@ -97,6 +113,12 @@ export function Navbar({ onMobileMenuToggle }: NavbarProps) {
           </Button>
         </div>
       </div>
+      
+      {/* Profile Modal */}
+      <ProfileModal 
+        isOpen={isProfileModalOpen} 
+        onClose={() => setIsProfileModalOpen(false)} 
+      />
     </nav>
   );
 } 
