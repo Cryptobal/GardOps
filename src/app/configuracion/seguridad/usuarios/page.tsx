@@ -440,6 +440,20 @@ export default function UsuariosPage() {
                 {showPassword ? "🙈" : "👁️"}
               </Button>
             </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Rol inicial (opcional)</label>
+              <Select value={selectedRole || ""} onValueChange={setSelectedRole}>
+                <SelectTrigger className="w-full mt-1">
+                  <SelectValue placeholder="Sin rol inicial" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Sin rol</SelectItem>
+                  {roles.map((rol) => (
+                    <SelectItem key={rol.id} value={rol.id}>{rol.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             {formError && (
               <p className="text-sm text-red-600">{formError}</p>
             )}
@@ -472,6 +486,7 @@ export default function UsuariosPage() {
                       email,
                       nombre: nombre || undefined,
                       password: password,
+                      roleId: selectedRole || undefined,
                     }),
                   });
                   if (res.status === 409) {
@@ -500,6 +515,7 @@ export default function UsuariosPage() {
                       setEmail("");
                       setNombre("");
                       setPassword("");
+                      setSelectedRole(null);
                       setShowPassword(false);
                       setFormError(null);
                       router.refresh();

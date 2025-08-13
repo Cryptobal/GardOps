@@ -12,8 +12,15 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
     const actorId = await getUserIdByEmail(email);
     if (!actorId) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 403 });
 
-    // Verificar permisos de Platform Admin
-    const isPlatformAdmin = await userHasPerm(actorId, 'rbac.platform_admin');
+    // Verificar permisos de Platform Admin o JWT admin
+    let isPlatformAdmin = await userHasPerm(actorId, 'rbac.platform_admin');
+    if (!isPlatformAdmin) {
+      try {
+        const { getCurrentUserServer } = await import('@/lib/auth');
+        const u = getCurrentUserServer(req as any);
+        isPlatformAdmin = u?.rol === 'admin';
+      } catch {}
+    }
     if (!isPlatformAdmin) {
       return NextResponse.json({ error: 'No tienes permisos para gestionar roles' }, { status: 403 });
     }
