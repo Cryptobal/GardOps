@@ -39,11 +39,19 @@ export default function RolDetallePage() {
     setBusy(true);
     setError(null);
     try {
+      console.log('🔄 Cargando datos del rol:', id);
+      
       const [rRes, aRes, cRes] = await Promise.all([
         rbacFetch(`/api/admin/rbac/roles/${id}`),
         rbacFetch(`/api/admin/rbac/roles/${id}/permisos`),
         rbacFetch(`/api/admin/rbac/permisos`),
       ]);
+
+      console.log('📡 Respuestas recibidas:', {
+        rol: rRes.status,
+        permisos: aRes.status,
+        catalogo: cRes.status
+      });
 
       const [rJ, aJ, cJ] = await Promise.all([
         rRes.json().catch(() => ({})),
@@ -51,14 +59,31 @@ export default function RolDetallePage() {
         cRes.json().catch(() => ({})),
       ]);
 
+      console.log('📊 Datos parseados:', {
+        rol: rJ,
+        permisos: aJ,
+        catalogo: cJ
+      });
+
       if (!rRes.ok) throw new Error(rJ?.detail || rJ?.error || `HTTP ${rRes.status}`);
       if (!aRes.ok) throw new Error(aJ?.detail || aJ?.error || `HTTP ${aRes.status}`);
       if (!cRes.ok) throw new Error(cJ?.detail || cJ?.error || `HTTP ${cRes.status}`);
 
-      setRol(rJ.item as Rol);
-      setAsignados(Array.isArray(aJ.items) ? aJ.items : []);
-      setCatalogo(Array.isArray(cJ.items) ? cJ.items : []);
+      const rolData = rJ.item as Rol;
+      const asignadosData = Array.isArray(aJ.items) ? aJ.items : [];
+      const catalogoData = Array.isArray(cJ.items) ? cJ.items : [];
+
+      console.log('✅ Datos finales:', {
+        rol: rolData,
+        asignados: asignadosData.length,
+        catalogo: catalogoData.length
+      });
+
+      setRol(rolData);
+      setAsignados(asignadosData);
+      setCatalogo(catalogoData);
     } catch (e: any) {
+      console.error('❌ Error al cargar datos:', e);
       setError(String(e?.message ?? e));
     } finally {
       setBusy(false);
