@@ -11,8 +11,16 @@ export async function GET(
     if (!email) return NextResponse.json({ ok:false, error:'unauthenticated', code:'UNAUTHENTICATED' }, { status:401 });
     const userId = await getUserIdByEmail(email);
     if (!userId) return NextResponse.json({ ok:false, error:'user_not_found', code:'NOT_FOUND' }, { status:401 });
-    const canRead = (await userHasPerm(userId, 'rbac.roles.read')) || (await userHasPerm(userId, 'rbac.platform_admin'));
-    if (!canRead) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.roles.read', code:'FORBIDDEN' }, { status:403 });
+    let isAdminJwt = false;
+    try {
+      const { getCurrentUserServer } = await import('@/lib/auth');
+      const u = getCurrentUserServer(request as any);
+      isAdminJwt = u?.rol === 'admin';
+    } catch {}
+    if (!isAdminJwt) {
+      const canRead = (await userHasPerm(userId, 'rbac.roles.read')) || (await userHasPerm(userId, 'rbac.platform_admin'));
+      if (!canRead) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.roles.read', code:'FORBIDDEN' }, { status:403 });
+    }
 
     console.log('[admin/rbac/roles/[id]/permisos][GET]', { email, userId, rolId: params.id });
 
@@ -41,7 +49,15 @@ export async function PUT(
     if (!email) return NextResponse.json({ ok:false, error:'unauthenticated', code:'UNAUTHENTICATED' }, { status:401 });
     const userId = await getUserIdByEmail(email);
     if (!userId) return NextResponse.json({ ok:false, error:'user_not_found', code:'NOT_FOUND' }, { status:401 });
-    const canWrite = (await userHasPerm(userId, 'rbac.roles.write')) || (await userHasPerm(userId, 'rbac.platform_admin'));
+    let canWrite = false;
+    try {
+      const { getCurrentUserServer } = await import('@/lib/auth');
+      const u = getCurrentUserServer(request as any);
+      canWrite = u?.rol === 'admin';
+    } catch {}
+    if (!canWrite) {
+      canWrite = (await userHasPerm(userId, 'rbac.roles.write')) || (await userHasPerm(userId, 'rbac.platform_admin'));
+    }
     if (!canWrite) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.roles.write', code:'FORBIDDEN' }, { status:403 });
 
     const body = await request.json();
