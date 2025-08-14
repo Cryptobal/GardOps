@@ -81,12 +81,12 @@ const statsBase = [
   }
 ];
 
-import { useCan } from "@/lib/permissions";
+import { usePermissions } from "@/lib/use-permissions";
 
 export default function HomePage() {
   console.log('🔍 HomePage: Componente iniciando...')
-  // Hook de permiso (siempre llamado, nunca condicional)
-  const { allowed: canSeeHome } = useCan('home.view');
+  // Hook de permiso optimizado (siempre llamado, nunca condicional)
+  const { allowed: canSeeHome, loading: permissionsLoading } = usePermissions('home.view');
 
   const router = useRouter();
   const [alertas, setAlertas] = useState<AlertaDocumento[]>([]);
@@ -292,6 +292,18 @@ export default function HomePage() {
   };
 
   console.log('🔍 HomePage: Renderizando página principal...')
+  
+  // Mostrar loading mientras se verifican los permisos
+  if (permissionsLoading) {
+    return (
+      <div className="p-6">
+        <div className="rounded-xl border p-6 text-center text-muted-foreground">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          Cargando permisos...
+        </div>
+      </div>
+    );
+  }
   
   if (!canSeeHome) {
     return (

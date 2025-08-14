@@ -1,7 +1,7 @@
 "use client";
 
 import { NavigationItem } from "@/lib/navigation";
-import { useCan } from "@/lib/permissions";
+import { usePermissions } from "@/lib/use-permissions";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
@@ -29,7 +29,7 @@ export function NavigationItemWrapper({
   // Resolver permiso; si viene vacío, no llamar API y permitir por defecto
   const perm = (item.permission || '').trim();
   const shouldCheck = !!perm;
-  const { allowed: checkedAllowed, loading } = useCan(shouldCheck ? perm : undefined);
+  const { allowed: checkedAllowed, loading } = usePermissions(shouldCheck ? perm : undefined);
   // Bypass rápido en cliente: si el JWT tiene rol admin, mostrar ítems sin esperar
   let adminBypass = false;
   try {
@@ -45,15 +45,14 @@ export function NavigationItemWrapper({
   const allowed = shouldCheck ? checkedAllowed : true;
   const adoV2On = useFlag('ado_v2');
 
-  // Si tiene permiso requerido y está cargando, no mostrar nada
+  // Si es admin, mostrar siempre
   if (adminBypass) {
-    // nada
+    // Continuar con el renderizado
   } else if (shouldCheck && loading) {
+    // Si está cargando y no es admin, no mostrar nada temporalmente
     return null;
-  }
-
-  // Si tiene permiso requerido y no está permitido, no mostrar nada
-  if (!adminBypass && shouldCheck && !allowed) {
+  } else if (shouldCheck && !allowed) {
+    // Si no tiene permiso y no es admin, no mostrar nada
     return null;
   }
 

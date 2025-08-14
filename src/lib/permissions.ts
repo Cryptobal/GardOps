@@ -88,6 +88,20 @@ export function useCan(perm?: string) {
   const [error, setError] = useState<string | null>(null);
   const mounted = useRef(true);
 
+  // Intentar usar el contexto global primero
+  let contextCheck: boolean | null = null;
+  let contextInitialized = false;
+  try {
+    const { usePermissionsContext } = require('./permissions-context');
+    const { checkPermission, initialized } = usePermissionsContext();
+    contextInitialized = initialized;
+    if (initialized) {
+      contextCheck = checkPermission(normalized);
+    }
+  } catch {
+    // Contexto no disponible, continuar con lógica local
+  }
+
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
@@ -100,6 +114,19 @@ export function useCan(perm?: string) {
       setLoading(false);
       setError(null);
       return;
+    }
+
+    // Si el contexto global tiene el resultado, usarlo
+    if (contextCheck !== null) {
+      setAllowed(contextCheck);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    // Si el contexto está inicializado pero no tiene este permiso, cargarlo
+    if (contextInitialized && contextCheck === null) {
+      // El permiso no está en el contexto, cargarlo individualmente
     }
 
     // ¿Ya lo tenemos cacheado y vigente?
@@ -131,7 +158,7 @@ export function useCan(perm?: string) {
       });
 
     return () => { cancel = true; };
-  }, [normalized]);
+  }, [normalized, contextCheck]);
 
   return { allowed: !!allowed, loading, error };
 }

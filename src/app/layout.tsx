@@ -4,6 +4,8 @@ import './globals.css'
 import { AuthWrapper } from '../components/layout/auth-wrapper'
 import { ToastContainer } from '../components/ui/toast'
 import { ErrorBoundary } from '../components/debug-error-boundary'
+import { PermissionsProvider } from '../lib/permissions-context'
+import { PermissionsLoading } from '../components/layout/permissions-loading'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -21,9 +23,13 @@ export default function RootLayout({
     <html lang="es" className="dark">
       <body className={inter.className}>
         <ErrorBoundary>
-          <AuthWrapper>
-            {children}
-          </AuthWrapper>
+          <PermissionsProvider>
+            <PermissionsLoading>
+              <AuthWrapper>
+                {children}
+              </AuthWrapper>
+            </PermissionsLoading>
+          </PermissionsProvider>
           <ToastContainer />
         </ErrorBoundary>
       </body>
