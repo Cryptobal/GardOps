@@ -37,7 +37,18 @@
     "dump:schema:win": "npx dotenv -e .env -- bash scripts/db/dump_all.sh schema",
     "dump:data:win": "npx dotenv -e .env -- bash scripts/db/dump_all.sh data",
     "dump:all:win": "npx dotenv -e .env -- bash scripts/db/dump_all.sh all",
-    "dump:globals:win": "npx dotenv -e .env -- bash scripts/db/dump_all.sh globals"
+    "dump:globals:win": "npx dotenv -e .env -- bash scripts/db/dump_all.sh globals",
+    "rbac:refactor:api:dry": "ts-node scripts/rbac_refactor_api.ts --dry",
+    "rbac:refactor:api": "ts-node scripts/rbac_refactor_api.ts --apply",
+    "rbac:refactor:ui:dry": "ts-node scripts/rbac_refactor_ui.ts --dry",
+    "rbac:refactor:ui": "ts-node scripts/rbac_refactor_ui.ts --apply",
+    "audit:gen-endpoints": "ts-node auditoria_rbac/scripts/generate_endpoint_map.ts",
+    "audit:snapshot": "ts-node auditoria_rbac/scripts/snapshot_effective_permissions.ts",
+    "audit:api": "ts-node auditoria_rbac/scripts/run_api_audit.ts",
+    "audit:ui": "ts-node auditoria_rbac/scripts/run_ui_audit.ts",
+    "audit:sql": "ts-node auditoria_rbac/scripts/sql_audit_runner.ts",
+    "audit:all": "npm run audit:gen-endpoints && npm run audit:snapshot && npm run audit:api && npm run audit:ui && npm run audit:sql",
+    "audit:summarize": "node auditoria_rbac/scripts/summarize.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.850.0",

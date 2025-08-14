@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useCan } from "@/lib/permissions";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
@@ -57,6 +58,16 @@ const SYSTEM_VARIABLES: Variable[] = [
 ];
 
 export default function VariablesPage() {
+  const { allowed } = useCan('config.variables.view');
+  if (!allowed) {
+    return (
+      <div className="p-6">
+        <div className="rounded-xl border p-6 text-center text-muted-foreground">
+          Acceso denegado
+        </div>
+      </div>
+    );
+  }
   const router = useRouter();
   const [variables] = useState<Variable[]>(SYSTEM_VARIABLES);
   const [searchTerm, setSearchTerm] = useState("");

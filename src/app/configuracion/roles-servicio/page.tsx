@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useCan } from '@/lib/permissions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +33,16 @@ import {
 } from '@/components/ui/alert-dialog';
 
 export default function RolesServicioPage() {
+  const { allowed } = useCan('config.roles_servicio.view');
+  if (!allowed) {
+    return (
+      <div className="p-6">
+        <div className="rounded-xl border p-6 text-center text-muted-foreground">
+          Acceso denegado
+        </div>
+      </div>
+    );
+  }
   const { success, error } = useToast();
   const [roles, setRoles] = useState<RolServicio[]>([]);
   const [loading, setLoading] = useState(true);

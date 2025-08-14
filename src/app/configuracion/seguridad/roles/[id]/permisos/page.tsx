@@ -6,9 +6,9 @@ import { useCan } from "@/lib/permissions";
 import { rbacFetch } from "@/lib/rbacClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Save, CheckSquare, Square, RotateCcw } from "lucide-react";
+import { ArrowLeft, Save, Eye, Edit, Settings, X, ChevronDown, ChevronRight, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Permiso {
@@ -24,88 +24,101 @@ interface Rol {
   descripcion: string | null;
 }
 
-interface PermisoAsignado {
-  permiso_id: string;
-  rol_id: string;
-}
-
-// Mapeo de módulos y sus permisos
-const MODULOS_PERMISOS = {
-  "Clientes": {
+// Definición de módulos con sus permisos por nivel
+const MODULOS_NIVELES = {
+  "clientes": {
     icon: "🏢",
-    permisos: [
-      { clave: "clientes.view", nombre: "Ver", descripcion: "Consultar clientes" },
-      { clave: "clientes.create", nombre: "Crear", descripcion: "Crear nuevos clientes" },
-      { clave: "clientes.edit", nombre: "Editar", descripcion: "Modificar clientes" },
-      { clave: "clientes.delete", nombre: "Eliminar", descripcion: "Eliminar clientes" },
-      { clave: "clientes.*", nombre: "Todo", descripcion: "Acceso completo" }
-    ]
+    nombre: "Clientes",
+    permisos: {
+      "none": [],
+      "view": ["clientes.view"],
+      "edit": ["clientes.view", "clientes.create", "clientes.edit"],
+      "admin": ["clientes.*"]
+    }
   },
-  "Instalaciones": {
+  "instalaciones": {
     icon: "🏭",
-    permisos: [
-      { clave: "instalaciones.view", nombre: "Ver", descripcion: "Consultar instalaciones" },
-      { clave: "instalaciones.create", nombre: "Crear", descripcion: "Crear instalaciones" },
-      { clave: "instalaciones.edit", nombre: "Editar", descripcion: "Modificar instalaciones" },
-      { clave: "instalaciones.delete", nombre: "Eliminar", descripcion: "Eliminar instalaciones" },
-      { clave: "instalaciones.turnos", nombre: "Turnos", descripcion: "Gestionar turnos" },
-      { clave: "instalaciones.ppcs", nombre: "PPCs", descripcion: "Gestionar PPCs" },
-      { clave: "instalaciones.*", nombre: "Todo", descripcion: "Acceso completo" }
-    ]
+    nombre: "Instalaciones",
+    permisos: {
+      "none": [],
+      "view": ["instalaciones.view"],
+      "edit": ["instalaciones.view", "instalaciones.create", "instalaciones.edit"],
+      "admin": ["instalaciones.*"]
+    }
   },
-  "Guardias": {
+  "guardias": {
     icon: "👮",
-    permisos: [
-      { clave: "guardias.view", nombre: "Ver", descripcion: "Consultar guardias" },
-      { clave: "guardias.create", nombre: "Crear", descripcion: "Crear guardias" },
-      { clave: "guardias.edit", nombre: "Editar", descripcion: "Modificar guardias" },
-      { clave: "guardias.delete", nombre: "Eliminar", descripcion: "Eliminar guardias" },
-      { clave: "guardias.permisos", nombre: "Permisos", descripcion: "Gestionar permisos" },
-      { clave: "guardias.finiquitos", nombre: "Finiquitos", descripcion: "Gestionar finiquitos" },
-      { clave: "guardias.*", nombre: "Todo", descripcion: "Acceso completo" }
-    ]
+    nombre: "Guardias",
+    permisos: {
+      "none": [],
+      "view": ["guardias.view"],
+      "edit": ["guardias.view", "guardias.create", "guardias.edit"],
+      "admin": ["guardias.*"]
+    }
   },
-  "Pauta Diaria": {
+  "pauta-diaria": {
     icon: "📅",
-    permisos: [
-      { clave: "pauta-diaria.view", nombre: "Ver", descripcion: "Consultar pauta diaria" },
-      { clave: "pauta-diaria.edit", nombre: "Editar", descripcion: "Modificar pauta diaria" },
-      { clave: "pauta-diaria.reemplazos", nombre: "Reemplazos", descripcion: "Gestionar reemplazos" },
-      { clave: "pauta-diaria.turnos-extras", nombre: "Turnos Extras", descripcion: "Gestionar turnos extras" },
-      { clave: "pauta-diaria.*", nombre: "Todo", descripcion: "Acceso completo" }
-    ]
+    nombre: "Pauta Diaria",
+    permisos: {
+      "none": [],
+      "view": ["pauta-diaria.view"],
+      "edit": ["pauta-diaria.view", "pauta-diaria.edit"],
+      "admin": ["pauta-diaria.*"]
+    }
   },
-  "Pauta Mensual": {
+  "pauta-mensual": {
     icon: "📊",
-    permisos: [
-      { clave: "pauta-mensual.view", nombre: "Ver", descripcion: "Consultar pauta mensual" },
-      { clave: "pauta-mensual.create", nombre: "Crear", descripcion: "Crear pauta mensual" },
-      { clave: "pauta-mensual.edit", nombre: "Editar", descripcion: "Modificar pauta mensual" },
-      { clave: "pauta-mensual.delete", nombre: "Eliminar", descripcion: "Eliminar pauta mensual" },
-      { clave: "pauta-mensual.*", nombre: "Todo", descripcion: "Acceso completo" }
-    ]
+    nombre: "Pauta Mensual",
+    permisos: {
+      "none": [],
+      "view": ["pauta-mensual.view"],
+      "edit": ["pauta-mensual.view", "pauta-mensual.create", "pauta-mensual.edit"],
+      "admin": ["pauta-mensual.*"]
+    }
   },
-  "Documentos": {
+  "documentos": {
     icon: "📄",
-    permisos: [
-      { clave: "documentos.view", nombre: "Ver", descripcion: "Consultar documentos" },
-      { clave: "documentos.upload", nombre: "Subir", descripcion: "Subir documentos" },
-      { clave: "documentos.edit", nombre: "Editar", descripcion: "Modificar documentos" },
-      { clave: "documentos.delete", nombre: "Eliminar", descripcion: "Eliminar documentos" },
-      { clave: "documentos.*", nombre: "Todo", descripcion: "Acceso completo" }
-    ]
+    nombre: "Documentos",
+    permisos: {
+      "none": [],
+      "view": ["documentos.view"],
+      "edit": ["documentos.view", "documentos.upload", "documentos.edit"],
+      "admin": ["documentos.*"]
+    }
   },
-  "Reportes": {
+  "reportes": {
     icon: "📈",
-    permisos: [
-      { clave: "reportes.asistencia", nombre: "Asistencia", descripcion: "Reportes de asistencia" },
-      { clave: "reportes.turnos", nombre: "Turnos", descripcion: "Reportes de turnos" },
-      { clave: "reportes.payroll", nombre: "Payroll", descripcion: "Reportes de nómina" },
-      { clave: "reportes.export", nombre: "Exportar", descripcion: "Exportar reportes" },
-      { clave: "reportes.*", nombre: "Todo", descripcion: "Acceso completo" }
-    ]
+    nombre: "Reportes",
+    permisos: {
+      "none": [],
+      "view": ["reportes.asistencia", "reportes.turnos"],
+      "edit": ["reportes.asistencia", "reportes.turnos", "reportes.payroll"],
+      "admin": ["reportes.*"]
+    }
+  },
+  "payroll": {
+    icon: "💰",
+    nombre: "Payroll",
+    permisos: {
+      "none": [],
+      "view": ["payroll.view"],
+      "edit": ["payroll.view", "payroll.edit"],
+      "admin": ["payroll.*"]
+    }
+  },
+  "configuracion": {
+    icon: "⚙️",
+    nombre: "Configuración",
+    permisos: {
+      "none": [],
+      "view": ["config.manage"],
+      "edit": ["config.manage"],
+      "admin": ["config.manage", "rbac.permisos.read", "rbac.roles.read"]
+    }
   }
 };
+
+type NivelAcceso = "none" | "view" | "edit" | "admin";
 
 export default function PermisosRolPage() {
   const router = useRouter();
@@ -119,6 +132,8 @@ export default function PermisosRolPage() {
   const [rol, setRol] = useState<Rol | null>(null);
   const [permisosAsignados, setPermisosAsignados] = useState<Set<string>>(new Set());
   const [permisosDisponibles, setPermisosDisponibles] = useState<Permiso[]>([]);
+  const [nivelesModulos, setNivelesModulos] = useState<Record<string, NivelAcceso>>({});
+  const [modulosExpandidos, setModulosExpandidos] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
@@ -154,7 +169,19 @@ export default function PermisosRolPage() {
         const asignadosData = await asignadosRes.json();
         if (!asignadosRes.ok) throw new Error(asignadosData?.detail || asignadosData?.error || `HTTP ${asignadosRes.status}`);
         if (!done) {
-          const asignadosSet = new Set(asignadosData.permisos?.map((p: any) => p.permiso_id) || []);
+          // La API retorna { items: [{ id, clave, descripcion }] }
+          // Compatibilidad con formato antiguo { permisos: [{ permiso_id }] }
+          const asignadosIds: string[] = Array.isArray(asignadosData.items)
+            ? asignadosData.items
+                .map((p: any) => p?.id)
+                .filter((id: any): id is string => typeof id === 'string' && id.length > 0)
+            : Array.isArray(asignadosData.permisos)
+            ? asignadosData.permisos
+                .map((p: any) => p?.permiso_id)
+                .filter((id: any): id is string => typeof id === 'string' && id.length > 0)
+            : [];
+
+          const asignadosSet = new Set<string>(asignadosIds);
           setPermisosAsignados(asignadosSet);
         }
 
@@ -167,68 +194,353 @@ export default function PermisosRolPage() {
     return () => { done = true; };
   }, [hasAccess, loading, rolId]);
 
+  // Calcular niveles cuando ambos arrays estén cargados
+  useEffect(() => {
+    if (permisosDisponibles.length > 0) {
+      const niveles = calcularNivelesDesdePermisos(permisosAsignados);
+      setNivelesModulos(niveles);
+    }
+  }, [permisosDisponibles, permisosAsignados]);
+
   // Función para obtener el ID de un permiso por clave
   const getPermisoId = (clave: string) => {
     return permisosDisponibles.find(p => p.clave === clave)?.id;
   };
 
-  // Función para verificar si un permiso está asignado
-  const isPermisoAsignado = (clave: string) => {
-    const permisoId = getPermisoId(clave);
-    return permisoId ? permisosAsignados.has(permisoId) : false;
+  // Función para calcular niveles desde permisos asignados
+  const calcularNivelesDesdePermisos = (permisosSet: Set<string>): Record<string, NivelAcceso> => {
+    const niveles: Record<string, NivelAcceso> = {};
+    
+    Object.entries(MODULOS_NIVELES).forEach(([modulo, config]) => {
+      // Obtener todos los permisos del módulo que tiene asignados
+      const permisosModulo = Array.from(permisosSet).filter(id => {
+        const permiso = permisosDisponibles.find(p => p.id === id);
+        return permiso && permiso.clave.startsWith(modulo);
+      });
+      
+      // Verificar si tiene el permiso wildcard (admin)
+      const permisoWildcard = permisosDisponibles.find(p => p.clave === `${modulo}.*`);
+      if (permisoWildcard && permisosSet.has(permisoWildcard.id)) {
+        niveles[modulo] = "admin";
+        return;
+      }
+      
+      // Verificar si tiene permisos de admin específicos
+      const permisosAdmin = config.permisos.admin.map(clave => getPermisoId(clave)).filter((id): id is string => Boolean(id));
+      if (permisosAdmin.some(id => permisosSet.has(id))) {
+        niveles[modulo] = "admin";
+        return;
+      }
+      
+      // Verificar si tiene permisos de edit (excluyendo los de view para no
+      // clasificar como "edit" cuando solo tiene permisos de lectura)
+      const viewIds = config.permisos.view
+        .map(clave => getPermisoId(clave))
+        .filter((id): id is string => Boolean(id));
+      const editIds = config.permisos.edit
+        .map(clave => getPermisoId(clave))
+        .filter((id): id is string => Boolean(id));
+      const editOnlyIds = editIds.filter(id => !viewIds.includes(id));
+      if (editOnlyIds.some(id => permisosSet.has(id))) {
+        niveles[modulo] = "edit";
+        return;
+      }
+      
+      // Verificar si tiene permisos de view
+      if (viewIds.some(id => permisosSet.has(id))) {
+        niveles[modulo] = "view";
+        return;
+      }
+      
+      // Si tiene algún permiso del módulo pero no coincide con los niveles definidos, asignar el más alto
+      if (permisosModulo.length > 0) {
+        // Determinar el nivel más alto basado en los permisos que tiene
+        const tieneCreate = permisosModulo.some(id => {
+          const permiso = permisosDisponibles.find(p => p.id === id);
+          return permiso && permiso.clave.includes('.create');
+        });
+        const tieneEdit = permisosModulo.some(id => {
+          const permiso = permisosDisponibles.find(p => p.id === id);
+          return permiso && permiso.clave.includes('.edit');
+        });
+        const tieneDelete = permisosModulo.some(id => {
+          const permiso = permisosDisponibles.find(p => p.id === id);
+          return permiso && permiso.clave.includes('.delete');
+        });
+        
+        if (tieneCreate || tieneEdit || tieneDelete) {
+          niveles[modulo] = "admin";
+        } else {
+          niveles[modulo] = "view";
+        }
+        return;
+      }
+      
+      // Por defecto, sin acceso
+      niveles[modulo] = "none";
+    });
+    
+    return niveles;
   };
 
-  // Función para alternar un permiso
-  const togglePermiso = (clave: string) => {
+  // Función para cambiar nivel de un módulo
+  const cambiarNivelModulo = (modulo: string, nivel: NivelAcceso) => {
     if (!canEdit) return;
     
-    const permisoId = getPermisoId(clave);
-    if (!permisoId) return;
+    setNivelesModulos(prev => ({
+      ...prev,
+      [modulo]: nivel
+    }));
+    setHasChanges(true);
+  };
 
-    const newAsignados = new Set(permisosAsignados);
-    if (newAsignados.has(permisoId)) {
-      newAsignados.delete(permisoId);
-    } else {
-      newAsignados.add(permisoId);
+  // Función para expandir/contraer módulo
+  const toggleModulo = (modulo: string) => {
+    setModulosExpandidos(prev => {
+      const newSet = new Set<string>(prev);
+      if (newSet.has(modulo)) {
+        newSet.delete(modulo);
+      } else {
+        newSet.add(modulo);
+      }
+      return newSet;
+    });
+  };
+
+  // Función para expandir todos los módulos
+  const expandirTodos = () => {
+    setModulosExpandidos(new Set<string>(Object.keys(MODULOS_NIVELES)));
+  };
+
+  // Función para contraer todos los módulos
+  const contraerTodos = () => {
+    setModulosExpandidos(new Set<string>());
+  };
+
+  // Función para calcular permisos totales basados en niveles
+  const calcularPermisosDesdeNiveles = (niveles: Record<string, NivelAcceso>): string[] => {
+    const permisosTotales: string[] = [];
+    Object.entries(niveles).forEach(([modulo, nivel]) => {
+      const config = MODULOS_NIVELES[modulo as keyof typeof MODULOS_NIVELES];
+      if (!config || nivel === "none") return;
+      const permisosNivel = config.permisos[nivel];
+      permisosNivel.forEach(clave => {
+        const permisoId = getPermisoId(clave);
+        if (permisoId) permisosTotales.push(permisoId);
+      });
+    });
+    return permisosTotales;
+  };
+
+  // Conserva API actual para quienes ya la usan
+  const calcularPermisosTotales = (): string[] => calcularPermisosDesdeNiveles(nivelesModulos);
+
+  // Función para arreglar permisos del rol admin
+  const fixAdminPermissions = async () => {
+    try {
+      setBusy(true);
+      
+      const response = await fetch('/api/admin/rbac/fix-admin-permissions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data?.detail || 'Error al arreglar permisos');
+      }
+
+      console.log('🔧 PERMISOS ARREGLADOS:', data);
+      
+      addToast({
+        title: "✅ Éxito",
+        description: `Permisos arreglados: ${data.totalPermisos} permisos asignados`,
+        type: "success"
+      });
+
+      // Refrescar la página después de 2 segundos
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+      
+    } catch (error: any) {
+      console.error('Error:', error);
+      addToast({
+        title: "❌ Error",
+        description: error.message || "Error al arreglar permisos",
+        type: "error"
+      });
+    } finally {
+      setBusy(false);
     }
-    setPermisosAsignados(newAsignados);
-    setHasChanges(true);
   };
 
-  // Función para seleccionar todo un módulo
-  const selectAllModulo = (modulo: string) => {
-    if (!canEdit) return;
-    
-    const moduloPermisos = MODULOS_PERMISOS[modulo as keyof typeof MODULOS_PERMISOS];
-    if (!moduloPermisos) return;
-
-    const newAsignados = new Set(permisosAsignados);
-    moduloPermisos.permisos.forEach(permiso => {
-      const permisoId = getPermisoId(permiso.clave);
-      if (permisoId) {
-        newAsignados.add(permisoId);
+  // Función para asignar rol de admin
+  const assignAdminRole = async () => {
+    try {
+      setBusy(true);
+      
+      const response = await fetch('/api/admin/rbac/assign-admin-role', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data?.detail || 'Error al asignar rol de admin');
       }
-    });
-    setPermisosAsignados(newAsignados);
-    setHasChanges(true);
+
+      console.log('👑 ROL ADMIN ASIGNADO:', data);
+      
+      addToast({
+        title: "✅ Éxito",
+        description: "Rol de admin asignado exitosamente. Refresca la página.",
+        type: "success"
+      });
+
+      // Refrescar la página después de 2 segundos
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+      
+    } catch (error: any) {
+      console.error('Error:', error);
+      addToast({
+        title: "❌ Error",
+        description: error.message || "Error al asignar rol de admin",
+        type: "error"
+      });
+    } finally {
+      setBusy(false);
+    }
   };
 
-  // Función para limpiar todo un módulo
-  const clearAllModulo = (modulo: string) => {
-    if (!canEdit) return;
-    
-    const moduloPermisos = MODULOS_PERMISOS[modulo as keyof typeof MODULOS_PERMISOS];
-    if (!moduloPermisos) return;
+  // Hacer admin total este rol (asigna admin a todos los módulos y guarda)
+  const hacerAdminTotal = async () => {
+    if (!canEdit || !rolId) return;
+    try {
+      setBusy(true);
+      const nivelesAdmin: Record<string, NivelAcceso> = {};
+      Object.keys(MODULOS_NIVELES).forEach((m) => { nivelesAdmin[m] = "admin"; });
+      const permisosArray = calcularPermisosDesdeNiveles(nivelesAdmin);
 
-    const newAsignados = new Set(permisosAsignados);
-    moduloPermisos.permisos.forEach(permiso => {
-      const permisoId = getPermisoId(permiso.clave);
-      if (permisoId) {
-        newAsignados.delete(permisoId);
+      const res = await rbacFetch(`/api/admin/rbac/roles/${rolId}/permisos`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ permisos: permisosArray })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || data?.error || `HTTP ${res.status}`);
+
+      setNivelesModulos(nivelesAdmin);
+      setHasChanges(false);
+      addToast({ title: "✅ Rol actualizado", description: "Ahora este rol es administrador total en todos los módulos", type: "success" });
+    } catch (e: any) {
+      addToast({ title: "❌ Error", description: e?.message || "No se pudo convertir el rol en admin total", type: "error" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Función para debuggear permisos (público)
+  const debugPermissionsPublic = async () => {
+    try {
+      setBusy(true);
+      
+      const response = await fetch('/api/admin/rbac/debug-permissions-public');
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data?.detail || 'Error al debuggear permisos');
       }
-    });
-    setPermisosAsignados(newAsignados);
-    setHasChanges(true);
+
+      console.log('🔍 DEBUG PÚBLICO:', data);
+      
+      // Mostrar en un alert para facilitar la visualización
+      const debugInfo = `
+🔍 DEBUG PÚBLICO
+
+Roles Admin encontrados: ${data.rolesAdmin.length}
+Total permisos en sistema: ${data.totalPermisos}
+
+Permisos por módulo:
+${Object.entries(data.permisosPorModulo).map(([modulo, permisos]: [string, any]) => 
+  `${modulo}: ${permisos.length} permisos`
+).join('\n')}
+
+Roles con permisos:
+${data.rolesAdmin.map((r: any) => 
+  `${r.rol.nombre}: ${r.permisos.length} permisos`
+).join('\n')}
+
+Usuario actual:
+${data.usuariosConRoles.map((u: any) => 
+  `${u.email} - Rol: ${u.rol_nombre || 'Sin rol'} - Permisos: ${u.total_permisos}`
+).join('\n')}
+      `;
+      
+      alert(debugInfo);
+      
+    } catch (error: any) {
+      console.error('Error:', error);
+      addToast({
+        title: "❌ Error",
+        description: error.message || "Error al debuggear permisos",
+        type: "error"
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Función para debuggear permisos
+  const debugPermissions = async () => {
+    try {
+      setBusy(true);
+      
+      const response = await rbacFetch('/api/admin/rbac/debug-permissions');
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data?.detail || 'Error al debuggear permisos');
+      }
+
+      console.log('🔍 DEBUG PERMISOS:', data);
+      
+      // Mostrar en un alert para facilitar la visualización
+      const debugInfo = `
+🔍 DEBUG PERMISOS
+
+Roles Admin encontrados: ${data.rolesAdmin.length}
+Total permisos en sistema: ${data.totalPermisos}
+
+Permisos por módulo:
+${Object.entries(data.permisosPorModulo).map(([modulo, permisos]: [string, any]) => 
+  `${modulo}: ${permisos.length} permisos`
+).join('\n')}
+
+Roles con permisos:
+${data.rolesAdmin.map((r: any) => 
+  `${r.rol.nombre}: ${r.permisos.length} permisos`
+).join('\n')}
+      `;
+      
+      alert(debugInfo);
+      
+    } catch (error: any) {
+      console.error('Error:', error);
+      addToast({
+        title: "❌ Error",
+        description: error.message || "Error al debuggear permisos",
+        type: "error"
+      });
+    } finally {
+      setBusy(false);
+    }
   };
 
   // Función para guardar cambios
@@ -239,7 +551,7 @@ export default function PermisosRolPage() {
       setBusy(true);
       setError(null);
 
-      const permisosArray = Array.from(permisosAsignados);
+      const permisosArray = calcularPermisosTotales();
       
       const res = await rbacFetch(`/api/admin/rbac/roles/${rolId}/permisos`, {
         method: "PUT",
@@ -326,14 +638,22 @@ export default function PermisosRolPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">Permisos del Rol</h1>
-            <p className="text-muted-foreground">
-              {rol?.nombre} - {rol?.descripcion}
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <p className="text-lg font-semibold text-blue-600">
+                {rol?.nombre}
+              </p>
+              {rol?.descripcion && (
+                <span className="text-muted-foreground">- {rol.descripcion}</span>
+              )}
+            </div>
           </div>
         </div>
 
+        <div className="flex items-center gap-2">
+          {/* Botones temporales removidos */}
         {canEdit && (
-          <div className="flex items-center gap-2">
+            <>
             {hasChanges && (
               <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
                 Cambios pendientes
@@ -347,89 +667,143 @@ export default function PermisosRolPage() {
               <Save className="h-4 w-4" />
               {busy ? "Guardando..." : "Guardar Cambios"}
             </Button>
+            </>
+          )}
           </div>
-        )}
       </div>
 
-      {/* Matriz de Permisos */}
-      <div className="space-y-6">
-        {Object.entries(MODULOS_PERMISOS).map(([modulo, config]) => (
-          <Card key={modulo}>
+      {/* Controles de Expansión */}
+      <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <span className="text-xl">{config.icon}</span>
-                  {modulo}
-                </CardTitle>
-                
-                {canEdit && (
+            <CardTitle className="text-lg">🎯 Niveles de Acceso por Módulo</CardTitle>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => selectAllModulo(modulo)}
+                onClick={expandirTodos}
                       className="flex items-center gap-1"
                     >
-                      <CheckSquare className="h-3 w-3" />
-                      Todo
+                <ChevronDown className="h-3 w-3" />
+                Expandir Todo
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => clearAllModulo(modulo)}
+                onClick={contraerTodos}
                       className="flex items-center gap-1"
                     >
-                      <Square className="h-3 w-3" />
-                      Limpiar
+                <ChevronRight className="h-3 w-3" />
+                Contraer Todo
                     </Button>
                   </div>
-                )}
               </div>
+          <p className="text-sm text-muted-foreground">
+            Selecciona el nivel de acceso para cada módulo. Los cambios se aplicarán al guardar.
+          </p>
             </CardHeader>
-            
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {config.permisos.map((permiso) => (
-                  <div
-                    key={permiso.clave}
-                    className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+        <CardContent>
+          <div className="space-y-3">
+            {Object.entries(MODULOS_NIVELES).map(([modulo, config]) => {
+              const isExpanded = modulosExpandidos.has(modulo);
+              const nivelActual = nivelesModulos[modulo] || "none";
+              
+              return (
+                <div key={modulo} className="border rounded-lg overflow-hidden">
+                  {/* Header del módulo */}
+                  <div 
+                    className="flex items-center justify-between p-4 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => toggleModulo(modulo)}
                   >
-                    <Checkbox
-                      id={permiso.clave}
-                      checked={isPermisoAsignado(permiso.clave)}
-                      onCheckedChange={() => togglePermiso(permiso.clave)}
-                      disabled={!canEdit}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <label
-                        htmlFor={permiso.clave}
-                        className="text-sm font-medium cursor-pointer"
-                      >
-                        {permiso.nombre}
-                      </label>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {permiso.descripcion}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{config.icon}</span>
+                      <div>
+                        <h3 className="font-semibold text-lg">{config.nombre}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Nivel actual: <span className="font-medium text-blue-600">{nivelActual}</span>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
                     </div>
                   </div>
-                ))}
+                  
+                  {/* Contenido expandible */}
+                  {isExpanded && (
+                    <div className="p-4 border-t">
+                                             <RadioGroup
+                         value={nivelActual}
+                         onValueChange={(value: string) => canEdit && cambiarNivelModulo(modulo, value as NivelAcceso)}
+                         className="grid grid-cols-2 md:grid-cols-4 gap-3"
+                       >
+                        <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                          <RadioGroupItem value="none" id={`${modulo}-none`} />
+                          <label htmlFor={`${modulo}-none`} className="flex items-center gap-2 cursor-pointer">
+                            <X className="h-4 w-4 text-red-500" />
+                            <div>
+                              <div className="font-medium">Sin acceso</div>
+                              <div className="text-xs text-muted-foreground">No puede ver ni hacer nada</div>
+                            </div>
+                          </label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                          <RadioGroupItem value="view" id={`${modulo}-view`} />
+                          <label htmlFor={`${modulo}-view`} className="flex items-center gap-2 cursor-pointer">
+                            <Eye className="h-4 w-4 text-blue-500" />
+                            <div>
+                              <div className="font-medium">Solo ver</div>
+                              <div className="text-xs text-muted-foreground">Consultar información</div>
+                            </div>
+                          </label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                          <RadioGroupItem value="edit" id={`${modulo}-edit`} />
+                          <label htmlFor={`${modulo}-edit`} className="flex items-center gap-2 cursor-pointer">
+                            <Edit className="h-4 w-4 text-green-500" />
+                            <div>
+                              <div className="font-medium">Editar</div>
+                              <div className="text-xs text-muted-foreground">Ver + Crear + Editar</div>
+                            </div>
+                          </label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                          <RadioGroupItem value="admin" id={`${modulo}-admin`} />
+                          <label htmlFor={`${modulo}-admin`} className="flex items-center gap-2 cursor-pointer">
+                            <Settings className="h-4 w-4 text-purple-500" />
+                            <div>
+                              <div className="font-medium">Administrar</div>
+                              <div className="text-xs text-muted-foreground">Acceso completo</div>
+                            </div>
+                          </label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
 
       {/* Información adicional */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Información</CardTitle>
+          <CardTitle className="text-lg">ℹ️ Información</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>• <strong>Ver:</strong> Permite consultar información sin modificarla</p>
-          <p>• <strong>Crear:</strong> Permite crear nuevos registros</p>
-          <p>• <strong>Editar:</strong> Permite modificar registros existentes</p>
-          <p>• <strong>Eliminar:</strong> Permite eliminar registros</p>
-          <p>• <strong>Todo:</strong> Incluye todos los permisos del módulo</p>
+          <p>• <strong>Sin acceso:</strong> No puede ver ni hacer nada en el módulo</p>
+          <p>• <strong>Solo ver:</strong> Puede consultar información sin modificarla</p>
+          <p>• <strong>Editar:</strong> Puede ver, crear y modificar registros</p>
+          <p>• <strong>Administrar:</strong> Acceso completo incluyendo eliminación</p>
           <p>• Los permisos se aplican de forma acumulativa</p>
         </CardContent>
       </Card>

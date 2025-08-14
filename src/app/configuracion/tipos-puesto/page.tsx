@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useCan } from '@/lib/permissions';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -95,6 +96,16 @@ const COLORES_DISPONIBLES = [
 ];
 
 export default function TiposPuestoPage() {
+  const { allowed } = useCan('config.tipos_puesto.view');
+  if (!allowed) {
+    return (
+      <div className="p-6">
+        <div className="rounded-xl border p-6 text-center text-muted-foreground">
+          Acceso denegado
+        </div>
+      </div>
+    );
+  }
   const router = useRouter();
   const { toast } = useToast();
   const [tipos, setTipos] = useState<TipoPuesto[]>([]);

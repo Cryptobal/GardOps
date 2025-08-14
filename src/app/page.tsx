@@ -81,9 +81,13 @@ const statsBase = [
   }
 ];
 
+import { useCan } from "@/lib/permissions";
+
 export default function HomePage() {
   console.log('🔍 HomePage: Componente iniciando...')
-  
+  // Hook de permiso (siempre llamado, nunca condicional)
+  const { allowed: canSeeHome } = useCan('home.view');
+
   const router = useRouter();
   const [alertas, setAlertas] = useState<AlertaDocumento[]>([]);
   const [cargandoAlertas, setCargandoAlertas] = useState(true);
@@ -289,6 +293,16 @@ export default function HomePage() {
 
   console.log('🔍 HomePage: Renderizando página principal...')
   
+  if (!canSeeHome) {
+    return (
+      <div className="p-6">
+        <div className="rounded-xl border p-6 text-center text-muted-foreground">
+          Acceso denegado
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-3 sm:p-4 md:p-6 lg:p-8 space-y-4 sm:space-y-6 md:space-y-8 max-w-7xl mx-auto">
       {/* Welcome Section - Responsive */}

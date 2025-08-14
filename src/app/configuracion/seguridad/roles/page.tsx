@@ -30,6 +30,8 @@ export default function RolesPage() {
   });
   // Permitir lectura de roles a usuarios con permiso de lectura
   const { allowed, loading, error } = useCan('rbac.roles.read');
+  const { allowed: canWrite } = useCan('rbac.roles.write');
+  const { allowed: isPlatformAdmin } = useCan('rbac.platform_admin');
   const { success: toastSuccess, error: toastError, addToast: toast } = useToast();
 
   // Cargar datos solo si está permitido
@@ -87,6 +89,34 @@ export default function RolesPage() {
   const cancelarEdicion = () => {
     setCreandoRol(false);
     setFormData({ nombre: "", descripcion: "" });
+  };
+
+  const createAdminRole = async () => {
+    try {
+      setGuardando(true);
+      
+      const response = await rbacFetch('/api/admin/rbac/create-admin-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData?.detail || 'Error al crear rol de administrador');
+      }
+
+      const data = await response.json();
+      toastSuccess(`Rol de administrador creado exitosamente con ${data.rol.permisosAsignados} permisos`);
+      
+      // Recargar la lista de roles
+      await cargarRoles();
+      
+    } catch (error: any) {
+      console.error('Error:', error);
+      toastError(error.message || 'Error al crear rol de administrador');
+    } finally {
+      setGuardando(false);
+    }
   };
 
   const guardarRol = async () => {
@@ -211,11 +241,23 @@ export default function RolesPage() {
               Gestiona los roles y sus permisos asignados
             </p>
           </div>
-          <div className="flex-shrink-0">
-            <Button onClick={iniciarCreacion} disabled={creandoRol} className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Rol
-            </Button>
+          <div className="flex-shrink-0 flex items-center gap-2">
+            {isPlatformAdmin && (
+              <Button 
+                variant="outline" 
+                onClick={createAdminRole}
+                disabled={guardando}
+                className="w-full sm:w-auto"
+              >
+                👑 Crear Rol Admin
+              </Button>
+            )}
+            {canWrite && (
+              <Button onClick={iniciarCreacion} disabled={creandoRol} className="w-full sm:w-auto">
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Rol
+              </Button>
+            )}
           </div>
         </div>
       </div>

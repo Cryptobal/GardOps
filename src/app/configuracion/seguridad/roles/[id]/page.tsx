@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Combobox } from "@/components/ui/combobox";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 type Rol = { id: string; nombre: string; descripcion: string | null; tenant_id: string | null };
 type Permiso = { id: string; clave: string; descripcion: string | null };
@@ -29,6 +30,7 @@ export default function RolDetallePage() {
   const [asignados, setAsignados] = useState<Permiso[]>([]);
   const [catalogo, setCatalogo] = useState<Permiso[]>([]);
   const [selectedPerm, setSelectedPerm] = useState<string | undefined>(undefined);
+  const [matrizExpandida, setMatrizExpandida] = useState(false);
 
   const noAsignados = useMemo(() => {
     const assignedIds = new Set(asignados.map(p => p.id));
@@ -189,17 +191,32 @@ export default function RolDetallePage() {
         {/* Sección de Permisos Asignados */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-              🎯 Matriz de Permisos
-              <span className="text-sm font-normal text-muted-foreground">
-                ({asignados.length} asignados)
-              </span>
-            </CardTitle>
+            <div 
+              className="flex items-center justify-between cursor-pointer"
+              onClick={() => setMatrizExpandida(!matrizExpandida)}
+            >
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+                  🎯 Matriz de Permisos
+                  <span className="text-sm font-normal text-muted-foreground">
+                    ({asignados.length} asignados)
+                  </span>
+                </CardTitle>
+              </div>
+              <div className="flex items-center gap-2">
+                {matrizExpandida ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </div>
+            </div>
             <p className="text-sm text-muted-foreground">
               Permisos actualmente asignados a este rol
             </p>
           </CardHeader>
-          <CardContent>
+          {matrizExpandida && (
+            <CardContent>
             {busy ? (
               <div className="flex items-center justify-center py-8">
                 <div className="text-center">
@@ -242,16 +259,36 @@ export default function RolDetallePage() {
                 ))}
               </div>
             )}
-          </CardContent>
+            </CardContent>
+          )}
         </Card>
+
+        {/* Botón para Nueva Interfaz Simplificada */}
+        {canWrite && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg sm:text-xl">🎯 Interfaz Simplificada</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Usa la nueva interfaz por niveles para asignar permisos de forma más fácil
+              </p>
+            </CardHeader>
+            <CardContent>
+              <Link href={`/configuracion/seguridad/roles/${id}/permisos`}>
+                <Button className="w-full">
+                  🎯 Abrir Interfaz por Niveles
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Sección de Agregar Permisos */}
         {canWrite && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg sm:text-xl">➕ Agregar Permisos</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">➕ Agregar Permisos (Interfaz Clásica)</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Selecciona permisos para agregar al rol
+                Selecciona permisos individuales para agregar al rol
               </p>
             </CardHeader>
             <CardContent>

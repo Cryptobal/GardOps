@@ -1,0 +1,3 @@
+- Ejecuta `npm --prefix auditoria_rbac run audit:ui`.
+- Usa `AUDIT_BASE_URL`.
+- Capturas en `auditoria_rbac/outputs/ui_screenshots` cuando falla.

@@ -1,0 +1,2751 @@
+{
+  "config": {
+    "configFile": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/playwright.config.ts",
+    "rootDir": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "outputs/ui_report",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "outputs/ui_results.json"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.54.2",
+    "workers": 5,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "rbac_ui.spec.ts",
+      "file": "rbac_ui.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "TENANT_A/none UI clientes",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1726,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@0a2721be0114161ebc21500ba6788b9a\", \"_type\": \"ElementHandle\"}\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@0a2721be0114161ebc21500ba6788b9a\", \"_type\": \"ElementHandle\"}\u001b[39m\n    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17",
+                    "location": {
+                      "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                      "column": 17,
+                      "line": 29
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                        "column": 17,
+                        "line": 29
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@0a2721be0114161ebc21500ba6788b9a\", \"_type\": \"ElementHandle\"}\u001b[39m\n\n\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m\n\u001b[2m    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17\u001b[22m"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:20.028Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-A-none-UI-clientes/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-A-none-UI-clientes/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                    "column": 17,
+                    "line": 29
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-7b7515cb311921b8e70c",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/none UI instalaciones",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1357,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@91f8b00857333b1adc0166ebb0b6cb7c\", \"_type\": \"ElementHandle\"}\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@91f8b00857333b1adc0166ebb0b6cb7c\", \"_type\": \"ElementHandle\"}\u001b[39m\n    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17",
+                    "location": {
+                      "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                      "column": 17,
+                      "line": 29
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                        "column": 17,
+                        "line": 29
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@91f8b00857333b1adc0166ebb0b6cb7c\", \"_type\": \"ElementHandle\"}\u001b[39m\n\n\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m\n\u001b[2m    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17\u001b[22m"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:22.477Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-A-none-UI-instalaciones/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-A-none-UI-instalaciones/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                    "column": 17,
+                    "line": 29
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-01f4b2f25a208cfe7239",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/none UI guardias",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1640,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@0baeaf0a1a6fc259668ea93deda48c80\", \"_type\": \"ElementHandle\"}\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@0baeaf0a1a6fc259668ea93deda48c80\", \"_type\": \"ElementHandle\"}\u001b[39m\n    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17",
+                    "location": {
+                      "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                      "column": 17,
+                      "line": 29
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                        "column": 17,
+                        "line": 29
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@0baeaf0a1a6fc259668ea93deda48c80\", \"_type\": \"ElementHandle\"}\u001b[39m\n\n\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m\n\u001b[2m    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17\u001b[22m"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:24.455Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-A-none-UI-guardias/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-A-none-UI-guardias/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                    "column": 17,
+                    "line": 29
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-41bbbb6891f87ef382e8",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/none UI puestos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2611,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:26.630Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-0bc6a493c1f707d500ee",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/none UI pauta_mensual",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3596,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:29.369Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-add29cf01e43fe95a013",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/none UI pauta_diaria",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1862,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:32.968Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-f1a277ae25648b360131",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/none UI payroll",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1995,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@c1f0a0ef0aceb2a39a8f02f7f8e4d425\", \"_type\": \"ElementHandle\"}\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@c1f0a0ef0aceb2a39a8f02f7f8e4d425\", \"_type\": \"ElementHandle\"}\u001b[39m\n    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17",
+                    "location": {
+                      "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                      "column": 17,
+                      "line": 29
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                        "column": 17,
+                        "line": 29
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@c1f0a0ef0aceb2a39a8f02f7f8e4d425\", \"_type\": \"ElementHandle\"}\u001b[39m\n\n\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m\n\u001b[2m    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17\u001b[22m"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:34.832Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-A-none-UI-payroll/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-A-none-UI-payroll/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                    "column": 17,
+                    "line": 29
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-988f72bd7d5e8345a085",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/none UI configuracion",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1191,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:37.465Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-713d2575b65cc654f08e",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/read UI clientes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2127,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:38.801Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-7486b77fe022f27c4614",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/read UI instalaciones",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2047,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:40.931Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-75e96fd4c95938fbe7ed",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/read UI guardias",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4087,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:42.981Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-7beabd81b8d0295c8937",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/read UI puestos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1341,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:47.072Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-de8e1799514d83f681de",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/read UI pauta_mensual",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1101,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:48.416Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-0c706a4455e1faa625bc",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/read UI pauta_diaria",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1845,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:49.520Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-4da9eec14dc573d05ab8",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/read UI payroll",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2314,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@174ccea93abcd6ebf24d42862ddcb452\", \"_type\": \"ElementHandle\"}\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@174ccea93abcd6ebf24d42862ddcb452\", \"_type\": \"ElementHandle\"}\u001b[39m\n    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17",
+                    "location": {
+                      "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                      "column": 17,
+                      "line": 29
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                        "column": 17,
+                        "line": 29
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@174ccea93abcd6ebf24d42862ddcb452\", \"_type\": \"ElementHandle\"}\u001b[39m\n\n\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m\n\u001b[2m    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17\u001b[22m"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:51.368Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-A-read-UI-payroll/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-A-read-UI-payroll/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                    "column": 17,
+                    "line": 29
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-de13b1b504317a1d2592",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/read UI configuracion",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1244,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:54.138Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-7988ee31f52874f92c43",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/editor UI clientes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1912,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:55.517Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-b2abcad96a03bcce457b",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/editor UI instalaciones",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2164,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:57.431Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-6781a370ae612f96485f",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/editor UI guardias",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1546,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:39:59.597Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-7972a5b97be014f5e25e",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/editor UI puestos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1770,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:01.145Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-28675909f16015a2ba5e",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/editor UI pauta_mensual",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1277,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:02.918Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-3c51eeed6082753c2f18",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/editor UI pauta_diaria",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1651,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:04.198Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-dbf4c93577946a0cd83c",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/editor UI payroll",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1547,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@aa2ec04565e12712efd9fb92314ea6f2\", \"_type\": \"ElementHandle\"}\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@aa2ec04565e12712efd9fb92314ea6f2\", \"_type\": \"ElementHandle\"}\u001b[39m\n    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17",
+                    "location": {
+                      "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                      "column": 17,
+                      "line": 29
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                        "column": 17,
+                        "line": 29
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@aa2ec04565e12712efd9fb92314ea6f2\", \"_type\": \"ElementHandle\"}\u001b[39m\n\n\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m\n\u001b[2m    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17\u001b[22m"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:05.851Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-A-editor-UI-payroll/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-A-editor-UI-payroll/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                    "column": 17,
+                    "line": 29
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-505b5968d165a22678a3",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/editor UI configuracion",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2000,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:07.930Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-6c64417098d1e666a385",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/admin UI clientes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2440,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:10.187Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-b616e2e55dcc57442415",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/admin UI instalaciones",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1580,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:12.631Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-10090e0d37afb4153ad3",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/admin UI guardias",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2147,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:14.214Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-fc4cfef1ebdbcf769ce7",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/admin UI puestos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1253,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:16.363Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-a0c21ac47e9947e03b11",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/admin UI pauta_mensual",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1609,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:17.619Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-6fd3cd203edc4361da27",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/admin UI pauta_diaria",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1114,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:19.231Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-366241dc5aed1c82ebcb",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/admin UI payroll",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2110,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@620f8c47de09021d9ff7d58697529dbd\", \"_type\": \"ElementHandle\"}\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@620f8c47de09021d9ff7d58697529dbd\", \"_type\": \"ElementHandle\"}\u001b[39m\n    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17",
+                    "location": {
+                      "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                      "column": 17,
+                      "line": 29
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                        "column": 17,
+                        "line": 29
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@620f8c47de09021d9ff7d58697529dbd\", \"_type\": \"ElementHandle\"}\u001b[39m\n\n\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m\n\u001b[2m    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17\u001b[22m"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:20.347Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-A-admin-UI-payroll/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-A-admin-UI-payroll/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                    "column": 17,
+                    "line": 29
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-eec22cf166a364a10e94",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_A/admin UI configuracion",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 7,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2012,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:22.924Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-f01811546a0732b60a7b",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/none UI clientes",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 7,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1670,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@bbf519aac2bce69f0144e4a4147cdf9e\", \"_type\": \"ElementHandle\"}\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@bbf519aac2bce69f0144e4a4147cdf9e\", \"_type\": \"ElementHandle\"}\u001b[39m\n    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17",
+                    "location": {
+                      "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                      "column": 17,
+                      "line": 29
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                        "column": 17,
+                        "line": 29
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@bbf519aac2bce69f0144e4a4147cdf9e\", \"_type\": \"ElementHandle\"}\u001b[39m\n\n\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m\n\u001b[2m    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17\u001b[22m"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:25.082Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-B-none-UI-clientes/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-B-none-UI-clientes/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                    "column": 17,
+                    "line": 29
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-667b81d8d2df09abc1e5",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/none UI instalaciones",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 8,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 4255,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@3fe841fca213aadd518c5be8777a03db\", \"_type\": \"ElementHandle\"}\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@3fe841fca213aadd518c5be8777a03db\", \"_type\": \"ElementHandle\"}\u001b[39m\n    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17",
+                    "location": {
+                      "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                      "column": 17,
+                      "line": 29
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                        "column": 17,
+                        "line": 29
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@3fe841fca213aadd518c5be8777a03db\", \"_type\": \"ElementHandle\"}\u001b[39m\n\n\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m\n\u001b[2m    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17\u001b[22m"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:27.120Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-B-none-UI-instalaciones/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-B-none-UI-instalaciones/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                    "column": 17,
+                    "line": 29
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-4e49da65cfb9de7090ff",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/none UI guardias",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 9,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3659,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@5982be26fb377a92a8a1a8d4232c3cf9\", \"_type\": \"ElementHandle\"}\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@5982be26fb377a92a8a1a8d4232c3cf9\", \"_type\": \"ElementHandle\"}\u001b[39m\n    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17",
+                    "location": {
+                      "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                      "column": 17,
+                      "line": 29
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                        "column": 17,
+                        "line": 29
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@5982be26fb377a92a8a1a8d4232c3cf9\", \"_type\": \"ElementHandle\"}\u001b[39m\n\n\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m\n\u001b[2m    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17\u001b[22m"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:31.946Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-B-none-UI-guardias/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-B-none-UI-guardias/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                    "column": 17,
+                    "line": 29
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-f7e65ab80cd65b6ea70d",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/none UI puestos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 10,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1727,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:36.227Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-0eeb66334d5c1e90af80",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/none UI pauta_mensual",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 10,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1096,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:38.097Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-bdd28f2df51d94028f83",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/none UI pauta_diaria",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 10,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2117,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:39.196Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-76182f273f29c0984840",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/none UI payroll",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 10,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 5464,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@cb91b1b7b9e0b51739d8b98dec4b1c6e\", \"_type\": \"ElementHandle\"}\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@cb91b1b7b9e0b51739d8b98dec4b1c6e\", \"_type\": \"ElementHandle\"}\u001b[39m\n    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17",
+                    "location": {
+                      "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                      "column": 17,
+                      "line": 29
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                        "column": 17,
+                        "line": 29
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@cb91b1b7b9e0b51739d8b98dec4b1c6e\", \"_type\": \"ElementHandle\"}\u001b[39m\n\n\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m\n\u001b[2m    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17\u001b[22m"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:41.316Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-B-none-UI-payroll/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-B-none-UI-payroll/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                    "column": 17,
+                    "line": 29
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-844234f37b7928662fc3",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/none UI configuracion",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1141,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:47.193Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-9361feb2a4fadc356d84",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/read UI clientes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1711,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:48.463Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-d6e73e0b1de63e694c20",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/read UI instalaciones",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1648,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:50.176Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-2dddb541f03b4b908286",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/read UI guardias",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1296,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:51.827Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-984b8c687543f23197de",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/read UI puestos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1349,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:53.126Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-0aae45731b4881905bf5",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/read UI pauta_mensual",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1014,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:54.477Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-18f2e524a80da1734731",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/read UI pauta_diaria",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1333,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:55.493Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-c13ec8f92d029a41d658",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/read UI payroll",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1285,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@d611b1b199a4708f44587ec9f30564ba\", \"_type\": \"ElementHandle\"}\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@d611b1b199a4708f44587ec9f30564ba\", \"_type\": \"ElementHandle\"}\u001b[39m\n    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17",
+                    "location": {
+                      "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                      "column": 17,
+                      "line": 29
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                        "column": 17,
+                        "line": 29
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@d611b1b199a4708f44587ec9f30564ba\", \"_type\": \"ElementHandle\"}\u001b[39m\n\n\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m\n\u001b[2m    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17\u001b[22m"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:56.828Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-B-read-UI-payroll/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-B-read-UI-payroll/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                    "column": 17,
+                    "line": 29
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-9887ff2d96d9369c32a8",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/read UI configuracion",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 12,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1617,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:40:58.508Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-932ad561dfa3480f7f5d",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/editor UI clientes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 12,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1426,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:41:00.230Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-db8ec3954fedcf348777",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/editor UI instalaciones",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 12,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1714,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:41:01.659Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-4291a0cc0e1d7398f0ec",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/editor UI guardias",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 12,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1733,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:41:03.375Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-9d4b51aa3ee1a3642dc0",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/editor UI puestos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 12,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1032,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:41:05.109Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-edb27c74e72a3f7444bb",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/editor UI pauta_mensual",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 12,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1281,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:41:06.143Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-d103325ca9b4d7722613",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/editor UI pauta_diaria",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 12,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1054,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:41:07.426Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-5c37442a5a8b70e86ea9",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/editor UI payroll",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 12,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1695,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@874cf89223154d1dd63f2c5916a81aa7\", \"_type\": \"ElementHandle\"}\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@874cf89223154d1dd63f2c5916a81aa7\", \"_type\": \"ElementHandle\"}\u001b[39m\n    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17",
+                    "location": {
+                      "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                      "column": 17,
+                      "line": 29
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                        "column": 17,
+                        "line": 29
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@874cf89223154d1dd63f2c5916a81aa7\", \"_type\": \"ElementHandle\"}\u001b[39m\n\n\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m\n\u001b[2m    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17\u001b[22m"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:41:08.483Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-B-editor-UI-payroll/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-B-editor-UI-payroll/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                    "column": 17,
+                    "line": 29
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-3f4ffb758a098720e6a3",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/editor UI configuracion",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 13,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1099,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:41:10.592Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-40837d14b8b276654240",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/admin UI clientes",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 13,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1712,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:41:11.811Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-a121230fbae24382187b",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/admin UI instalaciones",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 13,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3297,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:41:13.525Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-834cdf2530075a6ebdb9",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/admin UI guardias",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 13,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1365,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:41:16.824Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-24c34c85825c65882877",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/admin UI puestos",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 13,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1399,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:41:18.192Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-2841eac8395433afd179",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/admin UI pauta_mensual",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 13,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 998,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:41:19.593Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-a9eb94c9c97ca99591d1",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/admin UI pauta_diaria",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 13,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1349,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:41:20.592Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-019d6f866ce422b997c1",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/admin UI payroll",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 13,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1301,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@0fc20347836611ac9123f6a808307096\", \"_type\": \"ElementHandle\"}\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@0fc20347836611ac9123f6a808307096\", \"_type\": \"ElementHandle\"}\u001b[39m\n    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17",
+                    "location": {
+                      "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                      "column": 17,
+                      "line": 29
+                    },
+                    "snippet": "\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                        "column": 17,
+                        "line": 29
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31m{\"_guid\": \"handle@0fc20347836611ac9123f6a808307096\", \"_type\": \"ElementHandle\"}\u001b[39m\n\n\u001b[0m \u001b[90m 27 |\u001b[39m \t\t\t\t\u001b[36mfor\u001b[39m (\u001b[36mconst\u001b[39m sel \u001b[36mof\u001b[39m sidebarSelectorsForModule(moduleName)) {\n \u001b[90m 28 |\u001b[39m \t\t\t\t\t\u001b[36mconst\u001b[39m el \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39m$(sel)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 29 |\u001b[39m \t\t\t\t\texpect(el)\u001b[33m.\u001b[39mtoBeNull()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m \t\t\t\t\t           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 30 |\u001b[39m \t\t\t\t}\n \u001b[90m 31 |\u001b[39m \t\t\t}\n \u001b[90m 32 |\u001b[39m \t\t\t\u001b[90m// En página: validar ausencia/presencia de botones por rol\u001b[39m\u001b[0m\n\u001b[2m    at /Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts:29:17\u001b[22m"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:41:21.943Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-B-admin-UI-payroll/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/caco/Desktop/GardOps/auditoria_rbac/test-results/rbac_ui-TENANT-B-admin-UI-payroll/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/caco/Desktop/GardOps/auditoria_rbac/tests/ui/rbac_ui.spec.ts",
+                    "column": 17,
+                    "line": 29
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-313c7baaa2c4ec479a96",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        },
+        {
+          "title": "TENANT_B/admin UI configuracion",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 14,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1508,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2025-08-14T01:41:23.620Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c2c9412b92edd2d7da88-e807f5f940317d3e9120",
+          "file": "rbac_ui.spec.ts",
+          "line": 18,
+          "column": 7
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-08-14T01:39:19.622Z",
+    "duration": 125638.274,
+    "expected": 50,
+    "skipped": 0,
+    "unexpected": 14,
+    "flaky": 0
+  }
+}

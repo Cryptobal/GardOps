@@ -35,7 +35,8 @@ export const navigationItems: NavigationItem[] = [
   {
     name: "Inicio",
     href: "/",
-    icon: Home
+    icon: Home,
+    permission: "home.view"
   },
   {
     name: "Clientes",
@@ -113,14 +114,6 @@ export const navigationItems: NavigationItem[] = [
     name: "Configuración",
     href: "/configuracion",
     icon: Settings,
-    // Dejar visible el menú contenedor; la visibilidad de Seguridad se controla por permiso
-    children: [
-      {
-        name: "Seguridad",
-        href: "/configuracion/seguridad",
-        icon: Lock,
-        permission: "rbac.platform_admin"
-      }
-    ]
+    permission: "config.view"
   }
 ]; 

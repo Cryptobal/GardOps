@@ -6,7 +6,16 @@ import Link from "next/link";
 import { useCan } from "@/lib/permissions";
 
 export default function ConfiguracionPage() {
-  const { allowed: canAdminRbac } = useCan('rbac.admin');
+  const { allowed: canConfig } = useCan('config.view');
+  if (!canConfig) {
+    return (
+      <div className="p-6">
+        <div className="rounded-xl border p-6 text-center text-muted-foreground">
+          Acceso denegado
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -134,9 +143,7 @@ export default function ConfiguracionPage() {
               <div className="mt-4 flex items-center text-red-500 text-sm font-medium group-hover:underline">
                 Gestionar seguridad →
               </div>
-              {!canAdminRbac && (
-                <div className="mt-2 text-gray-400 text-xs">Puede requerir permiso: rbac.admin</div>
-              )}
+              {/* Nota de permiso removida; la ruta de Seguridad valida permisos internamente */}
             </CardContent>
           </Card>
         </Link>
