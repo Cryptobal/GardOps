@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 // Consolidación de handlers duplicados. Usar una única implementación segura.
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
@@ -6,6 +7,14 @@ import { getUserEmail, getUserIdByEmail, userHasPerm, requirePlatformAdmin, json
 type RouteContext = { params: { id: string } };
 
 export async function GET(req: NextRequest, ctx: RouteContext) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'create' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'read:detail' });
+if (deny) return deny;
+
   try {
     const email = await getUserEmail(req);
     if (!email) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
@@ -48,7 +57,15 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
   }
 }
 
-export async function POST(req: NextRequest, ctx: RouteContext | { params: { id: string } }) {
+export async function POST(req: NextRequest, ctx: RouteContext | {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'create' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'read:detail' });
+if (deny) return deny;
+ params: { id: string } }) {
   try {
     // Permitir platform admin o validar actor/tenant en modo seguro
     const email = await getUserEmail(req).catch(() => null);

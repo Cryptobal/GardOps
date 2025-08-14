@@ -1,7 +1,12 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/database-vercel';
 
 export async function GET(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'check_sueldo_tables', action: 'read:list' });
+if (deny) return deny;
+
   try {
     // Verificar qué tablas existen
     const tablesResult = await sql`

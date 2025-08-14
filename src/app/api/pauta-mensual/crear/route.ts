@@ -1,8 +1,13 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import { logCRUD, logError } from '@/lib/logging';
 
 export async function POST(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'pauta_mensual', action: 'create' });
+if (deny) return deny;
+
   try {
     const body = await request.json();
     const { instalacion_id, anio, mes } = body;

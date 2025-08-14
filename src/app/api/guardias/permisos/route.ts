@@ -1,7 +1,16 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextResponse } from 'next/server';
 import { registrarPermiso, registrarFiniquito, obtenerPermisos } from '@/lib/db/permisos';
 
 export async function POST(req: Request) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'read:list' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'create' });
+if (deny) return deny;
+
   const body = await req.json();
 
   if (!body || !body.tipo || !body.guardiaId) {
@@ -33,6 +42,14 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'read:list' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'create' });
+if (deny) return deny;
+
   const { searchParams } = new URL(req.url);
   const guardiaId = searchParams.get('guardiaId');
   const tipo = searchParams.get('tipo') || undefined;

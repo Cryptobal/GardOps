@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { getClient } from '@/lib/database';
 import { unstable_noStore as noStore } from 'next/cache';
@@ -5,6 +6,14 @@ import { unstable_noStore as noStore } from 'next/cache';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'create' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'read:list' });
+if (deny) return deny;
+
   noStore();
   // Gate backend: requiere permiso 'guardias.view'
   try {
@@ -128,6 +137,14 @@ export async function GET(req: NextRequest) {
 
 // POST /api/guardias - Crear nuevo guardia
 export async function POST(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'create' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'read:list' });
+if (deny) return deny;
+
   noStore();
   console.log('🔍 API Guardias - Creando nuevo guardia');
   

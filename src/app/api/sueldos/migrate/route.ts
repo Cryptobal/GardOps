@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import fs from 'fs';
@@ -7,6 +8,14 @@ import path from 'path';
  * Ejecuta las migraciones de las tablas de sueldos
  */
 export async function POST(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'read:list' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'create' });
+if (deny) return deny;
+
   try {
     console.log('🚀 Iniciando migración de tablas de sueldos...');
     
@@ -78,6 +87,14 @@ export async function POST(request: NextRequest) {
  * Verifica el estado de las tablas de sueldos
  */
 export async function GET(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'read:list' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'create' });
+if (deny) return deny;
+
   try {
     const tablas = [
       'sueldo_afp',

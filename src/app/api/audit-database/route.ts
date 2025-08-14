@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/database';
 
@@ -32,6 +33,10 @@ interface IndexInfo {
 }
 
 export async function GET(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'audit_database', action: 'read:list' });
+if (deny) return deny;
+
   try {
     const client = await pool.connect();
     

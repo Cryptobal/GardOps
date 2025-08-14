@@ -1,7 +1,12 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/database-vercel';
 
 export async function GET(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'read:list' });
+if (deny) return deny;
+
   try {
     const { searchParams } = new URL(request.url);
     const tabla = searchParams.get('tabla') || 'sueldo_afp';

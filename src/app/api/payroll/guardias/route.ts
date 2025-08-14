@@ -1,8 +1,13 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 // GET - Obtener guardias por instalación
 export async function GET(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'read:list' });
+if (deny) return deny;
+
   try {
     const { searchParams } = new URL(request.url);
     const instalacionId = searchParams.get('instalacion_id');

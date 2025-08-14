@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest } from 'next/server';
 import { pool } from '@/lib/database';
 import { withPermission } from '@/app/api/_middleware/withPermission';
@@ -12,6 +13,10 @@ type Row = {
 };
 
 export const POST = withPermission('turnos.marcar_asistencia', async (req: NextRequest) => {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'turnos', action: 'create' });
+if (deny) return deny;
+
   const body = await req.json().catch(() => null);
   const pauta_id = body?.pauta_id as number | undefined;
   const cubierto = Boolean(body?.cubierto);

@@ -1,7 +1,12 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { copiarParametrosMes } from '@/lib/sueldo/db/parametros';
 
 export async function POST(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'create' });
+if (deny) return deny;
+
   try {
     const body = await request.json();
     const { origen, destino } = body;

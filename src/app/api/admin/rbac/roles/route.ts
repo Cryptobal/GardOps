@@ -1,8 +1,17 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { getUserEmail, getUserIdByEmail, userHasPerm, jsonError } from '@/lib/auth/rbac';
 
 export async function GET(req: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'create' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'read:list' });
+if (deny) return deny;
+
   try {
     const { searchParams } = new URL(req.url);
     const page = Number(searchParams.get('page') || 1);
@@ -65,6 +74,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'create' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'read:list' });
+if (deny) return deny;
+
   const client = sql;
   try {
     const email = await getUserEmail(req);

@@ -1,8 +1,17 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { query } from '@/lib/database';
 import { NextResponse } from 'next/server';
 import { logCRUD } from '@/lib/logging';
 
 export async function POST(req: Request) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'pauta_diaria', action: 'read:list' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'pauta_diaria', action: 'create' });
+if (deny) return deny;
+
   try {
     const { guardia_id, puesto_id, pauta_id, estado } = await req.json();
 
@@ -210,6 +219,14 @@ export async function POST(req: Request) {
 
 // Endpoint para obtener turnos extras con filtros avanzados
 export async function GET(req: Request) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'pauta_diaria', action: 'read:list' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'pauta_diaria', action: 'create' });
+if (deny) return deny;
+
   try {
     const { searchParams } = new URL(req.url);
     const guardia_id = searchParams.get('guardia_id');

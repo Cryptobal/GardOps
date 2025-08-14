@@ -1,10 +1,15 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 // PUT - Inactivar una estructura base específica (solo marca activo=false)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { estructuraId: string } }
+  {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'estructuras_servicio', action: 'update' });
+if (deny) return deny;
+ params }: { params: { estructuraId: string } }
 ) {
   const { estructuraId } = params;
   try {

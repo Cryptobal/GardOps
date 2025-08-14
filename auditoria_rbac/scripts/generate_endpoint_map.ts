@@ -30,14 +30,14 @@ function inferAction(method: string, routePath: string): { module: string; actio
 }
 
 async function main() {
-	const root = path.resolve(process.cwd(), '..');
-	const apiPattern = 'src/app/api/**/route.ts';
-	const files = await fg(apiPattern, { cwd: root, absolute: true });
+    const repoRoot = path.resolve(process.cwd());
+    const apiPattern = 'src/app/api/**/route.ts';
+    const files = await fg(apiPattern, { cwd: repoRoot, absolute: true });
 	const endpoints: EndpointInfo[] = [];
 	const findings: string[] = [];
 
 	for (const file of files) {
-		const rel = path.relative(root, file);
+        const rel = path.relative(repoRoot, file);
 		const code = fs.readFileSync(file, 'utf8');
 		const methodMatches = Array.from(code.matchAll(/export\s+(?:async\s+function\s+|const\s+)(GET|POST|PUT|DELETE|PATCH)\b/g));
 		const methods = methodMatches.map(m => (m[1] || '').toUpperCase());
@@ -60,7 +60,7 @@ async function main() {
 		}
 	}
 
-	const outDir = path.resolve(process.cwd(), 'outputs');
+    const outDir = path.resolve(repoRoot, 'auditoria_rbac', 'outputs');
 	fs.mkdirSync(outDir, { recursive: true });
 	fs.writeFileSync(path.join(outDir, 'rbac_endpoint_map.json'), JSON.stringify(endpoints, null, 2));
 	const md = [

@@ -1,8 +1,13 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 // DELETE: Eliminar una pauta mensual completa
 export async function DELETE(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'pauta_mensual', action: 'delete' });
+if (deny) return deny;
+
   try {
     const { instalacion_id, anio, mes } = await request.json();
 

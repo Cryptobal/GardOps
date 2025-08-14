@@ -1,7 +1,12 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 
 export async function POST(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'create' });
+if (deny) return deny;
+
   try {
     const body = await request.json();
     const { estructura_id, item_id, monto, vigencia_desde, vigencia_hasta } = body;

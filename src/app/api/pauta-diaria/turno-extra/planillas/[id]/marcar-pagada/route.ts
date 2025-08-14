@@ -1,10 +1,15 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import { getCurrentUserServer } from '@/lib/auth';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'pauta_diaria', action: 'create' });
+if (deny) return deny;
+ params }: { params: { id: string } }
 ) {
   try {
     console.log('🔍 Iniciando POST /api/pauta-diaria/turno-extra/planillas/[id]/marcar-pagada');

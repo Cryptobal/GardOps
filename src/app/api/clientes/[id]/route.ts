@@ -1,9 +1,18 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from "next/server";
 import pool from "../../../../lib/database";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'clientes', action: 'update' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'clientes', action: 'read:detail' });
+if (deny) return deny;
+ params }: { params: { id: string } }
 ) {
   try {
     const clienteId = params.id;
@@ -36,7 +45,15 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'clientes', action: 'update' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'clientes', action: 'read:detail' });
+if (deny) return deny;
+ params }: { params: { id: string } }
 ) {
   try {
     const clienteId = params.id;

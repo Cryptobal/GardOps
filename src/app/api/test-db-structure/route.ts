@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest } from 'next/server';
 import { getClient } from '@/lib/database';
 import { unstable_noStore as noStore } from 'next/cache';
@@ -5,6 +6,10 @@ import { unstable_noStore as noStore } from 'next/cache';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'test_db_structure', action: 'read:list' });
+if (deny) return deny;
+
   noStore();
   const client = await getClient();
   

@@ -1,6 +1,11 @@
+import { requireAuthz } from '@/lib/authz-api'
 export const runtime = 'edge';
 
 export async function GET(req: Request) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'debug', action: 'read:list' });
+if (deny) return deny;
+
   // Lee headers igual que los usa la app
   const fromFetch = req.headers.get('x-user-email') || null;
   // Nota: next/headers no existe en edge, así evitamos cuelgues

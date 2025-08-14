@@ -1,7 +1,12 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextResponse } from "next/server";
 import { query } from "@/lib/database";
 
 export async function GET() {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'instalaciones_con_ppc_activos', action: 'read:list' });
+if (deny) return deny;
+
   try {
     // Obtener instalaciones que tienen puestos operativos (PPC) sin asignar
     const instalaciones = await query(`

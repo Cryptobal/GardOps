@@ -9,11 +9,11 @@ async function fetchJson(url: string, init: any = {}) {
 }
 
 async function main() {
-	const root = process.cwd();
-	const baseUrl = process.env.AUDIT_BASE_URL || 'http://localhost:3000';
-	const users = JSON.parse(fs.readFileSync(path.join(root, 'config', 'users.json'),'utf8')) as Array<{tenant:string;role:string;email:string}>;
-	const oracle = JSON.parse(fs.readFileSync(path.join(root, 'config', 'rbac_oracle.json'),'utf8')) as Record<string, Record<string, string[]>>;
-	const outDir = path.join(root, 'outputs');
+    const repoRoot = path.resolve(process.cwd());
+    const baseUrl = process.env.AUDIT_BASE_URL || 'http://localhost:3000';
+    const users = JSON.parse(fs.readFileSync(path.join(repoRoot, 'auditoria_rbac', 'config', 'users.json'),'utf8')) as Array<{tenant:string;role:string;email:string}>;
+    const oracle = JSON.parse(fs.readFileSync(path.join(repoRoot, 'auditoria_rbac', 'config', 'rbac_oracle.json'),'utf8')) as Record<string, Record<string, string[]>>;
+    const outDir = path.join(repoRoot, 'auditoria_rbac', 'outputs');
 	fs.mkdirSync(outDir, { recursive: true });
 
 	const perms: string[] = Array.from(new Set(

@@ -1,8 +1,17 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { calcularSueldo } from '@/lib/sueldo/calcularSueldo';
 import { SueldoInput, SueldoError } from '@/lib/sueldo/tipos/sueldo';
 
 export async function POST(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'read:list' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'create' });
+if (deny) return deny;
+
   try {
     const body = await request.json();
     
@@ -67,6 +76,14 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'read:list' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'create' });
+if (deny) return deny;
+
   return NextResponse.json({
     message: 'Endpoint de cálculo de sueldos',
     version: '1.0.0',

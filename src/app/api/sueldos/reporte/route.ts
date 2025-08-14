@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { calcularSueldo } from '@/lib/sueldo/calcularSueldo';
 import { guardarHistorialCalculo } from '@/lib/sueldo/db/guardarHistorial';
@@ -231,6 +232,14 @@ function generarReporteDetallado(resultado: any) {
 }
 
 export async function POST(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'read:list' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'create' });
+if (deny) return deny;
+
   try {
     const body = await request.json();
     
@@ -283,6 +292,14 @@ export async function POST(request: NextRequest) {
  * Obtiene reportes históricos
  */
 export async function GET(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'read:list' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'create' });
+if (deny) return deny;
+
   try {
     const { searchParams } = new URL(request.url);
     const mes = searchParams.get('mes');

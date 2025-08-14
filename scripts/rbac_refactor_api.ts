@@ -1,6 +1,5 @@
 #!/usr/bin/env ts-node
 import 'dotenv/config'
-import { Project, SyntaxKind } from 'ts-morph'
 import path from 'path'
 import fs from 'fs'
 
@@ -34,9 +33,7 @@ function ensureImport(source: string): string {
 }
 
 function insertGuard(source: string, resource: string, action: string): string {
-  // Insert before first return/handler body start inside exported method
-  // Simple heuristic: add after function signature line
-  const guard = `\nconst deny = await requireAuthz(req as any, { resource: '${resource}', action: '${action}' });\nif (deny) return deny;\n`
+  const guard = `\nconst __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));\nconst deny = await requireAuthz(__req as any, { resource: '${resource}', action: '${action}' });\nif (deny) return deny;\n`
   return source.replace(/(export\s+(?:async\s+function|const)\s+(GET|POST|PUT|DELETE|PATCH)\b[\s\S]*?\{)/g, (m) => m + guard)
 }
 
@@ -54,10 +51,10 @@ function processFile(filePath: string, opts: Options, manual: string[]): { chang
     const inf = infer(apiRoutePart, method)
     if (!inf) { manual.push(`${rel} :: cannot infer`); continue }
     const { resource, action } = inf
-    if (new RegExp(`requireAuthz\([^,]+,\s*\{\\s*resource:\\s*['\"]${resource}['\"],\\s*action:\\s*['\"]${action}['\"]`).test(updated)) {
-      continue
+    const marker = `{ resource: '${resource}', action: '${action}' }`
+    if (!updated.includes(marker)) {
+      updated = insertGuard(updated, resource, action)
     }
-    updated = insertGuard(updated, resource, action)
     changed = true
   }
 

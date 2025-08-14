@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuthAndRole, getAuthenticatedUser, AuthenticatedRequest } from '../../../middleware/auth';
 import { query } from '@/lib/database';
@@ -6,6 +7,10 @@ import { query } from '@/lib/database';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'instalaciones_con_coordenadas', action: 'read:list' });
+if (deny) return deny;
+
   console.log('🔍 API Instalaciones - Iniciando request');
   
   // Aplicar middleware de autenticación y autorización (supervisor o admin)

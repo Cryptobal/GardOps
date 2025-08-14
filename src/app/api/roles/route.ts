@@ -1,7 +1,12 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 export async function GET(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'roles', action: 'read:list' });
+if (deny) return deny;
+
   try {
     // End-point legacy: limitar por tenant del usuario si hay cabecera x-user-email
     const email = request.headers.get('x-user-email');

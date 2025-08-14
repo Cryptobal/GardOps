@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import { logCRUD } from '@/lib/logging';
@@ -5,7 +6,15 @@ import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'update' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'read:detail' });
+if (deny) return deny;
+ params }: { params: { id: string } }
 ) {
   try {
     const guardiaId = params.id;
@@ -41,7 +50,15 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'update' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'read:detail' });
+if (deny) return deny;
+ params }: { params: { id: string } }
 ) {
   try {
     // Permisos: admin o guardias.edit / rbac.platform_admin

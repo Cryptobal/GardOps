@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
@@ -15,6 +16,14 @@ function generateCodigo(nombre: string): string {
 
 // GET - Obtener todos los ítems globales
 export async function GET(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'create' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'read:list' });
+if (deny) return deny;
+
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
@@ -88,6 +97,14 @@ export async function GET(request: NextRequest) {
 
 // POST - Crear nuevo ítem global
 export async function POST(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'create' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'read:list' });
+if (deny) return deny;
+
   try {
     const body = await request.json();
     const { 

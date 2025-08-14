@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../lib/database';
 
@@ -6,6 +7,14 @@ export const dynamic = 'force-dynamic';
 
 // GET /api/documentos-guardias?guardia_id=uuid - Obtener documentos de un guardia
 export async function GET(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'documentos_guardias', action: 'update' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'documentos_guardias', action: 'read:list' });
+if (deny) return deny;
+
   try {
     const { searchParams } = new URL(request.url);
     const guardiaId = searchParams.get('guardia_id');
@@ -54,6 +63,14 @@ export async function GET(request: NextRequest) {
 
 // PUT /api/documentos-guardias?id=uuid - Actualizar fecha de vencimiento
 export async function PUT(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'documentos_guardias', action: 'update' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'documentos_guardias', action: 'read:list' });
+if (deny) return deny;
+
   try {
     const { searchParams } = new URL(request.url);
     const documentoId = searchParams.get('id');

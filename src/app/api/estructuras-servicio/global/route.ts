@@ -1,7 +1,16 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 export async function GET() {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'estructuras_servicio', action: 'update' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'estructuras_servicio', action: 'read:list' });
+if (deny) return deny;
+
   try {
     const result = await query(`
       WITH base AS (
@@ -97,6 +106,14 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'estructuras_servicio', action: 'update' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'estructuras_servicio', action: 'read:list' });
+if (deny) return deny;
+
   try {
     const body = await request.json();
     const { instalacion_id, rol_servicio_id, activo, usuario_id } = body;

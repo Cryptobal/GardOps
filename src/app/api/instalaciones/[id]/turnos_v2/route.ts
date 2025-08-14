@@ -1,9 +1,18 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'create' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'read:detail' });
+if (deny) return deny;
+ params }: { params: { id: string } }
 ) {
   console.log("🔁 Endpoint activo: /api/instalaciones/[id]/turnos_v2");
   
@@ -78,7 +87,15 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'create' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'read:detail' });
+if (deny) return deny;
+ params }: { params: { id: string } }
 ) {
   console.log("🔁 Endpoint activo: /api/instalaciones/[id]/turnos_v2 POST");
   

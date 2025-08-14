@@ -1,8 +1,17 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 // GET - Listar todos los tipos de puesto
 export async function GET(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'tipos_puesto', action: 'create' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'tipos_puesto', action: 'read:list' });
+if (deny) return deny;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const incluirInactivos = searchParams.get('incluir_inactivos') === 'true';
@@ -37,6 +46,14 @@ export async function GET(request: NextRequest) {
 
 // POST - Crear nuevo tipo de puesto
 export async function POST(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'tipos_puesto', action: 'create' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'tipos_puesto', action: 'read:list' });
+if (deny) return deny;
+
   try {
     const body = await request.json();
     const { nombre, descripcion, emoji, color, orden } = body;

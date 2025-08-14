@@ -17,11 +17,12 @@ interface EndpointInfo {
 	middleware?: string[];
 }
 
-const users = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'config', 'users.json'),'utf8'));
-const oracle = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'config', 'rbac_oracle.json'),'utf8'));
+const repoRoot = path.resolve(process.cwd(), 'auditoria_rbac', '..');
+const users = JSON.parse(fs.readFileSync(path.join(repoRoot, 'auditoria_rbac', 'config', 'users.json'),'utf8'));
+const oracle = JSON.parse(fs.readFileSync(path.join(repoRoot, 'auditoria_rbac', 'config', 'rbac_oracle.json'),'utf8'));
 const endpoints: EndpointInfo[] = JSON.parse(fs.readFileSync(process.env.AUDIT_CASES_JSON!, 'utf8'));
 
-const outDir = path.join(process.cwd(), 'outputs');
+const outDir = path.join(repoRoot, 'auditoria_rbac', 'outputs');
 fs.mkdirSync(outDir, { recursive: true });
 const csvRows: string[] = ['tenant,role,module,action,method,route,expected,ok,status']
 const failures: string[] = [];

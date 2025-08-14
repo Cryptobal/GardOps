@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../lib/database';
 import { cookies } from 'next/headers';
@@ -7,6 +8,18 @@ export const dynamic = 'force-dynamic';
 
 // GET: Obtener alertas de documentos por vencer
 export async function GET(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'alertas_documentos', action: 'update' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'alertas_documentos', action: 'create' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'alertas_documentos', action: 'read:list' });
+if (deny) return deny;
+
   try {
     const cookieStore = cookies();
     const tenantCookie = cookieStore.get('tenant');
@@ -194,6 +207,18 @@ export async function GET(request: NextRequest) {
 
 // POST: Generar alertas escaneando documentos con vencimiento
 export async function POST(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'alertas_documentos', action: 'update' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'alertas_documentos', action: 'create' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'alertas_documentos', action: 'read:list' });
+if (deny) return deny;
+
   try {
     const cookieStore = cookies();
     const tenantCookie = cookieStore.get('tenant');
@@ -220,6 +245,18 @@ export async function POST(request: NextRequest) {
 
 // PUT: Marcar alerta como leída
 export async function PUT(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'alertas_documentos', action: 'update' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'alertas_documentos', action: 'create' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'alertas_documentos', action: 'read:list' });
+if (deny) return deny;
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

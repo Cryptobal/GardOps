@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
@@ -10,6 +11,10 @@ interface CreateBody {
 }
 
 export async function POST(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'create' });
+if (deny) return deny;
+
   try {
     const body = (await request.json()) as CreateBody;
     const { instalacion_id, rol_servicio_id, vigencia_desde, sueldo_base, items } = body || {} as CreateBody;

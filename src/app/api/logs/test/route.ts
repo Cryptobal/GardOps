@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import { v4 as uuid } from 'uuid';
@@ -15,6 +16,10 @@ const tablas = [
 ];
 
 export async function GET() {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'logs', action: 'read:list' });
+if (deny) return deny;
+
   const logsInsertados: string[] = [];
   const errores: string[] = [];
 

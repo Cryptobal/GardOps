@@ -3,6 +3,26 @@ import { verifyToken } from '@/lib/auth';
 
 type EffPerm = { resource: string; action: string };
 
+const RESOURCES: string[] = [
+  'clientes','instalaciones','guardias','puestos','pauta_mensual','pauta_diaria','payroll','configuracion'
+];
+
+function mapActionToSuffix(action: string): string | null {
+  if (action === 'read:list' || action === 'read:detail') return 'view';
+  if (action === 'create' || action === 'update') return 'edit';
+  if (action === 'delete') return 'delete';
+  if (action === 'export') return 'export';
+  if (action === 'manage:roles') return 'manage';
+  return null;
+}
+
+function toPermCode(resource: string, action: string): string | null {
+  if (resource === 'configuracion' && action === 'manage:roles') return 'config.manage';
+  const suffix = mapActionToSuffix(action);
+  if (!suffix) return null;
+  return `${resource}.${suffix}`;
+}
+
 async function getSessionAndTenant(req: Request): Promise<{ userId: string; tenantId: string }> {
   const cookieHeader = req.headers.get('cookie') || '';
   let token: string | null = null;
@@ -20,22 +40,17 @@ async function getSessionAndTenant(req: Request): Promise<{ userId: string; tena
   return { userId: decoded.user_id, tenantId: decoded.tenant_id };
 }
 
-async function getEffectivePermissions(userId: string, tenantId: string): Promise<EffPerm[]> {
+async function hasPerm(userId: string, perm: string): Promise<boolean> {
   try {
-    const { rows } = await vercelSql<{ resource: string; action: string }>`
-      with user_ctx as (
-        select ${userId}::uuid as user_id, ${tenantId}::uuid as tenant_id
-      )
-      select distinct p.resource, p.action
-      from rbac_usuarios_roles ur
-      join rbac_roles r on r.id = ur.role_id and r.tenant_id = ${tenantId}::uuid
-      join rbac_roles_permisos rp on rp.role_id = r.id
-      join rbac_permissions p on p.id = rp.permission_id
-      join user_ctx u on u.user_id = ur.usuario_id
+    const { rows } = await vercelSql<{ ok: boolean }>`
+      select (
+        public.fn_usuario_tiene_permiso(${userId}::uuid, ${perm})
+        or public.fn_usuario_tiene_permiso(${userId}::uuid, ${'rbac.platform_admin'})
+      ) as ok
     `;
-    return rows ?? [];
+    return rows?.[0]?.ok === true;
   } catch {
-    return [];
+    return false;
   }
 }
 
@@ -43,8 +58,9 @@ export async function requireAuthz(req: Request, { resource, action }: { resourc
   try {
     const { userId, tenantId } = await getSessionAndTenant(req);
     (req as any).ctx = { userId, tenantId };
-    const eff = await getEffectivePermissions(userId, tenantId);
-    const ok = eff.some(p => p.resource === resource && (p.action === action || p.action === 'admin:*'));
+    const code = toPermCode(resource, action);
+    if (!code) return new Response('Forbidden', { status: 403 });
+    const ok = await hasPerm(userId, code);
     if (!ok) return new Response('Forbidden', { status: 403 });
     return null;
   } catch (e) {
@@ -54,12 +70,23 @@ export async function requireAuthz(req: Request, { resource, action }: { resourc
 
 export async function loadEffectivePermissions(req: Request): Promise<Record<string, string[]>> {
   try {
-    const { userId, tenantId } = await getSessionAndTenant(req);
-    const eff = await getEffectivePermissions(userId, tenantId);
-    return eff.reduce<Record<string, string[]>>((acc, p) => {
-      (acc[p.resource] ||= []).push(p.action);
-      return acc;
-    }, {});
+    const { userId } = await getSessionAndTenant(req);
+    const result: Record<string, string[]> = {};
+    for (const resource of RESOURCES) {
+      const actions = ['read:list','read:detail','create','update','delete','export','manage:roles','admin:*'];
+      for (const action of actions) {
+        const code = toPermCode(resource, action);
+        if (!code) continue;
+        const ok = await hasPerm(userId, code);
+        if (ok) {
+          (result[resource] ||= []).push(action);
+        }
+      }
+      // Si el usuario es platform admin, añadir wildcard por cada recurso
+      const isAdmin = await hasPerm(userId, 'rbac.platform_admin');
+      if (isAdmin) (result[resource] ||= []).push('admin:*');
+    }
+    return result;
   } catch {
     return {};
   }

@@ -1,10 +1,19 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 // PUT - Actualizar ítem global
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'delete' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'update' });
+if (deny) return deny;
+ params }: { params: { id: string } }
 ) {
   try {
     const { id } = params;
@@ -122,7 +131,15 @@ export async function PUT(
 // DELETE - Soft delete ítem global (marcar como inactivo)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'delete' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'update' });
+if (deny) return deny;
+ params }: { params: { id: string } }
 ) {
   try {
     const { id } = params;

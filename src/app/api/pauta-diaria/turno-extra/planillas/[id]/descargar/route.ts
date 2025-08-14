@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import { getCurrentUserServer } from '@/lib/auth';
@@ -6,7 +7,11 @@ import * as XLSX from 'xlsx';
 // GET - Descargar planilla individual en formato XLSX
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'pauta_diaria', action: 'read:detail' });
+if (deny) return deny;
+ params }: { params: { id: string } }
 ) {
   try {
     console.log('🔍 Iniciando GET /api/pauta-diaria/turno-extra/planillas/[id]/descargar');

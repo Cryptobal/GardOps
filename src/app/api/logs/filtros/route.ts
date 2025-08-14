@@ -1,7 +1,12 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 export async function GET(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'logs', action: 'read:list' });
+if (deny) return deny;
+
   try {
     // Por ahora usar un tenant_id fijo para testing
     const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';

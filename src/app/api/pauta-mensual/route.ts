@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import { getCurrentUserServer } from '@/lib/auth';
@@ -7,6 +8,10 @@ import { logCRUD, logError } from '@/lib/logging';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'pauta_mensual', action: 'read:list' });
+if (deny) return deny;
+
   const startTime = Date.now();
   const timestamp = new Date().toISOString();
   

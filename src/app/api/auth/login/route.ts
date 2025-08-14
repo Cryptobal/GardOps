@@ -1,8 +1,13 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateUser } from '../../../../lib/api/usuarios'
 import { validateEmail } from '../../../../lib/schemas/usuarios'
 
 export async function POST(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'auth', action: 'create' });
+if (deny) return deny;
+
   try {
     const { email, password } = await request.json()
 

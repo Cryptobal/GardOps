@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import { extractVars } from '@/lib/vars';
@@ -7,6 +8,14 @@ export const dynamic = 'force-dynamic';
 
 // GET /api/doc/templates - Obtener todas las plantillas
 export async function GET() {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'doc', action: 'create' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'doc', action: 'read:list' });
+if (deny) return deny;
+
   try {
     // Verificar si la tabla existe, si no, crearla
     await ensureDocTemplatesTable();
@@ -32,6 +41,14 @@ export async function GET() {
 
 // POST /api/doc/templates - Crear nueva plantilla
 export async function POST(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'doc', action: 'create' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'doc', action: 'read:list' });
+if (deny) return deny;
+
   try {
     const body = await request.json();
     const { name, content_html } = body;

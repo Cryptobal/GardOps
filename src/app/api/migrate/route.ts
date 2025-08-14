@@ -1,8 +1,17 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { runDatabaseMigrations } from '../../../lib/database-migrations';
 import { initializeDefaultUsers } from '../../../lib/api/usuarios';
 
 export async function POST(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'migrate', action: 'read:list' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'migrate', action: 'create' });
+if (deny) return deny;
+
   try {
     console.log('📡 API: Iniciando migración de base de datos...');
     
@@ -41,6 +50,14 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'migrate', action: 'read:list' });
+if (deny) return deny;
+
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'migrate', action: 'create' });
+if (deny) return deny;
+
   return NextResponse.json({
     message: 'Endpoint de migración de base de datos',
     usage: 'Envía una petición POST para ejecutar las migraciones'

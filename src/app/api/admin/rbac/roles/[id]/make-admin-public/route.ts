@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 
@@ -5,7 +6,11 @@ import { sql } from '@vercel/postgres';
 // IMPORTANTE: será eliminado luego de ejecutar la operación solicitada
 export async function POST(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'create' });
+if (deny) return deny;
+ params }: { params: { id: string } }
 ) {
   try {
     const roleId = params.id;

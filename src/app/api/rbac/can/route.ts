@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
 
@@ -6,6 +7,10 @@ import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
  * GET /api/rbac/can?permiso=xxx
  */
 export async function GET(request: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'rbac', action: 'read:list' });
+if (deny) return deny;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const perm = searchParams.get('perm') || searchParams.get('permiso');

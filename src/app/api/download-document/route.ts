@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/database";
 
@@ -5,6 +6,10 @@ import pool from "@/lib/database";
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
+const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
+const deny = await requireAuthz(__req as any, { resource: 'download_document', action: 'read:list' });
+if (deny) return deny;
+
   try {
     const { searchParams } = new URL(req.url);
     const documentId = searchParams.get("id");
