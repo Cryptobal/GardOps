@@ -17,7 +17,8 @@ export async function fetchCan(perm: string): Promise<boolean> {
     }
     return false;
   }
-  // Bypass cliente: si el JWT indica rol admin, permitir sin pegarle a la API (acelera la barra)
+  // Bypass cliente restringido: solo para Platform Admin real.
+  // Si es admin de tenant (tiene tenant_id), NO hacemos bypass para evitar confusiones de UI.
   try {
     if (typeof window !== 'undefined') {
       const m = (document.cookie || '').match(/(?:^|;\s*)auth_token=([^;]+)/);
@@ -25,8 +26,19 @@ export async function fetchCan(perm: string): Promise<boolean> {
       if (token) {
         const payloadJson = atob(token.split('.')[1] || '');
         const payload = JSON.parse(payloadJson || '{}');
-        if (payload?.rol === 'admin') {
+        const isPlatformAdmin = payload?.rol === 'admin' && (!payload?.tenant_id || payload?.is_platform_admin === true);
+        const isTenantAdmin = payload?.rol === 'admin' && payload?.tenant_id && !payload?.is_platform_admin;
+        // Para rbac.platform_admin: si el JWT ya confirma platform admin → true; si no, NO atajar en falso, seguir a verificación de servidor
+        if (normalized === 'rbac.platform_admin' && isPlatformAdmin) {
           return true;
+        }
+        // El Platform Admin puede pasar cualquier verificación sin llamar a la API
+        if (isPlatformAdmin && normalized) {
+          return true;
+        }
+        // Para admins de tenant NO hacemos bypass: seguir flujo normal
+        if (isTenantAdmin) {
+          // No devolvemos aún; continuamos a la verificación de servidor
         }
       }
     }

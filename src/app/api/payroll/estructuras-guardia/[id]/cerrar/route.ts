@@ -5,9 +5,7 @@ import { sql } from '@vercel/postgres';
 export async function PATCH(
   request: NextRequest,
   {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'update' });
-if (deny) return deny;
+
  params }: { params: { id: string } }
 ) {
   try {

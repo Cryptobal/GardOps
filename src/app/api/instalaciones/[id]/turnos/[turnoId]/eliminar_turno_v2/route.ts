@@ -5,9 +5,7 @@ import { query } from '@/lib/database';
 export async function DELETE(
   request: NextRequest,
   {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'delete' });
-if (deny) return deny;
+
  params }: { params: { id: string; turnoId: string } }
 ) {
   console.log("🔁 Endpoint activo: /api/instalaciones/[id]/turnos/[turnoId]/eliminar_turno_v2");

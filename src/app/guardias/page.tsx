@@ -1,5 +1,6 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
-"use client";
+'use client';
+
+import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
 
 import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
@@ -157,11 +158,16 @@ export default function GuardiasPage() {
         
         const data = await response.json();
         console.log("🔍 GuardiasPage: Datos recibidos:", data);
-        console.log("🔍 GuardiasPage: Items array:", data.items);
-        console.log("🔍 GuardiasPage: Cantidad de guardias:", data.items?.length || 0);
+        console.log("🔍 GuardiasPage: Items array:", (data as any)?.items);
+        console.log(
+          "🔍 GuardiasPage: Cantidad de guardias:",
+          ((data as any)?.items?.length ?? (data as any)?.data?.length ?? (data as any)?.guardias?.length ?? (Array.isArray(data) ? data.length : 0)) || 0
+        );
         
-        // Usar data.items en lugar de data.guardias
-        const guardiasData = data.items || [];
+        // Aceptar múltiples formatos: {items:[]}, {data:[]}, {guardias:[]}, []
+        const guardiasData: any[] = Array.isArray(data)
+          ? data
+          : ((data as any)?.items ?? (data as any)?.data ?? (data as any)?.guardias ?? []);
         setGuardias(guardiasData);
         
         // Calcular KPIs

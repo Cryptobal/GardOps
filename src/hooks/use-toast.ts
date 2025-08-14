@@ -41,6 +41,18 @@ export function useToast() {
     addToast({ title, description, type: 'info' });
   }, [addToast]);
 
+  // Compatibilidad con API tipo shadcn/ui
+  // Permite usar: toast({ title, description, variant: 'destructive' | 'success' | 'warning' | 'info' })
+  const toast = useCallback((opts: { title: string; description?: string; variant?: 'default' | 'destructive' | 'success' | 'warning' | 'info' }) => {
+    const { title, description, variant } = opts || ({} as any);
+    const mapped: 'success' | 'error' | 'warning' | 'info' =
+      variant === 'destructive' ? 'error'
+      : variant === 'success' ? 'success'
+      : variant === 'warning' ? 'warning'
+      : 'info';
+    addToast({ title, description, type: mapped });
+  }, [addToast]);
+
   return {
     toasts,
     addToast,
@@ -49,5 +61,6 @@ export function useToast() {
     error,
     warning,
     info,
+    toast,
   };
 } 

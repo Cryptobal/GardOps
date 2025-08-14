@@ -5,9 +5,7 @@ import { query } from '@/lib/database';
 export async function POST(
   request: NextRequest,
   {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'create' });
-if (deny) return deny;
+
  params }: { params: { id: string } }
 ) {
   try {

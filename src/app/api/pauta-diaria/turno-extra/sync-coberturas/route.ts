@@ -4,15 +4,10 @@ import { query } from '@/lib/database';
 
 // Endpoint para sincronizar coberturas existentes con TE_turnos_extras
 export async function POST(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'pauta_diaria', action: 'read:list' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'pauta_diaria', action: 'read:list' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'pauta_diaria', action: 'create' });
-if (deny) return deny;
-
-  try {
+try {
     console.log('🔄 Iniciando sincronización de coberturas con turnos extras');
     
     // Buscar todas las coberturas en pauta mensual que no tienen turno extra registrado
@@ -144,15 +139,10 @@ if (deny) return deny;
 
 // GET para verificar el estado actual
 export async function GET(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'pauta_diaria', action: 'read:list' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'pauta_diaria', action: 'read:list' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'pauta_diaria', action: 'create' });
-if (deny) return deny;
-
-  try {
+try {
     // Contar coberturas sin turno extra
     const pendientesQuery = `
       SELECT COUNT(*) as count

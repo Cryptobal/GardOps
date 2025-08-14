@@ -7,15 +7,10 @@ export const dynamic = 'force-dynamic';
 
 // GET /api/documentos - Obtener documentos (específicos o globales)
 export async function GET(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'documentos', action: 'delete' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'documentos', action: 'delete' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'documentos', action: 'read:list' });
-if (deny) return deny;
-
-  let sql = '';
+let sql = '';
   let params: any[] = [];
   
   try {
@@ -104,15 +99,10 @@ if (deny) return deny;
 
 // DELETE /api/documentos?id=uuid - Eliminar documento
 export async function DELETE(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'documentos', action: 'delete' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'documentos', action: 'delete' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'documentos', action: 'read:list' });
-if (deny) return deny;
-
-  try {
+try {
     const { searchParams } = new URL(request.url);
     const documentoId = searchParams.get('id');
     const modulo = searchParams.get('modulo');

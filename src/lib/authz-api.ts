@@ -58,13 +58,37 @@ export async function requireAuthz(req: Request, { resource, action }: { resourc
   try {
     const { userId, tenantId } = await getSessionAndTenant(req);
     (req as any).ctx = { userId, tenantId };
+    // Si el token indica rol admin (admin de tenant), permitir todas las acciones dentro del tenant
+    try {
+      const cookieHeader = req.headers.get('cookie') || '';
+      let token: string | null = null;
+      for (const part of cookieHeader.split(';')) {
+        const [k, v] = part.trim().split('=');
+        if (k === 'auth_token') token = v || null;
+      }
+      if (token) {
+        const decoded = verifyToken(token);
+        if (decoded?.rol === 'admin') {
+          return null;
+        }
+      }
+    } catch {}
     const code = toPermCode(resource, action);
-    if (!code) return new Response('Forbidden', { status: 403 });
+    if (!code) return new Response(JSON.stringify({ ok: false, error: 'forbidden', code: 'FORBIDDEN' }), { 
+      status: 403, 
+      headers: { 'Content-Type': 'application/json' } 
+    });
     const ok = await hasPerm(userId, code);
-    if (!ok) return new Response('Forbidden', { status: 403 });
+    if (!ok) return new Response(JSON.stringify({ ok: false, error: 'forbidden', code: 'FORBIDDEN' }), { 
+      status: 403, 
+      headers: { 'Content-Type': 'application/json' } 
+    });
     return null;
   } catch (e) {
-    return new Response('Unauthorized', { status: 401 });
+    return new Response(JSON.stringify({ ok: false, error: 'unauthenticated', code: 'UNAUTHENTICATED' }), { 
+      status: 401, 
+      headers: { 'Content-Type': 'application/json' } 
+    });
   }
 }
 

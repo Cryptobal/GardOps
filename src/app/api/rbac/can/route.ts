@@ -28,12 +28,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Usuario no encontrado' }, { status: 403 });
     }
 
-    // Fallback maestro: si el usuario tiene rol 'admin' en JWT, permitir todo
+    // Fallback controlado: solo tratar como Platform Admin si el JWT es admin SIN tenant
     try {
       const { getCurrentUserServer } = await import('@/lib/auth');
       const u = getCurrentUserServer(request as any);
-      if (u?.rol === 'admin') {
-        return NextResponse.json({ ok: true, email, userId, perm, allowed: true, override: 'jwt_admin' });
+      const isJwtPlatformAdmin = u?.rol === 'admin' && (!u?.tenant_id || u?.tenant_id === null);
+      if (isJwtPlatformAdmin) {
+        return NextResponse.json({ ok: true, email, userId, perm, allowed: true, override: 'jwt_platform_admin' });
       }
     } catch {}
 

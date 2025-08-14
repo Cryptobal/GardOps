@@ -4,16 +4,10 @@ import { sql } from '@vercel/postgres';
 
 export async function PUT(
   request: NextRequest,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'delete' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'update' });
-if (deny) return deny;
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'payroll', action: 'delete' });
+  if (deny) return deny;
   try {
     const { id } = params;
     const body = await request.json();
@@ -113,16 +107,10 @@ if (deny) return deny;
 
 export async function DELETE(
   request: NextRequest,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'delete' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'update' });
-if (deny) return deny;
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'payroll', action: 'delete' });
+  if (deny) return deny;
   try {
     const { id } = params;
 

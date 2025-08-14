@@ -232,15 +232,10 @@ function generarReporteDetallado(resultado: any) {
 }
 
 export async function POST(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'read:list' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'sueldos', action: 'read:list' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'create' });
-if (deny) return deny;
-
-  try {
+try {
     const body = await request.json();
     
     // Convertir fecha string a Date
@@ -292,15 +287,10 @@ if (deny) return deny;
  * Obtiene reportes históricos
  */
 export async function GET(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'read:list' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'sueldos', action: 'read:list' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'create' });
-if (deny) return deny;
-
-  try {
+try {
     const { searchParams } = new URL(request.url);
     const mes = searchParams.get('mes');
     const anio = searchParams.get('anio');

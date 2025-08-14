@@ -16,15 +16,10 @@ function getEmail(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'create' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'admin', action: 'create' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'read:list' });
-if (deny) return deny;
-
-  try {
+try {
     // 1) auth + permiso (bypass si JWT admin)
     const email = await getUserEmail(req);
     if (!email) return NextResponse.json({ ok:false, error: 'No autenticado', code:'UNAUTHENTICATED' }, { status:401 });
@@ -52,7 +47,10 @@ if (deny) return deny;
     const hasActivo = activoParam === "true" || activoParam === "false";
     const activoBool = activoParam === "true";
 
-    // 3) queries sin composición de fragmentos
+    // 3) scope por tenant del solicitante
+    const ctx = (req as any).ctx as { tenantId?: string } | undefined;
+    const tenantId = ctx?.tenantId ?? null;
+    // 4) queries sin composición de fragmentos
     let rows;
 
     if (q && hasActivo) {
@@ -61,6 +59,7 @@ if (deny) return deny;
         SELECT id, email, nombre, activo, tenant_id
         FROM public.usuarios
         WHERE (lower(email) LIKE ${like} OR lower(nombre) LIKE ${like})
+          ${tenantId ? sql`AND tenant_id = ${tenantId}` : sql``}
           AND activo = ${activoBool}
         ORDER BY fecha_creacion DESC NULLS LAST, email ASC
         LIMIT ${limit} OFFSET ${offset};
@@ -71,6 +70,7 @@ if (deny) return deny;
         SELECT id, email, nombre, activo, tenant_id
         FROM public.usuarios
         WHERE (lower(email) LIKE ${like} OR lower(nombre) LIKE ${like})
+          ${tenantId ? sql`AND tenant_id = ${tenantId}` : sql``}
         ORDER BY fecha_creacion DESC NULLS LAST, email ASC
         LIMIT ${limit} OFFSET ${offset};
       `;
@@ -79,16 +79,27 @@ if (deny) return deny;
         SELECT id, email, nombre, activo, tenant_id
         FROM public.usuarios
         WHERE activo = ${activoBool}
+          ${tenantId ? sql`AND tenant_id = ${tenantId}` : sql``}
         ORDER BY fecha_creacion DESC NULLS LAST, email ASC
         LIMIT ${limit} OFFSET ${offset};
       `;
     } else {
-      rows = await sql`
-        SELECT id, email, nombre, activo, tenant_id
-        FROM public.usuarios
-        ORDER BY fecha_creacion DESC NULLS LAST, email ASC
-        LIMIT ${limit} OFFSET ${offset};
-      `;
+      if (tenantId) {
+        rows = await sql`
+          SELECT id, email, nombre, activo, tenant_id
+          FROM public.usuarios
+          WHERE tenant_id = ${tenantId}
+          ORDER BY fecha_creacion DESC NULLS LAST, email ASC
+          LIMIT ${limit} OFFSET ${offset};
+        `;
+      } else {
+        rows = await sql`
+          SELECT id, email, nombre, activo, tenant_id
+          FROM public.usuarios
+          ORDER BY fecha_creacion DESC NULLS LAST, email ASC
+          LIMIT ${limit} OFFSET ${offset};
+        `;
+      }
     }
 
     console.log('[admin/rbac/usuarios][GET] SQL list', { page, limit, q, activoParam })
@@ -103,15 +114,10 @@ if (deny) return deny;
 }
 
 export async function POST(req: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'create' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'admin', action: 'create' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'read:list' });
-if (deny) return deny;
-
-  try {
+try {
     // 1) Body básico y validaciones
     const body = await req.json().catch(() => null) as
       | { email?: string; nombre?: string | null; tenantId?: string | null; password?: string; roleId?: string | null }

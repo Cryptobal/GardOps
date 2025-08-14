@@ -4,16 +4,10 @@ import { query } from '@/lib/database';
 
 export async function GET(
   request: NextRequest,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'create' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'read:detail' });
-if (deny) return deny;
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'instalaciones', action: 'create' });
+  if (deny) return deny;
   console.log("🔁 Endpoint activo: /api/instalaciones/[id]/turnos_v2");
   
   try {
@@ -87,16 +81,10 @@ if (deny) return deny;
 
 export async function POST(
   request: NextRequest,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'create' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'read:detail' });
-if (deny) return deny;
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'instalaciones', action: 'create' });
+  if (deny) return deny;
   console.log("🔁 Endpoint activo: /api/instalaciones/[id]/turnos_v2 POST");
   
   try {

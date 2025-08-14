@@ -6,9 +6,8 @@ import { query } from '@/lib/database';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'pauta_mensual', action: 'read:list' });
-if (deny) return deny;
+  const deny = await requireAuthz(request, { resource: 'pauta_mensual', action: 'read:list' });
+  if (deny) return deny;
 
   try {
     const { searchParams } = new URL(request.url);
@@ -26,6 +25,8 @@ if (deny) return deny;
 
     const fechaInicio = `${anio}-${mes.toString().padStart(2, '0')}-01`;
     const fechaFin = `${anio}-${mes.toString().padStart(2, '0')}-${new Date(parseInt(anio), parseInt(mes), 0).getDate()}`;
+    const ctx = (request as any).ctx as { tenantId?: string } | undefined;
+    const tenantId = ctx?.tenantId ?? null;
 
     // Obtener todas las instalaciones activas con información del cliente
     console.log('📋 Consultando instalaciones activas...');
@@ -38,7 +39,7 @@ if (deny) return deny;
         c.nombre as cliente_nombre
       FROM instalaciones i
       LEFT JOIN clientes c ON i.cliente_id = c.id
-      WHERE i.estado = 'Activo'
+      WHERE i.estado = 'Activo' ${tenantId ? `AND i.tenant_id::text = '${tenantId}'` : ''}
       ORDER BY i.nombre
     `);
 
@@ -61,6 +62,7 @@ if (deny) return deny;
         AND pm.mes = $2
         AND i.estado = 'Activo'
         AND po.activo = true
+        ${tenantId ? `AND i.tenant_id::text = '${tenantId}'` : ''}
       GROUP BY po.instalacion_id, i.nombre, i.direccion, c.nombre
       ORDER BY i.nombre
     `, [anio, mes]);
@@ -119,6 +121,7 @@ if (deny) return deny;
           LEFT JOIN guardias g ON po.guardia_id = g.id
           WHERE po.instalacion_id = $1 
             AND po.activo = true
+            ${tenantId ? `AND po.tenant_id::text = '${tenantId}'` : ''}
           ORDER BY po.nombre_puesto
         `, [instalacion.id]);
 

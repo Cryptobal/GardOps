@@ -892,7 +892,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                 <div className="text-xs text-muted-foreground">{row.hora_inicio.slice(0,5)} - {row.hora_fin.slice(0,5)}</div>
               )}
             </div>
-            <div>{renderEstado(row.estado_ui, row.es_falta_sin_aviso)}</div>
+            <div>{renderEstado(row.estado_ui, row.estado_ui === 'inasistencia' && row.es_falta_sin_aviso)}</div>
           </div>
 
           <div className="text-sm">
@@ -1202,7 +1202,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                             ) : '—'}
                           </TableCell>
                           <TableCell>
-                            <div>{renderEstado(r.estado_ui, r.es_falta_sin_aviso)}</div>
+                            <div>{renderEstado(r.estado_ui, r.estado_ui === 'inasistencia' && r.es_falta_sin_aviso)}</div>
                           </TableCell>
                           <TableCell>
                             {(() => {

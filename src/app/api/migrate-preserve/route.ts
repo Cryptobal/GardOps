@@ -3,15 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { runDatabaseMigrations } from '../../../lib/database-migrations';
 
 export async function POST(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'migrate_preserve', action: 'read:list' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'migrate_preserve', action: 'read:list' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'migrate_preserve', action: 'create' });
-if (deny) return deny;
-
-  try {
+try {
     console.log('📡 API: Iniciando migración preservando datos existentes...');
     
     const result = await runDatabaseMigrations(true); // preserveData = true
@@ -44,15 +39,10 @@ if (deny) return deny;
 }
 
 export async function GET() {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'migrate_preserve', action: 'read:list' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'migrate_preserve', action: 'read:list' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'migrate_preserve', action: 'create' });
-if (deny) return deny;
-
-  return NextResponse.json({
+return NextResponse.json({
     message: 'Endpoint de migración preservando datos existentes',
     usage: 'Envía una petición POST para ejecutar las migraciones preservando datos',
     description: 'Este endpoint migra la tabla guardias de integer a UUID preservando todos los datos existentes'

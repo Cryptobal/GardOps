@@ -1,4 +1,4 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
 import { redirect } from 'next/navigation'
 import { isFlagEnabled } from '@/lib/flags'
 import { unstable_noStore as noStore } from 'next/cache'
@@ -12,13 +12,14 @@ import { toYmd, toDisplay } from '@/lib/date'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-async function getRows(fecha: string, incluirLibres: boolean = false): Promise<PautaRow[]> {
+async function getRows(fecha: string, incluirLibres: boolean = false, tenantId?: string | null): Promise<PautaRow[]> {
   noStore();
   
   try {
     console.log(`🔍 Obteniendo datos de pauta diaria para fecha: ${fecha}, incluirLibres: ${incluirLibres}`);
     
-    const { rows } = await pool.query<PautaRow>(`
+    const params: any[] = [fecha];
+    let sql = `
       SELECT 
         pd.*,
         CASE 
@@ -28,9 +29,11 @@ async function getRows(fecha: string, incluirLibres: boolean = false): Promise<P
         END AS cobertura_guardia_nombre
       FROM as_turnos_v_pauta_diaria_dedup pd
       LEFT JOIN guardias g ON g.id::text = pd.meta->>'cobertura_guardia_id'
-      WHERE pd.fecha = $1
-      ORDER BY pd.es_ppc DESC, pd.instalacion_nombre NULLS LAST, pd.puesto_id, pd.pauta_id DESC
-    `, [fecha]);
+      JOIN instalaciones i ON i.id::text = pd.instalacion_id::text
+      WHERE pd.fecha = $1`;
+    if (tenantId) { sql += ` AND i.tenant_id::text = $2`; params.push(tenantId); }
+    sql += ` ORDER BY pd.es_ppc DESC, pd.instalacion_nombre NULLS LAST, pd.puesto_id, pd.pauta_id DESC`;
+    const { rows } = await pool.query<PautaRow>(sql, params);
     
     console.log(`✅ Datos obtenidos exitosamente: ${rows.length} registros`);
     
@@ -72,8 +75,9 @@ export default async function PautaDiariaV2Page({
   const cookieStore = cookies();
   const token = cookieStore.get('auth_token')?.value || '';
   const { sql } = await import('@vercel/postgres');
+  let decoded: any = null;
   try {
-    const decoded = token ? verifyToken(token as any) : null;
+    decoded = token ? verifyToken(token as any) : null;
     const userEmail = decoded?.email ?? null;
     if (!userEmail) return redirect('/login');
     // Admin absoluto (rol en JWT) tiene acceso total
@@ -93,7 +97,7 @@ export default async function PautaDiariaV2Page({
   try {
     const fecha = toYmd(searchParams?.fecha || new Date());
     const incluirLibres = searchParams?.incluir_libres === 'true';
-    const rows = await getRows(fecha, incluirLibres);
+    const rows = await getRows(fecha, incluirLibres, decoded?.tenant_id ?? null);
 
     // Si no hay datos, obtener fechas disponibles para sugerir
     let fechasDisponibles: string[] = [];

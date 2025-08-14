@@ -1,7 +1,7 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 "use client";
 
-import { useEffect, useState } from "react";
+import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { useEffect, useState, useCallback } from "react";
 import { rbacFetch } from "@/lib/rbacClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import BackToSecurity from "@/components/BackToSecurity";
 import { useCan } from "@/lib/permissions";
 import Link from "next/link";
+import { Edit, Building2 } from "lucide-react";
 
 interface Tenant {
   id: string;
@@ -24,9 +25,8 @@ interface TenantWithAdmin extends Tenant {
     id: string;
     email: string;
     nombre: string;
-    role_id: string;
-    role_nombre: string;
-  };
+    activo?: boolean;
+  } | null;
 }
 
 export default function TenantsPage() {
@@ -40,10 +40,31 @@ export default function TenantsPage() {
     admin_password: "" 
   });
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [effectivePermissions, setEffectivePermissions] = useState<Record<string, string[]>>({});
   const { addToast: toast, error: toastError, success: toastSuccess } = useToast();
   const { allowed: isPlatformAdmin } = useCan('rbac.platform_admin');
   const { allowed: canTenantsRead } = useCan('rbac.tenants.read');
   const loadingPerm = false; // useCan ya retorna allowed=true cuando perm es falsy y no flapea
+
+  // Cargar permisos del usuario
+  const cargarPermisos = useCallback(async () => {
+    try {
+      const response = await fetch('/api/me/effective-permissions');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.ok && data.effective) {
+          setEffectivePermissions(data.effective);
+        }
+      }
+    } catch (error) {
+      console.error('Error cargando permisos:', error);
+    }
+  }, []);
+
+  // Cargar permisos al montar el componente
+  useEffect(() => {
+    cargarPermisos();
+  }, [cargarPermisos]);
 
   async function loadTenants() {
     try {
@@ -198,8 +219,9 @@ export default function TenantsPage() {
                     <th className="px-4 py-2 text-left text-xs uppercase">Nombre</th>
                     <th className="px-4 py-2 text-left text-xs uppercase">RUT</th>
                     <th className="px-4 py-2 text-left text-xs uppercase">Admin</th>
-                    <th className="px-4 py-2 text-left text-xs uppercase">Activo</th>
+                    <th className="px-4 py-2 text-left text-xs uppercase">Estado Admin</th>
                     <th className="px-4 py-2 text-left text-xs uppercase">Creado</th>
+                    <th className="px-4 py-2 text-left text-xs uppercase">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -214,11 +236,21 @@ export default function TenantsPage() {
                             <div className="text-muted-foreground">{t.admin.nombre}</div>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground">-</span>
+                          <span className="text-muted-foreground">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-2">{t.activo ? 'Sí' : 'No'}</td>
+                      <td className="px-4 py-2">
+                        {t.admin ? (t.admin.activo ? 'Activo' : 'Inactivo') : '—'}
+                      </td>
                       <td className="px-4 py-2">{t.created_at ? new Date(t.created_at).toLocaleString() : '-'}</td>
+                      <td className="px-4 py-2">
+                        <Link href={`/configuracion/seguridad/tenants/${t.id}`}>
+                          <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                            <Edit className="h-4 w-4" />
+                            <span>Editar</span>
+                          </Button>
+                        </Link>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

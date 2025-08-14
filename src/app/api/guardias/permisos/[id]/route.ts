@@ -1,15 +1,13 @@
 import { requireAuthz } from '@/lib/authz-api'
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/database";
 
 export async function DELETE(
-  req: Request,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'delete' });
-if (deny) return deny;
- params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'guardias', action: 'delete' });
+  if (deny) return deny;
   try {
     const permisoId = params.id;
 

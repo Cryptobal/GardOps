@@ -4,20 +4,10 @@ import { sql } from '@vercel/postgres';
 
 export async function GET(
   request: NextRequest,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'estructuras_sueldo', action: 'delete' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'estructuras_sueldo', action: 'update' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'estructuras_sueldo', action: 'read:detail' });
-if (deny) return deny;
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'estructuras_sueldo', action: 'delete' });
+  if (deny) return deny;
   try {
     const { id } = params;
     const { searchParams } = new URL(request.url);
@@ -48,20 +38,10 @@ if (deny) return deny;
 
 export async function PUT(
   request: NextRequest,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'estructuras_sueldo', action: 'delete' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'estructuras_sueldo', action: 'update' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'estructuras_sueldo', action: 'read:detail' });
-if (deny) return deny;
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'estructuras_sueldo', action: 'delete' });
+  if (deny) return deny;
   try {
     const { id } = params;
     const body = await request.json();
@@ -136,20 +116,10 @@ if (deny) return deny;
 
 export async function DELETE(
   request: NextRequest,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'estructuras_sueldo', action: 'delete' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'estructuras_sueldo', action: 'update' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'estructuras_sueldo', action: 'read:detail' });
-if (deny) return deny;
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'estructuras_sueldo', action: 'delete' });
+  if (deny) return deny;
   try {
     const { id } = params;
     const { searchParams } = new URL(request.url);

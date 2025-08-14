@@ -1,6 +1,6 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 'use client';
 
+import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

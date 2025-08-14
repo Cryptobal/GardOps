@@ -4,15 +4,10 @@ import { sql } from '@vercel/postgres';
 import { calcularNomenclaturaRol, calcularHorasTurno } from '@/lib/utils/calcularNomenclaturaRol';
 
 export async function GET(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'roles_servicio', action: 'create' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'roles_servicio', action: 'read:list' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'roles_servicio', action: 'read:list' });
-if (deny) return deny;
-
-  try {
+try {
     const { searchParams } = new URL(request.url);
     const activo = searchParams.get('activo');
     let tenantId = searchParams.get('tenantId');
@@ -24,6 +19,11 @@ if (deny) return deny;
         const t = await sql`SELECT tenant_id::text AS tid FROM usuarios WHERE lower(email)=lower(${email}) LIMIT 1`;
         tenantId = t.rows?.[0]?.tid || null;
       }
+    }
+
+    // Si aún no hay tenantId, usar '1' como default para mostrar todos los roles
+    if (!tenantId) {
+      tenantId = '1';
     }
 
     console.log('🔍 GET roles-servicio - Parámetros:', { activo, tenantId });
@@ -49,13 +49,14 @@ if (deny) return deny;
     const params: any[] = [];
     let paramIndex = 1;
 
-    if (tenantId) {
-      query += ` AND tenant_id::text = $${paramIndex}`;
+    if (tenantId && tenantId !== '1') {
+      // Incluir roles del tenant y globales (tenant_id NULL)
+      query += ` AND (tenant_id::text = $${paramIndex} OR tenant_id IS NULL)`;
       params.push(tenantId);
       paramIndex++;
     } else {
-      // Sin tenant => no devolver nada
-      query += ` AND 1=0`;
+      // Para tenant '1' o sin tenant, mostrar roles globales y de '1'
+      query += ` AND (tenant_id IS NULL OR tenant_id::text = '1')`;
     }
 
     if (activo !== null) {
@@ -90,15 +91,10 @@ if (deny) return deny;
 }
 
 export async function POST(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'roles_servicio', action: 'create' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'roles_servicio', action: 'create' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'roles_servicio', action: 'read:list' });
-if (deny) return deny;
-
-  try {
+try {
     const body = await request.json();
     const { 
       dias_trabajo, 

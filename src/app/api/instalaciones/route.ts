@@ -11,23 +11,10 @@ let tableVerified = false;
 
 // GET /api/instalaciones - Obtener todas las instalaciones con estadísticas optimizadas
 export async function GET(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'delete' });
-if (deny) return deny;
+  const deny = await requireAuthz(request, { resource: 'instalaciones', action: 'delete' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'update' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'create' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'read:list' });
-if (deny) return deny;
-
-  try {
+try {
     // Gate backend: requiere permiso 'instalaciones.view'
     try {
       const h = request.headers;
@@ -59,6 +46,10 @@ if (deny) return deny;
     }
     
     // Si se solicita con coordenadas, devolver formato simplificado
+    const ctx = (request as any).ctx as { tenantId?: string } | undefined;
+    const tenantId = ctx?.tenantId ?? null;
+    const tenantWhere = tenantId ? ` AND i.tenant_id::text = '${tenantId}'` : '';
+
     if (withCoords) {
       const result = await query(`
         SELECT 
@@ -67,7 +58,7 @@ if (deny) return deny;
           i.latitud as lat,
           i.longitud as lng
         FROM instalaciones i
-        WHERE i.latitud IS NOT NULL AND i.longitud IS NOT NULL
+        WHERE i.latitud IS NOT NULL AND i.longitud IS NOT NULL${tenantWhere}
         ORDER BY i.nombre
       `);
       
@@ -100,6 +91,7 @@ if (deny) return deny;
           WHERE po.activo = true
           GROUP BY po.instalacion_id
         ) stats ON stats.instalacion_id = i.id
+        WHERE 1=1${tenantWhere}
         ORDER BY i.nombre
       `);
       
@@ -130,11 +122,13 @@ if (deny) return deny;
             COALESCE(c.nombre, 'Cliente no encontrado') as cliente_nombre
           FROM instalaciones i
           LEFT JOIN clientes c ON i.cliente_id = c.id
+          WHERE 1=1${tenantWhere}
           ORDER BY i.nombre
         `),
         query(`
           SELECT id, nombre, estado
-          FROM clientes 
+          FROM clientes
+          ${tenantId ? `WHERE tenant_id::text = '${tenantId}'` : ''}
           ORDER BY nombre
         `),
         query(`
@@ -242,6 +236,7 @@ if (deny) return deny;
     }
 
     querySQL += `
+      WHERE 1=1${tenantWhere}
       ORDER BY i.nombre`;
 
     const result = await query(querySQL);
@@ -271,23 +266,10 @@ if (deny) return deny;
 
 // POST /api/instalaciones - Crear nueva instalación
 export async function POST(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'delete' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'instalaciones', action: 'delete' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'update' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'create' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'read:list' });
-if (deny) return deny;
-
-  try {
+try {
     const body = await request.json();
     
     // Validar datos con Zod
@@ -321,23 +303,10 @@ if (deny) return deny;
 
 // PUT /api/instalaciones - Actualizar instalación
 export async function PUT(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'delete' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'instalaciones', action: 'delete' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'update' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'create' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'read:list' });
-if (deny) return deny;
-
-  try {
+try {
     const body = await request.json();
     
     // Validar datos con Zod
@@ -456,23 +425,10 @@ if (deny) return deny;
 
 // DELETE /api/instalaciones - Eliminar instalación
 export async function DELETE(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'delete' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'instalaciones', action: 'delete' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'update' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'create' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'read:list' });
-if (deny) return deny;
-
-  try {
+try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     

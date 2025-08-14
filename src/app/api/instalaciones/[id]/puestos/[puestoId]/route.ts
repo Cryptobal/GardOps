@@ -5,16 +5,10 @@ import { query } from '@/lib/database';
 // GET - Obtener información del puesto
 export async function GET(
   request: NextRequest,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'update' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'read:detail' });
-if (deny) return deny;
- params }: { params: { id: string; puestoId: string } }
+  { params }: { params: { id: string; puestoId: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'instalaciones', action: 'update' });
+  if (deny) return deny;
   try {
     const { puestoId } = params;
 
@@ -55,16 +49,10 @@ if (deny) return deny;
 // PATCH - Actualizar nombre y/o tipo del puesto
 export async function PATCH(
   request: NextRequest,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'update' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'read:detail' });
-if (deny) return deny;
- params }: { params: { id: string; puestoId: string } }
+  { params }: { params: { id: string; puestoId: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'instalaciones', action: 'update' });
+  if (deny) return deny;
   try {
     const { puestoId } = params;
     const body = await request.json();

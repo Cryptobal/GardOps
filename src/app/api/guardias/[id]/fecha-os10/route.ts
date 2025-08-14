@@ -8,9 +8,7 @@ import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
 export async function PUT(
   request: NextRequest,
   {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'update' });
-if (deny) return deny;
+
  params }: { params: { id: string } }
 ) {
   console.log('🔍 API Guardias - Actualizando fecha OS10:', params.id);

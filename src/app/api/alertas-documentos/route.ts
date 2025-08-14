@@ -8,29 +8,20 @@ export const dynamic = 'force-dynamic';
 
 // GET: Obtener alertas de documentos por vencer
 export async function GET(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'alertas_documentos', action: 'update' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'alertas_documentos', action: 'create' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'alertas_documentos', action: 'read:list' });
-if (deny) return deny;
+  const deny = await requireAuthz(request, { resource: 'alertas_documentos', action: 'read:list' });
+  if (deny) return deny;
 
   try {
     const cookieStore = cookies();
     const tenantCookie = cookieStore.get('tenant');
     
-    // TEMPORAL: Permitir funcionar sin autenticación durante debug de 1Password
-    if (!tenantCookie?.value) {
-      console.log('⚠️ Sin cookie tenant - usando modo debug');
-      // return NextResponse.json({ success: false, error: 'No hay sesión activa' }, { status: 401 });
-    } else {
-      const tenant = JSON.parse(tenantCookie.value);
-      console.log('🔔 Obteniendo alertas de documentos para tenant:', tenant.id);
+    const ctx = (request as any).ctx as { tenantId?: string } | undefined;
+    const tenantIdFromCtx = ctx?.tenantId ?? null;
+    let tenantId: string | null = tenantIdFromCtx;
+    if (!tenantId) {
+      if (tenantCookie?.value) {
+        try { tenantId = JSON.parse(tenantCookie.value)?.id ?? null; } catch {}
+      }
     }
 
     // Query para documentos de clientes
@@ -58,6 +49,7 @@ if (deny) return deny;
         AND td.requiere_vencimiento = true
         AND (dc.fecha_vencimiento::date - CURRENT_DATE) <= COALESCE(td.dias_antes_alarma, 30)
         AND (dc.fecha_vencimiento::date - CURRENT_DATE) >= -365
+        ${tenantId ? `AND c.tenant_id::text = '${tenantId}'` : ''}
     `;
 
     // Query para documentos de instalaciones
@@ -85,6 +77,7 @@ if (deny) return deny;
         AND td.requiere_vencimiento = true
         AND (di.fecha_vencimiento::date - CURRENT_DATE) <= COALESCE(td.dias_antes_alarma, 30)
         AND (di.fecha_vencimiento::date - CURRENT_DATE) >= -365
+        ${tenantId ? `AND i.tenant_id::text = '${tenantId}'` : ''}
     `;
 
     // Query para documentos de guardias
@@ -112,6 +105,7 @@ if (deny) return deny;
         AND td.requiere_vencimiento = true
         AND (dg.fecha_vencimiento::date - CURRENT_DATE) <= COALESCE(td.dias_antes_alarma, 30)
         AND (dg.fecha_vencimiento::date - CURRENT_DATE) >= -365
+        ${tenantId ? `AND g.tenant_id::text = '${tenantId}'` : ''}
     `;
 
     // Query para alertas de OS10 de guardias
@@ -137,6 +131,7 @@ if (deny) return deny;
         AND (g.fecha_os10::date - CURRENT_DATE) <= 30
         AND (g.fecha_os10::date - CURRENT_DATE) >= -365
         AND g.activo = true
+        ${tenantId ? `AND g.tenant_id::text = '${tenantId}'` : ''}
     `;
 
     console.log('🔍 Ejecutando queries de alertas...');
@@ -207,17 +202,8 @@ if (deny) return deny;
 
 // POST: Generar alertas escaneando documentos con vencimiento
 export async function POST(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'alertas_documentos', action: 'update' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'alertas_documentos', action: 'create' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'alertas_documentos', action: 'read:list' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'alertas_documentos', action: 'create' });
+  if (deny) return deny;
 
   try {
     const cookieStore = cookies();
@@ -245,17 +231,8 @@ if (deny) return deny;
 
 // PUT: Marcar alerta como leída
 export async function PUT(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'alertas_documentos', action: 'update' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'alertas_documentos', action: 'create' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'alertas_documentos', action: 'read:list' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'alertas_documentos', action: 'update' });
+  if (deny) return deny;
 
   try {
     const { searchParams } = new URL(request.url);

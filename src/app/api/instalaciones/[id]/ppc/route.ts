@@ -5,16 +5,10 @@ import { query } from '@/lib/database';
 // GET: Obtener PPCs de una instalación usando el nuevo modelo de puestos operativos
 export async function GET(
   request: NextRequest,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'create' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'read:detail' });
-if (deny) return deny;
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'instalaciones', action: 'create' });
+  if (deny) return deny;
   try {
     const instalacionId = params.id;
 
@@ -59,16 +53,10 @@ if (deny) return deny;
 // POST: Asignar guardia a un PPC usando el nuevo modelo de puestos operativos
 export async function POST(
   request: NextRequest,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'create' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'read:detail' });
-if (deny) return deny;
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'instalaciones', action: 'create' });
+  if (deny) return deny;
   try {
     const instalacionId = params.id;
     const body = await request.json();

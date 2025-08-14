@@ -7,27 +7,22 @@ import { getUserEmail, getUserIdByEmail, userHasPerm, requirePlatformAdmin, json
 type RouteContext = { params: { id: string } };
 
 export async function GET(req: NextRequest, ctx: RouteContext) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'create' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'admin', action: 'create' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'read:detail' });
-if (deny) return deny;
-
-  try {
+try {
     const email = await getUserEmail(req);
     if (!email) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     const actorId = await getUserIdByEmail(email);
     if (!actorId) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 403 });
 
-    // Verificar permisos de Platform Admin o JWT admin
+    // Verificar permisos de Platform Admin real (no admin de tenant)
     let isPlatformAdmin = await userHasPerm(actorId, 'rbac.platform_admin');
     if (!isPlatformAdmin) {
       try {
         const { getCurrentUserServer } = await import('@/lib/auth');
         const u = getCurrentUserServer(req as any);
-        isPlatformAdmin = u?.rol === 'admin';
+        isPlatformAdmin = !!(u?.rol === 'admin' && (!u?.tenant_id || u?.tenant_id === null));
       } catch {}
     }
     if (!isPlatformAdmin) {
@@ -57,23 +52,20 @@ if (deny) return deny;
   }
 }
 
-export async function POST(req: NextRequest, ctx: RouteContext | {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'create' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'read:detail' });
-if (deny) return deny;
- params: { id: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const deny = await requireAuthz(request, { resource: 'admin', action: 'create' });
+  if (deny) return deny;
   try {
     // Permitir platform admin o validar actor/tenant en modo seguro
-    const email = await getUserEmail(req).catch(() => null);
+    const email = await getUserEmail(request).catch(() => null);
     const actorId = email ? await getUserIdByEmail(email) : null;
     const isPlatformAdmin = actorId ? await userHasPerm(actorId, 'rbac.platform_admin') : false;
 
-    const usuarioId = 'params' in ctx ? ctx.params.id : (ctx as any)?.params?.id;
-    const { rol_id, action } = (await req.json().catch(() => ({}))) as { rol_id?: string; action?: 'add'|'remove' };
+    const usuarioId = params.id;
+    const { rol_id, action } = (await request.json().catch(() => ({}))) as { rol_id?: string; action?: 'add'|'remove' };
     if (!usuarioId || !rol_id || !action) return jsonError(400, 'usuario_id, rol_id y action requeridos');
 
     // Si no es platform admin, al menos exigir autenticación
@@ -90,7 +82,7 @@ if (deny) return deny;
     `).rows[0];
     if (!role) return jsonError(404, 'rol_no_encontrado');
 
-    if (role.tenant_id && targetUser.tenant_id !== role.tenant_id) {
+    if (!isPlatformAdmin && role.tenant_id && targetUser.tenant_id !== role.tenant_id) {
       return jsonError(403, 'rol_de_otro_tenant');
     }
 

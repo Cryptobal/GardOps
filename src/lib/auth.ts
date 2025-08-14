@@ -98,6 +98,12 @@ export async function getCurrentUserRef(): Promise<string | null> {
     if (token) {
       const decoded = verifyToken(token);
       if (decoded && decoded.user_id) {
+        try {
+          console.debug('[auth] getCurrentUserRef decoded', {
+            user_id: decoded.user_id,
+            email: decoded.email,
+          });
+        } catch {}
         return decoded.user_id;
       }
     }
@@ -120,11 +126,60 @@ export async function userHas(permission: string): Promise<boolean> {
   if (!userRef) return false;
   try {
     const { query } = await import('@/lib/database');
-    const result = await query(
-      'select rbac_fn_usuario_tiene_permiso($1,$2) as ok',
-      [userRef, permission]
-    );
-    return Boolean(result?.rows?.[0]?.ok);
+    
+    // Obtener el email del usuario, primero por la tabla y si no existe, desde el token
+    let userEmail: string | null = null;
+    const usuario = await query(`
+      SELECT email FROM usuarios WHERE id = $1
+    `, [userRef]);
+
+    if (usuario.rows.length > 0) {
+      userEmail = usuario.rows[0].email as string;
+    } else {
+      try {
+        console.debug('[auth] userHas: usuario no encontrado por id', { userRef, permission });
+      } catch {}
+      // Fallback: email desde el token
+      try {
+        const mod = await import('next/headers');
+        const token = mod.cookies?.()?.get?.('auth_token')?.value;
+        if (token) {
+          const decoded = verifyToken(token);
+          if (decoded?.email) {
+            userEmail = decoded.email;
+            try {
+              console.debug('[auth] userHas: usando email desde token como fallback', { userEmail, permission });
+            } catch {}
+          }
+        }
+      } catch {}
+    }
+
+    if (!userEmail) return false;
+    
+    // Intentar primero con la función legacy (que es la que está configurada)
+    try {
+      const result = await query(
+        'select fn_usuario_tiene_permiso($1,$2) as ok',
+        [userEmail, permission]
+      );
+      const ok = Boolean(result?.rows?.[0]?.ok);
+      try {
+        console.debug('[auth] userHas legacy', { userRef, userEmail, permission, ok });
+      } catch {}
+      return ok;
+    } catch (e) {
+      // Si falla, intentar con la función RBAC
+      const result = await query(
+        'select rbac_fn_usuario_tiene_permiso($1,$2) as ok',
+        [userEmail, permission]
+      );
+      const ok = Boolean(result?.rows?.[0]?.ok);
+      try {
+        console.debug('[auth] userHas rbac', { userRef, userEmail, permission, ok });
+      } catch {}
+      return ok;
+    }
   } catch (e) {
     return false;
   }

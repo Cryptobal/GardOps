@@ -11,19 +11,10 @@ import * as XLSX from 'xlsx';
  * POST: Genera planilla de sueldos para un período
  */
 export async function POST(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'update' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'sueldos', action: 'update' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'read:list' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'create' });
-if (deny) return deny;
-
-  try {
+try {
     const body = await request.json();
     const { mes, anio, incluirTurnosExtras = true, guardiaId } = body;
     
@@ -97,19 +88,10 @@ if (deny) return deny;
  * GET: Descarga planilla en formato Excel
  */
 export async function GET(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'update' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'sueldos', action: 'update' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'read:list' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'create' });
-if (deny) return deny;
-
-  try {
+try {
     const { searchParams } = new URL(request.url);
     const mes = Number(searchParams.get('mes'));
     const anio = Number(searchParams.get('anio'));
@@ -291,19 +273,10 @@ if (deny) return deny;
  * PUT: Marcar turnos extras como pagados
  */
 export async function PUT(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'update' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'sueldos', action: 'update' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'read:list' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'create' });
-if (deny) return deny;
-
-  try {
+try {
     const body = await request.json();
     const { guardiaId, mes, anio, planillaId } = body;
     

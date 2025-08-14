@@ -4,9 +4,8 @@ import { sql } from '@vercel/postgres';
 import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
 
 export async function GET(req: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'read:list' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'admin', action: 'read:list' });
+  if (deny) return deny;
 
   try {
     const email = await getUserEmail(req);

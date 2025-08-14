@@ -5,13 +5,11 @@ import { sql } from '@vercel/postgres';
 // Endpoint público temporal: asigna TODOS los permisos existentes al rol indicado
 // IMPORTANTE: será eliminado luego de ejecutar la operación solicitada
 export async function POST(
-  _request: NextRequest,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'create' });
-if (deny) return deny;
- params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'admin', action: 'create' });
+  if (deny) return deny;
   try {
     const roleId = params.id;
 

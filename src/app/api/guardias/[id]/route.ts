@@ -7,20 +7,10 @@ import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
 // PUT /api/guardias/[id] - Actualizar un guardia específico
 export async function PUT(
   request: NextRequest,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'delete' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'read:detail' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'update' });
-if (deny) return deny;
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'guardias', action: 'delete' });
+  if (deny) return deny;
   console.log('🔍 API Guardias - Actualizando guardia:', params.id);
   
   try {
@@ -199,20 +189,10 @@ if (deny) return deny;
 // GET /api/guardias/[id] - Obtener un guardia específico
 export async function GET(
   request: NextRequest,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'delete' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'read:detail' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'update' });
-if (deny) return deny;
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'guardias', action: 'delete' });
+  if (deny) return deny;
   console.log('🔍 API Guardias - Obteniendo guardia:', params.id);
   
   try {
@@ -310,20 +290,10 @@ if (deny) return deny;
 // PATCH /api/guardias/[id] - Actualizar estado del guardia
 export async function PATCH(
   request: NextRequest,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'delete' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'read:detail' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'update' });
-if (deny) return deny;
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'guardias', action: 'delete' });
+  if (deny) return deny;
   console.log('🔍 API Guardias - Actualizando estado del guardia:', params.id);
   
   try {
@@ -458,20 +428,10 @@ if (deny) return deny;
 // DELETE /api/guardias/[id] - Eliminar un guardia específico
 export async function DELETE(
   request: NextRequest,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'delete' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'read:detail' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'update' });
-if (deny) return deny;
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'guardias', action: 'delete' });
+  if (deny) return deny;
   console.log('🔍 API Guardias - Eliminando guardia:', params.id);
   
   try {

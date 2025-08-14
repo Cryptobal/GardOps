@@ -1,4 +1,4 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
 "use client";
 
 import { useCan } from "@/lib/permissions";
@@ -15,6 +15,8 @@ export default function SeguridadPage() {
   const { allowed: isPlatformAdmin, loading } = useCan('rbac.platform_admin');
   // Bypass de visualización para admin
   let adminBypass = false;
+  let isTenantAdmin = false;
+  let isPlatformAdminJwt = false;
   try {
     if (typeof document !== 'undefined') {
       const m = (document.cookie || '').match(/(?:^|;\s*)auth_token=([^;]+)/);
@@ -22,6 +24,11 @@ export default function SeguridadPage() {
       if (token) {
         const payload = JSON.parse(atob(token.split('.')[1] || '')) || {};
         adminBypass = payload?.rol === 'admin';
+        isPlatformAdminJwt = payload?.rol === 'admin' && (!payload?.tenant_id || payload?.is_platform_admin === true);
+        // Verificar si es admin de tenant (tiene tenant_id) vs platform admin
+        // Platform admin: no tiene tenant_id o tiene is_platform_admin = true
+        // Tenant admin: tiene tenant_id y no es platform admin
+        isTenantAdmin = payload?.rol === 'admin' && payload?.tenant_id && !payload?.is_platform_admin;
       }
     }
   } catch {}
@@ -61,7 +68,20 @@ export default function SeguridadPage() {
     }
   ];
 
-  const filteredSections = sections.filter((s) => adminBypass ? true : s.allowed !== false);
+  const filteredSections = sections.filter((s) => {
+    // Platform Admin (carlos.irigoyen@gard.cl) - ve TODO
+    if (isPlatformAdmin || isPlatformAdminJwt) {
+      return true;
+    }
+    
+    // Tenant Admin (admin@empresa.com) - ve solo usuarios y roles, NO tenants
+    if (isTenantAdmin) {
+      return s.title.includes('Usuarios') || s.title.includes('Roles');
+    }
+    
+    // Otros usuarios - usar permisos normales
+    return s.allowed !== false;
+  });
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl">

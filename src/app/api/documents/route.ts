@@ -3,15 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/database";
 
 export async function GET(req: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'documents', action: 'delete' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'documents', action: 'delete' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'documents', action: 'read:list' });
-if (deny) return deny;
-
-  try {
+try {
     const { searchParams } = new URL(req.url);
     const modulo = searchParams.get("modulo");
     const entidad_id = searchParams.get("entidad_id");
@@ -46,15 +41,10 @@ if (deny) return deny;
 }
 
 export async function DELETE(req: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'documents', action: 'delete' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'documents', action: 'delete' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'documents', action: 'read:list' });
-if (deny) return deny;
-
-  try {
+try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 

@@ -1,7 +1,7 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 "use client";
 
-import { useState, useEffect } from "react";
+import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -29,11 +29,32 @@ export default function RolesPage() {
     nombre: "",
     descripcion: "",
   });
+  const [effectivePermissions, setEffectivePermissions] = useState<Record<string, string[]>>({});
   // Permitir lectura de roles a usuarios con permiso de lectura
   const { allowed, loading, error } = useCan('rbac.roles.read');
   const { allowed: canWrite } = useCan('rbac.roles.write');
   const { allowed: isPlatformAdmin } = useCan('rbac.platform_admin');
   const { success: toastSuccess, error: toastError, addToast: toast } = useToast();
+
+  // Cargar permisos del usuario
+  const cargarPermisos = useCallback(async () => {
+    try {
+      const response = await fetch('/api/me/effective-permissions');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.ok && data.effective) {
+          setEffectivePermissions(data.effective);
+        }
+      }
+    } catch (error) {
+      console.error('Error cargando permisos:', error);
+    }
+  }, []);
+
+  // Cargar permisos al montar el componente
+  useEffect(() => {
+    cargarPermisos();
+  }, [cargarPermisos]);
 
   // Cargar datos solo si está permitido
 
@@ -340,7 +361,7 @@ export default function RolesPage() {
           {roles.map((rol) => (
             <Link
               key={rol.id}
-              href={`/configuracion/seguridad/roles/${rol.id}`}
+              href={`/configuracion/seguridad/roles/${rol.id}/permisos`}
               role="link"
               tabIndex={0}
               className="block focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-lg"

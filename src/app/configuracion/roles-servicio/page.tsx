@@ -1,6 +1,6 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 'use client';
 
+import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
 import { useState, useEffect } from 'react';
 import { useCan } from '@/lib/permissions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Save, X, Download, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Save, X, Download, Eye, EyeOff, AlertCircle, ArrowLeft } from 'lucide-react';
 import { 
   getRolesServicio, 
   crearRolServicio, 
@@ -18,7 +18,8 @@ import {
   getRolesServicioStats,
   inactivarRolServicioCompleto,
   reactivarRolServicio,
-  verificarPautasRol
+  verificarPautasRol,
+  verificarGuardiasRol
 } from '@/lib/api/roles-servicio';
 import { RolServicio, CrearRolServicioData } from '@/lib/schemas/roles-servicio';
 import { calcularNomenclaturaRol } from '@/lib/utils/calcularNomenclaturaRol';
@@ -35,15 +36,6 @@ import {
 
 export default function RolesServicioPage() {
   const { allowed } = useCan('config.roles_servicio.view');
-  if (!allowed) {
-    return (
-      <div className="p-6">
-        <div className="rounded-xl border p-6 text-center text-muted-foreground">
-          Acceso denegado
-        </div>
-      </div>
-    );
-  }
   const { success, error } = useToast();
   const [roles, setRoles] = useState<RolServicio[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +47,9 @@ export default function RolesServicioPage() {
   const [rolParaConfirmar, setRolParaConfirmar] = useState<RolServicio | null>(null);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [infoRol, setInfoRol] = useState<{rol: RolServicio, verificacion: any} | null>(null);
+  const [formularioAbierto, setFormularioAbierto] = useState(false);
+  const [showGuardiasDialog, setShowGuardiasDialog] = useState(false);
+  const [guardiasRol, setGuardiasRol] = useState<{rol: RolServicio, verificacion: any} | null>(null);
   
   const [nuevoRol, setNuevoRol] = useState({
     dias_trabajo: 4,
@@ -76,9 +71,10 @@ export default function RolesServicioPage() {
   const [nombreCalculadoEdit, setNombreCalculadoEdit] = useState('');
 
   useEffect(() => {
+    if (!allowed) return;
     cargarRoles();
     cargarStats();
-  }, []);
+  }, [allowed]);
 
   useEffect(() => {
     try {
@@ -124,6 +120,7 @@ export default function RolesServicioPage() {
   const cargarStats = async () => {
     try {
       const statsData = await getRolesServicioStats();
+      console.log('📊 Estadísticas cargadas:', statsData);
       setStats(statsData);
     } catch (err) {
       console.error('Error cargando estadísticas:', err);
@@ -162,6 +159,7 @@ export default function RolesServicioPage() {
 
       await cargarRoles();
       await cargarStats();
+      setFormularioAbierto(false); // Cerrar el formulario después de crear exitosamente
     } catch (err) {
       console.error('Error creando rol:', err);
       error('No se pudo crear el rol', 'Error');
@@ -231,6 +229,25 @@ export default function RolesServicioPage() {
   };
 
   const handleActivarInactivar = async (rol: RolServicio) => {
+    // Si está activo y queremos inactivar, verificar guardias primero
+    if (rol.estado === 'Activo') {
+      try {
+        const verificacionGuardias = await verificarGuardiasRol(rol.id);
+        
+        if (verificacionGuardias.tiene_guardias) {
+          // Mostrar modal informativo en lugar de confirmación
+          setGuardiasRol({ rol, verificacion: verificacionGuardias });
+          setShowGuardiasDialog(true);
+          return;
+        }
+      } catch (err) {
+        console.error('Error verificando guardias del rol:', err);
+        error('Error al verificar si el rol puede ser inactivado', 'Error');
+        return;
+      }
+    }
+    
+    // Si no tiene guardias o está inactivo, proceder normalmente
     setRolParaConfirmar(rol);
     setShowConfirmDialog(true);
   };
@@ -299,151 +316,203 @@ export default function RolesServicioPage() {
     return true;
   });
 
+  if (!allowed) {
+    return (
+      <div className="p-6">
+        <div className="rounded-xl border p-6 text-center text-muted-foreground">
+          Acceso denegado
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Roles de Servicio</h1>
+    <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+      {/* Header con botón de volver */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <Button 
+            onClick={() => window.history.back()} 
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Volver</span>
+          </Button>
+          <h1 className="text-2xl sm:text-3xl font-bold">Roles de Servicio</h1>
+        </div>
         <div className="flex gap-2">
-          <Button onClick={exportarRoles} variant="outline">
+          <Button onClick={exportarRoles} variant="outline" size="sm" className="w-full sm:w-auto">
             <Download className="w-4 h-4 mr-2" />
-            Exportar
+            <span className="hidden sm:inline">Exportar</span>
           </Button>
         </div>
       </div>
 
       {/* Estadísticas */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total Roles</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Activos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.activos}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Inactivos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{stats.inactivos}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Con Guardias</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{stats.conGuardias}</div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {console.log('🔍 Stats en render:', stats)}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="p-3 sm:p-4">
+          <CardHeader className="pb-1 sm:pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium">Total Roles</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="text-lg sm:text-2xl font-bold">
+              {stats ? stats.total : '-'}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="p-3 sm:p-4">
+          <CardHeader className="pb-1 sm:pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium">Activos</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="text-lg sm:text-2xl font-bold text-green-600">
+              {stats ? stats.activos : '-'}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="p-3 sm:p-4">
+          <CardHeader className="pb-1 sm:pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium">Inactivos</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="text-lg sm:text-2xl font-bold text-red-600">
+              {stats ? stats.inactivos : '-'}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="p-3 sm:p-4">
+          <CardHeader className="pb-1 sm:pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium">Con Guardias</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="text-lg sm:text-2xl font-bold text-blue-600">
+              {stats ? stats.conGuardias : '-'}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Formulario de Creación */}
       <Card>
-        <CardHeader>
-          <CardTitle>Crear Nuevo Rol de Servicio</CardTitle>
+        <CardHeader 
+          className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          onClick={() => setFormularioAbierto(!formularioAbierto)}
+        >
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              Crear Nuevo Rol de Servicio
+            </CardTitle>
+            <div className={`transform transition-transform duration-200 ${formularioAbierto ? 'rotate-45' : 'rotate-0'}`}>
+              <Plus className="w-5 h-5" />
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="dias_trabajo">Días de Trabajo</Label>
-              <Input
-                id="dias_trabajo"
-                type="number"
-                min="1"
-                value={nuevoRol.dias_trabajo}
-                onChange={(e) => setNuevoRol({...nuevoRol, dias_trabajo: parseInt(e.target.value) || 0})}
-                placeholder="4"
-              />
+        {formularioAbierto && (
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="dias_trabajo">Días de Trabajo</Label>
+                <Input
+                  id="dias_trabajo"
+                  type="number"
+                  min="1"
+                  value={nuevoRol.dias_trabajo}
+                  onChange={(e) => setNuevoRol({...nuevoRol, dias_trabajo: parseInt(e.target.value) || 0})}
+                  placeholder="4"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dias_descanso">Días de Descanso</Label>
+                <Input
+                  id="dias_descanso"
+                  type="number"
+                  min="1"
+                  value={nuevoRol.dias_descanso}
+                  onChange={(e) => setNuevoRol({...nuevoRol, dias_descanso: parseInt(e.target.value) || 0})}
+                  placeholder="4"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="hora_inicio">Hora de Inicio</Label>
+                <Input
+                  id="hora_inicio"
+                  type="time"
+                  value={nuevoRol.hora_inicio}
+                  onChange={(e) => setNuevoRol({...nuevoRol, hora_inicio: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="hora_termino">Hora de Término</Label>
+                <Input
+                  id="hora_termino"
+                  type="time"
+                  value={nuevoRol.hora_termino}
+                  onChange={(e) => setNuevoRol({...nuevoRol, hora_termino: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="nombre">Nombre Calculado</Label>
+                <Input
+                  id="nombre"
+                  value={nombreCalculado}
+                  disabled
+                  placeholder="Se calcula automáticamente"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="dias_descanso">Días de Descanso</Label>
-              <Input
-                id="dias_descanso"
-                type="number"
-                min="1"
-                value={nuevoRol.dias_descanso}
-                onChange={(e) => setNuevoRol({...nuevoRol, dias_descanso: parseInt(e.target.value) || 0})}
-                placeholder="4"
-              />
+            
+            {/* Nombre Calculado */}
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+              <Label className="text-sm font-medium">Nombre Calculado:</Label>
+              <div className="text-lg font-mono text-blue-600 dark:text-blue-400">
+                {nombreCalculado}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="hora_inicio">Hora de Inicio</Label>
-              <Input
-                id="hora_inicio"
-                type="time"
-                value={nuevoRol.hora_inicio}
-                onChange={(e) => setNuevoRol({...nuevoRol, hora_inicio: e.target.value})}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="hora_termino">Hora de Término</Label>
-              <Input
-                id="hora_termino"
-                type="time"
-                value={nuevoRol.hora_termino}
-                onChange={(e) => setNuevoRol({...nuevoRol, hora_termino: e.target.value})}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="nombre">Nombre Calculado</Label>
-              <Input
-                id="nombre"
-                value={nombreCalculado}
-                disabled
-                placeholder="Se calcula automáticamente"
-              />
-            </div>
-          </div>
-          
-          {/* Nombre Calculado */}
-          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-            <Label className="text-sm font-medium">Nombre Calculado:</Label>
-            <div className="text-lg font-mono text-blue-600 dark:text-blue-400">
-              {nombreCalculado}
-            </div>
-          </div>
 
-          <div className="mt-4">
-            <Authorize resource="configuracion" action="create" eff={effectivePermissions}>
-  <GuardButton resource="configuracion" action="create" eff={effectivePermissions}  onClick={handleCrearRol} disabled={creando}>
-              {creando ? 'Creando...' : 'Crear Rol'}
-            </GuardButton>
-</Authorize>
-          </div>
-        </CardContent>
+            <div className="mt-4">
+              <Button onClick={handleCrearRol} disabled={creando}>
+                {creando ? 'Creando...' : 'Crear Rol'}
+              </Button>
+            </div>
+          </CardContent>
+        )}
       </Card>
 
       {/* Filtros */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button
           variant={filtroEstado === 'todos' ? 'default' : 'outline'}
           onClick={() => setFiltroEstado('todos')}
+          size="sm"
+          className="flex-1 sm:flex-none"
         >
-          Todos ({roles.length})
+          <span className="hidden sm:inline">Todos</span>
+          <span className="sm:hidden">Todos</span>
+          <span className="ml-1">({roles.length})</span>
         </Button>
         <Button
           variant={filtroEstado === 'activos' ? 'default' : 'outline'}
           onClick={() => setFiltroEstado('activos')}
+          size="sm"
+          className="flex-1 sm:flex-none"
         >
-          Activos ({roles.filter(r => r.estado === 'Activo').length})
+          <span className="hidden sm:inline">Activos</span>
+          <span className="sm:hidden">Activos</span>
+          <span className="ml-1">({roles.filter(r => r.estado === 'Activo').length})</span>
         </Button>
         <Button
           variant={filtroEstado === 'inactivos' ? 'default' : 'outline'}
           onClick={() => setFiltroEstado('inactivos')}
+          size="sm"
+          className="flex-1 sm:flex-none"
         >
-          Inactivos ({roles.filter(r => r.estado === 'Inactivo').length})
+          <span className="hidden sm:inline">Inactivos</span>
+          <span className="sm:hidden">Inactivos</span>
+          <span className="ml-1">({roles.filter(r => r.estado === 'Inactivo').length})</span>
         </Button>
       </div>
 
@@ -456,70 +525,73 @@ export default function RolesServicioPage() {
           {loading ? (
             <div className="text-center py-8">Cargando roles...</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Descripción</TableHead>
-                  <TableHead>Turno</TableHead>
-                  <TableHead>Horario</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rolesFiltrados.map((rol) => (
-                  <TableRow key={rol.id}>
-                    <TableCell>
-                      {editando === rol.id ? (
-                        <div className="space-y-2">
-                          <div className="text-sm font-medium text-blue-600">Nombre Calculado:</div>
-                          <div className="text-sm font-mono">{nombreCalculadoEdit}</div>
-                        </div>
-                      ) : (
-                        <div className="font-medium">{rol.nombre}</div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editando === rol.id ? (
-                        <div className="text-sm text-muted-foreground">
-                          {nombreCalculadoEdit || 'Sin nombre'}
-                        </div>
-                      ) : (
-                        <div className="text-sm text-muted-foreground">
-                          {rol.nombre || 'Sin nombre'}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editando === rol.id ? (
-                        <div className="space-y-2">
-                          <Input
-                            type="number"
-                            min="1"
-                            value={editData.dias_trabajo}
-                            onChange={(e) => setEditData({...editData, dias_trabajo: parseInt(e.target.value) || 0})}
-                            className="w-16"
-                          />
-                          <span className="text-sm">x</span>
-                          <Input
-                            type="number"
-                            min="1"
-                            value={editData.dias_descanso}
-                            onChange={(e) => setEditData({...editData, dias_descanso: parseInt(e.target.value) || 0})}
-                            className="w-16"
-                          />
-                        </div>
-                      ) : (
-                        <div className="text-sm">
-                          {rol.dias_trabajo}x{rol.dias_descanso}x{rol.horas_turno}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editando === rol.id ? (
-                        <div className="space-y-2">
-                          <Input
+            <>
+              {/* Vista de tabla para desktop */}
+              <div className="hidden lg:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead>Descripción</TableHead>
+                      <TableHead>Turno</TableHead>
+                      <TableHead>Horario</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rolesFiltrados.map((rol) => (
+                      <TableRow key={rol.id}>
+                        <TableCell>
+                          {editando === rol.id ? (
+                            <div className="space-y-2">
+                              <div className="text-sm font-medium text-blue-600">Nombre Calculado:</div>
+                              <div className="text-sm font-mono">{nombreCalculadoEdit}</div>
+                            </div>
+                          ) : (
+                            <div className="font-medium">{rol.nombre}</div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {editando === rol.id ? (
+                            <div className="text-sm text-muted-foreground">
+                              {nombreCalculadoEdit || 'Sin nombre'}
+                            </div>
+                          ) : (
+                            <div className="text-sm text-muted-foreground">
+                              {rol.nombre || 'Sin nombre'}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {editando === rol.id ? (
+                            <div className="space-y-2">
+                              <Input
+                                type="number"
+                                min="1"
+                                value={editData.dias_trabajo}
+                                onChange={(e) => setEditData({...editData, dias_trabajo: parseInt(e.target.value) || 0})}
+                                className="w-16"
+                              />
+                              <span className="text-sm">x</span>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={editData.dias_descanso}
+                                onChange={(e) => setEditData({...editData, dias_descanso: parseInt(e.target.value) || 0})}
+                                className="w-16"
+                              />
+                            </div>
+                          ) : (
+                            <div className="text-sm">
+                              {rol.dias_trabajo}x{rol.dias_descanso}x{rol.horas_turno}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {editando === rol.id ? (
+                            <div className="space-y-2">
+                              <Input
                             type="time"
                             value={editData.hora_inicio}
                             onChange={(e) => setEditData({...editData, hora_inicio: e.target.value})}
@@ -589,6 +661,81 @@ export default function RolesServicioPage() {
                 ))}
               </TableBody>
             </Table>
+              </div>
+
+              {/* Vista de tarjetas para móvil */}
+              <div className="lg:hidden space-y-4">
+                {rolesFiltrados.map((rol) => (
+                  <Card key={rol.id} className="p-4">
+                    <div className="space-y-3">
+                      {/* Nombre */}
+                      <div>
+                        <h3 className="font-medium text-lg">{rol.nombre}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {rol.nombre || 'Sin nombre'}
+                        </p>
+                      </div>
+
+                      {/* Información del turno */}
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Turno:</span>
+                          <div className="font-medium">
+                            {rol.dias_trabajo}x{rol.dias_descanso}x{rol.horas_turno}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Horario:</span>
+                          <div className="font-medium">
+                            {rol.hora_inicio} - {rol.hora_termino}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Estado */}
+                      <div className="flex items-center justify-between">
+                        <Badge variant={rol.estado === 'Activo' ? 'default' : 'secondary'}>
+                          {rol.estado}
+                        </Badge>
+                        
+                        {/* Acciones */}
+                        <div className="flex gap-2">
+                          {editando === rol.id ? (
+                            <>
+                              <Button size="sm" onClick={handleGuardarEdicion}>
+                                <Save className="w-4 h-4" />
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={handleCancelarEdicion}>
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => handleEditar(rol)}
+                                title="Editar rol"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => handleActivarInactivar(rol)}
+                                title={rol.estado === 'Activo' ? 'Inactivar rol' : 'Activar rol'}
+                              >
+                                {rol.estado === 'Activo' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -686,6 +833,87 @@ export default function RolesServicioPage() {
               onClick={() => {
                 setShowInfoDialog(false);
                 setInfoRol(null);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Cerrar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Modal de Guardias Asignados - Rol No Inactivable */}
+      <AlertDialog open={showGuardiasDialog} onOpenChange={setShowGuardiasDialog}>
+        <AlertDialogContent className="max-w-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              Rol No Inactivable
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4">
+              <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
+                <p className="font-medium text-red-800 dark:text-red-200 mb-2">
+                  El rol <strong>"{guardiasRol?.rol.nombre}"</strong> no puede ser inactivado.
+                </p>
+                <p className="text-sm text-red-700 dark:text-red-300">
+                  {guardiasRol?.verificacion.mensaje}
+                </p>
+              </div>
+
+              {guardiasRol?.verificacion.guardias_info && guardiasRol.verificacion.guardias_info.length > 0 && (
+                <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">
+                    👥 Guardias Asignados ({guardiasRol.verificacion.guardias_count}):
+                  </h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {guardiasRol.verificacion.guardias_info.map((guardia: any, index: number) => (
+                      <div key={index} className="flex justify-between items-center text-sm p-2 bg-white dark:bg-gray-800 rounded border">
+                        <span className="text-blue-700 dark:text-blue-300 font-medium">
+                          {guardia.nombre_completo}
+                        </span>
+                        <div className="flex gap-4 text-blue-600 dark:text-blue-400">
+                          <span className="text-xs bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded">
+                            {guardia.instalacion_nombre}
+                          </span>
+                          <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                            {guardia.nombre_puesto}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">
+                  💡 ¿Por qué no se puede inactivar?
+                </h4>
+                <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                  <li>• El rol tiene guardias activos asignados</li>
+                  <li>• Inactivar afectaría las asignaciones actuales</li>
+                  <li>• Podría causar problemas en las pautas mensuales</li>
+                </ul>
+              </div>
+
+              <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                <h4 className="font-medium text-green-800 dark:text-green-200 mb-2">
+                  ✅ Pasos para Inactivar:
+                </h4>
+                <ul className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                  <li>• <strong>Desasignar guardias:</strong> Ve a Asignaciones y quita los guardias del rol</li>
+                  <li>• <strong>Verificar pautas:</strong> Asegúrate de que no hay pautas activas</li>
+                  <li>• <strong>Inactivar rol:</strong> Una vez sin guardias, podrás inactivarlo</li>
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Entendido</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                setShowGuardiasDialog(false);
+                setGuardiasRol(null);
               }}
               className="bg-blue-600 hover:bg-blue-700"
             >

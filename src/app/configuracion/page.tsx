@@ -1,4 +1,4 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";

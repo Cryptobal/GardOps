@@ -1,6 +1,6 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 "use client";
 
+import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
 import { useState, useEffect } from "react";
 import { useCan } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
@@ -28,15 +28,6 @@ const MODULOS = [
 
 export default function TiposDocumentosPage() {
   const { allowed } = useCan('config.tipos_documentos.view');
-  if (!allowed) {
-    return (
-      <div className="p-6">
-        <div className="rounded-xl border p-6 text-center text-muted-foreground">
-          Acceso denegado
-        </div>
-      </div>
-    );
-  }
   const [tipos, setTipos] = useState<TipoDocumento[]>([]);
   const [filtroModulo, setFiltroModulo] = useState<string>("");
   const [cargando, setCargando] = useState(true);
@@ -88,8 +79,9 @@ export default function TiposDocumentosPage() {
   };
 
   useEffect(() => {
+    if (!allowed) return;
     cargarTipos();
-  }, []);
+  }, [allowed]);
 
   const tiposFiltrados = filtroModulo 
     ? tipos.filter(tipo => tipo.modulo === filtroModulo)
@@ -220,6 +212,16 @@ export default function TiposDocumentosPage() {
     }
   };
 
+  if (!allowed) {
+    return (
+      <div className="p-6">
+        <div className="rounded-xl border p-6 text-center text-muted-foreground">
+          Acceso denegado
+        </div>
+      </div>
+    );
+  }
+
   if (cargando) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -257,14 +259,12 @@ export default function TiposDocumentosPage() {
             ))}
           </select>
           
-          <Authorize resource="configuracion" action="create" eff={effectivePermissions}>
-  <GuardButton resource="configuracion" action="create" eff={effectivePermissions}  
+          <Button
             onClick={() => abrirModal()}
             className="bg-white text-black hover:bg-white/90 px-4 py-2 text-sm font-medium"
           >
             Nuevo tipo
-          </GuardButton>
-</Authorize>
+          </Button>
         </div>
       </div>
 

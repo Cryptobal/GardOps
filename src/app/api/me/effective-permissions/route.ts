@@ -5,9 +5,8 @@ import { loadEffectivePermissions } from '@/lib/authz-api'
 export const runtime = 'nodejs'
 
 export async function GET(req: Request) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'me', action: 'read:list' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'me', action: 'read:list' });
+  if (deny) return deny;
 
   try {
     const eff = await loadEffectivePermissions(req)

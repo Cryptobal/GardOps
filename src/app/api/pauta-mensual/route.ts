@@ -8,9 +8,8 @@ import { logCRUD, logError } from '@/lib/logging';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'pauta_mensual', action: 'read:list' });
-if (deny) return deny;
+  const deny = await requireAuthz(request, { resource: 'pauta_mensual', action: 'read:list' });
+  if (deny) return deny;
 
   const startTime = Date.now();
   const timestamp = new Date().toISOString();
@@ -23,9 +22,10 @@ if (deny) return deny;
     const anio = searchParams.get('anio');
     const mes = searchParams.get('mes');
 
-    // Por ahora usar un tenant_id fijo para testing
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
-    const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
+    // Tomar tenant del contexto seteado por requireAuthz
+    const ctx = (request as any).ctx as { userId: string; tenantId: string };
+    const tenantId = ctx?.tenantId;
+    const usuario = ctx?.userId;
 
     console.log(`[${timestamp}] 📥 Parámetros recibidos:`, { instalacion_id, anio, mes });
 

@@ -3,24 +3,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { getUserEmail, getUserIdByEmail, userHasPerm, jsonError } from '@/lib/auth/rbac';
 
-export async function GET(req: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'create' });
-if (deny) return deny;
+export async function GET(request: NextRequest) {
+  const deny = await requireAuthz(request, { resource: 'admin', action: 'create' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'read:list' });
-if (deny) return deny;
-
-  try {
-    const email = await getUserEmail(req);
+try {
+    const email = await getUserEmail(request);
     if (!email) return NextResponse.json({ ok:false, error:'unauthenticated', code:'UNAUTHENTICATED' }, { status:401 });
     const userId = await getUserIdByEmail(email!);
     if (!userId) return NextResponse.json({ ok:false, error:'user_not_found', code:'NOT_FOUND' }, { status:401 });
     let allowed = false;
     try {
       const { getCurrentUserServer } = await import('@/lib/auth');
-      const u = getCurrentUserServer(req as any);
+      const u = getCurrentUserServer(request as any);
       if (u?.rol === 'admin') {
         allowed = true;
       }
@@ -28,42 +23,110 @@ if (deny) return deny;
     if (!allowed) {
       allowed = (await userHasPerm(userId, 'rbac.platform_admin')) || (await userHasPerm(userId, 'rbac.tenants.read'));
     }
-    if (!allowed) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.tenants.read', code:'FORBIDDEN' }, { status:403 });
+    // Si es admin de tenant (no platform), restringir a su único tenant
+    const ctx = (request as any).ctx as { tenantId?: string } | undefined;
+    const tenantId = ctx?.tenantId ?? null;
+    const isPlatformAdmin = await userHasPerm(userId, 'rbac.platform_admin');
+    if (!allowed && !isPlatformAdmin) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.tenants.read', code:'FORBIDDEN' }, { status:403 });
     
-    const searchParams = req.nextUrl.searchParams;
+    const searchParams = request.nextUrl.searchParams;
     const q = (searchParams.get('q') || '').trim();
     const page = Number(searchParams.get('page') || '1');
     const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit') || '20')));
     const offset = (page - 1) * limit;
 
-    // Consulta simplificada para evitar problemas de sintaxis
+    // Consulta sin usar fragmentos dinámicos (evita errores de sintaxis de @vercel/postgres)
     let rows;
     if (q) {
-      rows = await sql`
-        SELECT * FROM tenants 
-        WHERE rut ILIKE ${'%' + q + '%'} OR nombre ILIKE ${'%' + q + '%'}
-        ORDER BY created_at DESC
-        LIMIT ${limit} OFFSET ${offset}
-      `;
+      const like = '%' + q + '%';
+      if (!isPlatformAdmin && tenantId) {
+        rows = await sql`
+          SELECT 
+            t.*, 
+            u.id   AS admin_id,
+            u.email AS admin_email,
+            u.nombre AS admin_nombre,
+            u.activo AS admin_activo
+          FROM tenants t
+          LEFT JOIN usuarios u ON u.tenant_id = t.id AND u.rol = 'admin'
+          WHERE (t.rut ILIKE ${like} OR t.nombre ILIKE ${like})
+            AND t.id = ${tenantId}
+          ORDER BY t.created_at DESC
+          LIMIT ${limit} OFFSET ${offset}
+        `;
+      } else {
+        rows = await sql`
+          SELECT 
+            t.*, 
+            u.id   AS admin_id,
+            u.email AS admin_email,
+            u.nombre AS admin_nombre,
+            u.activo AS admin_activo
+          FROM tenants t
+          LEFT JOIN usuarios u ON u.tenant_id = t.id AND u.rol = 'admin'
+          WHERE (t.rut ILIKE ${like} OR t.nombre ILIKE ${like})
+          ORDER BY t.created_at DESC
+          LIMIT ${limit} OFFSET ${offset}
+        `;
+      }
     } else {
-      rows = await sql`
-        SELECT * FROM tenants 
-        ORDER BY created_at DESC
-        LIMIT ${limit} OFFSET ${offset}
-      `;
+      if (!isPlatformAdmin && tenantId) {
+        rows = await sql`
+          SELECT 
+            t.*, 
+            u.id   AS admin_id,
+            u.email AS admin_email,
+            u.nombre AS admin_nombre,
+            u.activo AS admin_activo
+          FROM tenants t
+          LEFT JOIN usuarios u ON u.tenant_id = t.id AND u.rol = 'admin'
+          WHERE t.id = ${tenantId}
+          ORDER BY t.created_at DESC
+          LIMIT ${limit} OFFSET ${offset}
+        `;
+      } else {
+        rows = await sql`
+          SELECT 
+            t.*, 
+            u.id   AS admin_id,
+            u.email AS admin_email,
+            u.nombre AS admin_nombre,
+            u.activo AS admin_activo
+          FROM tenants t
+          LEFT JOIN usuarios u ON u.tenant_id = t.id AND u.rol = 'admin'
+          ORDER BY t.created_at DESC
+          LIMIT ${limit} OFFSET ${offset}
+        `;
+      }
     }
 
     // Contar total
     let totalRows;
     if (q) {
-      totalRows = await sql`
-        SELECT COUNT(*) as total FROM tenants 
-        WHERE rut ILIKE ${'%' + q + '%'} OR nombre ILIKE ${'%' + q + '%'}
-      `;
+      const like = '%' + q + '%';
+      if (!isPlatformAdmin && tenantId) {
+        totalRows = await sql`
+          SELECT COUNT(*) as total FROM tenants 
+          WHERE (rut ILIKE ${like} OR nombre ILIKE ${like})
+            AND id = ${tenantId}
+        `;
+      } else {
+        totalRows = await sql`
+          SELECT COUNT(*) as total FROM tenants 
+          WHERE (rut ILIKE ${like} OR nombre ILIKE ${like})
+        `;
+      }
     } else {
-      totalRows = await sql`
-        SELECT COUNT(*) as total FROM tenants
-      `;
+      if (!isPlatformAdmin && tenantId) {
+        totalRows = await sql`
+          SELECT COUNT(*) as total FROM tenants
+          WHERE id = ${tenantId}
+        `;
+      } else {
+        totalRows = await sql`
+          SELECT COUNT(*) as total FROM tenants
+        `;
+      }
     }
 
     const list = (rows as any).rows ?? (rows as any);
@@ -77,6 +140,12 @@ if (deny) return deny;
         rut: r.rut,
         activo: r.activo,
         created_at: r.created_at,
+        admin: r.admin_id ? {
+          id: r.admin_id,
+          email: r.admin_email,
+          nombre: r.admin_nombre,
+          activo: r.admin_activo,
+        } : null,
       })),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
@@ -86,24 +155,19 @@ if (deny) return deny;
   }
 }
 
-export async function POST(req: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'create' });
-if (deny) return deny;
+export async function POST(request: NextRequest) {
+  const deny = await requireAuthz(request, { resource: 'admin', action: 'create' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'read:list' });
-if (deny) return deny;
-
-  try {
-    const email = await getUserEmail(req);
+try {
+    const email = await getUserEmail(request);
     if (!email) return NextResponse.json({ ok:false, error:'unauthenticated', code:'UNAUTHENTICATED' }, { status:401 });
     const userId = await getUserIdByEmail(email!);
     if (!userId) return NextResponse.json({ ok:false, error:'user_not_found', code:'NOT_FOUND' }, { status:401 });
     let allowed = false;
     try {
       const { getCurrentUserServer } = await import('@/lib/auth');
-      const u = getCurrentUserServer(req as any);
+      const u = getCurrentUserServer(request as any);
       if (u?.rol === 'admin') {
         allowed = true;
       }
@@ -113,7 +177,7 @@ if (deny) return deny;
     }
     if (!allowed) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.tenants.create', code:'FORBIDDEN' }, { status:403 });
 
-    const body = await req.json();
+    const body = await request.json();
     const { nombre, rut, admin_email, admin_nombre, admin_password } = body;
 
     // Validar campos requeridos

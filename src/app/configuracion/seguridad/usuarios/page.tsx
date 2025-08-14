@@ -1,7 +1,7 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 "use client";
 
-import { useEffect, useState } from "react";
+import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Users, UserCheck, Settings } from "lucide-react";
@@ -37,8 +37,29 @@ export default function UsuariosPage() {
   const [deletingUser, setDeletingUser] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UsuarioRow | null>(null);
+  const [effectivePermissions, setEffectivePermissions] = useState<Record<string, string[]>>({});
   const { addToast: toast } = useToast();
   const router = useRouter();
+
+  // Cargar permisos del usuario
+  const cargarPermisos = useCallback(async () => {
+    try {
+      const response = await fetch('/api/me/effective-permissions');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.ok && data.effective) {
+          setEffectivePermissions(data.effective);
+        }
+      }
+    } catch (error) {
+      console.error('Error cargando permisos:', error);
+    }
+  }, []);
+
+  // Cargar permisos al montar el componente
+  useEffect(() => {
+    cargarPermisos();
+  }, [cargarPermisos]);
 
   async function toggleActivo(id: string, current: boolean) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, activo: !current } : r)));

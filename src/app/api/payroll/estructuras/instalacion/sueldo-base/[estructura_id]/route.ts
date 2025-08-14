@@ -3,15 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 // PUT: actualizar monto/fechas de la línea sueldo_base de esa estructura
-export async function PUT(request: NextRequest, {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'delete' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'update' });
-if (deny) return deny;
- params }: { params: { estructura_id: string } }) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { estructura_id: string } }
+) {
+  const deny = await requireAuthz(req, { resource: 'payroll', action: 'delete' });
+  if (deny) return deny;
   try {
     const { estructura_id } = params;
     const body = await request.json();
@@ -82,15 +79,12 @@ if (deny) return deny;
 }
 
 // DELETE: soft delete de sueldo_base
-export async function DELETE(_request: NextRequest, {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'delete' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'update' });
-if (deny) return deny;
- params }: { params: { estructura_id: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { estructura_id: string } }
+) {
+  const deny = await requireAuthz(req, { resource: 'payroll', action: 'delete' });
+  if (deny) return deny;
   try {
     const { estructura_id } = params;
 

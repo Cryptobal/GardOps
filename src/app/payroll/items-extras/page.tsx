@@ -1,4 +1,4 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";

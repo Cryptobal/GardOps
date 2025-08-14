@@ -5,16 +5,10 @@ import { query } from '@/lib/database';
 // PUT - Actualizar estructura de servicio
 export async function PUT(
   request: NextRequest,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'delete' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'update' });
-if (deny) return deny;
- params }: { params: { id: string; estructuraId: string } }
+  { params }: { params: { id: string; estructuraId: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'instalaciones', action: 'delete' });
+  if (deny) return deny;
   try {
     const { estructuraId } = params;
     const body = await request.json();
@@ -134,16 +128,10 @@ if (deny) return deny;
 // DELETE - Eliminar estructura de servicio
 export async function DELETE(
   request: NextRequest,
-  {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'delete' });
-if (deny) return deny;
-
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'instalaciones', action: 'update' });
-if (deny) return deny;
- params }: { params: { id: string; estructuraId: string } }
+  { params }: { params: { id: string; estructuraId: string } }
 ) {
+  const deny = await requireAuthz(req, { resource: 'instalaciones', action: 'delete' });
+  if (deny) return deny;
   try {
     const { estructuraId } = params;
 

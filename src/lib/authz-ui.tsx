@@ -1,3 +1,5 @@
+import React from 'react';
+
 export type Action =
   | 'read:list' | 'read:detail' | 'create' | 'update' | 'delete' | 'export'
   | 'manage:roles' | 'admin:*';
@@ -11,29 +13,20 @@ export function can(resource: Resource, action: Action, eff: Record<string, stri
   return actions.includes(action) || actions.includes('admin:*');
 }
 
-import React from 'react';
 export function Authorize(
   { resource, action, eff, children }:
-  { resource: Resource, action: Action, eff: Record<string,string[]>, children: React.ReactNode }
+  { resource: Resource, action: Action, eff: Record<string, string[]>, children: React.ReactNode }
 ) {
   if (!can(resource, action, eff)) return null;
   return <>{children}</>;
 }
 
 export function GuardButton(
-  { resource, action, eff, onClick, ...props }:
-  { resource: Resource, action: Action, eff: Record<string,string[]>, onClick?: () => void } & React.ButtonHTMLAttributes<HTMLButtonElement>
+  { resource, action, eff, onClick, children, ...props }:
+  { resource: Resource, action: Action, eff: Record<string, string[]>, onClick?: () => void, children: React.ReactNode } & React.ButtonHTMLAttributes<HTMLButtonElement>
 ) {
-  const allowed = can(resource, action, eff);
-  return (
-    <button
-      {...props}
-      onClick={allowed ? onClick : undefined}
-      aria-disabled={!allowed}
-      disabled={!allowed}
-      data-guard={`${resource}:${action}`}
-    />
-  );
+  if (!can(resource, action, eff)) {
+    return <button {...props} disabled>{children}</button>;
+  }
+  return <button {...props} onClick={onClick}>{children}</button>;
 }
-
-

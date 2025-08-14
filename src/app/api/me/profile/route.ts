@@ -3,13 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { getCurrentUserServer } from '@/lib/auth';
 
-// Utilidad: tomar email desde header dev o cabecera directa
+// Utilidad: obtener email del JWT o cabecera x-user-email (solo nombre válido)
 function getEmail(req: NextRequest) {
   const h = req.headers;
-  const fromHeader =
-    h.get('x-user-email') ||
-    h.get('x-user-email(next/headers)') ||
-    '';
+  let fromHeader = '';
+  try {
+    fromHeader = h.get('x-user-email') || '';
+  } catch {}
   const fromJwt = getCurrentUserServer(req as any)?.email || '';
   const isDev = process.env.NODE_ENV !== 'production';
   const dev = isDev ? process.env.NEXT_PUBLIC_DEV_USER_EMAIL : undefined;
@@ -17,15 +17,9 @@ function getEmail(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'me', action: 'update' });
-if (deny) return deny;
+  // Perfil propio: basta con estar autenticado (JWT). No aplicar RBAC por permiso 'me.view'.
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'me', action: 'read:list' });
-if (deny) return deny;
-
-  try {
+try {
     const email = getEmail(req);
     if (!email) {
       return NextResponse.json({ ok: false, error: 'No autenticado', code: 'UNAUTHENTICATED' }, { status: 401 });
@@ -84,15 +78,9 @@ if (deny) return deny;
 }
 
 export async function PUT(req: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'me', action: 'update' });
-if (deny) return deny;
+  // Actualización de perfil propio: requiere autenticación (JWT). RBAC específico no aplica.
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'me', action: 'read:list' });
-if (deny) return deny;
-
-  try {
+try {
     const email = getEmail(req);
     if (!email) {
       return NextResponse.json({ ok: false, error: 'No autenticado', code: 'UNAUTHENTICATED' }, { status: 401 });

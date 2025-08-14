@@ -1,6 +1,6 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 'use client';
 
+import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { GuardiaSearchModal } from '@/components/ui/guardia-search-modal';

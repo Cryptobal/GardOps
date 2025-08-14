@@ -5,15 +5,10 @@ import fs from 'fs';
 import path from 'path';
 
 export async function POST(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'read:list' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'sueldos', action: 'read:list' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'create' });
-if (deny) return deny;
-
-  try {
+try {
     // Leer el archivo SQL
     const sqlPath = path.join(process.cwd(), 'db', 'init-sueldo-tables.sql');
     const sqlContent = fs.readFileSync(sqlPath, 'utf8');
@@ -61,15 +56,10 @@ if (deny) return deny;
 }
 
 export async function GET() {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'read:list' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'sueldos', action: 'read:list' });
+  if (deny) return deny;
 
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'sueldos', action: 'create' });
-if (deny) return deny;
-
-  try {
+try {
     // Verificar el estado de las tablas
     const tables = [
       'sueldo_valor_uf',

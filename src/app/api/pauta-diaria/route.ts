@@ -20,9 +20,8 @@ type Row = {
 };
 
 export async function GET(req: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'pauta_diaria', action: 'read:list' });
-if (deny) return deny;
+  const deny = await requireAuthz(req, { resource: 'pauta_diaria', action: 'read:list' });
+  if (deny) return deny;
 
   noStore();
   const url = new URL(req.url);
@@ -31,15 +30,22 @@ if (deny) return deny;
   if (!fecha) return new Response('fecha (YYYY-MM-DD) requerida', { status: 400 });
 
   const params: any[] = [fecha];
+  let paramIndex = 2;
+  // Unir con instalaciones para poder filtrar por tenant
   let sql = `
-    SELECT pauta_id, puesto_id, fecha::text, anio, mes, dia,
-           guardia_id::text, estado, meta,
-           instalacion_id::text, instalacion_nombre, guardia_nombre
-    FROM as_turnos_v_pauta_diaria
-    WHERE fecha = $1
+    SELECT v.pauta_id, v.puesto_id, v.fecha::text, v.anio, v.mes, v.dia,
+           v.guardia_id::text, v.estado, v.meta,
+           v.instalacion_id::text, v.instalacion_nombre, v.guardia_nombre
+    FROM as_turnos_v_pauta_diaria v
+    JOIN instalaciones i ON i.id = v.instalacion_id
+    WHERE v.fecha = $1
   `;
-  if (instalacionId) { params.push(instalacionId); sql += ` AND instalacion_id = $2`; }
-  sql += ` ORDER BY instalacion_nombre, puesto_id`;
+
+  const ctx = (req as any).ctx as { tenantId?: string } | undefined;
+  const tenantId = ctx?.tenantId ?? null;
+  if (tenantId) { sql += ` AND i.tenant_id::text = $${paramIndex++}`; params.push(tenantId); }
+  if (instalacionId) { sql += ` AND v.instalacion_id::text = $${paramIndex++}`; params.push(instalacionId); }
+  sql += ` ORDER BY v.instalacion_nombre, v.puesto_id`;
 
   const { rows } = await pool.query<Row>(sql, params);
   return Response.json({ data: rows });

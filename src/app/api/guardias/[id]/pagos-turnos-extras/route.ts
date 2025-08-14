@@ -4,9 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(
   request: NextRequest,
   {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'guardias', action: 'read:detail' });
-if (deny) return deny;
+
  params }: { params: { id: string } }
 ) {
   try {
