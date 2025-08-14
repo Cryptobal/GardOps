@@ -1,3 +1,4 @@
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -624,7 +625,8 @@ export default function TurnosInstalacion({
             </div>
 
             <div className="flex items-end">
-              <Button 
+              <Authorize resource="instalaciones" action="create" eff={effectivePermissions}>
+  <GuardButton resource="instalaciones" action="create" eff={effectivePermissions}  
                 onClick={handleCrearTurno}
                 disabled={creando || !formData.rol_servicio_id}
                 size="sm"
@@ -632,7 +634,8 @@ export default function TurnosInstalacion({
                 className="w-full"
               >
                 {creando ? 'Creando...' : 'Crear Turno'}
-              </Button>
+              </GuardButton>
+</Authorize>
             </div>
           </div>
         </CardContent>

@@ -1,3 +1,4 @@
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -968,7 +969,9 @@ function CreateEstructuraForm({ instalacionId, rolServicioId, periodoMes, onSucc
       </div>
 
       <div className="flex justify-end gap-2 pt-2">
-        <Button type="submit" disabled={loading}>{loading ? 'Creando...' : 'Crear estructura'}</Button>
+        <Authorize resource="payroll" action="create" eff={effectivePermissions}>
+  <GuardButton resource="payroll" action="create" eff={effectivePermissions}  type="submit" disabled={loading}>{loading ? 'Creando...' : 'Crear estructura'}</GuardButton>
+</Authorize>
       </div>
     </form>
   );
@@ -1040,7 +1043,9 @@ function SueldoBaseForm({ estructuraId, baseItem, periodoMes, onSuccess, onDelet
         </Popover>
       </div>
       <div className="flex justify-between pt-2">
-        <Button type="button" variant="destructive" onClick={eliminar} disabled={!baseItem}>Eliminar</Button>
+        <Authorize resource="payroll" action="delete" eff={effectivePermissions}>
+  <GuardButton resource="payroll" action="delete" eff={effectivePermissions}  type="button" variant="destructive" onClick={eliminar} disabled={!baseItem}>Eliminar</GuardButton>
+</Authorize>
         <Button type="submit" disabled={loading}>{loading ? 'Guardando...' : 'Guardar'}</Button>
       </div>
     </form>
@@ -1172,7 +1177,9 @@ function CreateEstructuraFormNoCalendar({ instalacionId, rolServicioId, periodoM
         )}
       </div>
       <div className="flex justify-end gap-2 pt-2">
-        <Button type="submit" disabled={loading}>{loading ? 'Creando...' : 'Crear estructura (sin calendario)'}</Button>
+        <Authorize resource="payroll" action="create" eff={effectivePermissions}>
+  <GuardButton resource="payroll" action="create" eff={effectivePermissions}  type="submit" disabled={loading}>{loading ? 'Creando...' : 'Crear estructura (sin calendario)'}</GuardButton>
+</Authorize>
       </div>
     </form>
   );

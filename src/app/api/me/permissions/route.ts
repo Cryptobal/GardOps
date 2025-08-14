@@ -8,9 +8,8 @@ import { getCurrentUserServer } from '@/lib/auth'
 export const runtime = 'nodejs'
 
 export async function GET(req: Request) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'me', action: 'read:list' });
-if (deny) return deny;
+  // Relajar gate de endpoint a "autenticado": si hay JWT o cabecera dev,
+  // se permite consultar. El control de permisos es por-param.
 
   try {
     const url = new URL(req.url)

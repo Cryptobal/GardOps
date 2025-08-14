@@ -2,10 +2,10 @@ import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
-const users = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'config', 'users.json'),'utf8'));
-const oracle = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'config', 'rbac_oracle.json'),'utf8'));
+const users = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'config', 'users.json'),'utf8'));
+const oracle = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'config', 'rbac_oracle.json'),'utf8'));
 
-const shotsDir = path.join(process.cwd(), 'outputs', 'ui_screenshots');
+const shotsDir = path.join(__dirname, '..', '..', 'outputs', 'ui_screenshots');
 fs.mkdirSync(shotsDir, { recursive: true });
 
 function sidebarSelectorsForModule(mod: string) {
@@ -19,16 +19,20 @@ for (const u of users) {
 			await page.context().setExtraHTTPHeaders({ 'x-user-email': u.email });
 			// Simular login simple por header si la app lo soporta vía cookie dev o fallback a baseURL
 			await page.goto('/', { waitUntil: 'domcontentloaded' });
-			// Navegar directo
-			await page.goto(`/${moduleName}`);
-			const allowedList = oracle[moduleName]?.[u.role]?.includes('read:list');
-			if (!allowedList) {
-				// Módulo no debería aparecer en sidebar
-				for (const sel of sidebarSelectorsForModule(moduleName)) {
-					const el = await page.$(sel);
-					expect(el).toBeNull();
-				}
-			}
+            // Navegar directo sólo si se permite listar
+            const allowedList = oracle[moduleName]?.[u.role]?.includes('read:list');
+            if (allowedList) {
+                await page.goto(`/${moduleName}`);
+            } else {
+                // Evitar aborts por 401/403/redirects
+                try { await page.goto(`/${moduleName}`); } catch {}
+            }
+            if (!allowedList) {
+                // Módulo no debería aparecer en sidebar (esperar a que hidrate y oculte)
+                for (const sel of sidebarSelectorsForModule(moduleName)) {
+                    await expect(page.locator(sel)).toHaveCount(0);
+                }
+            }
 			// En página: validar ausencia/presencia de botones por rol
 			const shouldCreate = oracle[moduleName]?.[u.role]?.includes('create');
 			const shouldUpdate = oracle[moduleName]?.[u.role]?.includes('update');

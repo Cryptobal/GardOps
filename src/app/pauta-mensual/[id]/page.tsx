@@ -1,3 +1,4 @@
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -924,9 +925,11 @@ export default function PautaMensualUnificadaPage() {
             {guardando ? (<><Loader2 className="h-4 w-4 animate-spin mr-2"/>Guardando</>) : 'Guardar'}
           </Button>
         ) : (
-          <Button size="sm" onClick={() => setEditando(true)} className="flex-1">
+          <Authorize resource="pauta_mensual" action="update" eff={effectivePermissions}>
+  <GuardButton resource="pauta_mensual" action="update" eff={effectivePermissions}  size="sm" onClick={() => setEditando(true)} className="flex-1">
             Editar
-          </Button>
+          </GuardButton>
+</Authorize>
         )}
         {hayCambios() && <span className="text-[11px] text-amber-600">Cambios sin guardar</span>}
       </div>

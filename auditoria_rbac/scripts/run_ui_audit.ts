@@ -4,11 +4,13 @@ import fs from 'fs';
 import path from 'path';
 
 function main() {
-	const root = process.cwd();
+	// Asegurar que resolvemos rutas respecto a auditoria_rbac/
+	const root = path.resolve(__dirname, '..');
 	const cfg = path.join(root, 'tests', 'ui', 'playwright.config.ts');
 	let exitCode = 0;
 	try {
-		execSync(`npx playwright test --config=${cfg}`, { stdio: 'inherit' });
+    // Ejecutar usando la instalación local de auditoria_rbac para evitar conflictos de versiones
+    execSync(`npx --prefix ${root} playwright test ${path.join(root, 'tests', 'ui')} --config ${cfg}`, { stdio: 'inherit' });
 	} catch (e: any) {
 		exitCode = e?.status || 1;
 		console.warn('Playwright terminó con errores, continuando para generar reportes...');

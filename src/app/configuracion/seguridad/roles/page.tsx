@@ -1,3 +1,4 @@
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 "use client";
 
 import { useState, useEffect } from "react";
@@ -243,14 +244,16 @@ export default function RolesPage() {
           </div>
           <div className="flex-shrink-0 flex items-center gap-2">
             {isPlatformAdmin && (
-              <Button 
+              <Authorize resource="configuracion" action="create" eff={effectivePermissions}>
+  <GuardButton resource="configuracion" action="create" eff={effectivePermissions}  
                 variant="outline" 
                 onClick={createAdminRole}
                 disabled={guardando}
                 className="w-full sm:w-auto"
               >
                 👑 Crear Rol Admin
-              </Button>
+              </GuardButton>
+</Authorize>
             )}
             {canWrite && (
               <Button onClick={iniciarCreacion} disabled={creandoRol} className="w-full sm:w-auto">

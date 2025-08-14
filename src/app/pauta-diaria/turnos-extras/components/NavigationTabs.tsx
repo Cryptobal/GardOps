@@ -1,3 +1,4 @@
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 'use client';
 
 import { DollarSign, Calendar, BarChart3 } from 'lucide-react';

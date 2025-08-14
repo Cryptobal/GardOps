@@ -1,3 +1,4 @@
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 "use client";
 
 import { useEffect, useState } from "react";
@@ -173,9 +174,11 @@ export default function TenantsPage() {
             </p>
           </div>
           <div className="flex justify-end">
-            <Button onClick={createTenant} disabled={submitting || !isFormValid}>
+            <Authorize resource="configuracion" action="create" eff={effectivePermissions}>
+  <GuardButton resource="configuracion" action="create" eff={effectivePermissions}  onClick={createTenant} disabled={submitting || !isFormValid}>
               {submitting ? 'Creando...' : 'Crear Tenant con Admin'}
-            </Button>
+            </GuardButton>
+</Authorize>
           </div>
         </CardContent>
       </Card>

@@ -1,3 +1,4 @@
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 "use client";
 
 import { useState, useEffect } from "react";
@@ -256,12 +257,14 @@ export default function TiposDocumentosPage() {
             ))}
           </select>
           
-          <Button 
+          <Authorize resource="configuracion" action="create" eff={effectivePermissions}>
+  <GuardButton resource="configuracion" action="create" eff={effectivePermissions}  
             onClick={() => abrirModal()}
             className="bg-white text-black hover:bg-white/90 px-4 py-2 text-sm font-medium"
           >
             Nuevo tipo
-          </Button>
+          </GuardButton>
+</Authorize>
         </div>
       </div>
 

@@ -1,3 +1,4 @@
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -187,9 +188,11 @@ export default function AsignacionesPage() {
             </div>
             <h2 className="text-lg font-semibold mb-2">Error al cargar datos</h2>
             <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={() => window.location.reload()}>
+            <Authorize resource="optimizacion_asignaciones" action="create" eff={effectivePermissions}>
+  <GuardButton resource="optimizacion_asignaciones" action="create" eff={effectivePermissions}  onClick={() => window.location.reload()}>
               Intentar de nuevo
-            </Button>
+            </GuardButton>
+</Authorize>
           </div>
         </div>
       </div>

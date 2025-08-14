@@ -23,11 +23,23 @@ function wrapButtons(src: string, resource: string): { code: string; wrapped: nu
     { re: /<button([^>]*?)>([^<]*?(?:editar)[^<]*?)<\/button>/gi, action: 'update' },
     { re: /<button([^>]*?)>([^<]*?(?:eliminar|borrar)[^<]*?)<\/button>/gi, action: 'delete' },
     { re: /<button([^>]*?)>([^<]*?(?:export(?:ar)?)[^<]*?)<\/button>/gi, action: 'export' },
+    // Enlaces que actúan como botones
+    { re: /<a([^>]*?)(?:data-testid=["']create["'][^>]*)>([\s\S]*?)<\/a>/gi, action: 'create' },
+    { re: /<a([^>]*?)(?:data-testid=["']edit["'][^>]*)>([\s\S]*?)<\/a>/gi, action: 'update' },
+    { re: /<a([^>]*?)(?:data-testid=["']delete["'][^>]*)>([\s\S]*?)<\/a>/gi, action: 'delete' },
+    { re: /<a([^>]*?)(?:data-testid=["']export["'][^>]*)>([\s\S]*?)<\/a>/gi, action: 'export' },
+    // Next Link con hijos texto
+    { re: /<Link([^>]*?)>([^<]*?(?:nuevo|crear)[^<]*?)<\/Link>/gi, action: 'create' },
+    { re: /<Link([^>]*?)>([^<]*?(?:editar)[^<]*?)<\/Link>/gi, action: 'update' },
+    { re: /<Link([^>]*?)>([^<]*?(?:eliminar|borrar)[^<]*?)<\/Link>/gi, action: 'delete' },
+    { re: /<Link([^>]*?)>([^<]*?(?:export(?:ar)?)[^<]*?)<\/Link>/gi, action: 'export' },
   ]
   for (const { re, action } of patterns) {
     code = code.replace(re, (_m, attrs, text) => {
       wrapped++
-      return `<Authorize resource="${resource}" action="${action}" eff={effectivePermissions}>\n  <GuardButton resource="${resource}" action="${action}" eff={effectivePermissions}" ${attrs}>${text}</GuardButton>\n</Authorize>`
+      return `<Authorize resource="${resource}" action="${action}" eff={effectivePermissions}>
+  <GuardButton resource="${resource}" action="${action}" eff={effectivePermissions} ${attrs}>${text}</GuardButton>
+</Authorize>`
     })
   }
   return { code, wrapped }

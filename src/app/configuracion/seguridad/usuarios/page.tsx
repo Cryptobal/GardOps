@@ -1,3 +1,4 @@
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 "use client";
 
 import { useEffect, useState } from "react";
@@ -260,12 +261,14 @@ export default function UsuariosPage() {
           <p className="text-sm text-red-600 mb-4">{error}</p>
         )}
         <div className="flex justify-between items-center">
-          <Button
+          <Authorize resource="configuracion" action="create" eff={effectivePermissions}>
+  <GuardButton resource="configuracion" action="create" eff={effectivePermissions} 
             onClick={() => setShowNew(true)}
             aria-label="Abrir modal Nuevo Usuario"
           >
             Nuevo Usuario
-          </Button>
+          </GuardButton>
+</Authorize>
         </div>
       </div>
 
@@ -355,7 +358,8 @@ export default function UsuariosPage() {
                           >
                             {row.activo ? "Desactivar" : "Activar"}
                           </Button>
-                          <Button
+                          <Authorize resource="configuracion" action="delete" eff={effectivePermissions}>
+  <GuardButton resource="configuracion" action="delete" eff={effectivePermissions} 
                             size="sm"
                             variant="destructive"
                             onClick={() => openDeleteModal(row)}
@@ -363,7 +367,8 @@ export default function UsuariosPage() {
                             aria-label="Eliminar usuario"
                           >
                             {deletingUser === row.id ? "Eliminando..." : "🗑️"}
-                          </Button>
+                          </GuardButton>
+</Authorize>
                         </div>
                       </td>
                     </tr>
@@ -666,13 +671,15 @@ export default function UsuariosPage() {
             >
               Cancelar
             </Button>
-            <Button
+            <Authorize resource="configuracion" action="delete" eff={effectivePermissions}>
+  <GuardButton resource="configuracion" action="delete" eff={effectivePermissions} 
               variant="destructive"
               onClick={() => userToDelete && deleteUser(userToDelete)}
               disabled={deletingUser !== null}
             >
               {deletingUser ? "Eliminando..." : "Eliminar Usuario"}
-            </Button>
+            </GuardButton>
+</Authorize>
           </DialogFooter>
         </DialogContent>
       </Dialog>

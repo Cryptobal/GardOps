@@ -1,3 +1,4 @@
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -629,9 +630,11 @@ export default function ItemsGlobalesPage() {
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Authorize resource="payroll" action="create" eff={effectivePermissions}>
+  <GuardButton resource="payroll" action="create" eff={effectivePermissions}  type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Guardando...' : (editingItem ? 'Actualizar' : 'Crear')}
-              </Button>
+              </GuardButton>
+</Authorize>
             </div>
           </form>
         </DialogContent>

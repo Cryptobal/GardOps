@@ -1,3 +1,4 @@
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -415,9 +416,11 @@ export default function RolesServicioPage() {
           </div>
 
           <div className="mt-4">
-            <Button onClick={handleCrearRol} disabled={creando}>
+            <Authorize resource="configuracion" action="create" eff={effectivePermissions}>
+  <GuardButton resource="configuracion" action="create" eff={effectivePermissions}  onClick={handleCrearRol} disabled={creando}>
               {creando ? 'Creando...' : 'Crear Rol'}
-            </Button>
+            </GuardButton>
+</Authorize>
           </div>
         </CardContent>
       </Card>

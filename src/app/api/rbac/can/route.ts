@@ -7,9 +7,9 @@ import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
  * GET /api/rbac/can?permiso=xxx
  */
 export async function GET(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'rbac', action: 'read:list' });
-if (deny) return deny;
+  // Este endpoint debe ser accesible para usuarios autenticados con cualquier rol;
+  // el control fino lo hace la consulta de permisos más abajo. Si el usuario no
+  // está autenticado, devolverá 401 al intentar resolver el email.
 
   try {
     const searchParams = request.nextUrl.searchParams;

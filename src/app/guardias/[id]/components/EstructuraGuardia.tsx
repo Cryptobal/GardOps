@@ -1,3 +1,4 @@
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -309,9 +310,11 @@ export default function EstructuraGuardia({ guardiaId }: Props) {
                 No hay estructura personal ni de servicio vigente para el período seleccionado
               </p>
               <Link href={`/payroll/estructuras-guardia?guardia_id=${guardiaId}&anio=${anio}&mes=${mes}`}>
-                <Button>
+                <Authorize resource="guardias" action="create" eff={effectivePermissions}>
+  <GuardButton resource="guardias" action="create" eff={effectivePermissions} >
                   Crear Estructura Personal
-                </Button>
+                </GuardButton>
+</Authorize>
               </Link>
             </div>
           )}

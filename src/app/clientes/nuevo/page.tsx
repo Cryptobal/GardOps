@@ -1,3 +1,4 @@
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 'use client';
 
 import { useState } from 'react';
@@ -383,13 +384,15 @@ export default function NuevoClientePage() {
         >
           Cancelar
         </Button>
-        <Button
+        <Authorize resource="clientes" action="create" eff={effectivePermissions}>
+  <GuardButton resource="clientes" action="create" eff={effectivePermissions} 
           onClick={guardarCliente}
           disabled={loading}
           className="bg-blue-600 hover:bg-blue-700 text-white"
         >
           {loading ? 'Guardando...' : 'Crear Cliente'}
-        </Button>
+        </GuardButton>
+</Authorize>
       </div>
     </div>
   );
