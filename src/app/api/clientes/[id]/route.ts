@@ -1,30 +1,22 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { requireAuthz } from '@/lib/authz-api';
-import { sql } from '@/lib/db';
+import { NextRequest, NextResponse } from "next/server";
+import pool from "../../../../lib/database";
 
-// GET /api/clientes/[id] - Obtener cliente por ID
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(request, { resource: 'clientes', action: 'read:detail' });
-  if (deny) return deny;
-
   try {
-    const ctx = (request as any).ctx as { tenantId: string; selectedTenantId?: string; isPlatformAdmin?: boolean } | undefined;
-    // Solo usar selectedTenantId si es Platform Admin, sino usar el tenantId del usuario
-    const tenantId = ctx?.isPlatformAdmin ? (ctx?.selectedTenantId || ctx?.tenantId) : ctx?.tenantId;
-    
-    if (!tenantId) {
-      return NextResponse.json({ success: false, error: 'TENANT_REQUIRED', code: 'TENANT_REQUIRED' }, { status: 400 });
-    }
-
     const clienteId = params.id;
-    const result = await sql`SELECT * FROM clientes WHERE id = ${clienteId} AND tenant_id = ${tenantId}::uuid`;
+
+    // Obtener el cliente por ID
+    const result = await pool.query(
+      "SELECT * FROM clientes WHERE id = $1",
+      [clienteId]
+    );
 
     if (result.rows.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'Cliente no encontrado' },
+        { success: false, error: "Cliente no encontrado" },
         { status: 404 }
       );
     }
@@ -34,91 +26,117 @@ export async function GET(
       data: result.rows[0],
     });
   } catch (error) {
-    console.error('Error obteniendo cliente:', error);
+    console.error("Error obteniendo cliente:", error);
     return NextResponse.json(
-      { success: false, error: 'Error interno del servidor' },
+      { success: false, error: "Error interno del servidor" },
       { status: 500 }
     );
   }
 }
 
-// PUT /api/clientes/[id] - Actualizar cliente por ID
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(request, { resource: 'clientes', action: 'update' });
-  if (deny) return deny;
-
   try {
-    const ctx = (request as any).ctx as { tenantId: string; selectedTenantId?: string; isPlatformAdmin?: boolean } | undefined;
-    const tenantId = ctx?.isPlatformAdmin ? (ctx?.selectedTenantId || ctx?.tenantId) : ctx?.tenantId;
-    
-    if (!tenantId) {
-      return NextResponse.json({ success: false, error: 'TENANT_REQUIRED', code: 'TENANT_REQUIRED' }, { status: 400 });
-    }
-
     const clienteId = params.id;
     const body = await request.json();
-    const { nombre, email, telefono, direccion, rut, razon_social, representante_legal, rut_representante, ciudad, comuna, estado } = body;
-    
-    const updateResult = await sql`UPDATE clientes SET nombre = ${nombre}, email = ${email}, telefono = ${telefono}, direccion = ${direccion}, rut = ${rut}, razon_social = ${razon_social}, representante_legal = ${representante_legal}, rut_representante = ${rut_representante}, ciudad = ${ciudad}, comuna = ${comuna}, estado = ${estado} WHERE id = ${clienteId} AND tenant_id = ${tenantId}::uuid RETURNING *`;
 
-    if (updateResult.rows.length === 0) {
+    // Verificar si el cliente existe
+    const checkResult = await pool.query(
+      "SELECT id FROM clientes WHERE id = $1",
+      [clienteId]
+    );
+
+    if (checkResult.rows.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'Cliente no encontrado' },
+        { success: false, error: "Cliente no encontrado" },
         { status: 404 }
       );
     }
+
+    // Validar si se está intentando inactivar el cliente
+    if (body.estado === 'Inactivo') {
+      // Verificar si el cliente tiene instalaciones activas
+      const instalacionesActivas = await pool.query(
+        `SELECT COUNT(*) as count 
+         FROM instalaciones 
+         WHERE cliente_id = $1 AND estado = 'Activo'`,
+        [clienteId]
+      );
+
+      if (instalacionesActivas.rows[0].count > 0) {
+        // Obtener información detallada de las instalaciones
+        const instalacionesDetalle = await pool.query(
+          `SELECT id, nombre, estado
+           FROM instalaciones 
+           WHERE cliente_id = $1
+           ORDER BY estado DESC, nombre`,
+          [clienteId]
+        );
+
+        const instalacionesActivasDetalle = instalacionesDetalle.rows.filter((i: any) => i.estado === 'Activo');
+        const instalacionesInactivasDetalle = instalacionesDetalle.rows.filter((i: any) => i.estado === 'Inactivo');
+
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'No se puede inactivar el cliente porque tiene instalaciones activas. Primero debe inactivar todas las instalaciones asociadas.',
+            instalacionesActivas: instalacionesActivasDetalle,
+            instalacionesInactivas: instalacionesInactivasDetalle,
+            clienteId: clienteId
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Actualizar el cliente
+    const updateResult = await pool.query(
+      `UPDATE clientes SET 
+        nombre = $1,
+        rut = $2,
+        representante_legal = $3,
+        rut_representante = $4,
+        email = $5,
+        telefono = $6,
+        direccion = $7,
+        latitud = $8,
+        longitud = $9,
+        ciudad = $10,
+        comuna = $11,
+        razon_social = $12,
+        estado = $13,
+        updated_at = NOW()
+      WHERE id = $14
+      RETURNING *`,
+      [
+        body.nombre,
+        body.rut,
+        body.representante_legal,
+        body.rut_representante,
+        body.email,
+        body.telefono,
+        body.direccion,
+        body.latitud,
+        body.longitud,
+        body.ciudad,
+        body.comuna,
+        body.razon_social,
+        body.estado,
+        clienteId
+      ]
+    );
 
     return NextResponse.json({
       success: true,
       data: updateResult.rows[0],
     });
   } catch (error) {
-    console.error('Error actualizando cliente:', error);
+    console.error("Error actualizando cliente:", error);
     return NextResponse.json(
-      { success: false, error: 'Error interno del servidor' },
+      { success: false, error: "Error interno del servidor" },
       { status: 500 }
     );
   }
-}
-
-// DELETE /api/clientes/[id] - Eliminar cliente por ID
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const deny = await requireAuthz(request, { resource: 'clientes', action: 'delete' });
-  if (deny) return deny;
-
-  try {
-    const ctx = (request as any).ctx as { tenantId: string; selectedTenantId?: string; isPlatformAdmin?: boolean } | undefined;
-    const tenantId = ctx?.isPlatformAdmin ? (ctx?.selectedTenantId || ctx?.tenantId) : ctx?.tenantId;
-    
-    if (!tenantId) {
-      return NextResponse.json({ success: false, error: 'TENANT_REQUIRED', code: 'TENANT_REQUIRED' }, { status: 400 });
-    }
-
-    const clienteId = params.id;
-    const result = await sql`DELETE FROM clientes WHERE id = ${clienteId} AND tenant_id = ${tenantId}::uuid RETURNING *`;
-
-    if (result.rows.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'Cliente no encontrado' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: result.rows[0],
-    });
-  } catch (error) {
-    console.error('Error eliminando cliente:', error);
-    return NextResponse.json(
-      { success: false, error: 'Error interno del servidor' },
-      { status: 500 }
-    );
-  }
-}
+} 

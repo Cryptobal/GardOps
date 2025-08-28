@@ -1,8 +1,6 @@
 "use client";
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import { useState, useEffect } from "react";
-import { useCan } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +25,6 @@ const MODULOS = [
 ];
 
 export default function TiposDocumentosPage() {
-  const { allowed } = useCan('config.tipos_documentos.view');
   const [tipos, setTipos] = useState<TipoDocumento[]>([]);
   const [filtroModulo, setFiltroModulo] = useState<string>("");
   const [cargando, setCargando] = useState(true);
@@ -79,9 +76,8 @@ export default function TiposDocumentosPage() {
   };
 
   useEffect(() => {
-    if (!allowed) return;
     cargarTipos();
-  }, [allowed]);
+  }, []);
 
   const tiposFiltrados = filtroModulo 
     ? tipos.filter(tipo => tipo.modulo === filtroModulo)
@@ -212,16 +208,6 @@ export default function TiposDocumentosPage() {
     }
   };
 
-  if (!allowed) {
-    return (
-      <div className="p-6">
-        <div className="rounded-xl border p-6 text-center text-muted-foreground">
-          Acceso denegado
-        </div>
-      </div>
-    );
-  }
-
   if (cargando) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -259,7 +245,7 @@ export default function TiposDocumentosPage() {
             ))}
           </select>
           
-          <Button
+          <Button 
             onClick={() => abrirModal()}
             className="bg-white text-black hover:bg-white/90 px-4 py-2 text-sm font-medium"
           >

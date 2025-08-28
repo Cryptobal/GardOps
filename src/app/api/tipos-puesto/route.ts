@@ -1,13 +1,9 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 // GET - Listar todos los tipos de puesto
 export async function GET(request: NextRequest) {
-  const deny = await requireAuthz(request, { resource: 'tipos_puesto', action: 'read:list' });
-  if (deny) return deny;
-
-try {
+  try {
     const searchParams = request.nextUrl.searchParams;
     const incluirInactivos = searchParams.get('incluir_inactivos') === 'true';
     
@@ -41,10 +37,7 @@ try {
 
 // POST - Crear nuevo tipo de puesto
 export async function POST(request: NextRequest) {
-  const deny = await requireAuthz(request, { resource: 'tipos_puesto', action: 'create' });
-  if (deny) return deny;
-
-try {
+  try {
     const body = await request.json();
     const { nombre, descripcion, emoji, color, orden } = body;
 

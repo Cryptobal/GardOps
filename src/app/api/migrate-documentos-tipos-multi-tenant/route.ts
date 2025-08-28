@@ -1,14 +1,9 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../lib/database';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
 export async function GET(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'migrate_documentos_tipos_multi_tenant', action: 'read:list' });
-if (deny) return deny;
-
   try {
     console.log('🚀 Iniciando migración de documentos_tipos y multi-tenant...');
 

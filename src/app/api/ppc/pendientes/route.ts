@@ -1,12 +1,7 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextResponse } from "next/server";
 import { query } from "@/lib/database";
 
 export async function GET() {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'ppc', action: 'read:list' });
-if (deny) return deny;
-
   try {
     // Obtener puestos operativos (PPC) sin asignar
     const ppcs = await query(`
@@ -25,7 +20,7 @@ if (deny) return deny;
       FROM as_turnos_puestos_operativos po
       INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       INNER JOIN instalaciones i ON po.instalacion_id = i.id
-      WHERE po.es_ppc = true AND po.guardia_id IS NULL AND (po.activo = true OR po.activo IS NULL)
+      WHERE po.es_ppc = true AND po.guardia_id IS NULL AND po.activo = true
       ORDER BY i.nombre, rs.nombre, po.creado_en DESC
     `);
 

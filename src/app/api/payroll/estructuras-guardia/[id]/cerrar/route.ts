@@ -1,12 +1,9 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 
 export async function PATCH(
   request: NextRequest,
-  {
-
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const { id } = params;

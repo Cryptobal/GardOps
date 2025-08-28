@@ -1,127 +1,110 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
+import { query } from '@/lib/database';
 
-// PUT: actualizar monto del sueldo base de una estructura
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { estructura_id: string } }
-) {
-  const deny = await requireAuthz(request as any, { resource: 'payroll', action: 'update' });
-  if (deny) return deny;
-
+// PUT: actualizar monto/fechas de la línea sueldo_base de esa estructura
+export async function PUT(request: NextRequest, { params }: { params: { estructura_id: string } }) {
   try {
     const { estructura_id } = params;
     const body = await request.json();
-    const { monto } = body || {};
+    const { monto, vigencia_desde, vigencia_hasta } = body || {};
 
-    if (monto === undefined || monto === null) {
-      return NextResponse.json({ error: 'monto es requerido' }, { status: 400 });
+    if (monto === undefined || monto === null || !vigencia_desde) {
+      return NextResponse.json({ error: 'monto y vigencia_desde son requeridos' }, { status: 400 });
     }
 
-    // Verificar que la estructura existe
-    const estructuraResult = await sql`
-      SELECT id, instalacion_id, rol_servicio_id 
-      FROM sueldo_estructura_instalacion 
-      WHERE id = ${estructura_id}
-      LIMIT 1
-    `;
+    await query('BEGIN');
+    try {
+      // buscar línea sueldo_base
+      const lineaRes = await query(
+        `SELECT id, estructura_id, item_codigo
+         FROM sueldo_estructura_inst_item
+         WHERE estructura_id = $1 AND item_codigo = 'sueldo_base' AND activo = TRUE
+         ORDER BY vigencia_desde DESC
+         LIMIT 1`,
+        [estructura_id]
+      );
+      const linea = Array.isArray(lineaRes) ? lineaRes[0] : (lineaRes.rows || [])[0];
+      if (!linea) {
+        await query('ROLLBACK');
+        return NextResponse.json({ error: 'Línea de sueldo_base no encontrada' }, { status: 404 });
+      }
 
-    if (estructuraResult.rows.length === 0) {
-      return NextResponse.json({ error: 'Estructura no encontrada' }, { status: 404 });
+      // validar solape propio para sueldo_base
+      const solapeRes = await query(
+        `SELECT 1 FROM sueldo_estructura_inst_item x
+         WHERE x.estructura_id = $1
+           AND x.item_codigo = 'sueldo_base'
+           AND x.id != $2
+           AND x.activo = TRUE
+           AND daterange(x.vigencia_desde, COALESCE(x.vigencia_hasta, 'infinity'::date), '[]')
+               && daterange($3::date, COALESCE($4::date, 'infinity'::date), '[]')
+         LIMIT 1`,
+        [estructura_id, linea.id, vigencia_desde, vigencia_hasta || null]
+      );
+      const solape = Array.isArray(solapeRes) ? solapeRes : (solapeRes.rows || []);
+      if (solape.length > 0) {
+        await query('ROLLBACK');
+        return NextResponse.json(
+          { code: 'ITEM_OVERLAP', error: 'El sueldo_base se solapa con otro período.' },
+          { status: 409 }
+        );
+      }
+
+      // actualizar
+      const updRes = await query(
+        `UPDATE sueldo_estructura_inst_item
+         SET monto = $1, vigencia_desde = $2, vigencia_hasta = $3, updated_at = NOW()
+         WHERE id = $4
+         RETURNING id, estructura_id, item_codigo, item_nombre, item_clase, item_naturaleza, monto, vigencia_desde, vigencia_hasta, activo`,
+        [monto, vigencia_desde, vigencia_hasta || null, linea.id]
+      );
+      const updated = Array.isArray(updRes) ? updRes[0] : (updRes.rows || [])[0];
+
+      await query('COMMIT');
+      return NextResponse.json({ linea: updated, message: 'Sueldo base actualizado' });
+    } catch (err) {
+      await query('ROLLBACK');
+      throw err;
     }
-
-    // Obtener el ID del item sueldo_base
-    const sueldoBaseItemResult = await sql`
-      SELECT id FROM sueldo_item 
-      WHERE codigo = 'sueldo_base' 
-      LIMIT 1
-    `;
-
-    if (sueldoBaseItemResult.rows.length === 0) {
-      return NextResponse.json({ error: 'Item sueldo_base no encontrado' }, { status: 404 });
-    }
-
-    const sueldoBaseItemId = sueldoBaseItemResult.rows[0].id;
-
-    // Buscar si ya existe un item de sueldo base para esta estructura
-    const existingItemResult = await sql`
-      SELECT id FROM sueldo_estructura_inst_item 
-      WHERE estructura_id = ${estructura_id} 
-        AND item_id = ${sueldoBaseItemId}
-      LIMIT 1
-    `;
-
-    if (existingItemResult.rows.length === 0) {
-      // Crear nuevo item de sueldo base
-      await sql`
-        INSERT INTO sueldo_estructura_inst_item (
-          estructura_id, item_id, monto, vigencia_desde, activo
-        ) VALUES (
-          ${estructura_id}, 
-          ${sueldoBaseItemId}, 
-          ${monto}, 
-          CURRENT_DATE, 
-          true
-        )
-      `;
-    } else {
-      // Actualizar el item existente
-      await sql`
-        UPDATE sueldo_estructura_inst_item 
-        SET monto = ${monto}, updated_at = NOW()
-        WHERE id = ${existingItemResult.rows[0].id}
-      `;
-    }
-
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Sueldo base actualizado correctamente' 
-    });
-
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error actualizando sueldo base:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Error interno del servidor' }, { status: 500 });
   }
 }
 
-// DELETE: eliminar sueldo base (soft delete)
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { estructura_id: string } }
-) {
-  const deny = await requireAuthz(request as any, { resource: 'payroll', action: 'delete' });
-  if (deny) return deny;
-  
+// DELETE: soft delete de sueldo_base
+export async function DELETE(_request: NextRequest, { params }: { params: { estructura_id: string } }) {
   try {
     const { estructura_id } = params;
 
-    // Obtener el ID del item sueldo_base
-    const sueldoBaseItemResult = await sql`
-      SELECT id FROM sueldo_item 
-      WHERE codigo = 'sueldo_base' 
-      LIMIT 1
-    `;
+    await query('BEGIN');
+    try {
+      const lineaRes = await query(
+        `SELECT id FROM sueldo_estructura_inst_item
+         WHERE estructura_id = $1 AND item_codigo = 'sueldo_base' AND activo = TRUE
+         ORDER BY vigencia_desde DESC
+         LIMIT 1`,
+        [estructura_id]
+      );
+      const linea = Array.isArray(lineaRes) ? lineaRes[0] : (lineaRes.rows || [])[0];
+      if (!linea) {
+        await query('ROLLBACK');
+        return NextResponse.json({ error: 'Línea de sueldo_base no encontrada' }, { status: 404 });
+      }
 
-    if (sueldoBaseItemResult.rows.length === 0) {
-      return NextResponse.json({ error: 'Item sueldo_base no encontrado' }, { status: 404 });
+      await query(
+        `UPDATE sueldo_estructura_inst_item
+         SET activo = FALSE, updated_at = NOW()
+         WHERE id = $1`,
+        [linea.id]
+      );
+
+      await query('COMMIT');
+      return NextResponse.json({ message: 'Sueldo base eliminado' });
+    } catch (err) {
+      await query('ROLLBACK');
+      throw err;
     }
-
-    const sueldoBaseItemId = sueldoBaseItemResult.rows[0].id;
-
-    // Soft delete del item de sueldo base
-    await sql`
-      UPDATE sueldo_estructura_inst_item 
-      SET activo = false, vigencia_hasta = CURRENT_DATE, updated_at = NOW()
-      WHERE estructura_id = ${estructura_id} 
-        AND item_id = ${sueldoBaseItemId}
-    `;
-
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Sueldo base eliminado correctamente' 
-    });
-
   } catch (error: any) {
     console.error('Error eliminando sueldo base:', error);
     return NextResponse.json({ error: error?.message || 'Error interno del servidor' }, { status: 500 });

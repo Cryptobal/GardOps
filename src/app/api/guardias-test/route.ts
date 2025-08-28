@@ -1,13 +1,8 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../lib/database';
 
 // GET /api/guardias-test - API de testing sin autenticación
 export async function GET(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'guardias_test', action: 'read:list' });
-if (deny) return deny;
-
   console.log('🔍 API Guardias Test - Iniciando request');
   
   try {

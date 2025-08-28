@@ -1,6 +1,5 @@
 'use client';
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,7 +41,7 @@ export default function MigrarParametrosPage() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-8">
           <div className="flex items-center gap-3">
-            <Link href="/payroll/parametros">
+            <Link href="/sueldos/parametros">
               <Button variant="outline" size="sm" className="p-2">
                 ← Volver
               </Button>
@@ -130,7 +129,7 @@ export default function MigrarParametrosPage() {
                     ))}
                   </ul>
                   <div className="mt-4">
-                    <Link href="/payroll/parametros">
+                    <Link href="/sueldos/parametros">
                       <Button size="sm">
                         Ir a Parámetros
                       </Button>

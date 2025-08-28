@@ -1,13 +1,10 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 // POST: Desasignar guardia de un PPC
 export async function POST(
   request: NextRequest,
-  {
-
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   console.log("🔁 Endpoint activo: /api/instalaciones/[id]/ppc/desasignar");
   

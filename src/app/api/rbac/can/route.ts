@@ -1,27 +1,17 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
-
-// Asegurar runtime Node.js para compatibilidad con Postgres/JWT
-export const runtime = 'nodejs'
 
 /**
  * Endpoint para verificar permisos usando el nuevo sistema RBAC
  * GET /api/rbac/can?permiso=xxx
  */
 export async function GET(request: NextRequest) {
-  // Este endpoint debe ser accesible para usuarios autenticados con cualquier rol;
-  // el control fino lo hace la consulta de permisos más abajo. Si el usuario no
-  // está autenticado, devolverá 401 al intentar resolver el email.
-
   try {
     const searchParams = request.nextUrl.searchParams;
     const perm = searchParams.get('perm') || searchParams.get('permiso');
     if (!perm) {
       return NextResponse.json({ ok: false, error: 'Parámetro "perm"/"permiso" requerido' }, { status: 400 });
     }
-
-    // No otorgar override por ser "admin" de tenant. Las decisiones se basan en permisos reales.
 
     const email = await getUserEmail(request);
     if (!email) {
@@ -33,7 +23,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Usuario no encontrado' }, { status: 403 });
     }
 
-    // No hacer overrides por JWT. Usar permisos desde la base de datos.
+    // Fallback maestro: si el usuario tiene rol 'admin' en JWT, permitir todo
+    try {
+      const { getCurrentUserServer } = await import('@/lib/auth');
+      const u = getCurrentUserServer(request as any);
+      if (u?.rol === 'admin') {
+        return NextResponse.json({ ok: true, email, userId, perm, allowed: true, override: 'jwt_admin' });
+      }
+    } catch {}
 
     let allowed = await userHasPerm(userId, perm);
     if (!allowed) {

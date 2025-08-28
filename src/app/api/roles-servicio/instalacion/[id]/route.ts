@@ -1,13 +1,10 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 // GET - Obtener roles de servicio de una instalación
 export async function GET(
   request: NextRequest,
-  {
-
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const instalacionId = params.id;

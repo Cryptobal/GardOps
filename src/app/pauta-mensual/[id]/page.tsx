@@ -1,6 +1,5 @@
-'use client';
+"use client";
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -117,28 +116,6 @@ export default function PautaMensualUnificadaPage() {
   const [exportandoXLSX, setExportandoXLSX] = useState(false);
   const [actualizando, setActualizando] = useState(false);
   const [tab, setTab] = useState<'dia' | 'semana' | 'mes'>(typeof window !== 'undefined' && window.innerWidth >= 640 ? 'mes' : 'dia');
-  const [effectivePermissions, setEffectivePermissions] = useState<Record<string, string[]>>({});
-  
-  // Cargar permisos del usuario
-  const cargarPermisos = useCallback(async () => {
-    try {
-      const response = await fetch('/api/me/effective-permissions');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.ok && data.effective) {
-          setEffectivePermissions(data.effective);
-        }
-      }
-    } catch (error) {
-      console.error('Error cargando permisos:', error);
-    }
-  }, []);
-
-  // Cargar permisos al montar el componente
-  useEffect(() => {
-    cargarPermisos();
-  }, [cargarPermisos]);
-
   // Calcular inicio de semana (lunes) para el día actual o 1
   const calcularInicioSemana = (dia: number) => {
     const fecha = new Date(anio, mes - 1, dia);
@@ -683,60 +660,54 @@ export default function PautaMensualUnificadaPage() {
                     )}
                   </Button>
                   
-                  <Authorize resource="pauta_mensual" action="update" eff={effectivePermissions}>
-                    <Button onClick={() => setEditando(true)} className="w-full sm:w-auto">
-                      <Edit className="h-4 w-4 mr-2" />
-                      <span className="hidden sm:inline">Editar</span>
-                      <span className="sm:hidden">Editar</span>
-                    </Button>
-                  </Authorize>
+                  <Button onClick={() => setEditando(true)} className="w-full sm:w-auto">
+                    <Edit className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Editar</span>
+                    <span className="sm:hidden">Editar</span>
+                  </Button>
                   
                   {/* Botones de exportación */}
-                  <Authorize resource="pauta_mensual" action="export" eff={effectivePermissions}>
-                    <Button 
-                      variant="outline" 
-                      onClick={exportarPDF} 
-                      disabled={exportandoPDF}
-                      className="w-full sm:w-auto"
-                    >
-                      {exportandoPDF ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          <span className="hidden sm:inline">Exportando PDF...</span>
-                          <span className="sm:hidden">PDF...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Download className="h-4 w-4 mr-2" />
-                          <span className="hidden sm:inline">Exportar PDF</span>
-                          <span className="sm:hidden">PDF</span>
-                        </>
-                      )}
-                    </Button>
-                  </Authorize>
+                  <Button 
+                    variant="outline" 
+                    onClick={exportarPDF} 
+                    disabled={exportandoPDF}
+                    className="w-full sm:w-auto"
+                  >
+                    {exportandoPDF ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <span className="hidden sm:inline">Exportando PDF...</span>
+                        <span className="sm:hidden">PDF...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">Exportar PDF</span>
+                        <span className="sm:hidden">PDF</span>
+                      </>
+                    )}
+                  </Button>
                   
-                  <Authorize resource="pauta_mensual" action="export" eff={effectivePermissions}>
-                    <Button 
-                      variant="outline" 
-                      onClick={exportarXLSX} 
-                      disabled={exportandoXLSX}
-                      className="w-full sm:w-auto"
-                    >
-                      {exportandoXLSX ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          <span className="hidden sm:inline">Exportando XLSX...</span>
-                          <span className="sm:hidden">XLSX...</span>
-                        </>
-                      ) : (
-                        <>
-                          <FileSpreadsheet className="h-4 w-4 mr-2" />
-                          <span className="hidden sm:inline">Exportar XLSX</span>
-                          <span className="sm:hidden">XLSX</span>
-                        </>
-                      )}
-                    </Button>
-                  </Authorize>
+                  <Button 
+                    variant="outline" 
+                    onClick={exportarXLSX} 
+                    disabled={exportandoXLSX}
+                    className="w-full sm:w-auto"
+                  >
+                    {exportandoXLSX ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <span className="hidden sm:inline">Exportando XLSX...</span>
+                        <span className="sm:hidden">XLSX...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileSpreadsheet className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">Exportar XLSX</span>
+                        <span className="sm:hidden">XLSX</span>
+                      </>
+                    )}
+                  </Button>
                 </>
               ) : (
                 <>
@@ -765,27 +736,25 @@ export default function PautaMensualUnificadaPage() {
               )}
             </>
           ) : (
-            <Authorize resource="pauta_mensual" action="create" eff={effectivePermissions}>
-              <Button 
-                onClick={generarPauta} 
-                disabled={generando || pautaData.length === 0}
-                className="w-full sm:w-auto"
-              >
-                {generando ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    <span className="hidden sm:inline">Generando...</span>
-                    <span className="sm:hidden">Generando</span>
-                  </>
-                ) : (
-                  <>
-                    <Plus className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Generar Pauta</span>
-                    <span className="sm:hidden">Generar</span>
-                  </>
-                )}
-              </Button>
-            </Authorize>
+            <Button 
+              onClick={generarPauta} 
+              disabled={generando || pautaData.length === 0}
+              className="w-full sm:w-auto"
+            >
+              {generando ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <span className="hidden sm:inline">Generando...</span>
+                  <span className="sm:hidden">Generando</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Generar Pauta</span>
+                  <span className="sm:hidden">Generar</span>
+                </>
+              )}
+            </Button>
           )}
         </div>
       </div>
@@ -947,7 +916,7 @@ export default function PautaMensualUnificadaPage() {
         <Button variant="outline" size="sm" onClick={() => cargarDatos(true)} disabled={actualizando}>
           {actualizando ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
         </Button>
-        <Button variant="outline" size="sm" onClick={() => router.push(`/pauta-diaria-v2?fecha=${anio}-${String(mes).padStart(2,'0')}-${String(Math.max(semanaInicio,1)).padStart(2,'0')}`)}>
+        <Button variant="outline" size="sm" onClick={() => router.push(`/pauta-diaria/${anio}-${String(mes).padStart(2,'0')}-${String(Math.max(semanaInicio,1)).padStart(2,'0')}`)}>
           Ver Diaria
         </Button>
         {editando ? (
@@ -955,11 +924,9 @@ export default function PautaMensualUnificadaPage() {
             {guardando ? (<><Loader2 className="h-4 w-4 animate-spin mr-2"/>Guardando</>) : 'Guardar'}
           </Button>
         ) : (
-          <Authorize resource="pauta_mensual" action="update" eff={effectivePermissions}>
-            <GuardButton resource="pauta_mensual" action="update" eff={effectivePermissions} size="sm" onClick={() => setEditando(true)} className="flex-1">
-              Editar
-            </GuardButton>
-          </Authorize>
+          <Button size="sm" onClick={() => setEditando(true)} className="flex-1">
+            Editar
+          </Button>
         )}
         {hayCambios() && <span className="text-[11px] text-amber-600">Cambios sin guardar</span>}
       </div>

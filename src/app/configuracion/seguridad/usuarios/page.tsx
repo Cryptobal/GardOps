@@ -1,7 +1,6 @@
 "use client";
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Users, UserCheck, Settings } from "lucide-react";
@@ -13,7 +12,7 @@ import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-type UsuarioRow = { id: string; email: string; nombre: string | null; activo: boolean; tenant_id: string | null; userRole?: string; roles?: string };
+type UsuarioRow = { id: string; email: string; nombre: string | null; activo: boolean; tenant_id: string | null; userRole?: string };
 type Rol = { id: string; nombre: string; tenant_id: string | null };
 
 export default function UsuariosPage() {
@@ -37,29 +36,8 @@ export default function UsuariosPage() {
   const [deletingUser, setDeletingUser] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UsuarioRow | null>(null);
-  const [effectivePermissions, setEffectivePermissions] = useState<Record<string, string[]>>({});
   const { addToast: toast } = useToast();
   const router = useRouter();
-
-  // Cargar permisos del usuario
-  const cargarPermisos = useCallback(async () => {
-    try {
-      const response = await fetch('/api/me/effective-permissions');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.ok && data.effective) {
-          setEffectivePermissions(data.effective);
-        }
-      }
-    } catch (error) {
-      console.error('Error cargando permisos:', error);
-    }
-  }, []);
-
-  // Cargar permisos al montar el componente
-  useEffect(() => {
-    cargarPermisos();
-  }, [cargarPermisos]);
 
   async function toggleActivo(id: string, current: boolean) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, activo: !current } : r)));
@@ -191,10 +169,28 @@ export default function UsuariosPage() {
     }
   }
 
-  // Función para cargar los roles de cada usuario (ya no necesaria, la API los incluye)
+  // Función para cargar los roles de cada usuario
   async function loadUserRoles(users: UsuarioRow[]): Promise<UsuarioRow[]> {
-    // La API ya incluye los roles, así que solo retornamos los usuarios tal como vienen
-    return users;
+    const usersWithRoles = await Promise.all(
+      users.map(async (user) => {
+        try {
+          const res = await rbacFetch(`/api/admin/rbac/usuarios/${user.id}/roles`);
+          const json = await res.json().catch(() => ({}));
+          
+          if (res.ok) {
+            const userRolesData = (json as any)?.roles || [];
+            const rolId = userRolesData.length > 0 ? userRolesData[0].id : null;
+            return { ...user, userRole: rolId };
+          } else {
+            return { ...user, userRole: null };
+          }
+        } catch (error) {
+          console.error(`Error cargando roles para usuario ${user.id}:`, error);
+          return { ...user, userRole: null };
+        }
+      })
+    );
+    return usersWithRoles;
   }
 
   // Función para cargar usuarios con roles
@@ -264,7 +260,7 @@ export default function UsuariosPage() {
           <p className="text-sm text-red-600 mb-4">{error}</p>
         )}
         <div className="flex justify-between items-center">
-          <Button 
+          <Button
             onClick={() => setShowNew(true)}
             aria-label="Abrir modal Nuevo Usuario"
           >
@@ -326,9 +322,9 @@ export default function UsuariosPage() {
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <div className="flex items-center gap-2">
-                          {row.roles ? (
+                          {row.userRole ? (
                             <span className="text-sm font-medium text-green-700">
-                              {row.roles}
+                              {roles.find(r => r.id === row.userRole)?.nombre || 'Rol desconocido'}
                             </span>
                           ) : (
                             <span className="text-muted-foreground">Sin rol</span>
@@ -359,8 +355,7 @@ export default function UsuariosPage() {
                           >
                             {row.activo ? "Desactivar" : "Activar"}
                           </Button>
-                          <Authorize resource="configuracion" action="delete" eff={effectivePermissions}>
-  <GuardButton resource="configuracion" action="delete" eff={effectivePermissions} 
+                          <Button
                             size="sm"
                             variant="destructive"
                             onClick={() => openDeleteModal(row)}
@@ -368,8 +363,7 @@ export default function UsuariosPage() {
                             aria-label="Eliminar usuario"
                           >
                             {deletingUser === row.id ? "Eliminando..." : "🗑️"}
-                          </GuardButton>
-</Authorize>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -672,15 +666,13 @@ export default function UsuariosPage() {
             >
               Cancelar
             </Button>
-            <Authorize resource="configuracion" action="delete" eff={effectivePermissions}>
-  <GuardButton resource="configuracion" action="delete" eff={effectivePermissions} 
+            <Button
               variant="destructive"
               onClick={() => userToDelete && deleteUser(userToDelete)}
               disabled={deletingUser !== null}
             >
               {deletingUser ? "Eliminando..." : "Eliminar Usuario"}
-            </GuardButton>
-</Authorize>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

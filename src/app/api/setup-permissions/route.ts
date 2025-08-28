@@ -1,12 +1,7 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest } from 'next/server';
 import { query } from '@/lib/database';
 
 export async function POST(req: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'setup_permissions', action: 'create' });
-if (deny) return deny;
-
   try {
     console.log('🔧 Configurando permisos de turnos...');
     

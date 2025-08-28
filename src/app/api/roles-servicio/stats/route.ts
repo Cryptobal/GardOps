@@ -1,20 +1,10 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 
 export async function GET(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'roles_servicio', action: 'read:list' });
-if (deny) return deny;
-
   try {
     const { searchParams } = new URL(request.url);
-    
-    // Obtener tenant_id del contexto (priorizando selectedTenantId)
-    const ctx = (request as any).ctx as { tenantId: string; selectedTenantId: string | null } | undefined;
-    const tenantId = ctx?.selectedTenantId || ctx?.tenantId || searchParams.get('tenantId') || '1';
-    
-    console.log('🔍 Stats roles-servicio - Usando tenant_id:', tenantId);
+    const tenantId = searchParams.get('tenantId') || '1';
 
     // Consulta directa para obtener estadísticas de roles
     const rolesQuery = `
@@ -52,40 +42,38 @@ if (deny) return deny;
       console.log('Tabla as_turnos_estructuras_servicio no existe o no es accesible');
     }
 
-    // Consulta para roles con guardias asignados
-    let rolesConGuardias = 0;
+    // Consulta para roles con estructura
+    let rolesConEstructura = 0;
+    let rolesSinEstructura = 0;
 
     try {
-      const rolesConGuardiasQuery = `
+      const rolesConEstructuraQuery = `
         SELECT 
-          COUNT(DISTINCT rs.id) as roles_con_guardias
+          COUNT(DISTINCT rs.id) as roles_con_estructura
         FROM as_turnos_roles_servicio rs
-        INNER JOIN as_turnos_puestos_operativos po ON po.rol_id = rs.id
+        INNER JOIN as_turnos_estructuras_servicio es ON es.rol_servicio_id = rs.id
         WHERE (rs.tenant_id::text = $1 OR (rs.tenant_id IS NULL AND $1 = '1'))
-          AND po.guardia_id IS NOT NULL 
-          AND po.es_ppc = false 
-          AND po.activo = true
       `;
       
-      const rolesConGuardiasResult = await sql.query(rolesConGuardiasQuery, [tenantId]);
-      rolesConGuardias = parseInt(rolesConGuardiasResult.rows[0]?.roles_con_guardias || '0');
-      console.log('🔍 Roles con guardias asignados:', rolesConGuardias);
+      const rolesConEstructuraResult = await sql.query(rolesConEstructuraQuery, [tenantId]);
+      rolesConEstructura = parseInt(rolesConEstructuraResult.rows[0]?.roles_con_estructura || '0');
+      rolesSinEstructura = rolesStats.total_roles - rolesConEstructura;
     } catch (error) {
-      console.log('No se pudo obtener estadísticas de roles con guardias:', error);
-      rolesConGuardias = 0;
+      console.log('No se pudo obtener estadísticas de roles con estructura');
+      rolesSinEstructura = rolesStats.total_roles;
     }
 
     const stats = {
-      total: parseInt(rolesStats.total_roles),
-      activos: parseInt(rolesStats.roles_activos),
-      inactivos: parseInt(rolesStats.roles_inactivos),
-      conGuardias: rolesConGuardias, // Roles que tienen guardias asignados en puestos operativos
+      total_roles: parseInt(rolesStats.total_roles),
+      roles_activos: parseInt(rolesStats.roles_activos),
+      roles_inactivos: parseInt(rolesStats.roles_inactivos),
       total_estructuras: parseInt(estructurasStats.total_estructuras),
       estructuras_activas: parseInt(estructurasStats.estructuras_activas),
-      estructuras_inactivas: parseInt(estructurasStats.estructuras_inactivas)
+      estructuras_inactivas: parseInt(estructurasStats.estructuras_inactivas),
+      roles_con_estructura: rolesConEstructura,
+      roles_sin_estructura: rolesSinEstructura
     };
 
-    console.log('📊 Estadísticas finales:', stats);
     return NextResponse.json({
       success: true,
       data: stats

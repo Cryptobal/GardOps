@@ -1,4 +1,3 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from "next/server";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -13,10 +12,6 @@ const s3 = new S3Client({
 });
 
 export async function POST(req: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'document_url', action: 'create' });
-if (deny) return deny;
-
   try {
     const { key } = await req.json();
     

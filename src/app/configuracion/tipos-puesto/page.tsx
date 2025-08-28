@@ -1,8 +1,6 @@
 'use client';
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import { useState, useEffect } from 'react';
-import { useCan } from '@/lib/permissions';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -97,7 +95,6 @@ const COLORES_DISPONIBLES = [
 ];
 
 export default function TiposPuestoPage() {
-  const { allowed } = useCan('config.tipos_puesto.view');
   const router = useRouter();
   const { toast } = useToast();
   const [tipos, setTipos] = useState<TipoPuesto[]>([]);
@@ -117,9 +114,8 @@ export default function TiposPuestoPage() {
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
 
   useEffect(() => {
-    if (!allowed) return;
     cargarTipos();
-  }, [mostrarInactivos, allowed]);
+  }, [mostrarInactivos]);
 
   const cargarTipos = async () => {
     try {
@@ -277,16 +273,6 @@ export default function TiposPuestoPage() {
     };
     return colorMap[color] || colorMap.gray;
   };
-
-  if (!allowed) {
-    return (
-      <div className="p-6">
-        <div className="rounded-xl border p-6 text-center text-muted-foreground">
-          Acceso denegado
-        </div>
-      </div>
-    );
-  }
 
   if (loading) {
     return (

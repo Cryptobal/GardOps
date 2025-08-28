@@ -1,6 +1,5 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
+import { query } from '@/lib/database';
 
 export async function DELETE(
   request: NextRequest,
@@ -13,12 +12,12 @@ export async function DELETE(
     const turnoId = params.turnoId;
 
     // Verificar que el turno existe y pertenece a esta instalación
-    const turnoCheck = await sql`
+    const turnoCheck = await query(`
       SELECT po.rol_id, COUNT(*) as total_puestos
       FROM as_turnos_puestos_operativos po
-      WHERE po.instalacion_id = ${instalacionId} AND po.rol_id = ${turnoId}
+      WHERE po.instalacion_id = $1 AND po.rol_id = $2
       GROUP BY po.rol_id
-    `;
+    `, [instalacionId, turnoId]);
 
     if (turnoCheck.rows.length === 0) {
       return NextResponse.json(
@@ -30,11 +29,11 @@ export async function DELETE(
     const turnoData = turnoCheck.rows[0];
 
     // Verificar si hay guardias asignados a este turno
-    const guardiasAsignados = await sql`
+    const guardiasAsignados = await query(`
       SELECT COUNT(*) as total
       FROM as_turnos_puestos_operativos po
-      WHERE po.instalacion_id = ${instalacionId} AND po.rol_id = ${turnoId} AND po.guardia_id IS NOT NULL
-    `;
+      WHERE po.instalacion_id = $1 AND po.rol_id = $2 AND po.guardia_id IS NOT NULL
+    `, [instalacionId, turnoId]);
 
     if (parseInt(guardiasAsignados.rows[0].total) > 0) {
       return NextResponse.json(
@@ -44,11 +43,11 @@ export async function DELETE(
     }
 
     // Eliminar todos los puestos operativos del turno
-    const result = await sql`
+    const result = await query(`
       DELETE FROM as_turnos_puestos_operativos 
-      WHERE instalacion_id = ${instalacionId} AND rol_id = ${turnoId}
+      WHERE instalacion_id = $1 AND rol_id = $2
       RETURNING id
-    `;
+    `, [instalacionId, turnoId]);
 
     console.log(`✅ Turno ${turnoId} eliminado de instalación ${instalacionId}. Puestos eliminados: ${result.rows.length}`);
 

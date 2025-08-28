@@ -1,4 +1,3 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../lib/database';
 
@@ -7,10 +6,6 @@ let comunasTableVerified = false;
 
 // GET /api/comunas - Obtener todas las comunas
 export async function GET() {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'comunas', action: 'read:list' });
-if (deny) return deny;
-
   try {
     // Verificar tabla solo una vez por sesión
     if (!comunasTableVerified) {

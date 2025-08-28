@@ -1,6 +1,5 @@
 'use client';
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,13 +14,12 @@ import type { AddressData } from '@/lib/useAddressAutocomplete';
 interface Guardia {
   id: string;
   nombre: string;
-  apellido_paterno: string;
-  apellido_materno: string;
+  apellidos: string;
   rut: string;
   email: string;
   telefono: string;
   direccion: string;
-  activo: boolean;
+  estado: string;
   tipo_guardia: string;
   fecha_os10?: string;
   banco?: string;
@@ -44,7 +42,7 @@ const TIPOS_CUENTA = [
   { value: 'RUT', label: 'Cuenta RUT' }
 ];
 
-function EditarGuardiaPage() {
+export default function EditarGuardiaPage() {
   const params = useParams();
   const router = useRouter();
   const guardiaId = params.id as string;
@@ -53,13 +51,12 @@ function EditarGuardiaPage() {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
-    apellido_paterno: '',
-    apellido_materno: '',
+    apellidos: '',
     rut: '',
     email: '',
     telefono: '',
     direccion: '',
-    activo: true,
+    estado: 'activo',
     tipo_guardia: 'contratado',
     fecha_os10: '',
     banco_id: '',
@@ -70,53 +67,39 @@ function EditarGuardiaPage() {
   const [bancos, setBancos] = useState<Banco[]>([]);
 
   useEffect(() => {
-    const fetchGuardia = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/guardias/${params.id}`);
-        const result = await response.json();
-        
-        if (result.success && result.data) {
-          const guardiaData = result.data;
-          console.log('🔍 DEBUG - Datos del guardia recibidos:', guardiaData);
-          
-          setFormData({
-            nombre: guardiaData.nombre || '',
-            apellido_paterno: guardiaData.apellido_paterno || '',
-            apellido_materno: guardiaData.apellido_materno || '',
-            rut: guardiaData.rut || '',
-            email: guardiaData.email || '',
-            telefono: guardiaData.telefono || '',
-            direccion: guardiaData.direccion || '',
-            activo: guardiaData.activo !== false,
-            tipo_guardia: guardiaData.tipo_guardia || 'contratado',
-            fecha_os10: guardiaData.fecha_os10 ? guardiaData.fecha_os10.split('T')[0] : '',
-            banco_id: guardiaData.banco_id || guardiaData.banco || '',
-            tipo_cuenta: guardiaData.tipo_cuenta || '',
-            numero_cuenta: guardiaData.numero_cuenta || ''
-          });
-
-          // Establecer el guardia para habilitar la vista del formulario
-          setGuardia(guardiaData);
-
-          
-        } else {
-          console.error('Error al cargar el guardia:', result);
-          // Redirigir sin mostrar alert
-          router.push('/guardias');
-        }
-      } catch (error) {
-        console.error('Error en fetchGuardia:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchGuardia();
+    cargarGuardia();
     cargarBancos();
-  }, [params.id]);
+  }, [guardiaId]);
 
-
+  const cargarGuardia = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/guardias/${guardiaId}`);
+      if (!response.ok) {
+        throw new Error('Error al cargar guardia');
+      }
+      const guardiaData = await response.json();
+      setGuardia(guardiaData);
+      setFormData({
+        nombre: guardiaData.nombre || '',
+        apellidos: guardiaData.apellidos || '',
+        rut: guardiaData.rut || '',
+        email: guardiaData.email || '',
+        telefono: guardiaData.telefono || '',
+        direccion: guardiaData.direccion || '',
+        estado: guardiaData.estado || 'activo',
+        tipo_guardia: guardiaData.tipo_guardia || 'contratado',
+        fecha_os10: guardiaData.fecha_os10 ? guardiaData.fecha_os10.split('T')[0] : '',
+        banco_id: guardiaData.banco || '',
+        tipo_cuenta: guardiaData.tipo_cuenta || '',
+        numero_cuenta: guardiaData.numero_cuenta || ''
+      });
+    } catch (error) {
+      console.error('Error cargando guardia:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const cargarBancos = async () => {
     try {
@@ -138,7 +121,7 @@ function EditarGuardiaPage() {
     }));
   };
 
-  const handleSelectChange = (name: string, value: string | boolean) => {
+  const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -166,15 +149,13 @@ function EditarGuardiaPage() {
       setSaving(true);
       
       // Preparar datos para enviar, incluyendo información geográfica si está disponible
-      const { banco_id, ...restForm } = formData as any;
       const datosParaEnviar = {
-        ...restForm,
-        banco: banco_id || null,
+        ...formData,
         ciudad: selectedAddress?.componentes.ciudad || '',
         comuna: selectedAddress?.componentes.comuna || '',
         latitud: selectedAddress?.latitud || null,
         longitud: selectedAddress?.longitud || null
-      } as any;
+      };
       
       const response = await fetch(`/api/guardias/${guardiaId}`, {
         method: 'PUT',
@@ -241,7 +222,7 @@ function EditarGuardiaPage() {
             <h1 className="text-3xl font-bold text-gray-900">
               Editar Guardia
             </h1>
-            <p className="text-gray-600">{guardia.nombre} {guardia.apellido_paterno} {guardia.apellido_materno}</p>
+            <p className="text-gray-600">{guardia.nombre} {guardia.apellidos}</p>
           </div>
         </div>
       </div>
@@ -269,24 +250,13 @@ function EditarGuardiaPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label htmlFor="apellido_paterno" className="text-sm font-medium text-gray-600">Apellido Paterno</label>
+                <label htmlFor="apellidos" className="text-sm font-medium text-gray-600">Apellidos</label>
                 <Input
-                  id="apellido_paterno"
-                  name="apellido_paterno"
-                  value={formData.apellido_paterno}
+                  id="apellidos"
+                  name="apellidos"
+                  value={formData.apellidos}
                   onChange={handleInputChange}
-                  placeholder="Apellido paterno"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="apellido_materno" className="text-sm font-medium text-gray-600">Apellido Materno</label>
-                <Input
-                  id="apellido_materno"
-                  name="apellido_materno"
-                  value={formData.apellido_materno}
-                  onChange={handleInputChange}
-                  placeholder="Apellido materno"
+                  placeholder="Apellidos del guardia"
                   required
                 />
               </div>
@@ -336,10 +306,10 @@ function EditarGuardiaPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label htmlFor="activo" className="text-sm font-medium text-gray-600">Estado</label>
+                <label htmlFor="estado" className="text-sm font-medium text-gray-600">Estado</label>
                 <Select
-                  value={formData.activo ? 'activo' : 'inactivo'}
-                  onValueChange={(value) => handleSelectChange('activo', value === 'activo')}
+                  value={formData.estado}
+                  onValueChange={(value) => handleSelectChange('estado', value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar estado" />
@@ -461,6 +431,4 @@ function EditarGuardiaPage() {
       </Card>
     </div>
   );
-}
-
-export default EditarGuardiaPage; 
+} 

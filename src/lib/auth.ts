@@ -1,4 +1,5 @@
 import 'server-only'
+const jwt = require('jsonwebtoken');
 import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gardops-secret-key-change-in-production';
@@ -8,77 +9,22 @@ export interface JWTPayload {
   email: string;
   rol: 'admin' | 'supervisor' | 'guardia';
   tenant_id: string;
-  is_platform_admin?: boolean;
   iat: number;
   exp: number;
 }
 
-// Implementación compatible con Edge Runtime usando Web Crypto API
-async function signTokenEdge(payload: Omit<JWTPayload, 'iat' | 'exp'>): Promise<string> {
-  const header = { alg: 'HS256', typ: 'JWT' };
-  const now = Math.floor(Date.now() / 1000);
-  const data = { ...payload, iat: now, exp: now + 1800 }; // 30 minutos
-  
-  const encoder = new TextEncoder();
-  const headerB64 = btoa(JSON.stringify(header));
-  const payloadB64 = btoa(JSON.stringify(data));
-  const signature = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(JWT_SECRET),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  ).then(key => crypto.subtle.sign('HMAC', key, encoder.encode(`${headerB64}.${payloadB64}`)))
-  .then(sig => btoa(String.fromCharCode(...Array.from(new Uint8Array(sig)))));
-  
-  return `${headerB64}.${payloadB64}.${signature}`;
+// Funciones del servidor (backend)
+export function signToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '30m' });
 }
 
-async function verifyTokenEdge(token: string): Promise<JWTPayload | null> {
+export function verifyToken(token: string): JWTPayload | null {
   try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    
-    const [headerB64, payloadB64, signature] = parts;
-    const encoder = new TextEncoder();
-    
-    // Verificar firma
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(JWT_SECRET),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['verify']
-    );
-    
-    const isValid = await crypto.subtle.verify(
-      'HMAC',
-      key,
-      new Uint8Array(atob(signature).split('').map(c => c.charCodeAt(0))),
-      encoder.encode(`${headerB64}.${payloadB64}`)
-    );
-    
-    if (!isValid) return null;
-    
-    // Decodificar payload
-    const payload = JSON.parse(atob(payloadB64));
-    const now = Math.floor(Date.now() / 1000);
-    
-    if (payload.exp < now) return null;
-    
-    return payload;
+    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    return decoded;
   } catch (error) {
     return null;
   }
-}
-
-// Funciones del servidor (backend) - compatibles con Edge Runtime
-export async function signToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): Promise<string> {
-  return await signTokenEdge(payload);
-}
-
-export async function verifyToken(token: string): Promise<JWTPayload | null> {
-  return await verifyTokenEdge(token);
 }
 
 export function hashPassword(password: string): string {
@@ -91,14 +37,14 @@ export function comparePassword(plainPassword: string, hashedPassword: string): 
 
 // Se removieron helpers de cliente. Usar `@/lib/auth-client` en componentes cliente.
 
-export async function getCurrentUserServer(request: Request): Promise<{
+export function getCurrentUserServer(request: Request): {
   id: string;
   email: string;
   nombre: string;
   apellido: string;
   rol: string;
   tenant_id: string;
-} | null> {
+} | null {
   try {
     // Obtener el token de las cookies
     const cookieHeader = request.headers.get('cookie');
@@ -114,7 +60,7 @@ export async function getCurrentUserServer(request: Request): Promise<{
     if (!token) return null;
     
     // Verificar y decodificar el token
-    const decoded = await verifyToken(token);
+    const decoded = verifyToken(token);
     if (!decoded) return null;
     
     // Obtener información adicional del usuario desde la base de datos
@@ -150,34 +96,46 @@ export async function getCurrentUserRef(): Promise<string | null> {
     const token = cookiesStore?.get?.('auth_token')?.value;
     
     if (token) {
-      const decoded = await verifyToken(token);
-      return decoded?.user_id ?? null;
+      const decoded = verifyToken(token);
+      if (decoded && decoded.user_id) {
+        return decoded.user_id;
+      }
     }
-  } catch (error) {
-    console.log('No se pudo obtener token de cookies, usando fallback');
+    
+    // Fallback al header x-user si existe
+    const h = mod.headers?.();
+    const userFromHeader = h?.get?.('x-user') ?? null;
+    if (userFromHeader) return userFromHeader;
+  } catch {
+    // ignore
   }
-  
-  // Fallback para desarrollo/testing
   return process.env.DEV_USER_REF ?? null;
 }
 
-// Exportar funciones específicas para compatibilidad
-export const authOptions = {
-  providers: [],
-  secret: JWT_SECRET,
-};
+/**
+ * Verifica si el usuario actual posee el permiso indicado usando función RBAC en la BD.
+ */
+export async function userHas(permission: string): Promise<boolean> {
+  const userRef = await getCurrentUserRef();
+  if (!userRef) return false;
+  try {
+    const { query } = await import('@/lib/database');
+    const result = await query(
+      'select rbac_fn_usuario_tiene_permiso($1,$2) as ok',
+      [userRef, permission]
+    );
+    return Boolean(result?.rows?.[0]?.ok);
+  } catch (e) {
+    return false;
+  }
+}
 
-export const isAuthenticated = async (request: Request) => {
-  return await getCurrentUserServer(request) !== null;
-};
-
-export const getUserInfo = async (request: Request) => {
-  return await getCurrentUserServer(request);
-};
-
-// Función de compatibilidad para requirePermission
+/**
+ * Exige que el usuario tenga el permiso; lanza Error('FORBIDDEN') si no.
+ */
 export async function requirePermission(permission: string): Promise<void> {
-  // Implementación básica - se puede expandir según necesidades
-  console.log(`Permission check for: ${permission}`);
-  // Por ahora siempre permite - implementar lógica real según sea necesario
+  const ok = await userHas(permission);
+  if (!ok) {
+    throw new Error('FORBIDDEN');
+  }
 }

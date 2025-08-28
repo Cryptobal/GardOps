@@ -280,29 +280,24 @@ export async function getRolesServicio(): Promise<RolServicio[]> {
   }
 }
 
-// Crear turno de instalación
-export async function crearTurnoInstalacion(data: {
-  instalacion_id: string;
-  rol_servicio_id: string;
-  cantidad_guardias: number;
-  tipo_puesto_id?: string;
-}): Promise<any> {
+export async function crearTurnoInstalacion(data: CrearTurnoInstalacionData): Promise<any> {
   try {
-    const response = await fetch(`/api/instalaciones/${data.instalacion_id}/turnos`, {
+    const response = await fetch(`/api/instalaciones/${data.instalacion_id}/turnos_v2`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         rol_servicio_id: data.rol_servicio_id,
-        cantidad_guardias: data.cantidad_guardias,
-        tipo_puesto_id: data.tipo_puesto_id
+        cantidad_guardias: data.cantidad_guardias
       }),
     });
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error || 'Error al crear turno');
     }
+
     return await response.json();
   } catch (error) {
     console.error('Error creando turno:', error);
@@ -399,14 +394,14 @@ export async function eliminarTurnoInstalacion(instalacionId: string, turnoId: s
 } 
 
 // Obtener guardias disponibles (sin asignación activa)
-export async function getGuardiasDisponibles(instalacionId: string): Promise<any[]> {
+export async function getGuardiasDisponibles(): Promise<any[]> {
   try {
-    const response = await fetch(`/api/guardias/disponibles?instalacion_id=${instalacionId}`);
+    const response = await fetch('/api/guardias/disponibles');
     if (!response.ok) {
       throw new Error('Error al obtener guardias disponibles');
     }
     const data = await response.json();
-    return data.items || [];
+    return data.guardias || [];
   } catch (error) {
     console.error('Error obteniendo guardias disponibles:', error);
     return [];
@@ -537,12 +532,7 @@ export const obtenerDatosCompletosInstalacion = async (instalacionId: string): P
   roles: RolServicio[];
 }> => {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-  const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/completa`, {
-    headers: {
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache'
-    }
-  });
+  const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/completa`);
   const result = await response.json();
   
   if (!result.success) {
@@ -571,185 +561,3 @@ export const obtenerDocumentosVencidosInstalaciones = async (): Promise<{
   
   return result.data;
 }; 
-
-// Obtener tipos de puesto
-export async function getTiposPuesto(): Promise<any[]> {
-  try {
-    const response = await fetch('/api/tipos-puesto');
-    if (!response.ok) {
-      throw new Error('Error al obtener tipos de puesto');
-    }
-    const data = await response.json();
-    return data.data || [];
-  } catch (error) {
-    console.error('Error obteniendo tipos de puesto:', error);
-    return [];
-  }
-} 
-
-// Asignar guardia a un turno
-export async function asignarGuardiaATurno(instalacionId: string, turnoId: string, guardiaId: string): Promise<any> {
-  try {
-    const response = await fetch(`/api/instalaciones/${instalacionId}/turnos/${turnoId}/asignar-guardia`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        guardia_id: guardiaId
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Error al asignar guardia');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error asignando guardia:', error);
-    throw error;
-  }
-}
-
-// Desasignar guardia de un turno
-export async function desasignarGuardiaDeTurno(instalacionId: string, turnoId: string, guardiaId: string): Promise<any> {
-  try {
-    const response = await fetch(`/api/instalaciones/${instalacionId}/turnos/${turnoId}/desasignar-guardia`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        guardia_id: guardiaId
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Error al desasignar guardia');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error desasignando guardia:', error);
-    throw error;
-  }
-} 
-
-// Asignar guardia a un puesto específico
-export async function asignarGuardiaAPuesto(instalacionId: string, turnoId: string, puestoId: string, guardiaId: string): Promise<any> {
-  try {
-    const response = await fetch(`/api/instalaciones/${instalacionId}/turnos/${turnoId}/asignar-guardia`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        guardia_id: guardiaId,
-        puesto_id: puestoId
-      }),
-    });
-    if (!response.ok) {
-      const errorData = await response.json();
-      const error = new Error(errorData.error || 'Error al asignar guardia');
-      // Agregar información de asignación activa al error si existe
-      if (errorData.asignacion_activa) {
-        (error as any).asignacion_activa = errorData.asignacion_activa;
-      }
-      throw error;
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Error asignando guardia:', error);
-    throw error;
-  }
-}
-
-// Desasignar guardia de un puesto específico
-export async function desasignarGuardiaDePuesto(instalacionId: string, turnoId: string, puestoId: string) {
-  const response = await fetch(`/api/instalaciones/${instalacionId}/turnos/${turnoId}/desasignar-guardia`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ puestoId }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Error desasignando guardia');
-  }
-
-  return response.json();
-}
-
-// Agregar puesto con numeración correlativa
-export async function agregarPuesto(instalacionId: string, turnoId: string, tipoPuestoId: string) {
-  const response = await fetch(`/api/instalaciones/${instalacionId}/turnos/${turnoId}/agregar-puesto`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ tipo_puesto_id: tipoPuestoId }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Error agregando puesto');
-  }
-
-  return response.json();
-}
-
-// Eliminar puesto de un turno
-export async function eliminarPuestoDeTurno(instalacionId: string, turnoId: string, puestoId: string): Promise<any> {
-  try {
-    const response = await fetch(`/api/instalaciones/${instalacionId}/turnos/${turnoId}/eliminar-puesto`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        puesto_id: puestoId
-      }),
-    });
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Error al eliminar puesto');
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Error eliminando puesto:', error);
-    throw error;
-  }
-} 
-
-// Obtener puestos de un turno específico
-export async function getPuestosDeTurno(instalacionId: string, turnoId: string): Promise<any> {
-  try {
-    const response = await fetch(`/api/instalaciones/${instalacionId}/turnos/${turnoId}/puestos`);
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Error al obtener puestos');
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Error obteniendo puestos:', error);
-    throw error;
-  }
-} 
-
-// Obtener información de asignación activa de un guardia
-export async function getAsignacionActivaGuardia(guardiaId: string): Promise<any> {
-  try {
-    const response = await fetch(`/api/guardias/${guardiaId}/asignacion-activa`);
-    if (!response.ok) {
-      throw new Error('Error al obtener información de asignación activa');
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Error obteniendo asignación activa:', error);
-    throw error;
-  }
-} 

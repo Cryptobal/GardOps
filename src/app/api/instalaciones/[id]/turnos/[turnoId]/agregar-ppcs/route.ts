@@ -1,12 +1,9 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 export async function POST(
   request: NextRequest,
-  {
-
- params }: { params: { id: string; turnoId: string } }
+  { params }: { params: { id: string; turnoId: string } }
 ) {
   try {
     const { id: instalacionId, turnoId } = params;
@@ -37,12 +34,6 @@ export async function POST(
 
     const turno = turnoResult.rows[0];
 
-    // Obtener tenant_id de la instalación
-    const instalacionTenantResult = await query(`
-      SELECT tenant_id FROM instalaciones WHERE id = $1
-    `, [instalacionId]);
-    const tenantId = instalacionTenantResult.rows[0]?.tenant_id;
-
     // Crear los nuevos puestos operativos como PPCs
     const puestosCreados = [];
     for (let i = 0; i < cantidad; i++) {
@@ -52,11 +43,10 @@ export async function POST(
           rol_id,
           nombre_puesto,
           es_ppc,
-          tenant_id,
           creado_en
-        ) VALUES ($1, $2, $3, true, $4, NOW())
+        ) VALUES ($1, $2, $3, true, NOW())
         RETURNING id
-      `, [instalacionId, turnoId, `Puesto ${parseInt(turno.total_puestos) + i + 1}`, tenantId]);
+      `, [instalacionId, turnoId, `Puesto ${parseInt(turno.total_puestos) + i + 1}`]);
 
       puestosCreados.push(puestoResult.rows[0].id);
     }

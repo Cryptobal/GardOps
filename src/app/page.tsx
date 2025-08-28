@@ -19,7 +19,7 @@ interface TurnosExtrasStats {
 
 const statsBase = [
   {
-    title: "👥 Clientes Activos",
+    title: "Clientes Activos",
     value: "0",
     icon: Users,
     description: "Clientes operativos",
@@ -29,7 +29,7 @@ const statsBase = [
     animate: false
   },
   {
-    title: "🏢 Instalaciones Activas",
+    title: "Instalaciones Activas",
     value: "0",
     icon: Building2,
     description: "Sitios operativos",
@@ -39,17 +39,17 @@ const statsBase = [
     animate: false
   },
   {
-    title: "🛡️ Guardias Activos",
+    title: "Puestos Activos",
     value: "0",
     icon: Shield,
-    description: "Guardias operativos",
+    description: "Puestos de trabajo",
     color: "text-blue-500",
-    href: "/guardias",
+    href: "/instalaciones",
     urgent: false,
     animate: false
   },
   {
-    title: "⏰ Total PPC",
+    title: "Total PPC",
     value: "0 (0%)",
     icon: Clock,
     description: "Pendientes de completar",
@@ -59,7 +59,7 @@ const statsBase = [
     animate: false
   },
   {
-    title: "⚠️ Documentos Vencidos",
+    title: "Documentos Vencidos",
     value: "0",
     icon: AlertTriangle,
     description: "Documentos por vencer",
@@ -69,7 +69,7 @@ const statsBase = [
     animate: false
   },
   {
-    title: "💰 Turnos Extras por Pagar",
+    title: "Turnos Extras por Pagar",
     value: "0",
     subtitle: "$0",
     icon: DollarSign,
@@ -81,12 +81,9 @@ const statsBase = [
   }
 ];
 
-import { usePermissions } from "@/lib/use-permissions";
-
 export default function HomePage() {
-  // Hook de permiso optimizado (siempre llamado, nunca condicional)
-  const { allowed: canSeeHome, loading: permissionsLoading } = usePermissions('home.view');
-
+  console.log('🔍 HomePage: Componente iniciando...')
+  
   const router = useRouter();
   const [alertas, setAlertas] = useState<AlertaDocumento[]>([]);
   const [cargandoAlertas, setCargandoAlertas] = useState(true);
@@ -103,25 +100,61 @@ export default function HomePage() {
 
   const cargarKPIs = async () => {
     try {
-      // Usar la API simplificada temporalmente hasta resolver autenticación
-      const response = await fetch("/api/dashboard/kpis-simple");
-      const data = await response.json();
-      
-      if (data.success) {
-        setKpis(data.data);
-      } else {
-        console.error('Error cargando KPIs:', data.error);
-        // En caso de error, usar valores por defecto
-        setKpis({
-          clientesActivos: 0,
-          instalacionesActivas: 0,
-          puestosActivos: 0,
-          totalPPC: 0,
-          documentosVencidos: 0,
-          turnosExtrasPendientes: 0,
-          montoTurnosExtrasPendientes: 0
-        });
+      // Cargar datos de clientes
+      const clientesResponse = await fetch("/api/clientes");
+      const clientesData = await clientesResponse.json();
+      const clientesActivos = clientesData.success ? 
+        clientesData.data.filter((c: any) => c.estado === "Activo").length : 0;
+
+      // Cargar datos de instalaciones con parámetro simple
+      const instalacionesResponse = await fetch("/api/instalaciones?simple=true");
+      const instalacionesData = await instalacionesResponse.json();
+      const instalacionesActivas = instalacionesData.success ? 
+        instalacionesData.data.filter((i: any) => i.estado === "Activo").length : 0;
+
+      // Calcular puestos activos y PPC
+      let puestosActivos = 0;
+      let totalPPC = 0;
+      if (instalacionesData.success) {
+        puestosActivos = instalacionesData.data.reduce((sum: number, i: any) => {
+          return sum + (parseInt(i.puestos_creados) || 0);
+        }, 0);
+        
+        totalPPC = instalacionesData.data.reduce((sum: number, i: any) => {
+          return sum + (parseInt(i.ppc_pendientes) || 0);
+        }, 0);
       }
+
+      // Cargar datos de turnos extras
+      let turnosExtrasPendientes = 0;
+      let montoTurnosExtrasPendientes = 0;
+      try {
+        const turnosResponse = await fetch('/api/pauta-diaria/turno-extra?solo_pagados=false');
+        const turnosData = await turnosResponse.json();
+        if (turnosResponse.ok) {
+          const turnos = turnosData.turnos_extras || [];
+          turnosExtrasPendientes = turnos.filter((t: any) => !t.pagado).length;
+          montoTurnosExtrasPendientes = turnos
+            .filter((t: any) => !t.pagado)
+            .reduce((sum: number, t: any) => sum + Number(t.valor), 0);
+        }
+      } catch (error) {
+        console.error('Error cargando turnos extras:', error);
+      }
+
+      // Por ahora, usar un valor fijo para documentos vencidos hasta arreglar la API
+      const documentosVencidos = 0;
+
+      setKpis({
+        clientesActivos,
+        instalacionesActivas,
+        puestosActivos,
+        totalPPC,
+        documentosVencidos,
+        turnosExtrasPendientes,
+        montoTurnosExtrasPendientes
+      });
+
     } catch (error) {
       console.error('Error cargando KPIs:', error);
       // En caso de error, usar valores por defecto
@@ -169,6 +202,7 @@ export default function HomePage() {
   };
 
   useEffect(() => {
+    console.log('🔍 HomePage: useEffect ejecutándose...')
     cargarAlertas();
     cargarKPIs();
     // Auto-refresh cada 2 minutos
@@ -203,49 +237,44 @@ export default function HomePage() {
   // Generar stats dinámicamente basado en datos reales
   const stats = useMemo(() => {
     return statsBase.map(stat => {
-      if (stat.title === "👥 Clientes Activos") {
+      if (stat.title === "Clientes Activos") {
         return {
           ...stat,
           value: kpis.clientesActivos.toString()
         };
       }
-      if (stat.title === "🏢 Instalaciones Activas") {
+      if (stat.title === "Instalaciones Activas") {
         return {
           ...stat,
           value: kpis.instalacionesActivas.toString()
         };
       }
-      if (stat.title === "🛡️ Guardias Activos") {
+      if (stat.title === "Puestos Activos") {
         return {
           ...stat,
           value: kpis.puestosActivos.toString()
         };
       }
-      if (stat.title === "⏰ Total PPC") {
+      if (stat.title === "Total PPC") {
         const porcentaje = kpis.puestosActivos > 0 ? Math.round((kpis.totalPPC / kpis.puestosActivos) * 100) : 0;
         return {
           ...stat,
-          value: `${kpis.totalPPC} (${porcentaje}%)`,
-          description: porcentaje > 0 ? `${porcentaje}% de guardias con PPC pendiente` : "Todos los PPC al día",
-          urgent: porcentaje > 10,
-          animate: porcentaje > 10
+          value: `${kpis.totalPPC} (${porcentaje}%)`
         };
       }
-      if (stat.title === "⚠️ Documentos Vencidos") {
+      if (stat.title === "Documentos Vencidos") {
         return {
           ...stat,
           value: kpis.documentosVencidos.toString(),
-          description: kpis.documentosVencidos > 0 ? "Documentos por vencer" : "Todos los documentos al día",
           urgent: kpis.documentosVencidos > 0,
           animate: kpis.documentosVencidos > 0
         };
       }
-      if (stat.title === "💰 Turnos Extras por Pagar") {
+      if (stat.title === "Turnos Extras por Pagar") {
         return {
           ...stat,
           value: kpis.turnosExtrasPendientes.toString(),
-          subtitle: kpis.montoTurnosExtrasPendientes > 0 ? `$${kpis.montoTurnosExtrasPendientes.toLocaleString()}` : "Sin turnos pendientes",
-          description: kpis.turnosExtrasPendientes > 0 ? "Turnos pendientes de pago" : "Todos los turnos pagados",
+          subtitle: `$${kpis.montoTurnosExtrasPendientes.toLocaleString()}`,
           urgent: kpis.turnosExtrasPendientes > 0,
           animate: kpis.turnosExtrasPendientes > 0
         };
@@ -257,29 +286,9 @@ export default function HomePage() {
   const handleCardClick = (href: string) => {
     router.push(href);
   };
-  
-  // Mostrar loading mientras se verifican los permisos
-  if (permissionsLoading) {
-    return (
-      <div className="p-6">
-        <div className="rounded-xl border p-6 text-center text-muted-foreground">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          Cargando permisos...
-        </div>
-      </div>
-    );
-  }
-  
-  if (!canSeeHome) {
-    return (
-      <div className="p-6">
-        <div className="rounded-xl border p-6 text-center text-muted-foreground">
-          Acceso denegado
-        </div>
-      </div>
-    );
-  }
 
+  console.log('🔍 HomePage: Renderizando página principal...')
+  
   return (
     <div className="p-3 sm:p-4 md:p-6 lg:p-8 space-y-4 sm:space-y-6 md:space-y-8 max-w-7xl mx-auto">
       {/* Welcome Section - Responsive */}

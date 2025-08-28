@@ -1,6 +1,5 @@
 "use client";
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import React, { useState, useEffect } from 'react';
 import { MapPin, Loader2, Building2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -188,11 +187,9 @@ export default function AsignacionesPage() {
             </div>
             <h2 className="text-lg font-semibold mb-2">Error al cargar datos</h2>
             <p className="text-muted-foreground mb-4">{error}</p>
-            <Authorize resource="optimizacion_asignaciones" action="create" eff={effectivePermissions}>
-  <GuardButton resource="optimizacion_asignaciones" action="create" eff={effectivePermissions}  onClick={() => window.location.reload()}>
+            <Button onClick={() => window.location.reload()}>
               Intentar de nuevo
-            </GuardButton>
-</Authorize>
+            </Button>
           </div>
         </div>
       </div>
@@ -356,7 +353,7 @@ export default function AsignacionesPage() {
                             )}
                             {resultado.valor_turno_extra && (
                               <div className="text-xs text-muted-foreground">
-                                💰 ${resultado.valor_turno_extra.toLocaleString('es-CL')}
+                                💰 ${resultado.valor_turno_extra.toLocaleString()}
                               </div>
                             )}
                           </div>

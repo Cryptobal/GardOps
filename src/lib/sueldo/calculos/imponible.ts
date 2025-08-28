@@ -14,15 +14,15 @@ export interface CalculoImponible {
 }
 
 /**
- * Calcula la gratificación legal (25% del sueldo base con tope de 4.75 ingresos mínimos)
+ * Calcula la gratificación legal (25% del total imponible bruto con tope de 4.75 ingresos mínimos)
  * Según normativa 2025: $529.000 × 4,75 / 12 = $209.396 mensual
  */
-function calcularGratificacionLegal(sueldoBase: number): number {
-  if (typeof sueldoBase !== 'number') {
+function calcularGratificacionLegal(totalImponibleBruto: number): number {
+  if (typeof totalImponibleBruto !== 'number') {
     return 0;
   }
   
-  const gratificacion = sueldoBase * 0.25;
+  const gratificacion = totalImponibleBruto * 0.25;
   const topeGratificacion = 209396; // $209.396 según normativa 2025
   
   return redondearCLP(Math.min(gratificacion, topeGratificacion));
@@ -104,11 +104,11 @@ export function calcularImponible(input: SueldoInput, parametros: ParametrosSuel
   const comisiones = redondearCLP(input.comisiones || 0);
   const bonos = calcularBonos(input);
   
-  // Calcular gratificación legal sobre el sueldo base (25%)
-  const gratificacionLegal = calcularGratificacionLegal(sueldoBaseAjustado);
+  // Calcular total imponible bruto (sin gratificación)
+  const totalImponibleBruto = sueldoBaseAjustado + horasExtras + comisiones + bonos;
   
-  // Calcular total imponible bruto (incluyendo gratificación)
-  const totalImponibleBruto = sueldoBaseAjustado + gratificacionLegal + horasExtras + comisiones + bonos;
+  // Calcular gratificación legal sobre el total imponible bruto
+  const gratificacionLegal = calcularGratificacionLegal(totalImponibleBruto);
   
   // Calcular total antes del tope
   const totalAntesTope = totalImponibleBruto + gratificacionLegal;

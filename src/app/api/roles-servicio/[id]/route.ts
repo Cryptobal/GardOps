@@ -1,4 +1,3 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
@@ -6,8 +5,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(req, { resource: 'roles_servicio', action: 'delete' });
-  if (deny) return deny;
   try {
     const { id } = params;
     const { searchParams } = new URL(request.url);
@@ -40,8 +37,6 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(req, { resource: 'roles_servicio', action: 'delete' });
-  if (deny) return deny;
   try {
     const { id } = params;
     const body = await request.json();
@@ -82,8 +77,6 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(req, { resource: 'roles_servicio', action: 'delete' });
-  if (deny) return deny;
   try {
     const { id } = params;
     const { searchParams } = new URL(request.url);
@@ -117,8 +110,6 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(req, { resource: 'roles_servicio', action: 'delete' });
-  if (deny) return deny;
   try {
     const { id } = params;
     const body = await request.json();
@@ -147,33 +138,6 @@ export async function PATCH(
       return NextResponse.json({ 
         success: true,
         message: 'Rol de servicio reactivado exitosamente',
-        rol: result.rows[0]
-      });
-    }
-
-    if (action === 'inactivar') {
-      const result = await query(`
-        UPDATE as_turnos_roles_servicio 
-        SET 
-          estado = 'Inactivo',
-          fecha_inactivacion = NOW(),
-          updated_at = NOW()
-        WHERE id = $1
-        RETURNING *
-      `, [id]);
-
-      if (result.rows.length === 0) {
-        return NextResponse.json(
-          { error: 'Rol de servicio no encontrado' },
-          { status: 404 }
-        );
-      }
-
-      console.log(`✅ Rol de servicio inactivado: ${id}`);
-      
-      return NextResponse.json({ 
-        success: true,
-        message: 'Rol de servicio inactivado exitosamente',
         rol: result.rows[0]
       });
     }

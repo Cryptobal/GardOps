@@ -1,12 +1,9 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 export async function POST(
   request: NextRequest,
-  {
-
- params }: { params: { id: string; ppcId: string } }
+  { params }: { params: { id: string; ppcId: string } }
 ) {
   console.log("🔁 Endpoint activo: /api/instalaciones/[id]/ppc/[ppcId]/desasignar");
   

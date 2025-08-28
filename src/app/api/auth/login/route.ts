@@ -1,4 +1,3 @@
-// El endpoint de login NO debe tener gate de autorización - debe ser público
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateUser } from '../../../../lib/api/usuarios'
 import { validateEmail } from '../../../../lib/schemas/usuarios'

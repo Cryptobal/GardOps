@@ -1,4 +1,3 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
@@ -9,10 +8,6 @@ function isValidUUID(uuid: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'roles_servicio', action: 'create' });
-if (deny) return deny;
-
   try {
     const body = await request.json();
     const { rol_id } = body;

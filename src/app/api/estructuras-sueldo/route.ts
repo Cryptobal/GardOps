@@ -1,12 +1,8 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 
 export async function GET(request: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'estructuras_sueldo', action: 'create' });
-  if (deny) return deny;
-
-try {
+  try {
     const { searchParams } = new URL(request.url);
     const activo = searchParams.get('activo');
     const tenantId = searchParams.get('tenantId') || '1';
@@ -60,10 +56,7 @@ try {
 }
 
 export async function POST(request: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'estructuras_sueldo', action: 'create' });
-  if (deny) return deny;
-
-try {
+  try {
     const body = await request.json();
     const { 
       rol_servicio_id, 

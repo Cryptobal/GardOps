@@ -1,16 +1,10 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { getUserEmail, getUserIdByEmail, userHasPerm, requirePlatformAdmin, jsonError } from '@/lib/auth/rbac';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const deny = await requireAuthz(request, { resource: 'admin', action: 'delete' });
-  if (deny) return deny;
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const email = await getUserEmail(request);
+    const email = await getUserEmail(req);
     if (!email) return NextResponse.json({ ok:false, error:'unauthenticated', code:'UNAUTHENTICATED' }, { status:401 });
     const userId = await getUserIdByEmail(email);
     if (!userId) return NextResponse.json({ ok:false, error:'user_not_found', code:'NOT_FOUND' }, { status:401 });
@@ -18,7 +12,7 @@ export async function GET(
     let isAdminJwt = false;
     try {
       const { getCurrentUserServer } = await import('@/lib/auth');
-      const u = getCurrentUserServer(request as any);
+      const u = getCurrentUserServer(req as any);
       isAdminJwt = u?.rol === 'admin';
     } catch {}
     if (!isAdminJwt) {
@@ -45,18 +39,13 @@ export async function GET(
   }
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const deny = await requireAuthz(request, { resource: 'admin', action: 'delete' });
-  if (deny) return deny;
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const ctx = await requirePlatformAdmin(request);
+    const ctx = await requirePlatformAdmin(req);
     const { id } = params;
     const tu = await sql<{ tenant_id: string | null }>`SELECT tenant_id FROM public.usuarios WHERE id=${ctx.userId}::uuid LIMIT 1`;
     const userTenantId = tu.rows[0]?.tenant_id ?? null;
-    const body = await request.json();
+    const body = await req.json();
     const { nombre, clave, tenant_id } = body || {};
     console.log('[admin/rbac/roles/:id][PUT]', { email: ctx.ok ? ctx.email : undefined, userId: ctx.ok ? ctx.userId : undefined, id, body })
     await sql`
@@ -73,14 +62,9 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const deny = await requireAuthz(request, { resource: 'admin', action: 'delete' });
-  if (deny) return deny;
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const ctx = await requirePlatformAdmin(request);
+    const ctx = await requirePlatformAdmin(req);
     const { id } = params;
     const tu = await sql<{ tenant_id: string | null }>`SELECT tenant_id FROM public.usuarios WHERE id=${ctx.userId}::uuid LIMIT 1`;
     const userTenantId = tu.rows[0]?.tenant_id ?? null;

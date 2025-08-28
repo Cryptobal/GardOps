@@ -1,6 +1,5 @@
 'use client';
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -976,8 +975,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                 
                 {/* Botón Eliminar - solo aparece si hay observaciones guardadas */}
                 {puesto.observaciones && (
-                  <Authorize resource="legacy" action="delete" eff={effectivePermissions}>
-  <GuardButton resource="legacy" action="delete" eff={effectivePermissions}  
+                  <Button 
                     size="sm" 
                     variant="destructive" 
                     onClick={() => {
@@ -998,8 +996,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                     title="Eliminar observaciones existentes"
                   >
                     Eliminar
-                  </GuardButton>
-</Authorize>
+                  </Button>
                 )}
                 
                 <Button 

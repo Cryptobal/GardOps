@@ -1,8 +1,6 @@
 'use client';
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
 import { useState, useEffect } from 'react';
-import { useCan } from '@/lib/permissions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -68,16 +66,6 @@ interface EstructuraServicio {
 }
 
 export default function EstructurasServicioPage() {
-  const { allowed } = useCan('config.estructuras_servicio.view');
-  if (!allowed) {
-    return (
-      <div className="p-6">
-        <div className="rounded-xl border p-6 text-center text-muted-foreground">
-          Acceso denegado
-        </div>
-      </div>
-    );
-  }
   const router = useRouter();
   const { success, error: showError } = useToast();
   const [activeTab, setActiveTab] = useState('estructuras');

@@ -1,6 +1,5 @@
 'use client';
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -71,7 +70,7 @@ export default function EstructuraGuardia({ guardiaId }: Props) {
     try {
       // Cargar estructura personal vigente
       const responsePersonal = await fetch(
-        `/api/payroll/estructuras-unificadas?guardia_id=${guardiaId}&tipo=guardia`
+        `/api/payroll/estructuras-guardia?guardia_id=${guardiaId}&anio=${anio}&mes=${mes}`
       );
       
       if (responsePersonal.status === 404) {
@@ -121,7 +120,7 @@ export default function EstructuraGuardia({ guardiaId }: Props) {
 
   const cargarHistorial = async () => {
     try {
-              const response = await fetch(`/api/payroll/estructuras-unificadas?guardia_id=${guardiaId}&tipo=guardia`);
+      const response = await fetch(`/api/payroll/estructuras-guardia/historial?guardia_id=${guardiaId}`);
       if (response.ok) {
         const data = await response.json();
         setHistorial(data.historial || []);
@@ -208,10 +207,10 @@ export default function EstructuraGuardia({ guardiaId }: Props) {
                     }
                   </p>
                 </div>
-                <Link href={`/payroll/estructuras-unificadas?guardia_id=${guardiaId}&tipo=guardia`}>
+                <Link href={`/payroll/estructuras-guardia?guardia_id=${guardiaId}&anio=${anio}&mes=${mes}`}>
                   <Button variant="outline" size="sm">
                     <ExternalLink className="h-4 w-4 mr-2" />
-                    Abrir en Estructuras Unificadas
+                    Abrir en Estructuras
                   </Button>
                 </Link>
               </div>
@@ -309,12 +308,10 @@ export default function EstructuraGuardia({ guardiaId }: Props) {
               <p className="text-sm text-gray-600 mb-4">
                 No hay estructura personal ni de servicio vigente para el período seleccionado
               </p>
-              <Link href={`/payroll/estructuras-unificadas?guardia_id=${guardiaId}&tipo=guardia`}>
-                <Authorize resource="guardias" action="create" eff={effectivePermissions}>
-  <GuardButton resource="guardias" action="create" eff={effectivePermissions} >
+              <Link href={`/payroll/estructuras-guardia?guardia_id=${guardiaId}&anio=${anio}&mes=${mes}`}>
+                <Button>
                   Crear Estructura Personal
-                </GuardButton>
-</Authorize>
+                </Button>
               </Link>
             </div>
           )}
@@ -349,10 +346,10 @@ export default function EstructuraGuardia({ guardiaId }: Props) {
                     </TableCell>
                     <TableCell>{item.n_items}</TableCell>
                     <TableCell>
-                      <Link href={`/payroll/estructuras-unificadas?guardia_id=${guardiaId}&tipo=guardia`}>
+                      <Link href={`/payroll/estructuras-guardia?guardia_id=${guardiaId}&anio=${anio}&mes=${mes}`}>
                         <Button variant="outline" size="sm">
                           <ExternalLink className="h-4 w-4 mr-2" />
-                          Abrir en Estructuras Unificadas
+                          Abrir en Estructuras
                         </Button>
                       </Link>
                     </TableCell>

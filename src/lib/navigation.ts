@@ -14,13 +14,12 @@ import {
   CalendarDays,
   Activity,
   DollarSign,
-
+  Calculator,
   Building,
   
   CreditCard,
   Key,
-  Lock,
-  Satellite
+  Lock
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -36,14 +35,7 @@ export const navigationItems: NavigationItem[] = [
   {
     name: "Inicio",
     href: "/",
-    icon: Home,
-    permission: "home.view"
-  },
-  {
-    name: "Central de Monitoreo",
-    href: "/central-monitoreo",
-    icon: Satellite,
-    permission: "central_monitoring.view"
+    icon: Home
   },
   {
     name: "Clientes",
@@ -87,7 +79,12 @@ export const navigationItems: NavigationItem[] = [
     icon: CreditCard,
     permission: "payroll.view"
   },
-
+  {
+    name: "Sueldos",
+    href: "/sueldos",
+    icon: Calculator,
+    permission: "sueldos.view"
+  },
   {
     name: "PPC",
     href: "/ppc",
@@ -116,6 +113,14 @@ export const navigationItems: NavigationItem[] = [
     name: "Configuración",
     href: "/configuracion",
     icon: Settings,
-    permission: "config.view"
+    // Dejar visible el menú contenedor; la visibilidad de Seguridad se controla por permiso
+    children: [
+      {
+        name: "Seguridad",
+        href: "/configuracion/seguridad",
+        icon: Lock,
+        permission: "rbac.platform_admin"
+      }
+    ]
   }
 ]; 

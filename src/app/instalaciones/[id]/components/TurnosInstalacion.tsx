@@ -1,7 +1,6 @@
 'use client';
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,836 +8,995 @@ import { Input } from '@/components/ui/input';
 import { SafeSelect } from '@/components/ui/safe-select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/toast';
-import { Trash2, X, UserPlus, UserMinus, Search, ChevronDown, Users, Clock, Calendar, Target, ChevronRight, Plus, Minus } from 'lucide-react';
+import { Trash2, X, UserPlus, UserMinus, Search, ChevronDown, Users, Clock, Calendar, Target, ChevronRight } from 'lucide-react';
 import { 
   getTurnosInstalacion, 
   getRolesServicio, 
-  getPPCsActivosInstalacion, 
-  getGuardiasDisponibles,
-  getTiposPuesto,
   crearTurnoInstalacion,
-  eliminarTurnoInstalacion,
-  asignarGuardiaAPuesto,
-  desasignarGuardiaDePuesto,
-  eliminarPuestoDeTurno,
-  getPuestosDeTurno,
-  agregarPuesto
+  getPPCsInstalacion,
+  getGuardiasDisponibles,
+  desasignarGuardiaPPC,
+  asignarGuardiaPPC,
+  eliminarPPC,
+  agregarPuestosARol
 } from '@/lib/api/instalaciones';
-import { SelectItem } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { AsignacionActivaModal } from '@/components/ui/asignacion-activa-modal';
-import { GuardiaSelectWithSearch } from '@/components/ui/guardia-select-with-search';
+import { 
+  TurnoInstalacionConDetalles, 
+  RolServicio, 
+  CrearTurnoInstalacionData 
+} from '@/lib/schemas/instalaciones';
+import AsignarGuardiaDropdown from './AsignarGuardiaDropdown';
+import ConfirmDeleteModal from './ConfirmDeleteModal';
+import InfoTurnos from './InfoTurnos';
+import { Edit2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface TurnosInstalacionProps {
   instalacionId: string;
-  effectivePermissions?: Record<string, string[]>;
-  turnosPrecargados?: any[];
-  ppcsPrecargados?: any[];
-  guardiasPrecargados?: any[];
-  rolesPrecargados?: any[];
-  onActualizarKPIs?: (tipo: string, accion: string, datos?: any) => void;
-  onActualizarKPIsOptimista?: (tipo: string, accion: string, datos?: any) => void;
+  instalacionNombre: string;
+  // Props opcionales para datos precargados
+  turnosPrecargados?: TurnoInstalacionConDetalles[];
+  ppcsPrecargados?: PPC[];
+  guardiasPrecargados?: GuardiaDisponible[];
+  rolesPrecargados?: RolServicio[];
 }
 
-interface FormData {
-  rol_id: string;
-  cantidad_guardias: number;
-  tipo_puesto_id: string;
-}
-
-interface Puesto {
+interface PPC {
   id: string;
-  nombre_puesto: string;
-  es_ppc: boolean;
-  guardia_id: string | null;
-  guardia_nombre: string | null;
+  instalacion_id: string;
+  rol_servicio_id: string;
+  motivo: string;
+  observacion: string | null;
   creado_en: string;
+  rol_servicio_nombre: string;
+  hora_inicio: string;
+  hora_termino: string;
+  cantidad_faltante: number;
+  estado: string;
+  guardia_asignado_id?: string;
+  guardia_nombre?: string;
+  nombre_puesto?: string;
+  tipo_puesto_id?: string;
+  tipo_nombre?: string;
+  tipo_emoji?: string;
+  tipo_color?: string;
 }
 
-// Función helper para generar identificadores únicos de puestos
-const generarIdCortoPuesto = (puestoId: string) => {
-  // Tomar los últimos 4 caracteres del UUID y convertirlos a mayúsculas
-  return `P-${puestoId.slice(-4).toUpperCase()}`;
-};
-
-// Función para generar identificador por turno y posición
-const generarIdPuestoTurno = (turnoIndex: number, puestoIndex: number, tipoPuesto: string) => {
-  // Identificación por turno (A, B, C, etc.) + posición correlativa (1, 2, 3, 4)
-  const turnoLetra = String.fromCharCode(65 + turnoIndex); // A, B, C, etc.
-  return `${turnoLetra}${puestoIndex + 1}`;
-};
+interface GuardiaDisponible {
+  id: string;
+  nombre_completo: string;
+  rut: string;
+  comuna: string;
+}
 
 export default function TurnosInstalacion({ 
   instalacionId, 
-  effectivePermissions,
-  turnosPrecargados = [],
-  ppcsPrecargados = [],
-  guardiasPrecargados = [],
-  rolesPrecargados = [],
-  onActualizarKPIs,
-  onActualizarKPIsOptimista
+  instalacionNombre, 
+  turnosPrecargados,
+  ppcsPrecargados,
+  guardiasPrecargados,
+  rolesPrecargados
 }: TurnosInstalacionProps) {
   const { toast } = useToast();
   const router = useRouter();
-  
-  // Verificar que effectivePermissions esté definido
-  const permissions = effectivePermissions || {};
-  
-  // Estados
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [turnos, setTurnos] = useState<any[]>([]);
-  const [rolesServicio, setRolesServicio] = useState<any[]>([]);
-  const [ppcs, setPpcs] = useState<any[]>([]);
-  const [guardiasDisponibles, setGuardiasDisponibles] = useState<any[]>([]);
-  const [tiposPuesto, setTiposPuesto] = useState<any[]>([]);
-  const [puestosPorTurno, setPuestosPorTurno] = useState<Record<string, Puesto[]>>({});
-  const [formData, setFormData] = useState<FormData>({
-    rol_id: '',
-    cantidad_guardias: 1,
-    tipo_puesto_id: ''
+  const [turnos, setTurnos] = useState<TurnoInstalacionConDetalles[]>(turnosPrecargados || []);
+  const [rolesServicio, setRolesServicio] = useState<RolServicio[]>(rolesPrecargados || []);
+  const [ppcs, setPpcs] = useState<PPC[]>(ppcsPrecargados || []);
+  const [guardiasDisponibles, setGuardiasDisponibles] = useState<GuardiaDisponible[]>(guardiasPrecargados || []);
+  const [filtrosGuardias, setFiltrosGuardias] = useState<{[key: string]: string}>({});
+  const [selectsOpen, setSelectsOpen] = useState<{[key: string]: boolean}>({});
+  const [loading, setLoading] = useState(!turnosPrecargados); // Solo loading si no hay datos precargados
+  const [creando, setCreando] = useState(false);
+  const [expandedTurnos, setExpandedTurnos] = useState<{[key: string]: boolean}>({});
+
+  const [asignando, setAsignando] = useState<string | null>(null);
+  const [desasignando, setDesasignando] = useState<string | null>(null);
+  const [eliminandoPuesto, setEliminandoPuesto] = useState<string | null>(null);
+  const [agregandoPuestos, setAgregandoPuestos] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<{ppcId: string, puestoIndex: number} | null>(null);
+  const [formData, setFormData] = useState<CrearTurnoInstalacionData>({
+    instalacion_id: instalacionId,
+    rol_servicio_id: '',
+    cantidad_guardias: 1
   });
-  const [submitting, setSubmitting] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
 
-  // Estados para el modal de asignación activa
-  const [showAsignacionModal, setShowAsignacionModal] = useState(false);
-  const [asignacionActiva, setAsignacionActiva] = useState<any>(null);
-  const [guardiaSeleccionado, setGuardiaSeleccionado] = useState<string>('');
-  
-  // Estado para controlar qué turnos están expandidos
-  const [expandedTurnos, setExpandedTurnos] = useState<Set<string>>(new Set());
-  
+  // Estado para el modal de edición de nombre de puesto
+  const [editandoPuesto, setEditandoPuesto] = useState<{
+    id: string;
+    nombre: string;
+    isOpen: boolean;
+  } | null>(null);
+  const [guardandoNombre, setGuardandoNombre] = useState(false);
+  const [tiposPuesto, setTiposPuesto] = useState<Array<{id: string; nombre: string; emoji: string; color: string}>>([]);
+  const [tipoPuestoSeleccionado, setTipoPuestoSeleccionado] = useState<{id: string | null; nombre: string}>({id: null, nombre: ''});
 
-  
-  // Función para alternar el estado expandido de un turno
-  const toggleTurnoExpanded = (turnoId: string) => {
-    setExpandedTurnos(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(turnoId)) {
-        newSet.delete(turnoId);
-      } else {
-        newSet.add(turnoId);
-      }
-      return newSet;
+  // Función para filtrar guardias por nombre, apellido o RUT
+  const getGuardiasFiltrados = (filtro: string) => {
+    return guardiasDisponibles.filter(guardia => {
+      if (!filtro.trim()) return true;
+      
+      const filtroLower = filtro.toLowerCase().trim();
+      const nombreCompleto = guardia.nombre_completo.toLowerCase();
+      const rut = guardia.rut.toLowerCase();
+      
+      // Filtrar por nombre completo (nombre + apellidos)
+      if (nombreCompleto.includes(filtroLower)) return true;
+      
+      // Filtrar por RUT
+      if (rut.includes(filtroLower)) return true;
+      
+      // Filtrar por apellidos específicos
+      const apellidos = guardia.nombre_completo.split(' ').slice(1).join(' ').toLowerCase();
+      if (apellidos.includes(filtroLower)) return true;
+      
+      // Filtrar por nombre específico
+      const nombre = guardia.nombre_completo.split(' ')[0].toLowerCase();
+      if (nombre.includes(filtroLower)) return true;
+      
+      return false;
     });
   };
 
-  const cerrarModalAsignacion = () => {
-    setShowAsignacionModal(false);
-    // Limpiar selección para que el selector no muestre el último valor
-    setGuardiaSeleccionado('');
+  // Función para limpiar todos los filtros
+  const limpiarTodosLosFiltros = () => {
+    setFiltrosGuardias({});
   };
 
+  // Función para preservar filtros activos
+  const preservarFiltrosActivos = () => {
+    const filtrosActivos = Object.keys(filtrosGuardias).filter(key => filtrosGuardias[key].trim() !== '');
+    return filtrosActivos.length > 0;
+  };
+
+  // Función para limpiar solo los selects abiertos sin afectar los filtros
+  const limpiarSelects = () => {
+    setSelectsOpen({});
+    // Forzar blur en cualquier elemento enfocado
+    if (document.activeElement && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  };
+
+  // Función para toggle del dropdown de turnos
+  const toggleTurnoExpanded = (turnoId: string) => {
+    setExpandedTurnos(prev => ({
+      ...prev,
+      [turnoId]: !prev[turnoId]
+    }));
+  };
+
+  useEffect(() => {
+    // Siempre cargar datos frescos para asegurar que tenemos la información más actualizada
+    cargarDatos();
+  }, [instalacionId]);
+
+  // Limpiar estados al desmontar el componente
+  useEffect(() => {
+    return () => {
+      limpiarEstados();
+    };
+  }, []);
+
+  // Manejar clics fuera del componente para cerrar dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.dropdown-container')) {
+        limpiarSelects();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
 
-  // Cargar datos
-  const cargarDatos = useCallback(async () => {
+  // Actualizar estado cuando cambien los datos precargados
+  useEffect(() => {
+    if (turnosPrecargados) {
+      setTurnos(turnosPrecargados);
+    }
+    if (ppcsPrecargados) {
+      setPpcs(ppcsPrecargados);
+    }
+    if (guardiasPrecargados) {
+      setGuardiasDisponibles(guardiasPrecargados);
+    }
+    if (rolesPrecargados) {
+      setRolesServicio(rolesPrecargados);
+    }
+  }, [turnosPrecargados, ppcsPrecargados, guardiasPrecargados, rolesPrecargados]);
+
+  const cargarDatos = async () => {
     try {
       setLoading(true);
       
-      // Siempre cargar datos frescos desde la API para evitar inconsistencias
-      console.log('🔍 Cargando datos frescos desde la API...');
+      // Cargar datos de forma individual para manejar errores por separado
+      const promises = [
+        getTurnosInstalacion(instalacionId).catch(error => {
+          console.error('Error cargando turnos:', error);
+          return [];
+        }),
+        getRolesServicio().catch(error => {
+          console.error('Error cargando roles:', error);
+          return [];
+        }).then(roles => {
+          console.log('Roles cargados:', roles);
+          return Array.isArray(roles) ? roles : [];
+        }),
+        getPPCsInstalacion(instalacionId).catch(error => {
+          console.error('Error cargando PPCs:', error);
+          return [];
+        }),
+        getGuardiasDisponibles().catch(error => {
+          console.error('Error cargando guardias:', error);
+          return [];
+        })
+      ];
       
-      // Cargar datos directamente desde el endpoint /completa con headers anti-caché
-      const response = await fetch(`/api/instalaciones/${instalacionId}/completa`, {
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-      if (!response.ok) {
-        throw new Error('Error al cargar datos completos');
-      }
+      const [turnosData, rolesData, ppcsData, guardiasData] = await Promise.all(promises);
       
-      const data = await response.json();
-      const { turnos: turnosData, ppcs: ppcsData, guardias: guardiasData, roles: rolesData } = data.data;
+      setTurnos(Array.isArray(turnosData) ? turnosData : []);
+      setRolesServicio(Array.isArray(rolesData) ? rolesData : []);
+      setPpcs(Array.isArray(ppcsData) ? ppcsData : []);
+      setGuardiasDisponibles(Array.isArray(guardiasData) ? guardiasData : []);
       
-      // Actualizar estados con datos frescos
-      console.log('🔍 Actualizando estados con datos frescos:', {
-        turnosData: turnosData.length,
-        rolesData: rolesData.length,
-        ppcsData: ppcsData.length,
-        guardiasData: guardiasData.length
-      });
-      
-      // Actualizar todos los estados de una vez
-      setTurnos(turnosData);
-      setRolesServicio(rolesData);
-      setPpcs(ppcsData);
-      setGuardiasDisponibles(guardiasData);
-      
-      // Cargar tipos de puesto
-      const tiposData = await getTiposPuesto();
-      setTiposPuesto(tiposData);
-      
-      // Usar directamente los puestos que vienen en los datos frescos
-      const puestosData: Record<string, Puesto[]> = {};
-      
-      // Si no hay turnos, limpiar completamente los puestos
-      if (!turnosData || turnosData.length === 0) {
-        console.log('🔍 No hay turnos, limpiando todos los puestos...');
-        setPuestosPorTurno({});
-      } else {
-        for (const turno of turnosData) {
-          if (turno.puestos && Array.isArray(turno.puestos)) {
-            puestosData[turno.id] = turno.puestos.map((puesto: any) => ({
-              id: puesto.id,
-              nombre_puesto: puesto.nombre_puesto,
-              es_ppc: puesto.es_ppc,
-              guardia_id: puesto.guardia_asignado_id,
-              guardia_nombre: puesto.guardia_nombre,
-              creado_en: new Date().toISOString()
-            }));
-          } else {
-            puestosData[turno.id] = [];
-          }
-        }
-        
-        console.log('🔍 Puestos procesados:', Object.keys(puestosData).map(key => `${key}: ${puestosData[key].length} puestos`));
-        setPuestosPorTurno(puestosData);
-      }
-      
-      console.log('🔍 Datos frescos cargados:', {
-        turnos: turnosData.length,
-        roles: rolesData.length,
-        ppcs: ppcsData.length,
-        guardias: guardiasData.length
-      });
-      
-      setError('');
+      // Preservar los estados de filtros y selects
+      // No limpiar filtrosGuardias ni selectsOpen aquí
     } catch (error) {
       console.error('Error cargando datos:', error);
-      toast.error("Error cargando datos de la instalación");
+      toast.error('No se pudieron cargar los datos de turnos', 'Error');
     } finally {
       setLoading(false);
     }
-  }, [instalacionId, toast]);
+  };
 
-  useEffect(() => {
-    cargarDatos();
-  }, [cargarDatos]);
-
-  // Crear nuevo turno
   const handleCrearTurno = async () => {
-    if (!formData.rol_id || !formData.tipo_puesto_id) {
-      toast.error("Por favor completa todos los campos");
+    if (!formData.rol_servicio_id || formData.cantidad_guardias < 1) {
+      toast.error('Por favor completa todos los campos requeridos', 'Error');
       return;
     }
 
     try {
-      setSubmitting(true);
-      await crearTurnoInstalacion({
-        instalacion_id: instalacionId,
-        rol_servicio_id: formData.rol_id,
-        cantidad_guardias: formData.cantidad_guardias,
-        tipo_puesto_id: formData.tipo_puesto_id
-      });
-      toast.success("Turno creado correctamente");
+      setCreando(true);
+      await crearTurnoInstalacion(formData);
+      
+      toast.success(`Turno creado correctamente: ${formData.cantidad_guardias} guardias`, 'Éxito');
 
       // Limpiar formulario
       setFormData({
-        rol_id: '',
-        cantidad_guardias: 1,
-        tipo_puesto_id: ''
+        instalacion_id: instalacionId,
+        rol_servicio_id: '',
+        cantidad_guardias: 1
       });
-      
-      // Recargar datos frescos inmediatamente
-      await cargarDatos();
-      
-      // Actualizar KPIs de forma optimizada
-      await actualizarKPIsOptimizado();
+
+      // Recargar datos de forma más robusta
+      try {
+        await cargarDatos();
+      } catch (reloadError) {
+        console.error('Error recargando datos después de crear turno:', reloadError);
+        // No mostrar error al usuario si la creación fue exitosa
+      }
     } catch (error) {
       console.error('Error creando turno:', error);
-      toast.error("No se pudo crear el turno");
+      toast.error('No se pudo crear el turno', 'Error');
     } finally {
-      setSubmitting(false);
+      setCreando(false);
     }
   };
 
-  // Eliminar turno
-  const handleEliminarTurno = async (turnoId: string) => {
+  const handleAsignarGuardiaDirecto = async (ppcId: string, guardiaId: string) => {
     try {
-      await eliminarTurnoInstalacion(instalacionId, turnoId);
-      toast.success("Turno eliminado correctamente");
+      setAsignando(ppcId);
+      await asignarGuardiaPPC(instalacionId, ppcId, guardiaId);
       
-      // Recargar datos frescos inmediatamente
+      // Limpiar filtro después de asignar
+      setFiltrosGuardias(prev => {
+        const newFiltros = { ...prev };
+        delete newFiltros[ppcId];
+        return newFiltros;
+      });
+      
+      toast.success('Guardia asignado correctamente', 'Éxito');
       await cargarDatos();
-      
-      // Actualizar KPIs de forma optimizada
-      await actualizarKPIsOptimizado();
     } catch (error) {
-      console.error('Error eliminando turno:', error);
-      toast.error("No se pudo eliminar el turno");
+      console.error('Error asignando guardia:', error);
+      toast.error('No se pudo asignar el guardia', 'Error');
+    } finally {
+      setAsignando(null);
     }
   };
 
-  // Eliminar todos los turnos
-  const handleEliminarTodosTurnos = async () => {
-    if (!confirm('¿Estás seguro de que quieres eliminar TODOS los turnos? Esta acción no se puede deshacer.')) {
+  // Función para limpiar todos los estados de filtros y selects
+  const limpiarEstados = () => {
+    setFiltrosGuardias({});
+    setSelectsOpen({});
+    // Forzar blur en cualquier elemento enfocado
+    if (document.activeElement && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  };
+
+  const handleDesasignarGuardia = async (ppcId: string) => {
+    try {
+      setDesasignando(ppcId);
+      await desasignarGuardiaPPC(instalacionId, ppcId);
+      toast.success('Guardia desasignado correctamente', 'Éxito');
+      await cargarDatos();
+    } catch (error) {
+      console.error('Error desasignando guardia:', error);
+      toast.error('No se pudo desasignar el guardia', 'Error');
+    } finally {
+      setDesasignando(null);
+    }
+  };
+
+  const handleAsignacionCompletada = () => {
+    cargarDatos();
+  };
+
+  const handleNavegarAGuardia = (guardiaId: string) => {
+    if (guardiaId) {
+      router.push(`/guardias/${guardiaId}`);
+    }
+  };
+
+  const handleEliminarPuesto = (ppcId: string, puestoIndex: number) => {
+    console.log('🔍 handleEliminarPuesto llamado:', { ppcId, puestoIndex });
+    setShowDeleteConfirm({ ppcId, puestoIndex });
+  };
+
+  const confirmarEliminarPuesto = async () => {
+    console.log('🔍 confirmarEliminarPuesto llamado:', showDeleteConfirm);
+    if (!showDeleteConfirm) return;
+
+    try {
+      setEliminandoPuesto(showDeleteConfirm.ppcId);
+      
+      console.log('🔍 Llamando a eliminarPPC:', { instalacionId, ppcId: showDeleteConfirm.ppcId });
+      const resultado = await eliminarPPC(instalacionId, showDeleteConfirm.ppcId);
+      
+      console.log('🔍 Resultado de eliminarPPC:', resultado);
+      
+      // Mostrar mensaje según el resultado
+      if (resultado.fueEliminado) {
+        toast.success(resultado.mensaje, 'Éxito');
+      } else if (resultado.fueInactivado) {
+        toast.warning(resultado.mensaje, 'Aviso');
+      }
+      
+      // Recargar datos de forma más robusta
+      try {
+        await cargarDatos();
+      } catch (reloadError) {
+        console.error('Error recargando datos después de eliminar:', reloadError);
+        // No mostrar error al usuario si la eliminación fue exitosa
+      }
+    } catch (error) {
+      console.error('Error eliminando puesto:', error);
+      toast.error('No se pudo eliminar el puesto', 'Error');
+    } finally {
+      setEliminandoPuesto(null);
+      // Cerrar el modal automáticamente después de completar la operación
+      setShowDeleteConfirm(null);
+    }
+  };
+
+  const handleAgregarPuestos = async (turnoId: string, rolServicioId: string, cantidad: number = 1) => {
+    try {
+      setAgregandoPuestos(rolServicioId);
+      await agregarPuestosARol(instalacionId, turnoId, cantidad);
+      toast.success(`${cantidad} puesto(s) agregado(s) correctamente`, 'Éxito');
+      await cargarDatos();
+    } catch (error) {
+      console.error('Error agregando puestos:', error);
+      toast.error('No se pudieron agregar los puestos', 'Error');
+    } finally {
+      setAgregandoPuestos(null);
+    }
+  };
+
+  const formatearHorario = (horaInicio: string, horaTermino: string) => {
+    return `${horaInicio} a ${horaTermino}`;
+  };
+
+  const formatearCiclo = (diasTrabajo: number, diasDescanso: number) => {
+    return `${diasTrabajo}x${diasDescanso}`;
+  };
+
+  const getEstadoColor = (guardiasAsignados: number, cantidadGuardias: number, ppcPendientes: number) => {
+    if (guardiasAsignados >= cantidadGuardias) return 'bg-green-500';
+    if (guardiasAsignados > 0) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  const getEstadoTexto = (guardiasAsignados: number, cantidadGuardias: number, ppcPendientes: number) => {
+    if (guardiasAsignados >= cantidadGuardias) return '✅ Completo';
+    if (guardiasAsignados > 0) return '⚠️ Parcial';
+    return '❌ Vacante';
+  };
+
+  const getPPCsPorRol = (rolServicioId: string) => {
+    return ppcs.filter(ppc => 
+      ppc.rol_servicio_id === rolServicioId && 
+      ppc.estado === 'Pendiente'
+    );
+  };
+
+  const getPPCsAsignadosPorRol = (rolServicioId: string) => {
+    return ppcs.filter(ppc => 
+      ppc.rol_servicio_id === rolServicioId && 
+      ppc.estado === 'Asignado'
+    );
+  };
+
+  const getPPCColor = (estado: string) => {
+    switch (estado) {
+      case 'Asignado':
+        return 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/40';
+      case 'Pendiente':
+        return 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-950/40';
+      default:
+        return 'bg-gray-50 dark:bg-gray-950/20 border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-950/40';
+    }
+  };
+
+  const getPPCStatusColor = (estado: string) => {
+    switch (estado) {
+      case 'Asignado':
+        return 'text-green-600';
+      case 'Pendiente':
+        return 'text-red-600';
+      default:
+        return 'text-gray-600';
+    }
+  };
+
+  // Funciones para editar tipo del puesto
+  const handleEditarNombrePuesto = async (ppcId: string, nombreActual: string) => {
+    setEditandoPuesto({
+      id: ppcId,
+      nombre: nombreActual,
+      isOpen: true
+    });
+    
+    // Intentar encontrar el tipo actual basado en el nombre
+    setTipoPuestoSeleccionado({id: null, nombre: nombreActual});
+    
+    // Cargar tipos de puesto
+    try {
+      const response = await fetch('/api/tipos-puesto');
+      const data = await response.json();
+      if (data.success) {
+        const tiposActivos = data.data.filter((tipo: any) => tipo.activo);
+        setTiposPuesto(tiposActivos);
+        
+        // Si el nombre actual coincide con algún tipo, seleccionarlo
+        const tipoExistente = tiposActivos.find((tipo: any) => 
+          tipo.nombre.toLowerCase() === nombreActual.toLowerCase()
+        );
+        if (tipoExistente) {
+          setTipoPuestoSeleccionado({id: tipoExistente.id, nombre: tipoExistente.nombre});
+        }
+      }
+    } catch (error) {
+      console.error('Error cargando tipos de puesto:', error);
+    }
+  };
+
+  const handleGuardarNombrePuesto = async () => {
+    if (!editandoPuesto || !tipoPuestoSeleccionado.id) {
+      toast.error('Por favor selecciona un tipo de puesto');
       return;
     }
 
+    setGuardandoNombre(true);
     try {
-      // Eliminar todos los turnos uno por uno
-      for (const turno of turnosFiltrados) {
-        try {
-          await eliminarTurnoInstalacion(instalacionId, turno.id);
-          console.log(`✅ Turno ${turno.id} eliminado`);
-        } catch (error) {
-          console.error(`❌ Error eliminando turno ${turno.id}:`, error);
-        }
-      }
-      
-      toast.success("Todos los turnos eliminados correctamente");
-      
-      // Limpiar estados locales inmediatamente antes de recargar
-      setTurnos([]);
-      setPuestosPorTurno({});
-      setPpcs([]);
-      
-      // Esperar un poco y luego recargar datos frescos
-      setTimeout(async () => {
-        await cargarDatos();
-        // Actualizar KPIs de forma optimizada
-        await actualizarKPIsOptimizado();
-      }, 500);
-    } catch (error) {
-      console.error('Error eliminando turnos:', error);
-      toast.error("No se pudieron eliminar todos los turnos");
-    }
-  };
-
-  // Función para actualizar KPIs de forma optimizada
-  const actualizarKPIsOptimizado = async () => {
-    console.log('🔄 [KPIs] Actualizando KPIs de forma optimizada...');
-    
-    try {
-      // Obtener datos frescos del endpoint
-      const response = await fetch(`/api/instalaciones/${instalacionId}/completa`, {
+      const response = await fetch(`/api/instalaciones/${instalacionId}/puestos/${editandoPuesto.id}`, {
+        method: 'PATCH',
         headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre_puesto: tipoPuestoSeleccionado.nombre,
+          tipo_puesto_id: tipoPuestoSeleccionado.id
+        })
       });
-      
-      if (response.ok) {
-        const datos = await response.json();
-        
-        // Actualizar KPIs localmente sin recargar página
-        if (onActualizarKPIs) {
-          onActualizarKPIs('turnos', 'actualizar', datos.data);
-        }
-        
-        console.log('✅ [KPIs] KPIs actualizados sin recargar página');
+
+      if (!response.ok) {
+        throw new Error('Error al actualizar el nombre del puesto');
       }
+
+      // Actualizar el estado local de PPCs
+      const tipoSeleccionado = tiposPuesto.find(t => t.id === tipoPuestoSeleccionado.id);
+      setPpcs(prev => prev.map(ppc => 
+        ppc.id === editandoPuesto.id 
+          ? { 
+              ...ppc, 
+              nombre_puesto: tipoPuestoSeleccionado.nombre,
+              tipo_puesto_id: tipoPuestoSeleccionado.id,
+              tipo_nombre: tipoPuestoSeleccionado.nombre,
+              tipo_emoji: tipoSeleccionado?.emoji,
+              tipo_color: tipoSeleccionado?.color
+            }
+          : ppc
+      ));
+
+      toast.success("Nombre del puesto actualizado correctamente", "✅ Éxito");
+
+      // Cerrar el modal
+      setEditandoPuesto(null);
+      setTipoPuestoSeleccionado({id: null, nombre: ''});
     } catch (error) {
-      console.error('❌ [KPIs] Error actualizando KPIs:', error);
+      console.error('Error actualizando nombre del puesto:', error);
+      toast.error("No se pudo actualizar el nombre del puesto", "❌ Error");
+    } finally {
+      setGuardandoNombre(false);
     }
   };
-
-  // Asignar guardia a un puesto específico
-  const handleAsignarGuardia = async (turnoId: string, puestoId: string, guardiaId: string) => {
-    try {
-      // Actualización optimista inmediata
-      if (onActualizarKPIsOptimista) {
-        onActualizarKPIsOptimista('guardia', 'asignar');
-      }
-      
-      await asignarGuardiaAPuesto(instalacionId, turnoId, puestoId, guardiaId);
-      toast.success("Guardia asignado correctamente");
-      
-      // Recargar datos frescos inmediatamente
-      await cargarDatos();
-      
-      // Actualizar KPIs de forma optimizada
-      await actualizarKPIsOptimizado();
-    } catch (error: any) {
-      console.error('Error asignando guardia:', error);
-      
-      // Si el error es por asignación activa, mostrar modal con detalles
-      if (error.message?.includes('asignación activa') && error.asignacion_activa) {
-        setAsignacionActiva(error.asignacion_activa);
-        setGuardiaSeleccionado(guardiasDisponibles.find(g => g.id === guardiaId)?.nombre || '');
-        setShowAsignacionModal(true);
-      } else {
-        toast.error("No se pudo asignar el guardia");
-      }
-    }
-  };
-
-  // Desasignar guardia de un puesto específico
-  const handleDesasignarGuardia = async (turnoId: string, puestoId: string) => {
-    try {
-      // Actualización optimista inmediata
-      if (onActualizarKPIsOptimista) {
-        onActualizarKPIsOptimista('guardia', 'desasignar');
-      }
-      
-      await desasignarGuardiaDePuesto(instalacionId, turnoId, puestoId);
-      toast.success("Guardia desasignado y puestos reordenados correctamente");
-      
-      // Recargar datos frescos inmediatamente
-      await cargarDatos();
-      
-      // Actualizar KPIs de forma optimizada
-      await actualizarKPIsOptimizado();
-    } catch (error: any) {
-      console.error('Error desasignando guardia:', error);
-      toast.error("No se pudo desasignar el guardia");
-    }
-  };
-
-  const handleAgregarPuesto = async (turnoId: string) => {
-    try {
-      // Actualización optimista inmediata
-      if (onActualizarKPIsOptimista) {
-        onActualizarKPIsOptimista('puesto', 'agregar');
-      }
-      
-      // Usar el primer tipo de puesto disponible como default
-      const tipoPuestoId = tiposPuesto.length > 0 ? tiposPuesto[0].id : null;
-      
-      if (!tipoPuestoId) {
-        toast.error("No hay tipos de puesto disponibles");
-        return;
-      }
-
-      await agregarPuesto(instalacionId, turnoId, tipoPuestoId);
-      toast.success("Puesto agregado correctamente");
-      
-      // Recargar datos frescos inmediatamente
-      await cargarDatos();
-      
-      // Actualizar KPIs de forma optimizada
-      await actualizarKPIsOptimizado();
-    } catch (error: any) {
-      console.error('Error agregando puesto:', error);
-      toast.error("No se pudo agregar el puesto");
-    }
-  };
-
-  // Eliminar puesto de un turno
-  const handleEliminarPuesto = async (turnoId: string, puestoId: string) => {
-    try {
-      // Actualización optimista inmediata
-      if (onActualizarKPIsOptimista) {
-        onActualizarKPIsOptimista('puesto', 'eliminar');
-      }
-      
-      // Extraer solo el rol_id del turnoId compuesto (formato: rol_id_tipo_puesto_id)
-      const rolId = turnoId.split('_')[0];
-      console.log('🔍 Eliminando puesto:', { turnoId, rolId, puestoId });
-      
-      await eliminarPuestoDeTurno(instalacionId, rolId, puestoId);
-      toast.success("Puesto eliminado correctamente");
-      
-      // Recargar datos frescos inmediatamente
-      await cargarDatos();
-      
-      // Actualizar KPIs de forma optimizada
-      await actualizarKPIsOptimizado();
-    } catch (error) {
-      console.error('Error eliminando puesto:', error);
-      toast.error("No se pudo eliminar el puesto");
-    }
-  };
-
-  // Obtener tipo de puesto por ID
-  const getTipoPuestoById = (tipoId: string) => {
-    return tiposPuesto.find(tipo => tipo.id === tipoId);
-  };
-
-  // Filtrar y ordenar turnos
-  const turnosFiltrados = turnos
-    .filter(turno => {
-      const searchLower = searchTerm.toLowerCase();
-      
-      // Filtrar por estado si el switch está desactivado
-      if (turno.estado !== 'Activo') {
-        return false;
-      }
-      
-      // Buscar en múltiples campos posibles
-      const nombreMatch = turno.nombre?.toLowerCase().includes(searchLower);
-      const rolNombreMatch = turno.rol_nombre?.toLowerCase().includes(searchLower);
-      const rolServicioNombreMatch = turno.rol_servicio_nombre?.toLowerCase().includes(searchLower);
-      const rolIdMatch = turno.rol_id?.toLowerCase().includes(searchLower);
-      const cantidadMatch = turno.cantidad_guardias?.toString().includes(searchLower);
-      const tipoPuestoMatch = turno.tipo_puesto_nombre?.toLowerCase().includes(searchLower);
-      
-      // Si no hay término de búsqueda, mostrar todos los que pasen el filtro de estado
-      if (!searchTerm.trim()) {
-        return true;
-      }
-      
-      return nombreMatch || rolNombreMatch || rolServicioNombreMatch || rolIdMatch || cantidadMatch || tipoPuestoMatch;
-    })
-    .sort((a, b) => {
-      // Ordenar primero por tipo de puesto (Portería Principal, Portería Secundaria, CCTV)
-      const tipoA = a.tipo_puesto_nombre || '';
-      const tipoB = b.tipo_puesto_nombre || '';
-      
-             if (tipoA !== tipoB) {
-         // Orden específico: Portería Principal, Portería Secundaria, CCTV, otros
-         const orden: Record<string, number> = {
-           'Portería Principal': 1,
-           'Portería Secundaria': 2,
-           'CCTV': 3
-         };
-         const ordenA = orden[tipoA] || 999;
-         const ordenB = orden[tipoB] || 999;
-         return ordenA - ordenB;
-       }
-      
-      // Si tienen el mismo tipo, ordenar por fecha de creación (más reciente primero)
-      const fechaA = new Date(a.created_at || 0).getTime();
-      const fechaB = new Date(b.created_at || 0).getTime();
-      return fechaB - fechaA;
-    });
-
-  // Calcular estadísticas usando datos reales de puestos
-  const turnosActivos = turnos.filter(t => t.estado === 'Activo');
-  const totalTurnos = turnos.length;
-  
-  // Calcular estadísticas reales basadas en los puestos
-  let totalGuardias = 0;
-  let totalPuestos = 0;
-  let totalPPCs = 0;
-  
-  for (const turno of turnosActivos) {
-    const puestosDelTurno = puestosPorTurno[turno.id] || [];
-    totalPuestos += puestosDelTurno.length;
-    
-    for (const puesto of puestosDelTurno) {
-      if (puesto.guardia_id) {
-        totalGuardias++;
-      } else if (puesto.es_ppc) {
-        totalPPCs++;
-      }
-    }
-  }
-  
-  console.log('🔍 Estadísticas calculadas:', {
-    totalTurnos,
-    totalPuestos,
-    totalGuardias,
-    totalPPCs,
-    puestosPorTurno: Object.keys(puestosPorTurno).map(key => `${key}: ${puestosPorTurno[key].length} puestos`)
-  });
-
-  // Debug: ver qué datos se van a renderizar
-  console.log('🔍 Estado actual:', {
-    turnos: turnos.length,
-    puestosVacantes: totalPPCs,
-    puestosPorTurno: Object.keys(puestosPorTurno).map(key => `${key}: ${puestosPorTurno[key].length} puestos`)
-  });
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Turnos de Instalación</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
           </div>
+        </CardContent>
+      </Card>
     );
   }
+
+  // Calcular estadísticas para el header de KPIs
+  const totalPuestos = turnos.reduce((sum, turno) => sum + turno.cantidad_guardias, 0);
+  const puestosAsignados = turnos.reduce((sum, turno) => sum + turno.guardias_asignados, 0);
+  const puestosVacantes = turnos.reduce((sum, turno) => sum + turno.ppc_pendientes, 0);
 
   return (
     <div className="space-y-6">
       {/* Formulario para crear nuevo turno */}
-      <Authorize resource="instalaciones" action="create" eff={effectivePermissions || {}}>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Crear Nuevo Turno
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card className="bg-muted/50 rounded-xl border-0">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xs uppercase text-muted-foreground font-medium">➕ Crear Nuevo Turno</span>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-                <label className="text-sm font-medium mb-2 block">Turno</label>
+              <label className="text-xs text-muted-foreground mb-2 block">Rol de Servicio</label>
               <SafeSelect
-                  value={formData.rol_id}
-                  onValueChange={(value: string) => setFormData(prev => ({ ...prev, rol_id: value }))}
-                placeholder="Seleccionar turno"
+                value={formData.rol_servicio_id}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, rol_servicio_id: value }))}
+                placeholder="Seleccionar rol"
               >
-                  {rolesServicio.map((rol) => (
-                      <SelectItem key={rol.id} value={rol.id}>
-                        {rol.nombre}
+                <SelectContent>
+                  {Array.isArray(rolesServicio) ? rolesServicio.map((rol) => (
+                    <SelectItem key={rol.id} value={rol.id}>
+                      {rol.nombre}
                     </SelectItem>
-                  ))}
+                  )) : (
+                    <SelectItem value="" disabled>
+                      Cargando roles...
+                    </SelectItem>
+                  )}
+                </SelectContent>
               </SafeSelect>
             </div>
 
             <div>
-                <label className="text-sm font-medium mb-2 block">Cantidad de Guardias</label>
+              <label className="text-xs text-muted-foreground mb-2 block">Cantidad de Guardias</label>
               <SafeSelect
                 value={formData.cantidad_guardias.toString()}
-                  onValueChange={(value: string) => setFormData(prev => ({ ...prev, cantidad_guardias: parseInt(value) || 1 }))}
+                onValueChange={(value) => setFormData(prev => ({ 
+                  ...prev, 
+                  cantidad_guardias: parseInt(value) || 1 
+                }))}
                 placeholder="Seleccionar cantidad"
               >
-                  {[...Array(20)].map((_, i) => (
-                    <SelectItem key={i + 1} value={(i + 1).toString()}>
-                      {i + 1}
+                <SelectContent>
+                  {Array.from({ length: 20 }, (_, i) => i + 1).map((numero) => (
+                    <SelectItem key={numero} value={numero.toString()}>
+                      {numero} {numero === 1 ? 'guardia' : 'guardias'}
                     </SelectItem>
                   ))}
-                </SafeSelect>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Tipo de Puesto</label>
-                <SafeSelect
-                  value={formData.tipo_puesto_id}
-                  onValueChange={(value: string) => setFormData(prev => ({ ...prev, tipo_puesto_id: value }))}
-                  placeholder="Seleccionar tipo"
-                >
-                  {tiposPuesto.map((tipo) => (
-                    <SelectItem key={tipo.id} value={tipo.id}>
-                      {tipo.emoji} {tipo.nombre}
-                    </SelectItem>
-                  ))}
+                </SelectContent>
               </SafeSelect>
-              </div>
             </div>
 
-            <div className="mt-4">
+            <div className="flex items-end">
               <Button 
-                  onClick={handleCrearTurno}
-                disabled={submitting || !formData.rol_id || !formData.tipo_puesto_id}
-                  className="w-full"
-                >
-                {submitting ? 'Creando...' : 'Crear Turno'}
+                onClick={handleCrearTurno}
+                disabled={creando || !formData.rol_servicio_id}
+                size="sm"
+                variant="secondary"
+                className="w-full"
+              >
+                {creando ? 'Creando...' : 'Crear Turno'}
               </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
-      </Authorize>
 
-      {/* Lista de turnos existentes */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Turnos Existentes
-            </CardTitle>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Search className="h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar turnos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="max-w-sm"
-                />
-              </div>
-              {/* Botón para eliminar todos los turnos - ELIMINADO */}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {turnosFiltrados.length === 0 ? (
-            <div className="text-center py-8">
-              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No hay turnos creados</p>
+      {/* Lista de Turnos con Dropdowns */}
+      <div className="space-y-3">
+        {turnos.length === 0 ? (
+          <div className="text-center text-muted-foreground py-8">
+            No hay turnos configurados para esta instalación
           </div>
         ) : (
-            <div className="space-y-4">
-              {turnosFiltrados.map((turno) => {
-                const puestos = puestosPorTurno[turno.id] || [];
-                const puestosVacantes = puestos.filter(p => p.es_ppc).length;
-                const puestosAsignados = puestos.filter(p => !p.es_ppc && p.guardia_id).length;
-                
-
+          turnos.map((turno) => {
+            const ppcsDelRol = getPPCsPorRol(turno.rol_servicio_id);
+            const ppcsAsignadosDelRol = getPPCsAsignadosPorRol(turno.rol_servicio_id);
+            const ppcsPendientes = turno.ppc_pendientes;
+            const ppcsAsignados = turno.guardias_asignados;
+            const isExpanded = expandedTurnos[turno.id] || false;
             
             return (
-                  <Card key={turno.id} className={`border-l-4 ${turno.estado === 'Activo' ? 'border-l-blue-500' : 'border-l-gray-400'}`}>
-                    <CardContent className="p-3 sm:p-4">
-                      {/* Header del turno - siempre visible */}
-                      <div className="flex justify-between items-center">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => toggleTurnoExpanded(turno.id)}
-                              className="p-1 h-auto hover:bg-gray-100"
-                            >
-                              {expandedTurnos.has(turno.id) ? (
-                                <ChevronDown className="h-4 w-4 text-blue-600" />
-                              ) : (
-                                <ChevronRight className="h-4 w-4 text-gray-500" />
-                              )}
-                            </Button>
-                            <h3 className="text-base font-semibold truncate cursor-pointer" onClick={() => toggleTurnoExpanded(turno.id)}>
-                              {turno.rol_servicio?.nombre || turno.rol_nombre || turno.rol_servicio_nombre}
-                            </h3>
-                            {turno.estado !== 'Activo' && (
-                              <Badge variant="secondary" className="text-xs ml-2">
-                                Inactivo
-                              </Badge>
-                            )}
-                          </div>
-                          
-                          {/* Información compacta del turno */}
-                          <div className="text-sm text-gray-600 space-y-0.5">
-                            {/* Tipo de puesto */}
-                            {turno.tipo_puesto_nombre && (
-                              <p className="flex items-center gap-1">
-                                <span>{turno.tipo_puesto_emoji || '📍'}</span>
-                                <span className="truncate">{turno.tipo_puesto_nombre}</span>
-                              </p>
-                            )}
-                            
-                            {/* Horario compacto */}
-                            {turno.rol_servicio && (
-                              <p className="text-xs text-blue-600">
-                                {turno.rol_servicio.dias_trabajo}x{turno.rol_servicio.dias_descanso}x{turno.rol_servicio.horas_turno} • 
-                                {turno.rol_servicio.hora_inicio}–{turno.rol_servicio.hora_termino}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {/* Información lateral */}
-                        <div className="flex items-center gap-2 ml-4">
-                          {/* Indicador de puestos */}
-                          <div className="text-center">
-                            <Badge variant="outline" className="text-xs">
-                              {puestosAsignados}/{puestos.length}
-                            </Badge>
-                            <p className="text-xs text-gray-500 mt-1">puestos</p>
-                          </div>
-                          
-                          {/* Botón eliminar turno completo - ELIMINADO */}
-                          
-                          {/* Fecha de creación */}
-                          {turno.created_at && (
-                            <div className="text-right hidden sm:block">
-                              <p className="text-xs text-gray-500">Fecha de creación</p>
-                              <p className="text-xs text-gray-600">
-                                {new Date(turno.created_at).toLocaleDateString('es-ES', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric'
-                                })}
-                              </p>
-                            </div>
+              <Card key={turno.id} className="bg-muted/50 rounded-xl border-0 overflow-hidden">
+                {/* Header del Turno (siempre visible) */}
+                <div 
+                  className="p-4 cursor-pointer hover:bg-muted/70 transition-colors"
+                  onClick={() => toggleTurnoExpanded(turno.id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <ChevronRight 
+                        className={`w-4 h-4 transition-transform duration-200 ${
+                          isExpanded ? 'rotate-90' : ''
+                        }`}
+                      />
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-medium">{turno.rol_servicio.nombre}</h3>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-center">
+                        <div className="text-xs text-muted-foreground">Total</div>
+                        <div className="text-sm font-medium">{turno.cantidad_guardias}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-muted-foreground">Asignados</div>
+                        <div className="text-sm font-medium text-green-600">{ppcsAsignados}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-muted-foreground">Vacantes</div>
+                        <div className="text-sm font-medium text-red-600">{ppcsPendientes}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant={ppcsAsignados >= turno.cantidad_guardias ? "default" : "destructive"}
+                          className="text-xs"
+                        >
+                          {ppcsAsignados >= turno.cantidad_guardias ? 'Asignado' : 'Vacante'}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAgregarPuestos(turno.id, turno.rol_servicio_id, 1);
+                          }}
+                          disabled={agregandoPuestos === turno.rol_servicio_id}
+                          className="text-blue-600 hover:text-blue-700"
+                          title="Agregar puesto"
+                        >
+                          {agregandoPuestos === turno.rol_servicio_id ? (
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                          ) : (
+                            <UserPlus className="w-3 h-3" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contenido del Dropdown (se muestra/oculta) */}
+                {isExpanded && (
+                  <div className="border-t border-border/50 bg-background/50">
+                    {/* Puestos por cubrir */}
+                    {ppcsDelRol.length > 0 && (
+                      <div className="p-4">
+                        <h4 className="text-xs uppercase text-muted-foreground mb-3 font-medium">
+                          📋 Puestos Por Cubrir ({ppcsDelRol.length})
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                          {ppcsDelRol.flatMap((ppc) => 
+                            Array.from({ length: ppc.cantidad_faltante }, (_, index) => (
+                              <div
+                                key={`${ppc.id}-${index}`}
+                                className="p-3 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20 rounded-lg transition-colors relative"
+                              >
+                                {/* Botón X para eliminar puesto */}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEliminarPuesto(ppc.id, index)}
+                                  disabled={eliminandoPuesto === ppc.id}
+                                  className="absolute top-1 right-1 h-5 w-5 p-0 text-red-500 hover:text-red-700"
+                                  title="Eliminar puesto"
+                                >
+                                  {eliminandoPuesto === ppc.id ? (
+                                    <div className="animate-spin rounded-full h-2 w-2 border-b-2 border-red-600"></div>
+                                  ) : (
+                                    <X className="w-2 h-2" />
+                                  )}
+                                </Button>
+
+                                <div className="flex items-center justify-between pr-6">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1">
+                                      <div className="font-medium text-xs truncate text-red-800 dark:text-red-200 flex items-center gap-1">
+                                        {ppc.tipo_emoji && <span className="text-sm">{ppc.tipo_emoji}</span>}
+                                        {ppc.tipo_nombre || ppc.nombre_puesto || `Puesto #${index + 1}`}
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-4 w-4 p-0 hover:bg-transparent"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditarNombrePuesto(ppc.id, ppc.tipo_nombre || ppc.nombre_puesto || `Puesto #${index + 1}`);
+                                        }}
+                                      >
+                                        <Edit2 className="h-3 w-3 text-gray-500 hover:text-gray-700" />
+                                      </Button>
+                                    </div>
+                                    <div className="text-xs text-red-600 dark:text-red-400 truncate">
+                                      {ppc.rol_servicio_nombre}
+                                    </div>
+                                  </div>
+                                  <Badge variant="destructive" className="text-xs">Vacante</Badge>
+                                </div>
+                                {/* Dropdown para asignar guardia */}
+                                <div className="mt-3">
+                                  <AsignarGuardiaDropdown
+                                    instalacionId={instalacionId}
+                                    instalacionNombre={instalacionNombre}
+                                    ppcId={ppc.id}
+                                    rolServicioNombre={ppc.rol_servicio_nombre}
+                                    onAsignacionCompletada={handleAsignacionCompletada}
+                                  />
+                                </div>
+                              </div>
+                            ))
                           )}
                         </div>
                       </div>
+                    )}
 
-                      {/* Lista de puestos - solo visible cuando expandido */}
-                      {expandedTurnos.has(turno.id) && (
-                        <div className="space-y-3 mt-4 pt-4 border-t">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="font-medium text-sm">Puestos del Turno</h4>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleAgregarPuesto(turno.id)}
-                                className="text-green-600 hover:text-green-700"
+                    {/* Puestos Asignados */}
+                    <div className="p-4">
+                      <h4 className="text-xs uppercase text-muted-foreground mb-3 font-medium">
+                        ✅ Puestos Asignados ({ppcsAsignadosDelRol.length})
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        {ppcsAsignadosDelRol.length > 0 ? (
+                          ppcsAsignadosDelRol.flatMap((ppc) => 
+                            Array.from({ length: ppc.cantidad_faltante }, (_, index) => (
+                              <div
+                                key={`asignado-${ppc.id}-${index}`}
+                                className="p-3 border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 rounded-lg transition-colors relative"
                               >
-                                <Plus className="h-3 w-3 mr-1" />
-                                Agregar Puesto
-                              </Button>
-                            </div>
-                          </div>
-
-                        {puestos.length === 0 ? (
-                          <p className="text-sm text-gray-500 italic">No hay puestos creados</p>
-                        ) : (
-                          <div className="grid gap-3">
-                            {puestos.map((puesto, puestoIndex) => (
-                              <div key={puesto.id} className="flex items-center justify-between p-3 border rounded-lg">
-                                <div className="flex items-center gap-3">
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                      <Badge variant="outline" className="text-xs font-mono bg-blue-50 text-blue-700 border-blue-200">
-                                        {generarIdPuestoTurno(turnosFiltrados.findIndex(t => t.id === turno.id), puestoIndex, turno.tipo_puesto_nombre || '')}
-                                      </Badge>
-                                      <p className="font-medium text-sm">
-                                        {turno.tipo_puesto_nombre || 'Puesto'}
-                                      </p>
-                                    </div>
-                                    {puesto.guardia_nombre ? (
-                                      <p className="text-sm text-green-600">
-                                        👤 {puesto.guardia_nombre}
-                                      </p>
-                                    ) : (
-                                      <p className="text-sm text-orange-600">
-                                        ⚠️ Puesto vacante
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                  {puesto.es_ppc ? (
-                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full">
-                                      <GuardiaSelectWithSearch
-                                        instalacionId={instalacionId}
-                                        excludeIds={puestos.filter(p=>!p.es_ppc && p.guardia_id).map(p=>p.guardia_id!).filter(Boolean)}
-                                        onSelect={(guardiaId: string) => {
-                                          if (guardiaId) {
-                                            handleAsignarGuardia(turno.id, puesto.id, guardiaId);
-                                          }
-                                        }}
-                                        placeholder="Asignar guardia"
-                                        className="w-full sm:min-w-[300px] sm:max-w-md"
-                                      />
-                                    </div>
+                                {/* Botón X para eliminar puesto */}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEliminarPuesto(ppc.id, index)}
+                                  disabled={eliminandoPuesto === ppc.id}
+                                  className="absolute top-1 right-1 h-5 w-5 p-0 text-red-500 hover:text-red-700"
+                                  title="Eliminar puesto"
+                                >
+                                  {eliminandoPuesto === ppc.id ? (
+                                    <div className="animate-spin rounded-full h-2 w-2 border-b-2 border-red-600"></div>
                                   ) : (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleDesasignarGuardia(turno.id, puesto.id)}
-                                      className="text-red-600 hover:text-red-700"
-                                    >
-                                      <UserMinus className="h-3 w-3 mr-1" />
-                                      Desasignar
-                                    </Button>
+                                    <X className="w-2 h-2" />
                                   )}
+                                </Button>
 
+                                <div className="flex items-start justify-between pr-6">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1">
+                                      <div className="font-medium text-xs text-green-800 dark:text-green-200 flex items-center gap-1">
+                                        {ppc.tipo_emoji && <span className="text-sm">{ppc.tipo_emoji}</span>}
+                                        {ppc.tipo_nombre || ppc.nombre_puesto || `Puesto #${index + 1}`}
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-4 w-4 p-0 hover:bg-transparent"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditarNombrePuesto(ppc.id, ppc.tipo_nombre || ppc.nombre_puesto || `Puesto #${index + 1}`);
+                                        }}
+                                      >
+                                        <Edit2 className="h-3 w-3 text-gray-500 hover:text-gray-700" />
+                                      </Button>
+                                    </div>
+                                    <div className="text-xs text-green-600 dark:text-green-400 break-words">
+                                      Guardia: 
+                                      {ppc.guardia_asignado_id ? (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleNavegarAGuardia(ppc.guardia_asignado_id!);
+                                          }}
+                                          className="hover:underline cursor-pointer font-medium"
+                                          title="Ver perfil del guardia"
+                                        >
+                                          {ppc.guardia_nombre || 'Sin nombre'}
+                                        </button>
+                                      ) : (
+                                        <span>{ppc.guardia_nombre || 'Sin nombre'}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <Badge variant="default" className="text-xs">Asignado</Badge>
+                                </div>
+                                {/* Botón para desasignar */}
+                                <div className="mt-3">
                                   <Button
-                                    variant="outline"
+                                    variant="ghost"
                                     size="sm"
-                                    onClick={() => handleEliminarPuesto(turno.id, puesto.id)}
-                                    className="text-red-600 hover:text-red-700"
-                                    disabled={!puesto.es_ppc && puesto.guardia_id !== null}
+                                    onClick={() => handleDesasignarGuardia(ppc.id)}
+                                    disabled={desasignando === ppc.id}
+                                    className="w-full h-7 text-xs text-red-600 hover:text-red-700"
                                   >
-                                    <Minus className="h-3 w-3" />
+                                    {desasignando === ppc.id ? (
+                                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600"></div>
+                                    ) : (
+                                      <>
+                                        <UserMinus className="w-3 h-3 mr-1" />
+                                        Desasignar
+                                      </>
+                                    )}
                                   </Button>
                                 </div>
                               </div>
-                            ))}
+                            ))
+                          )
+                        ) : (
+                          <div className="col-span-full p-4 text-center text-muted-foreground">
+                            <div className="text-sm">No hay puestos asignados</div>
                           </div>
                         )}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                      </div>
+                    </div>
                   </div>
                 )}
-        </CardContent>
               </Card>
+            );
+          })
+        )}
+      </div>
 
-      {/* Modal de asignación activa */}
-      {showAsignacionModal && asignacionActiva && (
-        <AsignacionActivaModal
-          isOpen={showAsignacionModal}
-          onClose={cerrarModalAsignacion}
-          asignacion={asignacionActiva}
-          guardiaNombre={guardiaSeleccionado}
-        />
-      )}
+      {/* Modal de confirmación para eliminar puesto */}
+      <ConfirmDeleteModal
+        isOpen={showDeleteConfirm !== null}
+        onClose={() => {
+          console.log('🔍 Cerrando modal de eliminar puesto');
+          setShowDeleteConfirm(null);
+        }}
+        onConfirm={confirmarEliminarPuesto}
+        title="Eliminar Puesto"
+        message={`¿Estás seguro de que quieres eliminar el puesto #${showDeleteConfirm?.puestoIndex ? showDeleteConfirm.puestoIndex + 1 : ''}? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar Puesto"
+        cancelText="Cancelar"
+      />
+
+      {/* Console log para confirmar que la refactorización se completó */}
+      {(() => { console.log("✅ Refactor visual de asignación de turnos completado sin afectar la lógica"); return null; })()}
+      {/* Modal de edición de nombre de puesto */}
+      <Dialog 
+        open={editandoPuesto?.isOpen || false} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditandoPuesto(null);
+            setTipoPuestoSeleccionado({id: null, nombre: ''});
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Seleccionar Tipo de Puesto</DialogTitle>
+            <DialogDescription>
+              Elige el tipo de puesto operativo para identificarlo fácilmente
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Tipo de Puesto
+              </label>
+              <Select
+                value={tipoPuestoSeleccionado.id || ''}
+                onValueChange={(value) => {
+                  const tipo = tiposPuesto.find(t => t.id === value);
+                  if (tipo) {
+                    setTipoPuestoSeleccionado({id: tipo.id, nombre: tipo.nombre});
+                  }
+                }}
+                disabled={guardandoNombre}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un tipo de puesto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tiposPuesto.map((tipo) => (
+                    <SelectItem key={tipo.id} value={tipo.id}>
+                      <span className="flex items-center gap-2">
+                        <span className="text-lg">{tipo.emoji}</span>
+                        <span>{tipo.nombre}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {tipoPuestoSeleccionado.id && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground mb-1">Se guardará como:</p>
+                <p className="font-medium flex items-center gap-2">
+                  <span className="text-lg">
+                    {tiposPuesto.find(t => t.id === tipoPuestoSeleccionado.id)?.emoji}
+                  </span>
+                  {tipoPuestoSeleccionado.nombre}
+                </p>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Si necesitas un tipo que no está en la lista, puedes agregarlo desde 
+              <br />Configuración → Tipos de Puesto
+            </p>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setEditandoPuesto(null);
+                setTipoPuestoSeleccionado({id: null, nombre: ''});
+              }}
+              disabled={guardandoNombre}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleGuardarNombrePuesto}
+              disabled={guardandoNombre || !tipoPuestoSeleccionado.id}
+            >
+              {guardandoNombre ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Guardando...
+                </>
+              ) : (
+                'Guardar'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

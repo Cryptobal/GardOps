@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sql as vercelSql } from '@/lib/database-vercel';
+import { sql as vercelSql } from '@vercel/postgres';
 import { getCurrentUserServer } from '@/lib/auth';
 
 export function jsonError(status: number, message: string) {

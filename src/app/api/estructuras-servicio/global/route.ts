@@ -1,12 +1,8 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
-export async function GET(request: NextRequest) {
-  const deny = await requireAuthz(request, { resource: 'estructuras_servicio', action: 'update' });
-  if (deny) return deny;
-
-try {
+export async function GET() {
+  try {
     const result = await query(`
       WITH base AS (
         SELECT 
@@ -101,10 +97,7 @@ try {
 }
 
 export async function PUT(request: NextRequest) {
-  const deny = await requireAuthz(request, { resource: 'estructuras_servicio', action: 'update' });
-  if (deny) return deny;
-
-try {
+  try {
     const body = await request.json();
     const { instalacion_id, rol_servicio_id, activo, usuario_id } = body;
 

@@ -1,4 +1,3 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../lib/database';
 
@@ -7,10 +6,6 @@ export const dynamic = 'force-dynamic';
 
 // PUT /api/documentos-instalaciones?id=uuid - Actualizar fecha de vencimiento
 export async function PUT(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'documentos_instalaciones', action: 'update' });
-if (deny) return deny;
-
   try {
     const { searchParams } = new URL(request.url);
     const documentoId = searchParams.get('id');

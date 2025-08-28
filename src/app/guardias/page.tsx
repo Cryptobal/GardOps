@@ -1,6 +1,4 @@
-'use client';
-
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
+"use client";
 
 import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
@@ -62,19 +60,19 @@ const KPIBox = ({
     transition={{ duration: 0.5 }}
   >
     <Card className={`h-full ${onClick ? 'cursor-pointer hover:bg-muted/50 transition-colors' : ''}`} onClick={onClick || undefined}>
-      <CardContent className="p-4 flex flex-col justify-between h-full">
+      <CardContent className="p-3 sm:p-4 md:p-6 flex flex-col justify-between h-full">
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-muted-foreground leading-tight">{title}</p>
-            <p className="text-xl font-bold truncate">{value}</p>
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground min-h-[1.2rem] sm:min-h-[1.5rem] flex items-center leading-tight">{title}</p>
+            <p className="text-base sm:text-lg md:text-2xl font-bold truncate">{value}</p>
             {trend && (
-              <p className={`text-xs ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-xs sm:text-sm ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
                 {trend.isPositive ? '+' : ''}{trend.value}%
               </p>
             )}
           </div>
-          <div className={`p-2.5 rounded-full bg-${color}-100 dark:bg-${color}-900/20 flex-shrink-0 ml-3`}>
-            <Icon className={`h-4 w-4 text-${color}-600 dark:text-${color}-400`} />
+          <div className={`p-2 sm:p-2.5 md:p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/20 flex-shrink-0 ml-2 sm:ml-3`}>
+            <Icon className={`h-3 w-3 sm:h-4 sm:w-4 md:h-6 md:w-6 text-${color}-600 dark:text-${color}-400`} />
           </div>
         </div>
       </CardContent>
@@ -158,16 +156,11 @@ export default function GuardiasPage() {
         
         const data = await response.json();
         console.log("🔍 GuardiasPage: Datos recibidos:", data);
-        console.log("🔍 GuardiasPage: Items array:", (data as any)?.items);
-        console.log(
-          "🔍 GuardiasPage: Cantidad de guardias:",
-          ((data as any)?.items?.length ?? (data as any)?.data?.length ?? (data as any)?.guardias?.length ?? (Array.isArray(data) ? data.length : 0)) || 0
-        );
+        console.log("🔍 GuardiasPage: Items array:", data.items);
+        console.log("🔍 GuardiasPage: Cantidad de guardias:", data.items?.length || 0);
         
-        // Aceptar múltiples formatos: {items:[]}, {data:[]}, {guardias:[]}, []
-        const guardiasData: any[] = Array.isArray(data)
-          ? data
-          : ((data as any)?.items ?? (data as any)?.data ?? (data as any)?.guardias ?? []);
+        // Usar data.items en lugar de data.guardias
+        const guardiasData = data.items || [];
         setGuardias(guardiasData);
         
         // Calcular KPIs
@@ -217,8 +210,8 @@ export default function GuardiasPage() {
         guardia.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesStatus = statusFilter === "all" || 
-        (statusFilter === "activo" && guardia.activo === true) ||
-        (statusFilter === "inactivo" && guardia.activo === false);
+        (statusFilter === "activo" && (guardia.estado === 'activo' || guardia.activo === true)) ||
+        (statusFilter === "inactivo" && (guardia.estado === 'inactivo' || guardia.activo === false));
 
       const matchesTipo = tipoFilter === "all" || 
         (tipoFilter === "contratado" && guardia.tipo_guardia === 'contratado') ||
@@ -316,14 +309,14 @@ export default function GuardiasPage() {
       render: (guardia) => (
         <div className="flex items-center justify-center">
           <Badge 
-            variant={guardia.activo === true ? 'success' : 'secondary'}
+            variant={guardia.estado === 'activo' || guardia.activo === true ? 'success' : 'secondary'}
             className={`${
-              guardia.activo === true
+              guardia.estado === 'activo' || guardia.activo === true
                 ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
                 : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
             }`}
           >
-            {guardia.activo === true ? 'Activo' : 'Inactivo'}
+            {guardia.estado || (guardia.activo === true ? 'activo' : 'inactivo')}
           </Badge>
         </div>
       ),
@@ -386,10 +379,9 @@ export default function GuardiasPage() {
 
       {/* Filtros y Acciones optimizados para móviles */}
       <div className="space-y-3 sm:space-y-4">
-        {/* Barra de búsqueda y botones - Mobile First */}
-        <div className="flex flex-col gap-3">
-          {/* Barra de búsqueda */}
-          <div className="relative">
+        {/* Barra de búsqueda y botón principal */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar guardias..."
@@ -399,22 +391,20 @@ export default function GuardiasPage() {
             />
           </div>
           
-          {/* Botones de acción */}
-          <div className="flex gap-2">
-            <Button 
-              onClick={() => setShowFilters(!showFilters)}
-              variant="outline" 
-              className="flex items-center gap-2 flex-1"
-            >
-              <Filter className="h-4 w-4" />
-              <span>Filtros</span>
-            </Button>
-            
-            <Button onClick={openCreate} className="flex items-center gap-2 flex-1">
-              <Plus className="h-4 w-4" />
-              <span>Nuevo</span>
-            </Button>
-          </div>
+          <Button 
+            onClick={() => setShowFilters(!showFilters)}
+            variant="outline" 
+            className="flex items-center gap-2 sm:w-auto"
+          >
+            <Filter className="h-4 w-4" />
+            <span className="hidden sm:inline">Filtros</span>
+          </Button>
+          
+          <Button onClick={openCreate} className="flex items-center space-x-2 w-full sm:w-auto">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Nuevo Guardia</span>
+            <span className="sm:hidden">Nuevo</span>
+          </Button>
         </div>
 
         {/* Filtros expandibles */}
@@ -425,11 +415,11 @@ export default function GuardiasPage() {
             exit={{ opacity: 0, height: 0 }}
             className="bg-muted/30 rounded-lg p-3 sm:p-4"
           >
-            <div className="grid grid-cols-1 gap-3">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border rounded-md bg-background text-sm w-full"
+                className="px-3 py-2 border rounded-md bg-background text-sm w-full sm:w-48"
               >
                 <option value="all">Todos los estados</option>
                 <option value="activo">Activos</option>
@@ -438,7 +428,7 @@ export default function GuardiasPage() {
               <select
                 value={tipoFilter}
                 onChange={(e) => setTipoFilter(e.target.value)}
-                className="px-3 py-2 border rounded-md bg-background text-sm w-full"
+                className="px-3 py-2 border rounded-md bg-background text-sm w-full sm:w-48"
               >
                 <option value="all">Todos los tipos</option>
                 <option value="contratado">Contratados</option>
@@ -447,7 +437,7 @@ export default function GuardiasPage() {
               <select
                 value={instalacionFilter}
                 onChange={(e) => setInstalacionFilter(e.target.value)}
-                className="px-3 py-2 border rounded-md bg-background text-sm w-full"
+                className="px-3 py-2 border rounded-md bg-background text-sm w-full sm:w-48"
               >
                 <option value="all">Todas las instalaciones</option>
                 {instalaciones.map((instalacion) => (
@@ -459,7 +449,7 @@ export default function GuardiasPage() {
               <select
                 value={os10Filter}
                 onChange={(e) => setOs10Filter(e.target.value)}
-                className="px-3 py-2 border rounded-md bg-background text-sm w-full"
+                className="px-3 py-2 border rounded-md bg-background text-sm w-full sm:w-48"
               >
                 <option value="all">Todos los OS10</option>
                 <option value="por_vencer">OS10 Por Vencer</option>

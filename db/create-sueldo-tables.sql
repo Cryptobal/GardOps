@@ -95,69 +95,174 @@ INSERT INTO sueldo_parametros_generales (parametro, valor, descripcion, fecha_vi
 ('TOPE_GRATIFICACION_MENSUAL', 209396.00, 'Tope mensual gratificación (4.75 IM / 12)', '2025-01-01'),
 ('TASA_FONASA', 7.00, 'Tasa de cotización FONASA (%)', '2025-01-01'),
 ('HORAS_SEMANALES_JORNADA', 44, 'Jornada semanal legal en horas (44 desde abril 2024)', '2024-04-26'),
-('AFC_TRABAJADOR_INDEFINIDO', 0.60, 'AFC trabajador contrato indefinido (%)', '2025-01-01'),
-('AFC_EMPLEADOR_INDEFINIDO', 2.40, 'AFC empleador contrato indefinido (%)', '2025-01-01'),
-('AFC_EMPLEADOR_PLAZO_FIJO', 3.00, 'AFC empleador contrato plazo fijo (%)', '2025-01-01'),
-('SIS_EMPLEADOR', 1.88, 'SIS empleador (%)', '2025-01-01'),
-('REFORMA_PREVISIONAL', 1.00, 'Reforma previsional empleador (%)', '2025-01-01'),
-('MUTUALIDAD_BASE', 0.90, 'Tasa base mutualidad (%)', '2025-01-01')
+('HORAS_SEMANALES_JORNADA', 42, 'Jornada semanal legal en horas (42 desde abril 2026)', '2026-04-26'),
+('HORAS_SEMANALES_JORNADA', 40, 'Jornada semanal legal en horas (40 desde abril 2028)', '2028-04-26')
 ON CONFLICT (parametro) DO UPDATE SET 
     valor = EXCLUDED.valor,
-    descripcion = EXCLUDED.descripcion,
+    fecha_vigencia = EXCLUDED.fecha_vigencia,
     updated_at = CURRENT_TIMESTAMP;
 
 -- 5. Tabla de Tramos de Impuesto Único
 CREATE TABLE IF NOT EXISTS sueldo_tramos_impuesto (
     id SERIAL PRIMARY KEY,
     tramo INTEGER NOT NULL,
-    desde DECIMAL(12,2) NOT NULL,
-    hasta DECIMAL(12,2),
-    factor DECIMAL(5,3) NOT NULL,
-    rebaja DECIMAL(12,2) NOT NULL,
-    activo BOOLEAN DEFAULT true,
+    desde DECIMAL(15,2) NOT NULL,
+    hasta DECIMAL(15,2), -- NULL para el último tramo
+    factor DECIMAL(5,4) NOT NULL, -- Factor de impuesto (0.04 = 4%)
+    rebaja DECIMAL(15,2) NOT NULL,
     fecha_vigencia DATE NOT NULL,
+    activo BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(tramo, fecha_vigencia)
+);
+
+-- Insertar Tramos de Impuesto Único 2025
+INSERT INTO sueldo_tramos_impuesto (tramo, desde, hasta, factor, rebaja, fecha_vigencia) VALUES
+(1, 0, 1500000, 0.0000, 0, '2025-01-01'),
+(2, 1500000, 2500000, 0.0400, 60000, '2025-01-01'),
+(3, 2500000, 3500000, 0.0800, 160000, '2025-01-01'),
+(4, 3500000, 4500000, 0.1350, 327500, '2025-01-01'),
+(5, 4500000, 5500000, 0.2300, 765000, '2025-01-01'),
+(6, 5500000, 7500000, 0.3040, 1156500, '2025-01-01'),
+(7, 7500000, 10000000, 0.3500, 1656500, '2025-01-01'),
+(8, 10000000, NULL, 0.4000, 2156500, '2025-01-01')
+ON CONFLICT (tramo, fecha_vigencia) DO UPDATE SET 
+    desde = EXCLUDED.desde,
+    hasta = EXCLUDED.hasta,
+    factor = EXCLUDED.factor,
+    rebaja = EXCLUDED.rebaja,
+    updated_at = CURRENT_TIMESTAMP;
+
+-- 6. Tabla de Valores UF
+CREATE TABLE IF NOT EXISTS sueldo_valor_uf (
+    id SERIAL PRIMARY KEY,
+    fecha DATE NOT NULL UNIQUE,
+    valor DECIMAL(15,2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Insertar Tramos de Impuesto 2025
-INSERT INTO sueldo_tramos_impuesto (tramo, desde, hasta, factor, rebaja, fecha_vigencia) VALUES
-(1, 0, 1500000, 0.000, 0, '2025-01-01'),
-(2, 1500000.01, 2500000, 0.040, 60000, '2025-01-01'),
-(3, 2500000.01, 3500000, 0.080, 160000, '2025-01-01'),
-(4, 3500000.01, 4500000, 0.135, 327500, '2025-01-01'),
-(5, 4500000.01, 5500000, 0.230, 765000, '2025-01-01'),
-(6, 5500000.01, 7500000, 0.304, 1156500, '2025-01-01'),
-(7, 7500000.01, 10000000, 0.350, 1656500, '2025-01-01'),
-(8, 10000000.01, NULL, 0.400, 2156500, '2025-01-01')
-ON CONFLICT DO NOTHING;
+-- Insertar algunos valores UF de ejemplo (actualizar con valores reales)
+INSERT INTO sueldo_valor_uf (fecha, valor) VALUES
+('2025-01-01', 38000.00),
+('2025-02-01', 38100.00),
+('2025-03-01', 38200.00),
+('2025-04-01', 38300.00),
+('2025-05-01', 38400.00),
+('2025-06-01', 38500.00),
+('2025-07-01', 38600.00),
+('2025-08-01', 38700.00),
+('2025-09-01', 38800.00),
+('2025-10-01', 38900.00),
+('2025-11-01', 39000.00),
+('2025-12-01', 39100.00)
+ON CONFLICT (fecha) DO UPDATE SET 
+    valor = EXCLUDED.valor,
+    updated_at = CURRENT_TIMESTAMP;
 
--- 6. Tabla de Historial de Cálculos de Sueldo
+-- 7. Tabla de Historial de Cálculos de Sueldo
 CREATE TABLE IF NOT EXISTS sueldo_historial_calculos (
     id SERIAL PRIMARY KEY,
-    guardia_id INTEGER NOT NULL,
-    mes INTEGER NOT NULL,
-    anio INTEGER NOT NULL,
+    guardia_id INTEGER,
+    fecha_calculo DATE NOT NULL,
+    mes_periodo INTEGER NOT NULL,
+    anio_periodo INTEGER NOT NULL,
+    
+    -- Datos de entrada
     sueldo_base DECIMAL(15,2) NOT NULL,
-    sueldo_liquido DECIMAL(15,2) NOT NULL,
-    costo_empresa DECIMAL(15,2) NOT NULL,
-    valor_uf_utilizado DECIMAL(10,2) NOT NULL,
-    fecha_calculo TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    parametros_utilizados JSONB,
+    afp_codigo VARCHAR(50),
+    isapre_codigo VARCHAR(50),
+    mutualidad_codigo VARCHAR(50),
+    tipo_contrato VARCHAR(50),
+    
+    -- Imponible
+    gratificacion_legal DECIMAL(15,2),
+    horas_extras DECIMAL(15,2),
+    comisiones DECIMAL(15,2),
+    bonos DECIMAL(15,2),
+    total_imponible DECIMAL(15,2),
+    
+    -- No Imponible
+    colacion DECIMAL(15,2),
+    movilizacion DECIMAL(15,2),
+    viatico DECIMAL(15,2),
+    desgaste DECIMAL(15,2),
+    asignacion_familiar DECIMAL(15,2),
+    total_no_imponible DECIMAL(15,2),
+    
+    -- Cotizaciones
+    cotizacion_afp DECIMAL(15,2),
+    cotizacion_salud DECIMAL(15,2),
+    cotizacion_afc DECIMAL(15,2),
+    total_cotizaciones DECIMAL(15,2),
+    
+    -- Impuesto
+    base_tributable DECIMAL(15,2),
+    impuesto_unico DECIMAL(15,2),
+    
+    -- Descuentos
+    anticipos DECIMAL(15,2),
+    descuentos_judiciales DECIMAL(15,2),
+    otros_descuentos DECIMAL(15,2),
+    total_descuentos DECIMAL(15,2),
+    
+    -- Resultado
+    sueldo_liquido DECIMAL(15,2),
+    
+    -- Costos Empleador
+    empleador_sis DECIMAL(15,2),
+    empleador_afc DECIMAL(15,2),
+    empleador_mutual DECIMAL(15,2),
+    empleador_reforma DECIMAL(15,2),
+    empleador_total DECIMAL(15,2),
+    
+    -- Metadata
+    usuario_calculo VARCHAR(100),
+    observaciones TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(guardia_id, mes, anio)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Crear índices para optimizar consultas
+-- Crear índices para mejorar el rendimiento
+CREATE INDEX idx_sueldo_historial_guardia ON sueldo_historial_calculos(guardia_id);
+CREATE INDEX idx_sueldo_historial_periodo ON sueldo_historial_calculos(anio_periodo, mes_periodo);
+CREATE INDEX idx_sueldo_historial_fecha ON sueldo_historial_calculos(fecha_calculo);
+
+-- Crear índices para las otras tablas
 CREATE INDEX idx_sueldo_afp_codigo ON sueldo_afp(codigo);
 CREATE INDEX idx_sueldo_isapre_codigo ON sueldo_isapre(codigo);
 CREATE INDEX idx_sueldo_mutualidad_codigo ON sueldo_mutualidad(codigo);
 CREATE INDEX idx_sueldo_parametros_parametro ON sueldo_parametros_generales(parametro);
 CREATE INDEX idx_sueldo_tramos_vigencia ON sueldo_tramos_impuesto(fecha_vigencia, activo);
-CREATE INDEX idx_sueldo_historial_guardia ON sueldo_historial_calculos(guardia_id);
-CREATE INDEX idx_sueldo_historial_fecha ON sueldo_historial_calculos(mes, anio);
+CREATE INDEX idx_sueldo_uf_fecha ON sueldo_valor_uf(fecha);
 
--- Comentarios sobre la eliminación de la tabla sueldo_valor_uf
-COMMENT ON TABLE sueldo_afp IS 'AFPs con tasas oficiales 2025. Los valores UF se obtienen en tiempo real desde la API de la CMF.';
-COMMENT ON TABLE sueldo_parametros_generales IS 'Parámetros del sistema de sueldos. Los valores UF se obtienen en tiempo real desde la API de la CMF.';
+-- Función para obtener el valor UF de una fecha
+CREATE OR REPLACE FUNCTION obtener_valor_uf(fecha_consulta DATE)
+RETURNS DECIMAL AS $$
+DECLARE
+    valor_uf DECIMAL;
+BEGIN
+    -- Buscar el valor UF para el primer día del mes
+    SELECT valor INTO valor_uf
+    FROM sueldo_valor_uf
+    WHERE fecha = DATE_TRUNC('month', fecha_consulta)
+    LIMIT 1;
+    
+    -- Si no encuentra, buscar el valor más cercano anterior
+    IF valor_uf IS NULL THEN
+        SELECT valor INTO valor_uf
+        FROM sueldo_valor_uf
+        WHERE fecha <= fecha_consulta
+        ORDER BY fecha DESC
+        LIMIT 1;
+    END IF;
+    
+    -- Si aún no encuentra, usar un valor por defecto
+    IF valor_uf IS NULL THEN
+        valor_uf := 38000.00; -- Valor por defecto
+    END IF;
+    
+    RETURN valor_uf;
+END;
+$$ LANGUAGE plpgsql;

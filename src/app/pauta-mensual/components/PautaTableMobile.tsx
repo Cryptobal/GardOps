@@ -1,11 +1,9 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 "use client";
 
 import React, { useMemo, useState } from "react";
 import { Button } from "../../../components/ui/button";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 interface PautaGuardia {
   id: string;
@@ -69,43 +67,23 @@ export default function PautaTableMobile({
   mes,
   anio,
 }: PautaTableMobileProps) {
-  const router = useRouter();
   const [diaActual, setDiaActual] = useState<number>(Math.min(new Date().getDate(), diasDelMes[diasDelMes.length - 1] ?? 1));
 
   const header = useMemo(() => {
     const info = diasSemana[diaActual - 1];
     const esFeriado = info?.esFeriado;
     const esFinde = info?.diaSemana === "Sáb" || info?.diaSemana === "Dom";
-    
-    // Verificar si es el día actual
-    const esDiaActual = (() => {
-      if (!mes || !anio) return false;
-      const hoy = new Date();
-      const diaActualHoy = hoy.getDate();
-      const mesActual = hoy.getMonth() + 1;
-      const anioActual = hoy.getFullYear();
-      return diaActual === diaActualHoy && mes === mesActual && anio === anioActual;
-    })();
-    
     return (
-      <div className={`flex items-center justify-between px-2 py-2 rounded-lg border sticky top-0 z-10 ${
-        esDiaActual ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-600' : 'bg-background'
-      }`}>
+      <div className="flex items-center justify-between px-2 py-2 rounded-lg border bg-background sticky top-0 z-10">
         <Button size="sm" variant="outline" onClick={() => setDiaActual((d) => Math.max(1, d - 1))}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <div className="text-center">
-          <div className={`text-sm font-semibold ${
-            esFeriado ? "text-red-600" : 
-            esFinde ? "text-amber-600" : 
-            esDiaActual ? "text-blue-600 font-bold" :
-            "text-muted-foreground"
-          }`}>
+          <div className={`text-sm font-semibold ${esFeriado ? "text-red-600" : esFinde ? "text-amber-600" : "text-muted-foreground"}`}>
             {info?.diaSemana || ""}
           </div>
-          <div className={`text-xl font-bold ${esDiaActual ? 'text-blue-700 dark:text-blue-300' : ''}`}>
+          <div className="text-xl font-bold">
             {String(diaActual).padStart(2, "0")}/{String(mes).padStart(2, "0")}/{anio}
-            {esDiaActual && <span className="ml-2 text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full dark:bg-blue-700 dark:text-blue-200">Hoy</span>}
           </div>
         </div>
         <Button size="sm" variant="outline" onClick={() => setDiaActual((d) => Math.min(diasDelMes.length, d + 1))}>
@@ -115,26 +93,8 @@ export default function PautaTableMobile({
     );
   }, [diaActual, diasDelMes.length, diasSemana, mes, anio]);
 
-  // Función para navegar a pauta diaria
-  const navegarAPautaDiaria = (diaNumero: number) => {
-    // Usar valores de props o fallback a fecha actual
-    const year = anio || new Date().getFullYear();
-    const month = mes || (new Date().getMonth() + 1);
-    
-    // Formatear la fecha como YYYY-MM-DD
-    const fechaFormateada = `${year}-${month.toString().padStart(2, '0')}-${diaNumero.toString().padStart(2, '0')}`;
-    
-    console.log('🚀 Navegando a pauta diaria v2 desde móvil:', fechaFormateada);
-    router.push(`/pauta-diaria-v2?fecha=${fechaFormateada}`);
-  };
-
   const toggleEstado = (guardiaIndex: number) => {
-    if (!modoEdicion) {
-      // En modo visualización, navegar a la pauta diaria
-      console.log('👆 Modo visualización móvil - navegando a pauta diaria del día:', diaActual);
-      navegarAPautaDiaria(diaActual);
-      return;
-    }
+    if (!modoEdicion) return;
     const diaIndex = diaActual - 1;
     const estado = pautaData[guardiaIndex]?.dias?.[diaIndex];
     const nuevo = estado === "planificado" ? "L" : "planificado";

@@ -1,4 +1,3 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from "next/server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
@@ -14,10 +13,6 @@ const s3 = new S3Client({
 });
 
 export async function POST(req: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'upload_document', action: 'create' });
-if (deny) return deny;
-
   try {
     const form = await req.formData();
     const file = form.get("file") as File;

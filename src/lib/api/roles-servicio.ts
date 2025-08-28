@@ -1,5 +1,4 @@
 import { RolServicio, CrearRolServicioData, ActualizarRolServicioData, ApiResponse } from '@/lib/schemas/roles-servicio';
-import { getUserInfo } from '@/lib/auth-client';
 
 export async function getRolesServicio(params?: { activo?: boolean; tenantId?: string }): Promise<RolServicio[]> {
   try {
@@ -13,19 +12,11 @@ export async function getRolesServicio(params?: { activo?: boolean; tenantId?: s
 
     const url = `/api/roles-servicio${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
     
-    // Obtener el email del usuario actual para el header
-    const userInfo = getUserInfo();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    
-    if (userInfo?.email) {
-      headers['x-user-email'] = userInfo.email;
-    }
-    
     const response = await fetch(url, {
       method: 'GET',
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
 
     if (!response.ok) {
@@ -234,30 +225,6 @@ export async function getRolesServicioStats(tenantId?: string): Promise<any> {
   }
 }
 
-// Función para verificar si un rol tiene guardias asignados
-export async function verificarGuardiasRol(rolId: string): Promise<any> {
-  try {
-    const response = await fetch('/api/roles-servicio/verificar-guardias', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ rol_id: rolId }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Error verificando guardias del rol: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    return result;
-  } catch (error) {
-    console.error('Error verificando guardias del rol:', error);
-    throw error;
-  }
-}
-
 // Nueva función para inactivar rol de servicio completamente (con liberación de estructuras)
 export async function inactivarRolServicioCompleto(
   id: string, 
@@ -265,12 +232,12 @@ export async function inactivarRolServicioCompleto(
   usuario_id?: string
 ): Promise<any> {
   try {
-    const response = await fetch(`/api/roles-servicio/${id}`, {
-      method: 'PATCH',
+    const response = await fetch(`/api/roles-servicio/inactivar`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ action: 'inactivar' }),
+      body: JSON.stringify({ rolId: id, motivo, usuario_id }),
     });
 
     if (!response.ok) {

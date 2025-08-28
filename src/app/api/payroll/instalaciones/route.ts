@@ -1,26 +1,21 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 // GET - Obtener instalaciones activas
 export async function GET(request: NextRequest) {
-const deny = await requireAuthz(request, { resource: 'payroll', action: 'read:list' });
-if (deny) return deny;
-
   try {
-    // Obtener todas las instalaciones activas
-    const instalacionesQuery = `
+    const result = await query(`
       SELECT 
         id,
         nombre,
         direccion,
+        ciudad,
+        comuna,
         estado
-      FROM instalaciones
+      FROM instalaciones 
       WHERE estado = 'Activo'
       ORDER BY nombre
-    `;
-
-    const result = await query(instalacionesQuery);
+    `);
 
     return NextResponse.json({ data: result.rows });
 

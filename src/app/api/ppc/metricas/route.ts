@@ -1,21 +1,8 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextResponse } from "next/server";
 import { query } from "@/lib/database";
 
-export async function GET(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'ppc', action: 'read:list' });
-if (deny) return deny;
-
+export async function GET() {
   try {
-    // Obtener tenant_id del contexto
-          const ctx = (request as any).ctx as { tenantId: string; selectedTenantId: string | null; isPlatformAdmin?: boolean } | undefined;
-    // Solo usar selectedTenantId si es Platform Admin, sino usar el tenantId del usuario
-    const tenantId = ctx?.isPlatformAdmin ? (ctx?.selectedTenantId || ctx?.tenantId) : ctx?.tenantId;
-    
-    if (!tenantId) {
-      return NextResponse.json({ error: 'TENANT_REQUIRED' }, { status: 400 });
-    }
     // Obtener datos de las últimas 6 semanas
     const metricas = await query(`
       WITH semanas AS (
@@ -37,8 +24,6 @@ if (deny) return deny;
           po.activo = true AND
           po.creado_en >= s.semana_inicio AND 
           po.creado_en <= s.semana_fin
-        LEFT JOIN instalaciones i ON po.instalacion_id = i.id
-        WHERE i.tenant_id = $1
         GROUP BY s.semana_inicio, s.semana_fin
       )
       SELECT 
@@ -53,19 +38,18 @@ if (deny) return deny;
         END as tasa_ppc
       FROM ppc_semanales
       ORDER BY semana_inicio
-    `, [tenantId]);
+    `);
 
     // Obtener estadísticas generales
     // Migrado al nuevo modelo as_turnos_puestos_operativos
     const stats = await query(`
       SELECT 
-        COUNT(CASE WHEN po.guardia_id IS NULL THEN 1 END) as total_abiertos,
-        COUNT(CASE WHEN po.guardia_id IS NOT NULL THEN 1 END) as total_cubiertos,
+        COUNT(CASE WHEN guardia_id IS NULL THEN 1 END) as total_abiertos,
+        COUNT(CASE WHEN guardia_id IS NOT NULL THEN 1 END) as total_cubiertos,
         COUNT(*) as total_ppc
-      FROM as_turnos_puestos_operativos po
-      INNER JOIN instalaciones i ON po.instalacion_id = i.id
-      WHERE po.es_ppc = true AND po.activo = true AND i.tenant_id = $1
-    `, [tenantId]);
+      FROM as_turnos_puestos_operativos
+      WHERE es_ppc = true AND activo = true
+    `);
 
     const estadisticas = stats.rows[0];
 

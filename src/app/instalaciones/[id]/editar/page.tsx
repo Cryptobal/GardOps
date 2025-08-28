@@ -1,6 +1,5 @@
 'use client';
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -234,7 +233,7 @@ export default function EditarInstalacionPage() {
                   value={formData.ciudad}
                   readOnly
                   placeholder="Se completa automáticamente"
-                  className="bg-muted cursor-not-allowed"
+                  className="bg-gray-50 cursor-not-allowed"
                 />
               </div>
 
@@ -247,7 +246,7 @@ export default function EditarInstalacionPage() {
                   value={formData.comuna}
                   readOnly
                   placeholder="Se completa automáticamente"
-                  className="bg-muted cursor-not-allowed"
+                  className="bg-gray-50 cursor-not-allowed"
                 />
               </div>
 
@@ -258,7 +257,7 @@ export default function EditarInstalacionPage() {
                 <Input
                   type="text"
                   name="valor_turno_extra"
-                  value={formData.valor_turno_extra ? Number(formData.valor_turno_extra).toLocaleString('es-CL') : '0'}
+                  value={formData.valor_turno_extra.toLocaleString('es-CL')}
                   onChange={handleInputChange}
                   placeholder="0"
                 />

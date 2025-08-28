@@ -1,13 +1,9 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { query } from '@/lib/database';
 import { NextResponse } from 'next/server';
 import { logCRUD } from '@/lib/logging';
 
 export async function POST(req: Request) {
-  const deny = await requireAuthz(req, { resource: 'pauta_diaria', action: 'read:list' });
-  if (deny) return deny;
-
-try {
+  try {
     const { turno_extra_id, usuario_pago, observaciones_pago } = await req.json();
 
     // Validar parámetros requeridos
@@ -114,10 +110,7 @@ try {
 
 // GET - Obtener información de preservación de un turno extra
 export async function GET(req: Request) {
-  const deny = await requireAuthz(req, { resource: 'pauta_diaria', action: 'read:list' });
-  if (deny) return deny;
-
-try {
+  try {
     const { searchParams } = new URL(req.url);
     const turno_extra_id = searchParams.get('turno_extra_id');
 

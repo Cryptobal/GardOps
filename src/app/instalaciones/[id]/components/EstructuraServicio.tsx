@@ -1,6 +1,5 @@
 'use client';
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -403,7 +402,7 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
       const controller = new AbortController();
       fetchControllers.current[rolId] = controller;
 
-      const res = await fetch('/api/payroll/calcular', {
+      const res = await fetch('/api/sueldos/calcular', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

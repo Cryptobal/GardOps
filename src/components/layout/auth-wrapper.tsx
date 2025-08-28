@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { isAuthenticated, setupAutoTokenRefresh } from '../../lib/auth-client'
+import { isAuthenticated } from '../../lib/auth-client'
 import { Sidebar } from './sidebar'
 import { Navbar } from './navbar'
 import { cn } from '../../lib/utils'
@@ -20,32 +20,29 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   // Rutas públicas que no requieren autenticación
-  const publicRoutes = [
-    '/login',
-    '/recuperar-contrasena',
-    '/restablecer-contrasena',
-    '/test-page'
-  ]
+  const publicRoutes = ['/login']
   const isPublicRoute = publicRoutes.includes(pathname)
 
   useEffect(() => {
     const checkAuth = () => {
+      console.log('🔍 AuthWrapper: Verificando autenticación...')
+      console.log('🔍 AuthWrapper: Ruta actual:', pathname)
+      console.log('🔍 AuthWrapper: Es ruta pública:', isPublicRoute)
+      
       const auth = isAuthenticated()
+      console.log('🔍 AuthWrapper: Usuario autenticado:', auth)
+      
       setIsAuth(auth)
       setIsLoading(false)
 
-      if (auth) {
-        // Configurar renovación automática del token solo si está autenticado
-        setupAutoTokenRefresh()
-      }
-
       if (!auth && !isPublicRoute) {
+        console.log('🔍 AuthWrapper: Redirigiendo a login...')
         router.push('/login')
       }
     }
 
     checkAuth()
-  }, [pathname, isPublicRoute, router])
+  }, [pathname, isPublicRoute])
 
   // Cerrar menú móvil al cambiar de página
   useEffect(() => {
@@ -64,30 +61,20 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     setIsSidebarCollapsed(collapsed)
   }
 
+  console.log('🔍 AuthWrapper: Renderizando...', { isLoading, isAuth, isPublicRoute })
+
   if (isLoading) {
+    console.log('🔍 AuthWrapper: Mostrando spinner de carga...')
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Cargando...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     )
   }
 
   if (isPublicRoute) {
+    console.log('🔍 AuthWrapper: Ruta pública, mostrando contenido sin layout...')
     return <>{children}</>
-  }
-
-  if (!isAuth) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Redirigiendo al login...</p>
-        </div>
-      </div>
-    )
   }
 
   return (

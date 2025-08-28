@@ -1,13 +1,10 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import { getUserInfo } from '@/lib/auth';
 
 export async function DELETE(
   request: NextRequest,
-  {
-
- params }: { params: { id: string; ppcId: string } }
+  { params }: { params: { id: string; ppcId: string } }
 ) {
   try {
     const { id: instalacionId, ppcId } = params;

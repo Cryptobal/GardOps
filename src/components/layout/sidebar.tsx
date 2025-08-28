@@ -97,7 +97,9 @@ export function Sidebar({
                 <div className="flex-1 min-w-0">
                   <span className="font-medium truncate text-xs sm:text-sm md:text-base flex items-center gap-2">
                     {item.name}
-
+                    {item.href === "/pauta-diaria" && adoV2On && (
+                      <span className="ml-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] uppercase tracking-wide">v2</span>
+                    )}
                   </span>
                   {item.description && (
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">

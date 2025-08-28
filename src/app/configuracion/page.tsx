@@ -1,4 +1,3 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
@@ -7,16 +6,7 @@ import Link from "next/link";
 import { useCan } from "@/lib/permissions";
 
 export default function ConfiguracionPage() {
-  const { allowed: canConfig } = useCan('config.view');
-  if (!canConfig) {
-    return (
-      <div className="p-6">
-        <div className="rounded-xl border p-6 text-center text-muted-foreground">
-          Acceso denegado
-        </div>
-      </div>
-    );
-  }
+  const { allowed: canAdminRbac } = useCan('rbac.admin');
   
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -108,18 +98,18 @@ export default function ConfiguracionPage() {
           </Card>
         </Link>
 
-        {/* Estructuras Unificadas */}
-        <Link href="/payroll/estructuras-unificadas">
+        {/* Estructuras de Servicio */}
+        <Link href="/configuracion/estructuras-servicio">
           <Card className="card-elegant hover:shadow-lg transition-all duration-200 cursor-pointer group h-full">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <DollarSign className="h-5 w-5 text-purple-500 flex-shrink-0" />
-                🏗️ Estructuras Unificadas
+                Estructuras de Servicio
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Gestión centralizada de estructuras salariales por instalación, rol y guardia
+                Configurar estructuras salariales, bonificaciones y descuentos por rol de servicio
               </p>
               <div className="mt-4 flex items-center text-purple-500 text-sm font-medium group-hover:underline">
                 Gestionar estructuras →
@@ -144,7 +134,9 @@ export default function ConfiguracionPage() {
               <div className="mt-4 flex items-center text-red-500 text-sm font-medium group-hover:underline">
                 Gestionar seguridad →
               </div>
-              {/* Nota de permiso removida; la ruta de Seguridad valida permisos internamente */}
+              {!canAdminRbac && (
+                <div className="mt-2 text-gray-400 text-xs">Puede requerir permiso: rbac.admin</div>
+              )}
             </CardContent>
           </Card>
         </Link>

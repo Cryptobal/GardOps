@@ -1,13 +1,9 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { runDatabaseMigrations } from '../../../lib/database-migrations';
 import { initializeDefaultUsers } from '../../../lib/api/usuarios';
 
 export async function POST(request: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'migrate', action: 'read:list' });
-  if (deny) return deny;
-
-try {
+  try {
     console.log('📡 API: Iniciando migración de base de datos...');
     
     const result = await runDatabaseMigrations();
@@ -45,10 +41,7 @@ try {
 }
 
 export async function GET() {
-  const deny = await requireAuthz(req, { resource: 'migrate', action: 'read:list' });
-  if (deny) return deny;
-
-return NextResponse.json({
+  return NextResponse.json({
     message: 'Endpoint de migración de base de datos',
     usage: 'Envía una petición POST para ejecutar las migraciones'
   });

@@ -1,8 +1,6 @@
 'use client';
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
-import { usePermissionsContext } from '@/lib/permissions-context'
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,29 +36,6 @@ interface CrearClienteData {
 
 export default function NuevoClientePage() {
   const router = useRouter();
-  const { permissions, loading: permissionsLoading, initialized } = usePermissionsContext();
-  
-  // Convertir permisos del contexto al formato esperado por can()
-  const effectivePermissions = React.useMemo(() => {
-    if (!initialized) return {};
-    
-    const eff: Record<string, string[]> = {};
-    
-    // Mapear permisos por recurso
-    permissions.forEach((hasPermission, perm) => {
-      if (hasPermission) {
-        const [resource, action] = perm.split('.');
-        if (resource && action) {
-          if (!eff[resource]) {
-            eff[resource] = [];
-          }
-          eff[resource].push(action);
-        }
-      }
-    });
-    
-    return eff;
-  }, [permissions, initialized]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<CrearClienteData>({
     nombre: "",
@@ -408,15 +383,13 @@ export default function NuevoClientePage() {
         >
           Cancelar
         </Button>
-        <Authorize resource="clientes" action="create" eff={effectivePermissions}>
-  <GuardButton resource="clientes" action="create" eff={effectivePermissions} 
+        <Button
           onClick={guardarCliente}
           disabled={loading}
           className="bg-blue-600 hover:bg-blue-700 text-white"
         >
           {loading ? 'Guardando...' : 'Crear Cliente'}
-        </GuardButton>
-</Authorize>
+        </Button>
       </div>
     </div>
   );

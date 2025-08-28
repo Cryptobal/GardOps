@@ -9,5 +9,4200 @@
     · webpackBuildWorker
 
  ✓ Starting...
- ✓ Ready in 1768ms
- ○ Compiling / ...
+ ✓ Ready in 2.1s
+ ✓ Compiled /src/middleware in 173ms (72 modules)
+ ✓ Compiled /api/flags in 101ms (65 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+ ✓ Compiled /api/debug/whoami in 161ms (106 modules)
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1371ms
+ GET /api/flags 200 in 1374ms
+ GET /api/flags 200 in 1376ms
+ GET /api/flags 200 in 1378ms
+ GET /api/flags 200 in 1379ms
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+ GET /api/flags 200 in 1427ms
+ GET /api/debug/whoami 200 in 1107ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1014ms
+ GET /api/flags 200 in 1017ms
+ GET /api/flags 200 in 1019ms
+ GET /api/flags 200 in 1019ms
+ GET /api/flags 200 in 981ms
+ GET /api/flags 200 in 1020ms
+ ○ Compiling /pauta-diaria-v2 ...
+ ✓ Compiled /pauta-diaria-v2 in 3.7s (950 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /api/flags 200 in 3962ms
+ GET /api/flags 200 in 3961ms
+ GET /api/flags 200 in 3961ms
+ ✓ Compiled in 315ms (425 modules)
+ ✓ Compiled /_not-found in 352ms (527 modules)
+ ✓ Compiled in 127ms (411 modules)
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:28:53.372Z'
+}
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:28:53.372Z'
+}
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:28:53.373Z'
+}
+ POST /api/logs 204 in 618ms
+ POST /api/logs 204 in 618ms
+ POST /api/logs 204 in 618ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 562ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+✅ Datos obtenidos exitosamente: 3 registros
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /pauta-diaria-v2?fecha=2025-08-11 200 in 2151ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1150ms
+ GET /api/flags 200 in 1152ms
+ GET /api/flags 200 in 1152ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1311ms
+ GET /api/flags 200 in 1312ms
+ GET /api/flags 200 in 179ms
+ GET /api/flags 200 in 180ms
+ GET /api/flags 200 in 183ms
+ GET /api/flags 200 in 1190ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 157ms
+ GET /api/flags 200 in 176ms
+ GET /api/flags 200 in 178ms
+ GET /api/flags 200 in 194ms
+ GET /api/flags 200 in 158ms
+ GET /api/flags 200 in 149ms
+ GET /api/flags 200 in 150ms
+ GET /api/flags 200 in 189ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 142ms
+ GET /api/flags 200 in 139ms
+ GET /api/flags 200 in 150ms
+ GET /api/flags 200 in 152ms
+ GET /api/flags 200 in 175ms
+ GET /api/flags 200 in 184ms
+ GET /api/flags 200 in 157ms
+ GET /api/flags 200 in 141ms
+ GET /api/flags 200 in 241ms
+ GET /api/flags 200 in 242ms
+ ✓ Compiled /icon in 207ms (229 modules)
+ GET /icon?2ee941ceddcb3435 200 in 421ms
+ GET /icon?2ee941ceddcb3435 200 in 26ms
+ ✓ Compiled /api/me/permissions in 264ms (608 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: ⚙️  enable debug logging with { debug: true }
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:28:56.666Z'
+}
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:28:56.666Z'
+}
+ POST /api/logs 204 in 450ms
+ POST /api/logs 204 in 450ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 465ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 464ms
+ ✓ Compiled /api/turnos/deshacer-new in 250ms (611 modules)
+[turnos/new] deshacer { pauta_id: 43, actor_ref: 'ui:pauta-diaria-v2' }
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ POST /api/turnos/deshacer-new 200 in 1646ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ ✓ Compiled in 1731ms (1265 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 27ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /pauta-diaria-v2?fecha=2025-08-11 200 in 1661ms
+ GET /api/flags 200 in 153ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 186ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1140ms
+ GET /api/flags 200 in 1152ms
+ GET /api/flags 200 in 1153ms
+ GET /api/flags 200 in 1260ms
+ GET /api/flags 200 in 198ms
+ GET /api/flags 200 in 1262ms
+ GET /api/flags 200 in 157ms
+ GET /api/flags 200 in 163ms
+ GET /api/flags 200 in 167ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 157ms
+ GET /api/flags 200 in 161ms
+ GET /api/flags 200 in 143ms
+ GET /api/flags 200 in 243ms
+ GET /api/flags 200 in 243ms
+ GET /api/flags 200 in 243ms
+ GET /api/flags 200 in 243ms
+ GET /api/flags 200 in 209ms
+ GET /api/flags 200 in 210ms
+ GET /api/flags 200 in 157ms
+ GET /api/flags 200 in 159ms
+ GET /api/flags 200 in 160ms
+ GET /api/flags 200 in 162ms
+ GET /api/flags 200 in 165ms
+ GET /api/flags 200 in 234ms
+ GET /icon?2ee941ceddcb3435 200 in 146ms
+ GET /api/flags 200 in 283ms
+ GET /icon?2ee941ceddcb3435 200 in 28ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 190ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 189ms
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:29:22.680Z'
+}
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:29:22.681Z'
+}
+ POST /api/logs 204 in 195ms
+ POST /api/logs 204 in 195ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+[turnos/new] deshacer { pauta_id: 74, actor_ref: 'ui:pauta-diaria-v2' }
+🔌 Conexión removida del pool
+ POST /api/turnos/deshacer-new 200 in 622ms
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 25ms
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /pauta-diaria-v2?fecha=2025-08-11 200 in 397ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ GET /api/flags 200 in 158ms
+ GET /api/flags 200 in 161ms
+ GET /api/flags 200 in 161ms
+ GET /api/flags 200 in 163ms
+ GET /api/flags 200 in 263ms
+ GET /api/flags 200 in 264ms
+ GET /api/flags 200 in 217ms
+ GET /api/flags 200 in 224ms
+ GET /api/flags 200 in 226ms
+ GET /api/flags 200 in 237ms
+ GET /api/flags 200 in 168ms
+ GET /api/flags 200 in 182ms
+ GET /api/flags 200 in 243ms
+ GET /api/flags 200 in 226ms
+ GET /api/flags 200 in 227ms
+ GET /api/flags 200 in 228ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 209ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 194ms
+ GET /api/flags 200 in 194ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 185ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 188ms
+ GET /api/flags 200 in 189ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 193ms
+ GET /icon?2ee941ceddcb3435 200 in 32ms
+ GET /icon?2ee941ceddcb3435 200 in 33ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 60ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 60ms
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:29:27.222Z'
+}
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:29:27.222Z'
+}
+ POST /api/logs 204 in 64ms
+ POST /api/logs 204 in 64ms
+ GET /api/flags 200 in 168ms
+ GET /api/flags 200 in 278ms
+ GET /api/flags 200 in 290ms
+ GET /api/flags 200 in 291ms
+ GET /api/flags 200 in 293ms
+ GET /api/flags 200 in 294ms
+ GET /api/flags 200 in 147ms
+ GET /api/flags 200 in 204ms
+ GET /api/flags 200 in 205ms
+ GET /api/flags 200 in 206ms
+ GET /api/flags 200 in 206ms
+ GET /api/flags 200 in 168ms
+ GET /api/flags 200 in 207ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 191ms
+ ○ Compiling /pauta-mensual/[id] ...
+ ✓ Compiled /pauta-mensual/[id] in 1264ms (1842 modules)
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /pauta-mensual/15631bd6-03a9-459d-ae60-fc480f7f3e84?mes=8&anio=2025 200 in 1660ms
+ GET /icon?2ee941ceddcb3435 200 in 185ms
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1460ms
+ GET /api/flags 200 in 1493ms
+ GET /api/flags 200 in 1495ms
+ GET /api/flags 200 in 1528ms
+ GET /api/flags 200 in 1532ms
+ GET /api/flags 200 in 1535ms
+ GET /api/flags 200 in 356ms
+ GET /api/flags 200 in 357ms
+ GET /api/flags 200 in 359ms
+ GET /api/flags 200 in 228ms
+ GET /api/flags 200 in 229ms
+ GET /api/flags 200 in 230ms
+ GET /api/flags 200 in 162ms
+ GET /api/flags 200 in 294ms
+ GET /api/flags 200 in 296ms
+ GET /api/flags 200 in 295ms
+ GET /api/flags 200 in 296ms
+ GET /api/flags 200 in 297ms
+ GET /api/flags 200 in 161ms
+ GET /api/flags 200 in 387ms
+ GET /api/flags 200 in 401ms
+ GET /api/flags 200 in 426ms
+ GET /api/flags 200 in 444ms
+ ✓ Compiled /api/instalaciones/[id]/completa in 438ms (1045 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔍 Iniciando endpoint completa para instalación: 15631bd6-03a9-459d-ae60-fc480f7f3e84
+1. Consultando instalación...
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1730ms
+ GET /api/flags 200 in 1244ms
+ GET /api/flags 200 in 1249ms
+ GET /api/flags 200 in 1255ms
+ GET /api/flags 200 in 1261ms
+ GET /icon?2ee941ceddcb3435 200 in 34ms
+ GET /api/flags 200 in 175ms
+ GET /api/flags 200 in 178ms
+🔌 Nueva conexión establecida
+✅ Instalación encontrada: A Test 1
+2. Consultando cliente...
+✅ Cliente: A Test Cliente
+3. Consultando puestos operativos...
+✅ Puestos operativos encontrados: 3
+🔍 Diagnóstico de puestos operativos:
+   Puesto 1:
+     ID: b5edf643-3ac7-4406-94fb-b67e03f7adf8
+     Nombre: Garita Vehicular
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: false
+     Guardia ID: 817d21b0-d5ef-4438-8adf-6258585b23a3
+     Guardia Nombre: Test Modal Guardia Test 
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 2:
+     ID: 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b
+     Nombre: Guardia Perimetral
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 3:
+     ID: 2082bedd-1e69-4959-b4cc-ab102de5e736
+     Nombre: Portería Principal
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+📊 Puestos por rol:
+   Rol 64bef7f7-7d41-4ce6-a8bd-f26ed0482825: 3 puestos
+     1. Garita Vehicular - PPC: false - Guardia: Sí
+     2. Guardia Perimetral - PPC: true - Guardia: No
+     3. Portería Principal - PPC: true - Guardia: No
+4. Consultando roles de servicio...
+✅ Roles de servicio encontrados: 1
+5. Consultando pauta mensual...
+✅ Pauta mensual encontrada: 0 registros
+6. Transformando datos...
+📊 Turnos encontrados: 1
+📊 Total puestos: 3, Asignados: 1, Pendientes: 2
+📊 PPCs encontrados: 2
+👥 Guardias asignados encontrados: 1
+⏳ PPCs pendientes encontrados: 2
+📋 Total de guardias (asignados + PPCs): 3
+🚀 Tiempo total API instalaciones completa: 2388ms
+ GET /api/instalaciones/15631bd6-03a9-459d-ae60-fc480f7f3e84/completa 200 in 3366ms
+🔍 Iniciando endpoint completa para instalación: 15631bd6-03a9-459d-ae60-fc480f7f3e84
+1. Consultando instalación...
+✅ Instalación encontrada: A Test 1
+2. Consultando cliente...
+ ✓ Compiled /api/pauta-mensual in 202ms (1048 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+[2025-08-11T21:29:39.231Z] 🚀 Iniciando carga de pauta mensual
+[2025-08-11T21:29:39.231Z] 📥 Parámetros recibidos: {
+  instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84',
+  anio: '2025',
+  mes: '8'
+}
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+✅ Cliente: A Test Cliente
+3. Consultando puestos operativos...
+✅ Puestos operativos encontrados: 3
+🔍 Diagnóstico de puestos operativos:
+   Puesto 1:
+     ID: b5edf643-3ac7-4406-94fb-b67e03f7adf8
+     Nombre: Garita Vehicular
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: false
+     Guardia ID: 817d21b0-d5ef-4438-8adf-6258585b23a3
+     Guardia Nombre: Test Modal Guardia Test 
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 2:
+     ID: 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b
+     Nombre: Guardia Perimetral
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 3:
+     ID: 2082bedd-1e69-4959-b4cc-ab102de5e736
+     Nombre: Portería Principal
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+📊 Puestos por rol:
+   Rol 64bef7f7-7d41-4ce6-a8bd-f26ed0482825: 3 puestos
+     1. Garita Vehicular - PPC: false - Guardia: Sí
+     2. Guardia Perimetral - PPC: true - Guardia: No
+     3. Portería Principal - PPC: true - Guardia: No
+4. Consultando roles de servicio...
+✅ Roles de servicio encontrados: 1
+5. Consultando pauta mensual...
+✅ Pauta mensual encontrada: 0 registros
+6. Transformando datos...
+📊 Turnos encontrados: 1
+📊 Total puestos: 3, Asignados: 1, Pendientes: 2
+📊 PPCs encontrados: 2
+👥 Guardias asignados encontrados: 1
+⏳ PPCs pendientes encontrados: 2
+📋 Total de guardias (asignados + PPCs): 3
+🚀 Tiempo total API instalaciones completa: 833ms
+ GET /api/instalaciones/15631bd6-03a9-459d-ae60-fc480f7f3e84/completa 200 in 873ms
+🔌 Nueva conexión establecida
+[2025-08-11T21:29:39.231Z] 🐌 Query pauta mensual: 1199ms, 92 registros encontrados
+[2025-08-11T21:29:39.231Z] 📅 Generando pauta para 31 días del mes
+[2025-08-11T21:29:39.231Z] 🔍 Puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8 (Garita Vehicular): 31 registros encontrados
+[2025-08-11T21:29:39.231Z] 🔍 Puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b (Guardia Perimetral): 31 registros encontrados
+[2025-08-11T21:29:39.231Z] 🔍 Puesto 2082bedd-1e69-4959-b4cc-ab102de5e736 (Portería Principal): 30 registros encontrados
+[2025-08-11T21:29:39.231Z] ✅ Pauta mensual cargada exitosamente
+[2025-08-11T21:29:39.231Z] 📊 Resumen: 3 puestos, 31 días por puesto
+[2025-08-11T21:29:39.231Z] ⏱️ Tiempo total: 1376ms
+ GET /api/pauta-mensual?instalacion_id=15631bd6-03a9-459d-ae60-fc480f7f3e84&anio=2025&mes=8 200 in 1771ms
+[2025-08-11T21:29:40.792Z] 🚀 Iniciando carga de pauta mensual
+[2025-08-11T21:29:40.792Z] 📥 Parámetros recibidos: {
+  instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84',
+  anio: '2025',
+  mes: '8'
+}
+[2025-08-11T21:29:40.792Z] 🐌 Query pauta mensual: 331ms, 92 registros encontrados
+[2025-08-11T21:29:40.792Z] 📅 Generando pauta para 31 días del mes
+[2025-08-11T21:29:40.792Z] 🔍 Puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8 (Garita Vehicular): 31 registros encontrados
+[2025-08-11T21:29:40.792Z] 🔍 Puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b (Guardia Perimetral): 31 registros encontrados
+[2025-08-11T21:29:40.792Z] 🔍 Puesto 2082bedd-1e69-4959-b4cc-ab102de5e736 (Portería Principal): 30 registros encontrados
+[2025-08-11T21:29:40.792Z] ✅ Pauta mensual cargada exitosamente
+[2025-08-11T21:29:40.792Z] 📊 Resumen: 3 puestos, 31 días por puesto
+[2025-08-11T21:29:40.792Z] ⏱️ Tiempo total: 477ms
+ GET /api/pauta-mensual?instalacion_id=15631bd6-03a9-459d-ae60-fc480f7f3e84&anio=2025&mes=8 200 in 673ms
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /pauta-mensual/15631bd6-03a9-459d-ae60-fc480f7f3e84?mes=8&anio=2025 200 in 89ms
+ GET /icon?2ee941ceddcb3435 200 in 49ms
+ GET /api/flags 200 in 176ms
+ GET /api/flags 200 in 173ms
+ GET /api/flags 200 in 174ms
+ GET /api/flags 200 in 239ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 174ms
+ GET /api/flags 200 in 1116ms
+ GET /api/flags 200 in 1115ms
+ GET /api/flags 200 in 1169ms
+ GET /api/flags 200 in 1169ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 203ms
+🔍 Iniciando endpoint completa para instalación: 15631bd6-03a9-459d-ae60-fc480f7f3e84
+1. Consultando instalación...
+ GET /api/flags 200 in 248ms
+ GET /api/flags 200 in 232ms
+ GET /api/flags 200 in 1376ms
+✅ Instalación encontrada: A Test 1
+2. Consultando cliente...
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 197ms
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+✅ Cliente: A Test Cliente
+3. Consultando puestos operativos...
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 198ms
+ GET /api/flags 200 in 199ms
+ GET /api/flags 200 in 200ms
+ GET /api/flags 200 in 202ms
+✅ Puestos operativos encontrados: 3
+🔍 Diagnóstico de puestos operativos:
+   Puesto 1:
+     ID: b5edf643-3ac7-4406-94fb-b67e03f7adf8
+     Nombre: Garita Vehicular
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: false
+     Guardia ID: 817d21b0-d5ef-4438-8adf-6258585b23a3
+     Guardia Nombre: Test Modal Guardia Test 
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 2:
+     ID: 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b
+     Nombre: Guardia Perimetral
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 3:
+     ID: 2082bedd-1e69-4959-b4cc-ab102de5e736
+     Nombre: Portería Principal
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+📊 Puestos por rol:
+   Rol 64bef7f7-7d41-4ce6-a8bd-f26ed0482825: 3 puestos
+     1. Garita Vehicular - PPC: false - Guardia: Sí
+     2. Guardia Perimetral - PPC: true - Guardia: No
+     3. Portería Principal - PPC: true - Guardia: No
+4. Consultando roles de servicio...
+ GET /api/flags 200 in 295ms
+ GET /api/flags 200 in 296ms
+ GET /api/flags 200 in 297ms
+ GET /api/flags 200 in 298ms
+ GET /api/flags 200 in 298ms
+✅ Roles de servicio encontrados: 1
+5. Consultando pauta mensual...
+ GET /api/flags 200 in 182ms
+ GET /api/flags 200 in 183ms
+ GET /api/flags 200 in 183ms
+ GET /api/flags 200 in 185ms
+ GET /api/flags 200 in 200ms
+ GET /icon?2ee941ceddcb3435 200 in 16ms
+✅ Pauta mensual encontrada: 0 registros
+6. Transformando datos...
+📊 Turnos encontrados: 1
+📊 Total puestos: 3, Asignados: 1, Pendientes: 2
+📊 PPCs encontrados: 2
+👥 Guardias asignados encontrados: 1
+⏳ PPCs pendientes encontrados: 2
+📋 Total de guardias (asignados + PPCs): 3
+🚀 Tiempo total API instalaciones completa: 1072ms
+ GET /api/instalaciones/15631bd6-03a9-459d-ae60-fc480f7f3e84/completa 200 in 1109ms
+[2025-08-11T21:29:48.891Z] 🚀 Iniciando carga de pauta mensual
+[2025-08-11T21:29:48.891Z] 📥 Parámetros recibidos: {
+  instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84',
+  anio: '2025',
+  mes: '8'
+}
+🔍 Iniciando endpoint completa para instalación: 15631bd6-03a9-459d-ae60-fc480f7f3e84
+1. Consultando instalación...
+✅ Instalación encontrada: A Test 1
+2. Consultando cliente...
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+[2025-08-11T21:29:48.891Z] 🐌 Query pauta mensual: 564ms, 92 registros encontrados
+✅ Cliente: A Test Cliente
+3. Consultando puestos operativos...
+[2025-08-11T21:29:48.891Z] 📅 Generando pauta para 31 días del mes
+[2025-08-11T21:29:48.891Z] 🔍 Puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8 (Garita Vehicular): 31 registros encontrados
+[2025-08-11T21:29:48.891Z] 🔍 Puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b (Guardia Perimetral): 31 registros encontrados
+[2025-08-11T21:29:48.891Z] 🔍 Puesto 2082bedd-1e69-4959-b4cc-ab102de5e736 (Portería Principal): 30 registros encontrados
+✅ Puestos operativos encontrados: 3
+🔍 Diagnóstico de puestos operativos:
+   Puesto 1:
+     ID: b5edf643-3ac7-4406-94fb-b67e03f7adf8
+     Nombre: Garita Vehicular
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: false
+     Guardia ID: 817d21b0-d5ef-4438-8adf-6258585b23a3
+     Guardia Nombre: Test Modal Guardia Test 
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 2:
+     ID: 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b
+     Nombre: Guardia Perimetral
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 3:
+     ID: 2082bedd-1e69-4959-b4cc-ab102de5e736
+     Nombre: Portería Principal
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+📊 Puestos por rol:
+   Rol 64bef7f7-7d41-4ce6-a8bd-f26ed0482825: 3 puestos
+     1. Garita Vehicular - PPC: false - Guardia: Sí
+     2. Guardia Perimetral - PPC: true - Guardia: No
+     3. Portería Principal - PPC: true - Guardia: No
+4. Consultando roles de servicio...
+[2025-08-11T21:29:48.891Z] ✅ Pauta mensual cargada exitosamente
+[2025-08-11T21:29:48.891Z] 📊 Resumen: 3 puestos, 31 días por puesto
+[2025-08-11T21:29:48.891Z] ⏱️ Tiempo total: 707ms
+ GET /api/pauta-mensual?instalacion_id=15631bd6-03a9-459d-ae60-fc480f7f3e84&anio=2025&mes=8 200 in 930ms
+✅ Roles de servicio encontrados: 1
+5. Consultando pauta mensual...
+✅ Pauta mensual encontrada: 0 registros
+6. Transformando datos...
+📊 Turnos encontrados: 1
+📊 Total puestos: 3, Asignados: 1, Pendientes: 2
+📊 PPCs encontrados: 2
+👥 Guardias asignados encontrados: 1
+⏳ PPCs pendientes encontrados: 2
+📋 Total de guardias (asignados + PPCs): 3
+🚀 Tiempo total API instalaciones completa: 1071ms
+ GET /api/instalaciones/15631bd6-03a9-459d-ae60-fc480f7f3e84/completa 200 in 1123ms
+[2025-08-11T21:29:49.994Z] 🚀 Iniciando carga de pauta mensual
+[2025-08-11T21:29:49.994Z] 📥 Parámetros recibidos: {
+  instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84',
+  anio: '2025',
+  mes: '8'
+}
+[2025-08-11T21:29:49.994Z] 🐌 Query pauta mensual: 388ms, 92 registros encontrados
+[2025-08-11T21:29:49.994Z] 📅 Generando pauta para 31 días del mes
+[2025-08-11T21:29:49.994Z] 🔍 Puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8 (Garita Vehicular): 31 registros encontrados
+[2025-08-11T21:29:49.994Z] 🔍 Puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b (Guardia Perimetral): 31 registros encontrados
+[2025-08-11T21:29:49.994Z] 🔍 Puesto 2082bedd-1e69-4959-b4cc-ab102de5e736 (Portería Principal): 30 registros encontrados
+[2025-08-11T21:29:49.994Z] ✅ Pauta mensual cargada exitosamente
+[2025-08-11T21:29:49.994Z] 📊 Resumen: 3 puestos, 31 días por puesto
+[2025-08-11T21:29:49.994Z] ⏱️ Tiempo total: 620ms
+ GET /api/pauta-mensual?instalacion_id=15631bd6-03a9-459d-ae60-fc480f7f3e84&anio=2025&mes=8 200 in 809ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ GET /api/flags 200 in 246ms
+ GET /api/flags 200 in 248ms
+ GET /api/flags 200 in 249ms
+ GET /api/flags 200 in 251ms
+ GET /api/flags 200 in 255ms
+ GET /api/flags 200 in 258ms
+ GET /api/flags 200 in 244ms
+ GET /api/flags 200 in 244ms
+ GET /api/flags 200 in 245ms
+ GET /api/flags 200 in 246ms
+ GET /api/flags 200 in 247ms
+ GET /api/flags 200 in 248ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 194ms
+ GET /api/flags 200 in 194ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 206ms
+ GET /api/flags 200 in 215ms
+ GET /api/flags 200 in 215ms
+ GET /api/flags 200 in 216ms
+ GET /api/flags 200 in 217ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 219ms
+ GET /api/flags 200 in 247ms
+ GET /api/flags 200 in 250ms
+ GET /api/flags 200 in 271ms
+ GET /api/debug/whoami 200 in 3477ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1081ms
+ GET /api/flags 200 in 1082ms
+ GET /api/flags 200 in 1084ms
+ GET /api/flags 200 in 1084ms
+ GET /api/flags 200 in 1066ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1386ms
+ GET /api/flags 200 in 280ms
+ GET /api/flags 200 in 283ms
+ GET /api/flags 200 in 283ms
+ GET /api/flags 200 in 285ms
+ GET /api/flags 200 in 286ms
+ GET /api/flags 200 in 174ms
+ GET /api/flags 200 in 176ms
+ GET /api/flags 200 in 176ms
+ GET /api/flags 200 in 179ms
+ GET /api/flags 200 in 188ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 215ms
+ GET /api/flags 200 in 249ms
+ GET /api/flags 200 in 280ms
+ GET /api/flags 200 in 251ms
+ GET /api/flags 200 in 251ms
+ GET /api/flags 200 in 266ms
+ GET /api/flags 200 in 206ms
+ GET /api/flags 200 in 164ms
+ GET /api/flags 200 in 168ms
+ GET /api/flags 200 in 172ms
+ ✓ Compiled in 894ms (1733 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+ GET /api/flags 200 in 1162ms
+ GET /api/flags 200 in 1168ms
+ GET /api/flags 200 in 1204ms
+ GET /api/flags 200 in 1280ms
+ GET /api/flags 200 in 1282ms
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/flags 200 in 172ms
+ GET /api/flags 200 in 173ms
+ GET /api/flags 200 in 174ms
+ GET /api/flags 200 in 175ms
+ GET /api/flags 200 in 335ms
+ GET /api/flags 200 in 301ms
+ GET /api/flags 200 in 246ms
+ GET /api/flags 200 in 247ms
+ GET /api/flags 200 in 250ms
+ GET /api/flags 200 in 252ms
+ GET /api/flags 200 in 210ms
+ GET /api/flags 200 in 211ms
+ GET /api/flags 200 in 212ms
+ GET /api/flags 200 in 234ms
+ GET /api/flags 200 in 235ms
+ GET /api/flags 200 in 161ms
+ GET /api/flags 200 in 204ms
+ GET /api/flags 200 in 165ms
+ GET /api/flags 200 in 174ms
+ GET /api/flags 200 in 178ms
+ GET /api/flags 200 in 230ms
+ GET /api/flags 200 in 242ms
+ GET /api/flags 200 in 169ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 217ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ GET /api/flags 200 in 265ms
+ GET /api/flags 200 in 285ms
+ GET /api/flags 200 in 287ms
+ GET /api/flags 200 in 288ms
+ GET /api/flags 200 in 302ms
+ GET /api/flags 200 in 304ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 158ms
+ GET /api/flags 200 in 159ms
+ GET /api/flags 200 in 214ms
+ GET /api/flags 200 in 218ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 214ms
+ GET /api/flags 200 in 215ms
+ ✓ Compiled in 412ms (834 modules)
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/flags 200 in 339ms
+ GET /api/flags 200 in 393ms
+ GET /api/flags 200 in 389ms
+ GET /api/flags 200 in 391ms
+ GET /api/flags 200 in 409ms
+ GET /api/flags 200 in 417ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 197ms
+ GET /api/flags 200 in 199ms
+ GET /api/flags 200 in 208ms
+ GET /api/flags 200 in 212ms
+ GET /api/flags 200 in 180ms
+ GET /api/flags 200 in 200ms
+ GET /api/flags 200 in 205ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1328ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1531ms
+ GET /api/flags 200 in 1532ms
+ GET /api/flags 200 in 1533ms
+ GET /api/flags 200 in 1533ms
+ GET /api/flags 200 in 199ms
+🔌 Nueva conexión establecida
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /pauta-mensual/15631bd6-03a9-459d-ae60-fc480f7f3e84?mes=8&anio=2025 200 in 181ms
+ GET /api/flags 200 in 1740ms
+ GET /api/flags 200 in 169ms
+ GET /api/flags 200 in 169ms
+ GET /api/flags 200 in 169ms
+ GET /api/flags 200 in 169ms
+ ✓ Compiled /api/logs in 357ms (901 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:37:47.605Z'
+}
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:37:47.606Z'
+}
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:37:47.606Z'
+}
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:37:47.606Z'
+}
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:37:47.606Z'
+}
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:37:47.606Z'
+}
+ POST /api/logs 204 in 441ms
+ POST /api/logs 204 in 370ms
+ POST /api/logs 204 in 369ms
+ POST /api/logs 204 in 369ms
+ POST /api/logs 204 in 369ms
+ POST /api/logs 204 in 442ms
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:37:47.711Z'
+}
+ POST /api/logs 204 in 87ms
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:37:47.719Z'
+}
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:37:47.719Z'
+}
+ POST /api/logs 204 in 95ms
+ POST /api/logs 204 in 95ms
+ GET /icon?2ee941ceddcb3435 200 in 185ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1481ms
+ GET /api/flags 200 in 1483ms
+ GET /api/flags 200 in 1484ms
+ GET /api/flags 200 in 1486ms
+ GET /api/flags 200 in 1487ms
+ GET /api/flags 200 in 1488ms
+ GET /api/flags 200 in 171ms
+ GET /api/flags 200 in 172ms
+ GET /api/flags 200 in 175ms
+ GET /api/flags 200 in 177ms
+ GET /api/flags 200 in 179ms
+ GET /api/flags 200 in 181ms
+ ✓ Compiled /api/instalaciones/[id]/completa in 84ms (924 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔍 Iniciando endpoint completa para instalación: 15631bd6-03a9-459d-ae60-fc480f7f3e84
+1. Consultando instalación...
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 194ms
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+✅ Instalación encontrada: A Test 1
+2. Consultando cliente...
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1154ms
+ GET /api/flags 200 in 1162ms
+✅ Cliente: A Test Cliente
+3. Consultando puestos operativos...
+ GET /api/flags 200 in 1164ms
+ GET /api/flags 200 in 1164ms
+ GET /api/flags 200 in 1165ms
+✅ Puestos operativos encontrados: 3
+🔍 Diagnóstico de puestos operativos:
+   Puesto 1:
+     ID: b5edf643-3ac7-4406-94fb-b67e03f7adf8
+     Nombre: Garita Vehicular
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: false
+     Guardia ID: 817d21b0-d5ef-4438-8adf-6258585b23a3
+     Guardia Nombre: Test Modal Guardia Test 
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 2:
+     ID: 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b
+     Nombre: Guardia Perimetral
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 3:
+     ID: 2082bedd-1e69-4959-b4cc-ab102de5e736
+     Nombre: Portería Principal
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+📊 Puestos por rol:
+   Rol 64bef7f7-7d41-4ce6-a8bd-f26ed0482825: 3 puestos
+     1. Garita Vehicular - PPC: false - Guardia: Sí
+     2. Guardia Perimetral - PPC: true - Guardia: No
+     3. Portería Principal - PPC: true - Guardia: No
+4. Consultando roles de servicio...
+ GET /api/flags 200 in 174ms
+ GET /api/flags 200 in 179ms
+ GET /api/flags 200 in 180ms
+ GET /api/flags 200 in 180ms
+ GET /api/flags 200 in 183ms
+ GET /icon?2ee941ceddcb3435 200 in 30ms
+✅ Roles de servicio encontrados: 1
+5. Consultando pauta mensual...
+ GET /api/flags 200 in 296ms
+ GET /api/flags 200 in 299ms
+ GET /api/flags 200 in 300ms
+✅ Pauta mensual encontrada: 0 registros
+6. Transformando datos...
+📊 Turnos encontrados: 1
+📊 Total puestos: 3, Asignados: 1, Pendientes: 2
+📊 PPCs encontrados: 2
+👥 Guardias asignados encontrados: 1
+⏳ PPCs pendientes encontrados: 2
+📋 Total de guardias (asignados + PPCs): 3
+🚀 Tiempo total API instalaciones completa: 1872ms
+ GET /api/instalaciones/15631bd6-03a9-459d-ae60-fc480f7f3e84/completa 200 in 2010ms
+🔍 Iniciando endpoint completa para instalación: 15631bd6-03a9-459d-ae60-fc480f7f3e84
+1. Consultando instalación...
+✅ Instalación encontrada: A Test 1
+2. Consultando cliente...
+ ✓ Compiled /api/pauta-mensual in 158ms (927 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+[2025-08-11T21:37:52.194Z] 🚀 Iniciando carga de pauta mensual
+[2025-08-11T21:37:52.194Z] 📥 Parámetros recibidos: {
+  instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84',
+  anio: '2025',
+  mes: '8'
+}
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+✅ Cliente: A Test Cliente
+3. Consultando puestos operativos...
+✅ Puestos operativos encontrados: 3
+🔍 Diagnóstico de puestos operativos:
+   Puesto 1:
+     ID: b5edf643-3ac7-4406-94fb-b67e03f7adf8
+     Nombre: Garita Vehicular
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: false
+     Guardia ID: 817d21b0-d5ef-4438-8adf-6258585b23a3
+     Guardia Nombre: Test Modal Guardia Test 
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 2:
+     ID: 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b
+     Nombre: Guardia Perimetral
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 3:
+     ID: 2082bedd-1e69-4959-b4cc-ab102de5e736
+     Nombre: Portería Principal
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+📊 Puestos por rol:
+   Rol 64bef7f7-7d41-4ce6-a8bd-f26ed0482825: 3 puestos
+     1. Garita Vehicular - PPC: false - Guardia: Sí
+     2. Guardia Perimetral - PPC: true - Guardia: No
+     3. Portería Principal - PPC: true - Guardia: No
+4. Consultando roles de servicio...
+✅ Roles de servicio encontrados: 1
+5. Consultando pauta mensual...
+✅ Pauta mensual encontrada: 0 registros
+6. Transformando datos...
+📊 Turnos encontrados: 1
+📊 Total puestos: 3, Asignados: 1, Pendientes: 2
+📊 PPCs encontrados: 2
+👥 Guardias asignados encontrados: 1
+⏳ PPCs pendientes encontrados: 2
+📋 Total de guardias (asignados + PPCs): 3
+🚀 Tiempo total API instalaciones completa: 786ms
+ GET /api/instalaciones/15631bd6-03a9-459d-ae60-fc480f7f3e84/completa 200 in 830ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+[2025-08-11T21:37:52.194Z] 🐌 Query pauta mensual: 1321ms, 92 registros encontrados
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+[2025-08-11T21:37:52.194Z] 📅 Generando pauta para 31 días del mes
+[2025-08-11T21:37:52.194Z] 🔍 Puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8 (Garita Vehicular): 31 registros encontrados
+[2025-08-11T21:37:52.194Z] 🔍 Puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b (Guardia Perimetral): 31 registros encontrados
+[2025-08-11T21:37:52.194Z] 🔍 Puesto 2082bedd-1e69-4959-b4cc-ab102de5e736 (Portería Principal): 30 registros encontrados
+✅ Datos obtenidos exitosamente: 3 registros
+[2025-08-11T21:37:52.194Z] ✅ Pauta mensual cargada exitosamente
+[2025-08-11T21:37:52.194Z] 📊 Resumen: 3 puestos, 31 días por puesto
+[2025-08-11T21:37:52.194Z] ⏱️ Tiempo total: 1520ms
+ GET /api/pauta-mensual?instalacion_id=15631bd6-03a9-459d-ae60-fc480f7f3e84&anio=2025&mes=8 200 in 1893ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 194ms
+ GET /api/flags 200 in 179ms
+ GET /api/flags 200 in 170ms
+ GET /api/flags 200 in 194ms
+ GET /api/flags 200 in 161ms
+ GET /api/flags 200 in 166ms
+ GET /api/flags 200 in 287ms
+ GET /api/flags 200 in 157ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 223ms
+ GET /api/flags 200 in 184ms
+[2025-08-11T21:37:54.909Z] 🚀 Iniciando carga de pauta mensual
+[2025-08-11T21:37:54.909Z] 📥 Parámetros recibidos: {
+  instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84',
+  anio: '2025',
+  mes: '8'
+}
+ GET /api/flags 200 in 1160ms
+ GET /api/flags 200 in 1226ms
+ GET /api/flags 200 in 1232ms
+ GET /api/flags 200 in 1232ms
+[2025-08-11T21:37:54.909Z] 🐌 Query pauta mensual: 161ms, 92 registros encontrados
+[2025-08-11T21:37:54.909Z] 📅 Generando pauta para 31 días del mes
+[2025-08-11T21:37:54.909Z] 🔍 Puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8 (Garita Vehicular): 31 registros encontrados
+[2025-08-11T21:37:54.909Z] 🔍 Puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b (Guardia Perimetral): 31 registros encontrados
+[2025-08-11T21:37:54.909Z] 🔍 Puesto 2082bedd-1e69-4959-b4cc-ab102de5e736 (Portería Principal): 30 registros encontrados
+[2025-08-11T21:37:54.909Z] ✅ Pauta mensual cargada exitosamente
+[2025-08-11T21:37:54.909Z] 📊 Resumen: 3 puestos, 31 días por puesto
+[2025-08-11T21:37:54.909Z] ⏱️ Tiempo total: 355ms
+ GET /api/pauta-mensual?instalacion_id=15631bd6-03a9-459d-ae60-fc480f7f3e84&anio=2025&mes=8 200 in 591ms
+ GET /api/flags 200 in 277ms
+ GET /api/flags 200 in 278ms
+ GET /api/flags 200 in 279ms
+ GET /api/flags 200 in 280ms
+ GET /api/flags 200 in 280ms
+ GET /api/flags 200 in 281ms
+ GET /api/flags 200 in 313ms
+ GET /api/flags 200 in 315ms
+ GET /api/flags 200 in 315ms
+ GET /api/flags 200 in 316ms
+ GET /api/flags 200 in 316ms
+ GET /api/flags 200 in 318ms
+ GET /api/flags 200 in 274ms
+ GET /api/flags 200 in 276ms
+ GET /api/flags 200 in 277ms
+ ✓ Compiled /api/pauta-mensual/guardar in 296ms (929 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+📝 Datos recibidos en endpoint: {
+  bodyType: 'object',
+  isArray: false,
+  hasInstalacionId: true,
+  hasPauta: false,
+  hasActualizaciones: true,
+  bodyKeys: [ 'instalacion_id', 'anio', 'mes', 'actualizaciones' ],
+  pautaLength: 'N/A',
+  actualizacionesLength: 93
+}
+📝 Formato frontend detectado: {
+  instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84',
+  mes: 8,
+  anio: 2025,
+  pauta_length: undefined,
+  actualizaciones_length: 93
+}
+📝 Procesando actualizaciones directamente: 93
+🔌 Nueva conexión establecida
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 1
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 2
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 3
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 4
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 5
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 6
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 7
+🔌 Conexión removida del pool
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 8
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 9
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 10
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 12
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 13
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 14
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 15
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 16
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 17
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 18
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 19
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1163ms
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 20
+ GET /api/flags 200 in 1164ms
+ GET /api/flags 200 in 1165ms
+ GET /api/flags 200 in 1183ms
+ GET /api/flags 200 in 1186ms
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 21
+ GET /api/flags 200 in 180ms
+ GET /api/flags 200 in 183ms
+ GET /api/flags 200 in 184ms
+ GET /api/flags 200 in 164ms
+ GET /api/flags 200 in 171ms
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 22
+ GET /api/flags 200 in 207ms
+ GET /api/flags 200 in 208ms
+ GET /api/flags 200 in 212ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 195ms
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 23
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 24
+🔌 Conexión removida del pool
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 25
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 26
+🔌 Conexión removida del pool
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 27
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 28
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 29
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 30
+🗑️ Eliminado turno para puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8, día 31
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 1
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 2
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 3
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 4
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 5
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 6
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 7
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 8
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 9
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 10
+🔌 Conexión removida del pool
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 12
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 13
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 14
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 15
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 16
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 17
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 18
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 19
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 20
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 21
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 22
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 23
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 24
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 25
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 26
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 27
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 28
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 29
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 30
+🗑️ Eliminado turno para puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b, día 31
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 1
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 2
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 3
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 4
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 5
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 6
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 7
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 8
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 9
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 10
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 12
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 13
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 14
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 15
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 16
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 17
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 18
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 19
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 20
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 21
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 22
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 23
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 24
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 25
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 26
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 27
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 28
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 29
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 30
+🗑️ Eliminado turno para puesto 2082bedd-1e69-4959-b4cc-ab102de5e736, día 31
+✅ Guardados 0 turnos, eliminados 90 turnos de 93 totales
+ POST /api/pauta-mensual/guardar 200 in 17318ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1247ms
+ GET /api/flags 200 in 1247ms
+ GET /api/flags 200 in 1249ms
+ GET /api/flags 200 in 1250ms
+ GET /api/flags 200 in 1251ms
+ GET /api/flags 200 in 1297ms
+ GET /api/flags 200 in 177ms
+ GET /api/flags 200 in 179ms
+ GET /api/flags 200 in 180ms
+ GET /api/flags 200 in 188ms
+ GET /api/flags 200 in 158ms
+ GET /api/flags 200 in 212ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 169ms
+ GET /api/flags 200 in 217ms
+ GET /api/flags 200 in 181ms
+ GET /api/flags 200 in 183ms
+ GET /api/flags 200 in 345ms
+ GET /api/flags 200 in 346ms
+ GET /api/flags 200 in 304ms
+ GET /api/flags 200 in 294ms
+ GET /api/flags 200 in 287ms
+ GET /api/flags 200 in 308ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 188ms
+ GET /api/flags 200 in 188ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 164ms
+ GET /api/flags 200 in 166ms
+ GET /api/flags 200 in 156ms
+ GET /api/flags 200 in 168ms
+ GET /api/flags 200 in 172ms
+ GET /api/flags 200 in 260ms
+ GET /api/flags 200 in 178ms
+ GET /api/flags 200 in 179ms
+ GET /api/flags 200 in 180ms
+ GET /api/flags 200 in 184ms
+ GET /api/flags 200 in 163ms
+ GET /api/flags 200 in 178ms
+ GET /api/flags 200 in 200ms
+ GET /api/flags 200 in 201ms
+ GET /api/flags 200 in 201ms
+ GET /api/flags 200 in 178ms
+ GET /api/flags 200 in 182ms
+ GET /api/flags 200 in 184ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 210ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 188ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 183ms
+ GET /api/flags 200 in 235ms
+ GET /api/flags 200 in 303ms
+ GET /api/flags 200 in 304ms
+ GET /api/flags 200 in 305ms
+📝 Datos recibidos en endpoint: {
+  bodyType: 'object',
+  isArray: false,
+  hasInstalacionId: true,
+  hasPauta: false,
+  hasActualizaciones: true,
+  bodyKeys: [ 'instalacion_id', 'anio', 'mes', 'actualizaciones' ],
+  pautaLength: 'N/A',
+  actualizacionesLength: 93
+}
+📝 Formato frontend detectado: {
+  instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84',
+  mes: 8,
+  anio: 2025,
+  pauta_length: undefined,
+  actualizaciones_length: 93
+}
+📝 Procesando actualizaciones directamente: 93
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /pauta-mensual/15631bd6-03a9-459d-ae60-fc480f7f3e84?mes=8&anio=2025 200 in 109ms
+ POST /api/pauta-mensual/guardar 200 in 4009ms
+ GET /icon?2ee941ceddcb3435 200 in 29ms
+ GET /api/flags 200 in 204ms
+ GET /api/flags 200 in 205ms
+ GET /api/flags 200 in 206ms
+ GET /api/flags 200 in 206ms
+ GET /api/flags 200 in 208ms
+ GET /api/flags 200 in 201ms
+ GET /api/flags 200 in 202ms
+ GET /api/flags 200 in 202ms
+ GET /api/flags 200 in 203ms
+ GET /api/flags 200 in 204ms
+🔍 Iniciando endpoint completa para instalación: 15631bd6-03a9-459d-ae60-fc480f7f3e84
+1. Consultando instalación...
+ GET /api/flags 200 in 194ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 196ms
+✅ Instalación encontrada: A Test 1
+2. Consultando cliente...
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+✅ Cliente: A Test Cliente
+3. Consultando puestos operativos...
+ GET /api/flags 200 in 194ms
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 197ms
+ GET /api/flags 200 in 197ms
+✅ Puestos operativos encontrados: 3
+🔍 Diagnóstico de puestos operativos:
+   Puesto 1:
+     ID: b5edf643-3ac7-4406-94fb-b67e03f7adf8
+     Nombre: Garita Vehicular
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: false
+     Guardia ID: 817d21b0-d5ef-4438-8adf-6258585b23a3
+     Guardia Nombre: Test Modal Guardia Test 
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 2:
+     ID: 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b
+     Nombre: Guardia Perimetral
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 3:
+     ID: 2082bedd-1e69-4959-b4cc-ab102de5e736
+     Nombre: Portería Principal
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+📊 Puestos por rol:
+   Rol 64bef7f7-7d41-4ce6-a8bd-f26ed0482825: 3 puestos
+     1. Garita Vehicular - PPC: false - Guardia: Sí
+     2. Guardia Perimetral - PPC: true - Guardia: No
+     3. Portería Principal - PPC: true - Guardia: No
+4. Consultando roles de servicio...
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 163ms
+ GET /api/flags 200 in 164ms
+ GET /api/flags 200 in 165ms
+✅ Roles de servicio encontrados: 1
+5. Consultando pauta mensual...
+ GET /api/flags 200 in 385ms
+ GET /api/flags 200 in 1223ms
+ GET /api/flags 200 in 215ms
+ GET /api/flags 200 in 215ms
+ GET /api/flags 200 in 216ms
+ GET /icon?2ee941ceddcb3435 200 in 33ms
+✅ Pauta mensual encontrada: 31 registros
+6. Transformando datos...
+📊 Turnos encontrados: 1
+📊 Total puestos: 3, Asignados: 1, Pendientes: 2
+📊 PPCs encontrados: 2
+👥 Guardias asignados encontrados: 1
+⏳ PPCs pendientes encontrados: 2
+📋 Total de guardias (asignados + PPCs): 3
+🚀 Tiempo total API instalaciones completa: 862ms
+ GET /api/instalaciones/15631bd6-03a9-459d-ae60-fc480f7f3e84/completa 200 in 918ms
+🔍 Iniciando endpoint completa para instalación: 15631bd6-03a9-459d-ae60-fc480f7f3e84
+1. Consultando instalación...
+[2025-08-11T21:40:01.005Z] 🚀 Iniciando carga de pauta mensual
+[2025-08-11T21:40:01.005Z] 📥 Parámetros recibidos: {
+  instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84',
+  anio: '2025',
+  mes: '8'
+}
+ GET /api/flags 200 in 180ms
+ GET /api/flags 200 in 181ms
+ GET /api/flags 200 in 182ms
+ GET /api/flags 200 in 184ms
+✅ Instalación encontrada: A Test 1
+2. Consultando cliente...
+[2025-08-11T21:40:01.005Z] 🐌 Query pauta mensual: 141ms, 35 registros encontrados
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+✅ Cliente: A Test Cliente
+3. Consultando puestos operativos...
+[2025-08-11T21:40:01.005Z] 📅 Generando pauta para 31 días del mes
+[2025-08-11T21:40:01.005Z] 🔍 Puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8 (Garita Vehicular): 31 registros encontrados
+[2025-08-11T21:40:01.005Z] 🔍 Puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b (Guardia Perimetral): 3 registros encontrados
+[2025-08-11T21:40:01.005Z] 🔍 Puesto 2082bedd-1e69-4959-b4cc-ab102de5e736 (Portería Principal): 1 registros encontrados
+✅ Puestos operativos encontrados: 3
+🔍 Diagnóstico de puestos operativos:
+   Puesto 1:
+     ID: b5edf643-3ac7-4406-94fb-b67e03f7adf8
+     Nombre: Garita Vehicular
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: false
+     Guardia ID: 817d21b0-d5ef-4438-8adf-6258585b23a3
+     Guardia Nombre: Test Modal Guardia Test 
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 2:
+     ID: 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b
+     Nombre: Guardia Perimetral
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 3:
+     ID: 2082bedd-1e69-4959-b4cc-ab102de5e736
+     Nombre: Portería Principal
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+📊 Puestos por rol:
+   Rol 64bef7f7-7d41-4ce6-a8bd-f26ed0482825: 3 puestos
+     1. Garita Vehicular - PPC: false - Guardia: Sí
+     2. Guardia Perimetral - PPC: true - Guardia: No
+     3. Portería Principal - PPC: true - Guardia: No
+4. Consultando roles de servicio...
+[2025-08-11T21:40:01.005Z] ✅ Pauta mensual cargada exitosamente
+[2025-08-11T21:40:01.005Z] 📊 Resumen: 3 puestos, 31 días por puesto
+[2025-08-11T21:40:01.005Z] ⏱️ Tiempo total: 278ms
+ GET /api/pauta-mensual?instalacion_id=15631bd6-03a9-459d-ae60-fc480f7f3e84&anio=2025&mes=8 200 in 463ms
+✅ Roles de servicio encontrados: 1
+5. Consultando pauta mensual...
+✅ Pauta mensual encontrada: 31 registros
+6. Transformando datos...
+📊 Turnos encontrados: 1
+📊 Total puestos: 3, Asignados: 1, Pendientes: 2
+📊 PPCs encontrados: 2
+👥 Guardias asignados encontrados: 1
+⏳ PPCs pendientes encontrados: 2
+📋 Total de guardias (asignados + PPCs): 3
+🚀 Tiempo total API instalaciones completa: 756ms
+ GET /api/instalaciones/15631bd6-03a9-459d-ae60-fc480f7f3e84/completa 200 in 804ms
+[2025-08-11T21:40:01.807Z] 🚀 Iniciando carga de pauta mensual
+[2025-08-11T21:40:01.807Z] 📥 Parámetros recibidos: {
+  instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84',
+  anio: '2025',
+  mes: '8'
+}
+[2025-08-11T21:40:01.807Z] 🐌 Query pauta mensual: 136ms, 39 registros encontrados
+[2025-08-11T21:40:01.807Z] 📅 Generando pauta para 31 días del mes
+[2025-08-11T21:40:01.807Z] 🔍 Puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8 (Garita Vehicular): 31 registros encontrados
+[2025-08-11T21:40:01.807Z] 🔍 Puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b (Guardia Perimetral): 7 registros encontrados
+[2025-08-11T21:40:01.807Z] 🔍 Puesto 2082bedd-1e69-4959-b4cc-ab102de5e736 (Portería Principal): 1 registros encontrados
+[2025-08-11T21:40:01.807Z] ✅ Pauta mensual cargada exitosamente
+[2025-08-11T21:40:01.807Z] 📊 Resumen: 3 puestos, 31 días por puesto
+[2025-08-11T21:40:01.807Z] ⏱️ Tiempo total: 270ms
+ GET /api/pauta-mensual?instalacion_id=15631bd6-03a9-459d-ae60-fc480f7f3e84&anio=2025&mes=8 200 in 436ms
+✅ Guardados 93 turnos, eliminados 0 turnos de 93 totales
+📝 Datos recibidos en endpoint: {
+  bodyType: 'object',
+  isArray: false,
+  hasInstalacionId: true,
+  hasPauta: false,
+  hasActualizaciones: true,
+  bodyKeys: [ 'instalacion_id', 'anio', 'mes', 'actualizaciones' ],
+  pautaLength: 'N/A',
+  actualizacionesLength: 93
+}
+📝 Formato frontend detectado: {
+  instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84',
+  mes: 8,
+  anio: 2025,
+  pauta_length: undefined,
+  actualizaciones_length: 93
+}
+📝 Procesando actualizaciones directamente: 93
+ GET /api/flags 200 in 204ms
+ GET /api/flags 200 in 205ms
+ GET /api/flags 200 in 208ms
+ GET /api/flags 200 in 209ms
+ GET /api/flags 200 in 210ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 194ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 170ms
+ GET /api/flags 200 in 171ms
+ GET /api/flags 200 in 172ms
+ GET /api/flags 200 in 178ms
+🔌 Conexión removida del pool
+✅ Guardados 93 turnos, eliminados 0 turnos de 93 totales
+ POST /api/pauta-mensual/guardar 200 in 17366ms
+ GET /api/flags 200 in 209ms
+ GET /api/flags 200 in 209ms
+ GET /api/flags 200 in 210ms
+ GET /api/flags 200 in 210ms
+ GET /api/flags 200 in 213ms
+ GET /api/flags 200 in 237ms
+ GET /api/flags 200 in 290ms
+ GET /api/flags 200 in 290ms
+ GET /api/flags 200 in 243ms
+ GET /api/flags 200 in 293ms
+ GET /api/flags 200 in 297ms
+ GET /api/flags 200 in 321ms
+ GET /api/flags 200 in 171ms
+ GET /api/flags 200 in 172ms
+ GET /api/flags 200 in 177ms
+ GET /api/flags 200 in 181ms
+ GET /api/flags 200 in 244ms
+ GET /api/flags 200 in 285ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 166ms
+ GET /api/flags 200 in 177ms
+ GET /api/flags 200 in 197ms
+ GET /api/flags 200 in 199ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 190ms
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /api/flags 200 in 260ms
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:41:01.434Z'
+}
+ POST /api/logs 204 in 56ms
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /pauta-diaria-v2?fecha=2025-08-11 200 in 347ms
+ ✓ Compiled /_not-found in 393ms (930 modules)
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 455ms
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1609ms
+ GET /api/flags 200 in 1723ms
+ GET /api/flags 200 in 1728ms
+ GET /api/flags 200 in 1730ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 167ms
+ GET /api/flags 200 in 164ms
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 170ms
+ GET /api/flags 200 in 1895ms
+ GET /api/flags 200 in 155ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 214ms
+ GET /api/flags 200 in 294ms
+ GET /api/flags 200 in 248ms
+ GET /api/flags 200 in 249ms
+ GET /api/flags 200 in 298ms
+ GET /api/flags 200 in 2251ms
+ GET /api/flags 200 in 215ms
+ GET /api/flags 200 in 165ms
+ GET /api/flags 200 in 170ms
+ GET /api/flags 200 in 160ms
+ GET /api/flags 200 in 198ms
+ GET /api/flags 200 in 202ms
+ GET /api/flags 200 in 173ms
+ GET /api/flags 200 in 201ms
+ GET /api/flags 200 in 205ms
+ GET /api/flags 200 in 167ms
+ GET /api/flags 200 in 169ms
+ GET /icon?2ee941ceddcb3435 200 in 34ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 597ms
+ GET /icon?2ee941ceddcb3435 200 in 26ms
+ ✓ Compiled /api/me/permissions in 406ms (991 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:41:05.703Z'
+}
+ POST /api/logs 204 in 635ms
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:41:05.719Z'
+}
+ POST /api/logs 204 in 585ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 665ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 489ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1682ms
+ ○ Compiling /pauta-diaria/turnos-extras ...
+ ✓ Compiled /pauta-diaria/turnos-extras in 1809ms (3759 modules)
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /pauta-diaria/turnos-extras 200 in 2007ms
+ GET /icon?2ee941ceddcb3435 200 in 182ms
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1071ms
+ GET /api/flags 200 in 1073ms
+ GET /api/flags 200 in 1075ms
+ GET /api/flags 200 in 1075ms
+ GET /api/flags 200 in 1076ms
+ GET /api/flags 200 in 1077ms
+ GET /api/flags 200 in 257ms
+ GET /api/flags 200 in 261ms
+ GET /api/flags 200 in 262ms
+ GET /api/flags 200 in 263ms
+ GET /api/flags 200 in 266ms
+ GET /api/flags 200 in 267ms
+ GET /api/flags 200 in 244ms
+ GET /api/flags 200 in 247ms
+ GET /api/flags 200 in 249ms
+ GET /api/flags 200 in 250ms
+ GET /api/flags 200 in 252ms
+ GET /api/flags 200 in 253ms
+ GET /api/flags 200 in 164ms
+ GET /api/flags 200 in 168ms
+ GET /api/flags 200 in 169ms
+ GET /api/flags 200 in 170ms
+ GET /api/flags 200 in 170ms
+ GET /api/flags 200 in 175ms
+ GET /api/flags 200 in 189ms
+ GET /api/flags 200 in 203ms
+ GET /api/flags 200 in 207ms
+ GET /api/flags 200 in 208ms
+ GET /api/flags 200 in 209ms
+ GET /api/flags 200 in 210ms
+ ✓ Compiled /api/instalaciones-con-turnos-extras in 215ms (1969 modules)
+ ✓ Compiled (1971 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔍 Obteniendo instalaciones con turnos extras...
+🔍 Query turnos extras: 
+      SELECT 
+        te.*,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        i.nombre as instalacion_nombre,
+        po.nombre_puesto
+      FROM TE_turnos_extras te
+      JOIN guardias g ON g.id = te.guardia_id
+      JOIN instalaciones i ON i.id = te.instalacion_id
+      JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
+      WHERE 1=1
+     AND te.fecha >= $1 AND te.fecha <= $2 ORDER BY te.fecha DESC, te.created_at DESC
+🔍 Params: [ '2025-08-01', '2025-08-31' ]
+🔍 Query turnos extras: 
+      SELECT 
+        te.*,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        i.nombre as instalacion_nombre,
+        po.nombre_puesto
+      FROM TE_turnos_extras te
+      JOIN guardias g ON g.id = te.guardia_id
+      JOIN instalaciones i ON i.id = te.instalacion_id
+      JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
+      WHERE 1=1
+     ORDER BY te.fecha DESC, te.created_at DESC
+🔍 Params: []
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+📊 Turnos extras obtenidos: 3
+📊 Primer turno (ejemplo): {
+  id: 'a04248bc-6caf-4db3-90ad-c98790f95f01',
+  guardia_id: 'd8083f2a-d246-4ec1-9c77-d92d8bde496b',
+  instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84',
+  puesto_id: '2082bedd-1e69-4959-b4cc-ab102de5e736',
+  pauta_id: 12,
+  fecha: 2025-08-11T04:00:00.000Z,
+  estado: 'ppc',
+  valor: '35000.00',
+  created_at: 2025-08-11T19:07:59.004Z,
+  updated_at: 2025-08-11T21:48:02.766Z,
+  pagado: false,
+  fecha_pago: null,
+  observaciones_pago: null,
+  usuario_pago: null,
+  tenant_id: 'accebf8a-bacc-41fa-9601-ed39cb320a52',
+  planilla_id: null,
+  preservado: false,
+  turno_original_id: null,
+  desacoplado_en: null,
+  guardia_nombre: 'ADRIAN GABRIEL',
+  guardia_apellido_paterno: 'COLINA',
+  guardia_apellido_materno: 'CALDERA',
+  guardia_rut: '26313985-2',
+  instalacion_nombre: 'A Test 1',
+  nombre_puesto: 'Portería Principal'
+}
+ GET /api/pauta-diaria/turno-extra? 200 in 1453ms
+✅ Instalaciones con turnos extras encontradas: 1
+ GET /api/instalaciones-con-turnos-extras 200 in 1392ms
+📊 Turnos extras obtenidos: 3
+📊 Primer turno (ejemplo): {
+  id: 'a04248bc-6caf-4db3-90ad-c98790f95f01',
+  guardia_id: 'd8083f2a-d246-4ec1-9c77-d92d8bde496b',
+  instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84',
+  puesto_id: '2082bedd-1e69-4959-b4cc-ab102de5e736',
+  pauta_id: 12,
+  fecha: 2025-08-11T04:00:00.000Z,
+  estado: 'ppc',
+  valor: '35000.00',
+  created_at: 2025-08-11T19:07:59.004Z,
+  updated_at: 2025-08-11T21:48:02.766Z,
+  pagado: false,
+  fecha_pago: null,
+  observaciones_pago: null,
+  usuario_pago: null,
+  tenant_id: 'accebf8a-bacc-41fa-9601-ed39cb320a52',
+  planilla_id: null,
+  preservado: false,
+  turno_original_id: null,
+  desacoplado_en: null,
+  guardia_nombre: 'ADRIAN GABRIEL',
+  guardia_apellido_paterno: 'COLINA',
+  guardia_apellido_materno: 'CALDERA',
+  guardia_rut: '26313985-2',
+  instalacion_nombre: 'A Test 1',
+  nombre_puesto: 'Portería Principal'
+}
+ GET /api/pauta-diaria/turno-extra?fecha_inicio=2025-08-01&fecha_fin=2025-08-31 200 in 1413ms
+🔍 Query turnos extras: 
+      SELECT 
+        te.*,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        i.nombre as instalacion_nombre,
+        po.nombre_puesto
+      FROM TE_turnos_extras te
+      JOIN guardias g ON g.id = te.guardia_id
+      JOIN instalaciones i ON i.id = te.instalacion_id
+      JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
+      WHERE 1=1
+     ORDER BY te.fecha DESC, te.created_at DESC
+🔍 Params: []
+🔍 Obteniendo instalaciones con turnos extras...
+📊 Turnos extras obtenidos: 3
+📊 Primer turno (ejemplo): {
+  id: 'a04248bc-6caf-4db3-90ad-c98790f95f01',
+  guardia_id: 'd8083f2a-d246-4ec1-9c77-d92d8bde496b',
+  instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84',
+  puesto_id: '2082bedd-1e69-4959-b4cc-ab102de5e736',
+  pauta_id: 12,
+  fecha: 2025-08-11T04:00:00.000Z,
+  estado: 'ppc',
+  valor: '35000.00',
+  created_at: 2025-08-11T19:07:59.004Z,
+  updated_at: 2025-08-11T21:48:02.766Z,
+  pagado: false,
+  fecha_pago: null,
+  observaciones_pago: null,
+  usuario_pago: null,
+  tenant_id: 'accebf8a-bacc-41fa-9601-ed39cb320a52',
+  planilla_id: null,
+  preservado: false,
+  turno_original_id: null,
+  desacoplado_en: null,
+  guardia_nombre: 'ADRIAN GABRIEL',
+  guardia_apellido_paterno: 'COLINA',
+  guardia_apellido_materno: 'CALDERA',
+  guardia_rut: '26313985-2',
+  instalacion_nombre: 'A Test 1',
+  nombre_puesto: 'Portería Principal'
+}
+ GET /api/pauta-diaria/turno-extra? 200 in 190ms
+✅ Instalaciones con turnos extras encontradas: 1
+ GET /api/instalaciones-con-turnos-extras 200 in 190ms
+🔍 Obteniendo instalaciones con turnos extras...
+✅ Instalaciones con turnos extras encontradas: 1
+ GET /api/instalaciones-con-turnos-extras 200 in 166ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ GET /api/flags 200 in 711ms
+ GET /api/flags 200 in 711ms
+ GET /api/flags 200 in 712ms
+ GET /api/flags 200 in 217ms
+ GET /api/flags 200 in 219ms
+ GET /api/flags 200 in 222ms
+ GET /api/flags 200 in 280ms
+ GET /api/flags 200 in 281ms
+ GET /api/flags 200 in 281ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 194ms
+ GET /api/flags 200 in 194ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1767ms
+ GET /api/flags 200 in 1768ms
+ GET /api/flags 200 in 1770ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ ○ Compiling /pauta-diaria ...
+ ✓ Compiled /pauta-diaria in 810ms (3764 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Nueva conexión establecida
+[/pauta-diaria] Flag ado_v2: true
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 61ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 62ms
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:41:51.692Z'
+}
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:41:51.692Z'
+}
+ POST /api/logs 204 in 71ms
+ POST /api/logs 204 in 71ms
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/flags 200 in 368ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 184ms
+ GET /api/flags 200 in 165ms
+ GET /api/flags 200 in 211ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 162ms
+ GET /api/flags 200 in 1372ms
+ GET /api/flags 200 in 1419ms
+ GET /api/flags 200 in 1420ms
+ GET /api/flags 200 in 1421ms
+ GET /api/flags 200 in 1422ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 157ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ GET /api/flags 200 in 162ms
+ GET /api/flags 200 in 175ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 189ms
+ GET /api/flags 200 in 189ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 199ms
+ GET /api/flags 200 in 273ms
+ GET /api/flags 200 in 275ms
+ GET /api/flags 200 in 276ms
+ GET /api/flags 200 in 280ms
+ GET /api/flags 200 in 282ms
+ GET /api/flags 200 in 284ms
+ GET /api/flags 200 in 185ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 236ms
+ GET /api/flags 200 in 238ms
+ GET /api/flags 200 in 239ms
+ GET /api/flags 200 in 241ms
+ GET /api/flags 200 in 242ms
+ GET /api/flags 200 in 244ms
+ GET /api/flags 200 in 172ms
+ GET /api/flags 200 in 174ms
+ GET /api/flags 200 in 173ms
+ GET /api/flags 200 in 176ms
+ GET /api/flags 200 in 178ms
+ GET /api/flags 200 in 181ms
+ GET /api/flags 200 in 178ms
+ GET /api/flags 200 in 180ms
+ GET /api/flags 200 in 182ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ ✓ Compiled in 722ms (1807 modules)
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1729ms
+ GET /api/flags 200 in 1745ms
+ GET /api/flags 200 in 1730ms
+ GET /api/flags 200 in 1730ms
+ GET /api/flags 200 in 1730ms
+ GET /api/flags 200 in 1760ms
+ GET /api/flags 200 in 258ms
+ GET /api/flags 200 in 240ms
+ GET /api/flags 200 in 285ms
+ GET /api/flags 200 in 286ms
+ GET /api/flags 200 in 288ms
+ GET /api/flags 200 in 288ms
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+ GET /api/flags 200 in 246ms
+ GET /api/flags 200 in 251ms
+ GET /api/flags 200 in 253ms
+✅ Datos obtenidos exitosamente: 3 registros
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/flags 200 in 789ms
+ GET /api/flags 200 in 859ms
+ GET /api/flags 200 in 865ms
+ GET /api/flags 200 in 884ms
+ GET /api/flags 200 in 202ms
+ GET /api/flags 200 in 205ms
+ GET /api/flags 200 in 282ms
+ GET /api/flags 200 in 285ms
+ GET /api/flags 200 in 248ms
+ GET /api/flags 200 in 249ms
+ GET /api/flags 200 in 312ms
+ GET /api/flags 200 in 276ms
+ GET /api/flags 200 in 167ms
+ GET /api/flags 200 in 206ms
+ GET /api/flags 200 in 332ms
+ GET /api/flags 200 in 333ms
+ GET /api/flags 200 in 334ms
+ GET /api/flags 200 in 288ms
+ GET /api/flags 200 in 271ms
+ GET /api/flags 200 in 168ms
+ GET /api/flags 200 in 174ms
+ GET /api/flags 200 in 175ms
+ GET /api/flags 200 in 178ms
+ GET /api/flags 200 in 177ms
+ GET /api/flags 200 in 274ms
+ GET /api/flags 200 in 275ms
+ GET /api/flags 200 in 293ms
+ GET /api/flags 200 in 294ms
+ GET /api/flags 200 in 295ms
+ GET /api/flags 200 in 295ms
+ ✓ Compiled in 748ms (1807 modules)
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/flags 200 in 456ms
+ GET /api/flags 200 in 457ms
+ GET /api/flags 200 in 236ms
+ GET /api/flags 200 in 587ms
+ GET /api/flags 200 in 668ms
+ GET /api/flags 200 in 203ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 204ms
+ GET /api/flags 200 in 176ms
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/flags 200 in 213ms
+ GET /api/flags 200 in 218ms
+ GET /api/flags 200 in 224ms
+ GET /api/flags 200 in 227ms
+ GET /api/flags 200 in 162ms
+ GET /api/flags 200 in 167ms
+ GET /api/flags 200 in 188ms
+ GET /api/flags 200 in 266ms
+ GET /api/flags 200 in 211ms
+ GET /api/flags 200 in 213ms
+ GET /api/flags 200 in 176ms
+ GET /api/flags 200 in 216ms
+ GET /api/flags 200 in 264ms
+ GET /api/flags 200 in 200ms
+ GET /api/flags 200 in 205ms
+ GET /api/flags 200 in 206ms
+ GET /api/flags 200 in 208ms
+ GET /api/flags 200 in 238ms
+ GET /api/flags 200 in 214ms
+ GET /api/flags 200 in 174ms
+ GET /api/flags 200 in 200ms
+ GET /api/flags 200 in 241ms
+ GET /api/flags 200 in 243ms
+ GET /api/flags 200 in 244ms
+ GET /api/flags 200 in 244ms
+ GET /api/flags 200 in 246ms
+ GET /api/flags 200 in 248ms
+ GET /api/flags 200 in 178ms
+ GET /api/flags 200 in 179ms
+ GET /api/flags 200 in 180ms
+ GET /api/flags 200 in 181ms
+ GET /api/flags 200 in 203ms
+ GET /api/flags 200 in 207ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 201ms
+ GET /api/flags 200 in 624ms
+ GET /api/flags 200 in 211ms
+ GET /api/flags 200 in 215ms
+ GET /api/flags 200 in 301ms
+ GET /api/flags 200 in 304ms
+ GET /api/flags 200 in 305ms
+ GET /api/flags 200 in 307ms
+ GET /api/flags 200 in 211ms
+ GET /api/flags 200 in 212ms
+ GET /api/flags 200 in 182ms
+ GET /api/flags 200 in 183ms
+ GET /api/flags 200 in 207ms
+ GET /api/flags 200 in 213ms
+ GET /api/flags 200 in 172ms
+ GET /api/flags 200 in 173ms
+ GET /api/flags 200 in 191ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1442ms
+ GET /api/flags 200 in 284ms
+ GET /api/flags 200 in 247ms
+ GET /api/flags 200 in 162ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 196ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 164ms
+ GET /api/flags 200 in 1203ms
+ GET /api/flags 200 in 1207ms
+ GET /api/flags 200 in 1211ms
+ GET /api/flags 200 in 1414ms
+ GET /api/flags 200 in 1344ms
+ GET /api/flags 200 in 160ms
+ GET /api/flags 200 in 173ms
+ GET /api/flags 200 in 173ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ ✓ Compiled in 791ms (1807 modules)
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1271ms
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/flags 200 in 1275ms
+ GET /api/flags 200 in 1416ms
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/flags 200 in 1421ms
+ GET /api/flags 200 in 158ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 198ms
+ GET /api/flags 200 in 188ms
+ GET /api/flags 200 in 201ms
+ GET /api/flags 200 in 204ms
+ GET /api/flags 200 in 232ms
+ GET /api/flags 200 in 215ms
+ GET /api/flags 200 in 223ms
+ GET /api/flags 200 in 236ms
+ GET /api/flags 200 in 236ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 215ms
+ GET /api/flags 200 in 240ms
+ GET /api/flags 200 in 266ms
+ GET /api/flags 200 in 315ms
+ GET /api/flags 200 in 957ms
+ GET /api/flags 200 in 168ms
+ GET /api/flags 200 in 213ms
+ GET /api/flags 200 in 676ms
+ GET /api/flags 200 in 677ms
+ GET /api/flags 200 in 245ms
+ GET /api/flags 200 in 151ms
+ GET /api/flags 200 in 189ms
+ GET /api/flags 200 in 206ms
+ GET /api/flags 200 in 170ms
+ GET /api/flags 200 in 180ms
+ GET /api/flags 200 in 160ms
+ GET /api/flags 200 in 199ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 211ms
+ GET /api/flags 200 in 184ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 203ms
+ GET /api/flags 200 in 206ms
+ GET /api/flags 200 in 258ms
+ GET /api/flags 200 in 232ms
+ GET /api/flags 200 in 218ms
+ GET /api/flags 200 in 687ms
+ GET /api/flags 200 in 721ms
+ GET /api/flags 200 in 319ms
+ GET /api/flags 200 in 1042ms
+ GET /api/flags 200 in 1048ms
+ GET /api/flags 200 in 1206ms
+ GET /api/flags 200 in 170ms
+ GET /api/flags 200 in 169ms
+ GET /api/flags 200 in 154ms
+ GET /api/flags 200 in 570ms
+ GET /api/flags 200 in 1625ms
+ GET /api/flags 200 in 589ms
+ GET /api/flags 200 in 151ms
+ GET /api/flags 200 in 1035ms
+ GET /api/flags 200 in 572ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ ○ Compiling /api/debug/whoami ...
+ ✓ Compiled /api/debug/whoami in 664ms (1990 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/debug/whoami 200 in 2106ms
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+ GET /api/flags 200 in 1222ms
+ GET /api/flags 200 in 1302ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/flags 200 in 1428ms
+ GET /api/flags 200 in 1430ms
+ GET /api/flags 200 in 200ms
+ GET /api/flags 200 in 202ms
+ GET /api/flags 200 in 176ms
+ GET /api/flags 200 in 194ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 198ms
+ GET /api/flags 200 in 198ms
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+ GET /api/flags 200 in 266ms
+ GET /api/flags 200 in 267ms
+ GET /api/flags 200 in 268ms
+ GET /api/flags 200 in 269ms
+✅ Datos obtenidos exitosamente: 3 registros
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 238ms
+ GET /api/flags 200 in 240ms
+ GET /api/flags 200 in 240ms
+ GET /api/flags 200 in 1269ms
+ GET /api/flags 200 in 299ms
+ GET /api/flags 200 in 256ms
+ GET /api/flags 200 in 176ms
+ GET /api/flags 200 in 177ms
+ GET /api/flags 200 in 178ms
+ GET /api/flags 200 in 348ms
+ GET /api/flags 200 in 406ms
+ GET /api/flags 200 in 407ms
+ GET /api/flags 200 in 409ms
+ GET /api/flags 200 in 357ms
+ GET /api/flags 200 in 358ms
+ GET /api/flags 200 in 276ms
+ GET /api/flags 200 in 278ms
+ GET /api/flags 200 in 280ms
+ GET /api/flags 200 in 281ms
+ GET /api/flags 200 in 282ms
+ GET /api/flags 200 in 284ms
+ GET /api/flags 200 in 177ms
+ GET /api/flags 200 in 179ms
+ GET /api/flags 200 in 185ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 188ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 170ms
+ GET /api/flags 200 in 171ms
+ GET /api/flags 200 in 171ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 172ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 188ms
+ GET /api/flags 200 in 189ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 180ms
+ GET /api/flags 200 in 181ms
+ GET /api/flags 200 in 182ms
+ GET /api/flags 200 in 183ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 182ms
+ GET /api/flags 200 in 183ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 188ms
+ GET /api/flags 200 in 189ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 176ms
+ GET /api/flags 200 in 177ms
+ GET /api/flags 200 in 181ms
+ GET /api/flags 200 in 182ms
+ GET /api/flags 200 in 184ms
+ GET /api/flags 200 in 185ms
+ GET /api/flags 200 in 162ms
+ GET /api/flags 200 in 178ms
+ GET /api/flags 200 in 179ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ ○ Compiling /api/rbac/can ...
+ ✓ Compiled /api/rbac/can in 630ms (1988 modules)
+ GET /api/rbac/can?perm=rbac.platform_admin 200 in 1944ms
+ ✓ Compiled /api/admin/rbac/usuarios in 333ms (1990 modules)
+ GET /api/admin/rbac/usuarios?page=1&limit=10 500 in 1524ms
+ ✓ Compiled /api/flags in 306ms (1992 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: ⚙️  enable debug logging with { debug: true }
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1480ms
+ GET /api/flags 200 in 1482ms
+ GET /api/flags 200 in 1484ms
+ GET /api/flags 200 in 1484ms
+ GET /api/flags 200 in 1544ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 188ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 198ms
+ GET /api/flags 200 in 1810ms
+ GET /api/flags 200 in 257ms
+ GET /api/flags 200 in 204ms
+ GET /api/flags 200 in 216ms
+ GET /api/flags 200 in 218ms
+ GET /api/flags 200 in 223ms
+ GET /api/flags 200 in 272ms
+ GET /api/flags 200 in 169ms
+ GET /api/flags 200 in 310ms
+ GET /api/flags 200 in 293ms
+ GET /api/flags 200 in 312ms
+ GET /api/flags 200 in 313ms
+ GET /api/flags 200 in 202ms
+ GET /api/flags 200 in 235ms
+ GET /api/flags 200 in 183ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 640ms
+ GET /api/flags 200 in 206ms
+ GET /api/flags 200 in 207ms
+ GET /api/flags 200 in 208ms
+ GET /api/flags 200 in 209ms
+ GET /api/flags 200 in 211ms
+ GET /api/flags 200 in 235ms
+ GET /api/flags 200 in 197ms
+ GET /api/flags 200 in 200ms
+ GET /api/flags 200 in 202ms
+ GET /api/flags 200 in 204ms
+ GET /api/flags 200 in 163ms
+ GET /api/flags 200 in 215ms
+ GET /api/flags 200 in 262ms
+ GET /api/flags 200 in 264ms
+ GET /api/flags 200 in 267ms
+ GET /api/flags 200 in 213ms
+ GET /api/flags 200 in 215ms
+ GET /api/flags 200 in 217ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 194ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 209ms
+ GET /api/flags 200 in 206ms
+ GET /api/flags 200 in 207ms
+ GET /api/flags 200 in 208ms
+ GET /api/flags 200 in 209ms
+ GET /api/flags 200 in 163ms
+ GET /api/flags 200 in 230ms
+ ✓ Compiled /api/instalaciones-con-turnos-extras in 340ms (1995 modules)
+ ✓ Compiled (1997 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔍 Query turnos extras: 
+      SELECT 
+        te.*,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        i.nombre as instalacion_nombre,
+        po.nombre_puesto
+      FROM TE_turnos_extras te
+      JOIN guardias g ON g.id = te.guardia_id
+      JOIN instalaciones i ON i.id = te.instalacion_id
+      JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
+      WHERE 1=1
+     AND te.fecha >= $1 AND te.fecha <= $2 ORDER BY te.fecha DESC, te.created_at DESC
+🔍 Params: [ '2025-08-01', '2025-08-31' ]
+🔍 Query turnos extras: 
+      SELECT 
+        te.*,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        i.nombre as instalacion_nombre,
+        po.nombre_puesto
+      FROM TE_turnos_extras te
+      JOIN guardias g ON g.id = te.guardia_id
+      JOIN instalaciones i ON i.id = te.instalacion_id
+      JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
+      WHERE 1=1
+     ORDER BY te.fecha DESC, te.created_at DESC
+🔍 Params: []
+🔍 Obteniendo instalaciones con turnos extras...
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+✅ Instalaciones con turnos extras encontradas: 0
+ GET /api/instalaciones-con-turnos-extras 200 in 1772ms
+📊 Turnos extras obtenidos: 0
+📊 Primer turno (ejemplo): undefined
+ GET /api/pauta-diaria/turno-extra?fecha_inicio=2025-08-01&fecha_fin=2025-08-31 200 in 1761ms
+🔍 Obteniendo instalaciones con turnos extras...
+📊 Turnos extras obtenidos: 0
+📊 Primer turno (ejemplo): undefined
+ GET /api/pauta-diaria/turno-extra? 200 in 1963ms
+✅ Instalaciones con turnos extras encontradas: 0
+ GET /api/instalaciones-con-turnos-extras 200 in 182ms
+🔍 Query turnos extras: 
+      SELECT 
+        te.*,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        i.nombre as instalacion_nombre,
+        po.nombre_puesto
+      FROM TE_turnos_extras te
+      JOIN guardias g ON g.id = te.guardia_id
+      JOIN instalaciones i ON i.id = te.instalacion_id
+      JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
+      WHERE 1=1
+     ORDER BY te.fecha DESC, te.created_at DESC
+🔍 Params: []
+🔍 Obteniendo instalaciones con turnos extras...
+📊 Turnos extras obtenidos: 0
+📊 Primer turno (ejemplo): undefined
+ GET /api/pauta-diaria/turno-extra? 200 in 202ms
+✅ Instalaciones con turnos extras encontradas: 0
+ GET /api/instalaciones-con-turnos-extras 200 in 223ms
+ GET /api/flags 200 in 209ms
+ GET /api/flags 200 in 211ms
+ GET /api/flags 200 in 213ms
+ GET /api/flags 200 in 301ms
+ GET /api/flags 200 in 303ms
+ GET /api/flags 200 in 303ms
+ GET /api/flags 200 in 182ms
+ GET /api/flags 200 in 184ms
+ GET /api/flags 200 in 203ms
+ GET /api/flags 200 in 225ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 226ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 1091ms
+ GET /api/flags 200 in 1091ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1285ms
+ ✓ Compiled /api/turnos/inasistencia in 318ms (2000 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Nueva conexión establecida
+ POST /api/turnos/inasistencia 200 in 1930ms
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+🔌 Nueva conexión establecida
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+ ✓ Compiled /api/logs in 246ms (2000 modules)
+✅ Datos obtenidos exitosamente: 3 registros
+ ✓ Compiled (2002 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 511ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 510ms
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:51:12.989Z'
+}
+ POST /api/logs 204 in 514ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1501ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1138ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1148ms
+ GET /api/flags 200 in 1149ms
+ GET /api/flags 200 in 1151ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 1709ms
+ GET /api/flags 200 in 163ms
+ GET /api/flags 200 in 184ms
+ GET /api/flags 200 in 187ms
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:51:14.404Z'
+}
+ POST /api/logs 204 in 30ms
+ GET /api/flags 200 in 299ms
+ GET /api/flags 200 in 244ms
+ GET /api/flags 200 in 245ms
+ GET /api/flags 200 in 245ms
+ GET /api/flags 200 in 252ms
+ GET /api/flags 200 in 285ms
+ GET /api/flags 200 in 286ms
+ GET /api/flags 200 in 288ms
+ GET /api/flags 200 in 287ms
+ GET /api/flags 200 in 289ms
+ GET /api/flags 200 in 288ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 197ms
+ GET /api/flags 200 in 197ms
+ GET /api/flags 200 in 231ms
+ GET /api/flags 200 in 202ms
+ GET /api/flags 200 in 180ms
+ GET /api/flags 200 in 230ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ ✓ Compiled /api/instalaciones/[id]/completa in 281ms (2025 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔍 Iniciando endpoint completa para instalación: 15631bd6-03a9-459d-ae60-fc480f7f3e84
+1. Consultando instalación...
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Nueva conexión establecida
+✅ Instalación encontrada: A Test 1
+2. Consultando cliente...
+✅ Cliente: A Test Cliente
+3. Consultando puestos operativos...
+✅ Puestos operativos encontrados: 3
+🔍 Diagnóstico de puestos operativos:
+   Puesto 1:
+     ID: b5edf643-3ac7-4406-94fb-b67e03f7adf8
+     Nombre: Garita Vehicular
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: false
+     Guardia ID: 817d21b0-d5ef-4438-8adf-6258585b23a3
+     Guardia Nombre: Test Modal Guardia Test 
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 2:
+     ID: 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b
+     Nombre: Guardia Perimetral
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 3:
+     ID: 2082bedd-1e69-4959-b4cc-ab102de5e736
+     Nombre: Portería Principal
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+📊 Puestos por rol:
+   Rol 64bef7f7-7d41-4ce6-a8bd-f26ed0482825: 3 puestos
+     1. Garita Vehicular - PPC: false - Guardia: Sí
+     2. Guardia Perimetral - PPC: true - Guardia: No
+     3. Portería Principal - PPC: true - Guardia: No
+4. Consultando roles de servicio...
+✅ Roles de servicio encontrados: 1
+5. Consultando pauta mensual...
+✅ Pauta mensual encontrada: 31 registros
+6. Transformando datos...
+📊 Turnos encontrados: 1
+📊 Total puestos: 3, Asignados: 1, Pendientes: 2
+📊 PPCs encontrados: 2
+👥 Guardias asignados encontrados: 1
+⏳ PPCs pendientes encontrados: 2
+📋 Total de guardias (asignados + PPCs): 3
+🚀 Tiempo total API instalaciones completa: 1687ms
+ GET /api/instalaciones/15631bd6-03a9-459d-ae60-fc480f7f3e84/completa 200 in 2031ms
+ ✓ Compiled /api/pauta-mensual in 289ms (2027 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+[2025-08-11T21:51:26.502Z] 🚀 Iniciando carga de pauta mensual
+[2025-08-11T21:51:26.502Z] 📥 Parámetros recibidos: {
+  instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84',
+  anio: '2025',
+  mes: '8'
+}
+🔌 Nueva conexión establecida
+[2025-08-11T21:51:26.502Z] 🐌 Query pauta mensual: 1125ms, 93 registros encontrados
+[2025-08-11T21:51:26.502Z] 📅 Generando pauta para 31 días del mes
+[2025-08-11T21:51:26.502Z] 🔍 Puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8 (Garita Vehicular): 31 registros encontrados
+[2025-08-11T21:51:26.502Z] 🔍 Puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b (Guardia Perimetral): 31 registros encontrados
+[2025-08-11T21:51:26.502Z] 🔍 Puesto 2082bedd-1e69-4959-b4cc-ab102de5e736 (Portería Principal): 31 registros encontrados
+[2025-08-11T21:51:26.502Z] ✅ Pauta mensual cargada exitosamente
+[2025-08-11T21:51:26.502Z] 📊 Resumen: 3 puestos, 31 días por puesto
+[2025-08-11T21:51:26.502Z] ⏱️ Tiempo total: 1263ms
+ GET /api/pauta-mensual?instalacion_id=15631bd6-03a9-459d-ae60-fc480f7f3e84&anio=2025&mes=8 200 in 1848ms
+ GET /api/flags 200 in 207ms
+ GET /api/flags 200 in 182ms
+ GET /api/flags 200 in 170ms
+ GET /api/flags 200 in 215ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 221ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1149ms
+ GET /api/flags 200 in 1152ms
+ GET /api/flags 200 in 1202ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 177ms
+ GET /api/flags 200 in 1208ms
+ GET /api/flags 200 in 246ms
+ GET /api/flags 200 in 1406ms
+ GET /api/flags 200 in 247ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 190ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ GET /api/flags 200 in 203ms
+ GET /api/flags 200 in 188ms
+ GET /api/flags 200 in 208ms
+ GET /api/flags 200 in 209ms
+ GET /api/flags 200 in 229ms
+ GET /api/flags 200 in 244ms
+ GET /api/flags 200 in 214ms
+ GET /api/flags 200 in 215ms
+ GET /api/flags 200 in 302ms
+ GET /api/flags 200 in 304ms
+ GET /api/flags 200 in 232ms
+ GET /api/flags 200 in 198ms
+ GET /api/flags 200 in 183ms
+ GET /api/flags 200 in 184ms
+ GET /api/flags 200 in 266ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ GET /api/flags 200 in 243ms
+ GET /api/flags 200 in 246ms
+ GET /api/flags 200 in 245ms
+ GET /api/flags 200 in 246ms
+ GET /api/flags 200 in 248ms
+ GET /api/flags 200 in 256ms
+ GET /api/flags 200 in 185ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 188ms
+ GET /api/flags 200 in 189ms
+ GET /api/flags 200 in 276ms
+ GET /api/flags 200 in 278ms
+ GET /api/flags 200 in 287ms
+ GET /api/flags 200 in 289ms
+ GET /api/flags 200 in 291ms
+ ○ Compiling /api/turnos/deshacer-new ...
+ ✓ Compiled /api/turnos/deshacer-new in 766ms (2023 modules)
+[turnos/new] deshacer { pauta_id: 74, actor_ref: 'ui:pauta-diaria-v2' }
+ POST /api/turnos/deshacer-new 200 in 1365ms
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ ○ Compiling /_not-found ...
+🔌 Nueva conexión establecida
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+ ✓ Compiled /_not-found in 837ms (2024 modules)
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 954ms
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /pauta-diaria-v2?fecha=2025-08-11 200 in 1791ms
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1157ms
+ GET /api/flags 200 in 1223ms
+ GET /api/flags 200 in 1223ms
+ GET /api/flags 200 in 1224ms
+ GET /api/flags 200 in 1229ms
+ GET /api/flags 200 in 1282ms
+ GET /api/flags 200 in 277ms
+ GET /api/flags 200 in 278ms
+ GET /api/flags 200 in 279ms
+ GET /api/flags 200 in 281ms
+ GET /api/flags 200 in 282ms
+ GET /api/flags 200 in 221ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 185ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 216ms
+ GET /api/flags 200 in 205ms
+ GET /api/flags 200 in 207ms
+ GET /api/flags 200 in 209ms
+ GET /api/flags 200 in 210ms
+ GET /api/flags 200 in 165ms
+ GET /api/flags 200 in 237ms
+ GET /api/flags 200 in 255ms
+ GET /api/flags 200 in 256ms
+ GET /api/flags 200 in 259ms
+ GET /api/flags 200 in 263ms
+ GET /api/flags 200 in 266ms
+ GET /api/flags 200 in 213ms
+ GET /icon?2ee941ceddcb3435 200 in 216ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 236ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 235ms
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:52:13.624Z'
+}
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:52:13.624Z'
+}
+ POST /api/logs 204 in 257ms
+ POST /api/logs 204 in 257ms
+ GET /icon?2ee941ceddcb3435 200 in 36ms
+ POST /api/turnos/inasistencia 200 in 835ms
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 69ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 68ms
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:52:21.241Z'
+}
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:52:21.241Z'
+}
+ POST /api/logs 204 in 71ms
+ POST /api/logs 204 in 71ms
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ GET /api/flags 200 in 203ms
+ GET /api/flags 200 in 205ms
+ GET /api/flags 200 in 205ms
+ GET /api/flags 200 in 230ms
+ GET /api/flags 200 in 234ms
+ GET /api/flags 200 in 235ms
+ GET /api/flags 200 in 184ms
+ GET /api/flags 200 in 236ms
+ GET /api/flags 200 in 264ms
+ GET /api/flags 200 in 222ms
+ GET /api/flags 200 in 223ms
+ GET /api/flags 200 in 226ms
+ GET /api/flags 200 in 249ms
+ GET /api/flags 200 in 185ms
+ GET /api/flags 200 in 219ms
+ GET /api/flags 200 in 395ms
+ GET /api/flags 200 in 394ms
+ GET /api/flags 200 in 393ms
+ GET /api/flags 200 in 342ms
+ GET /api/flags 200 in 394ms
+ GET /api/flags 200 in 396ms
+ GET /api/flags 200 in 185ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 217ms
+ GET /api/flags 200 in 218ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 213ms
+ GET /api/flags 200 in 216ms
+[turnos/new] deshacer { pauta_id: 74, actor_ref: 'ui:pauta-diaria-v2' }
+ POST /api/turnos/deshacer-new 200 in 785ms
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 89ms
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /pauta-diaria-v2?fecha=2025-08-11 200 in 534ms
+ GET /api/flags 200 in 202ms
+ GET /api/flags 200 in 204ms
+ GET /api/flags 200 in 206ms
+ GET /api/flags 200 in 321ms
+ GET /api/flags 200 in 323ms
+ GET /api/flags 200 in 249ms
+ GET /api/flags 200 in 305ms
+ GET /api/flags 200 in 307ms
+ GET /api/flags 200 in 309ms
+ GET /api/flags 200 in 395ms
+ GET /api/flags 200 in 395ms
+ GET /api/flags 200 in 397ms
+ GET /api/flags 200 in 194ms
+ GET /api/flags 200 in 198ms
+ GET /api/flags 200 in 200ms
+ GET /api/flags 200 in 333ms
+ GET /api/flags 200 in 364ms
+ GET /api/flags 200 in 369ms
+ GET /api/flags 200 in 371ms
+ GET /api/flags 200 in 462ms
+ GET /api/flags 200 in 464ms
+ GET /api/flags 200 in 216ms
+ GET /api/flags 200 in 220ms
+ GET /api/flags 200 in 226ms
+ GET /api/flags 200 in 229ms
+ GET /icon?2ee941ceddcb3435 200 in 68ms
+ GET /api/flags 200 in 294ms
+ GET /api/flags 200 in 295ms
+ GET /api/flags 200 in 248ms
+ GET /api/flags 200 in 253ms
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:53:21.967Z'
+}
+ POST /api/logs 204 in 138ms
+ GET /api/flags 200 in 262ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 167ms
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:53:22.052Z'
+}
+ POST /api/logs 204 in 190ms
+ GET /icon?2ee941ceddcb3435 200 in 60ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 57ms
+ ○ Compiling /api/guardias/disponibles ...
+ ✓ Compiled /api/guardias/disponibles in 795ms (1998 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+[guardias/disponibles] Usando función de Neon fn_guardias_disponibles
+[Neon] Guardias disponibles encontrados: 157
+ GET /api/guardias/disponibles?fecha=2025-08-11&instalacion_id=15631bd6-03a9-459d-ae60-fc480f7f3e84&rol_id=64bef7f7-7d41-4ce6-a8bd-f26ed0482825&excluir_guardia_id=817d21b0-d5ef-4438-8adf-6258585b23a3 200 in 1382ms
+ ✓ Compiled /api/turnos/inasistencia in 207ms (2001 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Nueva conexión establecida
+ POST /api/turnos/inasistencia 200 in 2484ms
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+🔌 Nueva conexión establecida
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 158ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 76ms
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:53:38.507Z'
+}
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:53:38.507Z'
+}
+ POST /api/logs 204 in 81ms
+ POST /api/logs 204 in 81ms
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 278ms
+ GET /api/flags 200 in 170ms
+ GET /api/flags 200 in 198ms
+ GET /api/flags 200 in 213ms
+ GET /api/flags 200 in 260ms
+ GET /api/flags 200 in 177ms
+ GET /api/flags 200 in 240ms
+ GET /api/flags 200 in 204ms
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /pauta-diaria/turnos-extras 200 in 158ms
+ GET /api/flags 200 in 124ms
+ GET /api/flags 200 in 1145ms
+ GET /api/flags 200 in 1161ms
+ GET /api/flags 200 in 1162ms
+ GET /api/flags 200 in 1162ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:53:42.246Z'
+}
+ POST /api/logs 204 in 79ms
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:53:42.287Z'
+}
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:53:42.287Z'
+}
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:53:42.287Z'
+}
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:53:42.287Z'
+}
+ POST /api/logs 204 in 65ms
+ POST /api/logs 204 in 65ms
+ POST /api/logs 204 in 65ms
+ POST /api/logs 204 in 65ms
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:53:42.317Z'
+}
+ POST /api/logs 204 in 53ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /icon?2ee941ceddcb3435 200 in 32ms
+ GET /api/flags 200 in 189ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 197ms
+ GET /api/flags 200 in 235ms
+ GET /api/flags 200 in 237ms
+ GET /api/flags 200 in 203ms
+ GET /api/flags 200 in 207ms
+ GET /api/flags 200 in 208ms
+ GET /api/flags 200 in 176ms
+ GET /api/flags 200 in 271ms
+ ✓ Compiled /api/instalaciones-con-turnos-extras in 355ms (2004 modules)
+ ✓ Compiled (2006 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔍 Query turnos extras: 
+      SELECT 
+        te.*,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        i.nombre as instalacion_nombre,
+        po.nombre_puesto
+      FROM TE_turnos_extras te
+      JOIN guardias g ON g.id = te.guardia_id
+      JOIN instalaciones i ON i.id = te.instalacion_id
+      JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
+      WHERE 1=1
+     ORDER BY te.fecha DESC, te.created_at DESC
+🔍 Params: []
+🔍 Obteniendo instalaciones con turnos extras...
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1705ms
+ GET /api/flags 200 in 1707ms
+ GET /api/flags 200 in 1688ms
+📊 Turnos extras obtenidos: 0
+📊 Primer turno (ejemplo): undefined
+ GET /api/pauta-diaria/turno-extra? 200 in 1688ms
+ GET /api/flags 200 in 1642ms
+✅ Instalaciones con turnos extras encontradas: 0
+ GET /api/instalaciones-con-turnos-extras 200 in 1798ms
+ GET /api/flags 200 in 270ms
+ GET /api/flags 200 in 270ms
+ GET /api/flags 200 in 272ms
+ GET /api/flags 200 in 272ms
+ GET /api/flags 200 in 274ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 194ms
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 200ms
+ GET /api/flags 200 in 226ms
+ GET /api/flags 200 in 166ms
+ GET /icon?2ee941ceddcb3435 200 in 46ms
+🔍 Query turnos extras: 
+      SELECT 
+        te.*,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        i.nombre as instalacion_nombre,
+        po.nombre_puesto
+      FROM TE_turnos_extras te
+      JOIN guardias g ON g.id = te.guardia_id
+      JOIN instalaciones i ON i.id = te.instalacion_id
+      JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
+      WHERE 1=1
+     AND te.fecha >= $1 AND te.fecha <= $2 ORDER BY te.fecha DESC, te.created_at DESC
+🔍 Params: [ '2025-08-01', '2025-08-31' ]
+🔍 Query turnos extras: 
+      SELECT 
+        te.*,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        i.nombre as instalacion_nombre,
+        po.nombre_puesto
+      FROM TE_turnos_extras te
+      JOIN guardias g ON g.id = te.guardia_id
+      JOIN instalaciones i ON i.id = te.instalacion_id
+      JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
+      WHERE 1=1
+     ORDER BY te.fecha DESC, te.created_at DESC
+🔍 Params: []
+🔍 Obteniendo instalaciones con turnos extras...
+ GET /api/flags 200 in 226ms
+📊 Turnos extras obtenidos: 0
+📊 Primer turno (ejemplo): undefined
+ GET /api/pauta-diaria/turno-extra?fecha_inicio=2025-08-01&fecha_fin=2025-08-31 200 in 235ms
+ GET /api/flags 200 in 254ms
+📊 Turnos extras obtenidos: 0
+📊 Primer turno (ejemplo): undefined
+ GET /api/pauta-diaria/turno-extra? 200 in 182ms
+✅ Instalaciones con turnos extras encontradas: 0
+ GET /api/instalaciones-con-turnos-extras 200 in 184ms
+🔍 Obteniendo instalaciones con turnos extras...
+✅ Instalaciones con turnos extras encontradas: 0
+ GET /api/instalaciones-con-turnos-extras 200 in 290ms
+ GET /api/flags 200 in 194ms
+ GET /api/flags 200 in 198ms
+ GET /api/flags 200 in 202ms
+ GET /api/flags 200 in 203ms
+ GET /api/flags 200 in 240ms
+ GET /api/flags 200 in 241ms
+ GET /api/flags 200 in 177ms
+ GET /api/flags 200 in 179ms
+ GET /api/flags 200 in 182ms
+ GET /api/flags 200 in 242ms
+ GET /api/flags 200 in 185ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 333ms
+ GET /api/flags 200 in 345ms
+ GET /api/flags 200 in 347ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 66ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 66ms
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:53:53.689Z'
+}
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:53:53.689Z'
+}
+ POST /api/logs 204 in 73ms
+ POST /api/logs 204 in 73ms
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+ ✓ Compiled in 563ms (1807 modules)
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/flags 200 in 250ms
+ GET /api/flags 200 in 256ms
+ GET /api/flags 200 in 267ms
+ GET /api/flags 200 in 274ms
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/flags 200 in 391ms
+ GET /api/flags 200 in 416ms
+ GET /api/flags 200 in 272ms
+ GET /api/flags 200 in 274ms
+ GET /api/flags 200 in 340ms
+ GET /api/flags 200 in 185ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 53ms
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:53:57.326Z'
+}
+ POST /api/logs 204 in 35ms
+ GET /api/flags 200 in 182ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 49ms
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:53:57.409Z'
+}
+ POST /api/logs 204 in 38ms
+ GET /api/flags 200 in 258ms
+ GET /api/flags 200 in 259ms
+ GET /api/flags 200 in 241ms
+ GET /api/flags 200 in 549ms
+[turnos/new] deshacer { pauta_id: 74, actor_ref: 'ui:pauta-diaria-v2' }
+ GET /api/flags 200 in 240ms
+ GET /api/flags 200 in 240ms
+ GET /api/flags 200 in 240ms
+ GET /api/flags 200 in 247ms
+ GET /api/flags 200 in 268ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 220ms
+ GET /api/flags 200 in 188ms
+ POST /api/turnos/deshacer-new 200 in 600ms
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /api/flags 200 in 354ms
+ GET /api/flags 200 in 364ms
+ GET /api/flags 200 in 404ms
+ GET /api/flags 200 in 318ms
+ GET /api/flags 200 in 340ms
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 24ms
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /pauta-diaria-v2?fecha=2025-08-11 200 in 497ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 215ms
+ GET /api/flags 200 in 218ms
+ GET /api/flags 200 in 220ms
+ GET /api/flags 200 in 220ms
+ GET /api/flags 200 in 247ms
+ GET /api/flags 200 in 241ms
+ GET /api/flags 200 in 262ms
+ GET /api/flags 200 in 264ms
+ GET /api/flags 200 in 266ms
+ GET /api/flags 200 in 210ms
+ GET /api/flags 200 in 269ms
+ GET /api/flags 200 in 174ms
+ GET /api/flags 200 in 174ms
+ GET /api/flags 200 in 176ms
+ GET /api/flags 200 in 178ms
+ GET /api/flags 200 in 182ms
+ GET /api/flags 200 in 226ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 250ms
+ GET /api/flags 200 in 254ms
+ GET /api/flags 200 in 255ms
+ GET /api/flags 200 in 257ms
+ GET /api/flags 200 in 283ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 199ms
+ GET /api/flags 200 in 225ms
+ GET /api/flags 200 in 170ms
+ GET /icon?2ee941ceddcb3435 200 in 183ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 218ms
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:54:03.343Z'
+}
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:54:03.343Z'
+}
+ POST /api/logs 204 in 254ms
+ POST /api/logs 204 in 254ms
+ GET /icon?2ee941ceddcb3435 200 in 83ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 86ms
+[guardias/disponibles] Usando función de Neon fn_guardias_disponibles
+[Neon] Guardias disponibles encontrados: 157
+ GET /api/guardias/disponibles?fecha=2025-08-11&instalacion_id=15631bd6-03a9-459d-ae60-fc480f7f3e84&rol_id=64bef7f7-7d41-4ce6-a8bd-f26ed0482825 200 in 740ms
+ ✓ Compiled /api/turnos/extra-new in 274ms (2008 modules)
+[turnos/new] extra {
+  fecha: '2025-08-11',
+  instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84',
+  rol_id: '64bef7f7-7d41-4ce6-a8bd-f26ed0482825',
+  puesto_id: '2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b',
+  cobertura_guardia_id: 'd8083f2a-d246-4ec1-9c77-d92d8bde496b',
+  origen: 'ppc',
+  actor_ref: 'ui:pauta-diaria-v2'
+}
+ POST /api/turnos/extra-new 200 in 582ms
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Nueva conexión establecida
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+🔌 Nueva conexión establecida
+✅ Datos obtenidos exitosamente: 3 registros
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:54:11.632Z'
+}
+ POST /api/logs 204 in 88ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 71ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 71ms
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:54:11.701Z'
+}
+ POST /api/logs 204 in 74ms
+✅ Datos obtenidos exitosamente: 3 registros
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 221ms
+ GET /api/flags 200 in 293ms
+ GET /api/flags 200 in 253ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ GET /api/flags 200 in 183ms
+ GET /api/flags 200 in 217ms
+ GET /api/flags 200 in 198ms
+ GET /api/flags 200 in 166ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 185ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 1209ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1222ms
+ GET /api/flags 200 in 1360ms
+ GET /api/flags 200 in 267ms
+ GET /api/flags 200 in 1408ms
+🔍 Query turnos extras: 
+      SELECT 
+        te.*,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        i.nombre as instalacion_nombre,
+        po.nombre_puesto
+      FROM TE_turnos_extras te
+      JOIN guardias g ON g.id = te.guardia_id
+      JOIN instalaciones i ON i.id = te.instalacion_id
+      JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
+      WHERE 1=1
+     ORDER BY te.fecha DESC, te.created_at DESC
+🔍 Params: []
+🔍 Obteniendo instalaciones con turnos extras...
+🔍 Query turnos extras: 
+      SELECT 
+        te.*,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        i.nombre as instalacion_nombre,
+        po.nombre_puesto
+      FROM TE_turnos_extras te
+      JOIN guardias g ON g.id = te.guardia_id
+      JOIN instalaciones i ON i.id = te.instalacion_id
+      JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
+      WHERE 1=1
+     AND te.fecha >= $1 AND te.fecha <= $2 ORDER BY te.fecha DESC, te.created_at DESC
+🔍 Params: [ '2025-08-01', '2025-08-31' ]
+📊 Turnos extras obtenidos: 0
+📊 Primer turno (ejemplo): undefined
+ GET /api/pauta-diaria/turno-extra? 200 in 281ms
+📊 Turnos extras obtenidos: 0
+📊 Primer turno (ejemplo): undefined
+ GET /api/pauta-diaria/turno-extra?fecha_inicio=2025-08-01&fecha_fin=2025-08-31 200 in 262ms
+✅ Instalaciones con turnos extras encontradas: 0
+ GET /api/instalaciones-con-turnos-extras 200 in 263ms
+🔍 Query turnos extras: 
+      SELECT 
+        te.*,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        i.nombre as instalacion_nombre,
+        po.nombre_puesto
+      FROM TE_turnos_extras te
+      JOIN guardias g ON g.id = te.guardia_id
+      JOIN instalaciones i ON i.id = te.instalacion_id
+      JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
+      WHERE 1=1
+     ORDER BY te.fecha DESC, te.created_at DESC
+🔍 Params: []
+🔍 Obteniendo instalaciones con turnos extras...
+✅ Instalaciones con turnos extras encontradas: 0
+ GET /api/instalaciones-con-turnos-extras 200 in 232ms
+📊 Turnos extras obtenidos: 0
+📊 Primer turno (ejemplo): undefined
+ GET /api/pauta-diaria/turno-extra? 200 in 234ms
+🔍 Obteniendo instalaciones con turnos extras...
+✅ Instalaciones con turnos extras encontradas: 0
+ GET /api/instalaciones-con-turnos-extras 200 in 193ms
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /pauta-diaria/turnos-extras 200 in 94ms
+ GET /icon?2ee941ceddcb3435 200 in 73ms
+ GET /api/flags 200 in 225ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 231ms
+ GET /api/flags 200 in 255ms
+ GET /api/flags 200 in 257ms
+ GET /api/flags 200 in 259ms
+ GET /api/flags 200 in 240ms
+ GET /api/flags 200 in 279ms
+ GET /api/flags 200 in 281ms
+ GET /api/flags 200 in 206ms
+ GET /api/flags 200 in 207ms
+ GET /api/flags 200 in 213ms
+🔍 Query turnos extras: 
+      SELECT 
+        te.*,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        i.nombre as instalacion_nombre,
+        po.nombre_puesto
+      FROM TE_turnos_extras te
+      JOIN guardias g ON g.id = te.guardia_id
+      JOIN instalaciones i ON i.id = te.instalacion_id
+      JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
+      WHERE 1=1
+     ORDER BY te.fecha DESC, te.created_at DESC
+🔍 Params: []
+🔍 Obteniendo instalaciones con turnos extras...
+ GET /api/flags 200 in 198ms
+ GET /api/flags 200 in 234ms
+ GET /api/flags 200 in 239ms
+📊 Turnos extras obtenidos: 0
+📊 Primer turno (ejemplo): undefined
+ GET /api/pauta-diaria/turno-extra? 200 in 339ms
+✅ Instalaciones con turnos extras encontradas: 0
+ GET /api/instalaciones-con-turnos-extras 200 in 340ms
+ GET /api/flags 200 in 307ms
+ GET /api/flags 200 in 208ms
+ GET /api/flags 200 in 198ms
+ GET /api/flags 200 in 222ms
+ GET /api/flags 200 in 206ms
+ GET /api/flags 200 in 241ms
+ GET /api/flags 200 in 241ms
+ GET /api/flags 200 in 246ms
+ GET /api/flags 200 in 241ms
+ GET /api/flags 200 in 223ms
+ GET /api/flags 200 in 204ms
+🔍 Query turnos extras: 
+      SELECT 
+        te.*,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        i.nombre as instalacion_nombre,
+        po.nombre_puesto
+      FROM TE_turnos_extras te
+      JOIN guardias g ON g.id = te.guardia_id
+      JOIN instalaciones i ON i.id = te.instalacion_id
+      JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
+      WHERE 1=1
+     AND te.fecha >= $1 AND te.fecha <= $2 ORDER BY te.fecha DESC, te.created_at DESC
+🔍 Params: [ '2025-08-01', '2025-08-31' ]
+ GET /api/flags 200 in 198ms
+ GET /icon?2ee941ceddcb3435 200 in 24ms
+ GET /api/flags 200 in 225ms
+ GET /api/flags 200 in 229ms
+🔍 Query turnos extras: 
+      SELECT 
+        te.*,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        i.nombre as instalacion_nombre,
+        po.nombre_puesto
+      FROM TE_turnos_extras te
+      JOIN guardias g ON g.id = te.guardia_id
+      JOIN instalaciones i ON i.id = te.instalacion_id
+      JOIN as_turnos_puestos_operativos po ON po.id = te.puesto_id
+      WHERE 1=1
+     ORDER BY te.fecha DESC, te.created_at DESC
+🔍 Params: []
+🔍 Obteniendo instalaciones con turnos extras...
+📊 Turnos extras obtenidos: 0
+📊 Primer turno (ejemplo): undefined
+ GET /api/pauta-diaria/turno-extra?fecha_inicio=2025-08-01&fecha_fin=2025-08-31 200 in 215ms
+ GET /api/flags 200 in 231ms
+📊 Turnos extras obtenidos: 0
+📊 Primer turno (ejemplo): undefined
+ GET /api/pauta-diaria/turno-extra? 200 in 223ms
+✅ Instalaciones con turnos extras encontradas: 0
+ GET /api/instalaciones-con-turnos-extras 200 in 209ms
+🔍 Obteniendo instalaciones con turnos extras...
+✅ Instalaciones con turnos extras encontradas: 0
+ GET /api/instalaciones-con-turnos-extras 200 in 191ms
+[turnos/new] deshacer { pauta_id: 43, actor_ref: 'ui:pauta-diaria-v2' }
+ POST /api/turnos/deshacer-new 200 in 675ms
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 57ms
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /pauta-diaria-v2?fecha=2025-08-11 200 in 359ms
+ GET /api/flags 200 in 286ms
+ GET /api/flags 200 in 288ms
+ GET /api/flags 200 in 292ms
+ GET /api/flags 200 in 319ms
+ GET /api/flags 200 in 319ms
+ GET /api/flags 200 in 321ms
+ GET /api/flags 200 in 260ms
+ GET /api/flags 200 in 263ms
+ GET /api/flags 200 in 264ms
+ GET /api/flags 200 in 235ms
+ GET /api/flags 200 in 236ms
+ GET /api/flags 200 in 247ms
+ GET /api/flags 200 in 297ms
+ GET /api/flags 200 in 300ms
+ GET /api/flags 200 in 304ms
+ GET /api/flags 200 in 251ms
+ GET /api/flags 200 in 253ms
+ GET /api/flags 200 in 256ms
+ GET /api/flags 200 in 653ms
+ GET /api/flags 200 in 655ms
+ GET /api/flags 200 in 657ms
+ GET /api/flags 200 in 761ms
+ GET /api/flags 200 in 761ms
+ GET /api/flags 200 in 766ms
+ GET /api/flags 200 in 819ms
+ GET /api/flags 200 in 823ms
+ GET /api/flags 200 in 826ms
+ GET /api/flags 200 in 829ms
+ GET /api/flags 200 in 831ms
+ GET /api/flags 200 in 838ms
+ GET /icon?2ee941ceddcb3435 200 in 52ms
+ GET /icon?2ee941ceddcb3435 200 in 137ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 199ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 198ms
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:54:27.462Z'
+}
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:54:27.462Z'
+}
+ POST /api/logs 204 in 264ms
+ POST /api/logs 204 in 263ms
+ ✓ Compiled in 381ms (1807 modules)
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+ GET /api/flags 200 in 253ms
+ GET /api/flags 200 in 256ms
+ GET /api/flags 200 in 258ms
+ GET /api/flags 200 in 282ms
+ GET /api/flags 200 in 287ms
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/flags 200 in 284ms
+ GET /api/flags 200 in 285ms
+ GET /api/flags 200 in 289ms
+ GET /api/flags 200 in 278ms
+ GET /api/flags 200 in 312ms
+ GET /api/flags 200 in 315ms
+ GET /api/flags 200 in 291ms
+ GET /api/flags 200 in 293ms
+ GET /api/flags 200 in 294ms
+ GET /api/flags 200 in 186ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ ✓ Compiled /api/admin/rbac/usuarios in 471ms (2007 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Nueva conexión establecida
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/admin/rbac/usuarios?page=1&limit=10 500 in 2020ms
+ GET /api/flags 200 in 227ms
+ GET /api/flags 200 in 341ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 177ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 172ms
+ GET /api/flags 200 in 1284ms
+ GET /api/flags 200 in 1284ms
+ GET /api/flags 200 in 1285ms
+ GET /api/flags 200 in 1285ms
+ GET /api/flags 200 in 1286ms
+ GET /api/flags 200 in 330ms
+ GET /api/flags 200 in 234ms
+ GET /api/flags 200 in 236ms
+ GET /api/flags 200 in 239ms
+ GET /api/flags 200 in 241ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 174ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 198ms
+ GET /api/flags 200 in 199ms
+ GET /api/flags 200 in 185ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 189ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 198ms
+ GET /api/flags 200 in 297ms
+ GET /api/flags 200 in 301ms
+ GET /api/flags 200 in 303ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ GET /api/flags 200 in 200ms
+ GET /api/flags 200 in 202ms
+ GET /api/flags 200 in 205ms
+ GET /api/flags 200 in 210ms
+ GET /api/flags 200 in 218ms
+ GET /api/flags 200 in 221ms
+ GET /api/flags 200 in 205ms
+ GET /api/flags 200 in 207ms
+ GET /api/flags 200 in 208ms
+ GET /api/flags 200 in 208ms
+ GET /api/flags 200 in 209ms
+ GET /api/flags 200 in 213ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 188ms
+ GET /api/flags 200 in 190ms
+ ✓ Compiled /api/turnos/inasistencia in 243ms (1992 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1219ms
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ POST /api/turnos/inasistencia 200 in 1940ms
+ GET /api/flags 200 in 1328ms
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/flags 200 in 1433ms
+ GET /api/flags 200 in 206ms
+ GET /api/flags 200 in 1438ms
+ GET /api/flags 200 in 290ms
+ GET /api/flags 200 in 271ms
+ GET /api/flags 200 in 292ms
+ GET /api/flags 200 in 213ms
+ GET /api/flags 200 in 215ms
+ GET /api/flags 200 in 215ms
+ GET /api/flags 200 in 299ms
+ GET /api/flags 200 in 303ms
+ GET /api/flags 200 in 305ms
+ GET /api/flags 200 in 307ms
+ GET /api/flags 200 in 309ms
+ GET /api/flags 200 in 311ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 194ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 228ms
+ GET /api/flags 200 in 228ms
+ GET /api/flags 200 in 265ms
+ GET /api/flags 200 in 266ms
+ GET /api/flags 200 in 267ms
+ GET /api/flags 200 in 268ms
+ GET /api/flags 200 in 208ms
+ GET /api/flags 200 in 210ms
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+ GET /api/flags 200 in 184ms
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+✅ Datos obtenidos exitosamente: 3 registros
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+ ✓ Compiled /api/logs in 290ms (1994 modules)
+✅ Datos obtenidos exitosamente: 3 registros
+ ✓ Compiled in 0ms (1996 modules)
+ ✓ Compiled in 0ms (1996 modules)
+ ✓ Compiled in 0ms (1996 modules)
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 1014ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 1052ms
+ ✓ Compiled in 0ms (1996 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: ⚙️  suppress all logs with { quiet: true }
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:55:35.517Z'
+}
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:55:35.517Z'
+}
+ POST /api/logs 204 in 1243ms
+ POST /api/logs 204 in 1243ms
+🔌 Nueva conexión establecida
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 158ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 156ms
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:55:37.236Z'
+}
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:55:37.236Z'
+}
+ POST /api/logs 204 in 166ms
+ POST /api/logs 204 in 166ms
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /pauta-mensual/15631bd6-03a9-459d-ae60-fc480f7f3e84?mes=8&anio=2025 200 in 180ms
+ GET /icon?2ee941ceddcb3435 200 in 168ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1907ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 183ms
+ GET /api/flags 200 in 2268ms
+ GET /api/flags 200 in 2271ms
+ GET /api/flags 200 in 2272ms
+ GET /api/flags 200 in 2274ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 172ms
+ GET /api/flags 200 in 2480ms
+ GET /api/flags 200 in 209ms
+ GET /api/flags 200 in 213ms
+ GET /api/flags 200 in 214ms
+ GET /api/flags 200 in 230ms
+ GET /api/flags 200 in 231ms
+ GET /api/flags 200 in 254ms
+ GET /api/flags 200 in 315ms
+ GET /api/flags 200 in 338ms
+ ✓ Compiled /api/instalaciones/[id]/completa in 406ms (2019 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔍 Iniciando endpoint completa para instalación: 15631bd6-03a9-459d-ae60-fc480f7f3e84
+1. Consultando instalación...
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1689ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 177ms
+ GET /api/flags 200 in 1574ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 198ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 2193ms
+ GET /api/flags 200 in 2388ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 555ms
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 202ms
+ GET /api/flags 200 in 175ms
+ GET /api/flags 200 in 591ms
+ GET /icon?2ee941ceddcb3435 200 in 34ms
+ GET /api/flags 200 in 188ms
+ GET /api/flags 200 in 208ms
+✅ Instalación encontrada: A Test 1
+2. Consultando cliente...
+ GET /api/flags 200 in 2694ms
+✅ Cliente: A Test Cliente
+3. Consultando puestos operativos...
+✅ Puestos operativos encontrados: 3
+🔍 Diagnóstico de puestos operativos:
+   Puesto 1:
+     ID: b5edf643-3ac7-4406-94fb-b67e03f7adf8
+     Nombre: Garita Vehicular
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: false
+     Guardia ID: 817d21b0-d5ef-4438-8adf-6258585b23a3
+     Guardia Nombre: Test Modal Guardia Test 
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 2:
+     ID: 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b
+     Nombre: Guardia Perimetral
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 3:
+     ID: 2082bedd-1e69-4959-b4cc-ab102de5e736
+     Nombre: Portería Principal
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+📊 Puestos por rol:
+   Rol 64bef7f7-7d41-4ce6-a8bd-f26ed0482825: 3 puestos
+     1. Garita Vehicular - PPC: false - Guardia: Sí
+     2. Guardia Perimetral - PPC: true - Guardia: No
+     3. Portería Principal - PPC: true - Guardia: No
+4. Consultando roles de servicio...
+✅ Roles de servicio encontrados: 1
+5. Consultando pauta mensual...
+✅ Pauta mensual encontrada: 31 registros
+6. Transformando datos...
+📊 Turnos encontrados: 1
+📊 Total puestos: 3, Asignados: 1, Pendientes: 2
+📊 PPCs encontrados: 2
+👥 Guardias asignados encontrados: 1
+⏳ PPCs pendientes encontrados: 2
+📋 Total de guardias (asignados + PPCs): 3
+🚀 Tiempo total API instalaciones completa: 3993ms
+ GET /api/instalaciones/15631bd6-03a9-459d-ae60-fc480f7f3e84/completa 200 in 4666ms
+ ✓ Compiled /api/pauta-mensual in 287ms (1992 modules)
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔍 Iniciando endpoint completa para instalación: 15631bd6-03a9-459d-ae60-fc480f7f3e84
+1. Consultando instalación...
+[2025-08-11T21:55:49.474Z] 🚀 Iniciando carga de pauta mensual
+[2025-08-11T21:55:49.474Z] 📥 Parámetros recibidos: {
+  instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84',
+  anio: '2025',
+  mes: '8'
+}
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Nueva conexión establecida
+🐌 Query lento (1061ms): 
+      SELECT 
+        i.id,
+        i.nombre,
+        i.cliente_id,
+        i.direccion,
+        i....
+✅ Instalación encontrada: A Test 1
+2. Consultando cliente...
+🔌 Nueva conexión establecida
+✅ Cliente: A Test Cliente
+3. Consultando puestos operativos...
+🐌 Query muy lento (2248ms): 
+        SELECT 
+          po.id,
+          po.instalacion_id,
+          po.rol_id,
+          po.gua...
+✅ Puestos operativos encontrados: 3
+🔍 Diagnóstico de puestos operativos:
+   Puesto 1:
+     ID: b5edf643-3ac7-4406-94fb-b67e03f7adf8
+     Nombre: Garita Vehicular
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: false
+     Guardia ID: 817d21b0-d5ef-4438-8adf-6258585b23a3
+     Guardia Nombre: Test Modal Guardia Test 
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 2:
+     ID: 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b
+     Nombre: Guardia Perimetral
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+   Puesto 3:
+     ID: 2082bedd-1e69-4959-b4cc-ab102de5e736
+     Nombre: Portería Principal
+     Rol ID: 64bef7f7-7d41-4ce6-a8bd-f26ed0482825
+     Rol Nombre: Día 5x2x8 / 08:00 16:00
+     Es PPC: true
+     Guardia ID: NULL
+     Guardia Nombre: NULL
+     Horario: 08:00 - 16:00
+     Días: 5x2x8
+📊 Puestos por rol:
+   Rol 64bef7f7-7d41-4ce6-a8bd-f26ed0482825: 3 puestos
+     1. Garita Vehicular - PPC: false - Guardia: Sí
+     2. Guardia Perimetral - PPC: true - Guardia: No
+     3. Portería Principal - PPC: true - Guardia: No
+4. Consultando roles de servicio...
+✅ Roles de servicio encontrados: 1
+5. Consultando pauta mensual...
+✅ Pauta mensual encontrada: 31 registros
+6. Transformando datos...
+📊 Turnos encontrados: 1
+📊 Total puestos: 3, Asignados: 1, Pendientes: 2
+📊 PPCs encontrados: 2
+👥 Guardias asignados encontrados: 1
+⏳ PPCs pendientes encontrados: 2
+📋 Total de guardias (asignados + PPCs): 3
+🚀 Tiempo total API instalaciones completa: 5339ms
+ GET /api/instalaciones/15631bd6-03a9-459d-ae60-fc480f7f3e84/completa 200 in 5834ms
+🐌 Query muy lento (2898ms): 
+      SELECT 
+        pm.puesto_id,
+        pm.guardia_id,
+        pm.dia,
+        pm.estado,
+     ...
+[2025-08-11T21:55:49.474Z] 🐌 Query pauta mensual: 5319ms, 93 registros encontrados
+[2025-08-11T21:55:49.474Z] 📅 Generando pauta para 31 días del mes
+[2025-08-11T21:55:49.474Z] 🔍 Puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8 (Garita Vehicular): 31 registros encontrados
+[2025-08-11T21:55:49.474Z] 🔍 Puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b (Guardia Perimetral): 31 registros encontrados
+[2025-08-11T21:55:49.474Z] 🔍 Puesto 2082bedd-1e69-4959-b4cc-ab102de5e736 (Portería Principal): 31 registros encontrados
+[2025-08-11T21:55:49.474Z] ✅ Pauta mensual cargada exitosamente
+[2025-08-11T21:55:49.474Z] 📊 Resumen: 3 puestos, 31 días por puesto
+[2025-08-11T21:55:49.474Z] ⏱️ Tiempo total: 5460ms
+ GET /api/pauta-mensual?instalacion_id=15631bd6-03a9-459d-ae60-fc480f7f3e84&anio=2025&mes=8 200 in 6148ms
+[2025-08-11T21:55:55.188Z] 🚀 Iniciando carga de pauta mensual
+[2025-08-11T21:55:55.188Z] 📥 Parámetros recibidos: {
+  instalacion_id: '15631bd6-03a9-459d-ae60-fc480f7f3e84',
+  anio: '2025',
+  mes: '8'
+}
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+[2025-08-11T21:55:55.188Z] 🐌 Query pauta mensual: 309ms, 93 registros encontrados
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+[2025-08-11T21:55:55.188Z] 📅 Generando pauta para 31 días del mes
+[2025-08-11T21:55:55.188Z] 🔍 Puesto b5edf643-3ac7-4406-94fb-b67e03f7adf8 (Garita Vehicular): 31 registros encontrados
+[2025-08-11T21:55:55.188Z] 🔍 Puesto 2fcd5bb0-d854-47f3-aa89-c7e6cceaab3b (Guardia Perimetral): 31 registros encontrados
+[2025-08-11T21:55:55.188Z] 🔍 Puesto 2082bedd-1e69-4959-b4cc-ab102de5e736 (Portería Principal): 31 registros encontrados
+[2025-08-11T21:55:55.188Z] ✅ Pauta mensual cargada exitosamente
+[2025-08-11T21:55:55.188Z] 📊 Resumen: 3 puestos, 31 días por puesto
+[2025-08-11T21:55:55.188Z] ⏱️ Tiempo total: 524ms
+ GET /api/pauta-mensual?instalacion_id=15631bd6-03a9-459d-ae60-fc480f7f3e84&anio=2025&mes=8 200 in 828ms
+ GET /api/flags 200 in 474ms
+ GET /api/flags 200 in 473ms
+ GET /api/flags 200 in 1108ms
+ GET /api/flags 200 in 253ms
+ GET /api/flags 200 in 1622ms
+ GET /api/flags 200 in 241ms
+ GET /api/flags 200 in 221ms
+ GET /api/flags 200 in 234ms
+ GET /api/flags 200 in 205ms
+ GET /api/flags 200 in 167ms
+ GET /api/flags 200 in 182ms
+ ✓ Compiled /api/turnos/deshacer-new in 345ms (2023 modules)
+[turnos/new] deshacer { pauta_id: 74, actor_ref: 'ui:pauta-diaria-v2' }
+🔌 Conexión removida del pool
+🔌 Nueva conexión establecida
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ GET /api/flags 200 in 3648ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 4766ms
+ POST /api/turnos/deshacer-new 200 in 2120ms
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /api/flags 200 in 5126ms
+ GET /api/flags 200 in 5128ms
+🔌 Nueva conexión establecida
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:56:05.616Z'
+}
+[clientLog] {
+  event: 'error:flags_fetch',
+  payload: { code: 'ado_v2' },
+  at: '2025-08-11T21:56:05.616Z'
+}
+ POST /api/logs 204 in 78ms
+ POST /api/logs 204 in 77ms
+🔌 Nueva conexión establecida
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 521ms (2024 modules)
+🔍 AuthWrapper: Renderizando... { isLoading: true, isAuth: false, isPublicRoute: false }
+🔍 AuthWrapper: Mostrando spinner de carga...
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 581ms
+🔌 Nueva conexión establecida
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+[dotenv@17.2.1] injecting env (0) from .env.local -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[DB] ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech /neondb
+🔌 Conexión removida del pool
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /pauta-diaria-v2?fecha=2025-08-11 200 in 1794ms
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1122ms
+🔌 Nueva conexión establecida
+ GET /api/flags 200 in 1173ms
+ GET /api/flags 200 in 1210ms
+ GET /api/flags 200 in 1212ms
+ GET /api/flags 200 in 1213ms
+ GET /api/flags 200 in 1096ms
+ GET /api/flags 200 in 201ms
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 585ms
+ GET /api/flags 200 in 567ms
+ GET /api/flags 200 in 579ms
+ GET /api/flags 200 in 573ms
+ GET /api/flags 200 in 186ms
+ GET /api/flags 200 in 601ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 596ms
+ GET /api/flags 200 in 184ms
+ GET /api/flags 200 in 172ms
+ GET /api/flags 200 in 184ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 202ms
+ GET /api/flags 200 in 202ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 175ms
+ GET /api/flags 200 in 199ms
+ GET /api/flags 200 in 201ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 195ms
+ GET /icon?2ee941ceddcb3435 200 in 34ms
+ GET /icon?2ee941ceddcb3435 200 in 63ms
+ GET /api/flags 200 in 265ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 100ms
+ GET /api/me/permissions?perm=turnos.marcar_asistencia 204 in 99ms
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:56:09.625Z'
+}
+[clientLog] {
+  event: 'view:pauta-diaria-v2',
+  payload: { path: '/pauta-diaria-v2' },
+  at: '2025-08-11T21:56:09.626Z'
+}
+ POST /api/logs 204 in 104ms
+ POST /api/logs 204 in 104ms
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+🔌 Conexión removida del pool
+ GET /api/flags 200 in 292ms
+ GET /api/flags 200 in 294ms
+ GET /api/flags 200 in 271ms
+ GET /api/flags 200 in 300ms
+ GET /api/flags 200 in 303ms
+ GET /api/flags 200 in 303ms
+ GET /api/flags 200 in 219ms
+ GET /api/flags 200 in 223ms
+ GET /api/flags 200 in 227ms
+ GET /api/flags 200 in 229ms
+ GET /api/flags 200 in 231ms
+ GET /api/flags 200 in 237ms
+🔌 Conexión removida del pool
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 198ms
+ GET /api/flags 200 in 199ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 189ms
+ GET /api/flags 200 in 255ms
+ GET /api/flags 200 in 187ms
+ GET /api/flags 200 in 190ms
+ GET /api/flags 200 in 192ms
+ GET /api/flags 200 in 194ms
+ GET /api/flags 200 in 195ms
+ GET /api/flags 200 in 624ms
+ GET /api/flags 200 in 251ms
+ GET /api/flags 200 in 252ms
+ GET /api/flags 200 in 253ms
+ GET /api/flags 200 in 254ms
+ GET /api/flags 200 in 256ms
+ GET /api/flags 200 in 193ms
+ GET /api/flags 200 in 223ms
+ GET /api/flags 200 in 224ms
+ GET /api/flags 200 in 227ms
+ GET /api/flags 200 in 235ms
+ GET /api/flags 200 in 239ms
+ GET /api/flags 200 in 241ms
+ GET /api/flags 200 in 204ms
+ GET /api/flags 200 in 211ms
+ GET /api/flags 200 in 213ms
+ GET /api/flags 200 in 214ms
+ GET /api/flags 200 in 217ms
+ GET /api/flags 200 in 219ms
+ GET /api/flags 200 in 322ms
+ GET /api/flags 200 in 283ms
+ GET /api/flags 200 in 285ms
+ ✓ Compiled in 722ms (1807 modules)
+🔍 Obteniendo datos de pauta diaria para fecha: 2025-08-11, incluirLibres: false
+✅ Datos obtenidos exitosamente: 3 registros
+ GET /api/flags 200 in 338ms
+ GET /api/flags 200 in 343ms
+ GET /api/flags 200 in 345ms
+ GET /api/flags 200 in 351ms
+ GET /api/flags 200 in 354ms
+ GET /api/flags 200 in 265ms
+ GET /api/flags 200 in 225ms
+ GET /api/flags 200 in 226ms
+ GET /api/flags 200 in 228ms
+ GET /api/flags 200 in 229ms
+ GET /api/flags 200 in 228ms
+ GET /api/flags 200 in 174ms
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 196ms
+ GET /api/flags 200 in 197ms
+ GET /api/flags 200 in 231ms
+ GET /api/flags 200 in 232ms
+ GET /api/flags 200 in 232ms
+ GET /api/flags 200 in 234ms
+ GET /api/flags 200 in 234ms
+ GET /api/flags 200 in 235ms
+ GET /api/flags 200 in 191ms
+ GET /api/flags 200 in 206ms
+ GET /api/flags 200 in 206ms
+ GET /api/flags 200 in 214ms
+ GET /api/flags 200 in 215ms
+ GET /api/flags 200 in 216ms
+ GET /api/flags 200 in 205ms
+ GET /api/flags 200 in 214ms
+ GET /api/flags 200 in 216ms

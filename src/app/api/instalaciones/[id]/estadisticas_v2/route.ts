@@ -1,12 +1,9 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 export async function GET(
   request: NextRequest,
-  {
-
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   console.log("🔁 Endpoint activo: /api/instalaciones/[id]/estadisticas_v2");
   
@@ -32,7 +29,7 @@ export async function GET(
         COUNT(CASE WHEN guardia_id IS NULL THEN 1 END) as puestos_disponibles
         
       FROM as_turnos_puestos_operativos po
-      WHERE po.instalacion_id = $1 AND (po.activo = true OR po.activo IS NULL)
+      WHERE po.instalacion_id = $1 AND po.activo = true
     `, [instalacionId]);
 
     if (result.rows.length === 0) {

@@ -32,20 +32,8 @@ async function patchFnDeshacer() {
 
           UPDATE public.as_turnos_pauta_mensual
           SET 
-              estado = CASE 
-                WHEN EXISTS (
-                  SELECT 1 FROM as_turnos_puestos_operativos po 
-                  WHERE po.id = puesto_id AND po.es_ppc = true
-                ) THEN 'libre'
-                ELSE 'planificado'
-              END,
-              estado_ui = CASE 
-                WHEN EXISTS (
-                  SELECT 1 FROM as_turnos_puestos_operativos po 
-                  WHERE po.id = puesto_id AND po.es_ppc = true
-                ) THEN 'ppc_libre'
-                ELSE 'plan'
-              END,
+              estado = 'planificado',
+              estado_ui = 'plan',
               meta = (COALESCE(meta, '{}'::jsonb)
                         - 'reemplazo_guardia_id'
                         - 'reemplazo_guardia_nombre'

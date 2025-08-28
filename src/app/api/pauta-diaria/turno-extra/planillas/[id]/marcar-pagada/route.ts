@@ -1,13 +1,10 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import { getCurrentUserServer } from '@/lib/auth';
 
 export async function POST(
   request: NextRequest,
-  {
-
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     console.log('🔍 Iniciando POST /api/pauta-diaria/turno-extra/planillas/[id]/marcar-pagada');

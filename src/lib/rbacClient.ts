@@ -2,17 +2,6 @@
 
 export async function rbacFetch(input: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers || {});
-  // Inyectar x-tenant-id desde cookie/localStorage si existe
-  try {
-    if (typeof document !== 'undefined') {
-      const cookie = document.cookie || '';
-      const m = cookie.match(/(?:^|;\s*)x_tenant_id=([^;]+)/);
-      const fromCookie = m?.[1] ? decodeURIComponent(m[1]) : null;
-      const fromLocal = localStorage.getItem('selected_tenant_id');
-      const tenantId = fromCookie || fromLocal;
-      if (tenantId && !headers.has('x-tenant-id')) headers.set('x-tenant-id', tenantId);
-    }
-  } catch {}
 
   // Solo inyectar cabecera de desarrollo cuando realmente estamos en desarrollo.
   // Evita suplantar al usuario autenticado en ambientes reales.

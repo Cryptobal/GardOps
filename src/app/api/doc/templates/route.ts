@@ -1,4 +1,3 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import { extractVars } from '@/lib/vars';
@@ -8,10 +7,7 @@ export const dynamic = 'force-dynamic';
 
 // GET /api/doc/templates - Obtener todas las plantillas
 export async function GET() {
-  const deny = await requireAuthz(req, { resource: 'doc', action: 'create' });
-  if (deny) return deny;
-
-try {
+  try {
     // Verificar si la tabla existe, si no, crearla
     await ensureDocTemplatesTable();
     
@@ -36,10 +32,7 @@ try {
 
 // POST /api/doc/templates - Crear nueva plantilla
 export async function POST(request: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'doc', action: 'create' });
-  if (deny) return deny;
-
-try {
+  try {
     const body = await request.json();
     const { name, content_html } = body;
     

@@ -1,6 +1,5 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextResponse } from 'next/server'
-import { sql } from '@/lib/database-vercel'
+import { sql } from '@vercel/postgres'
 import { headers } from 'next/headers'
 import { getCurrentUserServer } from '@/lib/auth'
 
@@ -8,9 +7,6 @@ import { getCurrentUserServer } from '@/lib/auth'
 export const runtime = 'nodejs'
 
 export async function GET(req: Request) {
-  // Relajar gate de endpoint a "autenticado": si hay JWT o cabecera dev,
-  // se permite consultar. El control de permisos es por-param.
-
   try {
     const url = new URL(req.url)
     const perm = url.searchParams.get('perm') || url.searchParams.get('permiso')
@@ -18,10 +14,7 @@ export async function GET(req: Request) {
 
     const h = headers()
     const fromHeader = h.get('x-user-email') || h.get('x-user-email(next/headers)')
-    let userFromJwt: any = null
-    try {
-      userFromJwt = getCurrentUserServer(req as any)
-    } catch {}
+    const userFromJwt = getCurrentUserServer(req as any)
     const fromJwt = userFromJwt?.email || null
     const isDev = process.env.NODE_ENV !== 'production'
     const dev = isDev ? process.env.NEXT_PUBLIC_DEV_USER_EMAIL : undefined

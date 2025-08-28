@@ -1,4 +1,3 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
@@ -7,8 +6,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(req, { resource: 'instalaciones', action: 'create' });
-  if (deny) return deny;
   try {
     const instalacionId = params.id;
     const activoParam = request.nextUrl.searchParams.get('activo');
@@ -85,8 +82,6 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(req, { resource: 'instalaciones', action: 'create' });
-  if (deny) return deny;
   try {
     const instalacionId = params.id;
     const body = await request.json();

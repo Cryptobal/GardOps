@@ -9,10 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, Calendar, Eye, EyeOff, AlertTriangle, MoreHorizontal, ChevronDown, ChevronUp, Users, X, Zap, Info, MessageSquare, Grid3X3, List, Phone } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Eye, EyeOff, AlertTriangle, MoreHorizontal, ChevronDown, ChevronUp, Users, X, Zap, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -34,15 +33,6 @@ interface Guardia {
   apellido_paterno: string;
   apellido_materno: string;
   nombre_completo: string;
-}
-
-// Tipos para el seguimiento
-type EstadoSeguimiento = 'sin_info' | 'en_camino' | 'en_puesto' | 'no_contesta';
-
-interface SeguimientoData {
-  estado: EstadoSeguimiento;
-  comentario: string;
-  updated_at?: string;
 }
 
 const addDays = (d: string, delta: number) => {
@@ -108,10 +98,6 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     }
   }>({});
   
-  // Estados para el seguimiento
-  const [seguimientos, setSeguimientos] = useState<Record<string, SeguimientoData>>({});
-  const [filtroEstado, setFiltroEstado] = useState<EstadoSeguimiento | 'todos'>('todos');
-  
   const [f, setF] = useState<Filtros>(() => ({ 
     ppc: 'all',
     instalacion: searchParams.get('instalacion') || undefined,
@@ -119,14 +105,6 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     q: searchParams.get('q') || undefined
   }));
   const [filtersOpen, setFiltersOpen] = useState(true);
-  // Vista y turno - con persistencia en localStorage
-  const [vistaModo, setVistaModo] = useState<'list' | 'grid'>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('pauta-vista-modo') as 'list' | 'grid') || 'list';
-    }
-    return 'list';
-  });
-  const [turnoActivo, setTurnoActivo] = useState<'todos' | 'dia' | 'noche'>('todos');
   
   // Normalizar fecha a string YYYY-MM-DD
   const fechaStr = toYmd(fecha);
@@ -157,33 +135,6 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       mq.removeEventListener ? mq.removeEventListener('change', update) : (mq as any).removeListener(update);
     };
   }, []);
-
-  // Cargar datos de seguimiento
-  useEffect(() => {
-    const cargarSeguimientos = async () => {
-      try {
-        const response = await fetch(`/api/pauta-seguimiento?fecha=${fechaStr}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            const seguimientosMap: Record<string, SeguimientoData> = {};
-            data.data.forEach((item: any) => {
-              seguimientosMap[item.pauta_id] = {
-                estado: item.estado_seguimiento,
-                comentario: item.comentario || '',
-                updated_at: item.updated_at
-              };
-            });
-            setSeguimientos(seguimientosMap);
-          }
-        }
-      } catch (error) {
-        console.error('Error cargando seguimientos:', error);
-      }
-    };
-    
-    cargarSeguimientos();
-  }, [fechaStr]);
 
   // Persistir filtros en URL
   useEffect(() => {
@@ -234,13 +185,6 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   useEffect(() => {
     setFiltersOpen(!isMobile);
   }, [isMobile]);
-
-  // Persistir vista en localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('pauta-vista-modo', vistaModo);
-    }
-  }, [vistaModo]);
 
   // Función para cargar guardias disponibles
   const loadGuardias = useCallback(async (row: PautaRow, excluirGuardiaId?: string) => {
@@ -542,96 +486,6 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     return canUndoResult;
   };
 
-  // Funciones para el seguimiento y comunicación
-  const getEstadoColor = (estado: EstadoSeguimiento) => {
-    switch (estado) {
-      case 'en_puesto': return 'bg-green-500';
-      case 'en_camino': return 'bg-yellow-500';
-      case 'no_contesta': return 'bg-red-500';
-      default: return 'bg-gray-400';
-    }
-  };
-
-  const getEstadoEmoji = (estado: EstadoSeguimiento) => {
-    switch (estado) {
-      case 'en_puesto': return '🟢';
-      case 'en_camino': return '🟡';
-      case 'no_contesta': return '🔴';
-      default: return '⚪';
-    }
-  };
-
-  const actualizarSeguimiento = async (pautaId: string, estado: EstadoSeguimiento, comentario: string) => {
-    try {
-      const response = await fetch('/api/pauta-seguimiento', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pauta_id: pautaId, estado, comentario })
-      });
-      
-      if (response.ok) {
-        setSeguimientos(prev => ({
-          ...prev,
-          [pautaId]: { estado, comentario, updated_at: new Date().toISOString() }
-        }));
-        
-        addToast({
-          title: "✅ Actualizado",
-          description: `Estado actualizado a: ${estado}`,
-          type: "success"
-        });
-      }
-    } catch (error) {
-      addToast({
-        title: "❌ Error",
-        description: "No se pudo actualizar el estado",
-        type: "error"
-      });
-    }
-  };
-
-  const abrirWhatsApp = (row: PautaRow) => {
-    const telefono = row.telefono_guardia_trabajo;
-    const nombreGuardia = row.guardia_trabajo_nombre;
-    
-    if (!telefono) {
-      addToast({
-        title: "❌ Error",
-        description: "No hay teléfono disponible para este guardia",
-        type: "error"
-      });
-      return;
-    }
-    
-    const mensaje = `Hola ${nombreGuardia}, soy de la central de monitoreo. ¿Podrías confirmar tu llegada a ${row.instalacion_nombre}${row.hora_inicio ? ` para el turno de las ${row.hora_inicio}` : ''}?`;
-    const url = `https://wa.me/56${telefono}?text=${encodeURIComponent(mensaje)}`;
-    window.open(url, '_blank');
-    
-    // Registrar automáticamente el envío de WhatsApp
-    const comentarioActual = seguimientos[row.pauta_id]?.comentario || '';
-    const nuevoComentario = comentarioActual ? 
-      `${comentarioActual}\n📱 WhatsApp enviado a las ${new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}` :
-      `📱 WhatsApp enviado a las ${new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}`;
-    
-    actualizarSeguimiento(row.pauta_id, seguimientos[row.pauta_id]?.estado || 'sin_info', nuevoComentario);
-  };
-
-  // Llamada telefónica (mobile-first)
-  const abrirLlamada = (row: PautaRow) => {
-    const telefono = row.telefono_guardia_trabajo;
-    if (!telefono) {
-      addToast({
-        title: "❌ Error",
-        description: "No hay teléfono disponible para este guardia",
-        type: "error"
-      });
-      return;
-    }
-    // Prefijo país 56 si es necesario
-    const numero = telefono.startsWith('56') ? telefono : `56${telefono}`;
-    window.open(`tel:${numero}`, '_self');
-  };
-
   // Detectar guardias duplicados en la misma fecha
   const guardiasDuplicados = useMemo(() => {
     const guardiasPorFecha = new Map<string, number>();
@@ -643,13 +497,6 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     });
     return guardiasPorFecha;
   }, [rows]);
-
-  // Clasificar turnos por hora de inicio
-  const clasificarTurno = (horaInicio: string | null): 'dia' | 'noche' => {
-    if (!horaInicio) return 'dia';
-    const h = parseInt(horaInicio.slice(0,2), 10);
-    return (h >= 6 && h < 18) ? 'dia' : 'noche';
-  };
 
   const filtered = useMemo(() => {
     return (rows ?? []).filter((r:any) => {
@@ -672,50 +519,9 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                  || (r.instalacion_nombre || '').toLowerCase().includes(q);
         if (!hay) return false;
       }
-      
-      // Filtrar por estado de seguimiento
-      if (filtroEstado !== 'todos') {
-        const estadoActual = seguimientos[r.pauta_id]?.estado || 'sin_info';
-        if (estadoActual !== filtroEstado) return false;
-      }
-      // Filtrar por franja (día/noche)
-      if (turnoActivo !== 'todos') {
-        const tipo = clasificarTurno(r.hora_inicio);
-        if (tipo !== turnoActivo) return false;
-      }
-      
       return true;
     });
-  }, [rows, f.instalacion, f.estado, f.ppc, f.q, mostrarLibres, filtroEstado, seguimientos, turnoActivo]);
-
-  const { rowsDia, rowsNoche } = useMemo(() => {
-    const dia = filtered.filter((r:any) => clasificarTurno(r.hora_inicio) === 'dia');
-    const noche = filtered.filter((r:any) => clasificarTurno(r.hora_inicio) === 'noche');
-    return { rowsDia: dia, rowsNoche: noche };
-  }, [filtered]);
-
-  // KPIs superiores - SIEMPRE basados en datos totales, no filtrados
-  const kpis = useMemo(() => {
-    const base = rows; // Usar 'rows' en lugar de 'filtered' para KPIs totales
-    const total = base.length;
-    const ppc = base.filter((r:any) => r.es_ppc).length;
-    const ppcLibre = base.filter((r:any) => r.estado_ui === 'ppc_libre').length;
-    const asistido = base.filter((r:any) => r.estado_ui === 'asistido').length;
-    const cubiertos = base.filter((r:any) => r.estado_ui === 'reemplazo' || r.estado_ui === 'te').length;
-    const sinCobertura = base.filter((r:any) => r.estado_ui === 'sin_cobertura').length;
-    
-    // KPIs de seguimiento
-    const enPuesto = base.filter((r:any) => (seguimientos[r.pauta_id]?.estado || 'sin_info') === 'en_puesto').length;
-    const enCamino = base.filter((r:any) => (seguimientos[r.pauta_id]?.estado || 'sin_info') === 'en_camino').length;
-    const noContesta = base.filter((r:any) => (seguimientos[r.pauta_id]?.estado || 'sin_info') === 'no_contesta').length;
-    const sinInfo = base.filter((r:any) => (seguimientos[r.pauta_id]?.estado || 'sin_info') === 'sin_info').length;
-    
-    // Calcular día/noche basado en todos los datos
-    const dia = base.filter((r:any) => clasificarTurno(r.hora_inicio) === 'dia').length;
-    const noche = base.filter((r:any) => clasificarTurno(r.hora_inicio) === 'noche').length;
-    
-    return { total, ppc, ppcLibre, asistido, cubiertos, sinCobertura, enPuesto, enCamino, noContesta, sinInfo, dia, noche };
-  }, [rows, seguimientos]);
+  }, [rows, f.instalacion, f.estado, f.ppc, f.q, mostrarLibres]);
 
   if (!rows?.length) return <p className="text-sm opacity-70">Sin datos para {toDisplay(fechaStr)}.</p>;
 
@@ -748,7 +554,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
 
     return (
       <TableRow>
-        <TableCell colSpan={10} className="p-0">
+        <TableCell colSpan={7} className="p-0">
           <div className="bg-muted/50 dark:bg-muted/20 border-t">
             <div className="p-4 space-y-4">
               {/* Header del panel con título y botón cerrar */}
@@ -1086,7 +892,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                 <div className="text-xs text-muted-foreground">{row.hora_inicio.slice(0,5)} - {row.hora_fin.slice(0,5)}</div>
               )}
             </div>
-            <div>{renderEstado(row.estado_ui, row.estado_ui === 'inasistencia' && row.es_falta_sin_aviso)}</div>
+            <div>{renderEstado(row.estado_ui, row.es_falta_sin_aviso)}</div>
           </div>
 
           <div className="text-sm">
@@ -1098,57 +904,6 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
             </div>
             {row.estado_ui === 'te' && (row.cobertura_guardia_nombre || row.meta?.cobertura_guardia_id) && (
               <div className="text-xs text-muted-foreground mt-1">Cobertura: {row.cobertura_guardia_nombre || 'Guardia de cobertura'}</div>
-            )}
-          </div>
-
-          {/* Acciones de seguimiento siempre visibles */}
-          <div className="flex items-center justify-center gap-2">
-            {/* Semáforo */}
-            <Select
-              value={seguimientos[row.pauta_id]?.estado || 'sin_info'}
-              onValueChange={(value) => actualizarSeguimiento(row.pauta_id, value as EstadoSeguimiento, seguimientos[row.pauta_id]?.comentario || '')}
-            >
-              <SelectTrigger className="h-10 w-16 bg-card border-2 border-border hover:border-primary/50 transition-colors">
-                <SelectValue>
-                  <div className="flex items-center justify-center">
-                    <span className="text-lg">
-                      {getEstadoEmoji(seguimientos[row.pauta_id]?.estado || 'sin_info')}
-                    </span>
-                  </div>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="sin_info">⚪ Sin información</SelectItem>
-                <SelectItem value="en_camino">🟡 En camino</SelectItem>
-                <SelectItem value="en_puesto">🟢 En puesto</SelectItem>
-                <SelectItem value="no_contesta">🔴 No contesta</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* WhatsApp */}
-            {row.guardia_trabajo_nombre && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => abrirWhatsApp(row)}
-                disabled={!row.telefono_guardia_trabajo}
-                className="h-10 w-10 p-0 bg-green-500/10 hover:bg-green-500/20 border-green-500/30 hover:border-green-500/50 text-green-500 hover:text-green-400 transition-colors"
-              >
-                <MessageSquare className="h-4 w-4" />
-              </Button>
-            )}
-
-            {/* Llamar */}
-            {row.guardia_trabajo_nombre && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => abrirLlamada(row)}
-                disabled={!row.telefono_guardia_trabajo}
-                className="h-10 w-10 p-0 bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/30 hover:border-blue-500/50 text-blue-500 hover:text-blue-400 transition-colors"
-              >
-                <Phone className="h-4 w-4" />
-              </Button>
             )}
           </div>
 
@@ -1316,107 +1071,77 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                   />
                   <span className="text-sm">Ver libres</span>
                 </div>
-                <div className="flex items-center gap-1 ml-2">
-                  <span className="text-sm">Vista:</span>
-                  <Button size="sm" variant={vistaModo==='grid'?'default':'outline'} className="h-8 w-8 p-0" onClick={()=>setVistaModo('grid')}><Grid3X3 className="h-4 w-4"/></Button>
-                  <Button size="sm" variant={vistaModo==='list'?'default':'outline'} className="h-8 w-8 p-0" onClick={()=>setVistaModo('list')}><List className="h-4 w-4"/></Button>
-                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-
-
-        {/* KPIs en línea para desktop */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4">
-          {/* KPIs de Turnos */}
-          <Card>
-            <CardContent className="p-3">
-              <div className="text-xs font-medium uppercase mb-2 opacity-70">📊 Turnos</div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                <Button variant="ghost" className="h-auto p-2 text-center border border-border hover:bg-accent hover:text-accent-foreground" onClick={()=>setTurnoActivo('todos')}>
-                  <div className="text-xs opacity-70">Total</div>
-                  <div className="text-base font-semibold">{kpis.total}</div>
-                </Button>
-                <Button variant="ghost" className="h-auto p-2 text-center border border-border hover:bg-accent hover:text-accent-foreground" onClick={()=>setTurnoActivo('dia')}>
-                  <div className="text-xs opacity-70">🌅 Día</div>
-                  <div className="text-base font-semibold">{kpis.dia}</div>
-                </Button>
-                <Button variant="ghost" className="h-auto p-2 text-center border border-border hover:bg-accent hover:text-accent-foreground" onClick={()=>setTurnoActivo('noche')}>
-                  <div className="text-xs opacity-70">🌙 Noche</div>
-                  <div className="text-base font-semibold">{kpis.noche}</div>
-                </Button>
-                <Button variant="ghost" className="h-auto p-2 text-center border border-border hover:bg-accent hover:text-accent-foreground" onClick={()=>setF(s=>({...s, ppc: true}))}>
-                  <div className="text-xs opacity-70">PPC</div>
-                  <div className="text-base font-semibold">{kpis.ppc}</div>
-                </Button>
-                <Button variant="ghost" className="h-auto p-2 text-center border border-border hover:bg-accent hover:text-accent-foreground" onClick={()=>setF(s=>({...s, estado: 'ppc_libre'}))}>
-                  <div className="text-xs opacity-70">PPC libres</div>
-                  <div className="text-base font-semibold">{kpis.ppcLibre}</div>
+        {/* Controles de filtro */}
+        <Card className="mb-4">
+          <CardContent className="p-4">
+            {/* Toggle filtros para móvil */}
+            {isMobile && (
+              <div className="mb-2 flex items-center justify-between">
+                <Button variant="outline" size="sm" onClick={()=>setFiltersOpen(o=>!o)}>
+                  {filtersOpen ? 'Ocultar filtros' : 'Mostrar filtros'}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            )}
+            {(!isMobile || filtersOpen) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+              <Input
+                placeholder="Filtrar instalación…"
+                value={f.instalacion ?? ''} 
+                onChange={e=>setF(s=>({ ...s, instalacion: e.target.value || undefined }))}
+              />
+              
+              <Select value={f.estado ?? 'todos'} onValueChange={(value) => setF(s=>({ ...s, estado: value === 'todos' ? undefined : value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Estado (todos)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Estado (todos)</SelectItem>
+                  <SelectItem value="plan">Plan</SelectItem>
+                  <SelectItem value="ppc_libre">PPC Libre</SelectItem>
+                  <SelectItem value="asistido">Asistido</SelectItem>
+                  <SelectItem value="libre">Libre</SelectItem>
+                  <SelectItem value="reemplazo">Reemplazo</SelectItem>
+                  <SelectItem value="sin_cobertura">Sin cobertura</SelectItem>
+                  <SelectItem value="inasistencia">Inasistencia</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={f.ppc === 'all' ? 'all' : f.ppc === true ? 'true' : 'false'} 
+                      onValueChange={(value) => {
+                        const v = value as 'all'|'true'|'false';
+                        setF(s=>({ ...s, ppc: v === 'all' ? 'all' : v === 'true' }));
+                      }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="PPC (todos)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="true">Solo PPC</SelectItem>
+                  <SelectItem value="false">Solo con guardia</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Input
+                placeholder="Buscar guardia / rol / instalación…"
+                value={f.q ?? ''} 
+                onChange={e=>setF(s=>({ ...s, q: e.target.value || undefined }))}
+              />
+              
+              <Button variant="outline" size="sm" onClick={()=>setF({ ppc:'all' })}>
+                Limpiar
+              </Button>
+            </div>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* KPIs de Seguimiento */}
-          <Card>
-            <CardContent className="p-3">
-              <div className="text-xs font-medium uppercase mb-2 opacity-70">🚦 Seguimiento</div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="ghost" className="h-auto p-2 text-center border border-border hover:bg-accent hover:text-accent-foreground" onClick={()=>setFiltroEstado('sin_info')}>
-                  <div className="text-xs opacity-70">⚪ Sin información</div>
-                  <div className="text-base font-semibold">{kpis.sinInfo}</div>
-                </Button>
-                <Button variant="ghost" className="h-auto p-2 text-center border border-border hover:bg-accent hover:text-accent-foreground" onClick={()=>setFiltroEstado('en_camino')}>
-                  <div className="text-xs opacity-70">🟡 En camino</div>
-                  <div className="text-base font-semibold">{kpis.enCamino}</div>
-                </Button>
-                <Button variant="ghost" className="h-auto p-2 text-center border border-border hover:bg-accent hover:text-accent-foreground" onClick={()=>setFiltroEstado('en_puesto')}>
-                  <div className="text-xs opacity-70">🟢 En puesto</div>
-                  <div className="text-base font-semibold">{kpis.enPuesto}</div>
-                </Button>
-                <Button variant="ghost" className="h-auto p-2 text-center border border-border hover:bg-accent hover:text-accent-foreground" onClick={()=>setFiltroEstado('no_contesta')}>
-                  <div className="text-xs opacity-70">🔴 No contesta</div>
-                  <div className="text-base font-semibold">{kpis.noContesta}</div>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* KPIs de Cobertura */}
-          <Card>
-            <CardContent className="p-3">
-              <div className="text-xs font-medium uppercase mb-2 opacity-70">🛡️ Cobertura</div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="ghost" className="h-auto p-2 text-center border border-border hover:bg-accent hover:text-accent-foreground" onClick={()=>setF(s=>({...s, estado: 'asistido'}))}>
-                  <div className="text-xs opacity-70">✅ Asistidos</div>
-                  <div className="text-base font-semibold">{kpis.asistido}</div>
-                </Button>
-                <Button variant="ghost" className="h-auto p-2 text-center border border-border hover:bg-accent hover:text-accent-foreground" onClick={()=>setF(s=>({...s, estado: 'sin_cobertura'}))}>
-                  <div className="text-xs opacity-70">⛔ Sin cobertura</div>
-                  <div className="text-base font-semibold">{kpis.sinCobertura}</div>
-                </Button>
-                <Button variant="ghost" className="h-auto p-2 text-center border border-border hover:bg-accent hover:text-accent-foreground" onClick={()=>setF(s=>({...s, estado: 'reemplazo'}))}>
-                  <div className="text-xs opacity-70">🔄 Cubiertos</div>
-                  <div className="text-base font-semibold">{kpis.cubiertos}</div>
-                </Button>
-                <Button variant="outline" size="sm" className="h-auto p-2 text-center" onClick={()=>{
-                  setF({ ppc:'all' });
-                  setFiltroEstado('todos');
-                  setTurnoActivo('todos');
-                }}>
-                  <div className="text-xs">Limpiar filtros</div>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-
-
-        {/* Vista Lista o Cajas */}
-        {vistaModo === 'list' ? (
+        {/* Vista Desktop (tabla) u opción Mobile (cards) */}
+        {!isMobile ? (
           <Card>
             <CardContent className="p-0 overflow-x-auto">
               <Table>
@@ -1432,31 +1157,13 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {/* Secciones: Día y Noche */}
-                  {([
-                    { title: '🌅 Turnos de Día', items: rowsDia },
-                    { title: '🌙 Turnos de Noche', items: rowsNoche }
-                  ] as {title: string, items: PautaRow[]}[])
-                  .filter(g => g.items.length > 0)
-                  .map((group, gi) => (
-                    <React.Fragment key={`g-${gi}`}>
-                      {/* Espacio de separación entre secciones */}
-                      {gi > 0 && (
-                        <TableRow>
-                          <TableCell colSpan={7} className="h-6 bg-background"></TableCell>
-                        </TableRow>
-                      )}
-                      <TableRow>
-                        <TableCell colSpan={7} className="bg-muted/40 text-xs font-medium uppercase tracking-wide">{group.title} ({group.items.length})</TableCell>
-                      </TableRow>
-                      {group.items.map((r:PautaRow, index: number) => {
+                  {filtered.map((r:PautaRow) => {
                     const isExpanded = expandedRowId === r.pauta_id;
                     const esDuplicado = r.guardia_trabajo_id && (guardiasDuplicados.get(`${r.fecha}-${r.guardia_trabajo_id}`) || 0) > 1;
                     const isLoading = savingId === r.pauta_id;
-                    const isEven = index % 2 === 0;
                     return (
                       <React.Fragment key={r.pauta_id}>
-                        <TableRow className={`${esDuplicado ? 'bg-yellow-50 dark:bg-yellow-900/20' : isEven ? 'bg-muted/5' : 'bg-muted/10'} hover:bg-muted/30 transition-colors`}>
+                        <TableRow className={esDuplicado ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}>
                           <TableCell>{r.instalacion_nombre}</TableCell>
                           <TableCell>
                             {r.rol_nombre ? (
@@ -1495,7 +1202,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                             ) : '—'}
                           </TableCell>
                           <TableCell>
-                            <div>{renderEstado(r.estado_ui, r.estado_ui === 'inasistencia' && r.es_falta_sin_aviso)}</div>
+                            <div>{renderEstado(r.estado_ui, r.es_falta_sin_aviso)}</div>
                           </TableCell>
                           <TableCell>
                             {(() => {
@@ -1512,148 +1219,19 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                             ) : <span className="text-xs text-muted-foreground">—</span>}
                           </TableCell>
                         </TableRow>
-                        {/* Línea de seguimiento, WhatsApp y comentarios */}
-                        <TableRow className="bg-muted/30 border-t border-muted/50 hover:bg-muted/40 transition-colors">
-                          <TableCell colSpan={7} className="p-3">
-                            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-                              {/* Semáforo de seguimiento */}
-                              <div className="flex flex-col gap-1">
-                                <Label className="text-xs font-medium text-foreground">🚦 Seguimiento:</Label>
-                                <Select
-                                  value={seguimientos[r.pauta_id]?.estado || 'sin_info'}
-                                  onValueChange={(value) => actualizarSeguimiento(r.pauta_id, value as EstadoSeguimiento, seguimientos[r.pauta_id]?.comentario || '')}
-                                >
-                                  <SelectTrigger className="w-20 h-8 text-sm bg-card border-2 border-border hover:border-primary/50 transition-colors">
-                                    <SelectValue>
-                                      <div className="flex items-center justify-center">
-                                        <span className="text-lg">
-                                          {getEstadoEmoji(seguimientos[r.pauta_id]?.estado || 'sin_info')}
-                                        </span>
-                                      </div>
-                                    </SelectValue>
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="sin_info">⚪ Sin información</SelectItem>
-                                    <SelectItem value="en_camino">🟡 En camino</SelectItem>
-                                    <SelectItem value="en_puesto">🟢 En puesto</SelectItem>
-                                    <SelectItem value="no_contesta">🔴 No contesta</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              
-                              {/* WhatsApp */}
-                              {r.guardia_trabajo_nombre && (
-                                <div className="flex flex-col gap-1">
-                                  <Label className="text-xs font-medium text-foreground">📱 WhatsApp:</Label>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => abrirWhatsApp(r)}
-                                        disabled={!r.telefono_guardia_trabajo}
-                                        className="h-8 w-8 p-0 bg-green-500/10 hover:bg-green-500/20 border-green-500/30 hover:border-green-500/50 text-green-500 hover:text-green-400 transition-colors"
-                                      >
-                                        <MessageSquare className="h-4 w-4" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Contactar por WhatsApp</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </div>
-                              )}
-
-                              {/* Llamar */}
-                              {r.guardia_trabajo_nombre && (
-                                <div className="flex flex-col gap-1">
-                                  <Label className="text-xs font-medium text-foreground">📞 Llamar:</Label>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => abrirLlamada(r)}
-                                        disabled={!r.telefono_guardia_trabajo}
-                                        className="h-8 w-8 p-0 bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/30 hover:border-blue-500/50 text-blue-500 hover:text-blue-400 transition-colors"
-                                      >
-                                        <Phone className="h-4 w-4" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Llamar</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </div>
-                              )}
-                              
-                              {/* Comentarios */}
-                              <div className="flex-1 flex flex-col gap-1">
-                                <Label className="text-xs font-medium text-foreground">💬 Comentarios:</Label>
-                                <div className="flex gap-2">
-                                  <Textarea
-                                    placeholder="Escribir comentarios..."
-                                    value={seguimientos[r.pauta_id]?.comentario || ''}
-                                    onChange={(e) => {
-                                      const comentario = e.target.value;
-                                      setSeguimientos(prev => ({
-                                        ...prev,
-                                        [r.pauta_id]: { 
-                                          ...prev[r.pauta_id], 
-                                          comentario,
-                                          estado: prev[r.pauta_id]?.estado || 'sin_info'
-                                        }
-                                      }));
-                                    }}
-                                    className="min-h-[60px] text-sm resize-none flex-1 bg-card border-2 border-border focus:border-primary/50 transition-colors"
-                                  />
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 text-xs whitespace-nowrap bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/30 hover:border-blue-500/50 text-blue-500 hover:text-blue-400 transition-colors font-medium"
-                                    onClick={() => {
-                                      const seguimiento = seguimientos[r.pauta_id];
-                                      if (seguimiento) {
-                                        actualizarSeguimiento(r.pauta_id, seguimiento.estado, seguimiento.comentario);
-                                      }
-                                    }}
-                                  >
-                                    💾 Guardar
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        
                         {isExpanded && <RowPanel row={r} />}
                       </React.Fragment>
                     );
                   })}
-                    </React.Fragment>
-                  ))}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-8">
-            {rowsDia.length > 0 && (
-              <div className="bg-card border rounded-lg p-4">
-                <div className="text-xs font-medium uppercase mb-3 opacity-70">🌅 Turnos de Día ({rowsDia.length})</div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                  {rowsDia.map((r:PautaRow) => (<MobileRowCard key={`d-${r.pauta_id}`} row={r} />))}
-                </div>
-              </div>
-            )}
-            {rowsNoche.length > 0 && (
-              <div className="bg-card border rounded-lg p-4">
-                <div className="text-xs font-medium uppercase mb-3 opacity-70">🌙 Turnos de Noche ({rowsNoche.length})</div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                  {rowsNoche.map((r:PautaRow) => (<MobileRowCard key={`n-${r.pauta_id}`} row={r} />))}
-                </div>
-              </div>
-            )}
+          <div className="space-y-3">
+            {filtered.map((r:PautaRow) => (
+              <MobileRowCard key={r.pauta_id} row={r} />
+            ))}
           </div>
         )}
 

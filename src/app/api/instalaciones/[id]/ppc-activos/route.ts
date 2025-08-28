@@ -1,12 +1,9 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/database";
 
 export async function GET(
   request: NextRequest,
-  {
-
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   console.log("🔁 Endpoint activo: /api/instalaciones/[id]/ppc-activos");
   
@@ -31,7 +28,7 @@ export async function GET(
       FROM as_turnos_puestos_operativos po
       INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       INNER JOIN instalaciones i ON po.instalacion_id = i.id
-      WHERE i.id = $1 AND po.es_ppc = true AND (po.activo = true OR po.activo IS NULL) AND po.guardia_id IS NULL
+      WHERE i.id = $1 AND po.es_ppc = true AND po.activo = true AND po.guardia_id IS NULL
       ORDER BY rs.nombre, po.creado_en DESC
     `, [instalacionId]);
 

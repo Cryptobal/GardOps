@@ -1,4 +1,3 @@
-import { requireAuthz } from '@/lib/authz-api'
 /**
  * Endpoint nuevo para registrar reemplazos usando funciones de Neon
  * Llama a as_turnos.fn_registrar_reemplazo
@@ -10,10 +9,6 @@ import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 
 export async function POST(req: Request) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'turnos', action: 'create' });
-if (deny) return deny;
-
   try {
     // Parseamos el body de la petición
     const { pauta_id, cobertura_guardia_id, actor_ref, motivo } = await req.json();

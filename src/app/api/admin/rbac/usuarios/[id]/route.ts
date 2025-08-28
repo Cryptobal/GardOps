@@ -1,14 +1,8 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { requirePlatformAdmin, jsonError } from '@/lib/auth/rbac';
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const deny = await requireAuthz(req, { resource: 'admin', action: 'delete' });
-  if (deny) return deny;
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const ctx = await requirePlatformAdmin(req);
     const { id } = params;
@@ -32,12 +26,7 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const deny = await requireAuthz(req, { resource: 'admin', action: 'delete' });
-  if (deny) return deny;
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const ctx = await requirePlatformAdmin(req);
     const { id } = params;

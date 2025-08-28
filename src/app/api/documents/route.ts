@@ -1,12 +1,8 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/database";
 
 export async function GET(req: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'documents', action: 'delete' });
-  if (deny) return deny;
-
-try {
+  try {
     const { searchParams } = new URL(req.url);
     const modulo = searchParams.get("modulo");
     const entidad_id = searchParams.get("entidad_id");
@@ -41,10 +37,7 @@ try {
 }
 
 export async function DELETE(req: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'documents', action: 'delete' });
-  if (deny) return deny;
-
-try {
+  try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 

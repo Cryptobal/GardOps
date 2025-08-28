@@ -1,15 +1,14 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { getCurrentUserServer } from '@/lib/auth';
 
-// Utilidad: obtener email del JWT o cabecera x-user-email (solo nombre válido)
+// Utilidad: tomar email desde header dev o cabecera directa
 function getEmail(req: NextRequest) {
   const h = req.headers;
-  let fromHeader = '';
-  try {
-    fromHeader = h.get('x-user-email') || '';
-  } catch {}
+  const fromHeader =
+    h.get('x-user-email') ||
+    h.get('x-user-email(next/headers)') ||
+    '';
   const fromJwt = getCurrentUserServer(req as any)?.email || '';
   const isDev = process.env.NODE_ENV !== 'production';
   const dev = isDev ? process.env.NEXT_PUBLIC_DEV_USER_EMAIL : undefined;
@@ -17,9 +16,7 @@ function getEmail(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  // Perfil propio: basta con estar autenticado (JWT). No aplicar RBAC por permiso 'me.view'.
-
-try {
+  try {
     const email = getEmail(req);
     if (!email) {
       return NextResponse.json({ ok: false, error: 'No autenticado', code: 'UNAUTHENTICATED' }, { status: 401 });
@@ -78,9 +75,7 @@ try {
 }
 
 export async function PUT(req: NextRequest) {
-  // Actualización de perfil propio: requiere autenticación (JWT). RBAC específico no aplica.
-
-try {
+  try {
     const email = getEmail(req);
     if (!email) {
       return NextResponse.json({ ok: false, error: 'No autenticado', code: 'UNAUTHENTICATED' }, { status: 401 });

@@ -1,4 +1,3 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import { getCurrentUserServer } from '@/lib/auth';
@@ -8,9 +7,6 @@ import { logCRUD, logError } from '@/lib/logging';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const deny = await requireAuthz(request, { resource: 'pauta_mensual', action: 'read:list' });
-  if (deny) return deny;
-
   const startTime = Date.now();
   const timestamp = new Date().toISOString();
   
@@ -22,44 +18,18 @@ export async function GET(request: NextRequest) {
     const anio = searchParams.get('anio');
     const mes = searchParams.get('mes');
 
-    // Tomar tenant del contexto seteado por requireAuthz (priorizando selectedTenantId)
-          const ctx = (request as any).ctx as { userId: string; tenantId: string; selectedTenantId: string | null; isPlatformAdmin?: boolean };
-    // Solo usar selectedTenantId si es Platform Admin, sino usar el tenantId del usuario
-    const tenantId = ctx?.isPlatformAdmin ? (ctx?.selectedTenantId || ctx?.tenantId) : ctx?.tenantId;
-    const usuario = ctx?.userId;
-    
-    if (!tenantId) {
-      return NextResponse.json({ error: 'TENANT_REQUIRED' }, { status: 400 });
-    }
+    // Por ahora usar un tenant_id fijo para testing
+    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
 
     console.log(`[${timestamp}] 📥 Parámetros recibidos:`, { instalacion_id, anio, mes });
 
-    // Si no se proporcionan parámetros específicos, devolver resumen del tenant
     if (!instalacion_id || !anio || !mes) {
-      console.log(`[${timestamp}] 📊 Devolviendo resumen del tenant ${tenantId}`);
-      
-      // Obtener todas las instalaciones del tenant con pautas
-      const resumenResult = await query(`
-        SELECT 
-          i.id as instalacion_id,
-          i.nombre as instalacion_nombre,
-          c.nombre as cliente_nombre,
-          COUNT(DISTINCT pm.puesto_id) as puestos_con_pauta,
-          COUNT(DISTINCT po.id) as total_puestos
-        FROM instalaciones i
-        LEFT JOIN clientes c ON i.cliente_id = c.id
-        LEFT JOIN as_turnos_puestos_operativos po ON po.instalacion_id = i.id AND po.activo = true
-        LEFT JOIN as_turnos_pauta_mensual pm ON pm.puesto_id = po.id
-        WHERE i.tenant_id = $1 AND i.estado = 'Activo'
-        GROUP BY i.id, i.nombre, c.nombre
-        ORDER BY i.nombre
-      `, [tenantId]);
-      
-      return NextResponse.json({
-        success: true,
-        tipo: 'resumen',
-        data: resumenResult.rows
-      });
+      console.log(`[${timestamp}] ❌ Validación fallida: parámetros requeridos faltantes`);
+      return NextResponse.json(
+        { error: 'Parámetros requeridos: instalacion_id, anio, mes' },
+        { status: 400 }
+      );
     }
 
     // Obtener la pauta mensual desde la base de datos usando el nuevo modelo
@@ -93,7 +63,6 @@ export async function GET(request: NextRequest) {
         END as tipo_cobertura
       FROM as_turnos_pauta_mensual pm
       INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
-      INNER JOIN instalaciones i ON po.instalacion_id = i.id
       LEFT JOIN guardias g ON pm.guardia_id = g.id
       LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       LEFT JOIN guardias rg ON rg.id::text = (pm.meta->>'cobertura_guardia_id')
@@ -101,9 +70,8 @@ export async function GET(request: NextRequest) {
         AND pm.anio = $2 
         AND pm.mes = $3
         AND po.activo = true
-        AND i.tenant_id = $4
       ORDER BY po.nombre_puesto, pm.dia
-    `, [instalacion_id, anio, mes, tenantId]);
+    `, [instalacion_id, anio, mes]);
     
     const pautaQueryEnd = Date.now();
     console.log(`[${timestamp}] 🐌 Query pauta mensual: ${pautaQueryEnd - pautaQueryStart}ms, ${pautaResult.rows.length} registros encontrados`);
@@ -123,14 +91,12 @@ export async function GET(request: NextRequest) {
         g.apellido_materno,
         CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, '')) as nombre_completo
       FROM as_turnos_puestos_operativos po
-      INNER JOIN instalaciones i ON po.instalacion_id = i.id
       LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       LEFT JOIN guardias g ON po.guardia_id = g.id
       WHERE po.instalacion_id = $1 
         AND po.activo = true
-        AND i.tenant_id = $2
       ORDER BY po.nombre_puesto
-    `, [instalacion_id, tenantId]);
+    `, [instalacion_id]);
 
     // Generar días del mes
     const diasDelMes = Array.from(

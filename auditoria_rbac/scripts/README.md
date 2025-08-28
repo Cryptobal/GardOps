@@ -1,5 +1,0 @@
-- `generate_endpoint_map.ts`: escaneo estático de rutas API y heurística de permisos.
-- `snapshot_effective_permissions.ts`: snapshot por usuario/rol vía API.
-- `run_api_audit.ts`: corre Jest sobre casos generados.
-- `run_ui_audit.ts`: corre Playwright.
-- `sql_audit_runner.ts`: ejecuta SQL read-only y exporta CSV.

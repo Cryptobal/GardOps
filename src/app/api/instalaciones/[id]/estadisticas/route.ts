@@ -1,12 +1,9 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 export async function GET(
   request: NextRequest,
-  {
-
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   console.log("🔁 Endpoint activo: /api/instalaciones/[id]/estadisticas");
   
@@ -37,7 +34,7 @@ export async function GET(
           po.instalacion_id,
           COUNT(*) as count
         FROM as_turnos_puestos_operativos po
-        WHERE (po.activo = true OR po.activo IS NULL)
+        WHERE po.activo = true
         GROUP BY po.instalacion_id
       ) puestos_totales ON puestos_totales.instalacion_id = i.id
       
@@ -47,7 +44,7 @@ export async function GET(
           po.instalacion_id,
           COUNT(*) as count
         FROM as_turnos_puestos_operativos po
-        WHERE po.es_ppc = false AND po.guardia_id IS NOT NULL AND (po.activo = true OR po.activo IS NULL)
+        WHERE po.es_ppc = false AND po.guardia_id IS NOT NULL AND po.activo = true
         GROUP BY po.instalacion_id
       ) puestos_asignados ON puestos_asignados.instalacion_id = i.id
       
@@ -57,7 +54,7 @@ export async function GET(
           po.instalacion_id,
           COUNT(*) as count
         FROM as_turnos_puestos_operativos po
-        WHERE po.es_ppc = true AND (po.activo = true OR po.activo IS NULL)
+        WHERE po.es_ppc = true AND po.activo = true
         GROUP BY po.instalacion_id
       ) ppc_pendientes ON ppc_pendientes.instalacion_id = i.id
       

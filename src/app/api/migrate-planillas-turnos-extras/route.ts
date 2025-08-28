@@ -1,13 +1,8 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { getCurrentUserServer } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'migrate_planillas_turnos_extras', action: 'create' });
-if (deny) return deny;
-
   try {
     const user = getCurrentUserServer(request);
     if (!user?.email) {

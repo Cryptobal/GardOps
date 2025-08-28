@@ -1,17 +1,10 @@
-import { requireAuthz } from '@/lib/authz-api'
-import { NextResponse, NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import pool from '@/lib/database';
 
 // Forzar respuesta dinámica (sin cache) para reflejar flags inmediatamente
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
-  // Permitir flags aun si falla autorización, para no romper UI
-  try {
-    const maybeDeny = await requireAuthz(request as any, { resource: 'configuracion', action: 'read:list' });
-    if (maybeDeny && (maybeDeny as any).status === 403) return maybeDeny;
-  } catch (_) {}
-
+export async function GET() {
   try {
     const client = await pool.connect();
     try {

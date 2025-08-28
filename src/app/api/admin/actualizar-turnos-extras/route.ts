@@ -1,12 +1,7 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 export async function POST(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'admin', action: 'create' });
-if (deny) return deny;
-
   try {
     // Verificar turnos extras con valores incorrectos
     const { rows: turnosIncorrectos } = await query(`

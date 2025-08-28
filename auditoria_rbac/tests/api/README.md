@@ -1,3 +1,0 @@
-- Ejecuta `npm --prefix auditoria_rbac run audit:api`.
-- Requiere `outputs/rbac_endpoint_map.json` y `config/rbac_oracle.json`.
-- Exporta `outputs/rbac_results_api.csv` y `outputs/rbac_failures_api.md`.

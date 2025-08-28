@@ -1,12 +1,7 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "../../../lib/database";
 
 export async function GET(req: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'migrate_logs_clientes', action: 'read:list' });
-if (deny) return deny;
-
   try {
     console.log("🔧 Iniciando migración de tabla logs_clientes...");
 

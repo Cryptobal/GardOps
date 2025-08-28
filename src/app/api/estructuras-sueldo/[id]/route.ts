@@ -1,4 +1,3 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 
@@ -6,8 +5,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(req, { resource: 'estructuras_sueldo', action: 'delete' });
-  if (deny) return deny;
   try {
     const { id } = params;
     const { searchParams } = new URL(request.url);
@@ -40,8 +37,6 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(req, { resource: 'estructuras_sueldo', action: 'delete' });
-  if (deny) return deny;
   try {
     const { id } = params;
     const body = await request.json();
@@ -118,8 +113,6 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(req, { resource: 'estructuras_sueldo', action: 'delete' });
-  if (deny) return deny;
   try {
     const { id } = params;
     const { searchParams } = new URL(request.url);

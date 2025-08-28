@@ -1,4 +1,3 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../lib/database';
 
@@ -7,10 +6,7 @@ export const dynamic = 'force-dynamic';
 
 // GET /api/tipos-documentos?modulo=clientes - Obtener tipos de documentos
 export async function GET(request: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'tipos_documentos', action: 'delete' });
-  if (deny) return deny;
-
-try {
+  try {
     const { searchParams } = new URL(request.url);
     const modulo = searchParams.get('modulo');
     
@@ -58,10 +54,7 @@ try {
 
 // POST /api/tipos-documentos - Crear nuevo tipo de documento
 export async function POST(request: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'tipos_documentos', action: 'delete' });
-  if (deny) return deny;
-
-try {
+  try {
     const body = await request.json();
     const { modulo, nombre, requiere_vencimiento = false, dias_antes_alarma = 30 } = body;
     
@@ -127,10 +120,7 @@ try {
 
 // PUT /api/tipos-documentos?id=uuid - Actualizar tipo de documento
 export async function PUT(request: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'tipos_documentos', action: 'delete' });
-  if (deny) return deny;
-
-try {
+  try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     const body = await request.json();
@@ -239,10 +229,7 @@ try {
 
 // DELETE /api/tipos-documentos?id=uuid - Eliminar tipo de documento
 export async function DELETE(request: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'tipos_documentos', action: 'delete' });
-  if (deny) return deny;
-
-try {
+  try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     

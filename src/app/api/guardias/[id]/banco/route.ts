@@ -1,4 +1,3 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import { logCRUD } from '@/lib/logging';
@@ -8,8 +7,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(req, { resource: 'guardias', action: 'update' });
-  if (deny) return deny;
   try {
     const guardiaId = params.id;
     
@@ -46,8 +43,6 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(req, { resource: 'guardias', action: 'update' });
-  if (deny) return deny;
   try {
     // Permisos: admin o guardias.edit / rbac.platform_admin
     const email = await getUserEmail(request);

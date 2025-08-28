@@ -1,4 +1,3 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
@@ -16,10 +15,7 @@ function getEmail(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'admin', action: 'create' });
-  if (deny) return deny;
-
-try {
+  try {
     // 1) auth + permiso (bypass si JWT admin)
     const email = await getUserEmail(req);
     if (!email) return NextResponse.json({ ok:false, error: 'No autenticado', code:'UNAUTHENTICATED' }, { status:401 });
@@ -47,104 +43,43 @@ try {
     const hasActivo = activoParam === "true" || activoParam === "false";
     const activoBool = activoParam === "true";
 
-    // 3) scope por tenant del solicitante
-    const ctx = (req as any).ctx as { tenantId?: string } | undefined;
-    const tenantId = ctx?.tenantId ?? null;
-    // 4) queries sin composición de fragmentos
+    // 3) queries sin composición de fragmentos
     let rows;
 
     if (q && hasActivo) {
       const like = `%${q}%`;
       rows = await sql`
-        SELECT 
-          u.id, 
-          u.email, 
-          u.nombre, 
-          u.activo, 
-          u.tenant_id,
-          STRING_AGG(r.nombre, ', ' ORDER BY r.nombre) as roles
-        FROM public.usuarios u
-        LEFT JOIN usuarios_roles ur ON u.id = ur.usuario_id
-        LEFT JOIN roles r ON ur.rol_id = r.id
-        WHERE (lower(u.email) LIKE ${like} OR lower(u.nombre) LIKE ${like})
-          ${tenantId ? sql`AND u.tenant_id = ${tenantId}` : sql``}
-          AND u.activo = ${activoBool}
-        GROUP BY u.id, u.email, u.nombre, u.activo, u.tenant_id
-        ORDER BY u.fecha_creacion DESC NULLS LAST, u.email ASC
+        SELECT id, email, nombre, activo, tenant_id
+        FROM public.usuarios
+        WHERE (lower(email) LIKE ${like} OR lower(nombre) LIKE ${like})
+          AND activo = ${activoBool}
+        ORDER BY fecha_creacion DESC NULLS LAST, email ASC
         LIMIT ${limit} OFFSET ${offset};
       `;
     } else if (q) {
       const like = `%${q}%`;
       rows = await sql`
-        SELECT 
-          u.id, 
-          u.email, 
-          u.nombre, 
-          u.activo, 
-          u.tenant_id,
-          STRING_AGG(r.nombre, ', ' ORDER BY r.nombre) as roles
-        FROM public.usuarios u
-        LEFT JOIN usuarios_roles ur ON u.id = ur.usuario_id
-        LEFT JOIN roles r ON ur.rol_id = r.id
-        WHERE (lower(u.email) LIKE ${like} OR lower(u.nombre) LIKE ${like})
-          ${tenantId ? sql`AND u.tenant_id = ${tenantId}` : sql``}
-        GROUP BY u.id, u.email, u.nombre, u.activo, u.tenant_id
-        ORDER BY u.fecha_creacion DESC NULLS LAST, u.email ASC
+        SELECT id, email, nombre, activo, tenant_id
+        FROM public.usuarios
+        WHERE (lower(email) LIKE ${like} OR lower(nombre) LIKE ${like})
+        ORDER BY fecha_creacion DESC NULLS LAST, email ASC
         LIMIT ${limit} OFFSET ${offset};
       `;
     } else if (hasActivo) {
       rows = await sql`
-        SELECT 
-          u.id, 
-          u.email, 
-          u.nombre, 
-          u.activo, 
-          u.tenant_id,
-          STRING_AGG(r.nombre, ', ' ORDER BY r.nombre) as roles
-        FROM public.usuarios u
-        LEFT JOIN usuarios_roles ur ON u.id = ur.usuario_id
-        LEFT JOIN roles r ON ur.rol_id = r.id
-        WHERE u.activo = ${activoBool}
-          ${tenantId ? sql`AND u.tenant_id = ${tenantId}` : sql``}
-        GROUP BY u.id, u.email, u.nombre, u.activo, u.tenant_id
-        ORDER BY u.fecha_creacion DESC NULLS LAST, u.email ASC
+        SELECT id, email, nombre, activo, tenant_id
+        FROM public.usuarios
+        WHERE activo = ${activoBool}
+        ORDER BY fecha_creacion DESC NULLS LAST, email ASC
         LIMIT ${limit} OFFSET ${offset};
       `;
     } else {
-      if (tenantId) {
-        rows = await sql`
-          SELECT 
-            u.id, 
-            u.email, 
-            u.nombre, 
-            u.activo, 
-            u.tenant_id,
-            STRING_AGG(r.nombre, ', ' ORDER BY r.nombre) as roles
-          FROM public.usuarios u
-          LEFT JOIN usuarios_roles ur ON u.id = ur.usuario_id
-          LEFT JOIN roles r ON ur.rol_id = r.id
-          WHERE u.tenant_id = ${tenantId}
-          GROUP BY u.id, u.email, u.nombre, u.activo, u.tenant_id
-          ORDER BY u.fecha_creacion DESC NULLS LAST, u.email ASC
-          LIMIT ${limit} OFFSET ${offset};
-        `;
-      } else {
-        rows = await sql`
-          SELECT 
-            u.id, 
-            u.email, 
-            u.nombre, 
-            u.activo, 
-            u.tenant_id,
-            STRING_AGG(r.nombre, ', ' ORDER BY r.nombre) as roles
-          FROM public.usuarios u
-          LEFT JOIN usuarios_roles ur ON u.id = ur.usuario_id
-          LEFT JOIN roles r ON ur.rol_id = r.id
-          GROUP BY u.id, u.email, u.nombre, u.activo, u.tenant_id
-          ORDER BY u.fecha_creacion DESC NULLS LAST, u.email ASC
-          LIMIT ${limit} OFFSET ${offset};
-        `;
-      }
+      rows = await sql`
+        SELECT id, email, nombre, activo, tenant_id
+        FROM public.usuarios
+        ORDER BY fecha_creacion DESC NULLS LAST, email ASC
+        LIMIT ${limit} OFFSET ${offset};
+      `;
     }
 
     console.log('[admin/rbac/usuarios][GET] SQL list', { page, limit, q, activoParam })
@@ -159,10 +94,7 @@ try {
 }
 
 export async function POST(req: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'admin', action: 'create' });
-  if (deny) return deny;
-
-try {
+  try {
     // 1) Body básico y validaciones
     const body = await req.json().catch(() => null) as
       | { email?: string; nombre?: string | null; tenantId?: string | null; password?: string; roleId?: string | null }

@@ -125,18 +125,12 @@ export async function authenticateUser(credentials: LoginCredentials): Promise<A
       try { await query('UPDATE public.usuarios SET ultimo_acceso = NOW() WHERE id = $1::uuid', [user.id]); } catch {}
     }
 
-    // Crear JWT token con tenant_id y determinar si es platform admin
-    // Platform Admin: Carlos Irigoyen (tenant por defecto o sin tenant específico)
-    // Tenant Admin: admin@empresa.com (tenant específico)
-    const isDefaultTenant = user.tenant_id === '550e8400-e29b-41d4-a716-446655440000';
-    const isPlatformAdmin = !user.tenant_id || isDefaultTenant;
-    
+    // Crear JWT token con tenant_id
     const access_token = signToken({
       user_id: user.id,
       email: user.email,
       rol: user.rol as any,
-      tenant_id: user.tenant_id,
-      is_platform_admin: isPlatformAdmin
+      tenant_id: user.tenant_id
     });
 
     return {

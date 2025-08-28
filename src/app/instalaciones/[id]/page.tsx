@@ -1,21 +1,18 @@
 'use client';
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Building2, MapPin, Phone, Mail, Calendar, FileText, Settings, Edit, RefreshCw, Users, Clock, Shield, DollarSign, Satellite } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, Phone, Mail, Calendar, FileText, Settings, Edit, RefreshCw, Users, Clock, Shield, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import { GoogleMap } from '@/components/ui/google-map';
 import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@/lib/geocoding';
-import { GoogleMapsAutocomplete } from '@/components/ui/google-maps-autocomplete';
 import { getInstalacion, actualizarInstalacion, obtenerClientes, obtenerComunas, obtenerDatosCompletosInstalacion } from '@/lib/api/instalaciones';
 import { Instalacion, Cliente, Comuna } from '@/lib/schemas/instalaciones';
 import TurnosInstalacion from './components/TurnosInstalacion';
 import EstructuraServicio from './components/EstructuraServicio';
-import MonitoreoInstalacion from './components/MonitoreoInstalacion';
 import { DocumentManager } from '@/components/shared/document-manager';
 
 
@@ -32,87 +29,16 @@ export default function InstalacionDetallePage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingEstado, setPendingEstado] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [effectivePermissions, setEffectivePermissions] = useState<Record<string, string[]>>({});
-  const [permissionsLoaded, setPermissionsLoaded] = useState(false);
-  const [showEditModal, setShowEditModal] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState('');
-  const [savingEdit, setSavingEdit] = useState(false);
-  const [clientes, setClientes] = useState<Cliente[]>([]);
+
   // Estados para datos precargados
   const [turnosPrecargados, setTurnosPrecargados] = useState<any[]>([]);
   const [ppcsPrecargados, setPpcsPrecargados] = useState<any[]>([]);
   const [guardiasPrecargados, setGuardiasPrecargados] = useState<any[]>([]);
   const [rolesPrecargados, setRolesPrecargados] = useState<any[]>([]);
-  const [pautaMensualPrecargada, setPautaMensualPrecargada] = useState<any[]>([]);
-
-  // Función para actualizar KPIs localmente sin recargar página
-  const actualizarKPIsLocalmente = (tipo: string, accion: string, datos?: any) => {
-    console.log('🔄 [KPIs] Actualizando localmente:', tipo, accion, datos);
-    
-    // Actualizar turnos precargados con los nuevos datos
-    if (datos && datos.turnos) {
-      setTurnosPrecargados(datos.turnos);
-    }
-    
-    // Actualizar PPCs si están disponibles
-    if (datos && datos.ppcs) {
-      setPpcsPrecargados(datos.ppcs);
-    }
-    
-    // Actualizar guardias si están disponibles
-    if (datos && datos.guardias) {
-      setGuardiasPrecargados(datos.guardias);
-    }
-  };
-
-  // Función para actualización optimista de KPIs
-  const actualizarKPIsOptimista = (tipo: string, accion: string, datos?: any) => {
-    console.log('⚡ [KPIs] Actualización optimista:', tipo, accion, datos);
-    
-    // Actualización inmediata basada en la acción
-    if (tipo === 'guardia' && accion === 'asignar') {
-      // Incrementar guardias asignados inmediatamente
-      setTurnosPrecargados(prev => [...prev]); // Forzar re-render
-    } else if (tipo === 'guardia' && accion === 'desasignar') {
-      // Decrementar guardias asignados inmediatamente
-      setTurnosPrecargados(prev => [...prev]); // Forzar re-render
-    } else if (tipo === 'puesto' && accion === 'agregar') {
-      // Incrementar puestos inmediatamente
-      setTurnosPrecargados(prev => [...prev]); // Forzar re-render
-    } else if (tipo === 'puesto' && accion === 'eliminar') {
-      // Decrementar puestos inmediatamente
-      setTurnosPrecargados(prev => [...prev]); // Forzar re-render
-    }
-  };
 
   useEffect(() => {
     cargarInstalacion();
-    cargarPermisos();
-    cargarClientes();
   }, [instalacionId]);
-
-  const cargarPermisos = async () => {
-    try {
-      const response = await fetch('/api/me/effective-permissions');
-      if (response.ok) {
-        const data = await response.json();
-        setEffectivePermissions(data.effective || {});
-      }
-    } catch (error) {
-      console.error('Error cargando permisos:', error);
-    } finally {
-      setPermissionsLoaded(true);
-    }
-  };
-
-  const cargarClientes = async () => {
-    try {
-      const clientesData = await obtenerClientes();
-      setClientes(clientesData);
-    } catch (error) {
-      console.error('Error cargando clientes:', error);
-    }
-  };
 
   const cargarInstalacion = async () => {
     try {
@@ -224,94 +150,6 @@ export default function InstalacionDetallePage() {
     }
   };
 
-  const handleEditField = (field: string) => {
-    if (!instalacion) return;
-    
-    let currentValue = '';
-    switch (field) {
-      case 'nombre':
-        currentValue = instalacion.nombre;
-        break;
-      case 'telefono':
-        currentValue = instalacion.telefono || '';
-        break;
-      case 'valor_turno_extra':
-        currentValue = Number(instalacion.valor_turno_extra || 0).toLocaleString('es-CL');
-        break;
-      case 'direccion':
-        currentValue = instalacion.direccion || '';
-        break;
-      case 'cliente':
-        currentValue = instalacion.cliente_id || '';
-        break;
-      default:
-        currentValue = '';
-    }
-    setEditValue(currentValue);
-    setShowEditModal(field);
-  };
-
-  const saveEdit = async () => {
-    if (!editValue.trim() || !showEditModal) return;
-
-    setSavingEdit(true);
-    try {
-      const updateData: any = {};
-      
-      switch (showEditModal) {
-        case 'nombre':
-          updateData.nombre = editValue;
-          break;
-        case 'telefono':
-          // Validar formato de teléfono chileno (9 dígitos)
-          const telefonoRegex = /^[0-9]{9}$/;
-          if (!telefonoRegex.test(editValue)) {
-            alert('El teléfono debe tener exactamente 9 dígitos');
-            return;
-          }
-          updateData.telefono = editValue;
-          break;
-        case 'valor_turno_extra':
-          const valor = parseFloat(editValue.replace(/[^\d]/g, ''));
-          if (isNaN(valor) || valor < 0) {
-            alert('El valor debe ser un número positivo');
-            return;
-          }
-          updateData.valor_turno_extra = valor;
-          break;
-        case 'direccion':
-          updateData.direccion = editValue;
-          // Nota: Para una implementación completa, aquí se debería
-          // llamar a la API de geocodificación para obtener lat/lng
-          break;
-        case 'cliente':
-          updateData.cliente_id = editValue;
-          break;
-      }
-
-      const response = await fetch(`/api/instalaciones/${instalacionId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updateData)
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setInstalacion(prev => prev ? { ...prev, ...result.data } : null);
-        setShowEditModal(null);
-        setEditValue('');
-      } else {
-        console.error('Error actualizando instalación');
-      }
-    } catch (error) {
-      console.error('Error actualizando instalación:', error);
-    } finally {
-      setSavingEdit(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
@@ -418,7 +256,7 @@ export default function InstalacionDetallePage() {
         <Card className="border-0 shadow-sm bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
           <CardContent className="p-4 sm:p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              {/* Puestos */}
+              {/* Puestos Operativos */}
               <div className="flex items-center space-x-3 sm:space-x-4">
                 <div className="flex-shrink-0">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
@@ -426,15 +264,12 @@ export default function InstalacionDetallePage() {
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Puestos</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Puestos Operativos</p>
                   <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                     {(() => {
-                      // Calcular puestos reales basándose en los datos del endpoint /completa
-                      const puestosReales = turnosPrecargados.reduce((total, turno) => {
-                        return total + (turno.puestos?.length || 0);
-                      }, 0);
-                      console.log('🔍 Puestos reales calculados:', puestosReales, 'de', turnosPrecargados.length, 'turnos');
-                      return puestosReales;
+                      const total = turnosPrecargados.reduce((total, turno) => total + turno.cantidad_guardias, 0);
+                      console.log('🔍 Puestos operativos calculados:', total, 'de', turnosPrecargados.length, 'turnos');
+                      return total;
                     })()}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -454,29 +289,13 @@ export default function InstalacionDetallePage() {
                   <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Guardias Asignados</p>
                   <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                     {(() => {
-                      // Calcular guardias asignados reales basándose en los puestos con guardia asignado
-                      const guardiasAsignados = turnosPrecargados.reduce((total, turno) => {
-                        const puestosConGuardia = turno.puestos?.filter((puesto: any) => 
-                          puesto.guardia_nombre && puesto.guardia_nombre !== 'Sin guardia'
-                        ) || [];
-                        return total + puestosConGuardia.length;
-                      }, 0);
-                      console.log('🔍 Guardias asignados reales calculados:', guardiasAsignados);
-                      return guardiasAsignados;
+                      const asignados = guardiasPrecargados.filter((g: any) => g.tipo === 'asignado').length;
+                      console.log('🔍 Guardias asignados calculados:', asignados, 'de', guardiasPrecargados.length, 'total');
+                      return asignados;
                     })()}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {(() => {
-                      const guardiasActivos = turnosPrecargados.reduce((total, turno) => {
-                        const puestosConGuardiaActivo = turno.puestos?.filter((puesto: any) => 
-                          puesto.guardia_nombre && 
-                          puesto.guardia_nombre !== 'Sin guardia' && 
-                          puesto.activo
-                        ) || [];
-                        return total + puestosConGuardiaActivo.length;
-                      }, 0);
-                      return `${guardiasActivos} activos`;
-                    })()}
+                    {guardiasPrecargados.filter((g: any) => g.tipo === 'asignado' && g.activo).length} activos
                   </p>
                 </div>
               </div>
@@ -503,7 +322,7 @@ export default function InstalacionDetallePage() {
                 </div>
               </div>
 
-              {/* Turnos */}
+              {/* Roles de Servicio */}
               <div className="flex items-center space-x-3 sm:space-x-4">
                 <div className="flex-shrink-0">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
@@ -511,16 +330,15 @@ export default function InstalacionDetallePage() {
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Turnos</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Roles de Servicio</p>
                   <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                     {(() => {
-                      const activos = turnosPrecargados.filter((t: any) => t.estado === 'Activo').length;
-                      console.log('🔍 Turnos activos calculados:', activos, 'de', turnosPrecargados.length, 'total');
-                      return activos;
+                      console.log('🔍 Roles de servicio calculados:', turnosPrecargados.length, 'activos');
+                      return turnosPrecargados.length;
                     })()}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {turnosPrecargados.filter((t: any) => t.estado === 'Activo').length} activos
+                    {turnosPrecargados.length} activos
                   </p>
                 </div>
               </div>
@@ -531,7 +349,7 @@ export default function InstalacionDetallePage() {
 
       {/* Pestañas optimizadas para móviles */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 h-auto sticky top-0 z-10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <TabsList className="grid w-full grid-cols-4 h-auto sticky top-0 z-10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <TabsTrigger value="informacion" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
             <Building2 className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Información</span>
@@ -541,11 +359,6 @@ export default function InstalacionDetallePage() {
             <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Asignaciones</span>
             <span className="sm:hidden">Asign</span>
-          </TabsTrigger>
-          <TabsTrigger value="monitoreo" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
-            <Satellite className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Monitoreo</span>
-            <span className="sm:hidden">Monit</span>
           </TabsTrigger>
           <TabsTrigger value="estructura" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
             <DollarSign className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -573,96 +386,25 @@ export default function InstalacionDetallePage() {
                 <div className="space-y-3 sm:space-y-4">
                   <div>
                     <label className="text-xs sm:text-sm font-medium text-gray-600">Nombre de la Instalación</label>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm sm:text-lg font-semibold">{instalacion.nombre}</p>
-                                            {permissionsLoaded && can('instalaciones', 'update', effectivePermissions) && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditField('nombre')}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
+                    <p className="text-sm sm:text-lg font-semibold">{instalacion.nombre}</p>
                   </div>
                   <div>
                     <label className="text-xs sm:text-sm font-medium text-gray-600">Cliente</label>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm sm:text-lg">{instalacion.cliente_nombre}</p>
-                      {permissionsLoaded && can('instalaciones', 'update', effectivePermissions) && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditField('cliente')}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
+                    <p className="text-sm sm:text-lg">{instalacion.cliente_nombre}</p>
                   </div>
                   <div>
                     <label className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-1">
                       <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
                       Dirección
                     </label>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm sm:text-lg">{instalacion.direccion}</p>
-                      {permissionsLoaded && can('instalaciones', 'update', effectivePermissions) && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditField('direccion')}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
+                    <p className="text-sm sm:text-lg">{instalacion.direccion}</p>
                   </div>
                 </div>
                 <div className="space-y-3 sm:space-y-4">
-                                     <div>
-                     <label className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-1">
-                       <Phone className="h-3 w-3 sm:h-4 sm:w-4" />
-                       Teléfono de Contacto
-                     </label>
-                     <div className="flex items-center gap-2">
-                       <p className="text-sm sm:text-lg">
-                         {instalacion.telefono || 'No configurado'}
-                       </p>
-                       {permissionsLoaded && can('instalaciones', 'update', effectivePermissions) && (
-                         <Button
-                           variant="ghost"
-                           size="sm"
-                           onClick={() => handleEditField('telefono')}
-                           className="h-6 w-6 p-0"
-                         >
-                           <Edit className="h-3 w-3" />
-                         </Button>
-                       )}
-                     </div>
-                   </div>
-                                     <div>
-                     <label className="text-xs sm:text-sm font-medium text-gray-600">Valor Turno Extra</label>
-                     <div className="flex items-center gap-2">
-                       <p className="text-sm sm:text-lg">
-                         ${Number(instalacion.valor_turno_extra || 0).toLocaleString('es-CL')}
-                       </p>
-                       {permissionsLoaded && can('instalaciones', 'update', effectivePermissions) && (
-                         <Button
-                           variant="ghost"
-                           size="sm"
-                           onClick={() => handleEditField('valor_turno_extra')}
-                           className="h-6 w-6 p-0"
-                         >
-                           <Edit className="h-3 w-3" />
-                         </Button>
-                       )}
-                     </div>
-                   </div>
+                  <div>
+                    <label className="text-xs sm:text-sm font-medium text-gray-600">Valor Turno Extra</label>
+                    <p className="text-sm sm:text-lg">${instalacion.valor_turno_extra?.toLocaleString() || 0}</p>
+                  </div>
                   <div>
                     <label className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-1">
                       <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -760,22 +502,11 @@ export default function InstalacionDetallePage() {
         <TabsContent value="asignaciones" className="mt-4 sm:mt-6">
           <TurnosInstalacion 
             instalacionId={instalacionId} 
-            effectivePermissions={effectivePermissions}
-            turnosPrecargados={turnosPrecargados}
-            ppcsPrecargados={ppcsPrecargados}
-            guardiasPrecargados={guardiasPrecargados}
-            rolesPrecargados={rolesPrecargados}
-            onActualizarKPIs={actualizarKPIsLocalmente}
-            onActualizarKPIsOptimista={actualizarKPIsOptimista}
-          />
-        </TabsContent>
-
-        {/* Contenido de la pestaña Monitoreo */}
-        <TabsContent value="monitoreo" className="mt-4 sm:mt-6">
-          <MonitoreoInstalacion 
-            instalacionId={instalacionId}
-            instalacionNombre={instalacion.nombre}
-            effectivePermissions={effectivePermissions}
+            instalacionNombre={instalacion?.nombre || 'Instalación'}
+            turnosPrecargados={turnosPrecargados} 
+            ppcsPrecargados={ppcsPrecargados} 
+            guardiasPrecargados={guardiasPrecargados} 
+            rolesPrecargados={rolesPrecargados} 
           />
         </TabsContent>
 
@@ -828,123 +559,6 @@ export default function InstalacionDetallePage() {
                   }`}
                 >
                   {pendingEstado === 'Activo' ? 'Activar' : 'Inactivar'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de edición individual */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4 border border-gray-200 dark:border-gray-700">
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-base sm:text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">
-                  Editar {showEditModal === 'nombre' ? 'Nombre' : 
-                          showEditModal === 'telefono' ? 'Teléfono' : 
-                          showEditModal === 'valor_turno_extra' ? 'Valor Turno Extra' :
-                          showEditModal === 'direccion' ? 'Dirección' :
-                          showEditModal === 'cliente' ? 'Cliente' : 'Campo'}
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                  {showEditModal === 'telefono' ? 'Ingresa el número de teléfono celular (9 dígitos)' :
-                   showEditModal === 'valor_turno_extra' ? 'Ingresa el valor del turno extra' :
-                   showEditModal === 'direccion' ? 'Ingresa la dirección de la instalación' :
-                   showEditModal === 'cliente' ? 'Selecciona el cliente de la instalación' :
-                   'Ingresa el nuevo valor'}
-                </p>
-              </div>
-              
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {showEditModal === 'nombre' ? 'Nombre' : 
-                   showEditModal === 'telefono' ? 'Teléfono' : 
-                   showEditModal === 'valor_turno_extra' ? 'Valor' :
-                   showEditModal === 'direccion' ? 'Dirección' :
-                   showEditModal === 'cliente' ? 'Cliente' : 'Valor'}
-                </label>
-                {showEditModal === 'direccion' ? (
-                  <GoogleMapsAutocomplete
-                    value={editValue}
-                    onChange={setEditValue}
-                    placeholder="Av. La Dehesa 222"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-                    disabled={false}
-                  />
-                ) : showEditModal === 'cliente' ? (
-                  <select
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                  >
-                    <option value="">Selecciona un cliente</option>
-                    {clientes.map((cliente) => (
-                      <option key={cliente.id} value={cliente.id}>
-                        {cliente.nombre}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type={showEditModal === 'telefono' ? 'tel' : 
-                          showEditModal === 'valor_turno_extra' ? 'text' : 'text'}
-                    value={editValue}
-                    onChange={(e) => {
-                      if (showEditModal === 'telefono') {
-                        setEditValue(e.target.value.replace(/\D/g, '').slice(0, 9));
-                      } else if (showEditModal === 'valor_turno_extra') {
-                        // Solo permitir números y formatear con separadores de miles
-                        const numericValue = e.target.value.replace(/[^\d]/g, '');
-                        if (numericValue) {
-                          const formattedValue = Number(numericValue).toLocaleString('es-CL');
-                          setEditValue(formattedValue);
-                        } else {
-                          setEditValue('');
-                        }
-                      } else {
-                        setEditValue(e.target.value);
-                      }
-                    }}
-                    placeholder={showEditModal === 'telefono' ? '912345678' : 
-                                showEditModal === 'valor_turno_extra' ? '35.000' : 'Nuevo valor'}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-                    maxLength={showEditModal === 'telefono' ? 9 : undefined}
-                    autoComplete="off"
-                  />
-                )}
-                {showEditModal === 'telefono' && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Solo números, máximo 9 dígitos
-                  </p>
-                )}
-                {showEditModal === 'valor_turno_extra' && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Solo números, se formateará automáticamente con separadores de miles
-                  </p>
-                )}
-              </div>
-
-              <div className="flex gap-2 sm:gap-3 justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowEditModal(null);
-                    setEditValue('');
-                  }}
-                  className="px-3 sm:px-4 text-xs sm:text-sm"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={saveEdit}
-                  disabled={savingEdit || !editValue.trim() || 
-                           (showEditModal === 'telefono' && editValue.length !== 9) ||
-                           (showEditModal === 'valor_turno_extra' && !editValue.trim())}
-                  className="px-3 sm:px-4 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700"
-                >
-                  {savingEdit ? 'Guardando...' : 'Guardar'}
                 </Button>
               </div>
             </div>

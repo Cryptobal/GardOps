@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,42 +11,11 @@ import {
   TrendingUp,
   Users,
   Building,
-  Calendar,
-  Building2
+  Calendar
 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PayrollPage() {
-  const [kpis, setKpis] = useState({
-    guardiasActivos: 0,
-    instalaciones: 0,
-    bonosConfigurados: 0
-  });
-  const [loading, setLoading] = useState(true);
-
-  // Cargar KPIs del tenant seleccionado
-  useEffect(() => {
-    const fetchKPIs = async () => {
-      try {
-        const response = await fetch('/api/dashboard/kpis-simple');
-        const data = await response.json();
-        
-        if (data.success) {
-          setKpis({
-            guardiasActivos: data.data.puestosActivos || 0,
-            instalaciones: data.data.instalacionesActivas || 0,
-            bonosConfigurados: 0 // Por ahora 0, se puede implementar después
-          });
-        }
-      } catch (error) {
-        console.error('Error cargando KPIs de payroll:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchKPIs();
-  }, []);
   const payrollModules = [
     {
       title: 'Ítems Globales',
@@ -67,30 +34,28 @@ export default function PayrollPage() {
       color: 'bg-yellow-50 border-yellow-200'
     },
     {
-      title: '🏗️ Estructuras Unificadas',
-      description: 'Gestión centralizada de estructuras de servicio y por guardia',
-      icon: Building2,
-      href: '/payroll/estructuras-unificadas',
+      title: 'Estructuras de Servicio',
+      description: 'Configura las estructuras salariales por instalación y rol',
+      icon: Building,
+      href: '/payroll/estructuras',
       status: 'active',
-      color: 'bg-purple-50 border-purple-200'
+      color: 'bg-blue-50 border-blue-200'
     },
-
+    {
+      title: 'Estructuras por Guardia',
+      description: 'Gestiona las estructuras salariales personalizadas por guardia',
+      icon: Users,
+      href: '/payroll/estructuras-guardia',
+      status: 'active',
+      color: 'bg-green-50 border-green-200'
+    },
     {
       title: 'Cálculo de Sueldos',
       description: 'Genera y revisa los cálculos salariales de los guardias',
       icon: Calculator,
       href: '/payroll/calculos',
-      status: 'active',
+      status: 'coming-soon',
       color: 'bg-purple-50 border-purple-200'
-    },
-
-    {
-      title: 'Ejemplo de Cálculo',
-      description: 'Demostración de cálculos usando valores UF/UTM en tiempo real',
-      icon: Calculator,
-      href: '/payroll/calculo-ejemplo',
-      status: 'active',
-      color: 'bg-cyan-50 border-cyan-200'
     },
     {
       title: 'Planillas',
@@ -105,7 +70,7 @@ export default function PayrollPage() {
       description: 'Configura AFP, ISAPRE, impuestos y otros parámetros',
       icon: Settings,
       href: '/payroll/parametros',
-      status: 'active',
+      status: 'coming-soon',
       color: 'bg-gray-50 border-gray-200'
     },
     {
@@ -113,7 +78,7 @@ export default function PayrollPage() {
       description: 'Genera reportes y análisis de costos laborales',
       icon: TrendingUp,
       href: '/payroll/reportes',
-      status: 'active',
+      status: 'coming-soon',
       color: 'bg-indigo-50 border-indigo-200'
     }
   ];
@@ -136,9 +101,7 @@ export default function PayrollPage() {
               <Users className="h-8 w-8 text-blue-600" />
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Guardias Activos</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {loading ? '...' : kpis.guardiasActivos}
-                </p>
+                <p className="text-2xl font-bold text-foreground">247</p>
               </div>
             </div>
           </CardContent>
@@ -150,9 +113,7 @@ export default function PayrollPage() {
               <Building className="h-8 w-8 text-green-600" />
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Instalaciones</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {loading ? '...' : kpis.instalaciones}
-                </p>
+                <p className="text-2xl font-bold text-foreground">18</p>
               </div>
             </div>
           </CardContent>
@@ -164,9 +125,7 @@ export default function PayrollPage() {
               <DollarSign className="h-8 w-8 text-purple-600" />
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Bonos Configurados</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {loading ? '...' : kpis.bonosConfigurados}
-                </p>
+                <p className="text-2xl font-bold text-foreground">12</p>
               </div>
             </div>
           </CardContent>

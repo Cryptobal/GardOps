@@ -1,12 +1,8 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextResponse } from 'next/server';
 import { registrarPermiso, registrarFiniquito, obtenerPermisos } from '@/lib/db/permisos';
 
 export async function POST(req: Request) {
-  const deny = await requireAuthz(req, { resource: 'guardias', action: 'read:list' });
-  if (deny) return deny;
-
-const body = await req.json();
+  const body = await req.json();
 
   if (!body || !body.tipo || !body.guardiaId) {
     return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
@@ -37,10 +33,7 @@ const body = await req.json();
 }
 
 export async function GET(req: Request) {
-  const deny = await requireAuthz(req, { resource: 'guardias', action: 'read:list' });
-  if (deny) return deny;
-
-const { searchParams } = new URL(req.url);
+  const { searchParams } = new URL(req.url);
   const guardiaId = searchParams.get('guardiaId');
   const tipo = searchParams.get('tipo') || undefined;
 

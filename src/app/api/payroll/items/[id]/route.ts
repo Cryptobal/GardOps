@@ -1,4 +1,3 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
@@ -7,8 +6,6 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(req, { resource: 'payroll', action: 'delete' });
-  if (deny) return deny;
   try {
     const { id } = params;
     const body = await request.json();
@@ -127,8 +124,6 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(req, { resource: 'payroll', action: 'delete' });
-  if (deny) return deny;
   try {
     const { id } = params;
 

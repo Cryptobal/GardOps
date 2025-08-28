@@ -1,4 +1,3 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
@@ -16,9 +15,6 @@ function generateCodigo(nombre: string): string {
 
 // GET - Obtener todos los ítems globales
 export async function GET(request: NextRequest) {
-  const deny = await requireAuthz(request, { resource: 'payroll', action: 'create' });
-  if (deny) return deny;
-
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
@@ -92,9 +88,6 @@ export async function GET(request: NextRequest) {
 
 // POST - Crear nuevo ítem global
 export async function POST(request: NextRequest) {
-  const deny = await requireAuthz(request, { resource: 'payroll', action: 'create' });
-  if (deny) return deny;
-
   try {
     const body = await request.json();
     const { 

@@ -25,7 +25,6 @@ export interface PautaRow {
   rol_alias?: string | null;
   reemplazo_guardia_nombre?: string | null;
   cobertura_guardia_nombre?: string | null; // Nombre del guardia que cubre (PPC o reemplazo)
-  telefono_guardia_trabajo?: string | null; // Teléfono del guardia de trabajo
 }
 
 export interface PautaDiariaV2Props {

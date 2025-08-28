@@ -1,3 +1,12 @@
+-- Crear tabla de valores UF
+CREATE TABLE IF NOT EXISTS sueldo_valor_uf (
+  id SERIAL PRIMARY KEY,
+  fecha DATE NOT NULL UNIQUE,
+  valor DECIMAL(10,2) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Crear tabla de parámetros generales
 CREATE TABLE IF NOT EXISTS sueldo_parametros_generales (
   id SERIAL PRIMARY KEY,
@@ -56,6 +65,36 @@ CREATE TABLE IF NOT EXISTS sueldo_tramos_impuesto (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Insertar valores UF para 2024-2025
+INSERT INTO sueldo_valor_uf (fecha, valor) VALUES
+('2024-01-01', 36789.36),
+('2024-02-01', 36815.09),
+('2024-03-01', 36938.43),
+('2024-04-01', 37026.86),
+('2024-05-01', 37105.24),
+('2024-06-01', 37188.09),
+('2024-07-01', 37261.59),
+('2024-08-01', 37306.17),
+('2024-09-01', 37354.68),
+('2024-10-01', 37446.67),
+('2024-11-01', 37534.28),
+('2024-12-01', 37665.84),
+('2025-01-01', 37746.56),
+('2025-02-01', 37800.00),
+('2025-03-01', 37850.00),
+('2025-04-01', 37900.00),
+('2025-05-01', 37950.00),
+('2025-06-01', 38000.00),
+('2025-07-01', 38050.00),
+('2025-08-01', 38100.00),
+('2025-09-01', 38150.00),
+('2025-10-01', 38200.00),
+('2025-11-01', 38250.00),
+('2025-12-01', 38300.00)
+ON CONFLICT (fecha) DO UPDATE 
+SET valor = EXCLUDED.valor,
+    updated_at = CURRENT_TIMESTAMP;
 
 -- Insertar parámetros generales
 INSERT INTO sueldo_parametros_generales (parametro, valor, descripcion, fecha_vigencia) VALUES

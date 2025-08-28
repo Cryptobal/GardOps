@@ -1,14 +1,9 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import { hashPassword } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST() {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'create_second_tenant', action: 'create' });
-if (deny) return deny;
-
   try {
     // Eliminar usuarios y tenant demo anterior si existen
     await query(`DELETE FROM usuarios WHERE email LIKE '%@demo.cl'`);

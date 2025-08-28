@@ -1,4 +1,3 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../../../lib/database';
 import { logCRUD } from '@/lib/logging';
@@ -7,9 +6,7 @@ import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
 // PUT /api/guardias/[id]/fecha-os10 - Actualizar fecha de OS10
 export async function PUT(
   request: NextRequest,
-  {
-
- params }: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   console.log('🔍 API Guardias - Actualizando fecha OS10:', params.id);
   

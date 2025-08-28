@@ -1,11 +1,7 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/database";
 
 export async function POST(request: NextRequest) {
-const deny = await requireAuthz(request, { resource: 'ppc', action: 'create' });
-if (deny) return deny;
-
   try {
     const { guardia_id, puesto_operativo_id } = await request.json();
 

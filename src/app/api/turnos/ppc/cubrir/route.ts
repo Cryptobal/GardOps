@@ -1,4 +1,3 @@
-import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { withPermission } from '@/app/api/_middleware/withPermission';
 import { getClient } from '@/lib/database';
@@ -8,10 +7,6 @@ import { unstable_noStore as noStore } from 'next/cache';
 export const dynamic = 'force-dynamic';
 
 export const POST = withPermission('turnos.marcar_asistencia', async (req: NextRequest) => {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'turnos', action: 'create' });
-if (deny) return deny;
-
   noStore();
   try {
     const { pauta_id, guardia_id, turno_id, cobertura_guardia_id } = await req.json();

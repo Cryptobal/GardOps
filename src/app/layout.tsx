@@ -4,9 +4,6 @@ import './globals.css'
 import { AuthWrapper } from '../components/layout/auth-wrapper'
 import { ToastContainer } from '../components/ui/toast'
 import { ErrorBoundary } from '../components/debug-error-boundary'
-import { PermissionsProvider } from '../lib/permissions-context'
-import { PermissionsLoading } from '../components/layout/permissions-loading'
-import { NotificationProvider } from '../contexts/NotificationContext'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -22,23 +19,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className="dark">
-      <head>
-        <script
-          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`}
-          async
-          defer
-        />
-      </head>
       <body className={inter.className}>
         <ErrorBoundary>
-          <NotificationProvider>
-            <PermissionsProvider>
-              <AuthWrapper>
-                {children}
-              </AuthWrapper>
-            </PermissionsProvider>
-            <ToastContainer />
-          </NotificationProvider>
+          <AuthWrapper>
+            {children}
+          </AuthWrapper>
+          <ToastContainer />
         </ErrorBoundary>
       </body>
     </html>
