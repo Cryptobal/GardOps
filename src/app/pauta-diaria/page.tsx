@@ -1,4 +1,4 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import { redirect } from 'next/navigation'
 import { isFlagEnabled } from '@/lib/flags'
 import { unstable_noStore as noStore } from 'next/cache'

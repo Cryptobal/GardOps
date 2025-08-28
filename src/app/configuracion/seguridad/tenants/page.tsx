@@ -1,6 +1,6 @@
 "use client";
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import { useEffect, useState, useCallback } from "react";
 import { rbacFetch } from "@/lib/rbacClient";
 import { Button } from "@/components/ui/button";
@@ -195,11 +195,9 @@ export default function TenantsPage() {
             </p>
           </div>
           <div className="flex justify-end">
-            <Authorize resource="configuracion" action="create" eff={effectivePermissions}>
-  <GuardButton resource="configuracion" action="create" eff={effectivePermissions}  onClick={createTenant} disabled={submitting || !isFormValid}>
+            <Button onClick={createTenant} disabled={submitting || !isFormValid}>
               {submitting ? 'Creando...' : 'Crear Tenant con Admin'}
-            </GuardButton>
-</Authorize>
+            </Button>
           </div>
         </CardContent>
       </Card>

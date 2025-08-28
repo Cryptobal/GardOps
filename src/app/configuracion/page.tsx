@@ -1,4 +1,4 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
@@ -108,18 +108,18 @@ export default function ConfiguracionPage() {
           </Card>
         </Link>
 
-        {/* Estructuras de Servicio */}
-        <Link href="/configuracion/estructuras-servicio">
+        {/* Estructuras Unificadas */}
+        <Link href="/payroll/estructuras-unificadas">
           <Card className="card-elegant hover:shadow-lg transition-all duration-200 cursor-pointer group h-full">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <DollarSign className="h-5 w-5 text-purple-500 flex-shrink-0" />
-                Estructuras de Servicio
+                🏗️ Estructuras Unificadas
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Configurar estructuras salariales, bonificaciones y descuentos por rol de servicio
+                Gestión centralizada de estructuras salariales por instalación, rol y guardia
               </p>
               <div className="mt-4 flex items-center text-purple-500 text-sm font-medium group-hover:underline">
                 Gestionar estructuras →

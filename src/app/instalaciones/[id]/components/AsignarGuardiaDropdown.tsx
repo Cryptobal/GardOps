@@ -1,6 +1,6 @@
 'use client';
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { GuardiaSearchModal } from '@/components/ui/guardia-search-modal';
@@ -41,12 +41,20 @@ export default function AsignarGuardiaDropdown({
   const cargarGuardias = async () => {
     try {
       setCargandoGuardias(true);
+      console.log('🔍 Cargando guardias para instalación:', instalacionId);
       const response = await fetch(`/api/guardias/disponibles?instalacionId=${instalacionId}`);
+      console.log('🔍 Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Error al obtener guardias disponibles');
+        const errorText = await response.text();
+        console.error('🔍 Error response:', errorText);
+        throw new Error(`Error al obtener guardias disponibles: ${response.status} ${errorText}`);
       }
+      
       const guardiasData = await response.json();
-      const guardiasFinales = guardiasData.guardias || guardiasData;
+      console.log('🔍 Guardias data recibida:', guardiasData);
+      
+      const guardiasFinales = guardiasData.items || guardiasData.guardias || guardiasData;
       console.log('🔍 Debug AsignarGuardiaDropdown - guardias cargados:', guardiasFinales.slice(0, 3));
       setGuardias(guardiasFinales);
     } catch (error) {
@@ -60,13 +68,15 @@ export default function AsignarGuardiaDropdown({
   const handleSelectGuardia = async (guardiaId: string) => {
     try {
       setLoading(true);
+      console.log('🔍 Asignando guardia:', { guardiaId, ppcId, instalacionId });
       await asignarGuardiaPPC(instalacionId, ppcId, guardiaId);
       
+      console.log('✅ Guardia asignado exitosamente');
       toast.success('Guardia asignado correctamente', 'Éxito');
       onAsignacionCompletada();
       setModalOpen(false);
     } catch (error) {
-      console.error('Error asignando guardia:', error);
+      console.error('❌ Error asignando guardia:', error);
       toast.error('No se pudo asignar el guardia', 'Error');
     } finally {
       setLoading(false);

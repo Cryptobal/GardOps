@@ -1,224 +1,133 @@
+import { config } from 'dotenv';
+import * as path from 'path';
+
+// Cargar variables de entorno
+config({ path: path.join(__dirname, '../.env.local') });
+
 import { query } from '../src/lib/database';
 
 async function auditoriaCompletaTurnos() {
-  console.log('🔍 AUDITORÍA COMPLETA DE TURNOS Y PPCs\n');
-  console.log('==========================================\n');
+  console.log('🔍 AUDITORÍA COMPLETA DEL SISTEMA DE TURNOS');
+  console.log('===========================================\n');
 
   try {
-    // 1. AUDITORÍA DE LA INSTALACIÓN ESPECÍFICA
-    console.log('1️⃣ AUDITORÍA DE LA INSTALACIÓN: 15631bd6-03a9-459d-ae60-fc480f7f3e84\n');
-    
-    const instalacion = await query(`
-      SELECT id, nombre, cliente_id, estado
-      FROM instalaciones 
-      WHERE id = '15631bd6-03a9-459d-ae60-fc480f7f3e84'
+    // 1. Verificar tablas existentes
+    console.log('1️⃣ TABLAS EXISTENTES:');
+    const tablas = await query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name LIKE 'as_turnos_%'
+      ORDER BY table_name
     `);
     
-    if (instalacion.rows.length > 0) {
-      console.log('📋 Instalación encontrada:', instalacion.rows[0]);
-    } else {
-      console.log('❌ Instalación no encontrada');
-      return;
-    }
+    tablas.rows.forEach((row: any) => console.log(`  ✅ ${row.table_name}`));
 
-    // 2. AUDITORÍA DE CONFIGURACIÓN DE TURNOS
-    console.log('\n2️⃣ AUDITORÍA DE as_turnos_configuracion:\n');
-    
-    const configuracion = await query(`
-      SELECT 
-        tc.id,
-        tc.instalacion_id,
-        tc.rol_servicio_id,
-        tc.cantidad_guardias,
-        tc.estado,
-        tc.created_at,
-        tc.updated_at,
-        rs.nombre as rol_nombre
-      FROM as_turnos_configuracion tc
-      INNER JOIN as_turnos_roles_servicio rs ON tc.rol_servicio_id = rs.id
-      WHERE tc.instalacion_id = '15631bd6-03a9-459d-ae60-fc480f7f3e84'
-    `);
-    
-    console.log('📊 Configuraciones de turnos encontradas:', configuracion.rows.length);
-    configuracion.rows.forEach((row: any, index: number) => {
-      console.log(`   ${index + 1}. ID: ${row.id}`);
-      console.log(`      Rol: ${row.rol_nombre}`);
-      console.log(`      Cantidad guardias: ${row.cantidad_guardias}`);
-      console.log(`      Estado: ${row.estado}`);
-      console.log(`      Creado: ${row.created_at}`);
-      console.log(`      Actualizado: ${row.updated_at}\n`);
-    });
-
-    // 3. AUDITORÍA DE REQUISITOS DE PUESTOS
-    console.log('3️⃣ AUDITORÍA DE as_turnos_requisitos:\n');
-    
-    const requisitos = await query(`
-      SELECT 
-        tr.id,
-        tr.instalacion_id,
-        tr.rol_servicio_id,
-        tr.cantidad_guardias,
-        tr.estado,
-        tr.created_at,
-        tr.updated_at,
-        rs.nombre as rol_nombre
-      FROM as_turnos_requisitos tr
-      INNER JOIN as_turnos_roles_servicio rs ON tr.rol_servicio_id = rs.id
-      WHERE tr.instalacion_id = '15631bd6-03a9-459d-ae60-fc480f7f3e84'
-    `);
-    
-    console.log('📊 Requisitos de puestos encontrados:', requisitos.rows.length);
-    requisitos.rows.forEach((row: any, index: number) => {
-      console.log(`   ${index + 1}. ID: ${row.id}`);
-      console.log(`      Rol: ${row.rol_nombre}`);
-      console.log(`      Cantidad guardias: ${row.cantidad_guardias}`);
-      console.log(`      Estado: ${row.estado}`);
-      console.log(`      Creado: ${row.created_at}\n`);
-    });
-
-    // 4. AUDITORÍA DE PPCs
-    console.log('4️⃣ AUDITORÍA DE as_turnos_ppc:\n');
-    
-    const ppcs = await query(`
-      SELECT 
-        ppc.id,
-        ppc.requisito_puesto_id,
-        ppc.guardia_asignado_id,
-        ppc.cantidad_faltante,
-        ppc.estado,
-        ppc.created_at,
-        ppc.updated_at,
-        tr.rol_servicio_id,
-        rs.nombre as rol_nombre
-      FROM as_turnos_ppc ppc
-      INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
-      INNER JOIN as_turnos_roles_servicio rs ON tr.rol_servicio_id = rs.id
-      WHERE tr.instalacion_id = '15631bd6-03a9-459d-ae60-fc480f7f3e84'
-    `);
-    
-    console.log('📊 PPCs encontrados:', ppcs.rows.length);
-    ppcs.rows.forEach((row: any, index: number) => {
-      console.log(`   ${index + 1}. ID: ${row.id}`);
-      console.log(`      Requisito ID: ${row.requisito_puesto_id}`);
-      console.log(`      Rol: ${row.rol_nombre}`);
-      console.log(`      Cantidad faltante: ${row.cantidad_faltante}`);
-      console.log(`      Estado: ${row.estado}`);
-      console.log(`      Guardia asignado: ${row.guardia_asignado_id || 'Ninguno'}`);
-      console.log(`      Creado: ${row.created_at}\n`);
-    });
-
-    // 5. AUDITORÍA DE ASIGNACIONES
-    console.log('5️⃣ AUDITORÍA DE as_turnos_asignaciones:\n');
-    
-    const asignaciones = await query(`
-      SELECT 
-        ta.id,
-        ta.guardia_id,
-        ta.requisito_puesto_id,
-        ta.estado,
-        ta.created_at,
-        ta.updated_at,
-        g.nombre || ' ' || g.apellido_paterno as guardia_nombre,
-        tr.rol_servicio_id,
-        rs.nombre as rol_nombre
-      FROM as_turnos_asignaciones ta
-      INNER JOIN as_turnos_requisitos tr ON ta.requisito_puesto_id = tr.id
-      INNER JOIN as_turnos_roles_servicio rs ON tr.rol_servicio_id = rs.id
-      INNER JOIN guardias g ON ta.guardia_id = g.id
-      WHERE tr.instalacion_id = '15631bd6-03a9-459d-ae60-fc480f7f3e84'
-    `);
-    
-    console.log('📊 Asignaciones encontradas:', asignaciones.rows.length);
-    asignaciones.rows.forEach((row: any, index: number) => {
-      console.log(`   ${index + 1}. ID: ${row.id}`);
-      console.log(`      Guardia: ${row.guardia_nombre}`);
-      console.log(`      Requisito ID: ${row.requisito_puesto_id}`);
-      console.log(`      Rol: ${row.rol_nombre}`);
-      console.log(`      Estado: ${row.estado}`);
-      console.log(`      Creado: ${row.created_at}\n`);
-    });
-
-    // 6. AUDITORÍA DE PUESTOS OPERATIVOS
-    console.log('6️⃣ AUDITORÍA DE as_turnos_puestos_operativos:\n');
-    
+    // 2. Verificar datos en as_turnos_puestos_operativos
+    console.log('\n2️⃣ DATOS EN as_turnos_puestos_operativos:');
     const puestos = await query(`
       SELECT 
         id,
         instalacion_id,
-        nombre,
-        descripcion,
-        estado,
-        created_at,
-        updated_at
+        rol_id,
+        guardia_id,
+        nombre_puesto,
+        es_ppc,
+        activo,
+        creado_en,
+        tipo_puesto_id
       FROM as_turnos_puestos_operativos
-      WHERE instalacion_id = '15631bd6-03a9-459d-ae60-fc480f7f3e84'
+      ORDER BY instalacion_id, rol_id, nombre_puesto
     `);
     
-    console.log('📊 Puestos operativos encontrados:', puestos.rows.length);
-    puestos.rows.forEach((row: any, index: number) => {
-      console.log(`   ${index + 1}. ID: ${row.id}`);
-      console.log(`      Nombre: ${row.nombre}`);
-      console.log(`      Descripción: ${row.descripcion}`);
-      console.log(`      Estado: ${row.estado}`);
-      console.log(`      Creado: ${row.created_at}\n`);
+    console.log(`Total puestos: ${puestos.rows.length}`);
+    puestos.rows.forEach((row: any) => {
+      console.log(`  - ${row.nombre_puesto} (Inst: ${row.instalacion_id.substring(0,8)}..., Rol: ${row.rol_id.substring(0,8)}..., PPC: ${row.es_ppc}, Activo: ${row.activo})`);
     });
 
-    // 7. ANÁLISIS DE CONTRADICCIONES
-    console.log('7️⃣ ANÁLISIS DE CONTRADICCIONES:\n');
+    // 3. Verificar instalación A-Test33 específicamente
+    console.log('\n3️⃣ INSTALACIÓN A-TEST33:');
+    const instalacion = await query(`
+      SELECT id, nombre FROM instalaciones WHERE nombre LIKE '%A TEST 33%'
+    `);
     
-    // Contar PPCs por estado
-    const ppcsPorEstado = await query(`
+    if (instalacion.rows.length > 0) {
+      const instId = instalacion.rows[0].id;
+      console.log(`Instalación encontrada: ${instalacion.rows[0].nombre} (ID: ${instId})`);
+      
+      const puestosInst = await query(`
+        SELECT 
+          po.id,
+          po.nombre_puesto,
+          po.es_ppc,
+          po.activo,
+          rs.nombre as rol_nombre
+        FROM as_turnos_puestos_operativos po
+        LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+        WHERE po.instalacion_id = $1
+        ORDER BY po.nombre_puesto
+      `, [instId]);
+      
+      console.log(`Puestos en A-Test33: ${puestosInst.rows.length}`);
+      puestosInst.rows.forEach((row: any) => {
+        console.log(`  - ${row.nombre_puesto} (${row.rol_nombre}) - PPC: ${row.es_ppc}, Activo: ${row.activo}`);
+      });
+    } else {
+      console.log('❌ Instalación A-Test33 no encontrada');
+    }
+
+    // 4. Verificar roles de servicio
+    console.log('\n4️⃣ ROLES DE SERVICIO:');
+    const roles = await query(`
+      SELECT id, nombre, estado FROM as_turnos_roles_servicio ORDER BY nombre
+    `);
+    
+    console.log(`Total roles: ${roles.rows.length}`);
+    roles.rows.forEach((row: any) => {
+      console.log(`  - ${row.nombre} (Estado: ${row.estado})`);
+    });
+
+    // 5. Verificar endpoint de turnos
+    console.log('\n5️⃣ VERIFICANDO ENDPOINT DE TURNOS:');
+    const turnosEndpoint = await query(`
       SELECT 
-        ppc.estado,
-        COUNT(*) as cantidad,
-        SUM(ppc.cantidad_faltante) as total_faltante
-      FROM as_turnos_ppc ppc
-      INNER JOIN as_turnos_requisitos tr ON ppc.requisito_puesto_id = tr.id
-      WHERE tr.instalacion_id = '15631bd6-03a9-459d-ae60-fc480f7f3e84'
-      GROUP BY ppc.estado
-    `);
+        rs.id as rol_id,
+        rs.nombre as rol_nombre,
+        COUNT(*) as total_puestos,
+        COUNT(CASE WHEN po.guardia_id IS NOT NULL THEN 1 END) as guardias_asignados,
+        COUNT(CASE WHEN po.es_ppc = true THEN 1 END) as ppc_pendientes
+      FROM as_turnos_puestos_operativos po
+      INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+      WHERE po.instalacion_id = $1 AND po.activo = true
+      GROUP BY rs.id, rs.nombre
+      ORDER BY rs.nombre
+    `, [instalacion.rows[0]?.id || '00000000-0000-0000-0000-000000000000']);
     
-    console.log('📊 PPCs por estado:');
-    ppcsPorEstado.rows.forEach((row: any) => {
-      console.log(`   - ${row.estado}: ${row.cantidad} registros, ${row.total_faltante} faltantes total`);
+    console.log(`Turnos encontrados por endpoint: ${turnosEndpoint.rows.length}`);
+    turnosEndpoint.rows.forEach((row: any) => {
+      console.log(`  - ${row.rol_nombre}: ${row.total_puestos} puestos, ${row.guardias_asignados} asignados, ${row.ppc_pendientes} PPC`);
     });
 
-    // Contar asignaciones por estado
-    const asignacionesPorEstado = await query(`
+    // 6. Verificar página de instalaciones
+    console.log('\n6️⃣ VERIFICANDO PÁGINA DE INSTALACIONES:');
+    const instalacionesPage = await query(`
       SELECT 
-        ta.estado,
-        COUNT(*) as cantidad
-      FROM as_turnos_asignaciones ta
-      INNER JOIN as_turnos_requisitos tr ON ta.requisito_puesto_id = tr.id
-      WHERE tr.instalacion_id = '15631bd6-03a9-459d-ae60-fc480f7f3e84'
-      GROUP BY ta.estado
+        i.id,
+        i.nombre,
+        COUNT(DISTINCT po.rol_id) as turnos_activos,
+        COUNT(po.id) as total_puestos,
+        COUNT(CASE WHEN po.es_ppc = true THEN 1 END) as ppc_activos
+      FROM instalaciones i
+      LEFT JOIN as_turnos_puestos_operativos po ON i.id = po.instalacion_id AND po.activo = true
+      WHERE i.nombre LIKE '%A TEST%'
+      GROUP BY i.id, i.nombre
+      ORDER BY i.nombre
     `);
     
-    console.log('\n📊 Asignaciones por estado:');
-    asignacionesPorEstado.rows.forEach((row: any) => {
-      console.log(`   - ${row.estado}: ${row.cantidad} registros`);
+    console.log(`Instalaciones A-Test encontradas: ${instalacionesPage.rows.length}`);
+    instalacionesPage.rows.forEach((row: any) => {
+      console.log(`  - ${row.nombre}: ${row.turnos_activos} turnos, ${row.total_puestos} puestos, ${row.ppc_activos} PPC`);
     });
-
-    // 8. RESUMEN FINAL
-    console.log('\n8️⃣ RESUMEN FINAL:\n');
-    
-    const totalPuestos = puestos.rows.length;
-    const totalPPCs = ppcs.rows.length;
-    const totalAsignaciones = asignaciones.rows.length;
-    const configuracionGuardias = configuracion.rows.reduce((sum: number, row: any) => sum + row.cantidad_guardias, 0);
-    
-    console.log(`📊 Números finales:`);
-    console.log(`   - Puestos operativos: ${totalPuestos}`);
-    console.log(`   - PPCs totales: ${totalPPCs}`);
-    console.log(`   - Asignaciones totales: ${totalAsignaciones}`);
-    console.log(`   - Cantidad guardias en configuración: ${configuracionGuardias}`);
-    
-    console.log('\n🔍 ANÁLISIS:');
-    console.log(`   - La página principal muestra "9 puestos" (probablemente de puestos_operativos)`);
-    console.log(`   - La página principal muestra "8 PPCs" (probablemente contando registros de as_turnos_ppc)`);
-    console.log(`   - La página de instalación muestra "0 total puestos" (probablemente de cantidad_guardias en configuración)`);
-    console.log(`   - La página de instalación muestra "1 asignado" (probablemente de as_turnos_asignaciones)`);
-    console.log(`   - La página de instalación muestra "0 pendientes" (probablemente PPCs con estado 'Pendiente')`);
 
   } catch (error) {
     console.error('❌ Error en auditoría:', error);
@@ -227,15 +136,13 @@ async function auditoriaCompletaTurnos() {
 
 // Ejecutar si se llama directamente
 if (require.main === module) {
-  auditoriaCompletaTurnos()
-    .then(() => {
-      console.log('\n🎉 Auditoría completada');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('\n💥 Error en auditoría:', error);
-      process.exit(1);
-    });
+  auditoriaCompletaTurnos().then(() => {
+    console.log('\n✅ Auditoría completada');
+    process.exit(0);
+  }).catch((error) => {
+    console.error('❌ Error:', error);
+    process.exit(1);
+  });
 }
 
 export { auditoriaCompletaTurnos }; 

@@ -8,6 +8,7 @@ export interface Instalacion {
   longitud: number | null;
   ciudad: string;
   comuna: string;
+  telefono?: string;
   valor_turno_extra: number;
   estado: "Activo" | "Inactivo";
   created_at: string;

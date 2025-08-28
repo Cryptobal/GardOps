@@ -5,10 +5,20 @@ export function toYmd(input: string | Date | null | undefined): string {
     if (/^\d{4}-\d{2}-\d{2}$/.test(input)) return input;
     // intentamos parse simple (Safari-safe)
     const d = new Date(input);
-    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    if (!isNaN(d.getTime())) {
+      // Usar fecha local en lugar de UTC para evitar problemas de zona horaria
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
     return input;
   }
-  return input.toISOString().slice(0, 10);
+  // Para objetos Date, usar fecha local en lugar de UTC
+  const year = input.getFullYear();
+  const month = String(input.getMonth() + 1).padStart(2, '0');
+  const day = String(input.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export function toDisplay(input: string | Date | null | undefined): string {

@@ -1,12 +1,10 @@
 import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/database';
+import { sql } from '@/lib/db';
 
 export async function DELETE(
   request: NextRequest,
-  {
-
- params }: { params: { id: string; turnoId: string } }
+  { params }: { params: { id: string; turnoId: string } }
 ) {
   console.log("🔁 Endpoint activo: /api/instalaciones/[id]/turnos/[turnoId]/eliminar_turno_v2");
   
@@ -15,12 +13,12 @@ export async function DELETE(
     const turnoId = params.turnoId;
 
     // Verificar que el turno existe y pertenece a esta instalación
-    const turnoCheck = await query(`
+    const turnoCheck = await sql`
       SELECT po.rol_id, COUNT(*) as total_puestos
       FROM as_turnos_puestos_operativos po
-      WHERE po.instalacion_id = $1 AND po.rol_id = $2
+      WHERE po.instalacion_id = ${instalacionId} AND po.rol_id = ${turnoId}
       GROUP BY po.rol_id
-    `, [instalacionId, turnoId]);
+    `;
 
     if (turnoCheck.rows.length === 0) {
       return NextResponse.json(
@@ -32,11 +30,11 @@ export async function DELETE(
     const turnoData = turnoCheck.rows[0];
 
     // Verificar si hay guardias asignados a este turno
-    const guardiasAsignados = await query(`
+    const guardiasAsignados = await sql`
       SELECT COUNT(*) as total
       FROM as_turnos_puestos_operativos po
-      WHERE po.instalacion_id = $1 AND po.rol_id = $2 AND po.guardia_id IS NOT NULL
-    `, [instalacionId, turnoId]);
+      WHERE po.instalacion_id = ${instalacionId} AND po.rol_id = ${turnoId} AND po.guardia_id IS NOT NULL
+    `;
 
     if (parseInt(guardiasAsignados.rows[0].total) > 0) {
       return NextResponse.json(
@@ -46,11 +44,11 @@ export async function DELETE(
     }
 
     // Eliminar todos los puestos operativos del turno
-    const result = await query(`
+    const result = await sql`
       DELETE FROM as_turnos_puestos_operativos 
-      WHERE instalacion_id = $1 AND rol_id = $2
+      WHERE instalacion_id = ${instalacionId} AND rol_id = ${turnoId}
       RETURNING id
-    `, [instalacionId, turnoId]);
+    `;
 
     console.log(`✅ Turno ${turnoId} eliminado de instalación ${instalacionId}. Puestos eliminados: ${result.rows.length}`);
 

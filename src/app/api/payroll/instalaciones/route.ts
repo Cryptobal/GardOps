@@ -4,23 +4,23 @@ import { query } from '@/lib/database';
 
 // GET - Obtener instalaciones activas
 export async function GET(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'read:list' });
+const deny = await requireAuthz(request, { resource: 'payroll', action: 'read:list' });
 if (deny) return deny;
 
   try {
-    const result = await query(`
+    // Obtener todas las instalaciones activas
+    const instalacionesQuery = `
       SELECT 
         id,
         nombre,
         direccion,
-        ciudad,
-        comuna,
         estado
-      FROM instalaciones 
+      FROM instalaciones
       WHERE estado = 'Activo'
       ORDER BY nombre
-    `);
+    `;
+
+    const result = await query(instalacionesQuery);
 
     return NextResponse.json({ data: result.rows });
 

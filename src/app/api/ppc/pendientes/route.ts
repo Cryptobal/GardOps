@@ -25,7 +25,7 @@ if (deny) return deny;
       FROM as_turnos_puestos_operativos po
       INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       INNER JOIN instalaciones i ON po.instalacion_id = i.id
-      WHERE po.es_ppc = true AND po.guardia_id IS NULL AND po.activo = true
+      WHERE po.es_ppc = true AND po.guardia_id IS NULL AND (po.activo = true OR po.activo IS NULL)
       ORDER BY i.nombre, rs.nombre, po.creado_en DESC
     `);
 

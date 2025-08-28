@@ -1,6 +1,6 @@
 'use client';
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';

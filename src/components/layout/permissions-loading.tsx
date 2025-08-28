@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { usePermissionsContext } from '@/lib/permissions-context';
 
 interface PermissionsLoadingProps {
@@ -9,9 +10,19 @@ interface PermissionsLoadingProps {
 
 export function PermissionsLoading({ children, fallback }: PermissionsLoadingProps) {
   const { loading, initialized } = usePermissionsContext();
+  const [timeout, setTimeout] = React.useState(false);
 
-  // Si ya está inicializado, mostrar el contenido
-  if (initialized) {
+  // Timeout de 10 segundos para evitar que se quede colgado
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setTimeout(true);
+    }, 10000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Si ya está inicializado o ha pasado el timeout, mostrar el contenido
+  if (initialized || timeout) {
     return <>{children}</>;
   }
 
@@ -22,7 +33,7 @@ export function PermissionsLoading({ children, fallback }: PermissionsLoadingPro
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <div className="text-sm text-muted-foreground">
-            Cargando permisos...
+            {timeout ? 'Cargando...' : 'Cargando permisos...'}
           </div>
         </div>
       </div>

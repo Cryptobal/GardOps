@@ -56,47 +56,92 @@ try {
     if (q && hasActivo) {
       const like = `%${q}%`;
       rows = await sql`
-        SELECT id, email, nombre, activo, tenant_id
-        FROM public.usuarios
-        WHERE (lower(email) LIKE ${like} OR lower(nombre) LIKE ${like})
-          ${tenantId ? sql`AND tenant_id = ${tenantId}` : sql``}
-          AND activo = ${activoBool}
-        ORDER BY fecha_creacion DESC NULLS LAST, email ASC
+        SELECT 
+          u.id, 
+          u.email, 
+          u.nombre, 
+          u.activo, 
+          u.tenant_id,
+          STRING_AGG(r.nombre, ', ' ORDER BY r.nombre) as roles
+        FROM public.usuarios u
+        LEFT JOIN usuarios_roles ur ON u.id = ur.usuario_id
+        LEFT JOIN roles r ON ur.rol_id = r.id
+        WHERE (lower(u.email) LIKE ${like} OR lower(u.nombre) LIKE ${like})
+          ${tenantId ? sql`AND u.tenant_id = ${tenantId}` : sql``}
+          AND u.activo = ${activoBool}
+        GROUP BY u.id, u.email, u.nombre, u.activo, u.tenant_id
+        ORDER BY u.fecha_creacion DESC NULLS LAST, u.email ASC
         LIMIT ${limit} OFFSET ${offset};
       `;
     } else if (q) {
       const like = `%${q}%`;
       rows = await sql`
-        SELECT id, email, nombre, activo, tenant_id
-        FROM public.usuarios
-        WHERE (lower(email) LIKE ${like} OR lower(nombre) LIKE ${like})
-          ${tenantId ? sql`AND tenant_id = ${tenantId}` : sql``}
-        ORDER BY fecha_creacion DESC NULLS LAST, email ASC
+        SELECT 
+          u.id, 
+          u.email, 
+          u.nombre, 
+          u.activo, 
+          u.tenant_id,
+          STRING_AGG(r.nombre, ', ' ORDER BY r.nombre) as roles
+        FROM public.usuarios u
+        LEFT JOIN usuarios_roles ur ON u.id = ur.usuario_id
+        LEFT JOIN roles r ON ur.rol_id = r.id
+        WHERE (lower(u.email) LIKE ${like} OR lower(u.nombre) LIKE ${like})
+          ${tenantId ? sql`AND u.tenant_id = ${tenantId}` : sql``}
+        GROUP BY u.id, u.email, u.nombre, u.activo, u.tenant_id
+        ORDER BY u.fecha_creacion DESC NULLS LAST, u.email ASC
         LIMIT ${limit} OFFSET ${offset};
       `;
     } else if (hasActivo) {
       rows = await sql`
-        SELECT id, email, nombre, activo, tenant_id
-        FROM public.usuarios
-        WHERE activo = ${activoBool}
-          ${tenantId ? sql`AND tenant_id = ${tenantId}` : sql``}
-        ORDER BY fecha_creacion DESC NULLS LAST, email ASC
+        SELECT 
+          u.id, 
+          u.email, 
+          u.nombre, 
+          u.activo, 
+          u.tenant_id,
+          STRING_AGG(r.nombre, ', ' ORDER BY r.nombre) as roles
+        FROM public.usuarios u
+        LEFT JOIN usuarios_roles ur ON u.id = ur.usuario_id
+        LEFT JOIN roles r ON ur.rol_id = r.id
+        WHERE u.activo = ${activoBool}
+          ${tenantId ? sql`AND u.tenant_id = ${tenantId}` : sql``}
+        GROUP BY u.id, u.email, u.nombre, u.activo, u.tenant_id
+        ORDER BY u.fecha_creacion DESC NULLS LAST, u.email ASC
         LIMIT ${limit} OFFSET ${offset};
       `;
     } else {
       if (tenantId) {
         rows = await sql`
-          SELECT id, email, nombre, activo, tenant_id
-          FROM public.usuarios
-          WHERE tenant_id = ${tenantId}
-          ORDER BY fecha_creacion DESC NULLS LAST, email ASC
+          SELECT 
+            u.id, 
+            u.email, 
+            u.nombre, 
+            u.activo, 
+            u.tenant_id,
+            STRING_AGG(r.nombre, ', ' ORDER BY r.nombre) as roles
+          FROM public.usuarios u
+          LEFT JOIN usuarios_roles ur ON u.id = ur.usuario_id
+          LEFT JOIN roles r ON ur.rol_id = r.id
+          WHERE u.tenant_id = ${tenantId}
+          GROUP BY u.id, u.email, u.nombre, u.activo, u.tenant_id
+          ORDER BY u.fecha_creacion DESC NULLS LAST, u.email ASC
           LIMIT ${limit} OFFSET ${offset};
         `;
       } else {
         rows = await sql`
-          SELECT id, email, nombre, activo, tenant_id
-          FROM public.usuarios
-          ORDER BY fecha_creacion DESC NULLS LAST, email ASC
+          SELECT 
+            u.id, 
+            u.email, 
+            u.nombre, 
+            u.activo, 
+            u.tenant_id,
+            STRING_AGG(r.nombre, ', ' ORDER BY r.nombre) as roles
+          FROM public.usuarios u
+          LEFT JOIN usuarios_roles ur ON u.id = ur.usuario_id
+          LEFT JOIN roles r ON ur.rol_id = r.id
+          GROUP BY u.id, u.email, u.nombre, u.activo, u.tenant_id
+          ORDER BY u.fecha_creacion DESC NULLS LAST, u.email ASC
           LIMIT ${limit} OFFSET ${offset};
         `;
       }

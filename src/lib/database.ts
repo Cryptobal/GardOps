@@ -1,8 +1,14 @@
 import { Pool } from 'pg';
-import * as dotenv from 'dotenv';
 
-// Cargar variables de entorno
-dotenv.config({ path: '.env.local' });
+// Cargar variables de entorno solo en desarrollo
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    const dotenv = require('dotenv');
+    dotenv.config({ path: '.env.local' });
+  } catch (error) {
+    console.log('dotenv no disponible en producción');
+  }
+}
 
 // Verificar que DATABASE_URL esté configurada
 if (!process.env.DATABASE_URL) {
@@ -98,13 +104,10 @@ export async function checkConnection(): Promise<boolean> {
 
 export async function checkTableExists(tableName: string): Promise<boolean> {
   try {
-    const result = await query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = $1
-      )
-    `, [tableName]);
+    const result = await query(
+      "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = $1)",
+      [tableName]
+    );
     return result.rows[0].exists;
   } catch (error) {
     console.error(`❌ Error verificando tabla ${tableName}:`, error);
@@ -146,3 +149,7 @@ export async function hasData(tableName: string): Promise<boolean> {
 export async function closePool(): Promise<void> {
   await pool.end();
 } 
+
+// Exportar funciones específicas para compatibilidad
+export { pool };
+export { query as vercelSql }; 

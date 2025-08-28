@@ -1,4 +1,4 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -15,7 +15,8 @@ import {
   FileText,
   Shield,
   Search,
-  Filter
+  Filter,
+  UserCheck
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import InstalacionModal from "@/components/instalaciones/InstalacionModal";
@@ -56,6 +57,11 @@ const KPIBox = ({
         return {
           bg: 'bg-red-100 dark:bg-red-900/20',
           text: 'text-red-600 dark:text-red-400'
+        };
+      case 'orange':
+        return {
+          bg: 'bg-orange-100 dark:bg-orange-900/20',
+          text: 'text-orange-600 dark:text-orange-400'
         };
       default:
         return {
@@ -115,8 +121,10 @@ export default function InstalacionesPage() {
     instalaciones_activas: 0,
     puestos_activos: 0,
     ppc_activos: 0,
+    guardias_asignados: 0,
     documentos_vencidos: 0
   });
+  const [kpisLoading, setKpisLoading] = useState(true);
 
   // Función para cargar datos de instalaciones con estadísticas
   const fetchInstalaciones = async () => {
@@ -144,18 +152,24 @@ export default function InstalacionesPage() {
   // Función para cargar KPIs
   const fetchKPIs = async () => {
     try {
-      console.log('🔍 Cargando KPIs de instalaciones...');
-      const response = await fetch('/api/instalaciones/kpis');
+      setKpisLoading(true);
+      const response = await fetch('/api/instalaciones/kpis', {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       const data = await response.json();
       
       if (data.success) {
-        console.log('✅ KPIs cargados exitosamente:', data.data);
         setKpis(data.data);
       } else {
-        console.error("Error cargando KPIs:", data.error);
+        console.error("❌ [KPIs] Error cargando KPIs:", data.error);
       }
     } catch (error) {
-      console.error("Error cargando KPIs:", error);
+      console.error("❌ [KPIs] Error cargando KPIs:", error);
+    } finally {
+      setKpisLoading(false);
     }
   };
 
@@ -166,10 +180,9 @@ export default function InstalacionesPage() {
     fetchKPIs();
   }, [allowed]);
 
-  // Log para debuggear KPIs
-  useEffect(() => {
-    console.log('🎯 KPIs actuales:', kpis);
-  }, [kpis]);
+
+
+
 
   // Filtrar instalaciones
   const filteredInstalaciones = useMemo(() => {
@@ -227,27 +240,36 @@ export default function InstalacionesPage() {
 
       {/* KPIs optimizados para móviles (mobile-first) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
+
         <KPIBox
           title="Instalaciones Activas"
-          value={kpis.instalaciones_activas}
+          value={kpisLoading ? "..." : kpis.instalaciones_activas}
           icon={CheckCircle}
           color="green"
         />
         <KPIBox
           title="Puestos Activos"
-          value={kpis.puestos_activos}
+          value={kpisLoading ? "..." : kpis.puestos_activos}
           icon={Users}
           color="blue"
         />
+
+
+        <KPIBox
+          title="Guardias Asignados"
+          value={kpisLoading ? "..." : kpis.guardias_asignados}
+          icon={UserCheck}
+          color="orange"
+        />
         <KPIBox
           title="PPC Activos"
-          value={kpis.ppc_activos}
+          value={kpisLoading ? "..." : kpis.ppc_activos}
           icon={Shield}
           color="purple"
         />
         <KPIBox
           title="Documentos Vencidos"
-          value={kpis.documentos_vencidos}
+          value={kpisLoading ? "..." : kpis.documentos_vencidos}
           icon={AlertTriangle}
           color="red"
         />

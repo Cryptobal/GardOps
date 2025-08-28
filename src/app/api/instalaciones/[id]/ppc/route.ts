@@ -7,7 +7,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(req, { resource: 'instalaciones', action: 'create' });
+  const deny = await requireAuthz(request, { resource: 'instalaciones', action: 'create' });
   if (deny) return deny;
   try {
     const instalacionId = params.id;
@@ -36,7 +36,7 @@ export async function GET(
       LEFT JOIN guardias g ON po.guardia_id = g.id
       WHERE po.instalacion_id = $1 
         AND (po.es_ppc = true OR po.guardia_id IS NOT NULL)
-        AND po.activo = true
+        AND (po.activo = true OR po.activo IS NULL)
       ORDER BY po.creado_en DESC
     `, [instalacionId]);
 
@@ -55,7 +55,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(req, { resource: 'instalaciones', action: 'create' });
+  const deny = await requireAuthz(request, { resource: 'instalaciones', action: 'create' });
   if (deny) return deny;
   try {
     const instalacionId = params.id;

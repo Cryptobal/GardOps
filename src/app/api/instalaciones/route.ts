@@ -11,29 +11,11 @@ let tableVerified = false;
 
 // GET /api/instalaciones - Obtener todas las instalaciones con estadísticas optimizadas
 export async function GET(request: NextRequest) {
-  const deny = await requireAuthz(request, { resource: 'instalaciones', action: 'delete' });
+  const deny = await requireAuthz(request, { resource: 'instalaciones', action: 'read:list' });
   if (deny) return deny;
 
 try {
-    // Gate backend: requiere permiso 'instalaciones.view'
-    try {
-      const h = request.headers;
-      const { getCurrentUserServer } = await import('@/lib/auth');
-      const fromJwt = getCurrentUserServer(request as any)?.email || null;
-      const fromHeader = h.get('x-user-email') || h.get('x-user-email(next/headers)') || null;
-      const isDev = process.env.NODE_ENV !== 'production';
-      const dev = isDev ? process.env.NEXT_PUBLIC_DEV_USER_EMAIL : undefined;
-      const email = fromJwt || fromHeader || dev || null;
-      if (!email) return NextResponse.json({ ok:false, error:'no-auth' }, { status:401 });
-      const { sql } = await import('@vercel/postgres');
-      const { rows } = await sql`
-        with me as (select id from public.usuarios where lower(email)=lower(${email}) limit 1)
-        select public.fn_usuario_tiene_permiso((select id from me), ${'instalaciones.view'}) as allowed
-      `;
-      if (rows?.[0]?.allowed !== true) {
-        return NextResponse.json({ ok:false, error:'forbidden', perm:'instalaciones.view' }, { status:403 });
-      }
-    } catch {}
+    // No gate manual adicional. requireAuthz ya validó permisos.
     const { searchParams } = new URL(request.url);
     const withCoords = searchParams.get('withCoords') === 'true';
     const withStats = searchParams.get('withStats') === 'true';
@@ -46,9 +28,13 @@ try {
     }
     
     // Si se solicita con coordenadas, devolver formato simplificado
-    const ctx = (request as any).ctx as { tenantId?: string } | undefined;
-    const tenantId = ctx?.tenantId ?? null;
-    const tenantWhere = tenantId ? ` AND i.tenant_id::text = '${tenantId}'` : '';
+    const ctx = (request as any).ctx as { tenantId?: string; selectedTenantId?: string; isPlatformAdmin?: boolean } | undefined;
+    // Solo usar selectedTenantId si es Platform Admin, sino usar el tenantId del usuario
+    const tenantId = ctx?.isPlatformAdmin ? (ctx?.selectedTenantId || ctx?.tenantId) : ctx?.tenantId;
+    if (!tenantId) {
+      return NextResponse.json({ success: false, error: 'TENANT_REQUIRED', code: 'TENANT_REQUIRED' }, { status: 400 });
+    }
+    const tenantWhere = ` AND i.tenant_id::text = '${tenantId}'`;
 
     if (withCoords) {
       const result = await query(`
@@ -266,10 +252,14 @@ try {
 
 // POST /api/instalaciones - Crear nueva instalación
 export async function POST(request: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'instalaciones', action: 'delete' });
+  const deny = await requireAuthz(request, { resource: 'instalaciones', action: 'create' });
   if (deny) return deny;
 
-try {
+  try {
+    const ctx = (request as any).ctx as { tenantId: string; selectedTenantId?: string; isPlatformAdmin?: boolean } | undefined;
+    // Solo usar selectedTenantId si es Platform Admin, sino usar el tenantId del usuario
+    const tenantId = ctx?.isPlatformAdmin ? (ctx?.selectedTenantId || ctx?.tenantId) : ctx?.tenantId;
+    
     const body = await request.json();
     
     // Validar datos con Zod
@@ -278,7 +268,7 @@ try {
     // Verificar que la tabla existe, si no, crearla
     await ensureInstalacionesTable();
     
-    const nuevaInstalacion = await crearInstalacionDB(validatedData);
+    const nuevaInstalacion = await crearInstalacionDB(validatedData, tenantId);
     
     return NextResponse.json(
       { success: true, data: nuevaInstalacion, message: 'Instalación creada correctamente' },
@@ -303,10 +293,14 @@ try {
 
 // PUT /api/instalaciones - Actualizar instalación
 export async function PUT(request: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'instalaciones', action: 'delete' });
+  const deny = await requireAuthz(request, { resource: 'instalaciones', action: 'edit' });
   if (deny) return deny;
 
-try {
+  try {
+    const ctx = (request as any).ctx as { tenantId: string; selectedTenantId?: string; isPlatformAdmin?: boolean } | undefined;
+    // Solo usar selectedTenantId si es Platform Admin, sino usar el tenantId del usuario
+    const tenantId = ctx?.isPlatformAdmin ? (ctx?.selectedTenantId || ctx?.tenantId) : ctx?.tenantId;
+    
     const body = await request.json();
     
     // Validar datos con Zod
@@ -524,7 +518,7 @@ async function ensureInstalacionesTable() {
 }
 
 // Función para crear instalación en la base de datos
-async function crearInstalacionDB(data: any) {
+async function crearInstalacionDB(data: any, tenantId: string) {
   console.log('🔧 Creando instalación con datos:', {
     nombre: data.nombre,
     cliente_id: data.cliente_id,
@@ -534,14 +528,15 @@ async function crearInstalacionDB(data: any) {
     ciudad: data.ciudad,
     comuna: data.comuna,
     valor_turno_extra: data.valor_turno_extra,
-    estado: data.estado
+    estado: data.estado,
+    tenant_id: tenantId
   });
 
   const result = await query(`
     INSERT INTO instalaciones (
       nombre, cliente_id, direccion, latitud, longitud, 
-      ciudad, comuna, valor_turno_extra, estado
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ciudad, comuna, valor_turno_extra, estado, tenant_id
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     RETURNING *
   `, [
     data.nombre,
@@ -552,7 +547,8 @@ async function crearInstalacionDB(data: any) {
     data.ciudad,
     data.comuna,
     data.valor_turno_extra,
-    data.estado
+    data.estado,
+    tenantId
   ]);
 
   console.log('✅ Instalación creada exitosamente:', result.rows[0]);

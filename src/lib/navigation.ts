@@ -14,12 +14,13 @@ import {
   CalendarDays,
   Activity,
   DollarSign,
-  Calculator,
+
   Building,
   
   CreditCard,
   Key,
-  Lock
+  Lock,
+  Satellite
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -37,6 +38,12 @@ export const navigationItems: NavigationItem[] = [
     href: "/",
     icon: Home,
     permission: "home.view"
+  },
+  {
+    name: "Central de Monitoreo",
+    href: "/central-monitoreo",
+    icon: Satellite,
+    permission: "central_monitoring.view"
   },
   {
     name: "Clientes",
@@ -80,12 +87,7 @@ export const navigationItems: NavigationItem[] = [
     icon: CreditCard,
     permission: "payroll.view"
   },
-  {
-    name: "Sueldos",
-    href: "/sueldos",
-    icon: Calculator,
-    permission: "sueldos.view"
-  },
+
   {
     name: "PPC",
     href: "/ppc",

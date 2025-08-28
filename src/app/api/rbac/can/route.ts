@@ -2,6 +2,9 @@ import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
 
+// Asegurar runtime Node.js para compatibilidad con Postgres/JWT
+export const runtime = 'nodejs'
+
 /**
  * Endpoint para verificar permisos usando el nuevo sistema RBAC
  * GET /api/rbac/can?permiso=xxx
@@ -18,6 +21,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Parámetro "perm"/"permiso" requerido' }, { status: 400 });
     }
 
+    // No otorgar override por ser "admin" de tenant. Las decisiones se basan en permisos reales.
+
     const email = await getUserEmail(request);
     if (!email) {
       return NextResponse.json({ ok: false, error: 'Usuario no autenticado' }, { status: 401 });
@@ -28,15 +33,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Usuario no encontrado' }, { status: 403 });
     }
 
-    // Fallback controlado: solo tratar como Platform Admin si el JWT es admin SIN tenant
-    try {
-      const { getCurrentUserServer } = await import('@/lib/auth');
-      const u = getCurrentUserServer(request as any);
-      const isJwtPlatformAdmin = u?.rol === 'admin' && (!u?.tenant_id || u?.tenant_id === null);
-      if (isJwtPlatformAdmin) {
-        return NextResponse.json({ ok: true, email, userId, perm, allowed: true, override: 'jwt_platform_admin' });
-      }
-    } catch {}
+    // No hacer overrides por JWT. Usar permisos desde la base de datos.
 
     let allowed = await userHasPerm(userId, perm);
     if (!allowed) {

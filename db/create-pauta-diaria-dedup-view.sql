@@ -69,12 +69,12 @@ SELECT
   CASE 
     WHEN pd.estado IN ('trabajado', 'T') AND pd.cobertura_guardia_id IS NOT NULL THEN 'reemplazo'
     WHEN pd.estado IN ('trabajado', 'T') THEN 'asistido'
-    WHEN pd.estado = 'libre' THEN 'libre'
     WHEN pd.estado = 'sin_cobertura' THEN 'sin_cobertura'
     WHEN pd.estado = 'inasistencia' THEN 'sin_cobertura'
     WHEN pd.estado = 'permiso' THEN 'permiso'
     WHEN pd.estado = 'licencia' THEN 'licencia'
-    WHEN pd.es_ppc AND pd.guardia_id IS NULL THEN 'ppc_libre'
+    WHEN pd.es_ppc AND (pd.guardia_id IS NULL OR pd.estado IN ('libre', 'planificado')) THEN 'ppc_libre'
+    WHEN pd.estado = 'libre' THEN 'libre'
     ELSE 'plan'
   END as estado_ui,
   

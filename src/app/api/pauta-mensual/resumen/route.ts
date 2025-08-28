@@ -25,8 +25,13 @@ export async function GET(request: NextRequest) {
 
     const fechaInicio = `${anio}-${mes.toString().padStart(2, '0')}-01`;
     const fechaFin = `${anio}-${mes.toString().padStart(2, '0')}-${new Date(parseInt(anio), parseInt(mes), 0).getDate()}`;
-    const ctx = (request as any).ctx as { tenantId?: string } | undefined;
-    const tenantId = ctx?.tenantId ?? null;
+          const ctx = (request as any).ctx as { tenantId?: string; selectedTenantId?: string | null; isPlatformAdmin?: boolean } | undefined;
+    // Solo usar selectedTenantId si es Platform Admin, sino usar el tenantId del usuario
+    const tenantId = ctx?.isPlatformAdmin ? (ctx?.selectedTenantId || ctx?.tenantId) : ctx?.tenantId;
+    
+    if (!tenantId) {
+      return NextResponse.json({ error: 'TENANT_REQUIRED' }, { status: 400 });
+    }
 
     // Obtener todas las instalaciones activas con información del cliente
     console.log('📋 Consultando instalaciones activas...');
@@ -39,9 +44,9 @@ export async function GET(request: NextRequest) {
         c.nombre as cliente_nombre
       FROM instalaciones i
       LEFT JOIN clientes c ON i.cliente_id = c.id
-      WHERE i.estado = 'Activo' ${tenantId ? `AND i.tenant_id::text = '${tenantId}'` : ''}
+      WHERE i.estado = 'Activo' AND i.tenant_id::text = $1
       ORDER BY i.nombre
-    `);
+    `, [tenantId]);
 
     console.log(`✅ Encontradas ${instalacionesResult.rows.length} instalaciones activas`);
 
@@ -121,9 +126,9 @@ export async function GET(request: NextRequest) {
           LEFT JOIN guardias g ON po.guardia_id = g.id
           WHERE po.instalacion_id = $1 
             AND po.activo = true
-            ${tenantId ? `AND po.tenant_id::text = '${tenantId}'` : ''}
+            AND po.tenant_id::text = $2
           ORDER BY po.nombre_puesto
-        `, [instalacion.id]);
+        `, [instalacion.id, tenantId]);
 
         // Contar puestos por tipo
         const puestosConGuardia = puestosResult.rows.filter((p: any) => p.guardia_id && !p.es_ppc).length;

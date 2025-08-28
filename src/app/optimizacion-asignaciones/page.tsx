@@ -1,6 +1,6 @@
 "use client";
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import React, { useState, useEffect } from 'react';
 import { MapPin, Loader2, Building2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -356,7 +356,7 @@ export default function AsignacionesPage() {
                             )}
                             {resultado.valor_turno_extra && (
                               <div className="text-xs text-muted-foreground">
-                                💰 ${resultado.valor_turno_extra.toLocaleString()}
+                                💰 ${resultado.valor_turno_extra.toLocaleString('es-CL')}
                               </div>
                             )}
                           </div>

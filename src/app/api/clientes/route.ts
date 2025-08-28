@@ -8,11 +8,13 @@ export async function GET(request: NextRequest) {
   if (deny) return deny;
 
   try {
-    const ctx = (request as any).ctx as { tenantId: string } | undefined;
-    const tenantId = ctx?.tenantId;
-    const result = tenantId
-      ? await sql`SELECT * FROM clientes WHERE tenant_id = ${tenantId} ORDER BY nombre ASC`
-      : await sql`SELECT * FROM clientes ORDER BY nombre ASC`;
+    const ctx = (request as any).ctx as { tenantId: string; selectedTenantId?: string; isPlatformAdmin?: boolean } | undefined;
+    // Solo usar selectedTenantId si es Platform Admin, sino usar el tenantId del usuario
+    const tenantId = ctx?.isPlatformAdmin ? (ctx?.selectedTenantId || ctx?.tenantId) : ctx?.tenantId;
+    if (!tenantId) {
+      return NextResponse.json({ success: false, error: 'TENANT_REQUIRED', code: 'TENANT_REQUIRED' }, { status: 400 });
+    }
+    const result = await sql`SELECT * FROM clientes WHERE tenant_id = ${tenantId} ORDER BY nombre ASC`;
 
     return NextResponse.json({
       success: true,
@@ -36,9 +38,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const ctx = (request as any).ctx as { tenantId: string } | undefined;
     const tenantId = ctx?.tenantId;
-    const { nombre, email, telefono, direccion, activo } = body;
+    const { nombre, email, telefono, direccion, rut, razon_social, representante_legal, rut_representante, ciudad, comuna } = body;
     
-    const result = await sql`INSERT INTO clientes (tenant_id, nombre, email, telefono, direccion, activo) VALUES (${tenantId}, ${nombre}, ${email}, ${telefono}, ${direccion}, ${activo}) RETURNING *`;
+    const result = await sql`INSERT INTO clientes (tenant_id, nombre, email, telefono, direccion, rut, razon_social, representante_legal, rut_representante, ciudad, comuna, estado) VALUES (${tenantId}, ${nombre}, ${email}, ${telefono}, ${direccion}, ${rut}, ${razon_social}, ${representante_legal}, ${rut_representante}, ${ciudad}, ${comuna}, 'Activo') RETURNING *`;
 
     return NextResponse.json({
       success: true,
@@ -62,9 +64,9 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const ctx = (request as any).ctx as { tenantId: string } | undefined;
     const tenantId = ctx?.tenantId;
-    const { id, nombre, email, telefono, direccion, activo } = body;
+    const { id, nombre, email, telefono, direccion, rut, razon_social, representante_legal, rut_representante, ciudad, comuna, estado } = body;
     
-    const result = await sql`UPDATE clientes SET nombre = ${nombre}, email = ${email}, telefono = ${telefono}, direccion = ${direccion}, activo = ${activo} WHERE id = ${id} AND tenant_id = ${tenantId} RETURNING *`;
+    const result = await sql`UPDATE clientes SET nombre = ${nombre}, email = ${email}, telefono = ${telefono}, direccion = ${direccion}, rut = ${rut}, razon_social = ${razon_social}, representante_legal = ${representante_legal}, rut_representante = ${rut_representante}, ciudad = ${ciudad}, comuna = ${comuna}, estado = ${estado} WHERE id = ${id} AND tenant_id = ${tenantId} RETURNING *`;
 
     return NextResponse.json({
       success: true,

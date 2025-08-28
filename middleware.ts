@@ -1,20 +1,12 @@
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-export function middleware(req: NextRequest) {
-  // Solo en desarrollo y solo para rutas de API
-  const devEmail = process.env.NEXT_PUBLIC_DEV_USER_EMAIL;
-  if (process.env.NODE_ENV === "development" && devEmail && req.nextUrl.pathname.startsWith("/api/")) {
-    const headers = new Headers(req.headers);
-    headers.set("x-user-email", devEmail);
-    return NextResponse.next({ request: { headers } });
-  }
-  return NextResponse.next();
+export function middleware(request: NextRequest) {
+  // Middleware vacío - solo continuar con la request
+  return NextResponse.next()
 }
 
-// Aplica a todas las rutas de API
+// No aplicar a ninguna ruta específica
 export const config = {
-  matcher: ["/api/:path*"],
-};
-
-
+  matcher: []
+}

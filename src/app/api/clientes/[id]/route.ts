@@ -7,12 +7,20 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(req, { resource: 'clientes', action: 'read:detail' });
+  const deny = await requireAuthz(request, { resource: 'clientes', action: 'read:detail' });
   if (deny) return deny;
 
   try {
+    const ctx = (request as any).ctx as { tenantId: string; selectedTenantId?: string; isPlatformAdmin?: boolean } | undefined;
+    // Solo usar selectedTenantId si es Platform Admin, sino usar el tenantId del usuario
+    const tenantId = ctx?.isPlatformAdmin ? (ctx?.selectedTenantId || ctx?.tenantId) : ctx?.tenantId;
+    
+    if (!tenantId) {
+      return NextResponse.json({ success: false, error: 'TENANT_REQUIRED', code: 'TENANT_REQUIRED' }, { status: 400 });
+    }
+
     const clienteId = params.id;
-    const result = await sql`SELECT * FROM clientes WHERE id = ${clienteId}`;
+    const result = await sql`SELECT * FROM clientes WHERE id = ${clienteId} AND tenant_id = ${tenantId}::uuid`;
 
     if (result.rows.length === 0) {
       return NextResponse.json(
@@ -39,15 +47,22 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(req, { resource: 'clientes', action: 'update' });
+  const deny = await requireAuthz(request, { resource: 'clientes', action: 'update' });
   if (deny) return deny;
 
   try {
+    const ctx = (request as any).ctx as { tenantId: string; selectedTenantId?: string; isPlatformAdmin?: boolean } | undefined;
+    const tenantId = ctx?.isPlatformAdmin ? (ctx?.selectedTenantId || ctx?.tenantId) : ctx?.tenantId;
+    
+    if (!tenantId) {
+      return NextResponse.json({ success: false, error: 'TENANT_REQUIRED', code: 'TENANT_REQUIRED' }, { status: 400 });
+    }
+
     const clienteId = params.id;
     const body = await request.json();
-    const { nombre, email, telefono, direccion, activo } = body;
+    const { nombre, email, telefono, direccion, rut, razon_social, representante_legal, rut_representante, ciudad, comuna, estado } = body;
     
-    const updateResult = await sql`UPDATE clientes SET nombre = ${nombre}, email = ${email}, telefono = ${telefono}, direccion = ${direccion}, activo = ${activo} WHERE id = ${clienteId} RETURNING *`;
+    const updateResult = await sql`UPDATE clientes SET nombre = ${nombre}, email = ${email}, telefono = ${telefono}, direccion = ${direccion}, rut = ${rut}, razon_social = ${razon_social}, representante_legal = ${representante_legal}, rut_representante = ${rut_representante}, ciudad = ${ciudad}, comuna = ${comuna}, estado = ${estado} WHERE id = ${clienteId} AND tenant_id = ${tenantId}::uuid RETURNING *`;
 
     if (updateResult.rows.length === 0) {
       return NextResponse.json(
@@ -74,12 +89,19 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const deny = await requireAuthz(req, { resource: 'clientes', action: 'delete' });
+  const deny = await requireAuthz(request, { resource: 'clientes', action: 'delete' });
   if (deny) return deny;
 
   try {
+    const ctx = (request as any).ctx as { tenantId: string; selectedTenantId?: string; isPlatformAdmin?: boolean } | undefined;
+    const tenantId = ctx?.isPlatformAdmin ? (ctx?.selectedTenantId || ctx?.tenantId) : ctx?.tenantId;
+    
+    if (!tenantId) {
+      return NextResponse.json({ success: false, error: 'TENANT_REQUIRED', code: 'TENANT_REQUIRED' }, { status: 400 });
+    }
+
     const clienteId = params.id;
-    const result = await sql`DELETE FROM clientes WHERE id = ${clienteId} RETURNING *`;
+    const result = await sql`DELETE FROM clientes WHERE id = ${clienteId} AND tenant_id = ${tenantId}::uuid RETURNING *`;
 
     if (result.rows.length === 0) {
       return NextResponse.json(

@@ -1,6 +1,6 @@
 'use client';
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -947,7 +947,7 @@ export default function PautaMensualUnificadaPage() {
         <Button variant="outline" size="sm" onClick={() => cargarDatos(true)} disabled={actualizando}>
           {actualizando ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
         </Button>
-        <Button variant="outline" size="sm" onClick={() => router.push(`/pauta-diaria/${anio}-${String(mes).padStart(2,'0')}-${String(Math.max(semanaInicio,1)).padStart(2,'0')}`)}>
+        <Button variant="outline" size="sm" onClick={() => router.push(`/pauta-diaria-v2?fecha=${anio}-${String(mes).padStart(2,'0')}-${String(Math.max(semanaInicio,1)).padStart(2,'0')}`)}>
           Ver Diaria
         </Button>
         {editando ? (

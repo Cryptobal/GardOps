@@ -7,17 +7,7 @@ async function initializeDatabase() {
   console.log('🔧 Inicializando base de datos del módulo de sueldos...\n');
   
   try {
-    // 1. Crear tabla de valores UF
-    console.log('📊 Creando tabla sueldo_valor_uf...');
-    await query(`
-      CREATE TABLE IF NOT EXISTS sueldo_valor_uf (
-        id SERIAL PRIMARY KEY,
-        fecha DATE NOT NULL UNIQUE,
-        valor DECIMAL(10,2) NOT NULL
-      )
-    `);
-    
-    // 2. Crear tabla de parámetros generales
+    // 1. Crear tabla de parámetros generales
     console.log('⚙️ Creando tabla sueldo_parametros_generales...');
     await query(`
       CREATE TABLE IF NOT EXISTS sueldo_parametros_generales (
@@ -30,7 +20,7 @@ async function initializeDatabase() {
       )
     `);
     
-    // 3. Crear tabla de AFP
+    // 2. Crear tabla de AFP
     console.log('🏦 Creando tabla sueldo_afp...');
     await query(`
       CREATE TABLE IF NOT EXISTS sueldo_afp (
@@ -42,7 +32,7 @@ async function initializeDatabase() {
       )
     `);
     
-    // 4. Crear tabla de ISAPRE
+    // 3. Crear tabla de ISAPRE
     console.log('🏥 Creando tabla sueldo_isapre...');
     await query(`
       CREATE TABLE IF NOT EXISTS sueldo_isapre (
@@ -53,7 +43,7 @@ async function initializeDatabase() {
       )
     `);
     
-    // 5. Crear tabla de mutualidad
+    // 4. Crear tabla de mutualidad
     console.log('🛡️ Creando tabla sueldo_mutualidad...');
     await query(`
       CREATE TABLE IF NOT EXISTS sueldo_mutualidad (
@@ -66,7 +56,7 @@ async function initializeDatabase() {
       )
     `);
     
-    // 6. Crear tabla de tramos de impuesto
+    // 5. Crear tabla de tramos de impuesto
     console.log('💰 Creando tabla sueldo_tramos_impuesto...');
     await query(`
       CREATE TABLE IF NOT EXISTS sueldo_tramos_impuesto (
@@ -85,34 +75,6 @@ async function initializeDatabase() {
     
     // Insertar datos iniciales
     console.log('📝 Insertando datos iniciales...\n');
-    
-    // Valores UF
-    console.log('💵 Insertando valores UF 2024-2025...');
-    const valoresUF = [
-      ['2024-12-01', 37665.84],
-      ['2025-01-01', 37746.56],
-      ['2025-02-01', 37800.00],
-      ['2025-03-01', 37850.00],
-      ['2025-04-01', 37900.00],
-      ['2025-05-01', 37950.00],
-      ['2025-06-01', 38000.00],
-      ['2025-07-01', 38050.00],
-      ['2025-08-01', 38100.00],
-      ['2025-09-01', 38150.00],
-      ['2025-10-01', 38200.00],
-      ['2025-11-01', 38250.00],
-      ['2025-12-01', 38300.00]
-    ];
-    
-    for (const [fecha, valor] of valoresUF) {
-      await query(
-        `INSERT INTO sueldo_valor_uf (fecha, valor) 
-         VALUES ($1, $2) 
-         ON CONFLICT (fecha) DO UPDATE 
-         SET valor = $2`,
-        [fecha, valor]
-      );
-    }
     
     // Parámetros generales
     console.log('⚙️ Insertando parámetros generales...');
@@ -184,18 +146,18 @@ async function initializeDatabase() {
     // Mutualidades
     console.log('🛡️ Insertando Mutualidades...');
     const mutualidades = [
-      ['achs', 'Asociación Chilena de Seguridad', 0.90, 0],
-      ['ist', 'Instituto de Seguridad del Trabajo', 0.90, 0],
-      ['museg', 'Mutual de Seguridad CChC', 0.90, 0]
+      ['achs', 'Asociación Chilena de Seguridad', 0.90],
+      ['ist', 'Instituto de Seguridad del Trabajo', 0.90],
+      ['museg', 'Mutual de Seguridad CChC', 0.90]
     ];
     
-    for (const [codigo, nombre, tasa_base, tasa_adicional] of mutualidades) {
+    for (const [codigo, nombre, tasa] of mutualidades) {
       await query(
-        `INSERT INTO sueldo_mutualidad (codigo, nombre, tasa_base, tasa_adicional) 
-         VALUES ($1, $2, $3, $4) 
+        `INSERT INTO sueldo_mutualidad (codigo, nombre, tasa_base) 
+         VALUES ($1, $2, $3) 
          ON CONFLICT (codigo) DO UPDATE 
-         SET nombre = $2, tasa_base = $3, tasa_adicional = $4`,
-        [codigo, nombre, tasa_base, tasa_adicional]
+         SET nombre = $2, tasa_base = $3`,
+        [codigo, nombre, tasa]
       );
     }
     
@@ -221,33 +183,18 @@ async function initializeDatabase() {
       );
     }
     
-    console.log('\n✅ Datos iniciales insertados exitosamente');
-    console.log('\n🎉 Base de datos inicializada correctamente!');
-    
-    // Verificar el estado de las tablas
-    console.log('\n📊 Estado de las tablas:');
-    const tables = [
-      'sueldo_valor_uf',
-      'sueldo_parametros_generales',
-      'sueldo_afp',
-      'sueldo_isapre',
-      'sueldo_mutualidad',
-      'sueldo_tramos_impuesto'
-    ];
-    
-    for (const table of tables) {
-      const result = await query(`SELECT COUNT(*) as count FROM ${table}`);
-      console.log(`   - ${table}: ${result.rows[0].count} registros`);
-    }
-    
-    process.exit(0);
+    console.log('\n✅ Base de datos inicializada correctamente');
+    console.log('📊 Nota: Los valores UF se obtienen en tiempo real desde la API de la CMF');
     
   } catch (error) {
-    console.error('\n❌ Error al inicializar la base de datos:');
-    console.error(error);
+    console.error('❌ Error inicializando base de datos:', error);
     process.exit(1);
   }
 }
 
-// Ejecutar la inicialización
-initializeDatabase();
+// Ejecutar si se llama directamente
+if (require.main === module) {
+  initializeDatabase();
+}
+
+export { initializeDatabase };

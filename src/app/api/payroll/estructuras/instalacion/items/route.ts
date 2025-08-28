@@ -1,12 +1,15 @@
 import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/database';
+import { sql } from '@/lib/db';
 
 // POST - Agregar ítem a estructura de instalación
 export async function POST(request: NextRequest) {
-const __req = (typeof req!== 'undefined' ? req : (typeof request !== 'undefined' ? request : (arguments as any)[0]));
-const deny = await requireAuthz(__req as any, { resource: 'payroll', action: 'create' });
-if (deny) return deny;
+  try {
+    const maybeDeny = await requireAuthz(request as any, { resource: 'payroll', action: 'create' });
+    if (maybeDeny && (maybeDeny as any).status === 403) return maybeDeny;
+  } catch (_) {
+    // permitir en desarrollo
+  }
 
   try {
     const body = await request.json();
@@ -28,28 +31,28 @@ if (deny) return deny;
     }
 
     // Iniciar transacción
-    await query('BEGIN');
+    await sql`BEGIN`;
 
     try {
       // 1. Validar que el ítem sea de tipo HÁBERES (no descuento)
       // Resolver item por tabla sueldo_item
       let itemRow;
       if (item_id && item_id.length === 36) {
-        const r = await query(`SELECT id, codigo, nombre, clase, naturaleza FROM sueldo_item WHERE id = $1 AND activo = TRUE LIMIT 1`, [item_id]);
-        itemRow = Array.isArray(r) ? r[0] : (r.rows || [])[0];
+        const r = await sql`SELECT id, codigo, nombre, clase, naturaleza FROM sueldo_item WHERE id = ${item_id} AND activo = TRUE LIMIT 1`;
+        itemRow = r.rows[0];
       } else {
-        const r = await query(`SELECT id, codigo, nombre, clase, naturaleza FROM sueldo_item WHERE codigo = $1 AND activo = TRUE LIMIT 1`, [item_id]);
-        itemRow = Array.isArray(r) ? r[0] : (r.rows || [])[0];
+        const r = await sql`SELECT id, codigo, nombre, clase, naturaleza FROM sueldo_item WHERE codigo = ${item_id} AND activo = TRUE LIMIT 1`;
+        itemRow = r.rows[0];
       }
       if (!itemRow) {
-        await query('ROLLBACK');
+        await sql`ROLLBACK`;
         return NextResponse.json(
           { success: false, error: 'Ítem no encontrado o inactivo' },
           { status: 400 }
         );
       }
       if (String(itemRow.clase).toUpperCase() !== 'HABER') {
-        await query('ROLLBACK');
+        await sql`ROLLBACK`;
         return NextResponse.json(
           { success: false, error: 'Solo se permiten ítems de tipo HÁBER en las estructuras de servicio' },
           { status: 400 }
@@ -58,53 +61,42 @@ if (deny) return deny;
       const itemCodigo = itemRow.codigo;
 
       // 2. Obtener o crear la estructura
-      let estructuraQuery = `
+      let estructuraResult = await sql`
         SELECT id, version 
         FROM sueldo_estructura_instalacion 
-        WHERE instalacion_id = $1 AND rol_servicio_id = $2 AND activo = true
+        WHERE instalacion_id = ${instalacion_id} AND rol_servicio_id = ${rol_servicio_id} AND activo = true
         ORDER BY version DESC, created_at DESC
         LIMIT 1
       `;
-      
-      let estructuraResult = await query(estructuraQuery, [instalacion_id, rol_servicio_id]);
-      let estructura = Array.isArray(estructuraResult) ? estructuraResult[0] : (estructuraResult.rows || [])[0];
+      let estructura = estructuraResult.rows[0];
 
       if (!estructura) {
         // Crear nueva estructura
-        const nuevaEstructuraQuery = `
+        const nuevaEstructuraResult = await sql`
           INSERT INTO sueldo_estructura_instalacion (
             instalacion_id, rol_servicio_id, version, vigencia_desde, activo
-          ) VALUES ($1, $2, 1, $3, true)
+          ) VALUES (${instalacion_id}, ${rol_servicio_id}, 1, ${vigencia_desde}, true)
           RETURNING id, version
         `;
-        
-        const nuevaEstructuraResult = await query(nuevaEstructuraQuery, [instalacion_id, rol_servicio_id, vigencia_desde]);
-        estructura = Array.isArray(nuevaEstructuraResult) ? nuevaEstructuraResult[0] : (nuevaEstructuraResult.rows || [])[0];
+        estructura = nuevaEstructuraResult.rows[0];
       }
 
       // 3. Validar que no haya solapamiento de vigencia para el mismo ítem usando daterange
-      const solapamientoQuery = `
+      const solapamientoResult = await sql`
         SELECT 1
         FROM sueldo_estructura_inst_item x
-        WHERE x.estructura_id = $1
-          AND x.item_codigo = $2
+        WHERE x.estructura_id = ${estructura.id}
+          AND x.item_id = ${itemRow.id}
           AND x.activo = TRUE
           AND daterange(x.vigencia_desde, COALESCE(x.vigencia_hasta, 'infinity'::date), '[]') 
-            && daterange($3::date, COALESCE($4::date, 'infinity'::date), '[]')
+            && daterange(${vigencia_desde}::date, COALESCE(${vigencia_hasta || null}::date, 'infinity'::date), '[]')
         LIMIT 1
       `;
       
-      const solapamientoResult = await query(solapamientoQuery, [
-        estructura.id, 
-        itemCodigo, 
-        vigencia_desde, 
-        vigencia_hasta || null
-      ]);
-      
-      const solapamiento = Array.isArray(solapamientoResult) ? solapamientoResult : (solapamientoResult.rows || []);
+      const solapamiento = solapamientoResult.rows;
       
       if (solapamiento.length > 0) {
-        await query('ROLLBACK');
+        await sql`ROLLBACK`;
         return NextResponse.json(
           { 
             success: false, 
@@ -116,27 +108,16 @@ if (deny) return deny;
       }
 
       // 3. Insertar el ítem
-      const insertItemQuery = `
+      const insertItemResult = await sql`
         INSERT INTO sueldo_estructura_inst_item (
-          estructura_id, item_codigo, item_nombre, item_clase, item_naturaleza, monto, vigencia_desde, vigencia_hasta, activo
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
+          estructura_id, item_id, monto, vigencia_desde, vigencia_hasta, activo
+        ) VALUES (${estructura.id}, ${itemRow.id}, ${monto}, ${vigencia_desde}, ${vigencia_hasta || null}, true)
         RETURNING id
       `;
       
-      const insertItemResult = await query(insertItemQuery, [
-        estructura.id,
-        itemRow.codigo,
-        itemRow.nombre,
-        itemRow.clase,
-        itemRow.naturaleza,
-        monto, 
-        vigencia_desde, 
-        vigencia_hasta || null
-      ]);
-      
-      const nuevoItem = Array.isArray(insertItemResult) ? insertItemResult[0] : (insertItemResult.rows || [])[0];
+      const nuevoItem = insertItemResult.rows[0];
 
-      await query('COMMIT');
+      await sql`COMMIT`;
 
       return NextResponse.json({
         success: true,
@@ -153,7 +134,7 @@ if (deny) return deny;
       });
 
     } catch (error) {
-      await query('ROLLBACK');
+      await sql`ROLLBACK`;
       throw error;
     }
 

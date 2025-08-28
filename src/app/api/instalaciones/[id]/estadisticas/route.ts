@@ -37,7 +37,7 @@ export async function GET(
           po.instalacion_id,
           COUNT(*) as count
         FROM as_turnos_puestos_operativos po
-        WHERE po.activo = true
+        WHERE (po.activo = true OR po.activo IS NULL)
         GROUP BY po.instalacion_id
       ) puestos_totales ON puestos_totales.instalacion_id = i.id
       
@@ -47,7 +47,7 @@ export async function GET(
           po.instalacion_id,
           COUNT(*) as count
         FROM as_turnos_puestos_operativos po
-        WHERE po.es_ppc = false AND po.guardia_id IS NOT NULL AND po.activo = true
+        WHERE po.es_ppc = false AND po.guardia_id IS NOT NULL AND (po.activo = true OR po.activo IS NULL)
         GROUP BY po.instalacion_id
       ) puestos_asignados ON puestos_asignados.instalacion_id = i.id
       
@@ -57,7 +57,7 @@ export async function GET(
           po.instalacion_id,
           COUNT(*) as count
         FROM as_turnos_puestos_operativos po
-        WHERE po.es_ppc = true AND po.activo = true
+        WHERE po.es_ppc = true AND (po.activo = true OR po.activo IS NULL)
         GROUP BY po.instalacion_id
       ) ppc_pendientes ON ppc_pendientes.instalacion_id = i.id
       

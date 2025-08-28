@@ -4,7 +4,7 @@ import { sql } from '@vercel/postgres';
 import { calcularNomenclaturaRol, calcularHorasTurno } from '@/lib/utils/calcularNomenclaturaRol';
 
 export async function GET(request: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'roles_servicio', action: 'read:list' });
+  const deny = await requireAuthz(request, { resource: 'roles_servicio', action: 'read:list' });
   if (deny) return deny;
 
 try {
@@ -91,7 +91,7 @@ try {
 }
 
 export async function POST(request: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'roles_servicio', action: 'create' });
+  const deny = await requireAuthz(request, { resource: 'roles_servicio', action: 'create' });
   if (deny) return deny;
 
 try {

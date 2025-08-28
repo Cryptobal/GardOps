@@ -6,8 +6,9 @@ import { guardarHistorialCalculo } from '../db/guardarHistorial';
 /**
  * Obtiene los datos de un guardia para el cálculo de sueldo
  */
-export async function obtenerDatosGuardia(guardiaId: number) {
+export async function obtenerDatosGuardia(guardiaId: string | number) {
   try {
+    const guardiaIdStr = typeof guardiaId === 'number' ? guardiaId.toString() : guardiaId;
     const result = await query(
       `SELECT 
         g.id,
@@ -15,21 +16,18 @@ export async function obtenerDatosGuardia(guardiaId: number) {
         g.apellido_paterno,
         g.apellido_materno,
         g.rut,
-        g.sueldo_base,
-        g.tipo_contrato,
-        g.afp,
-        g.isapre,
-        g.plan_isapre_uf,
-        g.mutualidad,
-        g.banco_id,
+        g.telefono,
+        g.email,
+        g.banco,
         g.numero_cuenta,
         g.tipo_cuenta,
-        g.correo
+        g.activo,
+        g.instalacion_id
        FROM guardias g
        WHERE g.id = $1
        AND g.activo = true
        LIMIT 1`,
-      [guardiaId]
+      [guardiaIdStr]
     );
     
     if (result.rows.length === 0) {
@@ -47,11 +45,12 @@ export async function obtenerDatosGuardia(guardiaId: number) {
  * Calcula los turnos extras del mes para un guardia
  */
 export async function calcularTurnosExtrasMes(
-  guardiaId: number, 
+  guardiaId: string | number, 
   mes: number, 
   anio: number
 ): Promise<{ cantidad: number; valorTotal: number }> {
   try {
+    const guardiaIdStr = typeof guardiaId === 'number' ? guardiaId.toString() : guardiaId;
     const result = await query(
       `SELECT 
         COUNT(*) as cantidad,
@@ -61,7 +60,7 @@ export async function calcularTurnosExtrasMes(
        AND EXTRACT(MONTH FROM fecha) = $2
        AND EXTRACT(YEAR FROM fecha) = $3
        AND estado IN ('aprobado', 'pagado')`,
-      [guardiaId, mes, anio]
+      [guardiaIdStr, mes, anio]
     );
     
     return {
@@ -78,11 +77,12 @@ export async function calcularTurnosExtrasMes(
  * Calcula las horas extras del mes para un guardia
  */
 export async function calcularHorasExtrasMes(
-  guardiaId: number,
+  guardiaId: string | number,
   mes: number,
   anio: number
 ): Promise<{ al50: number; al100: number }> {
   try {
+    const guardiaIdStr = typeof guardiaId === 'number' ? guardiaId.toString() : guardiaId;
     // Aquí podrías obtener las horas extras desde una tabla específica
     // Por ahora retornamos valores por defecto
     const result = await query(
@@ -93,7 +93,7 @@ export async function calcularHorasExtrasMes(
        WHERE guardia_id = $1
        AND mes = $2
        AND anio = $3`,
-      [guardiaId, mes, anio]
+      [guardiaIdStr, mes, anio]
     );
     
     if (result.rows.length > 0) {
@@ -111,14 +111,360 @@ export async function calcularHorasExtrasMes(
 }
 
 /**
+ * Cuenta días de inasistencia del guardia en el mes/año dados
+ */
+export async function contarAusenciasGuardiaMes(
+  guardiaId: string | number,
+  mes: number,
+  anio: number
+): Promise<number> {
+  try {
+    const guardiaIdStr = typeof guardiaId === 'number' ? guardiaId.toString() : guardiaId;
+    const result = await query(
+      `SELECT COUNT(*) AS faltas
+       FROM as_turnos_pauta_mensual pm
+       WHERE pm.guardia_id = $1
+         AND pm.mes = $2
+         AND pm.anio = $3
+         AND pm.estado = 'inasistencia'`,
+      [guardiaIdStr, mes, anio]
+    );
+    return Number(result.rows?.[0]?.faltas ?? 0);
+  } catch (error) {
+    console.error('Error al contar ausencias:', error);
+    return 0;
+  }
+}
+
+/**
+ * Cuenta días trabajados del guardia en el mes/año dados
+ * Considera días con estado 'trabajado' (confirmados como asistidos)
+ */
+export async function contarDiasTrabajadosGuardiaMes(
+  guardiaId: string | number,
+  mes: number,
+  anio: number
+): Promise<number> {
+  try {
+    const guardiaIdStr = typeof guardiaId === 'number' ? guardiaId.toString() : guardiaId;
+    const result = await query(
+      `SELECT COUNT(*) AS dias_trabajados
+       FROM as_turnos_pauta_mensual pm
+       WHERE pm.guardia_id = $1
+         AND pm.mes = $2
+         AND pm.anio = $3
+         AND pm.estado = 'trabajado'`,
+      [guardiaIdStr, mes, anio]
+    );
+    return Number(result.rows?.[0]?.dias_trabajados ?? 0);
+  } catch (error) {
+    console.error('Error al contar días trabajados:', error);
+    return 0;
+  }
+}
+
+/**
+ * Cuenta días planificados del guardia en el mes/año dados
+ * Considera días con estado 'planificado' (asignados pero no confirmados)
+ */
+export async function contarDiasPlanificadosGuardiaMes(
+  guardiaId: string | number,
+  mes: number,
+  anio: number
+): Promise<number> {
+  try {
+    const guardiaIdStr = typeof guardiaId === 'number' ? guardiaId.toString() : guardiaId;
+    const result = await query(
+      `SELECT COUNT(*) AS dias_planificados
+       FROM as_turnos_pauta_mensual pm
+       WHERE pm.guardia_id = $1
+         AND pm.mes = $2
+         AND pm.anio = $3
+         AND pm.estado = 'planificado'`,
+      [guardiaIdStr, mes, anio]
+    );
+    return Number(result.rows?.[0]?.dias_planificados ?? 0);
+  } catch (error) {
+    console.error('Error al contar días planificados:', error);
+    return 0;
+  }
+}
+
+/**
+ * Obtiene resumen completo de días del guardia en el mes/año dados
+ * Incluye lógica correcta para diferentes tipos de permisos
+ */
+export async function obtenerResumenDiasGuardiaMes(
+  guardiaId: string | number,
+  mes: number,
+  anio: number
+): Promise<{
+  diasTrabajados: number;
+  diasPlanificados: number;
+  diasAusencia: number;
+  diasLibre: number;
+  diasPermiso: number;
+  diasLicencia: number;
+  diasVacaciones: number;
+  totalDias: number;
+  // Nuevos campos para cálculo de sueldo
+  diasPagables: number; // Días que se pagan (trabajados + vacaciones + permisos con goce)
+  diasNoPagables: number; // Días que no se pagan (libres + licencias + permisos sin goce)
+  diasDescontables: number; // Días que se descuentan (inasistencias)
+}> {
+  try {
+    const guardiaIdStr = typeof guardiaId === 'number' ? guardiaId.toString() : guardiaId;
+    const result = await query(
+      `SELECT 
+         COUNT(*) AS total_dias,
+         COUNT(CASE WHEN estado = 'trabajado' THEN 1 END) AS dias_trabajados,
+         COUNT(CASE WHEN estado = 'planificado' THEN 1 END) AS dias_planificados,
+         COUNT(CASE WHEN estado = 'inasistencia' THEN 1 END) AS dias_ausencia,
+         COUNT(CASE WHEN estado = 'libre' THEN 1 END) AS dias_libre,
+         COUNT(CASE WHEN estado = 'permiso_con_goce' THEN 1 END) AS dias_permiso_con_goce,
+         COUNT(CASE WHEN estado = 'permiso_sin_goce' THEN 1 END) AS dias_permiso_sin_goce,
+         COUNT(CASE WHEN estado = 'licencia' THEN 1 END) AS dias_licencia,
+         COUNT(CASE WHEN estado = 'vacaciones' THEN 1 END) AS dias_vacaciones
+       FROM as_turnos_pauta_mensual pm
+       WHERE pm.guardia_id = $1
+         AND pm.mes = $2
+         AND pm.anio = $3`,
+      [guardiaIdStr, mes, anio]
+    );
+    
+    const row = result.rows?.[0] ?? {};
+    const diasTrabajados = Number(row.dias_trabajados ?? 0);
+    const diasPlanificados = Number(row.dias_planificados ?? 0);
+    const diasAusencia = Number(row.dias_ausencia ?? 0);
+    const diasLibre = Number(row.dias_libre ?? 0);
+    const diasPermisoConGoce = Number(row.dias_permiso_con_goce ?? 0);
+    const diasPermisoSinGoce = Number(row.dias_permiso_sin_goce ?? 0);
+    const diasLicencia = Number(row.dias_licencia ?? 0);
+    const diasVacaciones = Number(row.dias_vacaciones ?? 0);
+    const totalDias = Number(row.total_dias ?? 0);
+
+    // Lógica de cálculo según tipos de permisos:
+    // - VACACIONES: Se pagan (trabajador no asiste pero se le paga)
+    // - LICENCIA: No se pagan (trabajador no asiste y no se le paga)
+    // - PERMISO CON GOCE: Se pagan (trabajador no asiste pero se le paga)
+    // - PERMISO SIN GOCE: No se pagan (trabajador no asiste y no se le paga)
+    // - INASISTENCIA: Se descuentan (trabajador no asiste y se le descuenta)
+
+    const diasPagables = diasTrabajados + diasVacaciones + diasPermisoConGoce;
+    const diasNoPagables = diasLibre + diasLicencia + diasPermisoSinGoce + diasPlanificados;
+    const diasDescontables = diasAusencia;
+
+    return {
+      diasTrabajados,
+      diasPlanificados,
+      diasAusencia,
+      diasLibre,
+      diasPermiso: diasPermisoConGoce + diasPermisoSinGoce, // Total de permisos
+      diasLicencia,
+      diasVacaciones,
+      totalDias,
+      // Nuevos campos para cálculo de sueldo
+      diasPagables,
+      diasNoPagables,
+      diasDescontables
+    };
+  } catch (error) {
+    console.error('Error al obtener resumen de días:', error);
+    return {
+      diasTrabajados: 0,
+      diasPlanificados: 0,
+      diasAusencia: 0,
+      diasLibre: 0,
+      diasPermiso: 0,
+      diasLicencia: 0,
+      diasVacaciones: 0,
+      totalDias: 0,
+      diasPagables: 0,
+      diasNoPagables: 0,
+      diasDescontables: 0
+    };
+  }
+}
+
+/**
+ * Obtiene ítems extras registrados en payroll_items_extras para el guardia y período
+ */
+export async function obtenerItemsExtrasMes(
+  guardiaId: string | number,
+  instalacionId: string | null,
+  mes: number,
+  anio: number
+): Promise<{ haberImponible: number; haberNoImponible: number; descuento: number }> {
+  try {
+    const guardiaIdStr = typeof guardiaId === 'number' ? guardiaId.toString() : guardiaId;
+    // Si tenemos instalación, buscamos (o usamos) el payroll_run del período
+    let payrollRunId: string | null = null;
+    if (instalacionId) {
+      const pr = await query(
+        `SELECT id FROM payroll_run WHERE instalacion_id = $1 AND mes = $2 AND anio = $3 LIMIT 1`,
+        [instalacionId, mes, anio]
+      );
+      payrollRunId = pr.rows?.[0]?.id ?? null;
+    }
+
+    if (!payrollRunId) {
+      // Si no hay run, no consideramos extras (se gestionan desde la UI y crearán el run)
+      return { haberImponible: 0, haberNoImponible: 0, descuento: 0 };
+    }
+
+    const res = await query(
+      `SELECT tipo, COALESCE(SUM(monto), 0) AS total
+       FROM payroll_items_extras
+       WHERE payroll_run_id = $1 AND guardia_id = $2
+       GROUP BY tipo`,
+      [payrollRunId, guardiaIdStr]
+    );
+
+    const acc = { haberImponible: 0, haberNoImponible: 0, descuento: 0 };
+    for (const row of res.rows ?? []) {
+      if (row.tipo === 'haber_imponible') acc.haberImponible += Number(row.total || 0);
+      else if (row.tipo === 'haber_no_imponible') acc.haberNoImponible += Number(row.total || 0);
+      else if (row.tipo === 'descuento') acc.descuento += Number(row.total || 0);
+    }
+    return acc;
+  } catch (error) {
+    console.error('Error al obtener ítems extras:', error);
+    return { haberImponible: 0, haberNoImponible: 0, descuento: 0 };
+  }
+}
+
+interface EstructuraItemNormalized {
+  codigo: string;
+  nombre: string;
+  clase: 'HABER' | 'DESCUENTO';
+  naturaleza: 'IMPONIBLE' | 'NO_IMPONIBLE';
+  monto: number;
+}
+
+/**
+ * Obtiene la estructura vigente para el guardia: primero personal; si no, por instalación+rol
+ */
+export async function obtenerEstructuraVigenteParaGuardia(
+  guardiaId: string | number,
+  mes: number,
+  anio: number
+): Promise<{ items: EstructuraItemNormalized[]; sueldoBase?: number; instalacionId: string | null }> {
+  const guardiaIdStr = typeof guardiaId === 'number' ? guardiaId.toString() : guardiaId;
+  const primerDiaMes = new Date(anio, mes - 1, 1).toISOString().split('T')[0];
+  let instalacionId: string | null = null;
+
+  // 1) Intentar estructura personal
+  try {
+    const cab = await query(
+      `SELECT id
+       FROM sueldo_estructura_guardia
+       WHERE guardia_id = $1
+         AND vigencia_desde <= $2::date
+         AND (vigencia_hasta IS NULL OR $2::date <= vigencia_hasta)
+       ORDER BY vigencia_desde DESC
+       LIMIT 1`,
+      [guardiaIdStr, primerDiaMes]
+    );
+
+    if (cab.rows?.length) {
+      const estructuraId = cab.rows[0].id;
+      const li = await query(
+        `SELECT si.codigo, si.nombre, si.clase, si.naturaleza, gi.monto
+         FROM sueldo_estructura_guardia_item gi
+         JOIN sueldo_item si ON si.id = gi.item_id
+         WHERE gi.estructura_guardia_id = $1
+           AND gi.activo = TRUE
+           AND gi.vigencia_desde <= $2::date
+           AND (gi.vigencia_hasta IS NULL OR $2::date <= gi.vigencia_hasta)
+         ORDER BY si.codigo`,
+        [estructuraId, primerDiaMes]
+      );
+
+      const items: EstructuraItemNormalized[] = (li.rows ?? []).map((r: any) => ({
+        codigo: r.codigo,
+        nombre: r.nombre,
+        clase: r.clase,
+        naturaleza: r.naturaleza,
+        monto: Number(r.monto || 0)
+      }));
+
+      const sueldoBase = items.find(i => i.codigo === 'sueldo_base')?.monto;
+      return { items, sueldoBase, instalacionId };
+    }
+  } catch (error) {
+    console.warn('obtenerEstructuraVigenteParaGuardia: estructura personal no disponible', error);
+  }
+
+  // 2) Tomar instalación+rol actuales y cargar estructura de servicio
+  try {
+    const asign = await query(
+      `SELECT po.instalacion_id::text AS instalacion_id, po.rol_id AS rol_id
+       FROM as_turnos_puestos_operativos po
+       WHERE po.guardia_id = $1 AND po.activo = TRUE
+       ORDER BY po.creado_en DESC
+       LIMIT 1`,
+      [guardiaIdStr]
+    );
+    instalacionId = asign.rows?.[0]?.instalacion_id ?? null;
+    const rolId = asign.rows?.[0]?.rol_id ?? null;
+
+    if (!instalacionId || !rolId) {
+      return { items: [], instalacionId: null };
+    }
+
+    const cabServ = await query(
+      `SELECT id
+       FROM sueldo_estructura_instalacion
+       WHERE instalacion_id = $1 AND rol_servicio_id = $2
+         AND activo = TRUE
+         AND vigencia_desde <= $3::date
+         AND (vigencia_hasta IS NULL OR $3::date <= vigencia_hasta)
+       ORDER BY vigencia_desde DESC
+       LIMIT 1`,
+      [instalacionId, rolId, primerDiaMes]
+    );
+
+    if (!cabServ.rows?.length) {
+      return { items: [], instalacionId };
+    }
+
+    const estructuraId = cabServ.rows[0].id;
+    const li = await query(
+      `SELECT item_codigo, item_nombre, item_clase, item_naturaleza, monto
+       FROM sueldo_estructura_inst_item
+       WHERE estructura_id = $1 AND activo = TRUE
+         AND vigencia_desde <= $2::date
+         AND (vigencia_hasta IS NULL OR $2::date <= vigencia_hasta)
+       ORDER BY item_codigo`,
+      [estructuraId, primerDiaMes]
+    );
+
+    const items: EstructuraItemNormalized[] = (li.rows ?? []).map((r: any) => ({
+      codigo: r.item_codigo,
+      nombre: r.item_nombre,
+      clase: r.item_clase,
+      naturaleza: r.item_naturaleza,
+      monto: Number(r.monto || 0)
+    }));
+
+    const sueldoBase = items.find(i => i.codigo === 'sueldo_base')?.monto;
+    return { items, sueldoBase, instalacionId };
+  } catch (error) {
+    console.error('obtenerEstructuraVigenteParaGuardia: error estructura servicio', error);
+    return { items: [], instalacionId };
+  }
+}
+
+/**
  * Obtiene los bonos y asignaciones del guardia
  */
 export async function obtenerBonosGuardia(
-  guardiaId: number,
+  guardiaId: string | number,
   mes: number,
   anio: number
 ) {
   try {
+    const guardiaIdStr = typeof guardiaId === 'number' ? guardiaId.toString() : guardiaId;
     // Obtener bonos desde configuración del guardia o tabla de bonos
     const result = await query(
       `SELECT 
@@ -130,7 +476,7 @@ export async function obtenerBonosGuardia(
        FROM guardias_configuracion
        WHERE guardia_id = $1
        LIMIT 1`,
-      [guardiaId]
+      [guardiaIdStr]
     );
     
     if (result.rows.length > 0) {
@@ -161,7 +507,7 @@ export async function obtenerBonosGuardia(
  * Calcula el sueldo completo de un guardia incluyendo turnos extras
  */
 export async function calcularSueldoGuardiaPlanilla(
-  guardiaId: number,
+  guardiaId: string | number,
   mes: number,
   anio: number,
   incluirTurnosExtras: boolean = true
@@ -179,45 +525,72 @@ export async function calcularSueldoGuardiaPlanilla(
     // 3. Calcular horas extras
     const horasExtras = await calcularHorasExtrasMes(guardiaId, mes, anio);
     
-    // 4. Obtener bonos y asignaciones
-    const bonos = await obtenerBonosGuardia(guardiaId, mes, anio);
+    // 4. Obtener estructura vigente (personal o por servicio) y mapear a input
+    const estructura = await obtenerEstructuraVigenteParaGuardia(guardiaId, mes, anio);
+    const itemsEstructura = estructura.items;
+
+    const sueldoBaseEstructura = estructura.sueldoBase;
+    const colacionItem = itemsEstructura.find(i => i.codigo === 'colacion' || (i.clase==='HABER' && i.naturaleza==='NO_IMPONIBLE' && i.nombre.toLowerCase().includes('colaci')))?.monto || 0;
+    const movilizacionItem = itemsEstructura.find(i => i.codigo === 'movilizacion' || (i.clase==='HABER' && i.naturaleza==='NO_IMPONIBLE' && i.nombre.toLowerCase().includes('movil')))?.monto || 0;
+
+    const totalBonosImponibles = itemsEstructura
+      .filter(i => i.clase === 'HABER' && i.naturaleza === 'IMPONIBLE' && i.codigo !== 'sueldo_base')
+      .reduce((s, i) => s + i.monto, 0);
+
+    // 5. Obtener resumen completo de días del guardia con lógica correcta de permisos
+    const resumenDias = await obtenerResumenDiasGuardiaMes(guardiaId, mes, anio);
     
-    // 5. Preparar input para cálculo de sueldo
+    // Usar días descontables (solo inasistencias) para el cálculo de sueldo
+    const diasAusencia = resumenDias.diasDescontables;
+    
+    // Información adicional para el resultado
+    const diasTrabajados = resumenDias.diasTrabajados;
+    const diasPlanificados = resumenDias.diasPlanificados;
+    const diasPagables = resumenDias.diasPagables;
+    const diasNoPagables = resumenDias.diasNoPagables;
+
+    // 6. Ítems extras del período
+    const extras = await obtenerItemsExtrasMes(guardiaId, estructura.instalacionId ?? null, mes, anio);
+    
+    // 7. Preparar input para cálculo de sueldo
     const fecha = new Date(anio, mes - 1, 1); // Primer día del mes
     
+    // Validar que la fecha sea válida
+    if (isNaN(fecha.getTime())) {
+      throw new Error('Fecha inválida para el cálculo');
+    }
+    
     const sueldoInput: SueldoInput = {
-      sueldoBase: Number(guardia.sueldo_base) || 550000, // Default si no tiene
-      fecha: fecha,
-      afp: guardia.afp || 'capital',
-      mutualidad: guardia.mutualidad || 'achs',
-      tipoContrato: guardia.tipo_contrato || 'indefinido',
+      sueldoBase: Number(sueldoBaseEstructura) || 550000,
+      fecha: fecha, // Mantener como objeto Date
+      afp: 'capital', // Por defecto, se puede obtener de otra tabla después
+      tipoContrato: 'indefinido', // Por defecto, se puede obtener de otra tabla después
       horasExtras: {
         cincuenta: horasExtras.al50,
         cien: horasExtras.al100
       },
       bonos: {
-        nocturnidad: Number(bonos.bono_nocturno) || 0,
-        responsabilidad: Number(bonos.bono_responsabilidad) || 0,
-        otros: turnosExtras.valorTotal // Turnos extras como bono
+        otros: totalBonosImponibles + (incluirTurnosExtras ? turnosExtras.valorTotal : 0) + extras.haberImponible
       },
       comisiones: 0,
       noImponible: {
-        colacion: Number(bonos.colacion) || 0,
-        movilizacion: Number(bonos.movilizacion) || 0,
-        asignacionFamiliar: Number(bonos.asignacion_familiar) || 0
+        colacion: colacionItem + extras.haberNoImponible,
+        movilizacion: movilizacionItem,
+        asignacionFamiliar: 0
       },
-      anticipos: 0,
+      anticipos: extras.descuento,
       judiciales: 0,
       apv: 0,
-      cuenta2: 0
+      cuenta2: 0,
+      diasAusencia
     };
     
-    // Si tiene ISAPRE
-    if (guardia.isapre && guardia.plan_isapre_uf) {
-      sueldoInput.isapre = {
-        plan: Number(guardia.plan_isapre_uf)
-      };
-    }
+    // Si tiene ISAPRE (por defecto no tiene, se puede implementar después)
+    // if (guardia.isapre && guardia.plan_isapre_uf) {
+    //   sueldoInput.isapre = {
+    //     plan: Number(guardia.plan_isapre_uf)
+    //   };
+    // }
     
     // 6. Calcular sueldo
     const resultado = await calcularSueldo(sueldoInput);
@@ -241,6 +614,20 @@ export async function calcularSueldoGuardiaPlanilla(
         anio,
         descripcion: `${mes}/${anio}`
       },
+      resumenDias: {
+        diasTrabajados,
+        diasPlanificados,
+        diasAusencia: diasAusencia,
+        diasLibre: resumenDias.diasLibre,
+        diasPermiso: resumenDias.diasPermiso,
+        diasLicencia: resumenDias.diasLicencia,
+        diasVacaciones: resumenDias.diasVacaciones,
+        totalDias: resumenDias.totalDias,
+        // Nuevos campos para cálculo de sueldo
+        diasPagables,
+        diasNoPagables,
+        diasDescontables: diasAusencia
+      },
       turnosExtras: {
         cantidad: turnosExtras.cantidad,
         valorTotal: turnosExtras.valorTotal
@@ -261,14 +648,17 @@ export async function calcularSueldoGuardiaPlanilla(
 export async function generarPlanillaSueldos(
   mes: number,
   anio: number,
-  incluirTurnosExtras: boolean = true
+  incluirTurnosExtras: boolean = true,
+  instalacionId?: string
 ): Promise<any[]> {
   try {
-    // Obtener todos los guardias activos
+    // Obtener guardias activos (opcionalmente por instalación)
     const guardias = await query(
       `SELECT id FROM guardias 
        WHERE activo = true
-       ORDER BY apellido_paterno, apellido_materno, nombre`
+       ${instalacionId ? 'AND instalacion_id = $1' : ''}
+       ORDER BY apellido_paterno, apellido_materno, nombre`,
+      instalacionId ? [instalacionId] : []
     );
     
     const planilla = [];
@@ -302,12 +692,13 @@ export async function generarPlanillaSueldos(
  * Actualiza el estado de los turnos extras después del pago
  */
 export async function marcarTurnosExtrasComoPagados(
-  guardiaId: number,
+  guardiaId: string | number,
   mes: number,
   anio: number,
   planillaId?: number
 ): Promise<boolean> {
   try {
+    const guardiaIdStr = typeof guardiaId === 'number' ? guardiaId.toString() : guardiaId;
     const result = await query(
       `UPDATE TE_turnos_extras
        SET 
@@ -319,7 +710,7 @@ export async function marcarTurnosExtrasComoPagados(
        AND EXTRACT(MONTH FROM fecha) = $3
        AND EXTRACT(YEAR FROM fecha) = $4
        AND estado = 'aprobado'`,
-      [planillaId || null, guardiaId, mes, anio]
+      [planillaId || null, guardiaIdStr, mes, anio]
     );
     
     console.log(`✅ Marcados ${result.rowCount} turnos extras como pagados para guardia ${guardiaId}`);

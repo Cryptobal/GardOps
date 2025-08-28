@@ -1,6 +1,6 @@
 import { requireAuthz } from '@/lib/authz-api'
 import { NextResponse } from 'next/server'
-import { sql } from '@vercel/postgres'
+import { sql } from '@/lib/database-vercel'
 import { headers } from 'next/headers'
 import { getCurrentUserServer } from '@/lib/auth'
 
@@ -18,7 +18,10 @@ export async function GET(req: Request) {
 
     const h = headers()
     const fromHeader = h.get('x-user-email') || h.get('x-user-email(next/headers)')
-    const userFromJwt = getCurrentUserServer(req as any)
+    let userFromJwt: any = null
+    try {
+      userFromJwt = getCurrentUserServer(req as any)
+    } catch {}
     const fromJwt = userFromJwt?.email || null
     const isDev = process.env.NODE_ENV !== 'production'
     const dev = isDev ? process.env.NEXT_PUBLIC_DEV_USER_EMAIL : undefined

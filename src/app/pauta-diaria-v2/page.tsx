@@ -1,9 +1,9 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import { redirect } from 'next/navigation'
 import { isFlagEnabled } from '@/lib/flags'
 import { unstable_noStore as noStore } from 'next/cache'
 import pool from '@/lib/database'
-import VersionBanner from '@/components/VersionBanner'
+
 import ClientTable from '@/app/pauta-diaria-v2/ClientTable'
 import { PautaRow } from './types'
 import { toYmd, toDisplay } from '@/lib/date'
@@ -26,9 +26,12 @@ async function getRows(fecha: string, incluirLibres: boolean = false, tenantId?:
           WHEN pd.meta->>'cobertura_guardia_id' IS NOT NULL THEN
             CONCAT(g.apellido_paterno, ' ', g.apellido_materno, ', ', g.nombre)
           ELSE NULL
-        END AS cobertura_guardia_nombre
+        END AS cobertura_guardia_nombre,
+        -- Agregar teléfono del guardia de trabajo
+        gtrabajo.telefono as telefono_guardia_trabajo
       FROM as_turnos_v_pauta_diaria_dedup pd
       LEFT JOIN guardias g ON g.id::text = pd.meta->>'cobertura_guardia_id'
+      LEFT JOIN guardias gtrabajo ON gtrabajo.id::text = pd.guardia_trabajo_id::text
       JOIN instalaciones i ON i.id::text = pd.instalacion_id::text
       WHERE pd.fecha = $1`;
     if (tenantId) { sql += ` AND i.tenant_id::text = $2`; params.push(tenantId); }
@@ -42,11 +45,13 @@ async function getRows(fecha: string, incluirLibres: boolean = false, tenantId?:
       console.log(`⚠️ No hay datos para la fecha ${fecha}, verificando fechas disponibles...`);
       
       const { rows: fechasDisponibles } = await pool.query(`
-        SELECT DISTINCT fecha 
-        FROM as_turnos_v_pauta_diaria_dedup 
-        ORDER BY fecha 
+        SELECT DISTINCT pd.fecha 
+        FROM as_turnos_v_pauta_diaria_dedup pd
+        JOIN instalaciones i ON i.id::text = pd.instalacion_id::text
+        WHERE i.tenant_id::text = $1
+        ORDER BY pd.fecha 
         LIMIT 5
-      `);
+      `, [tenantId]);
       
       if (fechasDisponibles.length > 0) {
         console.log(`📅 Fechas disponibles: ${fechasDisponibles.map(r => r.fecha).join(', ')}`);
@@ -97,18 +102,25 @@ export default async function PautaDiariaV2Page({
   try {
     const fecha = toYmd(searchParams?.fecha || new Date());
     const incluirLibres = searchParams?.incluir_libres === 'true';
-    const rows = await getRows(fecha, incluirLibres, decoded?.tenant_id ?? null);
+    
+    // Obtener selectedTenantId desde cookies
+    const selectedTenantId = cookieStore.get('x_tenant_id')?.value;
+    const tenantId = selectedTenantId || decoded?.tenant_id;
+    
+    const rows = await getRows(fecha, incluirLibres, tenantId);
 
     // Si no hay datos, obtener fechas disponibles para sugerir
     let fechasDisponibles: string[] = [];
     if (rows.length === 0) {
       try {
         const { rows: fechas } = await pool.query(`
-          SELECT DISTINCT fecha 
-          FROM as_turnos_v_pauta_diaria_dedup 
-          ORDER BY fecha 
+          SELECT DISTINCT pd.fecha 
+          FROM as_turnos_v_pauta_diaria_dedup pd
+          JOIN instalaciones i ON i.id::text = pd.instalacion_id::text
+          WHERE i.tenant_id::text = $1
+          ORDER BY pd.fecha 
           LIMIT 5
-        `);
+        `, [tenantId]);
         fechasDisponibles = fechas.map(r => toYmd(r.fecha));
       } catch (error) {
         console.error('Error obteniendo fechas disponibles:', error);
@@ -117,8 +129,8 @@ export default async function PautaDiariaV2Page({
 
     return (
       <div className="max-w-6xl mx-auto p-4 space-y-4">
-        <VersionBanner version="v2" />
-        <h1 className="text-2xl font-bold">Pauta Diaria v2 (beta)</h1>
+
+                  <h1 className="text-2xl font-bold">Pauta Diaria</h1>
 
         {rows.length === 0 ? (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 dark:bg-yellow-900/20 dark:border-yellow-800">

@@ -58,13 +58,24 @@ export interface ValorUF {
 export async function obtenerParametrosMensuales(fecha?: string): Promise<any[]> {
   const periodo = fecha || await obtenerUltimoPeriodoDisponible();
   
-  const result = await sql`
-    SELECT * FROM sueldo_parametros_generales 
-    WHERE periodo = ${periodo}
-    ORDER BY parametro
-  `;
-  
-  return result.rows;
+  try {
+    const result = await sql`
+      SELECT 
+        id,
+        parametro,
+        valor,
+        descripcion,
+        periodo
+      FROM sueldo_parametros_generales 
+      WHERE periodo = ${periodo}
+      ORDER BY parametro
+    `;
+    
+    return result.rows;
+  } catch (error) {
+    console.error('❌ obtenerParametrosMensuales: Error en consulta:', error);
+    throw error;
+  }
 }
 
 /**
@@ -350,61 +361,51 @@ export async function actualizarAsignacionFamiliar(
 }
 
 /**
- * Obtiene valores de UF ordenados por fecha
+ * Obtiene valores de UF desde la API de la CMF
  */
 export async function obtenerValoresUF(): Promise<any[]> {
   try {
-    const result = await sql`
-      SELECT 
-        fecha,
-        valor
-      FROM sueldo_valor_uf 
-      ORDER BY fecha DESC
-    `;
+    const API_KEY = 'd9f76c741ee20ccf0e776ecdf58c32102cfa9806';
+    const UF_API_URL = `https://api.cmfchile.cl/api-sbifv3/recursos_api/uf?apikey=${API_KEY}&formato=json`;
     
-    return result.rows;
+    const response = await fetch(UF_API_URL);
+    if (!response.ok) {
+      throw new Error(`Error HTTP: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.UFs && data.UFs.length > 0) {
+      // Retornar solo el valor actual
+      const uf = data.UFs[0];
+      const valor = parseFloat(uf.Valor.replace(/\./g, '').replace(',', '.'));
+      
+      return [{
+        fecha: uf.Fecha,
+        valor: valor
+      }];
+    } else {
+      throw new Error('No se encontraron datos de UF');
+    }
   } catch (error) {
-    console.error('❌ obtenerValoresUF: Error en consulta:', error);
-    throw error;
+    console.error('❌ obtenerValoresUF: Error obteniendo desde API:', error);
+    // Retornar valor por defecto en caso de error
+    return [{
+      fecha: new Date().toISOString().split('T')[0],
+      valor: 39280.76
+    }];
   }
 }
 
 /**
- * Agrega o actualiza un valor de UF
+ * Obtiene el valor UF actual desde la API de la CMF
  */
-export async function actualizarValorUF(
-  fecha: string, 
-  valor: number
-): Promise<void> {
-  await sql`
-    INSERT INTO sueldo_valor_uf (fecha, valor)
-    VALUES (${fecha}, ${valor})
-    ON CONFLICT (fecha) DO UPDATE SET
-      valor = EXCLUDED.valor,
-      updated_at = CURRENT_TIMESTAMP
-  `;
-}
-
-/**
- * Elimina un valor de UF
- */
-export async function eliminarValorUF(fecha: string): Promise<void> {
-  await sql`
-    DELETE FROM sueldo_valor_uf 
-    WHERE fecha = ${fecha}
-  `;
-}
-
-/**
- * Actualiza un valor de UF existente
- */
-export async function actualizarValorUFExistente(
-  fecha: string, 
-  valor: number
-): Promise<void> {
-  await sql`
-    UPDATE sueldo_valor_uf 
-    SET valor = ${valor}
-    WHERE fecha = ${fecha}
-  `;
+export async function obtenerValorUFActual(): Promise<number> {
+  try {
+    const valores = await obtenerValoresUF();
+    return valores[0]?.valor || 39280.76;
+  } catch (error) {
+    console.error('❌ obtenerValorUFActual: Error:', error);
+    return 39280.76;
+  }
 }

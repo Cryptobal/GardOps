@@ -1,4 +1,4 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 "use client";
 
 import { useCan } from "@/lib/permissions";
@@ -17,6 +17,7 @@ export default function SeguridadPage() {
   let adminBypass = false;
   let isTenantAdmin = false;
   let isPlatformAdminJwt = false;
+  let isCarlosIrigoyen = false;
   try {
     if (typeof document !== 'undefined') {
       const m = (document.cookie || '').match(/(?:^|;\s*)auth_token=([^;]+)/);
@@ -29,6 +30,8 @@ export default function SeguridadPage() {
         // Platform admin: no tiene tenant_id o tiene is_platform_admin = true
         // Tenant admin: tiene tenant_id y no es platform admin
         isTenantAdmin = payload?.rol === 'admin' && payload?.tenant_id && !payload?.is_platform_admin;
+        // Detectar específicamente a Carlos.Irigoyen@gard.cl
+        isCarlosIrigoyen = payload?.email === 'carlos.irigoyen@gard.cl';
       }
     }
   } catch {}
@@ -60,26 +63,44 @@ export default function SeguridadPage() {
     },
     {
       title: "🏢 Tenants",
-      description: "Administra Tenants de la plataforma (puede requerir Super Admin)",
+      description: "Administra Tenants de la plataforma (solo Super Admin)",
       icon: Users,
       href: "/configuracion/seguridad/tenants",
       color: "bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/20",
-      allowed: isPlatformAdmin || canTenantsRead,
+      allowed: isCarlosIrigoyen, // SOLO Carlos.Irigoyen@gard.cl puede ver tenants
     }
   ];
 
+  // Debug: mostrar información del usuario actual
+  console.log('🔍 Debug Seguridad:', {
+    isCarlosIrigoyen,
+    isPlatformAdmin,
+    isPlatformAdminJwt,
+    isTenantAdmin,
+    canTenantsRead,
+    adminBypass,
+    email: (() => {
+      try {
+        if (typeof document !== 'undefined') {
+          const m = (document.cookie || '').match(/(?:^|;\s*)auth_token=([^;]+)/);
+          const token = m?.[1] ? decodeURIComponent(m[1]) : null;
+          if (token) {
+            const payload = JSON.parse(atob(token.split('.')[1] || '')) || {};
+            return payload?.email;
+          }
+        }
+      } catch {}
+      return 'no-token';
+    })()
+  });
+
   const filteredSections = sections.filter((s) => {
-    // Platform Admin (carlos.irigoyen@gard.cl) - ve TODO
-    if (isPlatformAdmin || isPlatformAdminJwt) {
-      return true;
+    // SOLO Carlos.Irigoyen@gard.cl puede ver la sección de Tenants
+    if (s.title.includes('Tenants')) {
+      return isCarlosIrigoyen; // Solo Carlos puede ver tenants
     }
     
-    // Tenant Admin (admin@empresa.com) - ve solo usuarios y roles, NO tenants
-    if (isTenantAdmin) {
-      return s.title.includes('Usuarios') || s.title.includes('Roles');
-    }
-    
-    // Otros usuarios - usar permisos normales
+    // Para todas las demás secciones, usar permisos normales
     return s.allowed !== false;
   });
 

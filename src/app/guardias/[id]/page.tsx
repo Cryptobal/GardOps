@@ -1,6 +1,6 @@
 'use client';
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import FiniquitoGuardia from './components/FiniquitoGuardia';
 import DatosBancarios from './components/DatosBancarios';
 import TurnosExtrasGuardia from './components/TurnosExtrasGuardia';
 import HistorialMensual from './components/HistorialMensual';
+import ResumenDiasGuardia from './components/ResumenDiasGuardia';
 import EstructuraGuardia from './components/EstructuraGuardia';
 import { GoogleMap } from '@/components/ui/google-map';
 import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@/lib/geocoding';
@@ -22,14 +23,15 @@ import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@
 interface Guardia {
   id: string;
   nombre: string;
-  apellidos: string;
+  apellido_paterno: string;
+  apellido_materno: string;
   rut: string;
   email: string;
   telefono: string;
   direccion: string;
   latitud?: number;
   longitud?: number;
-  estado: string;
+  activo: boolean;
   tipo_guardia?: 'contratado' | 'esporadico';
   fecha_os10?: string;
   created_at: string;
@@ -43,6 +45,8 @@ export default function GuardiaDetallePage() {
   const [guardia, setGuardia] = useState<Guardia | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('informacion');
+  
+
   const [geocodingData, setGeocodingData] = useState<GeocodingResult | null>(null);
   const [mapLoading, setMapLoading] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
@@ -56,17 +60,24 @@ export default function GuardiaDetallePage() {
     try {
       setLoading(true);
       const response = await fetch(`/api/guardias/${guardiaId}`);
-      if (!response.ok) {
-        throw new Error('Error al cargar guardia');
-      }
-      const guardiaData = await response.json();
-      setGuardia(guardiaData);
+      const result = await response.json();
       
-      if (guardiaData.direccion) {
-        await cargarDatosGeograficos(guardiaData.direccion);
+      
+
+      if (result.success && result.data) {
+        
+        
+        setGuardia(result.data);
+        
+        if (result.data.direccion) {
+          await cargarDatosGeograficos(result.data.direccion);
+        }
+      } else {
+        console.error('❌ DEBUG - Error en la respuesta:', result);
+        throw new Error(result.error || 'Error al cargar el guardia');
       }
     } catch (error) {
-      console.error('Error cargando guardia:', error);
+      console.error('❌ DEBUG - Error en cargarGuardia:', error);
     } finally {
       setLoading(false);
     }
@@ -140,43 +151,46 @@ export default function GuardiaDetallePage() {
   }
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 overflow-x-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4 sm:mb-6">
-        <div className="flex items-center gap-4">
+    <div className="container mx-auto px-4 py-4 overflow-x-hidden">
+      {/* Header - Mobile First */}
+      <div className="flex flex-col gap-4 mb-4">
+        {/* Botón volver y título */}
+        <div className="flex items-center gap-3">
           <Link href="/guardias">
             <Button variant="outline" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver
             </Button>
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {guardia.nombre} {guardia.apellidos}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold text-gray-900 truncate">
+              {guardia.nombre} {guardia.apellido_paterno} {guardia.apellido_materno}
             </h1>
-            <p className="text-gray-600">RUT: {guardia.rut}</p>
+            <p className="text-sm text-gray-600">RUT: {guardia.rut}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+        
+        {/* Estados y botón editar */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
             guardia.tipo_guardia === 'contratado' 
               ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
               : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
           }`}>
             {guardia.tipo_guardia === 'contratado' ? 'Contratado' : 'Esporádico'}
           </span>
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-            guardia.estado === 'activo' 
+          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+            guardia.activo === true 
               ? 'bg-green-100 text-green-800' 
               : 'bg-red-100 text-red-800'
           }`}>
-            {guardia.estado === 'activo' ? 'Activo' : 'Inactivo'}
+            {guardia.activo === true ? 'Activo' : 'Inactivo'}
           </span>
           <Button 
             onClick={handleEditarGuardia}
             variant="outline" 
             size="sm"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 ml-auto"
           >
             <Edit className="h-4 w-4" />
             Editar
@@ -184,15 +198,15 @@ export default function GuardiaDetallePage() {
         </div>
       </div>
 
-      {/* Pestañas */}
-      <div className="w-full mb-6">
-        {/* Contenedor de pestañas con fondo y bordes */}
-        <div className="bg-muted/30 rounded-xl p-3 shadow-sm border border-border/50 overflow-x-auto">
-          {/* Desktop: Mejor distribución con espaciado */}
-          <div className="hidden md:flex gap-4 w-full justify-center">
+      {/* Pestañas - Mobile First */}
+      <div className="w-full mb-4">
+        {/* Contenedor de pestañas optimizado para móviles */}
+        <div className="bg-muted/30 rounded-lg p-2 shadow-sm border border-border/50">
+          {/* Pestañas con scroll horizontal */}
+          <div className="flex gap-1 w-full overflow-x-auto pb-1">
             <button
               onClick={() => setActiveTab('informacion')}
-              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-md transition-all duration-200 hover:bg-muted/60 ${
                 activeTab === 'informacion' 
                   ? 'bg-background shadow-sm text-foreground' 
                   : 'text-muted-foreground hover:text-foreground'
@@ -203,7 +217,7 @@ export default function GuardiaDetallePage() {
             </button>
             <button
               onClick={() => setActiveTab('asignacion')}
-              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-md transition-all duration-200 hover:bg-muted/60 ${
                 activeTab === 'asignacion' 
                   ? 'bg-background shadow-sm text-foreground' 
                   : 'text-muted-foreground hover:text-foreground'
@@ -214,7 +228,7 @@ export default function GuardiaDetallePage() {
             </button>
             <button
               onClick={() => setActiveTab('permisos')}
-              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-md transition-all duration-200 hover:bg-muted/60 ${
                 activeTab === 'permisos' 
                   ? 'bg-background shadow-sm text-foreground' 
                   : 'text-muted-foreground hover:text-foreground'
@@ -225,7 +239,7 @@ export default function GuardiaDetallePage() {
             </button>
             <button
               onClick={() => setActiveTab('documentos')}
-              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-md transition-all duration-200 hover:bg-muted/60 ${
                 activeTab === 'documentos' 
                   ? 'bg-background shadow-sm text-foreground' 
                   : 'text-muted-foreground hover:text-foreground'
@@ -236,7 +250,7 @@ export default function GuardiaDetallePage() {
             </button>
             <button
               onClick={() => setActiveTab('datos-bancarios')}
-              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-md transition-all duration-200 hover:bg-muted/60 ${
                 activeTab === 'datos-bancarios' 
                   ? 'bg-background shadow-sm text-foreground' 
                   : 'text-muted-foreground hover:text-foreground'
@@ -246,19 +260,8 @@ export default function GuardiaDetallePage() {
               <span>Datos Bancarios</span>
             </button>
             <button
-              onClick={() => setActiveTab('finiquito')}
-              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
-                activeTab === 'finiquito' 
-                  ? 'bg-background shadow-sm text-foreground' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-              <span>Finiquito</span>
-            </button>
-            <button
               onClick={() => setActiveTab('turnos-extras')}
-              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-md transition-all duration-200 hover:bg-muted/60 ${
                 activeTab === 'turnos-extras' 
                   ? 'bg-background shadow-sm text-foreground' 
                   : 'text-muted-foreground hover:text-foreground'
@@ -268,19 +271,41 @@ export default function GuardiaDetallePage() {
               <span>Turnos Extras</span>
             </button>
             <button
+              onClick={() => setActiveTab('finiquito')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-md transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'finiquito' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              <span>Finiquito</span>
+            </button>
+            <button
               onClick={() => setActiveTab('historial-mensual')}
-              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-md transition-all duration-200 hover:bg-muted/60 ${
                 activeTab === 'historial-mensual' 
                   ? 'bg-background shadow-sm text-foreground' 
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <Calendar className="h-4 w-4 flex-shrink-0" />
-              <span>Historial Mensual</span>
+              <span>Historial</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('resumen-dias')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-md transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'resumen-dias' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Clock className="h-4 w-4 flex-shrink-0" />
+              <span>Resumen Días</span>
             </button>
             <button
               onClick={() => setActiveTab('estructura')}
-              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-md transition-all duration-200 hover:bg-muted/60 ${
                 activeTab === 'estructura' 
                   ? 'bg-background shadow-sm text-foreground' 
                   : 'text-muted-foreground hover:text-foreground'
@@ -410,39 +435,39 @@ export default function GuardiaDetallePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground block">
                       Nombre Completo
                     </label>
-                    <p className="text-sm font-medium">
-                      {guardia.nombre} {guardia.apellidos}
+                    <p className="text-sm font-medium text-foreground">
+                      {guardia.nombre} {guardia.apellido_paterno} {guardia.apellido_materno}
                     </p>
                   </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground block">
                       RUT
                     </label>
-                    <p className="text-sm">{guardia.rut}</p>
+                    <p className="text-sm text-foreground">{guardia.rut}</p>
                   </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground block flex items-center gap-1">
                       <Mail className="h-3 w-3" />
                       Email
                     </label>
-                    <p className="text-sm">{guardia.email}</p>
+                    <p className="text-sm text-foreground">{guardia.email}</p>
                   </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground block flex items-center gap-1">
                       <Phone className="h-3 w-3" />
                       Teléfono
                     </label>
-                    <p className="text-sm">{guardia.telefono}</p>
+                    <p className="text-sm text-foreground">{guardia.telefono}</p>
                   </div>
                 </div>
                 
                 {/* Tipo de Guardia y Vencimiento OS10 en fila adicional */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div className="grid grid-cols-1 gap-4 mt-4">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">
                       Tipo de Guardia
@@ -484,10 +509,10 @@ export default function GuardiaDetallePage() {
                   Ubicación
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0 space-y-3">
-                {/* Información de ubicación - Lado izquierdo */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-3">
+              <CardContent className="pt-0">
+                {/* Información de ubicación - Mobile First */}
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-4">
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">
                         Dirección
@@ -526,7 +551,7 @@ export default function GuardiaDetallePage() {
                             lat: geocodingData.latitud,
                             lng: geocodingData.longitud
                           },
-                          title: `${guardia.nombre} ${guardia.apellidos}`,
+                          title: `${guardia.nombre} ${guardia.apellido_paterno} ${guardia.apellido_materno}`,
                           info: geocodingData.direccionCompleta
                         }]}
                         height="200px"
@@ -637,7 +662,7 @@ export default function GuardiaDetallePage() {
           <div className="mt-6">
             <TurnosExtrasGuardia 
               guardiaId={guardiaId} 
-              guardiaNombre={`${guardia?.nombre} ${guardia?.apellidos}`} 
+              guardiaNombre={`${guardia?.nombre} ${guardia?.apellido_paterno} ${guardia?.apellido_materno}`} 
             />
           </div>
         )}
@@ -646,6 +671,13 @@ export default function GuardiaDetallePage() {
         {activeTab === 'historial-mensual' && (
           <div className="mt-6">
             <HistorialMensual guardiaId={guardiaId} />
+          </div>
+        )}
+
+        {/* Contenido de la pestaña Resumen de Días */}
+        {activeTab === 'resumen-dias' && (
+          <div className="mt-6">
+            <ResumenDiasGuardia guardiaId={guardiaId} />
           </div>
         )}
 

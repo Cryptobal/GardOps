@@ -13,17 +13,37 @@ export function redondearCLP(valor: number): number {
  * @returns Objeto con valores redondeados
  */
 export function redondearObjetoCLP<T extends Record<string, any>>(objeto: T): T {
-  const resultado = { ...objeto } as T;
-  
+  // Preservar Date tal cual
+  if (objeto instanceof Date) {
+    return objeto as unknown as T;
+  }
+
+  // Copia superficial para no mutar el original
+  const resultado = Array.isArray(objeto) ? ([...objeto] as any) : ({ ...objeto } as any);
+
   for (const [clave, valor] of Object.entries(resultado)) {
     if (typeof valor === 'number') {
-      (resultado as any)[clave] = redondearCLP(valor);
-    } else if (typeof valor === 'object' && valor !== null && !Array.isArray(valor)) {
-      (resultado as any)[clave] = redondearObjetoCLP(valor);
+      resultado[clave] = redondearCLP(valor);
+    } else if (valor instanceof Date) {
+      // Mantener fechas sin modificaciones
+      resultado[clave] = valor;
+    } else if (Array.isArray(valor)) {
+      // Procesar arrays recursivamente
+      resultado[clave] = valor.map((v) =>
+        typeof v === 'number'
+          ? redondearCLP(v)
+          : v instanceof Date
+          ? v
+          : typeof v === 'object' && v !== null
+          ? redondearObjetoCLP(v as any)
+          : v
+      );
+    } else if (typeof valor === 'object' && valor !== null) {
+      resultado[clave] = redondearObjetoCLP(valor as any);
     }
   }
-  
-  return resultado;
+
+  return resultado as T;
 }
 
 /**

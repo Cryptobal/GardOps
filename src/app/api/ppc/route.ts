@@ -19,7 +19,16 @@ if (deny) return deny;
     const fechaDesde = searchParams.get('fechaDesde');
     const fechaHasta = searchParams.get('fechaHasta');
 
-    let whereConditions = ['po.es_ppc = true', 'po.activo = true']; // Siempre filtrar por PPC y puestos activos
+    // Obtener tenant_id del contexto
+          const ctx = (request as any).ctx as { tenantId: string; selectedTenantId: string | null; isPlatformAdmin?: boolean } | undefined;
+    // Solo usar selectedTenantId si es Platform Admin, sino usar el tenantId del usuario
+    const tenantId = ctx?.isPlatformAdmin ? (ctx?.selectedTenantId || ctx?.tenantId) : ctx?.tenantId;
+    
+    if (!tenantId) {
+      return NextResponse.json({ error: 'TENANT_REQUIRED' }, { status: 400 });
+    }
+    
+    let whereConditions = ['po.es_ppc = true', 'po.activo = true', `i.tenant_id = '${tenantId}'`]; // Siempre filtrar por PPC, puestos activos y tenant
     let params: any[] = [];
     let paramIndex = 1;
 

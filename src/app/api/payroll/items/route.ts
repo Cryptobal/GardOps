@@ -16,10 +16,10 @@ function generateCodigo(nombre: string): string {
 
 // GET - Obtener todos los ítems globales
 export async function GET(request: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'payroll', action: 'create' });
+  const deny = await requireAuthz(request, { resource: 'payroll', action: 'create' });
   if (deny) return deny;
 
-try {
+  try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
     const clase = searchParams.get('clase');
@@ -92,10 +92,10 @@ try {
 
 // POST - Crear nuevo ítem global
 export async function POST(request: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'payroll', action: 'create' });
+  const deny = await requireAuthz(request, { resource: 'payroll', action: 'create' });
   if (deny) return deny;
 
-try {
+  try {
     const body = await request.json();
     const { 
       nombre, 

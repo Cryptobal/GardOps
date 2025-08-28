@@ -16,7 +16,6 @@ export interface Guardia {
   comuna: string | null;
   region: string | null;
   activo: boolean;
-  estado: "Activo" | "Inactivo";
   tipo_guardia: "contratado" | "esporadico";
   instalacion_id?: string;
   instalacion_nombre?: string;
@@ -50,7 +49,7 @@ export interface CrearGuardiaData {
   region: string | null;
   fecha_nacimiento: string;
   fecha_ingreso: string;
-  estado: "Activo" | "Inactivo";
+  activo: boolean;
   tipo_guardia: "contratado" | "esporadico";
   tipo_contrato: "Indefinido" | "Plazo Fijo" | "Por Obra";
   sueldo_base: number;
@@ -72,7 +71,7 @@ export interface ActualizarGuardiaData {
   region?: string | null;
   fecha_nacimiento?: string;
   fecha_ingreso?: string;
-  estado?: "Activo" | "Inactivo";
+  activo?: boolean;
   tipo_guardia?: "contratado" | "esporadico";
   tipo_contrato?: "Indefinido" | "Plazo Fijo" | "Por Obra";
   sueldo_base?: number;
@@ -94,7 +93,7 @@ export const crearGuardiaSchema = z.object({
   region: z.string().nullable().optional(),
   fecha_nacimiento: z.string().min(1, 'La fecha de nacimiento es requerida'),
   fecha_ingreso: z.string().min(1, 'La fecha de ingreso es requerida'),
-  estado: z.enum(['Activo', 'Inactivo']).default('Activo'),
+  activo: z.boolean().default(true),
   tipo_guardia: z.enum(['contratado', 'esporadico']).default('contratado'),
   tipo_contrato: z.enum(['Indefinido', 'Plazo Fijo', 'Por Obra']).default('Indefinido'),
   sueldo_base: z.coerce.number().min(0, 'El sueldo debe ser mayor o igual a 0'),
@@ -116,7 +115,7 @@ export const actualizarGuardiaSchema = z.object({
   region: z.string().nullable().optional(),
   fecha_nacimiento: z.string().min(1, 'La fecha de nacimiento es requerida').optional(),
   fecha_ingreso: z.string().min(1, 'La fecha de ingreso es requerida').optional(),
-  estado: z.enum(['Activo', 'Inactivo']).optional(),
+  activo: z.boolean().optional(),
   tipo_guardia: z.enum(['contratado', 'esporadico']).optional(),
   tipo_contrato: z.enum(['Indefinido', 'Plazo Fijo', 'Por Obra']).optional(),
   sueldo_base: z.coerce.number().min(0, 'El sueldo debe ser mayor o igual a 0').optional(),

@@ -30,6 +30,7 @@ interface ComboboxProps {
   disabled?: boolean
   searchPlaceholder?: string
   emptyMessage?: string
+  preventSubmitOnEnter?: boolean
 }
 
 export function Combobox({
@@ -39,7 +40,8 @@ export function Combobox({
   placeholder = "Seleccionar ítem...",
   disabled = false,
   searchPlaceholder = "Buscar ítem...",
-  emptyMessage = "No se encontraron ítems."
+  emptyMessage = "No se encontraron ítems.",
+  preventSubmitOnEnter = true
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const containerRef = React.useRef<HTMLDivElement | null>(null)
@@ -139,7 +141,15 @@ export function Combobox({
         >
           <div className="rounded-md border border-border bg-popover text-slate-900 dark:text-slate-100 shadow-md overflow-hidden">
             <Command className="text-slate-900 dark:text-slate-100">
-              <CommandInput placeholder={searchPlaceholder} className="text-slate-900 dark:text-slate-100 placeholder:text-muted-foreground" />
+              <CommandInput 
+                placeholder={searchPlaceholder} 
+                className="text-slate-900 dark:text-slate-100 placeholder:text-muted-foreground"
+                onKeyDown={(e) => {
+                  if (preventSubmitOnEnter && e.key === 'Enter') {
+                    e.preventDefault()
+                  }
+                }}
+              />
               <CommandList>
                 <CommandEmpty>{emptyMessage}</CommandEmpty>
                 <CommandGroup>

@@ -37,6 +37,12 @@ export async function POST(
 
     const turno = turnoResult.rows[0];
 
+    // Obtener tenant_id de la instalación
+    const instalacionTenantResult = await query(`
+      SELECT tenant_id FROM instalaciones WHERE id = $1
+    `, [instalacionId]);
+    const tenantId = instalacionTenantResult.rows[0]?.tenant_id;
+
     // Crear los nuevos puestos operativos como PPCs
     const puestosCreados = [];
     for (let i = 0; i < cantidad; i++) {
@@ -46,10 +52,11 @@ export async function POST(
           rol_id,
           nombre_puesto,
           es_ppc,
+          tenant_id,
           creado_en
-        ) VALUES ($1, $2, $3, true, NOW())
+        ) VALUES ($1, $2, $3, true, $4, NOW())
         RETURNING id
-      `, [instalacionId, turnoId, `Puesto ${parseInt(turno.total_puestos) + i + 1}`]);
+      `, [instalacionId, turnoId, `Puesto ${parseInt(turno.total_puestos) + i + 1}`, tenantId]);
 
       puestosCreados.push(puestoResult.rows[0].id);
     }

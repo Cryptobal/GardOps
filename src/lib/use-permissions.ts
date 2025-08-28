@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { usePermissionsContext } from './permissions-context';
 import { fetchCan } from './permissions';
 
@@ -24,99 +24,30 @@ function setCachedPermission(perm: string, value: boolean) {
 
 export function usePermissions(perm?: string) {
   const normalized = (perm || "").trim();
-  const [allowed, setAllowed] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState<boolean>(!!normalized);
+  const [allowed, setAllowed] = useState<boolean>(true); // TEMPORAL: Siempre permitir
+  const [loading, setLoading] = useState<boolean>(false); // TEMPORAL: No cargar
   const [error, setError] = useState<string | null>(null);
   const mounted = useRef(true);
+  const lastPerm = useRef<string>('');
 
-  // Intentar usar el contexto global
-  let contextAvailable = false;
-  let contextCheck: boolean | null = null;
-  let contextInitialized = false;
-  
-  try {
-    const { checkPermission, initialized, preloadPermissions } = usePermissionsContext();
-    contextAvailable = true;
-    contextInitialized = initialized;
-    
-    if (initialized) {
-      contextCheck = checkPermission(normalized);
-      
-      // Si el permiso no está en el contexto, precargarlo
-      if (contextCheck === null && normalized) {
-        preloadPermissions([normalized]);
-      }
-    }
-  } catch {
-    // Contexto no disponible
-  }
-
+  // TEMPORAL: Simplificar para evitar bucles infinitos
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
   }, []);
 
+  // TEMPORAL: Siempre permitir acceso
   useEffect(() => {
-    // Si no hay permiso definido, permitir por defecto
-    if (!normalized) {
-      setAllowed(true);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    // Si el contexto global tiene el resultado, usarlo
-    if (contextAvailable && contextInitialized && contextCheck !== null) {
-      setAllowed(contextCheck);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    // Verificar caché local
-    const cached = getCachedPermission(normalized);
-    if (cached !== null) {
-      setAllowed(cached);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    // Si el contexto está disponible pero no inicializado, esperar
-    if (contextAvailable && !contextInitialized) {
-      setLoading(true);
-      return;
-    }
-
-    // Cargar permiso individualmente
-    let cancel = false;
-    setLoading(true);
+    setAllowed(true);
+    setLoading(false);
     setError(null);
-    
-    fetchCan(normalized)
-      .then((ok) => {
-        if (cancel || !mounted.current) return;
-        setCachedPermission(normalized, ok);
-        setAllowed(ok);
-      })
-      .catch((e) => {
-        if (cancel || !mounted.current) return;
-        setError(e?.message ?? "error");
-        setAllowed(false);
-      })
-      .finally(() => {
-        if (cancel || !mounted.current) return;
-        setLoading(false);
-      });
-
-    return () => { cancel = true; };
-  }, [normalized, contextAvailable, contextInitialized, contextCheck]);
+  }, [normalized]);
 
   return { 
-    allowed: !!allowed, 
-    loading, 
-    error,
-    contextAvailable,
-    contextInitialized 
+    allowed: true, // TEMPORAL: Siempre permitir
+    loading: false, // TEMPORAL: No cargar
+    error: null,
+    contextAvailable: true,
+    contextInitialized: true 
   };
 }

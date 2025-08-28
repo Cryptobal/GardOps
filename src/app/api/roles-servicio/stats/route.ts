@@ -9,7 +9,12 @@ if (deny) return deny;
 
   try {
     const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenantId') || '1';
+    
+    // Obtener tenant_id del contexto (priorizando selectedTenantId)
+    const ctx = (request as any).ctx as { tenantId: string; selectedTenantId: string | null } | undefined;
+    const tenantId = ctx?.selectedTenantId || ctx?.tenantId || searchParams.get('tenantId') || '1';
+    
+    console.log('🔍 Stats roles-servicio - Usando tenant_id:', tenantId);
 
     // Consulta directa para obtener estadísticas de roles
     const rolesQuery = `

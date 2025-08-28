@@ -1,6 +1,6 @@
 "use client";
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,34 +111,6 @@ export default function RolesPage() {
   const cancelarEdicion = () => {
     setCreandoRol(false);
     setFormData({ nombre: "", descripcion: "" });
-  };
-
-  const createAdminRole = async () => {
-    try {
-      setGuardando(true);
-      
-      const response = await rbacFetch('/api/admin/rbac/create-admin-role', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData?.detail || 'Error al crear rol de administrador');
-      }
-
-      const data = await response.json();
-      toastSuccess(`Rol de administrador creado exitosamente con ${data.rol.permisosAsignados} permisos`);
-      
-      // Recargar la lista de roles
-      await cargarRoles();
-      
-    } catch (error: any) {
-      console.error('Error:', error);
-      toastError(error.message || 'Error al crear rol de administrador');
-    } finally {
-      setGuardando(false);
-    }
   };
 
   const guardarRol = async () => {
@@ -264,18 +236,6 @@ export default function RolesPage() {
             </p>
           </div>
           <div className="flex-shrink-0 flex items-center gap-2">
-            {isPlatformAdmin && (
-              <Authorize resource="configuracion" action="create" eff={effectivePermissions}>
-  <GuardButton resource="configuracion" action="create" eff={effectivePermissions}  
-                variant="outline" 
-                onClick={createAdminRole}
-                disabled={guardando}
-                className="w-full sm:w-auto"
-              >
-                👑 Crear Rol Admin
-              </GuardButton>
-</Authorize>
-            )}
             {canWrite && (
               <Button onClick={iniciarCreacion} disabled={creandoRol} className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />

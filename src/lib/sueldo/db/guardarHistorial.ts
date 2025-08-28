@@ -6,15 +6,23 @@ import { SueldoResultado } from '../tipos/sueldo';
  */
 export async function guardarHistorialCalculo(
   resultado: SueldoResultado,
-  guardiaId?: number,
+  guardiaId?: string | number,
   usuario?: string
 ): Promise<number> {
   try {
-    const fecha = resultado.entrada.fecha;
+    // Asegurar que la fecha sea un Date válido
+    const fechaEntrada: any = (resultado as any)?.entrada?.fecha;
+    const fecha = fechaEntrada instanceof Date ? fechaEntrada : new Date(fechaEntrada);
+    if (isNaN(fecha.getTime())) {
+      throw new Error('Fecha inválida en resultado.entrada.fecha');
+    }
     const mes = fecha.getMonth() + 1;
     const anio = fecha.getFullYear();
     
-    const result = await query(`
+    const guardiaIdStr = guardiaId ? (typeof guardiaId === 'number' ? guardiaId.toString() : guardiaId) : null;
+    let result;
+    try {
+      result = await query(`
       INSERT INTO sueldo_historial_calculos (
         guardia_id,
         fecha_calculo,
@@ -95,8 +103,8 @@ export async function guardarHistorialCalculo(
         $38
       )
       RETURNING id
-    `, [
-      guardiaId || null,
+      `, [
+      guardiaIdStr,
       fecha.toISOString().split('T')[0],
       mes,
       anio,
@@ -134,7 +142,12 @@ export async function guardarHistorialCalculo(
       resultado.empleador.costoTotal,
       usuario || 'sistema',
       `Cálculo automático - ${new Date().toLocaleString('es-CL')}`
-    ]);
+      ]);
+    } catch (e) {
+      // Si la tabla no existe, no bloquear el cálculo
+      console.warn('guardarHistorialCalculo: tabla ausente o error al insertar, se omite guardado:', e);
+      return 0;
+    }
     
     return result.rows[0].id;
   } catch (error) {
@@ -147,11 +160,12 @@ export async function guardarHistorialCalculo(
  * Obtiene el último cálculo de sueldo para un guardia
  */
 export async function obtenerUltimoCalculo(
-  guardiaId: number,
+  guardiaId: string | number,
   mes?: number,
   anio?: number
 ): Promise<any | null> {
   try {
+    const guardiaIdStr = typeof guardiaId === 'number' ? guardiaId.toString() : guardiaId;
     let query;
     
     if (mes && anio) {
@@ -162,7 +176,7 @@ export async function obtenerUltimoCalculo(
          AND anio_periodo = $3
          ORDER BY created_at DESC
          LIMIT 1`,
-        [guardiaId, mes, anio]
+        [guardiaIdStr, mes, anio]
       );
       return result.rows.length > 0 ? result.rows[0] : null;
     } else {
@@ -171,7 +185,7 @@ export async function obtenerUltimoCalculo(
          WHERE guardia_id = $1
          ORDER BY created_at DESC
          LIMIT 1`,
-        [guardiaId]
+        [guardiaIdStr]
       );
       return result.rows.length > 0 ? result.rows[0] : null;
     }

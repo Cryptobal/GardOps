@@ -15,13 +15,12 @@ export async function GET(request: NextRequest) {
     const cookieStore = cookies();
     const tenantCookie = cookieStore.get('tenant');
     
-    const ctx = (request as any).ctx as { tenantId?: string } | undefined;
-    const tenantIdFromCtx = ctx?.tenantId ?? null;
-    let tenantId: string | null = tenantIdFromCtx;
+          const ctx = (request as any).ctx as { tenantId?: string; selectedTenantId?: string | null; isPlatformAdmin?: boolean } | undefined;
+    // Solo usar selectedTenantId si es Platform Admin, sino usar el tenantId del usuario
+    const tenantId = ctx?.isPlatformAdmin ? (ctx?.selectedTenantId || ctx?.tenantId) : ctx?.tenantId;
+    
     if (!tenantId) {
-      if (tenantCookie?.value) {
-        try { tenantId = JSON.parse(tenantCookie.value)?.id ?? null; } catch {}
-      }
+      return NextResponse.json({ error: 'TENANT_REQUIRED' }, { status: 400 });
     }
 
     // Query para documentos de clientes
@@ -49,7 +48,7 @@ export async function GET(request: NextRequest) {
         AND td.requiere_vencimiento = true
         AND (dc.fecha_vencimiento::date - CURRENT_DATE) <= COALESCE(td.dias_antes_alarma, 30)
         AND (dc.fecha_vencimiento::date - CURRENT_DATE) >= -365
-        ${tenantId ? `AND c.tenant_id::text = '${tenantId}'` : ''}
+        AND c.tenant_id::text = $1
     `;
 
     // Query para documentos de instalaciones
@@ -77,7 +76,7 @@ export async function GET(request: NextRequest) {
         AND td.requiere_vencimiento = true
         AND (di.fecha_vencimiento::date - CURRENT_DATE) <= COALESCE(td.dias_antes_alarma, 30)
         AND (di.fecha_vencimiento::date - CURRENT_DATE) >= -365
-        ${tenantId ? `AND i.tenant_id::text = '${tenantId}'` : ''}
+        AND i.tenant_id::text = $1
     `;
 
     // Query para documentos de guardias
@@ -105,7 +104,7 @@ export async function GET(request: NextRequest) {
         AND td.requiere_vencimiento = true
         AND (dg.fecha_vencimiento::date - CURRENT_DATE) <= COALESCE(td.dias_antes_alarma, 30)
         AND (dg.fecha_vencimiento::date - CURRENT_DATE) >= -365
-        ${tenantId ? `AND g.tenant_id::text = '${tenantId}'` : ''}
+        AND g.tenant_id::text = $1
     `;
 
     // Query para alertas de OS10 de guardias
@@ -131,17 +130,17 @@ export async function GET(request: NextRequest) {
         AND (g.fecha_os10::date - CURRENT_DATE) <= 30
         AND (g.fecha_os10::date - CURRENT_DATE) >= -365
         AND g.activo = true
-        ${tenantId ? `AND g.tenant_id::text = '${tenantId}'` : ''}
+        AND g.tenant_id::text = $1
     `;
 
     console.log('🔍 Ejecutando queries de alertas...');
     
     // Ejecutar las cuatro queries
     const [resultClientes, resultInstalaciones, resultGuardias, resultOS10] = await Promise.all([
-      query(alertasClientesQuery),
-      query(alertasInstalacionesQuery),
-      query(alertasGuardiasQuery),
-      query(alertasOS10Query)
+      query(alertasClientesQuery, [tenantId]),
+      query(alertasInstalacionesQuery, [tenantId]),
+      query(alertasGuardiasQuery, [tenantId]),
+      query(alertasOS10Query, [tenantId])
     ]);
 
     console.log(`📊 Query clientes retornó ${resultClientes.rows.length} registros`);

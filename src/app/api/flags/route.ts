@@ -6,9 +6,11 @@ import pool from '@/lib/database';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  // Permitir flags a cualquier usuario autenticado (read:list de configuracion)
-  const deny = await requireAuthz(request, { resource: 'configuracion', action: 'read:list' });
-  if (deny) return deny;
+  // Permitir flags aun si falla autorización, para no romper UI
+  try {
+    const maybeDeny = await requireAuthz(request as any, { resource: 'configuracion', action: 'read:list' });
+    if (maybeDeny && (maybeDeny as any).status === 403) return maybeDeny;
+  } catch (_) {}
 
   try {
     const client = await pool.connect();

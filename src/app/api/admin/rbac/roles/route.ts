@@ -39,6 +39,7 @@ try {
     const userTenantId = tu.rows[0]?.tenant_id ?? null;
 
     // roles: columnas reales -> id, nombre, descripcion, tenant_id
+    // Mostrar solo roles específicos del tenant del usuario
     let rows;
     if (q.length > 0) {
       const like = `%${q.toLowerCase()}%`;

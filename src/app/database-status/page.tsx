@@ -1,6 +1,6 @@
 'use client';
 
-import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 import React, { useState, useEffect } from 'react';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';

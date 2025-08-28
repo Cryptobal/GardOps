@@ -18,7 +18,7 @@ if (deny) return deny;
         i.comuna
       FROM instalaciones i
       INNER JOIN as_turnos_puestos_operativos po ON i.id = po.instalacion_id
-      WHERE po.es_ppc = true AND po.guardia_id IS NULL
+      WHERE po.es_ppc = true AND po.guardia_id IS NULL AND (po.activo = true OR po.activo IS NULL)
       ORDER BY i.nombre
     `);
 

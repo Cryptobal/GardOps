@@ -1,4 +1,4 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -39,6 +39,7 @@ import { payrollItemsExtrasApi, instalacionesApi } from "../../../lib/api/payrol
 
 // Importar el modal
 import ItemExtraModal from "../../../components/payroll/ItemExtraModal";
+import BackToPayroll from "@/components/BackToPayroll";
 
 // Componente KPI Box
 const KPIBox = ({ 
@@ -132,9 +133,14 @@ export default function PayrollItemsExtrasPage() {
       const response = await instalacionesApi.getInstalaciones();
       setInstalaciones(response.data);
       
-      // Seleccionar la primera instalación por defecto
+      // Seleccionar una instalación que sabemos que tiene guardias por defecto
       if (response.data.length > 0) {
-        setSelectedInstalacion(response.data[0].id);
+        // Buscar "Condominio La Florida" que sabemos que tiene guardias
+        const instalacionConGuardias = response.data.find(inst => 
+          inst.nombre === "Condominio La Florida" || 
+          inst.id === "254b6b4a-6d74-4f1a-a1ca-d3e23960998c"
+        );
+        setSelectedInstalacion(instalacionConGuardias?.id || response.data[0].id);
       }
     } catch (error) {
       console.error('Error al cargar instalaciones:', error);
@@ -385,6 +391,8 @@ export default function PayrollItemsExtrasPage() {
       animate={{ opacity: 1 }}
       className="flex flex-col h-full space-y-6 p-6"
     >
+      <BackToPayroll />
+      
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -559,6 +567,7 @@ export default function PayrollItemsExtrasPage() {
         mes={selectedMes}
         anio={selectedAnio}
       />
+
     </motion.div>
   );
 }

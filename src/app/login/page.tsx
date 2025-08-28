@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { login } from '../../lib/api/auth'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
+import { PasswordInput } from '../../components/ui/password-input'
 import { Card } from '../../components/ui/card'
 
 export default function LoginPage() {
@@ -42,6 +43,16 @@ export default function LoginPage() {
     // NO ponemos setIsLoading(false) aquí para que mantenga el loading durante la redirección
   }
 
+  const handleForgotPassword = () => {
+    console.log('🔗 Navegando a recuperar contraseña...')
+    router.push('/recuperar-contrasena')
+  }
+
+  const handleTestPage = () => {
+    console.log('🔗 Navegando a página de prueba...')
+    router.push('/test-page')
+  }
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-8 space-y-6">
@@ -67,21 +78,14 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-foreground">
-              Contraseña
-            </label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              className="w-full"
-              autoComplete="current-password"
-            />
-          </div>
+          <PasswordInput
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+            autoComplete="current-password"
+          />
 
           {error && (
             <div className="text-destructive text-sm text-center bg-destructive/10 p-3 rounded-md">
@@ -91,22 +95,35 @@ export default function LoginPage() {
 
           <Button
             type="submit"
-            disabled={isLoading}
             className="w-full"
+            disabled={isLoading}
           >
             {isLoading ? (
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                <span>Iniciando sesión...</span>
-              </div>
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Iniciando sesión...
+              </>
             ) : (
               'Iniciar sesión'
             )}
           </Button>
         </form>
 
-        <div className="text-center text-sm text-muted-foreground">
-          Sistema de gestión de guardias de seguridad
+        <div className="text-center space-y-2">
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            className="text-sm text-primary hover:underline block"
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+          <button
+            type="button"
+            onClick={handleTestPage}
+            className="text-sm text-blue-400 hover:underline block"
+          >
+            🧪 Página de prueba
+          </button>
         </div>
       </Card>
     </div>

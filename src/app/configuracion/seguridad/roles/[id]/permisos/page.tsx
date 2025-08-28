@@ -1,4 +1,4 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 "use client";
 
 import { useEffect, useState } from "react";
@@ -25,15 +25,51 @@ interface Rol {
   descripcion: string | null;
 }
 
-// Definición de módulos con sus permisos por nivel
+// Mapa de prefijos canónicos en BD por módulo de UI
+const MODULO_PREFIXES: Record<string, string[]> = {
+  "inicio": ["home"],
+  "clientes": ["clientes"],
+  "instalaciones": ["instalaciones"],
+  "guardias": ["guardias"],
+  "pauta-diaria": ["pauta_diaria", "pauta-diaria"],
+  "pauta-mensual": ["pauta_mensual", "pauta-mensual"],
+  "turnos-extras": ["turnos_extras", "turnos-extras"],
+  "payroll": ["payroll"],
+  "ppc": ["ppc"],
+  "documentos": ["documentos"],
+  "alertas-kpi": ["alertas", "kpi"],
+  "asignaciones": ["asignaciones"],
+  "configuracion": ["config", "configuracion"],
+  "usuarios": ["usuarios"],
+  "roles": ["roles", "rbac.roles"],
+  "permisos": ["permisos", "rbac.permisos"],
+  "tenants": ["tenants", "rbac.tenants"],
+  "estructuras": ["estructuras"],
+  "sueldos": ["sueldos"],
+  "planillas": ["planillas"],
+  "logs": ["logs"],
+  "central-monitoring": ["central_monitoring", "central-monitoring"]
+};
+
+// Definición de módulos con sus permisos por nivel (usa prefijos canónicos)
 const MODULOS_NIVELES = {
+  "inicio": {
+    icon: "🏠",
+    nombre: "Inicio",
+    permisos: {
+      "none": [],
+      "view": ["home.view"],
+      "edit": ["home.view", "home.create", "home.edit", "home.delete"],
+      "admin": ["home.*"]
+    }
+  },
   "clientes": {
     icon: "🏢",
     nombre: "Clientes",
     permisos: {
       "none": [],
       "view": ["clientes.view"],
-      "edit": ["clientes.view", "clientes.create", "clientes.edit"],
+      "edit": ["clientes.view", "clientes.create", "clientes.edit", "clientes.delete"],
       "admin": ["clientes.*"]
     }
   },
@@ -43,7 +79,7 @@ const MODULOS_NIVELES = {
     permisos: {
       "none": [],
       "view": ["instalaciones.view"],
-      "edit": ["instalaciones.view", "instalaciones.create", "instalaciones.edit"],
+      "edit": ["instalaciones.view", "instalaciones.create", "instalaciones.edit", "instalaciones.delete"],
       "admin": ["instalaciones.*"]
     }
   },
@@ -53,7 +89,7 @@ const MODULOS_NIVELES = {
     permisos: {
       "none": [],
       "view": ["guardias.view"],
-      "edit": ["guardias.view", "guardias.create", "guardias.edit"],
+      "edit": ["guardias.view", "guardias.create", "guardias.edit", "guardias.delete"],
       "admin": ["guardias.*"]
     }
   },
@@ -62,9 +98,9 @@ const MODULOS_NIVELES = {
     nombre: "Pauta Diaria",
     permisos: {
       "none": [],
-      "view": ["pauta-diaria.view"],
-      "edit": ["pauta-diaria.view", "pauta-diaria.edit"],
-      "admin": ["pauta-diaria.*"]
+      "view": ["pauta_diaria.view"],
+      "edit": ["pauta_diaria.view", "pauta_diaria.create", "pauta_diaria.edit", "pauta_diaria.delete"],
+      "admin": ["pauta_diaria.*"]
     }
   },
   "pauta-mensual": {
@@ -72,9 +108,29 @@ const MODULOS_NIVELES = {
     nombre: "Pauta Mensual",
     permisos: {
       "none": [],
-      "view": ["pauta-mensual.view"],
-      "edit": ["pauta-mensual.view", "pauta-mensual.create", "pauta-mensual.edit"],
-      "admin": ["pauta-mensual.*"]
+      "view": ["pauta_mensual.view"],
+      "edit": ["pauta_mensual.view", "pauta_mensual.create", "pauta_mensual.edit", "pauta_mensual.delete"],
+      "admin": ["pauta_mensual.*"]
+    }
+  },
+  "turnos-extras": {
+    icon: "⏰",
+    nombre: "Turnos Extras",
+    permisos: {
+      "none": [],
+      "view": ["turnos_extras.view"],
+      "edit": ["turnos_extras.view", "turnos_extras.create", "turnos_extras.edit", "turnos_extras.delete"],
+      "admin": ["turnos_extras.*"]
+    }
+  },
+  "ppc": {
+    icon: "📋",
+    nombre: "PPC",
+    permisos: {
+      "none": [],
+      "view": ["ppc.view"],
+      "edit": ["ppc.view", "ppc.create", "ppc.edit", "ppc.delete"],
+      "admin": ["ppc.*"]
     }
   },
   "documentos": {
@@ -83,18 +139,28 @@ const MODULOS_NIVELES = {
     permisos: {
       "none": [],
       "view": ["documentos.view"],
-      "edit": ["documentos.view", "documentos.upload", "documentos.edit"],
+      "edit": ["documentos.view", "documentos.upload", "documentos.edit", "documentos.delete"],
       "admin": ["documentos.*"]
     }
   },
-  "reportes": {
-    icon: "📈",
-    nombre: "Reportes",
+  "alertas-kpi": {
+    icon: "🚨",
+    nombre: "Alertas y KPI",
     permisos: {
       "none": [],
-      "view": ["reportes.asistencia", "reportes.turnos"],
-      "edit": ["reportes.asistencia", "reportes.turnos", "reportes.payroll"],
-      "admin": ["reportes.*"]
+      "view": ["alertas.view"],
+      "edit": ["alertas.view", "alertas.create", "alertas.edit", "alertas.delete"],
+      "admin": ["alertas.*"]
+    }
+  },
+  "asignaciones": {
+    icon: "👥",
+    nombre: "Asignaciones",
+    permisos: {
+      "none": [],
+      "view": ["asignaciones.view"],
+      "edit": ["asignaciones.view", "asignaciones.create", "asignaciones.edit", "asignaciones.delete"],
+      "admin": ["asignaciones.*"]
     }
   },
   "payroll": {
@@ -103,7 +169,7 @@ const MODULOS_NIVELES = {
     permisos: {
       "none": [],
       "view": ["payroll.view"],
-      "edit": ["payroll.view", "payroll.edit"],
+      "edit": ["payroll.view", "payroll.create", "payroll.edit", "payroll.delete"],
       "admin": ["payroll.*"]
     }
   },
@@ -112,11 +178,21 @@ const MODULOS_NIVELES = {
     nombre: "Configuración",
     permisos: {
       "none": [],
-      "view": ["config.manage"],
-      "edit": ["config.manage"],
-      "admin": ["config.manage", "rbac.permisos.read", "rbac.roles.read"]
+      "view": ["config.view"],
+      "edit": ["config.view", "config.manage"],
+      "admin": ["config.*", "rbac.permisos.read", "rbac.roles.read"]
     }
-  }
+  },
+  // Extras visibles en UI para cobertura total
+  "usuarios": { icon: "👤", nombre: "Usuarios", permisos: { "none": [], "view": ["usuarios.view"], "edit": ["usuarios.view", "usuarios.create", "usuarios.edit", "usuarios.delete"], "admin": ["usuarios.*"] } },
+  "roles": { icon: "🛡️", nombre: "Roles", permisos: { "none": [], "view": ["roles.view"], "edit": ["roles.view", "roles.create", "roles.edit", "roles.delete"], "admin": ["roles.*"] } },
+  "permisos": { icon: "🔑", nombre: "Permisos", permisos: { "none": [], "view": ["permisos.view", "rbac.permisos.read"], "edit": ["permisos.view", "permisos.create", "permisos.edit", "permisos.delete"], "admin": ["permisos.*", "rbac.permisos.read"] } },
+  "tenants": { icon: "🏢", nombre: "Tenants", permisos: { "none": [], "view": ["tenants.view"], "edit": ["tenants.view", "tenants.create", "tenants.edit", "tenants.delete"], "admin": ["tenants.*"] } },
+  "estructuras": { icon: "📐", nombre: "Estructuras", permisos: { "none": [], "view": ["estructuras.view"], "edit": ["estructuras.view", "estructuras.create", "estructuras.edit", "estructuras.delete"], "admin": ["estructuras.*"] } },
+  "sueldos": { icon: "💵", nombre: "Sueldos", permisos: { "none": [], "view": ["sueldos.view"], "edit": ["sueldos.view", "sueldos.create", "sueldos.edit", "sueldos.delete"], "admin": ["sueldos.*"] } },
+  "planillas": { icon: "🧾", nombre: "Planillas", permisos: { "none": [], "view": ["planillas.view"], "edit": ["planillas.view", "planillas.create", "planillas.edit", "planillas.delete"], "admin": ["planillas.*"] } },
+  "logs": { icon: "📜", nombre: "Logs", permisos: { "none": [], "view": ["logs.view"], "edit": ["logs.view", "logs.create", "logs.edit", "logs.delete"], "admin": ["logs.*"] } },
+  "central-monitoring": { icon: "📞", nombre: "Central de Monitoreo", permisos: { "none": [], "view": ["central_monitoring.view"], "edit": ["central_monitoring.view", "central_monitoring.record", "central_monitoring.export"], "admin": ["central_monitoring.*"] } }
 };
 
 type NivelAcceso = "none" | "view" | "edit" | "admin";
@@ -135,6 +211,8 @@ export default function PermisosRolPage() {
   const [permisosDisponibles, setPermisosDisponibles] = useState<Permiso[]>([]);
   const [nivelesModulos, setNivelesModulos] = useState<Record<string, NivelAcceso>>({});
   const [modulosExpandidos, setModulosExpandidos] = useState<Set<string>>(new Set());
+  const [detallesVisibles, setDetallesVisibles] = useState<Set<string>>(new Set());
+  const [previewVisibles, setPreviewVisibles] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
@@ -157,6 +235,7 @@ export default function PermisosRolPage() {
         const rolRes = await rbacFetch(`/api/admin/rbac/roles/${rolId}`);
         const rolData = await rolRes.json();
         if (!rolRes.ok) throw new Error(rolData?.detail || rolData?.error || `HTTP ${rolRes.status}`);
+        console.log('🔍 Rol cargado:', rolData);
         if (!done) setRol(rolData);
 
         // Cargar permisos disponibles
@@ -213,72 +292,72 @@ export default function PermisosRolPage() {
     const niveles: Record<string, NivelAcceso> = {};
     
     Object.entries(MODULOS_NIVELES).forEach(([modulo, config]) => {
+      const prefixes = MODULO_PREFIXES[modulo] || [modulo];
       // Obtener todos los permisos del módulo que tiene asignados
       const permisosModulo = Array.from(permisosSet).filter(id => {
         const permiso = permisosDisponibles.find(p => p.id === id);
-        return permiso && permiso.clave.startsWith(modulo);
+        return (
+          !!permiso && prefixes.some(px => permiso.clave.startsWith(px + '.'))
+        );
       });
       
+
+      
       // Verificar si tiene el permiso wildcard (admin)
-      const permisoWildcard = permisosDisponibles.find(p => p.clave === `${modulo}.*`);
-      if (permisoWildcard && permisosSet.has(permisoWildcard.id)) {
+      const wildcard = permisosDisponibles.find(p =>
+        prefixes.some(px => p.clave === `${px}.*`)
+      );
+      if (wildcard && permisosSet.has(wildcard.id)) {
         niveles[modulo] = "admin";
+
         return;
       }
       
-      // Verificar si tiene permisos de admin específicos
-      const permisosAdmin = config.permisos.admin.map(clave => getPermisoId(clave)).filter((id): id is string => Boolean(id));
-      if (permisosAdmin.some(id => permisosSet.has(id))) {
+      // Evaluación por presencia de acciones
+      const viewIds = config.permisos.view.map(getPermisoId).filter((id): id is string => Boolean(id));
+      const createIds = prefixes.flatMap(px => permisosDisponibles.filter(p => p.clave === `${px}.create`).map(p => p.id));
+      const editIds = prefixes.flatMap(px => permisosDisponibles.filter(p => p.clave === `${px}.edit`).map(p => p.id));
+      const deleteIds = prefixes.flatMap(px => permisosDisponibles.filter(p => p.clave === `${px}.delete`).map(p => p.id));
+
+      const hasCreate = createIds.some(id => permisosSet.has(id));
+      const hasEdit = editIds.some(id => permisosSet.has(id));
+      const hasDelete = deleteIds.some(id => permisosSet.has(id));
+      const hasView = viewIds.some(id => permisosSet.has(id));
+
+
+
+      // Lógica mejorada: si tiene todos los permisos del módulo, es admin
+      const todosPermisosModulo = permisosDisponibles.filter(p => 
+        prefixes.some(px => p.clave.startsWith(px + '.'))
+      );
+      const tieneTodosPermisos = todosPermisosModulo.length > 0 && 
+        todosPermisosModulo.every(p => permisosSet.has(p.id));
+
+      if (tieneTodosPermisos) {
         niveles[modulo] = "admin";
+
         return;
       }
-      
-      // Verificar si tiene permisos de edit (excluyendo los de view para no
-      // clasificar como "edit" cuando solo tiene permisos de lectura)
-      const viewIds = config.permisos.view
-        .map(clave => getPermisoId(clave))
-        .filter((id): id is string => Boolean(id));
-      const editIds = config.permisos.edit
-        .map(clave => getPermisoId(clave))
-        .filter((id): id is string => Boolean(id));
-      const editOnlyIds = editIds.filter(id => !viewIds.includes(id));
-      if (editOnlyIds.some(id => permisosSet.has(id))) {
+
+      if (hasDelete || (hasCreate && hasEdit)) {
+        niveles[modulo] = "admin";
+
+        return;
+      }
+      if (hasCreate || hasEdit) {
         niveles[modulo] = "edit";
+
         return;
       }
-      
-      // Verificar si tiene permisos de view
-      if (viewIds.some(id => permisosSet.has(id))) {
+      if (hasView) {
         niveles[modulo] = "view";
-        return;
-      }
-      
-      // Si tiene algún permiso del módulo pero no coincide con los niveles definidos, asignar el más alto
-      if (permisosModulo.length > 0) {
-        // Determinar el nivel más alto basado en los permisos que tiene
-        const tieneCreate = permisosModulo.some(id => {
-          const permiso = permisosDisponibles.find(p => p.id === id);
-          return permiso && permiso.clave.includes('.create');
-        });
-        const tieneEdit = permisosModulo.some(id => {
-          const permiso = permisosDisponibles.find(p => p.id === id);
-          return permiso && permiso.clave.includes('.edit');
-        });
-        const tieneDelete = permisosModulo.some(id => {
-          const permiso = permisosDisponibles.find(p => p.id === id);
-          return permiso && permiso.clave.includes('.delete');
-        });
-        
-        if (tieneCreate || tieneEdit || tieneDelete) {
-          niveles[modulo] = "admin";
-        } else {
-          niveles[modulo] = "view";
-        }
+
         return;
       }
       
       // Por defecto, sin acceso
       niveles[modulo] = "none";
+
     });
     
     return niveles;
@@ -308,6 +387,51 @@ export default function PermisosRolPage() {
     });
   };
 
+  // Función para asignar todos los módulos a un nivel específico
+  const asignarTodosNivel = (nivel: NivelAcceso) => {
+    if (!canEdit) return;
+    
+    const nuevosNiveles: Record<string, NivelAcceso> = {};
+    Object.keys(MODULOS_NIVELES).forEach(modulo => {
+      nuevosNiveles[modulo] = nivel;
+    });
+    
+    setNivelesModulos(nuevosNiveles);
+    setHasChanges(true);
+    
+    // Mostrar toast de confirmación
+    const nivelNombres = {
+      "none": "Sin Acceso",
+      "view": "Solo Ver", 
+      "edit": "Editar",
+      "admin": "Administrar"
+    };
+    
+    addToast({
+      title: "✅ Niveles actualizados",
+      description: `Todos los módulos han sido asignados a "${nivelNombres[nivel]}"`,
+      type: "success"
+    });
+  };
+
+  // Mostrar/ocultar detalle de permisos crudos por módulo
+  const toggleDetalle = (modulo: string) => {
+    setDetallesVisibles(prev => {
+      const ns = new Set<string>(prev);
+      if (ns.has(modulo)) ns.delete(modulo); else ns.add(modulo);
+      return ns;
+    });
+  };
+
+  // Mostrar/ocultar preview de permisos que se asignarán
+  const togglePreview = (modulo: string) => {
+    setPreviewVisibles(prev => {
+      const ns = new Set<string>(prev);
+      if (ns.has(modulo)) ns.delete(modulo); else ns.add(modulo);
+      return ns;
+    });
+  };
+
   // Función para expandir todos los módulos
   const expandirTodos = () => {
     setModulosExpandidos(new Set<string>(Object.keys(MODULOS_NIVELES)));
@@ -318,17 +442,56 @@ export default function PermisosRolPage() {
     setModulosExpandidos(new Set<string>());
   };
 
+  // Función para calcular permisos que se asignarán para un nivel específico
+  const calcularPermisosParaNivel = (modulo: string, nivel: NivelAcceso): string[] => {
+    const permisosIds: string[] = [];
+    const config = MODULOS_NIVELES[modulo as keyof typeof MODULOS_NIVELES];
+    if (!config || nivel === "none") return permisosIds;
+    
+    const prefixes = MODULO_PREFIXES[modulo] || [modulo];
+
+    
+
+    if (nivel === 'admin') {
+      // Si hay wildcard, úsalo. Si no, incluir TODOS los permisos del módulo disponibles en BD
+      let pushedWildcard = false;
+      for (const px of prefixes) {
+        const wildcardId = getPermisoId(`${px}.*`);
+        if (wildcardId) {
+          permisosIds.push(wildcardId);
+          pushedWildcard = true;
+
+        }
+      }
+      if (!pushedWildcard) {
+        const permisosModulo = permisosDisponibles
+          .filter(p => prefixes.some(px => p.clave.startsWith(px + '.')));
+        
+        permisosModulo.forEach(p => permisosIds.push(p.id));
+        
+
+      }
+      return permisosIds;
+    }
+
+    // Para view/edit usar la lista declarada en config, pero resolver a IDs
+    const permisosNivel = config.permisos[nivel];
+    permisosNivel.forEach(clave => {
+      const permisoId = getPermisoId(clave);
+      if (permisoId) permisosIds.push(permisoId);
+    });
+    
+
+    
+    return permisosIds;
+  };
+
   // Función para calcular permisos totales basados en niveles
   const calcularPermisosDesdeNiveles = (niveles: Record<string, NivelAcceso>): string[] => {
     const permisosTotales: string[] = [];
     Object.entries(niveles).forEach(([modulo, nivel]) => {
-      const config = MODULOS_NIVELES[modulo as keyof typeof MODULOS_NIVELES];
-      if (!config || nivel === "none") return;
-      const permisosNivel = config.permisos[nivel];
-      permisosNivel.forEach(clave => {
-        const permisoId = getPermisoId(clave);
-        if (permisoId) permisosTotales.push(permisoId);
-      });
+      const permisosModulo = calcularPermisosParaNivel(modulo, nivel);
+      permisosTotales.push(...permisosModulo);
     });
     return permisosTotales;
   };
@@ -554,6 +717,8 @@ ${data.rolesAdmin.map((r: any) =>
 
       const permisosArray = calcularPermisosTotales();
       
+
+      
       const res = await rbacFetch(`/api/admin/rbac/roles/${rolId}/permisos`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -625,7 +790,7 @@ ${data.rolesAdmin.map((r: any) =>
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
+      {/* Header simple */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button
@@ -637,41 +802,87 @@ ${data.rolesAdmin.map((r: any) =>
             <ArrowLeft className="h-4 w-4" />
             Volver
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Permisos del Rol</h1>
-            <div className="flex items-center gap-2 mt-1">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <p className="text-lg font-semibold text-blue-600">
-                {rol?.nombre}
-              </p>
-              {rol?.descripcion && (
-                <span className="text-muted-foreground">- {rol.descripcion}</span>
-              )}
-            </div>
-          </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Botones temporales removidos */}
-        {canEdit && (
+          {canEdit && (
             <>
-            {hasChanges && (
-              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                Cambios pendientes
-              </Badge>
-            )}
-            <Button
-              onClick={guardarCambios}
-              disabled={!hasChanges || busy}
-              className="flex items-center gap-2"
-            >
-              <Save className="h-4 w-4" />
-              {busy ? "Guardando..." : "Guardar Cambios"}
-            </Button>
+              {hasChanges && (
+                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                  Cambios pendientes
+                </Badge>
+              )}
+              <Button
+                onClick={guardarCambios}
+                disabled={!hasChanges || busy}
+                className="flex items-center gap-2"
+              >
+                <Save className="h-4 w-4" />
+                {busy ? "Guardando..." : "Guardar Cambios"}
+              </Button>
             </>
           )}
-          </div>
+        </div>
       </div>
+
+      {/* Botones de acción rápida */}
+      {canEdit && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">⚡ Acciones Rápidas</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Asigna todos los módulos a un nivel específico de una vez
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => asignarTodosNivel("none")}
+                disabled={busy}
+                className="flex items-center gap-2"
+              >
+                <X className="h-4 w-4 text-destructive" />
+                Todo Sin Acceso
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => asignarTodosNivel("view")}
+                disabled={busy}
+                className="flex items-center gap-2"
+              >
+                <Eye className="h-4 w-4 text-blue-500" />
+                Todo Solo Ver
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => asignarTodosNivel("edit")}
+                disabled={busy}
+                className="flex items-center gap-2"
+              >
+                <Edit className="h-4 w-4 text-green-500" />
+                Todo Editar
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => asignarTodosNivel("admin")}
+                disabled={busy}
+                className="flex items-center gap-2"
+              >
+                <Settings className="h-4 w-4 text-purple-500" />
+                Todo Administrar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Controles de Expansión */}
       <Card>
@@ -699,7 +910,15 @@ ${data.rolesAdmin.map((r: any) =>
                     </Button>
                   </div>
               </div>
-          <p className="text-sm text-muted-foreground">
+              <div className="mt-2">
+                <p className="text-xl font-bold text-blue-600">
+                  {rol?.nombre}
+                </p>
+                {rol?.descripcion && (
+                  <p className="text-sm text-muted-foreground mt-1">{rol.descripcion}</p>
+                )}
+              </div>
+          <p className="text-sm text-muted-foreground mt-3">
             Selecciona el nivel de acceso para cada módulo. Los cambios se aplicarán al guardar.
           </p>
             </CardHeader>
@@ -737,55 +956,145 @@ ${data.rolesAdmin.map((r: any) =>
                   {/* Contenido expandible */}
                   {isExpanded && (
                     <div className="p-4 border-t">
-                                             <RadioGroup
+                      <RadioGroup
                          value={nivelActual}
                          onValueChange={(value: string) => canEdit && cambiarNivelModulo(modulo, value as NivelAcceso)}
                          className="grid grid-cols-2 md:grid-cols-4 gap-3"
                        >
-                        <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors bg-card">
                           <RadioGroupItem value="none" id={`${modulo}-none`} />
                           <label htmlFor={`${modulo}-none`} className="flex items-center gap-2 cursor-pointer">
-                            <X className="h-4 w-4 text-red-500" />
+                            <X className="h-4 w-4 text-destructive" />
                             <div>
-                              <div className="font-medium">Sin acceso</div>
+                              <div className="font-medium text-foreground">Sin acceso</div>
                               <div className="text-xs text-muted-foreground">No puede ver ni hacer nada</div>
                             </div>
                           </label>
                         </div>
                         
-                        <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors bg-card">
                           <RadioGroupItem value="view" id={`${modulo}-view`} />
                           <label htmlFor={`${modulo}-view`} className="flex items-center gap-2 cursor-pointer">
                             <Eye className="h-4 w-4 text-blue-500" />
                             <div>
-                              <div className="font-medium">Solo ver</div>
+                              <div className="font-medium text-foreground">Solo ver</div>
                               <div className="text-xs text-muted-foreground">Consultar información</div>
                             </div>
                           </label>
                         </div>
                         
-                        <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors bg-card">
                           <RadioGroupItem value="edit" id={`${modulo}-edit`} />
                           <label htmlFor={`${modulo}-edit`} className="flex items-center gap-2 cursor-pointer">
                             <Edit className="h-4 w-4 text-green-500" />
                             <div>
-                              <div className="font-medium">Editar</div>
+                              <div className="font-medium text-foreground">Editar</div>
                               <div className="text-xs text-muted-foreground">Ver + Crear + Editar</div>
                             </div>
                           </label>
                         </div>
                         
-                        <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors bg-card">
                           <RadioGroupItem value="admin" id={`${modulo}-admin`} />
                           <label htmlFor={`${modulo}-admin`} className="flex items-center gap-2 cursor-pointer">
                             <Settings className="h-4 w-4 text-purple-500" />
                             <div>
-                              <div className="font-medium">Administrar</div>
+                              <div className="font-medium text-foreground">Administrar</div>
                               <div className="text-xs text-muted-foreground">Acceso completo</div>
                             </div>
                           </label>
                         </div>
                       </RadioGroup>
+
+                      {/* Preview de permisos que se asignarán */}
+                      <div className="mt-3">
+                        <Button variant="outline" size="sm" onClick={() => togglePreview(modulo)}>
+                          {previewVisibles.has(modulo) ? 'Ocultar preview' : 'Ver permisos que se asignarán'}
+                        </Button>
+                        {previewVisibles.has(modulo) && (
+                          <div className="mt-2 p-4 bg-card border rounded-lg shadow-sm">
+                            <div className="text-sm font-semibold mb-3 text-foreground">Permisos que se asignarán por nivel:</div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {(["none", "view", "edit", "admin"] as NivelAcceso[]).map(nivel => {
+                                const permisosIds = calcularPermisosParaNivel(modulo, nivel);
+                                const permisosClaves = permisosIds
+                                  .map(id => permisosDisponibles.find(p => p.id === id)?.clave)
+                                  .filter((c): c is string => !!c)
+                                  .sort();
+                                
+                                const isCurrentLevel = nivelActual === nivel;
+                                
+                                return (
+                                  <div key={nivel} className={`p-3 rounded-lg border-2 transition-colors ${
+                                    isCurrentLevel 
+                                      ? 'border-primary bg-primary/5 shadow-sm' 
+                                      : 'border-border bg-muted/30'
+                                  }`}>
+                                    <div className={`font-medium text-sm mb-2 ${
+                                      isCurrentLevel ? 'text-primary' : 'text-foreground'
+                                    }`}>
+                                      {nivel === 'none' && '❌ Sin acceso'}
+                                      {nivel === 'view' && '👁️ Solo ver'}
+                                      {nivel === 'edit' && '✏️ Editar'}
+                                      {nivel === 'admin' && '⚙️ Administrar'}
+                                      {isCurrentLevel && ' (actual)'}
+                                    </div>
+                                    <div className="text-xs">
+                                      {permisosClaves.length === 0 ? (
+                                        <span className="text-muted-foreground italic">— Sin permisos —</span>
+                                      ) : (
+                                        <ul className="space-y-1">
+                                          {permisosClaves.map(clave => (
+                                            <li key={clave} className="font-mono text-primary bg-primary/10 px-1 py-0.5 rounded text-xs">
+                                              {clave}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Detalle de permisos asignados para auditoría visual */}
+                      <div className="mt-3">
+                        <Button variant="outline" size="sm" onClick={() => toggleDetalle(modulo)}>
+                          {detallesVisibles.has(modulo) ? 'Ocultar permisos' : 'Ver permisos del módulo'}
+                        </Button>
+                        {detallesVisibles.has(modulo) && (
+                          <div className="mt-2 p-3 bg-muted/20 border rounded-lg">
+                            {(() => {
+                              const prefixes = MODULO_PREFIXES[modulo] || [modulo];
+                              const claves = Array.from(permisosAsignados)
+                                .map(id => permisosDisponibles.find(p => p.id === id)?.clave)
+                                .filter((c): c is string => !!c && prefixes.some(px => c.startsWith(px + '.')))
+                                .sort();
+                              return (
+                                <>
+                                  <div className="text-sm font-medium mb-2 text-foreground">
+                                    Permisos asignados ({claves.length}):
+                                  </div>
+                                  {claves.length === 0 ? (
+                                    <div className="text-muted-foreground italic">— Sin permisos de este módulo —</div>
+                                  ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                      {claves.map(c => (
+                                        <div key={c} className="font-mono text-primary bg-primary/10 px-2 py-1 rounded text-xs">
+                                          {c}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

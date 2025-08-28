@@ -8,34 +8,57 @@ import { calcularEmpleador } from './calculos/empleador';
 import { sql } from '@vercel/postgres';
 
 /**
+ * Obtiene el valor UF actual desde la API de la CMF
+ */
+async function obtenerValorUFActual(): Promise<number> {
+  try {
+    const API_KEY = 'd9f76c741ee20ccf0e776ecdf58c32102cfa9806';
+    const UF_API_URL = `https://api.cmfchile.cl/api-sbifv3/recursos_api/uf?apikey=${API_KEY}&formato=json`;
+    
+    const response = await fetch(UF_API_URL);
+    if (!response.ok) {
+      throw new Error(`Error HTTP: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.UFs && data.UFs.length > 0) {
+      const uf = data.UFs[0];
+      // Convertir formato chileno (39.280,76) a número
+      const valor = parseFloat(uf.Valor.replace(/\./g, '').replace(',', '.'));
+      return valor;
+    } else {
+      throw new Error('No se encontraron datos de UF');
+    }
+  } catch (error) {
+    console.error('Error al obtener valor UF desde API:', error);
+    // Valor por defecto en caso de error
+    return 39280.76;
+  }
+}
+
+/**
  * Obtiene los parámetros desde la base de datos
  */
 async function obtenerParametros(input: SueldoInput): Promise<ParametrosSueldo> {
   try {
-    const fechaPrimerDia = new Date(input.fecha.getFullYear(), input.fecha.getMonth(), 1);
-    
-    // 1. Obtener valor UF para el mes
-    const resultUF = await sql`
-      SELECT valor FROM sueldo_valor_uf 
-      WHERE fecha = ${fechaPrimerDia.toISOString().split('T')[0]}
-      LIMIT 1
-    `;
-    
-    let valorUf = 38000; // Valor por defecto
-    if (resultUF.rows.length > 0) {
-      valorUf = Number(resultUF.rows[0].valor);
+    // Asegurar que la fecha sea un objeto Date
+    let fecha: Date;
+    if (input.fecha instanceof Date) {
+      fecha = input.fecha;
+    } else if (typeof input.fecha === 'string') {
+      fecha = new Date(input.fecha);
     } else {
-      // Si no hay valor exacto, buscar el más cercano anterior
-      const resultUFCercano = await sql`
-        SELECT valor FROM sueldo_valor_uf 
-        WHERE fecha <= ${fechaPrimerDia.toISOString().split('T')[0]}
-        ORDER BY fecha DESC
-        LIMIT 1
-      `;
-      if (resultUFCercano.rows.length > 0) {
-        valorUf = Number(resultUFCercano.rows[0].valor);
-      }
+      throw new Error('Fecha inválida: debe ser un objeto Date o string válido');
     }
+    
+    // Validar que la fecha sea válida
+    if (isNaN(fecha.getTime())) {
+      throw new Error('Fecha inválida para el cálculo');
+    }
+    
+    // 1. Obtener valor UF actual desde la API de la CMF
+    const valorUf = await obtenerValorUFActual();
     
     // 2. Obtener tope imponible y otros parámetros generales
     const resultParametros = await sql`

@@ -1,4 +1,4 @@
-import { Authorize, GuardButton, can } from '@/lib/authz-ui.tsx'
+import { Authorize, GuardButton, can } from '@/lib/authz-ui'
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -362,7 +362,9 @@ const DiaCell = ({
   modoEdicion = false,
   diasGuardados,
   esPPC = false,
-  cobertura = null
+  cobertura = null,
+  mes,
+  anio
 }: { 
   estado: string; 
   onClick?: () => void;
@@ -375,6 +377,8 @@ const DiaCell = ({
   diasGuardados?: Set<string>;
   esPPC?: boolean;
   cobertura?: any;
+  mes?: number;
+  anio?: number;
 }) => {
   const { icon, text, className, iconColor, tooltip } = getEstadoDisplay(estado, cobertura, esPPC);
 
@@ -382,10 +386,21 @@ const DiaCell = ({
   const esDiaEspecial = esFinDeSemana || esFeriado;
   const isDiaGuardado = diasGuardados?.has(`${guardiaNombre}-${diaNumero}`);
   
+  // Verificar si es el día actual
+  const esDiaActual = (() => {
+    if (!mes || !anio) return false;
+    const hoy = new Date();
+    const diaActual = hoy.getDate();
+    const mesActual = hoy.getMonth() + 1; // getMonth() devuelve 0-11
+    const anioActual = hoy.getFullYear();
+    return diaNumero === diaActual && mes === mesActual && anio === anioActual;
+  })();
+  
   const clasesEspeciales = '';
   // Sin fondos para feriados/fin de semana en celdas; acento solo en header
   const clasesFeriado = '';
   const clasesFinDeSemana = '';
+  const clasesDiaActual = esDiaActual ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-600' : '';
   
   // Clases para edición - ahora PPCs también son editables
   const clasesModoEdicion = modoEdicion 
@@ -407,11 +422,11 @@ const DiaCell = ({
     }
   };
 
-  const tooltipText = `${guardiaNombre} - Día ${diaNumero} (${diaSemana || ''})${esFeriado ? ' - FERIADO' : ''}: ${tooltip}${isDiaGuardado ? ' - ✅ Guardado en BD' : ''}${esPPC ? ' - PPC' : ''}${!modoEdicion ? ' - Modo solo lectura' : ''}`;
+  const tooltipText = `${guardiaNombre} - Día ${diaNumero} (${diaSemana || ''})${esFeriado ? ' - FERIADO' : ''}${esDiaActual ? ' - HOY' : ''}: ${tooltip}${isDiaGuardado ? ' - ✅ Guardado en BD' : ''}${esPPC ? ' - PPC' : ''}${!modoEdicion ? ' - Modo solo lectura' : ''}`;
 
   return (
     <TableCell 
-      className={`text-center transition-all duration-200 p-0 border-0 !border-b-0 ${className} ${clasesEspeciales} ${clasesFeriado} ${clasesFinDeSemana} ${clasesModoEdicion} ${clasesGuardado}`}
+      className={`text-center transition-all duration-200 p-0 border-0 !border-b-0 ${className} ${clasesEspeciales} ${clasesFeriado} ${clasesFinDeSemana} ${clasesModoEdicion} ${clasesGuardado} ${clasesDiaActual}`}
       style={{ border: 'none', outline: 'none', borderWidth: '0px', borderStyle: 'none', borderBottom: 'none' }}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
@@ -507,12 +522,17 @@ export default function PautaTable({
     // Formatear la fecha como YYYY-MM-DD
     const fechaFormateada = `${year}-${month.toString().padStart(2, '0')}-${diaNumero.toString().padStart(2, '0')}`;
     
-    console.log('🚀 Navegando a pauta diaria:', fechaFormateada);
-    router.push(`/pauta-diaria/${fechaFormateada}`);
+    console.log('🚀 Navegando a pauta diaria v2:', fechaFormateada);
+    router.push(`/pauta-diaria-v2?fecha=${fechaFormateada}`);
   };
 
   const cambiarEstadoDia = (guardiaIndex: number, dayNumber: number) => {
-    if (!modoEdicion) return;
+    if (!modoEdicion) {
+      // En modo visualización, navegar a la pauta diaria
+      console.log('👆 Modo visualización - navegando a pauta diaria del día:', dayNumber);
+      navegarAPautaDiaria(dayNumber);
+      return;
+    }
     
     const diaIndex = dayNumber - 1;
     const guardiaOrdenada = pautaDataOrdenada[guardiaIndex];
@@ -714,23 +734,38 @@ export default function PautaTable({
                     const diaInfo = diasSemana[dia - 1];
                     const esFinDeSemana = diaInfo?.diaSemana === 'Sáb' || diaInfo?.diaSemana === 'Dom';
                     const esFeriado = diaInfo?.esFeriado || feriadosChile.includes(dia);
-                  const clasesEspeciales = esFeriado
-                    ? 'bg-transparent border-t-2 border-red-500/40'
-                    : esFinDeSemana
-                      ? 'bg-transparent border-t-2 border-amber-400/40'
-                      : 'bg-transparent border-t border-gray-200 dark:border-gray-700';
+                    
+                    // Verificar si es el día actual
+                    const esDiaActual = (() => {
+                      if (!mes || !anio) return false;
+                      const hoy = new Date();
+                      const diaActual = hoy.getDate();
+                      const mesActual = hoy.getMonth() + 1;
+                      const anioActual = hoy.getFullYear();
+                      return dia === diaActual && mes === mesActual && anio === anioActual;
+                    })();
+                    
+                    const clasesEspeciales = esFeriado
+                      ? 'bg-transparent border-t-2 border-red-500/40'
+                      : esFinDeSemana
+                        ? 'bg-transparent border-t-2 border-amber-400/40'
+                        : 'bg-transparent border-t border-gray-200 dark:border-gray-700';
+                    
+                    const clasesDiaActual = esDiaActual ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-600' : '';
                     
                     return (
-                    <TableHead key={dia} className={`font-semibold text-center p-2 ${clasesEspeciales}`} style={{width: '35px', minWidth: '35px'}}>
+                    <TableHead key={dia} className={`font-semibold text-center p-2 ${clasesEspeciales} ${clasesDiaActual}`} style={{width: '35px', minWidth: '35px'}}>
                         <div className={`text-xs font-bold ${
                           esFeriado ? 'text-red-700 dark:text-red-300' : 
                           esFinDeSemana ? 'text-amber-700 dark:text-amber-300' : 
+                          esDiaActual ? 'text-blue-700 dark:text-blue-300 font-bold' :
                           'text-gray-500 dark:text-gray-400'
                         }`}>{dia}</div>
                         {diaInfo?.diaSemana && (
                           <div className={`text-xs mt-1 font-medium ${
                             esFeriado ? 'text-red-600 dark:text-red-400' : 
                             esFinDeSemana ? 'text-amber-600 dark:text-amber-400' : 
+                            esDiaActual ? 'text-blue-600 dark:text-blue-400 font-bold' :
                             'text-gray-500 dark:text-gray-400'
                           }`}>
                             {diaInfo.diaSemana}
@@ -812,6 +847,8 @@ export default function PautaTable({
                           diasGuardados={diasGuardados}
                           esPPC={guardia.es_ppc}
                           cobertura={cobertura}
+                          mes={mes}
+                          anio={anio}
                         />
                       );
                     })}

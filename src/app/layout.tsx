@@ -6,6 +6,7 @@ import { ToastContainer } from '../components/ui/toast'
 import { ErrorBoundary } from '../components/debug-error-boundary'
 import { PermissionsProvider } from '../lib/permissions-context'
 import { PermissionsLoading } from '../components/layout/permissions-loading'
+import { NotificationProvider } from '../contexts/NotificationContext'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -21,16 +22,23 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className="dark">
+      <head>
+        <script
+          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`}
+          async
+          defer
+        />
+      </head>
       <body className={inter.className}>
         <ErrorBoundary>
-          <PermissionsProvider>
-            <PermissionsLoading>
+          <NotificationProvider>
+            <PermissionsProvider>
               <AuthWrapper>
                 {children}
               </AuthWrapper>
-            </PermissionsLoading>
-          </PermissionsProvider>
-          <ToastContainer />
+            </PermissionsProvider>
+            <ToastContainer />
+          </NotificationProvider>
         </ErrorBoundary>
       </body>
     </html>

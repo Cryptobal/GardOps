@@ -4,7 +4,7 @@ import { query } from '@/lib/database';
 
 // GET - Listar todos los tipos de puesto
 export async function GET(request: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'tipos_puesto', action: 'create' });
+  const deny = await requireAuthz(request, { resource: 'tipos_puesto', action: 'read:list' });
   if (deny) return deny;
 
 try {
@@ -41,7 +41,7 @@ try {
 
 // POST - Crear nuevo tipo de puesto
 export async function POST(request: NextRequest) {
-  const deny = await requireAuthz(req, { resource: 'tipos_puesto', action: 'create' });
+  const deny = await requireAuthz(request, { resource: 'tipos_puesto', action: 'create' });
   if (deny) return deny;
 
 try {
