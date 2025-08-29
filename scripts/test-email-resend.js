@@ -6,7 +6,7 @@
 
 require('dotenv').config({ path: '.env.local' });
 
-const { sendPasswordResetEmail } = require('../src/lib/email.js');
+const { sendPasswordResetEmail } = require('../src/lib/email.ts');
 
 async function testEmailSending() {
   try {
