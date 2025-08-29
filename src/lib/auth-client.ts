@@ -46,9 +46,23 @@ export function isAuthenticated(): boolean {
   if (!token) return false;
 
   try {
+    // Verificar que el token tenga la estructura correcta
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+    
     const payload = JSON.parse(atob(token.split('.')[1]));
-    const currentTime = Date.now() / 1000;
-    return payload.exp > currentTime;
+    
+    // Verificar que tenga los campos mínimos necesarios
+    if (!payload.user_id || !payload.email) return false;
+    
+    // Si tiene campo exp, verificar expiración
+    if (payload.exp) {
+      const currentTime = Date.now() / 1000;
+      if (payload.exp <= currentTime) return false;
+    }
+    
+    // Si no tiene exp, asumir que es válido (para tokens simplificados)
+    return true;
   } catch {
     return false;
   }
