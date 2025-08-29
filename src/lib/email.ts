@@ -1,5 +1,5 @@
 // Versión temporal para desarrollo - no requiere resend
-async function sendPasswordResetEmail(userEmail: string, userName: string, resetUrl: string) {
+export async function sendPasswordResetEmail(userEmail: string, userName: string, resetUrl: string) {
   try {
     // En desarrollo, solo mostrar la URL en consola
     if (process.env.NODE_ENV === 'development') {
@@ -17,7 +17,7 @@ async function sendPasswordResetEmail(userEmail: string, userName: string, reset
     // En producción, intentar usar resend si está disponible
     try {
       const { Resend } = await import('resend');
-      const resend = new Resend(process.env.RESEND_API_KEY || 're_GRe6HLsu_CWLtG7tq1YzFweBaMttyHi7G');
+      const resend = new Resend(process.env.RESEND_API_KEY || 're_hTxywx1n_JWrRbYoYtNoqDrQxwXNNXMNd');
 
       const { data, error } = await resend.emails.send({
         from: 'GardOps <noreply@gard.cl>',
@@ -160,4 +160,4 @@ async function sendPasswordResetEmail(userEmail: string, userName: string, reset
   }
 }
 
-export { sendPasswordResetEmail };
+// La función ya está exportada arriba
