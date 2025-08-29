@@ -1,12 +1,8 @@
-import { Resend } from 'resend'
+import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY || 're_GRe6HLsu_CWLtG7tq1YzFweBaMttyHi7G')
+const resend = new Resend(process.env.RESEND_API_KEY || 're_GRe6HLsu_CWLtG7tq1YzFweBaMttyHi7G');
 
-export async function sendPasswordResetEmail(
-  userEmail: string,
-  userName: string,
-  resetUrl: string
-) {
+async function sendPasswordResetEmail(userEmail, userName, resetUrl) {
   try {
     const { data, error } = await resend.emails.send({
       from: 'GardOps <noreply@gard.cl>',
@@ -123,20 +119,22 @@ export async function sendPasswordResetEmail(
         </body>
         </html>
       `
-    })
+    });
 
     if (error) {
-      console.error('❌ Error enviando email:', error)
-      throw new Error(`Error enviando email: ${error.message}`)
+      console.error('❌ Error enviando email:', error);
+      throw new Error(`Error enviando email: ${error.message}`);
     }
 
-    console.log('✅ Email de recuperación enviado a:', userEmail)
-    console.log('🔗 URL de restablecimiento:', resetUrl)
-    console.log('📊 Resultado:', data)
+    console.log('✅ Email de recuperación enviado a:', userEmail);
+    console.log('🔗 URL de restablecimiento:', resetUrl);
+    console.log('📊 Resultado:', data);
 
-    return data
+    return data;
   } catch (error) {
-    console.error('❌ Error en sendPasswordResetEmail:', error)
-    throw error
+    console.error('❌ Error en sendPasswordResetEmail:', error);
+    throw error;
   }
 }
+
+export { sendPasswordResetEmail };
