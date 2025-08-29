@@ -1,3 +1,11 @@
+// Importar Resend de manera condicional
+let Resend: any;
+try {
+  Resend = require('resend').Resend;
+} catch (error) {
+  console.log('⚠️ Resend no está instalado. Usando modo fallback.');
+}
+
 // Versión temporal para desarrollo - no requiere resend
 export async function sendPasswordResetEmail(userEmail: string, userName: string, resetUrl: string) {
   try {
@@ -15,9 +23,9 @@ export async function sendPasswordResetEmail(userEmail: string, userName: string
     }
 
     // En producción, intentar usar resend si está disponible
-    try {
-      const { Resend } = await import('resend');
-      const resend = new Resend(process.env.RESEND_API_KEY || 're_hTxywx1n_JWrRbYoYtNoqDrQxwXNNXMNd');
+    if (Resend) {
+      try {
+        const resend = new Resend(process.env.RESEND_API_KEY || 're_hTxywx1n_JWrRbYoYtNoqDrQxwXNNXMNd');
 
       const { data, error } = await resend.emails.send({
         from: 'GardOps <noreply@gard.cl>',
@@ -141,17 +149,25 @@ export async function sendPasswordResetEmail(userEmail: string, userName: string
         throw new Error(`Error enviando email: ${error.message}`);
       }
 
-      console.log('✅ Email de recuperación enviado a:', userEmail);
-      console.log('🔗 URL de restablecimiento:', resetUrl);
-      console.log('📊 Resultado:', data);
+        console.log('✅ Email de recuperación enviado a:', userEmail);
+        console.log('🔗 URL de restablecimiento:', resetUrl);
+        console.log('📊 Resultado:', data);
 
-      return data;
-    } catch (resendError) {
-      console.error('❌ Error con Resend:', resendError);
-      console.log('📧 Fallback: Mostrando URL en consola para:', userEmail);
-      console.log('🔗 URL de restablecimiento:', resetUrl);
-      
-      // En caso de error con resend, mostrar la URL en consola
+        return data;
+      } catch (resendError) {
+        console.error('❌ Error con Resend:', resendError);
+        console.log('📧 Fallback: Mostrando URL en consola para:', userEmail);
+        console.log('🔗 URL de restablecimiento:', resetUrl);
+        
+        // En caso de error con resend, mostrar la URL en consola
+        return { success: true, message: 'Email no enviado, URL mostrada en consola' };
+      }
+    } else {
+      // Si Resend no está disponible, usar fallback
+      console.log('⚠️ Resend no disponible - Modo fallback activado');
+      console.log('📧 Email no enviado - URL de restablecimiento:', resetUrl);
+      console.log('🔗 Para probar el sistema, copia y pega esta URL en tu navegador:');
+      console.log('   ' + resetUrl);
       return { success: true, message: 'Email no enviado, URL mostrada en consola' };
     }
   } catch (error) {
