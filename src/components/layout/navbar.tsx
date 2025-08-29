@@ -30,21 +30,48 @@ export function Navbar({ onMobileMenuToggle }: NavbarProps) {
     const token = document.cookie.match(/(?:^|;\s*)auth_token=([^;]+)/)?.[1];
     if (token) {
       try {
+        // Decodificar el token de la cookie (puede tener caracteres especiales)
+        const decodedToken = decodeURIComponent(token);
+        
         // Verificar si es un JWT estándar (3 partes separadas por puntos)
-        const parts = token.split('.');
+        const parts = decodedToken.split('.');
         if (parts.length === 3) {
-          // Es un JWT estándar, intentar decodificar
-          const payload = JSON.parse(atob(parts[1] || '{}'));
-          setUser(payload);
+          // Es un JWT estándar, intentar decodificar la parte del payload
+          try {
+            // La parte del payload (índice 1) es base64, pero puede necesitar padding
+            let payloadB64 = parts[1];
+            // Agregar padding si es necesario
+            while (payloadB64.length % 4) {
+              payloadB64 += '=';
+            }
+            // Reemplazar caracteres especiales de base64
+            payloadB64 = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
+            
+            const payload = JSON.parse(atob(payloadB64));
+            setUser(payload);
+          } catch (jwtError) {
+            console.error('Error parsing JWT payload:', jwtError);
+            // Fallback: usar localStorage
+            const savedUser = localStorage.getItem('current_user');
+            if (savedUser) {
+              try {
+                setUser(JSON.parse(savedUser));
+              } catch {
+                setUser({ email: 'Usuario', name: 'Usuario' });
+              }
+            } else {
+              setUser({ email: 'Usuario', name: 'Usuario' });
+            }
+          }
         } else {
           // Es nuestro token simplificado, usar directamente
-          const payload = JSON.parse(atob(token));
+          const payload = JSON.parse(atob(decodedToken));
           setUser(payload);
         }
       } catch (error) {
         console.error('Error parsing token:', error);
         // Fallback: intentar obtener usuario del localStorage o usar valores por defecto
-        const savedUser = localStorage.getItem('user');
+        const savedUser = localStorage.getItem('current_user');
         if (savedUser) {
           try {
             setUser(JSON.parse(savedUser));
@@ -54,6 +81,18 @@ export function Navbar({ onMobileMenuToggle }: NavbarProps) {
         } else {
           setUser({ email: 'Usuario', name: 'Usuario' });
         }
+      }
+    } else {
+      // No hay token, intentar obtener usuario del localStorage
+      const savedUser = localStorage.getItem('current_user');
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser));
+        } catch {
+          setUser({ email: 'Usuario', name: 'Usuario' });
+        }
+      } else {
+        setUser({ email: 'Usuario', name: 'Usuario' });
       }
     }
     setIsInitialized(true);
