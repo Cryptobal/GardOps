@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuthAndRole, getAuthenticatedUser, AuthenticatedRequest } from '../../../middleware/auth';
+import { requireAuthAndRole, getAuthenticatedUser, AuthenticatedRequest } from '@/lib/auth';
 import { query } from '@/lib/database';
 
 // Configuración para evitar errores de Dynamic Server Usage
