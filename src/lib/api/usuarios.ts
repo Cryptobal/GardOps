@@ -129,6 +129,9 @@ export async function authenticateUser(credentials: LoginCredentials): Promise<A
     const access_token = signToken({
       user_id: user.id,
       email: user.email,
+      name: `${user.nombre} ${user.apellido}`.trim(),
+      nombre: user.nombre,
+      apellido: user.apellido,
       rol: user.rol as any,
       tenant_id: user.tenant_id
     });

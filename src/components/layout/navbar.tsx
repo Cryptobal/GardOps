@@ -30,10 +30,30 @@ export function Navbar({ onMobileMenuToggle }: NavbarProps) {
     const token = document.cookie.match(/(?:^|;\s*)auth_token=([^;]+)/)?.[1];
     if (token) {
       try {
-        const payload = JSON.parse(atob(token.split('.')[1] || '{}'));
-        setUser(payload);
+        // Verificar si es un JWT estándar (3 partes separadas por puntos)
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          // Es un JWT estándar, intentar decodificar
+          const payload = JSON.parse(atob(parts[1] || '{}'));
+          setUser(payload);
+        } else {
+          // Es nuestro token simplificado, usar directamente
+          const payload = JSON.parse(atob(token));
+          setUser(payload);
+        }
       } catch (error) {
         console.error('Error parsing token:', error);
+        // Fallback: intentar obtener usuario del localStorage o usar valores por defecto
+        const savedUser = localStorage.getItem('user');
+        if (savedUser) {
+          try {
+            setUser(JSON.parse(savedUser));
+          } catch {
+            setUser({ email: 'Usuario', name: 'Usuario' });
+          }
+        } else {
+          setUser({ email: 'Usuario', name: 'Usuario' });
+        }
       }
     }
     setIsInitialized(true);
