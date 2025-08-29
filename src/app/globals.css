@@ -157,20 +157,52 @@
     gap: 0.75rem;
     padding: 0.75rem 1.5rem;
     color: hsl(var(--muted-foreground));
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border-radius: 1rem;
     margin: 0 0.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .sidebar-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s ease;
+  }
+  
+  .sidebar-item:hover::before {
+    left: 100%;
   }
   
   .sidebar-item:hover {
     color: hsl(var(--foreground));
-    background-color: hsl(var(--accent) / 0.5);
+    background: linear-gradient(135deg, hsl(var(--accent) / 0.3), hsl(var(--accent) / 0.1));
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1);
   }
 
   .sidebar-item.active {
     color: hsl(var(--foreground));
-    background-color: hsl(var(--accent));
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    background: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent) / 0.8));
+    box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.15), 0 2px 8px -2px rgba(0, 0, 0, 0.1);
+    transform: translateX(2px);
+  }
+  
+  .sidebar-item.active::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 60%;
+    background: hsl(var(--primary));
+    border-radius: 2px 0 0 2px;
   }
 
   .card-elegant {

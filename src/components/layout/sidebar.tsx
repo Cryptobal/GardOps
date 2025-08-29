@@ -97,9 +97,7 @@ export function Sidebar({
                 <div className="flex-1 min-w-0">
                   <span className="font-medium truncate text-xs sm:text-sm md:text-base flex items-center gap-2">
                     {item.name}
-                    {item.href === "/pauta-diaria" && adoV2On && (
-                      <span className="ml-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] uppercase tracking-wide">v2</span>
-                    )}
+                    
                   </span>
                   {item.description && (
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">
@@ -171,7 +169,7 @@ export function Sidebar({
       {/* Sidebar unificado - Ultra Responsive */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-[70] h-full bg-background border-r border-border/50 transition-all duration-500 ease-in-out",
+          "fixed top-0 left-0 z-[70] h-full bg-background/95 backdrop-blur-sm border-r border-border/50 shadow-lg transition-all duration-500 ease-in-out",
           // Desktop: sidebar colapsable
           "lg:relative lg:z-auto",
           // Móvil: overlay con animación
@@ -184,17 +182,17 @@ export function Sidebar({
       >
         <div className="flex flex-col h-full">
           {/* Header - Ultra Responsive */}
-          <div className="p-3 sm:p-4 md:p-5 lg:p-6 border-b border-border/50">
+          <div className="p-3 sm:p-4 md:p-5 lg:p-6 border-b border-border/50 bg-gradient-to-r from-background to-background/80">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 sm:gap-2.5 md:gap-3">
-                <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-primary rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md">
                   <span className="text-primary-foreground font-bold text-sm sm:text-base md:text-lg">G</span>
                 </div>
                 <div className={cn(
                   "overflow-hidden transition-all duration-500 ease-in-out",
                   isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
                 )}>
-                  <h2 className="text-base sm:text-lg md:text-xl font-bold text-foreground whitespace-nowrap">GardOps</h2>
+                  <h2 className="text-base sm:text-lg md:text-xl font-bold text-foreground whitespace-nowrap bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">GardOps</h2>
                   <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground whitespace-nowrap">Sistema de Gestión</p>
                 </div>
               </div>

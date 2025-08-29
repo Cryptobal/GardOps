@@ -78,11 +78,8 @@ export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fe
     <div className="max-w-7xl mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Pauta Diaria v2</h1>
+          <h1 className="text-3xl font-bold">Pauta Diaria</h1>
           <p className="text-gray-600">Sistema de gestión y monitoreo de turnos</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <a href="/pauta-diaria" className="text-sm text-blue-600 hover:underline">ver v1</a>
         </div>
       </div>
 

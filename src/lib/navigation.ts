@@ -80,12 +80,6 @@ export const navigationItems: NavigationItem[] = [
     permission: "payroll.view"
   },
   {
-    name: "Sueldos",
-    href: "/sueldos",
-    icon: Calculator,
-    permission: "sueldos.view"
-  },
-  {
     name: "PPC",
     href: "/ppc",
     icon: FileText,
