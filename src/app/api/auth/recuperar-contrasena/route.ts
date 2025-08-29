@@ -38,6 +38,17 @@ export async function POST(req: NextRequest) {
     const token = crypto.randomBytes(32).toString('hex')
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hora
 
+    // Asegurar tabla de tokens (idempotente)
+    await sql`
+      CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        user_id UUID NOT NULL,
+        token TEXT NOT NULL UNIQUE,
+        expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        used BOOLEAN DEFAULT false
+      )
+    `
+
     // Eliminar tokens anteriores del usuario
     await sql`
       DELETE FROM password_reset_tokens 
@@ -60,17 +71,10 @@ export async function POST(req: NextRequest) {
       console.log('⏰ Expira:', expiresAt.toLocaleString('es-CL'))
     }
 
-    // Enviar email
-    try {
-      await sendPasswordResetEmail(user.email, user.nombre, resetUrl)
-    } catch (emailError) {
-      console.error('❌ Error enviando email:', emailError)
-      // Mostrar la URL en logs para desarrollo y testing
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📧 Email no enviado - URL de restablecimiento:', resetUrl)
-        console.log('🔗 Para probar el sistema, copia y pega esta URL en tu navegador:')
-        console.log('   ' + resetUrl)
-      }
+    // Enviar email (no romper flujo si falla)
+    const emailResult = await sendPasswordResetEmail(user.email, user.nombre, resetUrl)
+    if (!emailResult?.success) {
+      console.warn('⚠️ Envío de email no exitoso:', emailResult?.message)
     }
 
     return NextResponse.json(
