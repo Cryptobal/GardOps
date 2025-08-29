@@ -1,466 +1,393 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useMemo } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { Shield, Users, Building2, Calendar, Clock, TrendingUp, AlertTriangle, DollarSign } from "lucide-react";
-import { useRouter } from "next/navigation";
-import TurnosExtrasSummary from "../components/dashboard/TurnosExtrasSummary";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Users, 
+  Building2, 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  AlertTriangle,
+  Activity,
+  TrendingUp,
+  Phone,
+  MessageSquare,
+  RefreshCw
+} from 'lucide-react';
+import Link from 'next/link';
 
-interface AlertaDocumento {
-  id: string;
-  dias_restantes: number;
+interface KPIData {
+  total_turnos: number;
+  en_camino: number;
+  no_contesta: number;
+  no_ira: number;
+  llego: number;
+  pendiente: number;
+  retrasado: number;
+  puestos_cubiertos: number;
+  puestos_sin_cobertura: number;
+  puestos_ppc: number;
+  turnos_dia: number;
+  turnos_noche: number;
 }
-
-interface TurnosExtrasStats {
-  total: number;
-  pendientes: number;
-  montoPendiente: number;
-}
-
-const statsBase = [
-  {
-    title: "Clientes Activos",
-    value: "0",
-    icon: Users,
-    description: "Clientes operativos",
-    color: "text-green-500",
-    href: "/clientes",
-    urgent: false,
-    animate: false
-  },
-  {
-    title: "Instalaciones Activas",
-    value: "0",
-    icon: Building2,
-    description: "Sitios operativos",
-    color: "text-purple-500",
-    href: "/instalaciones",
-    urgent: false,
-    animate: false
-  },
-  {
-    title: "Puestos Activos",
-    value: "0",
-    icon: Shield,
-    description: "Puestos de trabajo",
-    color: "text-blue-500",
-    href: "/instalaciones",
-    urgent: false,
-    animate: false
-  },
-  {
-    title: "Total PPC",
-    value: "0 (0%)",
-    icon: Clock,
-    description: "Pendientes de completar",
-    color: "text-orange-500",
-    href: "/instalaciones",
-    urgent: false,
-    animate: false
-  },
-  {
-    title: "Documentos Vencidos",
-    value: "0",
-    icon: AlertTriangle,
-    description: "Documentos por vencer",
-    color: "text-red-500",
-    href: "/documentos",
-    urgent: true,
-    animate: false
-  },
-  {
-    title: "Turnos Extras por Pagar",
-    value: "0",
-    subtitle: "$0",
-    icon: DollarSign,
-    description: "Turnos pendientes de pago",
-    color: "text-yellow-500",
-    href: "/pauta-diaria/turnos-extras",
-    urgent: false,
-    animate: false
-  }
-];
 
 export default function HomePage() {
-  console.log('🔍 HomePage: Componente iniciando...')
-  
-  const router = useRouter();
-  const [alertas, setAlertas] = useState<AlertaDocumento[]>([]);
-  const [cargandoAlertas, setCargandoAlertas] = useState(true);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [kpis, setKpis] = useState({
-    clientesActivos: 0,
-    instalacionesActivas: 0,
-    puestosActivos: 0,
-    totalPPC: 0,
-    documentosVencidos: 0,
-    turnosExtrasPendientes: 0,
-    montoTurnosExtrasPendientes: 0
+  const [kpis, setKpis] = useState<KPIData>({
+    total_turnos: 0,
+    en_camino: 0,
+    no_contesta: 0,
+    no_ira: 0,
+    llego: 0,
+    pendiente: 0,
+    retrasado: 0,
+    puestos_cubiertos: 0,
+    puestos_sin_cobertura: 0,
+    puestos_ppc: 0,
+    turnos_dia: 0,
+    turnos_noche: 0
   });
+  const [loading, setLoading] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
   const cargarKPIs = async () => {
     try {
-      // Cargar datos de clientes
-      const clientesResponse = await fetch("/api/clientes");
-      const clientesData = await clientesResponse.json();
-      const clientesActivos = clientesData.success ? 
-        clientesData.data.filter((c: any) => c.estado === "Activo").length : 0;
-
-      // Cargar datos de instalaciones con parámetro simple
-      const instalacionesResponse = await fetch("/api/instalaciones?simple=true");
-      const instalacionesData = await instalacionesResponse.json();
-      const instalacionesActivas = instalacionesData.success ? 
-        instalacionesData.data.filter((i: any) => i.estado === "Activo").length : 0;
-
-      // Calcular puestos activos y PPC
-      let puestosActivos = 0;
-      let totalPPC = 0;
-      if (instalacionesData.success) {
-        puestosActivos = instalacionesData.data.reduce((sum: number, i: any) => {
-          return sum + (parseInt(i.puestos_creados) || 0);
-        }, 0);
-        
-        totalPPC = instalacionesData.data.reduce((sum: number, i: any) => {
-          return sum + (parseInt(i.ppc_pendientes) || 0);
-        }, 0);
+      setLoading(true);
+      const response = await fetch('/api/home-kpis');
+      
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
       }
 
-      // Cargar datos de turnos extras
-      let turnosExtrasPendientes = 0;
-      let montoTurnosExtrasPendientes = 0;
-      try {
-        const turnosResponse = await fetch('/api/pauta-diaria/turno-extra?solo_pagados=false');
-        const turnosData = await turnosResponse.json();
-        if (turnosResponse.ok) {
-          const turnos = turnosData.turnos_extras || [];
-          turnosExtrasPendientes = turnos.filter((t: any) => !t.pagado).length;
-          montoTurnosExtrasPendientes = turnos
-            .filter((t: any) => !t.pagado)
-            .reduce((sum: number, t: any) => sum + Number(t.valor), 0);
-        }
-      } catch (error) {
-        console.error('Error cargando turnos extras:', error);
+      const result = await response.json();
+      
+      if (result.success) {
+        setKpis(result.data);
+        setLastUpdate(new Date());
+      } else {
+        throw new Error(result.error || 'Error desconocido');
       }
-
-      // Por ahora, usar un valor fijo para documentos vencidos hasta arreglar la API
-      const documentosVencidos = 0;
-
-      setKpis({
-        clientesActivos,
-        instalacionesActivas,
-        puestosActivos,
-        totalPPC,
-        documentosVencidos,
-        turnosExtrasPendientes,
-        montoTurnosExtrasPendientes
-      });
-
     } catch (error) {
       console.error('Error cargando KPIs:', error);
-      // En caso de error, usar valores por defecto
-      setKpis({
-        clientesActivos: 0,
-        instalacionesActivas: 0,
-        puestosActivos: 0,
-        totalPPC: 0,
-        documentosVencidos: 0,
-        turnosExtrasPendientes: 0,
-        montoTurnosExtrasPendientes: 0
-      });
-    }
-  };
-
-  const cargarAlertas = async () => {
-    try {
-      setCargandoAlertas(true);
-      const timestamp = new Date().getTime();
-      const response = await fetch(`/api/alertas-documentos?_t=${timestamp}`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setAlertas(data.data || []);
-      } else {
-        console.error('Error cargando alertas para dashboard:', data.error);
-        setAlertas([]);
-      }
-    } catch (error) {
-      console.error('Error de conexión alertas dashboard:', error);
-      setAlertas([]);
     } finally {
-      setCargandoAlertas(false);
-      setIsInitialLoad(false);
+      setLoading(false);
     }
   };
 
+  // Cargar datos iniciales
   useEffect(() => {
-    console.log('🔍 HomePage: useEffect ejecutándose...')
-    cargarAlertas();
     cargarKPIs();
-    // Auto-refresh cada 2 minutos
-    const interval = setInterval(() => {
-      cargarAlertas();
-      cargarKPIs();
-    }, 120000);
-    return () => clearInterval(interval);
   }, []);
 
-  // Calcular estadísticas de vencimientos
-  const vencidos = alertas.filter((a: AlertaDocumento) => a.dias_restantes < 0).length;
-  const vencenHoy = alertas.filter((a: AlertaDocumento) => a.dias_restantes === 0).length;
-  const criticos = alertas.filter((a: AlertaDocumento) => a.dias_restantes > 0 && a.dias_restantes <= 7).length;
-  const totalAlertas = alertas.length;
+  // Auto-refresh cada 30 segundos
+  useEffect(() => {
+    if (!autoRefresh) return;
 
-  const getAlertaColor = () => {
-    if (vencidos > 0 || vencenHoy > 0) return "text-red-500";
-    if (criticos > 0) return "text-orange-500";
-    if (totalAlertas > 0) return "text-yellow-500";
-    return "text-green-500";
-  };
+    const interval = setInterval(cargarKPIs, 30000); // 30 segundos
+    return () => clearInterval(interval);
+  }, [autoRefresh]);
 
-  const getAlertaDescription = () => {
-    if (vencidos > 0) return `${vencidos} vencidos, ${criticos} críticos`;
-    if (vencenHoy > 0) return `${vencenHoy} vencen hoy, ${criticos} críticos`;
-    if (criticos > 0) return `${criticos} críticos (≤7 días)`;
-    if (totalAlertas > 0) return "Próximos a vencer";
-    return "Todo al día";
-  };
+  // Escuchar cambios en otras pestañas
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'pauta-diaria-update' && e.newValue) {
+        console.log('🔄 Actualización detectada desde otra pestaña - Recargando KPIs');
+        cargarKPIs();
+      }
+    };
 
-  // Generar stats dinámicamente basado en datos reales
-  const stats = useMemo(() => {
-    return statsBase.map(stat => {
-      if (stat.title === "Clientes Activos") {
-        return {
-          ...stat,
-          value: kpis.clientesActivos.toString()
-        };
-      }
-      if (stat.title === "Instalaciones Activas") {
-        return {
-          ...stat,
-          value: kpis.instalacionesActivas.toString()
-        };
-      }
-      if (stat.title === "Puestos Activos") {
-        return {
-          ...stat,
-          value: kpis.puestosActivos.toString()
-        };
-      }
-      if (stat.title === "Total PPC") {
-        const porcentaje = kpis.puestosActivos > 0 ? Math.round((kpis.totalPPC / kpis.puestosActivos) * 100) : 0;
-        return {
-          ...stat,
-          value: `${kpis.totalPPC} (${porcentaje}%)`
-        };
-      }
-      if (stat.title === "Documentos Vencidos") {
-        return {
-          ...stat,
-          value: kpis.documentosVencidos.toString(),
-          urgent: kpis.documentosVencidos > 0,
-          animate: kpis.documentosVencidos > 0
-        };
-      }
-      if (stat.title === "Turnos Extras por Pagar") {
-        return {
-          ...stat,
-          value: kpis.turnosExtrasPendientes.toString(),
-          subtitle: `$${kpis.montoTurnosExtrasPendientes.toLocaleString()}`,
-          urgent: kpis.turnosExtrasPendientes > 0,
-          animate: kpis.turnosExtrasPendientes > 0
-        };
-      }
-      return stat;
-    });
-  }, [kpis]);
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
-  const handleCardClick = (href: string) => {
-    router.push(href);
-  };
+  const fecha = new Date().toLocaleDateString('es-CL', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 
-  console.log('🔍 HomePage: Renderizando página principal...')
-  
   return (
-    <div className="p-3 sm:p-4 md:p-6 lg:p-8 space-y-4 sm:space-y-6 md:space-y-8 max-w-7xl mx-auto">
-      {/* Welcome Section - Responsive */}
-      <div className="text-center space-y-3 sm:space-y-4 px-2 sm:px-4">
-        <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold heading-gradient leading-tight">
-          Bienvenido a GardOps
-        </h2>
-        <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground max-w-xs sm:max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto leading-relaxed">
-          Tu plataforma integral para la gestión profesional de servicios de seguridad,
-          control de guardias y supervisión de instalaciones.
+    <div className="max-w-7xl mx-auto p-4 space-y-6">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <h1 className="text-4xl font-bold text-foreground">GardOps</h1>
+        <p className="text-xl text-muted-foreground">Sistema de Gestión de Guardias</p>
+        <p className="text-sm text-muted-foreground">{fecha}</p>
+        
+        {/* Controles de actualización */}
+        <div className="flex items-center justify-center gap-2 mt-4">
+          <Button 
+            onClick={cargarKPIs} 
+            variant="outline" 
+            size="sm"
+            disabled={loading}
+            className="h-8 px-3"
+          >
+            <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Actualizar
+          </Button>
+          
+          <Button
+            onClick={() => setAutoRefresh(!autoRefresh)}
+            variant={autoRefresh ? "default" : "outline"}
+            size="sm"
+            className="h-8 px-3"
+          >
+            <Clock className="w-3 h-3 mr-1" />
+            {autoRefresh ? 'Auto ON' : 'Auto OFF'}
+          </Button>
+        </div>
+
+        {/* Indicador de última actualización */}
+        <p className="text-xs text-muted-foreground">
+          Última actualización: {lastUpdate.toLocaleTimeString()}
         </p>
       </div>
 
-      {/* Stats Grid - mobile-first: 2 cols en xs, 3 en sm+, auto-rows */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 md:gap-4 lg:gap-5 xl:gap-6 auto-rows-fr">
-        {stats.map((stat) => (
-          <div key={stat.title} className="h-full min-h-[140px] sm:min-h-[160px]">
-            <Card 
-              className={`card-elegant p-3 sm:p-4 md:p-5 lg:p-6 hover:scale-[1.02] sm:hover:scale-[1.03] md:hover:scale-105 transition-all duration-300 cursor-pointer h-full touch-manipulation ${
-                stat.urgent ? 'border-red-500/30 bg-red-500/5' : ''
-              } ${
-                stat.animate ? 'hover:shadow-lg hover:shadow-red-500/20' : ''
-              }`}
-              onClick={() => handleCardClick(stat.href)}
-              title={`Ir a ${stat.title}`}
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-2 sm:pb-3">
-                <CardTitle className="text-xs sm:text-sm lg:text-base font-medium text-muted-foreground min-h-[1.5rem] sm:min-h-[1.75rem] md:min-h-[2rem] flex items-center leading-tight pr-1">
-                  <span className="line-clamp-2">{stat.title}</span>
-                  {stat.urgent && (
-                    <span className="ml-1 inline-flex items-center">
-                      <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-red-500"></span>
-                      </span>
-                    </span>
-                  )}
-                </CardTitle>
-                <stat.icon className={`h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 lg:h-7 lg:w-7 ${stat.color} ${stat.animate ? 'animate-pulse' : ''} flex-shrink-0`} />
-              </CardHeader>
-              <CardContent className="p-0 flex flex-col justify-between h-full">
-                <div className={`text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-foreground ${stat.urgent ? 'text-red-500' : ''} truncate`}>
-                  {stat.value}
-                </div>
-                {stat.subtitle && (
-                  <div className="text-sm sm:text-base md:text-lg font-semibold text-muted-foreground mt-1">
-                    {stat.subtitle}
-                  </div>
-                )}
-                {stat.title === "Docs. Vencimiento" && totalAlertas > 0 && (
-                  <div className="mt-2 text-xs">
-                    <div className="flex gap-2 flex-wrap">
-                      {vencidos > 0 && (
-                        <span className="bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">
-                          {vencidos} vencidos
-                        </span>
-                      )}
-                      {vencenHoy > 0 && (
-                        <span className="bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full">
-                          {vencenHoy} hoy
-                        </span>
-                      )}
-                      {criticos > 0 && (
-                        <span className="bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full">
-                          {criticos} críticos
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        ))}
+      {/* KPIs Principales */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Turnos</p>
+                <p className="text-2xl font-bold text-blue-800 dark:text-blue-200">{kpis.total_turnos}</p>
+              </div>
+              <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-green-700 dark:text-green-300">Llegaron</p>
+                <p className="text-2xl font-bold text-green-800 dark:text-green-200">{kpis.llego}</p>
+              </div>
+              <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-yellow-200 dark:border-yellow-800 bg-yellow-50/50 dark:bg-yellow-950/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300">En Camino</p>
+                <p className="text-2xl font-bold text-yellow-800 dark:text-yellow-200">{kpis.en_camino}</p>
+              </div>
+              <Clock className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-red-700 dark:text-red-300">Sin Contestar</p>
+                <p className="text-2xl font-bold text-red-800 dark:text-red-200">{kpis.no_contesta}</p>
+              </div>
+              <XCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Turnos Extras Summary */}
-      <TurnosExtrasSummary />
-
-      {/* Quick Actions - Ultra Responsive */}
-      <div className="w-full">
-        <Card className="card-elegant overflow-hidden">
-          <CardHeader className="p-3 sm:p-4 md:p-6">
-            <CardTitle className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold flex flex-wrap items-center gap-2">
-              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-blue-500" />
-              <span>Acciones Rápidas</span>
-              {totalAlertas > 0 && (
-                <span className="ml-auto sm:ml-2 bg-red-500/20 text-red-400 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs">
-                  {totalAlertas} alertas activas
-                </span>
-              )}
+      {/* KPIs Detallados */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Estado de Turnos */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5" />
+              Estado de Turnos
             </CardTitle>
-            <CardDescription className="text-xs sm:text-sm md:text-base mt-1">
-              Funciones principales de gestión de GardOps
-            </CardDescription>
           </CardHeader>
-          <CardContent className="p-3 sm:p-4 md:p-6 pt-0 sm:pt-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
-              <div className="space-y-2 sm:space-y-3 md:space-y-4 p-3 sm:p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                <h4 className="font-medium text-sm sm:text-base md:text-lg text-foreground flex items-center gap-2">
-                  <Users className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
-                  Gestión de Personal
-                </h4>
-                <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm md:text-base text-muted-foreground">
-                  <li className="flex items-start">
-                    <span className="mr-1">•</span>
-                    <span>Asignación de guardias</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="mr-1">•</span>
-                    <span>Control de turnos</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="mr-1">•</span>
-                    <span>Evaluación de desempeño</span>
-                  </li>
-                </ul>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-gray-400 dark:bg-gray-500 rounded-full"></div>
+                  <span className="text-sm font-medium">Pendientes</span>
+                </div>
+                <Badge variant="outline">{kpis.pendiente}</Badge>
               </div>
-              <div className="space-y-2 sm:space-y-3 md:space-y-4 p-3 sm:p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                <h4 className="font-medium text-sm sm:text-base md:text-lg text-foreground flex items-center gap-2">
-                  <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
-                  Supervisión
-                </h4>
-                <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm md:text-base text-muted-foreground">
-                  <li className="flex items-start">
-                    <span className="mr-1">•</span>
-                    <span>Monitoreo en tiempo real</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="mr-1">•</span>
-                    <span>Reportes de incidencias</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="mr-1">•</span>
-                    <span>Alertas automáticas</span>
-                  </li>
-                </ul>
+              
+              <div className="flex items-center justify-between p-3 bg-yellow-50/50 dark:bg-yellow-950/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">En Camino</span>
+                </div>
+                <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">{kpis.en_camino}</Badge>
               </div>
-              <div className="space-y-2 sm:space-y-3 md:space-y-4 p-3 sm:p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors sm:col-span-2 md:col-span-1">
-                <h4 className="font-medium text-sm sm:text-base md:text-lg text-foreground flex items-center gap-2">
-                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500" />
-                  Documentación
-                  {totalAlertas > 0 && (
-                    <span className="text-red-400 text-[10px] sm:text-xs">({totalAlertas} alertas)</span>
-                  )}
-                </h4>
-                <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm md:text-base text-muted-foreground">
-                  <li className="flex items-start">
-                    <span className="mr-1">•</span>
-                    <span>Gestión de clientes</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="mr-1">•</span>
-                    <span>Control de instalaciones</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="mr-1">•</span>
-                    <span>Documentación y PPC</span>
-                  </li>
-                  <li 
-                    className="cursor-pointer hover:text-blue-400 transition-colors flex items-start touch-manipulation active:scale-95"
-                    onClick={() => router.push('/alertas')}
-                  >
-                    <span className="mr-1">•</span>
-                    <span>Vencimientos y alertas {totalAlertas > 0 && '🔴'}</span>
-                  </li>
-                </ul>
+              
+              <div className="flex items-center justify-between p-3 bg-green-50/50 dark:bg-green-950/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-green-700 dark:text-green-300">Llegaron</span>
+                </div>
+                <Badge variant="outline" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">{kpis.llego}</Badge>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-red-50/50 dark:bg-red-950/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-red-700 dark:text-red-300">No Contesta</span>
+                </div>
+                <Badge variant="outline" className="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">{kpis.no_contesta}</Badge>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-orange-50/50 dark:bg-orange-950/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-orange-700 dark:text-orange-300">Retrasados</span>
+                </div>
+                <Badge variant="outline" className="bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200">{kpis.retrasado}</Badge>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-red-100/50 dark:bg-red-950/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-600 rounded-full"></div>
+                  <span className="text-sm font-medium text-red-700 dark:text-red-300">No Irá</span>
+                </div>
+                <Badge variant="outline" className="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">{kpis.no_ira}</Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Cobertura de Puestos */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5" />
+              Cobertura de Puestos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-green-50/50 dark:bg-green-950/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  <span className="text-sm font-medium text-green-700 dark:text-green-300">Cubiertos</span>
+                </div>
+                <Badge variant="outline" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">{kpis.puestos_cubiertos}</Badge>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-red-50/50 dark:bg-red-950/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                  <span className="text-sm font-medium text-red-700 dark:text-red-300">Sin Cobertura</span>
+                </div>
+                <Badge variant="outline" className="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">{kpis.puestos_sin_cobertura}</Badge>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-orange-50/50 dark:bg-orange-950/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                  <span className="text-sm font-medium text-orange-700 dark:text-orange-300">Con PPC</span>
+                </div>
+                <Badge variant="outline" className="bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200">{kpis.puestos_ppc}</Badge>
+              </div>
+            </div>
+            
+            <div className="mt-4 pt-4 border-t">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="text-center p-3 bg-yellow-50/50 dark:bg-yellow-950/50 rounded-lg">
+                  <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300">☀️ Día</p>
+                  <p className="text-xl font-bold text-yellow-800 dark:text-yellow-200">{kpis.turnos_dia}</p>
+                </div>
+                <div className="text-center p-3 bg-blue-50/50 dark:bg-blue-950/50 rounded-lg">
+                  <p className="text-sm font-medium text-blue-700 dark:text-blue-300">🌙 Noche</p>
+                  <p className="text-xl font-bold text-blue-800 dark:text-blue-200">{kpis.turnos_noche}</p>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Acciones Rápidas */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Acciones Rápidas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link href="/pauta-diaria-v2">
+              <Button className="w-full h-16 flex flex-col items-center justify-center gap-2">
+                <Activity className="w-6 h-6" />
+                <span>Monitoreo Tiempo Real</span>
+              </Button>
+            </Link>
+            
+            <Link href="/pauta-diaria-v2?tab=pauta">
+              <Button variant="outline" className="w-full h-16 flex flex-col items-center justify-center gap-2">
+                <Users className="w-6 h-6" />
+                <span>Gestionar Pauta</span>
+              </Button>
+            </Link>
+            
+            <Link href="/guardias">
+              <Button variant="outline" className="w-full h-16 flex flex-col items-center justify-center gap-2">
+                <Users className="w-6 h-6" />
+                <span>Gestionar Guardias</span>
+              </Button>
+            </Link>
+            
+            <Link href="/instalaciones">
+              <Button variant="outline" className="w-full h-16 flex flex-col items-center justify-center gap-2">
+                <Building2 className="w-6 h-6" />
+                <span>Gestionar Instalaciones</span>
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Alertas */}
+      {(kpis.no_contesta > 0 || kpis.no_ira > 0 || kpis.puestos_sin_cobertura > 0) && (
+        <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-800 dark:text-red-200">
+              <AlertTriangle className="w-5 h-5" />
+              Alertas Activas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {kpis.no_contesta > 0 && (
+                <Badge variant="destructive">
+                  ⚠️ {kpis.no_contesta} guardias sin contestar
+                </Badge>
+              )}
+              {kpis.no_ira > 0 && (
+                <Badge variant="destructive">
+                  🚨 {kpis.no_ira} guardias no asistirán
+                </Badge>
+              )}
+              {kpis.puestos_sin_cobertura > 0 && (
+                <Badge variant="destructive">
+                  ❌ {kpis.puestos_sin_cobertura} puestos sin cobertura
+                </Badge>
+              )}
+            </div>
+            <div className="mt-3">
+              <Link href="/pauta-diaria-v2">
+                <Button size="sm" variant="destructive">
+                  Ver Detalles
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 } 

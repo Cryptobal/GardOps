@@ -6,26 +6,8 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { estado, observaciones, operador_id } = await request.json();
+    const { observaciones } = await request.json();
     const pautaId = params.id;
-
-    // Validar estado - nuevos estados para monitoreo en tiempo real
-    const estadosValidos = [
-      'pendiente', 
-      'en_camino', 
-      'no_contesta', 
-      'no_ira', 
-      'llego',
-      'retrasado',
-      'en_transito'
-    ];
-    
-    if (!estadosValidos.includes(estado)) {
-      return NextResponse.json(
-        { error: 'Estado inválido' },
-        { status: 400 }
-      );
-    }
 
     // Obtener datos actuales de la pauta
     const pautaActual = await pool.query(
@@ -33,15 +15,11 @@ export async function PUT(
         pm.id,
         pm.meta,
         g.nombre as guardia_nombre,
-        g.telefono as guardia_telefono,
-        i.nombre as instalacion_nombre,
-        rs.hora_inicio,
-        rs.hora_termino
+        i.nombre as instalacion_nombre
        FROM as_turnos_pauta_mensual pm
        LEFT JOIN guardias g ON pm.guardia_id = g.id
        LEFT JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
        LEFT JOIN instalaciones i ON po.instalacion_id = i.id
-       LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
        WHERE pm.id = $1`,
       [pautaId]
     );
@@ -56,16 +34,14 @@ export async function PUT(
     const pauta = pautaActual.rows[0];
     const metaActual = pauta.meta || {};
     
-    // Actualizar el estado del semáforo y agregar timestamp
+    // Actualizar solo las observaciones
     const nuevaMeta = {
       ...metaActual,
-      estado_semaforo: estado,
-      ultima_actualizacion_semaforo: new Date().toISOString(),
-      operador_semaforo: operador_id || null,
-      observaciones_semaforo: observaciones || null
+      observaciones_semaforo: observaciones,
+      ultima_actualizacion_semaforo: new Date().toISOString()
     };
 
-    // Actualizar el estado del semáforo en la base de datos
+    // Actualizar las observaciones en la base de datos
     const result = await pool.query(
       `UPDATE as_turnos_pauta_mensual 
        SET meta = $1,
@@ -82,37 +58,16 @@ export async function PUT(
       );
     }
 
-    // Crear log de auditoría
-    await pool.query(
-      `INSERT INTO logs (
-        fecha, hora, accion, entidad_tipo, entidad_id, 
-        usuario_id, datos_anteriores, datos_nuevos, contexto
-      ) VALUES (
-        CURRENT_DATE, CURRENT_TIME, 'UPDATE', 'semaforo', $1,
-        $2, $3, $4, $5
-      )`,
-      [
-        pautaId,
-        operador_id,
-        JSON.stringify(metaActual),
-        JSON.stringify(nuevaMeta),
-        `Cambio de estado de semáforo a: ${estado}`
-      ]
-    );
-
     return NextResponse.json({ 
       success: true, 
-      estado,
+      observaciones,
       pauta_id: pautaId,
-      meta: nuevaMeta,
       guardia_nombre: pauta.guardia_nombre,
-      instalacion_nombre: pauta.instalacion_nombre,
-      hora_inicio: pauta.hora_inicio,
-      hora_termino: pauta.hora_termino
+      instalacion_nombre: pauta.instalacion_nombre
     });
 
   } catch (error) {
-    console.error('Error actualizando estado del semáforo:', error);
+    console.error('Error actualizando observaciones:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
@@ -120,7 +75,6 @@ export async function PUT(
   }
 }
 
-// GET para obtener el estado actual del semáforo
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -131,19 +85,14 @@ export async function GET(
     const result = await pool.query(
       `SELECT 
         pm.id,
-        pm.meta->>'estado_semaforo' as estado_semaforo,
-        pm.meta->>'observaciones_semaforo' as observaciones_semaforo,
+        pm.meta->>'observaciones_semaforo' as observaciones,
         pm.meta->>'ultima_actualizacion_semaforo' as ultima_actualizacion,
         g.nombre as guardia_nombre,
-        g.telefono as guardia_telefono,
-        i.nombre as instalacion_nombre,
-        rs.hora_inicio,
-        rs.hora_termino
+        i.nombre as instalacion_nombre
        FROM as_turnos_pauta_mensual pm
        LEFT JOIN guardias g ON pm.guardia_id = g.id
        LEFT JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
        LEFT JOIN instalaciones i ON po.instalacion_id = i.id
-       LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
        WHERE pm.id = $1`,
       [pautaId]
     );
@@ -161,7 +110,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Error obteniendo estado del semáforo:', error);
+    console.error('Error obteniendo observaciones:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
