@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 export interface AuthenticatedUser {
   id: string;
@@ -16,6 +18,33 @@ export interface CurrentUserServer {
 
 export interface AuthenticatedRequest extends NextRequest {
   user?: AuthenticatedUser;
+}
+
+// Función para hashear contraseñas
+export function hashPassword(password: string): string {
+  const saltRounds = 10;
+  return bcrypt.hashSync(password, saltRounds);
+}
+
+// Función para comparar contraseñas
+export function comparePassword(password: string, hashedPassword: string): boolean {
+  return bcrypt.compareSync(password, hashedPassword);
+}
+
+// Función para firmar tokens JWT
+export function signToken(payload: any): string {
+  const secret = process.env.JWT_SECRET || 'your-secret-key';
+  return jwt.sign(payload, secret, { expiresIn: '24h' });
+}
+
+// Función para verificar tokens JWT
+export function verifyToken(token: string): any {
+  const secret = process.env.JWT_SECRET || 'your-secret-key';
+  try {
+    return jwt.verify(token, secret);
+  } catch (error) {
+    return null;
+  }
 }
 
 // Función para obtener usuario actual del servidor (simplificada)
