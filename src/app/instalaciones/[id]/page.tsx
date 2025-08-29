@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Building2, MapPin, Phone, Mail, Calendar, FileText, Settings, Edit, RefreshCw, Users, Clock, Shield, DollarSign } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, Phone, Mail, Calendar, FileText, Settings, Edit, RefreshCw, Users, Clock, Shield, DollarSign, Satellite } from 'lucide-react';
 import Link from 'next/link';
 import { GoogleMap } from '@/components/ui/google-map';
 import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@/lib/geocoding';
@@ -13,6 +13,7 @@ import { getInstalacion, actualizarInstalacion, obtenerClientes, obtenerComunas,
 import { Instalacion, Cliente, Comuna } from '@/lib/schemas/instalaciones';
 import TurnosInstalacion from './components/TurnosInstalacion';
 import EstructuraServicio from './components/EstructuraServicio';
+import MonitoreoInstalacion from './components/MonitoreoInstalacion';
 import { DocumentManager } from '@/components/shared/document-manager';
 
 
@@ -349,7 +350,7 @@ export default function InstalacionDetallePage() {
 
       {/* Pestañas optimizadas para móviles */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 h-auto sticky top-0 z-10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <TabsList className="grid w-full grid-cols-5 h-auto sticky top-0 z-10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <TabsTrigger value="informacion" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
             <Building2 className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Información</span>
@@ -359,6 +360,11 @@ export default function InstalacionDetallePage() {
             <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Asignaciones</span>
             <span className="sm:hidden">Asign</span>
+          </TabsTrigger>
+          <TabsTrigger value="monitoreo" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
+            <Satellite className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Monitoreo</span>
+            <span className="sm:hidden">Monit</span>
           </TabsTrigger>
           <TabsTrigger value="estructura" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
             <DollarSign className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -401,6 +407,15 @@ export default function InstalacionDetallePage() {
                   </div>
                 </div>
                 <div className="space-y-3 sm:space-y-4">
+                  <div>
+                    <label className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-1">
+                      <Phone className="h-3 w-3 sm:h-4 sm:w-4" />
+                      Teléfono de Contacto
+                    </label>
+                    <p className="text-sm sm:text-lg">
+                      {instalacion.telefono || 'No configurado'}
+                    </p>
+                  </div>
                   <div>
                     <label className="text-xs sm:text-sm font-medium text-gray-600">Valor Turno Extra</label>
                     <p className="text-sm sm:text-lg">${instalacion.valor_turno_extra?.toLocaleString() || 0}</p>
@@ -525,6 +540,14 @@ export default function InstalacionDetallePage() {
             entidadId={instalacionId}
             refreshTrigger={refreshTrigger}
             onUploadSuccess={() => setRefreshTrigger(prev => prev + 1)}
+          />
+        </TabsContent>
+
+        {/* Contenido de la pestaña Monitoreo */}
+        <TabsContent value="monitoreo" className="mt-4 sm:mt-6">
+          <MonitoreoInstalacion 
+            instalacionId={instalacionId}
+            instalacionNombre={instalacion?.nombre || 'Instalación'}
           />
         </TabsContent>
 

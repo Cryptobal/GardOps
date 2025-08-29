@@ -29,6 +29,29 @@ interface PermisoAsignado {
   rol_id: string;
 }
 
+// Mapeo de módulos UI a prefijos de permisos en BD
+const MODULO_PREFIXES: Record<string, string[]> = {
+  'clientes': ['clientes'],
+  'instalaciones': ['instalaciones'],
+  'guardias': ['guardias'],
+  'pauta-diaria': ['pauta_diaria', 'pauta-diaria'],
+  'pauta-mensual': ['pauta_mensual', 'pauta-mensual'],
+  'documentos': ['documentos'],
+  'reportes': ['reportes'],
+  'usuarios': ['usuarios'],
+  'roles': ['roles'],
+  'permisos': ['permisos'],
+  'tenants': ['tenants'],
+  'estructuras': ['estructuras'],
+  'sueldos': ['sueldos'],
+  'planillas': ['planillas'],
+  'logs': ['logs'],
+  'central-monitoring': ['central_monitoring', 'central-monitoring'],
+  'configuracion': ['configuracion'],
+  'auditoria': ['auditoria'],
+  'rbac': ['rbac']
+};
+
 // Mapeo de módulos y sus permisos
 const MODULOS_PERMISOS = {
   "Clientes": {
@@ -155,7 +178,7 @@ export default function PermisosRolPage() {
         if (!asignadosRes.ok) throw new Error(asignadosData?.detail || asignadosData?.error || `HTTP ${asignadosRes.status}`);
         if (!done) {
           const asignadosSet = new Set(asignadosData.permisos?.map((p: any) => p.permiso_id) || []);
-          setPermisosAsignados(asignadosSet);
+          setPermisosAsignados(asignadosSet as Set<string>);
         }
 
       } catch (e: any) {
@@ -193,6 +216,154 @@ export default function PermisosRolPage() {
     }
     setPermisosAsignados(newAsignados);
     setHasChanges(true);
+  };
+
+  // Función para calcular nivel de acceso basado en permisos
+  const calcularNivelesDesdePermisos = (modulo: string): string => {
+    const prefixes = MODULO_PREFIXES[modulo] || [modulo];
+    const permisosClaves = Array.from(permisosAsignados).map(id => 
+      permisosDisponibles.find(p => p.id === id)?.clave
+    ).filter(Boolean) as string[];
+    
+    // Verificar wildcard (admin)
+    const wildcard = prefixes.some(prefix => 
+      permisosClaves.includes(`${prefix}.*`)
+    );
+    
+    if (wildcard) return 'admin';
+    
+    // Verificar si tiene todos los permisos individuales
+    const allIndividual = prefixes.every(prefix => {
+      const individualPerms = permisosClaves.filter(p => 
+        p.startsWith(prefix + '.') && !p.endsWith('.*')
+      );
+      return individualPerms.length >= 3; // view, edit, create, etc.
+    });
+    
+    if (allIndividual) return 'admin';
+    
+    // Verificar edit (tiene edit o create)
+    const hasEdit = prefixes.some(prefix => 
+      permisosClaves.some(p => p.startsWith(prefix + '.') && (p.includes('.edit') || p.includes('.create')))
+    );
+    
+    if (hasEdit) return 'edit';
+    
+    // Verificar view
+    const hasView = prefixes.some(prefix => 
+      permisosClaves.some(p => p.startsWith(prefix + '.') && p.includes('.view'))
+    );
+    
+    if (hasView) return 'view';
+    
+    return 'none';
+  };
+
+  // Función para obtener permisos que se asignarán para un nivel
+  const obtenerPermisosParaNivel = (modulo: string, nivel: string): string[] => {
+    const prefixes = MODULO_PREFIXES[modulo] || [modulo];
+    const permisos = [];
+    
+    switch (nivel) {
+      case 'admin':
+        // Agregar wildcard si existe, sino todos los permisos individuales
+        prefixes.forEach(prefix => {
+          const wildcardId = getPermisoId(`${prefix}.*`);
+          if (wildcardId) {
+            permisos.push(wildcardId);
+          } else {
+            // Agregar todos los permisos individuales del módulo
+            permisosDisponibles.forEach(p => {
+              if (p.clave.startsWith(prefix + '.')) {
+                permisos.push(p.id);
+              }
+            });
+          }
+        });
+        break;
+      case 'edit':
+        prefixes.forEach(prefix => {
+          ['view', 'create', 'edit'].forEach(action => {
+            const permisoId = getPermisoId(`${prefix}.${action}`);
+            if (permisoId) permisos.push(permisoId);
+          });
+        });
+        break;
+      case 'view':
+        prefixes.forEach(prefix => {
+          const permisoId = getPermisoId(`${prefix}.view`);
+          if (permisoId) permisos.push(permisoId);
+        });
+        break;
+      case 'none':
+      default:
+        // No agregar permisos
+        break;
+    }
+    
+    return permisos;
+  };
+
+  // Función para asignar nivel a un módulo
+  const asignarNivelModulo = (modulo: string, nivel: string) => {
+    if (!canEdit) return;
+    
+    const permisosIds = obtenerPermisosParaNivel(modulo, nivel);
+    const newAsignados = new Set(permisosAsignados);
+    
+    // Remover permisos existentes del módulo
+    const prefixes = MODULO_PREFIXES[modulo] || [modulo];
+    prefixes.forEach(prefix => {
+      permisosDisponibles.forEach(p => {
+        if (p.clave.startsWith(prefix + '.')) {
+          newAsignados.delete(p.id);
+        }
+      });
+    });
+    
+    // Agregar nuevos permisos
+    permisosIds.forEach(id => newAsignados.add(id));
+    
+    setPermisosAsignados(newAsignados);
+    setHasChanges(true);
+  };
+
+  // Función para asignar todo a un nivel
+  const asignarTodoNivel = (nivel: string) => {
+    if (!canEdit) return;
+    
+    const newAsignados = new Set<string>();
+    
+    Object.keys(MODULO_PREFIXES).forEach(modulo => {
+      const permisosIds = obtenerPermisosParaNivel(modulo, nivel);
+      permisosIds.forEach(id => newAsignados.add(id));
+    });
+    
+    setPermisosAsignados(newAsignados);
+    setHasChanges(true);
+  };
+
+  // Estado para el modal de preview
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewData, setPreviewData] = useState<{
+    modulo: string;
+    nivel: string;
+    permisos: string[];
+  } | null>(null);
+
+  // Función para mostrar preview de permisos
+  const mostrarPreviewNivel = (modulo: string, nivel: string) => {
+    const permisosIds = obtenerPermisosParaNivel(modulo, nivel);
+    const permisosClaves = permisosIds.map(id => 
+      permisosDisponibles.find(p => p.id === id)?.clave
+    ).filter(Boolean);
+    
+    setPreviewData({
+      modulo,
+      nivel,
+      permisos: permisosClaves
+    });
+    setShowPreviewModal(true);
   };
 
   // Función para seleccionar todo un módulo
@@ -351,88 +522,275 @@ export default function PermisosRolPage() {
         )}
       </div>
 
-      {/* Matriz de Permisos */}
-      <div className="space-y-6">
-        {Object.entries(MODULOS_PERMISOS).map(([modulo, config]) => (
-          <Card key={modulo}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <span className="text-xl">{config.icon}</span>
-                  {modulo}
-                </CardTitle>
-                
-                {canEdit && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => selectAllModulo(modulo)}
-                      className="flex items-center gap-1"
-                    >
-                      <CheckSquare className="h-3 w-3" />
-                      Todo
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => clearAllModulo(modulo)}
-                      className="flex items-center gap-1"
-                    >
-                      <Square className="h-3 w-3" />
-                      Limpiar
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </CardHeader>
+      {/* Botones de Acción Rápida */}
+      {canEdit && (
+        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              ⚡ Acciones Rápidas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Button
+                variant="outline"
+                onClick={() => asignarTodoNivel('none')}
+                className="flex items-center gap-2 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30"
+              >
+                🚫 Todo Sin Acceso
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => asignarTodoNivel('view')}
+                className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/20 dark:hover:bg-blue-950/30"
+              >
+                👁️ Todo Solo Ver
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => asignarTodoNivel('edit')}
+                className="flex items-center gap-2 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-950/20 dark:hover:bg-yellow-950/30"
+              >
+                ✏️ Todo Editar
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => asignarTodoNivel('admin')}
+                className="flex items-center gap-2 bg-green-50 hover:bg-green-100 dark:bg-green-950/20 dark:hover:bg-green-950/30"
+              >
+                ⚙️ Todo Administrar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Matriz de Permisos - Nueva Interfaz UX/UI */}
+      <div className="space-y-8">
+        {/* Header de la matriz */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold">🎯 Matriz de Permisos por Módulos</h2>
+            <p className="text-sm text-muted-foreground">
+              Asigna niveles de acceso para cada módulo del sistema
+            </p>
+          </div>
+          {canEdit && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => mostrarPreviewNivel('todos', 'admin')}
+                className="flex items-center gap-1"
+              >
+                🔍 Ver Todos los Permisos
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Grid de módulos */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Object.entries(MODULOS_PERMISOS).map(([modulo, config]) => {
+            const nivelActual = calcularNivelesDesdePermisos(modulo);
             
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {config.permisos.map((permiso) => (
-                  <div
-                    key={permiso.clave}
-                    className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <Checkbox
-                      id={permiso.clave}
-                      checked={isPermisoAsignado(permiso.clave)}
-                      onCheckedChange={() => togglePermiso(permiso.clave)}
-                      disabled={!canEdit}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <label
-                        htmlFor={permiso.clave}
-                        className="text-sm font-medium cursor-pointer"
-                      >
-                        {permiso.nombre}
-                      </label>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {permiso.descripcion}
+            return (
+              <Card key={modulo} className="group hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/30">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="text-2xl">{config.icon}</div>
+                      <div>
+                        <CardTitle className="text-lg">{modulo}</CardTitle>
+                        <p className="text-xs text-muted-foreground">
+                          {config.permisos.length} permisos disponibles
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Badge de nivel actual */}
+                    <Badge 
+                      variant={nivelActual === 'admin' ? 'default' : 
+                              nivelActual === 'edit' ? 'secondary' : 
+                              nivelActual === 'view' ? 'outline' : 'destructive'}
+                      className="text-xs"
+                    >
+                      {nivelActual === 'admin' ? '⚙️ Admin' : 
+                       nivelActual === 'edit' ? '✏️ Editar' : 
+                       nivelActual === 'view' ? '👁️ Ver' : '🚫 Sin Acceso'}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="pt-0">
+                  {canEdit ? (
+                    <div className="space-y-4">
+                      {/* Controles de nivel */}
+                      <div className="grid grid-cols-4 gap-2">
+                        {[
+                          { nivel: 'none', icon: '🚫', label: 'Sin Acceso', color: 'bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30' },
+                          { nivel: 'view', icon: '👁️', label: 'Solo Ver', color: 'bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/20 dark:hover:bg-blue-950/30' },
+                          { nivel: 'edit', icon: '✏️', label: 'Editar', color: 'bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-950/20 dark:hover:bg-yellow-950/30' },
+                          { nivel: 'admin', icon: '⚙️', label: 'Admin', color: 'bg-green-50 hover:bg-green-100 dark:bg-green-950/20 dark:hover:bg-green-950/30' }
+                        ].map(({ nivel, icon, label, color }) => (
+                          <Button
+                            key={nivel}
+                            variant={nivelActual === nivel ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => asignarNivelModulo(modulo, nivel)}
+                            className={`h-12 flex flex-col items-center justify-center gap-1 text-xs ${nivelActual === nivel ? '' : color}`}
+                          >
+                            <span className="text-lg">{icon}</span>
+                            <span className="text-xs">{label}</span>
+                          </Button>
+                        ))}
+                      </div>
+                      
+                      {/* Botones de acción */}
+                      <div className="flex items-center gap-2 pt-2 border-t">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => mostrarPreviewNivel(modulo, nivelActual)}
+                          className="flex items-center gap-1 text-xs"
+                        >
+                          🔍 Ver Permisos
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => selectAllModulo(modulo)}
+                          className="flex items-center gap-1 text-xs"
+                        >
+                          <CheckSquare className="h-3 w-3" />
+                          Todo
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => clearAllModulo(modulo)}
+                          className="flex items-center gap-1 text-xs"
+                        >
+                          <Square className="h-3 w-3" />
+                          Limpiar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-muted-foreground">
+                        No tienes permisos para editar este rol
                       </p>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       </div>
 
       {/* Información adicional */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Información</CardTitle>
+          <CardTitle className="text-lg">📋 Información de Niveles</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>• <strong>Ver:</strong> Permite consultar información sin modificarla</p>
-          <p>• <strong>Crear:</strong> Permite crear nuevos registros</p>
-          <p>• <strong>Editar:</strong> Permite modificar registros existentes</p>
-          <p>• <strong>Eliminar:</strong> Permite eliminar registros</p>
-          <p>• <strong>Todo:</strong> Incluye todos los permisos del módulo</p>
-          <p>• Los permisos se aplican de forma acumulativa</p>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🚫</span>
+                <span className="font-medium">Sin Acceso</span>
+              </div>
+              <p className="text-sm text-muted-foreground">El módulo no será visible para el usuario</p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">👁️</span>
+                <span className="font-medium">Solo Ver</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Puede consultar información sin modificarla</p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">✏️</span>
+                <span className="font-medium">Editar</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Puede crear, editar y ver registros</p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">⚙️</span>
+                <span className="font-medium">Administrar</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Acceso completo: ver, crear, editar, eliminar</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
+
+      {/* Modal de Preview */}
+      {showPreviewModal && previewData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">
+                🔍 Permisos para {previewData.modulo} - {previewData.nivel}
+              </h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPreviewModal(false)}
+              >
+                ✕
+              </Button>
+            </div>
+            
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Los siguientes permisos se asignarán al rol:
+              </p>
+              
+              {previewData.permisos.length > 0 ? (
+                <div className="space-y-2">
+                  {previewData.permisos.map((permiso, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded"
+                    >
+                      <span className="text-green-500">✓</span>
+                      <code className="text-sm font-mono">{permiso}</code>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  No se asignarán permisos para este nivel
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end gap-2 mt-6">
+              <Button
+                variant="outline"
+                onClick={() => setShowPreviewModal(false)}
+              >
+                Cerrar
+              </Button>
+              <Button
+                onClick={() => {
+                  if (previewData.modulo !== 'todos') {
+                    asignarNivelModulo(previewData.modulo, previewData.nivel);
+                  }
+                  setShowPreviewModal(false);
+                }}
+              >
+                Aplicar Cambios
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

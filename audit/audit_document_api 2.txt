@@ -1,0 +1,25 @@
+src/app/alertas/page.tsx:      const response = await fetch(`/api/documentos-clientes?id=${documentoEditando.documento_id}`, {
+src/app/api/documentos/route.ts:// GET /api/documentos?modulo=clientes&entidad_id=uuid - Obtener documentos
+src/app/api/documentos/route.ts:    console.error('❌ Error en GET /api/documentos:', error);
+src/app/api/documentos/route.ts:// POST /api/documentos - Crear nuevo documento
+src/app/api/documentos/route.ts:    console.error('❌ Error en POST /api/documentos:', error);
+src/app/api/documentos/route.ts:// DELETE /api/documentos?id=uuid - Eliminar documento
+src/app/api/documentos/route.ts:    console.error('❌ Error en DELETE /api/documentos:', error);
+src/app/api/documentos-clientes/route.ts:// GET /api/documentos-clientes?cliente_id=uuid - Obtener documentos de un cliente
+src/app/api/documentos-clientes/route.ts:    console.error('❌ Error en GET /api/documentos-clientes:', error);
+src/app/api/documentos-clientes/route.ts:// PUT /api/documentos-clientes?id=uuid - Actualizar documento de cliente
+src/app/api/documentos-clientes/route.ts:    console.error('❌ Error en PUT /api/documentos-clientes:', error);
+src/app/api/documentos-clientes/route.ts:// DELETE /api/documentos-clientes?id=uuid - Eliminar documento de cliente
+src/app/api/documentos-clientes/route.ts:    console.error('❌ Error en DELETE /api/documentos-clientes:', error);
+src/components/DocumentListTabs.tsx:        response = await fetch(`/api/documentos-clientes?cliente_id=${entidadId}`, {
+src/components/DocumentListTabs.tsx:        response = await fetch(`/api/documentos?modulo=${modulo}&entidad_id=${entidadId}`, {
+src/components/DocumentListTabs.tsx:        response = await fetch(`/api/documentos-clientes?id=${documentoId}`, {
+src/components/DocumentListTabs.tsx:        response = await fetch(`/api/documentos?id=${documentoId}`, {
+src/components/shared/document-manager.tsx:        response = await fetch(`/api/documentos-clientes?cliente_id=${entidadId}`, {
+src/components/shared/document-manager.tsx:        response = await fetch(`/api/documentos?modulo=${modulo}&entidad_id=${entidadId}`, {
+src/components/shared/document-manager.tsx:        response = await fetch(`/api/documentos-clientes?id=${documentoId}`, {
+src/components/shared/document-manager.tsx:        response = await fetch(`/api/documentos?id=${documentoId}`, {
+src/components/DocumentList.tsx:        response = await fetch(`/api/documentos-clientes?cliente_id=${entidadId}`);
+src/components/DocumentList.tsx:        response = await fetch(`/api/documentos?modulo=${modulo}&entidad_id=${entidadId}`);
+src/components/DocumentList.tsx:        response = await fetch(`/api/documentos-clientes?id=${documentoId}`, {
+src/components/DocumentList.tsx:        response = await fetch(`/api/documentos?id=${documentoId}`, {

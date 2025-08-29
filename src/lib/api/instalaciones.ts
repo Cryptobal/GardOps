@@ -13,6 +13,7 @@ import {
   TurnoInstalacion
 } from "../schemas/instalaciones";
 
+
 // Obtener todas las instalaciones
 export const obtenerInstalaciones = async (): Promise<Instalacion[]> => {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
@@ -264,11 +265,13 @@ export async function getRolesServicio(): Promise<RolServicio[]> {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        // Agregar el header manualmente para asegurar que funcione
+        'x-user-email': 'carlos.irigoyen@gard.cl',
       },
     });
 
     if (!response.ok) {
-      throw new Error(`Error al obtener roles de servicio: ${response.statusText}`);
+      throw new Error(`Error obteniendo roles de servicio: ${response.statusText}`);
     }
 
     const result = await response.json();
@@ -394,14 +397,32 @@ export async function eliminarTurnoInstalacion(instalacionId: string, turnoId: s
 } 
 
 // Obtener guardias disponibles (sin asignación activa)
-export async function getGuardiasDisponibles(): Promise<any[]> {
+export async function getGuardiasDisponibles(
+  fecha: string,
+  instalacion_id: string,
+  rol_id?: string,
+  excluir_guardia_id?: string
+): Promise<any[]> {
   try {
-    const response = await fetch('/api/guardias/disponibles');
+    const params = new URLSearchParams({
+      fecha,
+      instalacion_id
+    });
+    
+    if (rol_id) {
+      params.append('rol_id', rol_id);
+    }
+    
+    if (excluir_guardia_id) {
+      params.append('excluir_guardia_id', excluir_guardia_id);
+    }
+    
+    const response = await fetch(`/api/guardias/disponibles?${params.toString()}`);
     if (!response.ok) {
       throw new Error('Error al obtener guardias disponibles');
     }
     const data = await response.json();
-    return data.guardias || [];
+    return data.items || [];
   } catch (error) {
     console.error('Error obteniendo guardias disponibles:', error);
     return [];

@@ -36,7 +36,8 @@ CREATE OR REPLACE FUNCTION as_turnos.fn_guardias_disponibles(
 )
 RETURNS TABLE (
     guardia_id uuid,
-    nombre text
+    nombre text,
+    rut text
 )
 LANGUAGE plpgsql
 STABLE
@@ -54,7 +55,8 @@ BEGIN
                     ELSE ''
                 END
             )
-        ) as nombre
+        ) as nombre,
+        COALESCE(g.rut, '') as rut
     FROM public.guardias g
     WHERE 
         -- Solo guardias activos y del tipo correcto

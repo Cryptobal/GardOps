@@ -6,7 +6,7 @@
 
 require('dotenv').config({ path: '.env.local' });
 
-const { sendPasswordResetEmail } = require('../src/lib/email');
+const { sendPasswordResetEmail } = require('../src/lib/email.js');
 
 async function testEmailSending() {
   try {
@@ -15,7 +15,7 @@ async function testEmailSending() {
     // Datos de prueba
     const testEmail = 'carlos.irigoyen@gard.cl';
     const testName = 'Carlos Irigoyen';
-    const testUrl = 'http://localhost:3000/restablecer-contrasena?token=test-token-123';
+    const testUrl = 'https://ops.gard.cl/restablecer-contrasena?token=test-token-123';
     
     console.log('📧 Enviando email de prueba...');
     console.log(`   Para: ${testEmail}`);
@@ -34,6 +34,11 @@ async function testEmailSending() {
     
     if (error.message.includes('API key')) {
       console.log('\n💡 Sugerencia: Verifica que la API key de Resend esté configurada correctamente en .env.local');
+      console.log('   RESEND_API_KEY=re_GRe6HLsu_CWLtG7tq1YzFweBaMttyHi7G');
+    }
+    
+    if (error.message.includes('domain')) {
+      console.log('\n💡 Sugerencia: Verifica que el dominio gard.cl esté configurado en tu cuenta de Resend');
     }
     
     process.exit(1);
@@ -42,15 +47,7 @@ async function testEmailSending() {
 
 // Ejecutar si se llama directamente
 if (require.main === module) {
-  testEmailSending()
-    .then(() => {
-      console.log('\n🎉 Prueba de email completada');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('❌ Error fatal:', error);
-      process.exit(1);
-    });
+  testEmailSending();
 }
 
 module.exports = { testEmailSending };

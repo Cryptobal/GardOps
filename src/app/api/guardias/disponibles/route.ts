@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
       const items = rows.map(row => ({
         id: row.guardia_id,
         nombre_completo: row.nombre,
+        rut: row.rut || '', // Agregar campo rut
         // Para compatibilidad con el frontend
         nombre: row.nombre?.split(',')[1]?.trim() || row.nombre,
         apellido_paterno: row.nombre?.split(',')[0]?.split(' ')[0] || '',
@@ -83,7 +84,8 @@ export async function GET(request: NextRequest) {
         g.id, 
         g.nombre, 
         g.apellido_paterno, 
-        g.apellido_materno
+        g.apellido_materno,
+        g.rut
       FROM guardias g
       WHERE g.activo = true
     `;
@@ -134,6 +136,7 @@ export async function GET(request: NextRequest) {
       nombre: row.nombre,
       apellido_paterno: row.apellido_paterno,
       apellido_materno: row.apellido_materno,
+      rut: row.rut || '', // Agregar campo rut
       nombre_completo: `${row.apellido_paterno || ''} ${row.apellido_materno || ''}, ${row.nombre || ''}`.trim()
     }));
     

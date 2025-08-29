@@ -4,7 +4,9 @@
  * Script para probar el sistema de recuperación de contraseña
  */
 
-const BASE_URL = 'http://localhost:3000';
+require('dotenv').config({ path: '.env.local' });
+
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 async function testPasswordRecovery() {
   console.log('🧪 Probando sistema de recuperación de contraseña...\n');
@@ -38,82 +40,70 @@ async function testPasswordRecovery() {
   try {
     const { sql } = require('@vercel/postgres');
     
-    const tokens = await sql`
-      SELECT 
-        prt.token,
-        prt.expires_at,
-        prt.used,
-        u.email,
-        u.nombre,
-        u.apellido
+    const tokensResult = await sql`
+      SELECT prt.id, prt.token, prt.expires_at, prt.used, prt.created_at,
+             u.nombre, u.email
       FROM password_reset_tokens prt
       JOIN usuarios u ON u.id = prt.user_id
-      WHERE prt.expires_at > NOW() AND prt.used = FALSE
+      WHERE u.email = 'carlos.irigoyen@gard.cl'
       ORDER BY prt.created_at DESC
       LIMIT 5
     `;
 
-    if (tokens.rows.length > 0) {
-      console.log('✅ Tokens activos encontrados:');
-      tokens.rows.forEach((token, index) => {
-        console.log(`   ${index + 1}. ${token.email} (${token.nombre} ${token.apellido})`);
-        console.log(`      Token: ${token.token.substring(0, 20)}...`);
-        console.log(`      Expira: ${new Date(token.expires_at).toLocaleString()}`);
-        console.log(`      Usado: ${token.used ? 'Sí' : 'No'}`);
-        console.log('');
+    if (tokensResult.rows.length > 0) {
+      console.log(`✅ Encontrados ${tokensResult.rows.length} tokens:`);
+      tokensResult.rows.forEach((token, index) => {
+        const expiresAt = new Date(token.expires_at).toLocaleString('es-CL');
+        const createdAt = new Date(token.created_at).toLocaleString('es-CL');
+        console.log(`  ${index + 1}. Token: ${token.token.substring(0, 16)}...`);
+        console.log(`     Usuario: ${token.nombre} (${token.email})`);
+        console.log(`     Creado: ${createdAt} | Expira: ${expiresAt} | Usado: ${token.used ? 'Sí' : 'No'}`);
       });
     } else {
-      console.log('ℹ️ No se encontraron tokens activos');
+      console.log('❌ No se encontraron tokens para el usuario');
     }
   } catch (error) {
     console.log('❌ Error verificando tokens:', error.message);
   }
 
-  // 3. Probar verificación de token (si hay uno disponible)
-  console.log('3️⃣ Probando verificación de token...');
+  // 3. Probar verificación de token (si existe uno válido)
+  console.log('\n3️⃣ Probando verificación de token...');
   try {
     const { sql } = require('@vercel/postgres');
     
-    const activeToken = await sql`
-      SELECT token FROM password_reset_tokens 
-      WHERE expires_at > NOW() AND used = FALSE 
+    const validTokenResult = await sql`
+      SELECT token FROM password_reset_tokens
+      WHERE expires_at > NOW() AND used = false
+      ORDER BY created_at DESC
       LIMIT 1
     `;
 
-    if (activeToken.rows.length > 0) {
-      const token = activeToken.rows[0].token;
-      console.log(`🔑 Probando token: ${token.substring(0, 20)}...`);
+    if (validTokenResult.rows.length > 0) {
+      const token = validTokenResult.rows[0].token;
+      console.log('🔍 Probando token válido:', token.substring(0, 16) + '...');
       
       const verifyResponse = await fetch(`${BASE_URL}/api/auth/verificar-token?token=${token}`);
+      const verifyData = await verifyResponse.json();
       
-      if (verifyResponse.ok) {
-        const data = await verifyResponse.json();
-        console.log('✅ Token válido:', data);
+      if (verifyResponse.ok && verifyData.valid) {
+        console.log('✅ Token verificado correctamente');
+        console.log('👤 Usuario:', verifyData.user.nombre, `(${verifyData.user.email})`);
       } else {
-        const error = await verifyResponse.json();
-        console.log('❌ Token inválido:', error.error);
+        console.log('❌ Error verificando token:', verifyData.error);
       }
     } else {
-      console.log('ℹ️ No hay tokens activos para probar');
+      console.log('⚠️ No hay tokens válidos para probar');
     }
   } catch (error) {
-    console.log('❌ Error verificando token:', error.message);
+    console.log('❌ Error probando verificación:', error.message);
   }
 
-  console.log('\n✅ Prueba completada');
+  console.log('\n🎉 Prueba del sistema completada');
 }
 
 // Ejecutar si se llama directamente
 if (require.main === module) {
-  testPasswordRecovery()
-    .then(() => {
-      console.log('\n🎉 Script de prueba finalizado');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('❌ Error fatal:', error);
-      process.exit(1);
-    });
+  testPasswordRecovery();
 }
 
 module.exports = { testPasswordRecovery };

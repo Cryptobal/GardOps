@@ -1004,6 +1004,82 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     );
   };
 
+  // Función para manejar cambios de estado del semáforo
+  const handleEstadoChange = useCallback(async (pautaId: string, nuevoEstado: string) => {
+    // Guardar en base de datos
+    try {
+      const response = await fetch(`/api/pauta-diaria-v2/semaforo/${pautaId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ estado: nuevoEstado })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al guardar estado del semáforo');
+      }
+      
+      addToast({
+        title: "✅ Estado guardado",
+        description: `Estado cambiado a ${nuevoEstado}`,
+        type: "success"
+      });
+      
+      // Refrescar la página para mostrar el nuevo estado
+      router.refresh();
+    } catch (error) {
+      console.error('Error guardando estado del semáforo:', error);
+      addToast({
+        title: "❌ Error",
+        description: "No se pudo guardar el estado del semáforo",
+        type: "error"
+      });
+    }
+  }, [addToast, router]);
+
+  // Función para abrir WhatsApp
+  const abrirWhatsApp = useCallback((tel: string) => {
+    const url = `https://wa.me/${tel.replace(/\D/g, '')}`;
+    window.open(url, '_blank');
+  }, []);
+
+  // Función para llamar al teléfono
+  const llamarTelefono = useCallback((tel: string) => {
+    const url = `tel:${tel}`;
+    window.open(url, '_blank');
+  }, []);
+
+  // Función para guardar comentarios
+  const guardarComentario = useCallback(async (pautaId: string, comentario: string) => {
+    try {
+      const response = await fetch(`/api/pauta-diaria-v2/comentarios/${pautaId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ comentario })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al guardar comentario');
+      }
+      
+      addToast({
+        title: "✅ Comentario guardado",
+        description: "Comentario guardado exitosamente",
+        type: "success"
+      });
+    } catch (error) {
+      console.error('Error guardando comentario:', error);
+      addToast({
+        title: "❌ Error",
+        description: "No se pudo guardar el comentario",
+        type: "error"
+      });
+    }
+  }, [addToast]);
+
   return (
     <TooltipProvider>
       <>

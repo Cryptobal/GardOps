@@ -245,7 +245,10 @@ export default function TurnosInstalacion({
           console.error('Error cargando PPCs:', error);
           return [];
         }),
-        getGuardiasDisponibles().catch(error => {
+        getGuardiasDisponibles(
+          new Date().toISOString().split('T')[0], // Fecha actual en formato YYYY-MM-DD
+          instalacionId
+        ).catch(error => {
           console.error('Error cargando guardias:', error);
           return [];
         })

@@ -25,6 +25,11 @@ export interface PautaRow {
   rol_alias?: string | null;
   reemplazo_guardia_nombre?: string | null;
   cobertura_guardia_nombre?: string | null; // Nombre del guardia que cubre (PPC o reemplazo)
+  guardia_titular_telefono?: string | null; // Teléfono del guardia titular
+  guardia_trabajo_telefono?: string | null; // Teléfono del guardia de trabajo
+  cobertura_guardia_telefono?: string | null; // Teléfono del guardia de cobertura
+  comentarios?: string | null; // Comentarios del turno
+  estado_semaforo?: string | null; // Estado del semáforo (pendiente, en_camino, urgencia, completado)
 }
 
 export interface PautaDiariaV2Props {

@@ -2,10 +2,12 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { login } from '../../lib/api/auth'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Card } from '../../components/ui/card'
+import { PasswordInput } from '../../components/ui/password-input'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -67,21 +69,15 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-foreground">
-              Contraseña
-            </label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              className="w-full"
-              autoComplete="current-password"
-            />
-          </div>
+          <PasswordInput
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+            autoComplete="current-password"
+            label="Contraseña"
+          />
 
           {error && (
             <div className="text-destructive text-sm text-center bg-destructive/10 p-3 rounded-md">
@@ -105,8 +101,16 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div className="text-center text-sm text-muted-foreground">
-          Sistema de gestión de guardias de seguridad
+        <div className="text-center space-y-2">
+          <Link 
+            href="/recuperar-contrasena" 
+            className="text-sm text-primary hover:underline"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+          <div className="text-sm text-muted-foreground">
+            Sistema de gestión de guardias de seguridad
+          </div>
         </div>
       </Card>
     </div>

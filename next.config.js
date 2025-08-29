@@ -4,12 +4,19 @@ const nextConfig = {
   experimental: {
     webpackBuildWorker: true,
   },
-  // Excluir archivos de script del build
+  // Configuración de webpack para manejar módulos de Node.js
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
+        path: false,
+        os: false,
+        crypto: false,
+        stream: false,
+        util: false,
+        buffer: false,
+        process: false,
       };
     }
     return config;

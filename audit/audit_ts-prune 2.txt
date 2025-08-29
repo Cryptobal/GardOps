@@ -1,0 +1,179 @@
+tailwind.config.ts:71 - default
+src/app/icon.tsx:14 - default
+src/app/icon.tsx:4 - runtime
+src/app/icon.tsx:7 - size (used in module)
+src/app/icon.tsx:11 - contentType
+src/components/ClienteTabs.tsx:33 - default
+src/components/DocumentList.tsx:17 - default
+src/components/InstalacionTabs.tsx:593 - default
+src/lib/auth.ts:106 - requireAuth
+src/lib/auth.ts:115 - getUserInfo (used in module)
+src/lib/auth.ts:138 - getCurrentUser
+src/lib/auth.ts:180 - getUserRole (used in module)
+src/lib/auth.ts:185 - getTenantId
+src/lib/auth.ts:190 - isAdmin
+src/lib/auth.ts:194 - isSupervisor
+src/lib/auth.ts:198 - isGuardia
+src/lib/database-migrations.ts:24 - validateRequiredTables
+src/lib/database-migrations.ts:53 - migrateGuardiasWithData (used in module)
+src/lib/database-migrations.ts:159 - fixGuardiasTable (used in module)
+src/lib/database-migrations.ts:253 - validateOtherTablesUUID
+src/lib/database-migrations.ts:296 - createPautasMensualesTable (used in module)
+src/lib/database-migrations.ts:636 - createUsuariosTable (used in module)
+src/lib/navigation.ts:15 - NavigationItem (used in module)
+src/lib/useAddressAutocomplete.ts:7 - AddressComponent (used in module)
+src/middleware/auth.ts:8 - requireAuth (used in module)
+src/middleware/auth.ts:48 - requireRole (used in module)
+.next/types/app/layout.ts:49 - PageProps
+.next/types/app/layout.ts:53 - LayoutProps (used in module)
+.next/types/app/page.ts:49 - PageProps (used in module)
+.next/types/app/page.ts:53 - LayoutProps
+src/components/shared/document-manager.tsx:10 - Documento (used in module)
+src/components/shared/document-manager.tsx:19 - DocumentManagerProps (used in module)
+src/components/shared/log-viewer.tsx:8 - LogEntry (used in module)
+src/components/shared/log-viewer.tsx:19 - LogViewerProps (used in module)
+src/components/ui/badge.tsx:25 - BadgeProps (used in module)
+src/components/ui/badge.tsx:35 - badgeVariants (used in module)
+src/components/ui/button.tsx:36 - ButtonProps (used in module)
+src/components/ui/button.tsx:56 - buttonVariants (used in module)
+src/components/ui/card.tsx:79 - CardFooter (used in module)
+src/components/ui/data-table.tsx:27 - DataTableProps (used in module)
+src/components/ui/entity-modal.tsx:6 - EntityModalProps (used in module)
+src/components/ui/entity-tabs.tsx:17 - EntityTabsProps (used in module)
+src/components/ui/filter-bar.tsx:10 - FilterOption (used in module)
+src/components/ui/filter-bar.tsx:23 - FilterBarProps (used in module)
+src/components/ui/google-map.tsx:205 - default
+src/components/ui/input-direccion.tsx:12 - InputDireccionProps (used in module)
+src/components/ui/input-direccion.tsx:428 - AddressSuggestion (used in module)
+src/components/ui/input.tsx:5 - InputProps (used in module)
+src/components/ui/modal.tsx:28 - ModalHeader (used in module)
+src/components/ui/modal.tsx:9 - ModalProps (used in module)
+src/components/ui/modal.tsx:146 - ConfirmModalProps (used in module)
+src/components/ui/page-header.tsx:9 - KPICard (used in module)
+src/components/ui/page-header.tsx:20 - PageHeaderProps (used in module)
+src/components/ui/select.tsx:150 - SelectGroup (used in module)
+src/components/ui/select.tsx:154 - SelectLabel (used in module)
+src/components/ui/select.tsx:156 - SelectSeparator (used in module)
+src/components/ui/select.tsx:157 - SelectScrollUpButton (used in module)
+src/components/ui/select.tsx:158 - SelectScrollDownButton (used in module)
+src/components/ui/table.tsx:6 - TableProps (used in module)
+src/components/ui/table.tsx:127 - TableFooter (used in module)
+src/components/ui/table.tsx:131 - TableCaption (used in module)
+src/components/ui/toast.tsx:30 - Toast (used in module)
+src/components/ui/toast.tsx:7 - ToastProps (used in module)
+src/lib/api/clientes.ts:36 - obtenerClientePorId
+src/lib/api/clientes.ts:229 - existeClientePorRut
+src/lib/api/documentos-clientes.ts:5 - obtenerDocumentosCliente
+src/lib/api/documentos-clientes.ts:34 - crearDocumentoCliente
+src/lib/api/documentos-clientes.ts:82 - eliminarDocumentoCliente
+src/lib/api/documentos-clientes.ts:98 - crearTablaDocumentosClientes
+src/lib/api/guardias.ts:88 - getGuardiaById (used in module)
+src/lib/api/guardias.ts:119 - updateGuardia
+src/lib/api/guardias.ts:174 - deleteGuardia
+src/lib/api/guardias.ts:190 - searchGuardias
+src/lib/api/guardias.ts:3 - Guardia (used in module)
+src/lib/api/instalaciones.ts:76 - cambiarEstadoInstalacion
+src/lib/api/instalaciones.ts:167 - obtenerEstadisticasInstalacion
+src/lib/api/logs-clientes.ts:3 - registrarLogCliente (used in module)
+src/lib/api/usuarios.ts:6 - createUser
+src/lib/api/usuarios.ts:91 - findUserByEmail
+src/lib/api/usuarios.ts:124 - findUserById (used in module)
+src/lib/api/usuarios.ts:196 - updateUser
+src/lib/api/usuarios.ts:243 - deleteUser
+src/lib/api/usuarios.ts:259 - changeUserPassword
+src/lib/schemas/clientes.ts:105 - filtrosClienteSchema (used in module)
+src/lib/schemas/clientes.ts:148 - documentoClienteSchema
+src/lib/schemas/instalaciones.ts:79 - FiltrosInstalacion
+src/lib/schemas/usuarios.ts:54 - validatePassword (used in module)
+src/lib/schemas/usuarios.ts:59 - validateUsuario
+src/lib/schemas/usuarios.ts:43 - UsuarioRoles (used in module)
+.next/types/app/alertas/page.ts:49 - PageProps (used in module)
+.next/types/app/alertas/page.ts:53 - LayoutProps
+.next/types/app/clientes/page.ts:49 - PageProps (used in module)
+.next/types/app/clientes/page.ts:53 - LayoutProps
+.next/types/app/configuracion/page.ts:49 - PageProps (used in module)
+.next/types/app/configuracion/page.ts:53 - LayoutProps
+.next/types/app/database-status/page.ts:49 - PageProps (used in module)
+.next/types/app/database-status/page.ts:53 - LayoutProps
+.next/types/app/documentos/page.ts:49 - PageProps (used in module)
+.next/types/app/documentos/page.ts:53 - LayoutProps
+.next/types/app/guardias/page.ts:49 - PageProps (used in module)
+.next/types/app/guardias/page.ts:53 - LayoutProps
+.next/types/app/instalaciones/page.ts:49 - PageProps (used in module)
+.next/types/app/instalaciones/page.ts:53 - LayoutProps
+.next/types/app/login/page.ts:49 - PageProps (used in module)
+.next/types/app/login/page.ts:53 - LayoutProps
+.next/types/app/pauta-mensual/page.ts:49 - PageProps (used in module)
+.next/types/app/pauta-mensual/page.ts:53 - LayoutProps
+.next/types/app/pautas/page.ts:49 - PageProps (used in module)
+.next/types/app/pautas/page.ts:53 - LayoutProps
+.next/types/app/planillas/page.ts:49 - PageProps (used in module)
+.next/types/app/planillas/page.ts:53 - LayoutProps
+.next/types/app/ppc/page.ts:49 - PageProps (used in module)
+.next/types/app/ppc/page.ts:53 - LayoutProps
+.next/types/app/test-documentos/page.ts:49 - PageProps (used in module)
+.next/types/app/test-documentos/page.ts:53 - LayoutProps
+.next/types/app/test-migration/page.ts:49 - PageProps (used in module)
+.next/types/app/test-migration/page.ts:53 - LayoutProps
+.next/types/app/turnos-diarios/page.ts:49 - PageProps (used in module)
+.next/types/app/turnos-diarios/page.ts:53 - LayoutProps
+.next/types/app/usuarios/page.ts:49 - PageProps (used in module)
+.next/types/app/usuarios/page.ts:53 - LayoutProps
+.next/types/app/api/alertas-documentos/route.ts:309 - PageProps
+.next/types/app/api/alertas-documentos/route.ts:313 - LayoutProps
+.next/types/app/api/audit-database/route.ts:309 - PageProps
+.next/types/app/api/audit-database/route.ts:313 - LayoutProps
+.next/types/app/api/clientes/route.ts:309 - PageProps
+.next/types/app/api/clientes/route.ts:313 - LayoutProps
+.next/types/app/api/comunas/route.ts:309 - PageProps
+.next/types/app/api/comunas/route.ts:313 - LayoutProps
+.next/types/app/api/create-second-tenant/route.ts:309 - PageProps
+.next/types/app/api/create-second-tenant/route.ts:313 - LayoutProps
+.next/types/app/api/database-status/route.ts:309 - PageProps
+.next/types/app/api/database-status/route.ts:313 - LayoutProps
+.next/types/app/api/describe-clientes/route.ts:309 - PageProps
+.next/types/app/api/describe-clientes/route.ts:313 - LayoutProps
+.next/types/app/api/document-url/route.ts:309 - PageProps
+.next/types/app/api/document-url/route.ts:313 - LayoutProps
+.next/types/app/api/documentos/route.ts:309 - PageProps
+.next/types/app/api/documentos/route.ts:313 - LayoutProps
+.next/types/app/api/documentos-clientes/route.ts:309 - PageProps
+.next/types/app/api/documentos-clientes/route.ts:313 - LayoutProps
+.next/types/app/api/documents/route.ts:309 - PageProps
+.next/types/app/api/documents/route.ts:313 - LayoutProps
+.next/types/app/api/download-document/route.ts:309 - PageProps
+.next/types/app/api/download-document/route.ts:313 - LayoutProps
+.next/types/app/api/guardias/route.ts:309 - PageProps
+.next/types/app/api/guardias/route.ts:313 - LayoutProps
+.next/types/app/api/init-users/route.ts:309 - PageProps
+.next/types/app/api/init-users/route.ts:313 - LayoutProps
+.next/types/app/api/instalaciones/route.ts:309 - PageProps
+.next/types/app/api/instalaciones/route.ts:313 - LayoutProps
+.next/types/app/api/logs-clientes/route.ts:309 - PageProps
+.next/types/app/api/logs-clientes/route.ts:313 - LayoutProps
+.next/types/app/api/migrate/route.ts:309 - PageProps
+.next/types/app/api/migrate/route.ts:313 - LayoutProps
+.next/types/app/api/migrate-alertas-documentos/route.ts:309 - PageProps
+.next/types/app/api/migrate-alertas-documentos/route.ts:313 - LayoutProps
+.next/types/app/api/migrate-clientes/route.ts:309 - PageProps
+.next/types/app/api/migrate-clientes/route.ts:313 - LayoutProps
+.next/types/app/api/migrate-documentos/route.ts:309 - PageProps
+.next/types/app/api/migrate-documentos/route.ts:313 - LayoutProps
+.next/types/app/api/migrate-logs-clientes/route.ts:309 - PageProps
+.next/types/app/api/migrate-logs-clientes/route.ts:313 - LayoutProps
+.next/types/app/api/migrate-preserve/route.ts:309 - PageProps
+.next/types/app/api/migrate-preserve/route.ts:313 - LayoutProps
+.next/types/app/api/migrate-tipos-documentos/route.ts:309 - PageProps
+.next/types/app/api/migrate-tipos-documentos/route.ts:313 - LayoutProps
+.next/types/app/api/migrate-usuarios/route.ts:309 - PageProps
+.next/types/app/api/migrate-usuarios/route.ts:313 - LayoutProps
+.next/types/app/api/tipos-documentos/route.ts:309 - PageProps
+.next/types/app/api/tipos-documentos/route.ts:313 - LayoutProps
+.next/types/app/api/upload-document/route.ts:309 - PageProps
+.next/types/app/api/upload-document/route.ts:313 - LayoutProps
+.next/types/app/api/users/route.ts:309 - PageProps
+.next/types/app/api/users/route.ts:313 - LayoutProps
+.next/types/app/configuracion/tipos-documentos/page.ts:49 - PageProps (used in module)
+.next/types/app/configuracion/tipos-documentos/page.ts:53 - LayoutProps
+.next/types/app/api/auth/login/route.ts:309 - PageProps
+.next/types/app/api/auth/login/route.ts:313 - LayoutProps

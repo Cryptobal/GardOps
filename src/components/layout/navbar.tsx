@@ -5,7 +5,7 @@ import { navigationItems } from "../../lib/navigation";
 import { logout, getToken } from "../../lib/auth-client";
 import { Button } from "../ui/button";
 import { LogOut, User, Menu, Moon, Sun, Settings } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProfileModal } from "../shared/ProfileModal";
 
 interface NavbarProps {
@@ -14,12 +14,37 @@ interface NavbarProps {
 
 export function Navbar({ onMobileMenuToggle }: NavbarProps) {
   const pathname = usePathname();
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isThemeInitialized, setIsThemeInitialized] = useState(false);
+  const [user, setUser] = useState<any>(null);
   
   const currentPage = navigationItems.find(item => item.href === pathname);
   const pageTitle = currentPage?.name || "GardOps";
   const pageDescription = currentPage?.description;
+
+  // Efectos para evitar errores de hidratación
+  useEffect(() => {
+    // Parsear token solo en el cliente
+    const token = document.cookie.match(/(?:^|;\s*)auth_token=([^;]+)/)?.[1];
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1] || '{}'));
+        setUser(payload);
+      } catch (error) {
+        console.error('Error parsing token:', error);
+      }
+    }
+    setIsInitialized(true);
+  }, []);
+
+  useEffect(() => {
+    // Inicializar tema solo en el cliente
+    const savedTheme = localStorage.getItem('theme');
+    setIsDark(savedTheme === 'dark');
+    setIsThemeInitialized(true);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -28,24 +53,16 @@ export function Navbar({ onMobileMenuToggle }: NavbarProps) {
   const toggleTheme = () => {
     setIsDark(!isDark);
     document.documentElement.classList.toggle("light");
+    localStorage.setItem('theme', !isDark ? 'dark' : 'light');
   };
 
   const openProfileModal = () => {
     setIsProfileModalOpen(true);
   };
 
-  // Obtener información del usuario desde el token JWT
+  // Obtener información del usuario desde el estado
   const getUserDisplayName = () => {
-    try {
-      const token = getToken();
-      if (token) {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        return payload.name || payload.email || "Usuario";
-      }
-    } catch (error) {
-      console.error("Error parsing token:", error);
-    }
-    return "Usuario";
+    return user?.name || user?.email || "Usuario";
   };
 
   return (
@@ -74,14 +91,16 @@ export function Navbar({ onMobileMenuToggle }: NavbarProps) {
         {/* Right side - User info and actions - Ultra Responsive */}
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
           {/* Theme toggle button - Responsive */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleTheme}
-            className="h-7 w-7 sm:h-8 sm:w-8 p-0 rounded-lg touch-manipulation active:scale-95 transition-transform"
-          >
-            {isDark ? <Sun className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <Moon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
-          </Button>
+          {isThemeInitialized && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleTheme}
+              className="h-7 w-7 sm:h-8 sm:w-8 p-0 rounded-lg touch-manipulation active:scale-95 transition-transform"
+            >
+              {isDark ? <Sun className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <Moon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+            </Button>
+          )}
 
           {/* Profile button - Responsive */}
           <Button
@@ -95,11 +114,13 @@ export function Navbar({ onMobileMenuToggle }: NavbarProps) {
           </Button>
 
           {/* User info - Responsive (hidden on very small screens) */}
-          <div className="hidden sm:flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-accent/50 border border-border/30">
-            <span className="text-xs sm:text-sm font-medium text-foreground max-w-[80px] sm:max-w-[120px] md:max-w-none truncate">
-              {getUserDisplayName()}
-            </span>
-          </div>
+          {isInitialized && (
+            <div className="hidden sm:flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-accent/50 border border-border/30">
+              <span className="text-xs sm:text-sm font-medium text-foreground max-w-[80px] sm:max-w-[120px] md:max-w-none truncate">
+                {getUserDisplayName()}
+              </span>
+            </div>
+          )}
 
           {/* Logout button - Responsive */}
           <Button

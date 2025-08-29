@@ -83,12 +83,18 @@ export default function AsignarGuardiaModal({
   const cargarGuardias = async () => {
     try {
       setCargandoGuardias(true);
-      const response = await fetch(`/api/guardias/disponibles?instalacionId=${instalacionId}`);
+      const fecha = new Date().toISOString().split('T')[0]; // Fecha actual en formato YYYY-MM-DD
+      const params = new URLSearchParams({
+        fecha,
+        instalacion_id: instalacionId
+      });
+      
+      const response = await fetch(`/api/guardias/disponibles?${params.toString()}`);
       if (!response.ok) {
         throw new Error('Error al obtener guardias disponibles');
       }
       const guardiasData = await response.json();
-      const guardiasFinales = guardiasData.guardias || guardiasData;
+      const guardiasFinales = guardiasData.items || guardiasData.guardias || guardiasData;
       setGuardias(guardiasFinales);
     } catch (error) {
       console.error('Error cargando guardias:', error);

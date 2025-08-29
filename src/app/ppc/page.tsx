@@ -177,10 +177,17 @@ const AsignarGuardiaCombobox = ({
 
   const fetchGuardiasDisponibles = async () => {
     try {
-      const response = await fetch("/api/guardias/disponibles");
+      // Para PPC, usamos fecha actual y no necesitamos instalacion_id específico
+      const fecha = new Date().toISOString().split('T')[0];
+      const params = new URLSearchParams({
+        fecha,
+        instalacion_id: '00000000-0000-0000-0000-000000000000' // UUID dummy para PPCs
+      });
+      
+      const response = await fetch(`/api/guardias/disponibles?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
-        setGuardias(data.guardias || []);
+        setGuardias(data.items || data.guardias || []);
       }
     } catch (error) {
       console.error("Error cargando guardias disponibles:", error);

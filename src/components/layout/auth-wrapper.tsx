@@ -20,8 +20,8 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   // Rutas públicas que no requieren autenticación
-  const publicRoutes = ['/login']
-  const isPublicRoute = publicRoutes.includes(pathname)
+  const publicRoutes = ['/login', '/recuperar-contrasena', '/restablecer-contrasena']
+  const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/restablecer-contrasena')
 
   useEffect(() => {
     const checkAuth = () => {

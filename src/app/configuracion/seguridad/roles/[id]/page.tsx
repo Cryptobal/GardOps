@@ -1,328 +1,471 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { useCan } from "@/lib/permissions";
 import { rbacFetch } from "@/lib/rbacClient";
-import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Combobox } from "@/components/ui/combobox";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Save, Eye } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-type Rol = { id: string; nombre: string; descripcion: string | null; tenant_id: string | null };
-type Permiso = { id: string; clave: string; descripcion: string | null };
+interface Permiso {
+  id: string;
+  clave: string;
+  descripcion: string | null;
+  categoria: string | null;
+}
+
+interface Rol {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+}
+
+// Mapeo de módulos UI a prefijos de permisos en BD
+const MODULO_PREFIXES: Record<string, string[]> = {
+  'clientes': ['clientes'],
+  'instalaciones': ['instalaciones'],
+  'guardias': ['guardias'],
+  'pauta-diaria': ['pauta_diaria', 'pauta-diaria'],
+  'pauta-mensual': ['pauta_mensual', 'pauta-mensual'],
+  'documentos': ['documentos'],
+  'reportes': ['reportes'],
+  'usuarios': ['usuarios'],
+  'roles': ['roles'],
+  'permisos': ['permisos'],
+  'tenants': ['tenants'],
+  'estructuras': ['estructuras'],
+  'sueldos': ['sueldos'],
+  'planillas': ['planillas'],
+  'logs': ['logs'],
+  'central-monitoring': ['central_monitoring', 'central-monitoring'],
+  'configuracion': ['configuracion'],
+  'auditoria': ['auditoria'],
+  'rbac': ['rbac']
+};
+
+// Módulos del sistema
+const MODULOS = [
+  { key: 'clientes', nombre: 'Clientes' },
+  { key: 'instalaciones', nombre: 'Instalaciones' },
+  { key: 'guardias', nombre: 'Guardias' },
+  { key: 'pauta-diaria', nombre: 'Pauta Diaria' },
+  { key: 'pauta-mensual', nombre: 'Pauta Mensual' },
+  { key: 'documentos', nombre: 'Documentos' },
+  { key: 'reportes', nombre: 'Reportes' },
+  { key: 'usuarios', nombre: 'Usuarios' },
+  { key: 'roles', nombre: 'Roles' },
+  { key: 'permisos', nombre: 'Permisos' },
+  { key: 'tenants', nombre: 'Tenants' },
+  { key: 'estructuras', nombre: 'Estructuras' },
+  { key: 'sueldos', nombre: 'Sueldos' },
+  { key: 'planillas', nombre: 'Planillas' },
+  { key: 'logs', nombre: 'Logs' },
+  { key: 'central-monitoring', nombre: 'Central de Monitoreo' },
+  { key: 'configuracion', nombre: 'Configuración' },
+  { key: 'auditoria', nombre: 'Auditoría' },
+  { key: 'rbac', nombre: 'RBAC' }
+];
+
+// Niveles de acceso
+const NIVELES = [
+  { key: 'none', nombre: 'Sin Acceso', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' },
+  { key: 'view', nombre: 'Solo Ver', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' },
+  { key: 'edit', nombre: 'Editar', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' },
+  { key: 'admin', nombre: 'Admin', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' }
+];
 
 export default function RolDetallePage() {
+  const router = useRouter();
   const params = useParams();
-  const id = String(params?.id || "");
+  const rolId = params.id as string;
 
-  const { allowed, loading } = useCan("rbac.roles.read");
-  const { allowed: allowedWrite } = useCan("rbac.roles.write");
-  const { allowed: allowedAdmin } = useCan("rbac.platform_admin");
-  const canWrite = allowedWrite || allowedAdmin;
-  const { addToast: toast, success: toastSuccess, error: toastError } = useToast();
+  const { allowed: canRead, loading } = useCan("rbac.roles.read");
+  const { allowed: canWrite } = useCan("rbac.roles.write");
+  const { allowed: isPlatformAdmin } = useCan("rbac.platform_admin");
 
+  const [rol, setRol] = useState<Rol | null>(null);
+  const [permisosAsignados, setPermisosAsignados] = useState<Set<string>>(new Set());
+  const [permisosDisponibles, setPermisosDisponibles] = useState<Permiso[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [rol, setRol] = useState<Rol | null>(null);
-  const [asignados, setAsignados] = useState<Permiso[]>([]);
-  const [catalogo, setCatalogo] = useState<Permiso[]>([]);
-  const [selectedPerm, setSelectedPerm] = useState<string | undefined>(undefined);
+  const [hasChanges, setHasChanges] = useState(false);
+  const { addToast } = useToast();
 
-  const noAsignados = useMemo(() => {
-    const assignedIds = new Set(asignados.map(p => p.id));
-    return catalogo.filter(p => !assignedIds.has(p.id));
-  }, [asignados, catalogo]);
+  const hasAccess = canRead || isPlatformAdmin;
+  const canEdit = canWrite || isPlatformAdmin;
 
-  async function loadAll() {
-    setBusy(true);
-    setError(null);
+  // Cargar datos del rol y permisos
+  useEffect(() => {
+    if (!hasAccess || loading || !rolId) return;
+
+    let done = false;
+    (async () => {
+      try {
+        setBusy(true);
+        setError(null);
+
+        // Cargar rol
+        const rolRes = await rbacFetch(`/api/admin/rbac/roles/${rolId}`);
+        const rolData = await rolRes.json();
+        if (!rolRes.ok) throw new Error(rolData?.detail || rolData?.error || `HTTP ${rolRes.status}`);
+        if (!done) setRol(rolData);
+
+        // Cargar permisos disponibles
+        const permisosRes = await rbacFetch("/api/admin/rbac/permisos");
+        const permisosData = await permisosRes.json();
+        if (!permisosRes.ok) throw new Error(permisosData?.detail || permisosData?.error || `HTTP ${permisosRes.status}`);
+        if (!done) setPermisosDisponibles(permisosData.items || []);
+
+        // Cargar permisos asignados
+        const asignadosRes = await rbacFetch(`/api/admin/rbac/roles/${rolId}/permisos`);
+        const asignadosData = await asignadosRes.json();
+        if (!asignadosRes.ok) throw new Error(asignadosData?.detail || asignadosData?.error || `HTTP ${asignadosRes.status}`);
+        if (!done) {
+          const asignadosSet = new Set(asignadosData.permisos?.map((p: any) => p.permiso_id) || []);
+          setPermisosAsignados(asignadosSet as Set<string>);
+        }
+
+      } catch (e: any) {
+        if (!done) setError(e?.message || "Error inesperado");
+      } finally {
+        if (!done) setBusy(false);
+      }
+    })();
+    return () => { done = true; };
+  }, [hasAccess, loading, rolId]);
+
+  // Función para obtener el ID de un permiso por clave
+  const getPermisoId = (clave: string) => {
+    return permisosDisponibles.find(p => p.clave === clave)?.id;
+  };
+
+  // Función para calcular nivel de acceso basado en permisos
+  const calcularNivelModulo = (modulo: string): string => {
+    const prefixes = MODULO_PREFIXES[modulo] || [modulo];
+    const permisosClaves = Array.from(permisosAsignados).map(id => 
+      permisosDisponibles.find(p => p.id === id)?.clave
+    ).filter(Boolean) as string[];
+    
+    // Verificar wildcard (admin)
+    const wildcard = prefixes.some(prefix => 
+      permisosClaves.includes(`${prefix}.*`)
+    );
+    
+    if (wildcard) return 'admin';
+    
+    // Verificar si tiene permisos de edit (create, edit, view)
+    const hasEditPermissions = prefixes.some(prefix => {
+      const hasView = permisosClaves.includes(`${prefix}.view`);
+      const hasCreate = permisosClaves.includes(`${prefix}.create`);
+      const hasEdit = permisosClaves.includes(`${prefix}.edit`);
+      return hasView && (hasCreate || hasEdit);
+    });
+    
+    if (hasEditPermissions) return 'edit';
+    
+    // Verificar view (solo view)
+    const hasView = prefixes.some(prefix => 
+      permisosClaves.includes(`${prefix}.view`)
+    );
+    
+    if (hasView) return 'view';
+    
+    return 'none';
+  };
+
+  // Función para obtener permisos que se asignarán para un nivel
+  const obtenerPermisosParaNivel = (modulo: string, nivel: string): string[] => {
+    const prefixes = MODULO_PREFIXES[modulo] || [modulo];
+    const permisos: string[] = [];
+    
+    switch (nivel) {
+      case 'admin':
+        prefixes.forEach(prefix => {
+          const wildcardId = getPermisoId(`${prefix}.*`);
+          if (wildcardId) {
+            permisos.push(wildcardId);
+          } else {
+            permisosDisponibles.forEach(p => {
+              if (p.clave.startsWith(prefix + '.')) {
+                permisos.push(p.id);
+              }
+            });
+          }
+        });
+        break;
+      case 'edit':
+        prefixes.forEach(prefix => {
+          ['view', 'create', 'edit'].forEach(action => {
+            const permisoId = getPermisoId(`${prefix}.${action}`);
+            if (permisoId) permisos.push(permisoId);
+          });
+        });
+        break;
+      case 'view':
+        prefixes.forEach(prefix => {
+          const permisoId = getPermisoId(`${prefix}.view`);
+          if (permisoId) permisos.push(permisoId);
+        });
+        break;
+      case 'none':
+      default:
+        break;
+    }
+    
+    return permisos;
+  };
+
+  // Función para asignar nivel a un módulo
+  const asignarNivelModulo = (modulo: string, nivel: string) => {
+    if (!canEdit) return;
+    
+    const permisosIds = obtenerPermisosParaNivel(modulo, nivel);
+    const newAsignados = new Set(permisosAsignados);
+    
+    // Remover permisos existentes del módulo
+    const prefixes = MODULO_PREFIXES[modulo] || [modulo];
+    prefixes.forEach(prefix => {
+      permisosDisponibles.forEach(p => {
+        if (p.clave.startsWith(prefix + '.')) {
+          newAsignados.delete(p.id);
+        }
+      });
+    });
+    
+    // Agregar nuevos permisos
+    permisosIds.forEach(id => newAsignados.add(id));
+    
+    setPermisosAsignados(newAsignados);
+    setHasChanges(true);
+  };
+
+  // Función para guardar cambios
+  const guardarCambios = async () => {
+    if (!canEdit || !rolId) return;
+
     try {
-      console.log('🔄 Cargando datos del rol:', id);
+      setBusy(true);
+      setError(null);
+
+      const permisosArray = Array.from(permisosAsignados);
       
-      const [rRes, aRes, cRes] = await Promise.all([
-        rbacFetch(`/api/admin/rbac/roles/${id}`),
-        rbacFetch(`/api/admin/rbac/roles/${id}/permisos`),
-        rbacFetch(`/api/admin/rbac/permisos`),
-      ]);
-
-      console.log('📡 Respuestas recibidas:', {
-        rol: rRes.status,
-        permisos: aRes.status,
-        catalogo: cRes.status
+      const res = await rbacFetch(`/api/admin/rbac/roles/${rolId}/permisos`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ permisos: permisosArray })
       });
 
-      const [rJ, aJ, cJ] = await Promise.all([
-        rRes.json().catch(() => ({})),
-        aRes.json().catch(() => ({})),
-        cRes.json().catch(() => ({})),
-      ]);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || data?.error || `HTTP ${res.status}`);
 
-      console.log('📊 Datos parseados:', {
-        rol: rJ,
-        permisos: aJ,
-        catalogo: cJ
+      addToast({
+        title: "✅ Permisos actualizados",
+        description: `Los permisos del rol "${rol?.nombre}" han sido actualizados exitosamente.`,
+        type: "success"
       });
 
-      if (!rRes.ok) throw new Error(rJ?.detail || rJ?.error || `HTTP ${rRes.status}`);
-      if (!aRes.ok) throw new Error(aJ?.detail || aJ?.error || `HTTP ${aRes.status}`);
-      if (!cRes.ok) throw new Error(cJ?.detail || cJ?.error || `HTTP ${cRes.status}`);
+      setHasChanges(false);
 
-      const rolData = rJ.item as Rol;
-      const asignadosData = Array.isArray(aJ.items) ? aJ.items : [];
-      const catalogoData = Array.isArray(cJ.items) ? cJ.items : [];
-
-      console.log('✅ Datos finales:', {
-        rol: rolData,
-        asignados: asignadosData.length,
-        catalogo: catalogoData.length
-      });
-
-      setRol(rolData);
-      setAsignados(asignadosData);
-      setCatalogo(catalogoData);
     } catch (e: any) {
-      console.error('❌ Error al cargar datos:', e);
-      setError(String(e?.message ?? e));
+      setError(e?.message || "Error al guardar");
+      addToast({
+        title: "❌ Error",
+        description: e?.message || "Error al guardar los permisos",
+        type: "error"
+      });
     } finally {
       setBusy(false);
     }
-  }
+  };
 
-  async function updatePermisos({ add, remove }: { add?: string[]; remove?: string[] }) {
-    try {
-      const res = await rbacFetch(`/api/admin/rbac/roles/${id}/permisos`, {
-        method: "PUT",
-        body: JSON.stringify({ add, remove }),
-      });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const msg = j?.detail || j?.error || `HTTP ${res.status}`;
-        toast ? toast({ title: "Error", description: msg, type: "error" }) : console.warn(msg);
-        return;
-      }
-      if ((add?.length || 0) > 0) toastSuccess("Permiso agregado");
-      if ((remove?.length || 0) > 0) toastSuccess("Permiso quitado");
-      await reloadAsignados();
-    } catch (e: any) {
-      const msg = String(e?.message ?? e);
-      toast ? toast({ title: "Error", description: msg, type: "error" }) : console.warn(msg);
-    }
-  }
-
-  async function reloadAsignados() {
-    const res = await rbacFetch(`/api/admin/rbac/roles/${id}/permisos`);
-    const j = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const msg = j?.detail || j?.error || `HTTP ${res.status}`;
-      toast ? toast({ title: "Error", description: msg, type: "error" }) : console.warn(msg);
-      return;
-    }
-    setAsignados(Array.isArray(j.items) ? j.items : []);
-  }
-
-  useEffect(() => {
-    if (!id) return;
-    if (allowed) loadAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allowed, id]);
+  // Función para mostrar permisos de un módulo
+  const mostrarPermisosModulo = (modulo: string) => {
+    const nivelActual = calcularNivelModulo(modulo);
+    const permisosIds = obtenerPermisosParaNivel(modulo, nivelActual);
+    const permisosClaves = permisosIds.map(id => 
+      permisosDisponibles.find(p => p.id === id)?.clave
+    ).filter(Boolean);
+    
+    const mensaje = permisosClaves.length > 0 
+      ? `Permisos actuales para ${modulo}:\n${permisosClaves.join('\n')}`
+      : `No hay permisos asignados para ${modulo}`;
+    
+    alert(mensaje);
+  };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[40vh]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-sm text-muted-foreground">Verificando permisos...</p>
+      <div className="p-6">
+        <div className="rounded-xl border p-6 text-center text-muted-foreground">
+          Verificando permisos...
         </div>
       </div>
     );
   }
 
-  if (!allowed) {
+  if (!hasAccess) {
     return (
       <div className="p-6">
-        <div className="rounded-xl border p-6">
-          <h2 className="text-lg font-semibold">Sin acceso</h2>
-          <p className="text-sm text-muted-foreground mt-1">No tienes permisos para ver esta sección.</p>
-          <Link href="/configuracion/seguridad/roles" className="inline-flex mt-4 px-3 py-2 rounded-lg border">← Volver a Roles</Link>
+        <div className="rounded-xl border p-6 text-center text-muted-foreground">
+          No tienes permisos para ver esta página.
+        </div>
+      </div>
+    );
+  }
+
+  if (busy && !rol) {
+    return (
+      <div className="p-6">
+        <div className="rounded-xl border p-6 text-center text-muted-foreground">
+          Cargando rol y permisos...
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="rounded-xl border p-6 text-center text-red-600">
+          Error: {error}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-7xl">
+    <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.back()}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver
+          </Button>
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Link href="/configuracion/seguridad/roles" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                ← Volver a Roles
-              </Link>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight">{rol?.nombre ?? "Rol"}</h1>
-            <p className="text-muted-foreground mt-1">
-              {rol?.descripcion || "Sin descripción"}
+            <h1 className="text-2xl font-bold">Permisos del Rol</h1>
+            <p className="text-muted-foreground">
+              {rol?.nombre} - {rol?.descripcion}
             </p>
-            {rol?.tenant_id && (
-              <div className="text-xs text-muted-foreground mt-1">
-                Tenant: {rol.tenant_id}
-              </div>
-            )}
-          </div>
-          <div className="flex-shrink-0">
-            <div className="text-xs text-muted-foreground">ID: {id}</div>
           </div>
         </div>
+
+        {canEdit && (
+          <div className="flex items-center gap-2">
+            {hasChanges && (
+              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                Cambios pendientes
+              </Badge>
+            )}
+            <Button
+              onClick={guardarCambios}
+              disabled={!hasChanges || busy}
+              className="flex items-center gap-2"
+            >
+              <Save className="h-4 w-4" />
+              {busy ? "Guardando..." : "Guardar Cambios"}
+            </Button>
+          </div>
+        )}
       </div>
 
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <div className="text-sm text-red-600">{error}</div>
-        </div>
-      )}
-
-      {/* Interfaz de Matriz - Siempre visible */}
-      <div className="space-y-6">
-        {/* Sección de Permisos Asignados */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-              🎯 Matriz de Permisos
-              <span className="text-sm font-normal text-muted-foreground">
-                ({asignados.length} asignados)
-              </span>
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Permisos actualmente asignados a este rol
-            </p>
-          </CardHeader>
-          <CardContent>
-            {busy ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                  <p className="mt-2 text-sm text-muted-foreground">Cargando permisos...</p>
-                </div>
-              </div>
-            ) : asignados.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-muted-foreground mb-2">🎯</div>
-                <p className="text-sm text-muted-foreground">No hay permisos asignados a este rol.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {asignados.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-mono text-sm bg-muted px-2 py-1 rounded text-xs">
-                          {p.clave}
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {p.descripcion || "Sin descripción"}
-                      </p>
-                    </div>
-                    {canWrite && (
-                      <div className="flex-shrink-0 ml-4">
+      {/* Matriz de Permisos Simple */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Matriz de Permisos por Módulos</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Selecciona el nivel de acceso para cada módulo
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-3 font-medium">Módulo</th>
+                  {NIVELES.map(nivel => (
+                    <th key={nivel.key} className="text-center p-3 font-medium">
+                      {nivel.nombre}
+                    </th>
+                  ))}
+                  <th className="text-center p-3 font-medium">Ver Permisos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {MODULOS.map(modulo => {
+                  const nivelActual = calcularNivelModulo(modulo.key);
+                  
+                  return (
+                    <tr key={modulo.key} className="border-b hover:bg-muted/50">
+                      <td className="p-3 font-medium">
+                        {modulo.nombre}
+                      </td>
+                      {NIVELES.map(nivel => (
+                        <td key={nivel.key} className="text-center p-3">
+                          <Button
+                            variant={nivelActual === nivel.key ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => asignarNivelModulo(modulo.key, nivel.key)}
+                            disabled={!canEdit}
+                            className={`w-full ${nivelActual === nivel.key ? nivel.color : ''}`}
+                          >
+                            {nivelActual === nivel.key ? "✓" : nivel.nombre}
+                          </Button>
+                        </td>
+                      ))}
+                      <td className="text-center p-3">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => updatePermisos({ remove: [p.id] })}
+                          onClick={() => mostrarPermisosModulo(modulo.key)}
+                          className="flex items-center gap-1"
                         >
-                          Quitar
+                          <Eye className="h-4 w-4" />
+                          Ver
                         </Button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Sección de Agregar Permisos */}
-        {canWrite && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg sm:text-xl">➕ Agregar Permisos</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Selecciona permisos para agregar al rol
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Combobox
-                  items={noAsignados.map((p) => ({ 
-                    id: p.id, 
-                    codigo: p.clave, 
-                    nombre: p.descripcion || p.clave 
-                  }))}
-                  value={selectedPerm}
-                  onChange={setSelectedPerm}
-                  placeholder="Buscar y seleccionar permiso..."
-                  disabled={!canWrite}
-                  searchPlaceholder="Buscar permiso..."
-                  emptyMessage="No hay permisos disponibles para agregar"
-                />
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button
-                    onClick={() => selectedPerm && updatePermisos({ add: [selectedPerm] })}
-                    disabled={!canWrite || !selectedPerm}
-                    className="w-full sm:w-auto"
-                  >
-                    ➕ Agregar Permiso
-                  </Button>
-                  {selectedPerm && (
-                    <Button
-                      variant="outline"
-                      onClick={() => setSelectedPerm(undefined)}
-                      className="w-full sm:w-auto"
-                    >
-                      Limpiar
-                    </Button>
-                  )}
+      {/* Información de Niveles */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Información de Niveles</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {NIVELES.map(nivel => (
+              <div key={nivel.key} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge className={nivel.color}>
+                    {nivel.nombre}
+                  </Badge>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Información del Rol */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg sm:text-xl">ℹ️ Información del Rol</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm font-medium">Nombre</label>
-                <p className="text-sm text-muted-foreground mt-1">{rol?.nombre}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Descripción</label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {rol?.descripcion || "Sin descripción"}
+                <p className="text-sm text-muted-foreground">
+                  {nivel.key === 'none' && "El módulo no será visible para el usuario"}
+                  {nivel.key === 'view' && "Puede consultar información sin modificarla"}
+                  {nivel.key === 'edit' && "Puede crear, editar y ver registros"}
+                  {nivel.key === 'admin' && "Acceso completo: ver, crear, editar, eliminar"}
                 </p>
               </div>
-              <div>
-                <label className="text-sm font-medium">Tipo</label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {rol?.tenant_id ? "Tenant" : "Global"}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium">ID</label>
-                <p className="text-sm text-muted-foreground font-mono mt-1">{id}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

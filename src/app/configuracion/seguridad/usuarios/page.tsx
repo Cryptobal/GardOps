@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-type UsuarioRow = { id: string; email: string; nombre: string | null; activo: boolean; tenant_id: string | null; userRole?: string };
+type UsuarioRow = { id: string; email: string; nombre: string | null; activo: boolean; tenant_id: string | null; userRole?: string; roles?: string };
 type Rol = { id: string; nombre: string; tenant_id: string | null };
 
 export default function UsuariosPage() {
@@ -169,28 +169,10 @@ export default function UsuariosPage() {
     }
   }
 
-  // Función para cargar los roles de cada usuario
+  // Función para cargar los roles de cada usuario (ya no necesaria, la API los incluye)
   async function loadUserRoles(users: UsuarioRow[]): Promise<UsuarioRow[]> {
-    const usersWithRoles = await Promise.all(
-      users.map(async (user) => {
-        try {
-          const res = await rbacFetch(`/api/admin/rbac/usuarios/${user.id}/roles`);
-          const json = await res.json().catch(() => ({}));
-          
-          if (res.ok) {
-            const userRolesData = (json as any)?.roles || [];
-            const rolId = userRolesData.length > 0 ? userRolesData[0].id : null;
-            return { ...user, userRole: rolId };
-          } else {
-            return { ...user, userRole: null };
-          }
-        } catch (error) {
-          console.error(`Error cargando roles para usuario ${user.id}:`, error);
-          return { ...user, userRole: null };
-        }
-      })
-    );
-    return usersWithRoles;
+    // La API ya incluye los roles, así que solo retornamos los usuarios tal como vienen
+    return users;
   }
 
   // Función para cargar usuarios con roles
@@ -322,9 +304,9 @@ export default function UsuariosPage() {
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <div className="flex items-center gap-2">
-                          {row.userRole ? (
+                          {row.roles ? (
                             <span className="text-sm font-medium text-green-700">
-                              {roles.find(r => r.id === row.userRole)?.nombre || 'Rol desconocido'}
+                              {row.roles}
                             </span>
                           ) : (
                             <span className="text-muted-foreground">Sin rol</span>

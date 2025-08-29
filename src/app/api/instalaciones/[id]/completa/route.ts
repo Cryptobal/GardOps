@@ -141,11 +141,11 @@ export async function GET(
       puestosOperativosResult = { rows: [] };
     }
 
-    // 4. Consultar roles de servicio
-    console.log('4. Consultando roles de servicio...');
-    let rolesResult;
+    // 4. Consultar roles de servicio (solo los asociados a esta instalación)
+    console.log('4. Consultando roles de servicio de la instalación...');
+    let rolesInstalacionResult;
     try {
-      rolesResult = await query(`
+      rolesInstalacionResult = await query(`
         SELECT DISTINCT
           rs.id,
           rs.nombre,
@@ -164,10 +164,10 @@ export async function GET(
           AND rs.estado = 'Activo'
         ORDER BY rs.nombre
       `, [instalacionId]);
-      console.log(`✅ Roles de servicio encontrados: ${rolesResult.rows.length}`);
+      console.log(`✅ Roles de servicio de la instalación encontrados: ${rolesInstalacionResult.rows.length}`);
     } catch (error) {
-      console.error('❌ Error consultando roles de servicio:', error);
-      rolesResult = { rows: [] };
+      console.error('❌ Error consultando roles de servicio de la instalación:', error);
+      rolesInstalacionResult = { rows: [] };
     }
 
     // 5. Consultar pauta mensual
@@ -299,6 +299,67 @@ export async function GET(
 
     console.log(`📊 PPCs encontrados: ${ppcs.length}`);
 
+    // 7. Obtener todos los roles de servicio disponibles
+    console.log('7. Consultando roles de servicio disponibles...');
+    let rolesDisponiblesResult;
+    try {
+      // Obtener el tenant_id del usuario autenticado
+      const email = request.headers.get('x-user-email');
+      let tenantId = null;
+      
+      if (email) {
+        const tenantResult = await query(`
+          SELECT tenant_id::text AS tid 
+          FROM usuarios 
+          WHERE lower(email) = lower($1) 
+          LIMIT 1
+        `, [email]);
+        tenantId = tenantResult.rows?.[0]?.tid || null;
+      }
+
+      console.log('🔍 Tenant ID obtenido:', tenantId);
+
+      let rolesQuery = `
+        SELECT 
+          id,
+          nombre,
+          dias_trabajo,
+          dias_descanso,
+          horas_turno,
+          hora_inicio,
+          hora_termino,
+          estado,
+          tenant_id,
+          created_at,
+          updated_at
+        FROM as_turnos_roles_servicio 
+        WHERE estado = 'Activo'
+      `;
+      
+      const rolesParams: any[] = [];
+      let paramIndex = 1;
+
+      if (tenantId) {
+        rolesQuery += ` AND tenant_id::text = $${paramIndex}`;
+        rolesParams.push(tenantId);
+        paramIndex++;
+      } else {
+        // Sin tenant => no devolver nada
+        rolesQuery += ` AND 1=0`;
+      }
+
+      rolesQuery += ' ORDER BY nombre';
+
+      console.log('🔍 Query roles:', rolesQuery);
+      console.log('🔍 Parámetros roles:', rolesParams);
+
+      rolesDisponiblesResult = await query(rolesQuery, rolesParams);
+      console.log(`✅ Roles de servicio disponibles encontrados: ${rolesDisponiblesResult.rows.length}`);
+    } catch (error) {
+      console.error('❌ Error consultando roles de servicio disponibles:', error);
+      rolesDisponiblesResult = { rows: [] };
+    }
+
     // Crear guardias asignados basados en puestos operativos con guardia asignada
     const guardiasAsignados = puestosOperativosResult.rows
       .filter((row: any) => row.guardia_id)
@@ -361,8 +422,8 @@ export async function GET(
     
     console.log(`📋 Total de guardias (asignados + PPCs): ${guardias.length}`);
 
-    // Transformar roles de servicio
-    const roles = rolesResult.rows.map((row: any) => ({
+    // Transformar roles de servicio (usar los roles disponibles, no solo los de la instalación)
+    const roles = rolesDisponiblesResult.rows.map((row: any) => ({
       id: row.id,
       nombre: row.nombre,
       dias_trabajo: row.dias_trabajo,

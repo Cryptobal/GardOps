@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
-import { getUserInfo } from '@/lib/auth';
+import { getCurrentUserServer } from '@/lib/auth';
 
 export async function DELETE(
   request: NextRequest,
@@ -10,8 +10,8 @@ export async function DELETE(
     const { id: instalacionId, ppcId } = params;
     
     // Obtener información del usuario que está realizando la acción
-    const userInfo = getUserInfo();
-    const userId = userInfo?.user_id || null;
+    const userInfo = getCurrentUserServer(request);
+    const userId = userInfo?.id || null;
 
     // Verificar que el puesto operativo existe y pertenece a esta instalación
     const puestoCheck = await query(`

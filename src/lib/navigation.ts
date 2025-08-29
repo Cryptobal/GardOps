@@ -16,7 +16,7 @@ import {
   DollarSign,
   Calculator,
   Building,
-  
+  Phone,
   CreditCard,
   Key,
   Lock
@@ -110,17 +110,14 @@ export const navigationItems: NavigationItem[] = [
     permission: "asignaciones.view"
   },
   {
+    name: "Central de Monitoreo",
+    href: "/central-monitoreo",
+    icon: Phone,
+    permission: "central_monitoring.view"
+  },
+  {
     name: "Configuración",
     href: "/configuracion",
-    icon: Settings,
-    // Dejar visible el menú contenedor; la visibilidad de Seguridad se controla por permiso
-    children: [
-      {
-        name: "Seguridad",
-        href: "/configuracion/seguridad",
-        icon: Lock,
-        permission: "rbac.platform_admin"
-      }
-    ]
+    icon: Settings
   }
 ]; 

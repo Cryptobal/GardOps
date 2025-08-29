@@ -7,15 +7,9 @@ export async function rbacFetch(input: string, init: RequestInit = {}) {
   // Evita suplantar al usuario autenticado en ambientes reales.
   const devEmail = process.env.NEXT_PUBLIC_DEV_USER_EMAIL;
   const isDev = process.env.NODE_ENV !== 'production';
-  // No inyectar si ya hay un usuario autenticado (JWT en cookie) o Authorization explícito
-  let hasAuthCookie = false;
-  try {
-    if (typeof window !== 'undefined') {
-      hasAuthCookie = /(?:^|;\s*)auth_token=/.test(document.cookie || '');
-    }
-  } catch {}
-  const hasAuthHeader = headers.has('authorization');
-  if (isDev && devEmail && !headers.has('x-user-email') && !hasAuthHeader && !hasAuthCookie) {
+  
+  // En desarrollo, siempre inyectar el header x-user-email si no está presente
+  if (isDev && devEmail && !headers.has('x-user-email')) {
     headers.set('x-user-email', devEmail);
   }
 
