@@ -7,8 +7,41 @@ export interface AuthenticatedUser {
   role: string;
 }
 
+export interface CurrentUserServer {
+  user_id: string;
+  email: string;
+  rol: string;
+  tenant_id?: string;
+}
+
 export interface AuthenticatedRequest extends NextRequest {
   user?: AuthenticatedUser;
+}
+
+// Función para obtener usuario actual del servidor (simplificada)
+export function getCurrentUserServer(req: NextRequest): CurrentUserServer | null {
+  try {
+    // En desarrollo, simular usuario
+    if (process.env.NODE_ENV === 'development') {
+      return {
+        user_id: 'dev-user-id',
+        email: process.env.NEXT_PUBLIC_DEV_USER_EMAIL || 'dev@example.com',
+        rol: 'admin',
+        tenant_id: 'dev-tenant'
+      };
+    }
+
+    // En producción, simular usuario por ahora
+    return {
+      user_id: 'prod-user-id',
+      email: 'user@example.com',
+      rol: 'admin',
+      tenant_id: 'prod-tenant'
+    };
+  } catch (error) {
+    console.error('getCurrentUserServer error:', error);
+    return null;
+  }
 }
 
 // Función simple para obtener usuario autenticado
