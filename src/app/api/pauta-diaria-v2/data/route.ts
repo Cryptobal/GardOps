@@ -9,7 +9,8 @@ export async function GET(request: NextRequest) {
 
     console.log(`🔍 Obteniendo datos de pauta diaria para fecha: ${fecha}, incluirLibres: ${incluirLibres}`);
     
-    const { rows } = await pool.query(`
+    // Construir la consulta base
+    let query = `
       SELECT 
         pd.*,
         CASE 
@@ -22,13 +23,21 @@ export async function GET(request: NextRequest) {
         gw.telefono AS guardia_trabajo_telefono,
         pd.meta->>'estado_semaforo' AS estado_semaforo,
         pd.meta->>'comentarios' AS comentarios
-      FROM as_turnos_v_pauta_diaria_dedup pd
+      FROM as_turnos_v_pauta_diaria_dedup_fixed pd
       LEFT JOIN guardias g ON g.id::text = pd.meta->>'cobertura_guardia_id'
       LEFT JOIN guardias gt ON gt.id::text = pd.guardia_titular_id::text
       LEFT JOIN guardias gw ON gw.id::text = pd.guardia_trabajo_id::text
       WHERE pd.fecha = $1
-      ORDER BY pd.es_ppc DESC, pd.instalacion_nombre NULLS LAST, pd.puesto_id, pd.pauta_id DESC
-    `, [fecha]);
+    `;
+
+    // Agregar filtro según incluirLibres
+    if (!incluirLibres) {
+      query += ` AND pd.estado_ui != 'libre'`;
+    }
+
+    query += ` ORDER BY pd.es_ppc DESC, pd.instalacion_nombre NULLS LAST, pd.puesto_id, pd.pauta_id DESC`;
+
+    const { rows } = await pool.query(query, [fecha]);
     
     console.log(`✅ Datos obtenidos exitosamente: ${rows.length} registros`);
     

@@ -115,7 +115,7 @@ export default function PautaTableMobile({
             <div key={g.id} className="w-full px-3 py-3 rounded-lg border flex items-center justify-between">
               <div className="min-w-0 mr-3" onClick={() => toggleEstado(idx)}>
                 <div className={`text-sm font-semibold truncate ${g.es_ppc ? "text-red-600" : ""}`}>{g.nombre}</div>
-                <div className="text-xs text-muted-foreground truncate">{g.rol_nombre || g.nombre_puesto}</div>
+                <div className="text-xs text-muted-foreground truncate">{g.nombre_puesto}</div>
               </div>
               <Dialog>
                 <DialogTrigger asChild>

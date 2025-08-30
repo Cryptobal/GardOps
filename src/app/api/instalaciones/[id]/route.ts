@@ -19,6 +19,7 @@ export async function GET(
         i.longitud,
         i.ciudad,
         i.comuna,
+        i.telefono,
         i.valor_turno_extra,
         i.estado,
         i.created_at,

@@ -49,10 +49,14 @@ const isSinCobertura = (estadoUI: string) => estadoUI === 'sin_cobertura';
 const isLibre = (estadoUI: string) => estadoUI === 'libre';
 
 const renderEstado = (estadoUI: string, isFalta: boolean) => {
+  // Estados consistentes entre pauta mensual y diaria
   const cls: Record<string,string> = {
-    asistido:       'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20',
-    reemplazo:      'bg-sky-500/10 text-sky-400 ring-sky-500/20',
+    asistio:        'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20',
+    turno_extra:    'bg-fuchsia-500/10 text-fuchsia-400 ring-fuchsia-500/20',
     sin_cobertura:  'bg-rose-500/10 text-rose-400 ring-rose-500/20',
+    // Estados legacy para compatibilidad
+    asistido:       'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20',
+    reemplazo:      'bg-fuchsia-500/10 text-fuchsia-400 ring-fuchsia-500/20',
     inasistencia:   'bg-rose-500/10 text-rose-400 ring-rose-500/20',
     libre:          'bg-gray-500/10 text-gray-400 ring-gray-500/20',
     plan:           'bg-amber-500/10 text-amber-400 ring-amber-500/20',
@@ -60,8 +64,29 @@ const renderEstado = (estadoUI: string, isFalta: boolean) => {
     te:             'bg-fuchsia-500/10 text-fuchsia-400 ring-fuchsia-500/20',
   };
   
-  const base = cls[estadoUI] ?? 'bg-gray-500/10 text-gray-400 ring-gray-500/20';
-  const label = estadoUI === 'te' ? 'TE' : estadoUI;
+  // Mapear estados legacy a nuevos estados consistentes
+  const estadoNormalizado = (() => {
+    switch (estadoUI) {
+      case 'asistido':
+      case 'asistio':
+        return 'asistio';
+      case 'reemplazo':
+      case 'te':
+      case 'turno_extra':
+        return 'turno_extra';
+      case 'sin_cobertura':
+      case 'inasistencia':
+        return 'sin_cobertura';
+      default:
+        return estadoUI;
+    }
+  })();
+  
+  const base = cls[estadoNormalizado] ?? 'bg-gray-500/10 text-gray-400 ring-gray-500/20';
+  const label = estadoNormalizado === 'turno_extra' ? 'Turno Extra' : 
+                estadoNormalizado === 'asistio' ? 'Asistió' : 
+                estadoNormalizado === 'sin_cobertura' ? 'Sin Cobertura' : 
+                estadoUI;
   
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded ring-1 ${base}`}>
@@ -71,7 +96,7 @@ const renderEstado = (estadoUI: string, isFalta: boolean) => {
   );
 };
 
-export default function ClientTable({ rows: rawRows, fecha, incluirLibres = false }: PautaDiariaV2Props) {
+export default function ClientTable({ rows: rawRows, fecha, incluirLibres = false, onRecargarDatos }: PautaDiariaV2Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -119,9 +144,11 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   }, [rawRows]);
 
   const refetch = useCallback(() => {
-    // preserva filtros/fecha y fuerza recarga del servidor
-    router.refresh();
-  }, [router]);
+    // Actualizar datos sin recargar la página
+    if (onRecargarDatos) {
+      onRecargarDatos();
+    }
+  }, [onRecargarDatos]);
 
   // Detectar viewport móvil
   const [isMobile, setIsMobile] = useState(false);
@@ -136,18 +163,30 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     };
   }, []);
 
-  // Persistir filtros en URL
+  // Persistir filtros en URL (excepto mostrarLibres)
   useEffect(() => {
     const params = new URLSearchParams();
     if (f.instalacion) params.set('instalacion', f.instalacion);
     if (f.estado && f.estado !== 'todos') params.set('estado', f.estado);
     if (f.ppc !== 'all') params.set('ppc', f.ppc === true ? 'true' : 'false');
     if (f.q) params.set('q', f.q);
-    if (mostrarLibres) params.set('incluir_libres', 'true');
+    if (incluirLibres) params.set('incluirLibres', 'true');
     
     const newUrl = `/pauta-diaria-v2?fecha=${fechaStr}${params.toString() ? '&' + params.toString() : ''}`;
     router.replace(newUrl, { scroll: false });
-  }, [f.instalacion, f.estado, f.ppc, f.q, mostrarLibres, fechaStr]);
+  }, [f.instalacion, f.estado, f.ppc, f.q, incluirLibres, fechaStr]);
+
+  // Sincronizar mostrarLibres con incluirLibres cuando cambia desde fuera
+  useEffect(() => {
+    setMostrarLibres(incluirLibres);
+  }, [incluirLibres]);
+
+  // Manejar cambio de mostrarLibres sin actualizar URL
+  useEffect(() => {
+    if (onRecargarDatos && mostrarLibres !== incluirLibres) {
+      onRecargarDatos(mostrarLibres);
+    }
+  }, [mostrarLibres, incluirLibres, onRecargarDatos]);
 
   const go = useCallback((delta:number) => {
     const params = new URLSearchParams();
@@ -155,7 +194,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     if (f.estado && f.estado !== 'todos') params.set('estado', f.estado);
     if (f.ppc !== 'all') params.set('ppc', f.ppc === true ? 'true' : 'false');
     if (f.q) params.set('q', f.q);
-    if (mostrarLibres) params.set('incluir_libres', 'true');
+    if (mostrarLibres) params.set('incluirLibres', 'true');
     
     const newUrl = `/pauta-diaria-v2?fecha=${addDays(fechaStr, delta)}${params.toString() ? '&' + params.toString() : ''}`;
     router.push(newUrl);
@@ -167,7 +206,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     if (f.estado && f.estado !== 'todos') params.set('estado', f.estado);
     if (f.ppc !== 'all') params.set('ppc', f.ppc === true ? 'true' : 'false');
     if (f.q) params.set('q', f.q);
-    if (mostrarLibres) params.set('incluir_libres', 'true');
+    if (mostrarLibres) params.set('incluirLibres', 'true');
     const newUrl = `/pauta-diaria-v2?fecha=${dateYmd}${params.toString() ? '&' + params.toString() : ''}`;
     router.push(newUrl);
   }, [f.instalacion, f.estado, f.ppc, f.q, mostrarLibres, router]);
@@ -295,19 +334,39 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
         description: "Asistencia marcada",
         type: "success"
       });
-      router.refresh();
-      refetch();
+      
+      // Actualizar datos sin recargar la página
+      if (onRecargarDatos) {
+        await onRecargarDatos();
+      }
     } catch (e:any) {
       addToast({
         title: "❌ Error",
         description: `Error al marcar asistencia: ${e.message ?? e}`,
         type: "error"
       });
-      // Revertir cambio optimista aquí si fuera necesario
     } finally {
       setSavingId(null);
     }
   }
+
+  // Función para validar que un guardia no esté asignado a múltiples turnos el mismo día
+  const validarGuardiaDisponible = (guardiaId: string, fecha: string, pautaIdExcluir?: string) => {
+    const turnosDelDia = rows.filter(r => 
+      r.fecha === fecha && 
+      r.pauta_id !== pautaIdExcluir &&
+      (r.guardia_trabajo_id === guardiaId || 
+       r.guardia_titular_id === guardiaId ||
+       r.cobertura_guardia_nombre || 
+       r.reemplazo_guardia_nombre ||
+       r.meta?.cobertura_guardia_id === guardiaId)
+    );
+    
+    if (turnosDelDia.length > 0) {
+      const turnosInfo = turnosDelDia.map(t => `${t.instalacion_nombre} - ${t.rol_nombre}`).join(', ');
+      throw new Error(`El guardia ya está asignado en otro turno el mismo día: ${turnosInfo}`);
+    }
+  };
 
   async function onNoAsistioConfirm(row: PautaRow) {
     const panelData = rowPanelData[row.pauta_id];
@@ -322,6 +381,20 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                    panelData.motivo === 'finiquito' ? 'Finiquito' : panelData.motivo;
     const cubierto_por = panelData.tipoCobertura === 'con_cobertura' && panelData.guardiaReemplazo ? 
                          panelData.guardiaReemplazo : null;
+
+    // Validar que el guardia de cobertura no esté asignado a otro turno
+    if (cubierto_por) {
+      try {
+        validarGuardiaDisponible(cubierto_por, row.fecha, row.pauta_id);
+      } catch (error: any) {
+        addToast({
+          title: "❌ Error de validación",
+          description: error.message,
+          type: "error"
+        });
+        return;
+      }
+    }
 
     try {
       setSavingId(row.pauta_id);
@@ -342,8 +415,11 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
         delete newData[row.pauta_id];
         return newData;
       });
-      router.refresh();
-      refetch();
+      
+      // Actualizar datos sin recargar la página
+      if (onRecargarDatos) {
+        await onRecargarDatos();
+      }
     } catch (e:any) {
       addToast({
         title: "❌ Error",
@@ -358,6 +434,18 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   async function onCubrirPPC(row: PautaRow) {
     const panelData = rowPanelData[row.pauta_id];
     if (!panelData?.guardiaReemplazo) return;
+
+    // Validar que el guardia de cobertura no esté asignado a otro turno
+    try {
+      validarGuardiaDisponible(panelData.guardiaReemplazo, row.fecha, row.pauta_id);
+    } catch (error: any) {
+      addToast({
+        title: "❌ Error de validación",
+        description: error.message,
+        type: "error"
+      });
+      return;
+    }
 
     try {
       setSavingId(row.pauta_id);
@@ -378,8 +466,11 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
         delete newData[row.pauta_id];
         return newData;
       });
-      router.refresh(); // Actualizar la vista
-      refetch();
+      
+      // Actualizar datos sin recargar la página
+      if (onRecargarDatos) {
+        await onRecargarDatos();
+      }
     } catch (e:any) {
       addToast({
         title: "❌ Error",
@@ -400,8 +491,11 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
         description: "Marcado sin cobertura",
         type: "success"
       });
-      router.refresh();
-      refetch();
+      
+      // Actualizar datos sin recargar la página
+      if (onRecargarDatos) {
+        await onRecargarDatos();
+      }
     } catch (e:any) {
       addToast({
         title: "❌ Error",
@@ -438,21 +532,12 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
           });
         }
         
-        // Forzar actualización completa de la página
-        console.log('🔄 Refrescando página completamente...');
+        // Actualizar datos sin recargar la página
+        console.log('🔄 Actualizando datos sin recarga...');
         
-        // Opción 1: Usar window.location.reload para forzar recarga completa
-        // Esto es más agresivo pero garantiza que todo se actualice
-        setTimeout(() => {
-          window.location.reload();
-        }, 100);
-        
-        // Opción 2 (comentada): Usar router.refresh múltiples veces
-        // router.refresh();
-        // refetch();
-        // setTimeout(() => {
-        //   router.refresh();
-        // }, 500);
+        if (onRecargarDatos) {
+          await onRecargarDatos();
+        }
       } else {
         // Si hay un error en la respuesta
         throw new Error(result?.error || 'Error al deshacer');
@@ -472,8 +557,26 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   const isTitularPlan = (r: PautaRow) => r.es_ppc === false && r.estado_ui === 'plan';
   const isPpcPlan     = (r: PautaRow) => r.es_ppc === true  && (r.estado_ui === 'plan' || r.estado_ui === 'ppc_libre');
   const canUndo       = (r: PautaRow) => {
-    // Debug: log para ver por qué no aparece el botón deshacer
-    const canUndoResult = ['asistido','reemplazo','sin_cobertura','inasistencia','te'].includes(r.estado_ui);
+    // Estados que permiten deshacer (incluyendo estados legacy y nuevos)
+    const canUndoResult = [
+      'asistido', 'asistio',           // Estados de asistencia
+      'reemplazo', 'turno_extra', 'te', // Estados de reemplazo/turno extra
+      'sin_cobertura', 'inasistencia'   // Estados de falta/sin cobertura
+    ].includes(r.estado_ui);
+    
+    // Para PPC sin cobertura, siempre permitir deshacer
+    if (r.es_ppc && r.estado_ui === 'sin_cobertura') {
+      console.log('🔍 Debug canUndo PPC sin cobertura:', {
+        pauta_id: r.pauta_id,
+        estado_ui: r.estado_ui,
+        es_ppc: r.es_ppc,
+        guardia_trabajo_id: r.guardia_trabajo_id,
+        canUndoResult: true
+      });
+      return true;
+    }
+    
+    // Para otros casos, verificar que tenga guardia_trabajo_id y no sea plan o libre
     if (r.guardia_trabajo_id && r.estado_ui !== 'plan' && r.estado_ui !== 'libre') {
       console.log('🔍 Debug canUndo:', {
         pauta_id: r.pauta_id,
@@ -482,8 +585,10 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
         guardia_trabajo_id: r.guardia_trabajo_id,
         canUndoResult
       });
+      return canUndoResult;
     }
-    return canUndoResult;
+    
+    return false;
   };
 
   // Detectar guardias duplicados en la misma fecha
@@ -1026,8 +1131,10 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
         type: "success"
       });
       
-      // Refrescar la página para mostrar el nuevo estado
-      router.refresh();
+      // Actualizar datos sin recargar la página
+      if (onRecargarDatos) {
+        await onRecargarDatos();
+      }
     } catch (error) {
       console.error('Error guardando estado del semáforo:', error);
       addToast({
@@ -1083,22 +1190,22 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   return (
     <TooltipProvider>
       <>
-        {/* Header fecha + nav */}
-        <Card className="mb-4">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between flex-wrap gap-4">
+        {/* Header fecha + nav - Mobile First */}
+        <Card className="mb-3 w-full">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-2">
                 {/* En móvil, ocultamos navegación superior para no duplicar con bottom bar */}
                 {!isMobile && (
                   <>
                     <Button variant="outline" size="sm" onClick={()=>go(-1)}>
-                      <ChevronLeft className="h-4 w-4" />
+                      <ChevronLeft className="h-3 w-3" />
                     </Button>
                     <div className="flex items-stretch gap-1">
                       <Input
                         ref={inputRef}
                         type="date"
-                        className="w-auto"
+                        className="w-auto text-xs"
                         value={fechaStr}
                         onChange={(e)=>router.push(`/pauta-diaria-v2?fecha=${e.target.value}`)}
                       />
@@ -1108,7 +1215,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                         size="sm"
                         onClick={()=>inputRef.current?.showPicker?.()}
                       >
-                        <Calendar className="h-4 w-4" />
+                        <Calendar className="h-3 w-3" />
                       </Button>
                     </div>
                     <Button 
@@ -1122,57 +1229,49 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                       Hoy
                     </Button>
                     <Button variant="outline" size="sm" onClick={()=>go(1)}>
-                      <ChevronRight className="h-4 w-4" />
+                      <ChevronRight className="h-3 w-3" />
                     </Button>
                   </>
                 )}
-                {/* Badge de estado de API */}
-                <Badge 
-                  variant={api.isNewApiEnabled() ? "default" : "secondary"}
-                  className={api.isNewApiEnabled() 
-                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-400" 
-                    : "bg-gray-500/10 text-gray-600 border-gray-500/20 dark:bg-gray-500/20 dark:text-gray-400"}
-                >
-                  <Zap className="h-3 w-3 mr-1" />
-                  API: {api.isNewApiEnabled() ? 'NEW' : 'LEGACY'}
-                </Badge>
+
               </div>
               
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2">
-                  {mostrarLibres ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  {mostrarLibres ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
                   <Switch
                     checked={mostrarLibres}
                     onCheckedChange={setMostrarLibres}
                   />
-                  <span className="text-sm">Ver libres</span>
+                  <span className="text-xs">Ver libres</span>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Controles de filtro */}
-        <Card className="mb-4">
-          <CardContent className="p-4">
+        {/* Controles de filtro - Mobile First */}
+        <Card className="mb-3 w-full">
+          <CardContent className="p-3">
             {/* Toggle filtros para móvil */}
             {isMobile && (
               <div className="mb-2 flex items-center justify-between">
-                <Button variant="outline" size="sm" onClick={()=>setFiltersOpen(o=>!o)}>
+                <Button variant="outline" size="sm" onClick={()=>setFiltersOpen(o=>!o)} className="text-xs">
                   {filtersOpen ? 'Ocultar filtros' : 'Mostrar filtros'}
                 </Button>
               </div>
             )}
             {(!isMobile || filtersOpen) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2">
               <Input
                 placeholder="Filtrar instalación…"
                 value={f.instalacion ?? ''} 
                 onChange={e=>setF(s=>({ ...s, instalacion: e.target.value || undefined }))}
+                className="text-xs"
               />
               
               <Select value={f.estado ?? 'todos'} onValueChange={(value) => setF(s=>({ ...s, estado: value === 'todos' ? undefined : value }))}>
-                <SelectTrigger>
+                <SelectTrigger className="text-xs">
                   <SelectValue placeholder="Estado (todos)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1192,7 +1291,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                         const v = value as 'all'|'true'|'false';
                         setF(s=>({ ...s, ppc: v === 'all' ? 'all' : v === 'true' }));
                       }}>
-                <SelectTrigger>
+                <SelectTrigger className="text-xs">
                   <SelectValue placeholder="PPC (todos)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1206,9 +1305,10 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                 placeholder="Buscar guardia / rol / instalación…"
                 value={f.q ?? ''} 
                 onChange={e=>setF(s=>({ ...s, q: e.target.value || undefined }))}
+                className="text-xs"
               />
               
-              <Button variant="outline" size="sm" onClick={()=>setF({ ppc:'all' })}>
+              <Button variant="outline" size="sm" onClick={()=>setF({ ppc:'all' })} className="text-xs">
                 Limpiar
               </Button>
             </div>
@@ -1216,20 +1316,20 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
           </CardContent>
         </Card>
 
-        {/* Vista Desktop (tabla) u opción Mobile (cards) */}
+        {/* Vista Desktop (tabla) u opción Mobile (cards) - Mobile First */}
         {!isMobile ? (
-          <Card>
+          <Card className="w-full">
             <CardContent className="p-0 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Instalación</TableHead>
-                    <TableHead>Rol</TableHead>
-                    <TableHead className="hidden md:table-cell">Puesto</TableHead>
-                    <TableHead>Guardia</TableHead>
-                    <TableHead>Cobertura</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Acciones</TableHead>
+                    <TableHead className="text-xs">Instalación</TableHead>
+                    <TableHead className="text-xs">Rol</TableHead>
+                    <TableHead className="hidden md:table-cell text-xs">Puesto</TableHead>
+                    <TableHead className="text-xs">Guardia</TableHead>
+                    <TableHead className="text-xs">Cobertura</TableHead>
+                    <TableHead className="text-xs">Estado</TableHead>
+                    <TableHead className="text-xs">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1240,11 +1340,11 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                     return (
                       <React.Fragment key={r.pauta_id}>
                         <TableRow className={esDuplicado ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}>
-                          <TableCell>{r.instalacion_nombre}</TableCell>
+                          <TableCell className="text-xs">{r.instalacion_nombre}</TableCell>
                           <TableCell>
                             {r.rol_nombre ? (
                               <div className="flex flex-col">
-                                <span className="font-medium">{r.rol_alias || r.rol_nombre.split('/')[0].trim()}</span>
+                                <span className="font-medium text-xs">{r.rol_alias || r.rol_nombre.split('/')[0].trim()}</span>
                                 {r.hora_inicio && r.hora_fin && (
                                   <span className="text-xs text-muted-foreground">{r.hora_inicio.slice(0,5)} - {r.hora_fin.slice(0,5)}</span>
                                 )}
@@ -1270,9 +1370,9 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                             )}
                           </TableCell>
                           <TableCell>
-                            {r.estado_ui === 'te' && (r.cobertura_guardia_nombre || r.meta?.cobertura_guardia_id) ? (
+                            {(r.cobertura_guardia_nombre || r.reemplazo_guardia_nombre || r.meta?.cobertura_guardia_id) ? (
                               <div className="flex flex-col">
-                                <span className="font-medium">{r.cobertura_guardia_nombre || r.reemplazo_guardia_nombre || 'Guardia de cobertura'}</span>
+                                <span className="font-medium text-xs">{r.cobertura_guardia_nombre || r.reemplazo_guardia_nombre || 'Guardia de cobertura'}</span>
                                 {r.meta?.motivo && (<span className="text-xs text-muted-foreground">{r.meta.motivo}</span>)}
                               </div>
                             ) : '—'}
@@ -1287,12 +1387,71 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                               const canUndoResult = canUndo(r);
                               const hasActions = isTitular || isPpc || canUndoResult;
                               const showButton = !loadingPerms && canMarkOverride && hasActions;
-                              return showButton;
-                            })() ? (
-                              <Button size="sm" variant={isExpanded? 'default':'outline'} onClick={()=>toggleRowPanel(r)} disabled={isLoading} className="gap-1">
-                                {isExpanded ? (<><ChevronUp className="h-4 w-4"/>Cerrar</>) : (<><MoreHorizontal className="h-4 w-4"/>Acciones</>)}
-                              </Button>
-                            ) : <span className="text-xs text-muted-foreground">—</span>}
+                              
+                              if (!showButton) return <span className="text-xs text-muted-foreground">—</span>;
+                              
+                              return (
+                                <div className="flex flex-col gap-1">
+                                  {isTitular && (
+                                    <div className="flex gap-1">
+                                      <Button 
+                                        size="sm" 
+                                        disabled={isLoading} 
+                                        onClick={() => onAsistio(r.pauta_id)} 
+                                        className="h-6 px-2 text-xs"
+                                      >
+                                        ✅ Asistió
+                                      </Button>
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        disabled={isLoading} 
+                                        className="h-6 px-2 text-xs" 
+                                        onClick={() => toggleRowPanel(r, 'no_asistio')}
+                                      >
+                                        ❌ No asistió
+                                      </Button>
+                                    </div>
+                                  )}
+                                  {isPpc && (
+                                    <div className="flex gap-1">
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        disabled={isLoading} 
+                                        className="h-6 px-2 text-xs" 
+                                        onClick={() => { 
+                                          toggleRowPanel(r, 'cubrir_ppc'); 
+                                          setTimeout(()=>loadGuardias(r),0); 
+                                        }}
+                                      >
+                                        👥 Cubrir
+                                      </Button>
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        disabled={isLoading} 
+                                        className="h-6 px-2 text-xs" 
+                                        onClick={() => onSinCoberturaPPC(r.pauta_id)}
+                                      >
+                                        ⛔ Sin cobertura
+                                      </Button>
+                                    </div>
+                                  )}
+                                  {canUndoResult && (
+                                    <Button 
+                                      size="sm" 
+                                      variant="secondary" 
+                                      disabled={isLoading} 
+                                      className="h-6 px-2 text-xs" 
+                                      onClick={() => onDeshacer(r.pauta_id)}
+                                    >
+                                      ↩️ Deshacer
+                                    </Button>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </TableCell>
                         </TableRow>
                         {isExpanded && <RowPanel row={r} />}
@@ -1311,58 +1470,56 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
           </div>
         )}
 
-        {/* Bottom bar móvil: navegación + leyenda */}
+        {/* Bottom bar móvil: navegación + leyenda - Mobile First */}
         {isMobile && (
           <div className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-3 z-40">
             <div className="w-full flex items-center justify-between">
               {/* Placeholder para centrar grupo central */}
               <div className="invisible">
                 <Button variant="outline" size="sm" className="gap-1">
-                  <Info className="h-4 w-4" />
+                  <Info className="h-3 w-3" />
                   Leyenda
                 </Button>
               </div>
               <div className="flex items-center gap-2 mx-auto">
                 <Button variant="outline" size="sm" onClick={()=>go(-1)}>
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-3 w-3" />
                 </Button>
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm">
-                      <Calendar className="h-4 w-4" />
+                      <Calendar className="h-3 w-3" />
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-sm">
                     <DialogHeader>
-                      <DialogTitle>Ir a fecha</DialogTitle>
+                      <DialogTitle className="text-sm">Ir a fecha</DialogTitle>
                     </DialogHeader>
                     <DatePicker value={fechaStr} onChange={(v)=> v && goTo(v)} />
                   </DialogContent>
                 </Dialog>
-                <Button variant="outline" size="sm" onClick={()=>goTo(toYmd(new Date()))}>Hoy</Button>
+                <Button variant="outline" size="sm" onClick={()=>goTo(toYmd(new Date()))} className="text-xs">Hoy</Button>
                 <Button variant="outline" size="sm" onClick={()=>go(1)}>
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-3 w-3" />
                 </Button>
               </div>
               <Dialog>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-1">
-                    <Info className="h-4 w-4" />
+                    <Info className="h-3 w-3" />
                     Leyenda
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-sm">
                   <DialogHeader>
-                    <DialogTitle>Leyenda de estados</DialogTitle>
+                    <DialogTitle className="text-sm">Leyenda de estados</DialogTitle>
                   </DialogHeader>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-2 gap-3 text-xs">
                     <span className="inline-flex items-center gap-2"><span className="px-2 py-0.5 text-xs rounded ring-1 bg-amber-500/10 text-amber-400 ring-amber-500/20">plan</span> Planificado</span>
                     <span className="inline-flex items-center gap-2"><span className="px-2 py-0.5 text-xs rounded ring-1 bg-gray-500/10 text-gray-400 ring-gray-500/20">libre</span> Libre</span>
-                    <span className="inline-flex items-center gap-2"><span className="px-2 py-0.5 text-xs rounded ring-1 bg-emerald-500/10 text-emerald-400 ring-emerald-500/20">asistido</span> Asistido</span>
-                    <span className="inline-flex items-center gap-2"><span className="px-2 py-0.5 text-xs rounded ring-1 bg-sky-500/10 text-sky-400 ring-sky-500/20">reemplazo</span> Reemplazo</span>
-                    <span className="inline-flex items-center gap-2"><span className="px-2 py-0.5 text-xs rounded ring-1 bg-fuchsia-500/10 text-fuchsia-400 ring-fuchsia-500/20">TE</span> Turno Extra</span>
-                    <span className="inline-flex items-center gap-2"><span className="px-2 py-0.5 text-xs rounded ring-1 bg-rose-500/10 text-rose-400 ring-rose-500/20">sin_cobertura</span> Sin cobertura</span>
-                    <span className="inline-flex items-center gap-2"><span className="px-2 py-0.5 text-xs rounded ring-1 bg-rose-500/10 text-rose-400 ring-rose-500/20">inasistencia</span> Inasistencia</span>
+                    <span className="inline-flex items-center gap-2"><span className="px-2 py-0.5 text-xs rounded ring-1 bg-emerald-500/10 text-emerald-400 ring-emerald-500/20">Asistió</span> Asistió</span>
+                    <span className="inline-flex items-center gap-2"><span className="px-2 py-0.5 text-xs rounded ring-1 bg-fuchsia-500/10 text-fuchsia-400 ring-fuchsia-500/20">Turno Extra</span> Turno Extra</span>
+                    <span className="inline-flex items-center gap-2"><span className="px-2 py-0.5 text-xs rounded ring-1 bg-rose-500/10 text-rose-400 ring-rose-500/20">Sin Cobertura</span> Sin Cobertura</span>
                   </div>
                 </DialogContent>
               </Dialog>

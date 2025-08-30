@@ -29,6 +29,7 @@ export interface CrearInstalacionData {
   longitud: number | null;
   ciudad: string;
   comuna: string;
+  telefono?: string;
   valor_turno_extra: number;
   estado: "Activo" | "Inactivo";
 }
@@ -108,6 +109,7 @@ export const crearInstalacionSchema = z.object({
   }),
   ciudad: z.string().optional(),
   comuna: z.string().optional(),
+  telefono: z.string().optional(),
   valor_turno_extra: z.coerce.number().min(0, 'El valor de turno extra debe ser mayor o igual a 0'),
   estado: z.enum(['Activo', 'Inactivo']).default('Activo'),
 });
@@ -138,6 +140,10 @@ export const actualizarInstalacionSchema = z.object({
     return val;
   }),
   comuna: z.union([z.string(), z.string().length(0)]).nullable().optional().transform((val) => {
+    if (val === null || val === undefined || val === '') return null;
+    return val;
+  }),
+  telefono: z.union([z.string(), z.string().length(0)]).nullable().optional().transform((val) => {
     if (val === null || val === undefined || val === '') return null;
     return val;
   }),

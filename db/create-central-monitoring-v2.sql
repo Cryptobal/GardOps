@@ -81,6 +81,20 @@ CREATE INDEX IF NOT EXISTS idx_central_llamados_estado ON central_llamados(estad
 CREATE INDEX IF NOT EXISTS idx_central_llamados_pauta ON central_llamados(pauta_id);
 CREATE INDEX IF NOT EXISTS idx_central_config_habilitado ON central_config_instalacion(habilitado);
 
+-- Unicidad: una llamada por instalación y hora local (America/Santiago)
+-- Nota: usamos una expresión basada en date_trunc por hora sobre programado_para convertido a America/Santiago
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'uniq_central_llamados_inst_hora_local'
+  ) THEN
+    EXECUTE 'CREATE UNIQUE INDEX uniq_central_llamados_inst_hora_local
+             ON central_llamados (
+               instalacion_id,
+               date_trunc(''hour'', (programado_para AT TIME ZONE ''UTC'') AT TIME ZONE ''America/Santiago'')
+             )';
+  END IF;
+END $$;
+
 -- 7. VISTA DE TURNOS ACTIVOS CON MONITOREO
 CREATE OR REPLACE VIEW central_v_turnos_activos AS
 SELECT 

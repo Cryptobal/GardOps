@@ -94,6 +94,129 @@ COMMENT ON FUNCTION as_turnos.fn_guardias_disponibles IS
 'Retorna guardias activos disponibles para un turno específico, excluyendo los ya asignados';
 
 -- ===============================================
+-- 1.1. FUNCIÓN: fn_guardias_disponibles_con_asignacion
+-- Versión mejorada que incluye información de asignación actual
+-- ===============================================
+
+DROP FUNCTION IF EXISTS as_turnos.fn_guardias_disponibles_con_asignacion(date, uuid, uuid, uuid);
+
+CREATE OR REPLACE FUNCTION as_turnos.fn_guardias_disponibles_con_asignacion(
+    p_fecha date,
+    p_instalacion_id uuid,
+    p_rol_id uuid,
+    p_excluir_guardia_id uuid DEFAULT NULL
+)
+RETURNS TABLE (
+    guardia_id uuid,
+    nombre text,
+    rut text,
+    instalacion_actual_id uuid,
+    instalacion_actual_nombre text,
+    puesto_actual_nombre text
+)
+LANGUAGE plpgsql
+STABLE
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        g.id as guardia_id,
+        TRIM(BOTH FROM 
+            concat_ws(' ', 
+                COALESCE(g.apellido_paterno, ''),
+                COALESCE(g.apellido_materno, ''),
+                CASE 
+                    WHEN COALESCE(g.nombre, '') <> '' THEN ', ' || g.nombre
+                    ELSE ''
+                END
+            )
+        ) as nombre,
+        COALESCE(g.rut, '') as rut,
+        -- Información de asignación actual
+        COALESCE(asignacion_actual.instalacion_id, NULL) as instalacion_actual_id,
+        COALESCE(asignacion_actual.instalacion_nombre, NULL) as instalacion_actual_nombre,
+        COALESCE(asignacion_actual.puesto_nombre::text, NULL) as puesto_actual_nombre
+    FROM public.guardias g
+    -- Left join para obtener asignación actual del guardia (pauta mensual O asignación directa)
+    LEFT JOIN LATERAL (
+        SELECT 
+            po.instalacion_id,
+            i.nombre as instalacion_nombre,
+            po.nombre_puesto as puesto_nombre
+        FROM (
+            -- Primero buscar en pauta mensual
+            SELECT 
+                pm.puesto_id,
+                pm.created_at,
+                1 as prioridad
+            FROM public.as_turnos_pauta_mensual pm
+            WHERE 
+                pm.anio = EXTRACT(YEAR FROM p_fecha)::INTEGER
+                AND pm.mes = EXTRACT(MONTH FROM p_fecha)::INTEGER
+                AND pm.dia = EXTRACT(DAY FROM p_fecha)::INTEGER
+                AND pm.guardia_id = g.id
+                AND pm.estado = 'Asignado'
+            
+            UNION ALL
+            
+            -- Si no hay en pauta mensual, buscar asignación directa en puestos operativos
+            SELECT 
+                po.id as puesto_id,
+                po.actualizado_en as created_at,
+                2 as prioridad
+            FROM public.as_turnos_puestos_operativos po
+            WHERE po.guardia_id = g.id
+                AND po.activo = true
+        ) asignaciones
+        JOIN public.as_turnos_puestos_operativos po ON po.id = asignaciones.puesto_id
+        JOIN public.instalaciones i ON i.id = po.instalacion_id
+        ORDER BY asignaciones.prioridad, asignaciones.created_at DESC
+        LIMIT 1
+    ) asignacion_actual ON true
+    WHERE 
+        -- Solo guardias activos y del tipo correcto
+        g.activo = true
+        AND g.tipo_guardia IN ('contratado', 'esporadico')
+        
+        -- Excluir guardia específico si se proporciona
+        AND (p_excluir_guardia_id IS NULL OR g.id != p_excluir_guardia_id)
+        
+        -- Excluir guardias ya asignados ese día en esa instalación/rol específica
+        AND NOT EXISTS (
+            SELECT 1 
+            FROM public.as_turnos_pauta_mensual pm
+            JOIN public.as_turnos_puestos_operativos po ON po.id = pm.puesto_id
+            WHERE 
+                pm.anio = EXTRACT(YEAR FROM p_fecha)::INTEGER
+                AND pm.mes = EXTRACT(MONTH FROM p_fecha)::INTEGER
+                AND pm.dia = EXTRACT(DAY FROM p_fecha)::INTEGER
+                AND po.instalacion_id = p_instalacion_id
+                AND po.rol_id = p_rol_id
+                AND (
+                    pm.guardia_id = g.id
+                    OR (pm.meta->>'reemplazo_guardia_id')::uuid = g.id
+                    OR (pm.meta->>'cobertura_guardia_id')::uuid = g.id
+                )
+        )
+        -- Excluir guardias ya asignados directamente a puestos en la misma instalación
+        AND NOT EXISTS (
+            SELECT 1 
+            FROM public.as_turnos_puestos_operativos po
+            WHERE po.guardia_id = g.id
+                AND po.instalacion_id = p_instalacion_id
+                AND po.activo = true
+        )
+    ORDER BY 
+        g.apellido_paterno,
+        g.apellido_materno,
+        g.nombre;
+END;
+$$;
+
+COMMENT ON FUNCTION as_turnos.fn_guardias_disponibles_con_asignacion IS 
+'Retorna guardias activos disponibles con información de su asignación actual para mostrar advertencias';
+
+-- ===============================================
 -- 2. FUNCIÓN: fn_registrar_reemplazo
 -- Compatible con endpoint -new
 -- ===============================================
@@ -457,6 +580,7 @@ AS $$
 DECLARE
     v_pauta_record RECORD;
     v_meta_original JSONB;
+    v_nuevo_estado TEXT;
 BEGIN
     -- Obtener la pauta actual
     SELECT *
@@ -475,10 +599,20 @@ BEGIN
     -- Guardar meta original para el log
     v_meta_original := v_pauta_record.meta;
     
+    -- Determinar el nuevo estado según el tipo de registro
+    IF (v_pauta_record.meta->>'origen') = 'ppc' THEN
+        -- Para PPC, volver a ppc_libre
+        v_nuevo_estado := 'ppc_libre';
+    ELSE
+        -- Para registros normales, volver a plan
+        v_nuevo_estado := 'plan';
+    END IF;
+    
     -- Limpiar campos relacionados con cobertura/reemplazo
     UPDATE public.as_turnos_pauta_mensual
     SET 
-        estado_ui = 'plan',
+        estado = 'planificado',
+        estado_ui = v_nuevo_estado,
         meta = (meta - 'reemplazo_guardia_id' 
                     - 'reemplazo_guardia_nombre'
                     - 'cobertura_guardia_id'
@@ -492,7 +626,9 @@ BEGIN
                jsonb_build_object(
                    'deshacer_actor', p_actor_ref,
                    'deshacer_ts', NOW()::text,
-                   'action', 'deshacer'
+                   'action', 'deshacer',
+                   'estado_anterior', v_pauta_record.estado_ui,
+                   'nuevo_estado', v_nuevo_estado
                ),
         updated_at = NOW()
     WHERE id = p_pauta_id;
@@ -527,7 +663,7 @@ BEGIN
     RETURN QUERY SELECT 
         TRUE,
         p_pauta_id,
-        'plan'::TEXT;
+        v_nuevo_estado::TEXT;
 END;
 $$;
 
@@ -540,6 +676,7 @@ COMMENT ON FUNCTION as_turnos.fn_deshacer IS
 
 -- Revocar permisos públicos
 REVOKE ALL ON FUNCTION as_turnos.fn_guardias_disponibles(date, uuid, uuid, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION as_turnos.fn_guardias_disponibles_con_asignacion(date, uuid, uuid, uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION as_turnos.fn_registrar_reemplazo(bigint, uuid, text, text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION as_turnos.fn_marcar_extra(date, uuid, uuid, uuid, uuid, text, text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION as_turnos.fn_deshacer(bigint, text) FROM PUBLIC;
@@ -550,6 +687,7 @@ BEGIN
     -- Verificar si el rol authenticated existe
     IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
         GRANT EXECUTE ON FUNCTION as_turnos.fn_guardias_disponibles(date, uuid, uuid, uuid) TO authenticated;
+        GRANT EXECUTE ON FUNCTION as_turnos.fn_guardias_disponibles_con_asignacion(date, uuid, uuid, uuid) TO authenticated;
         GRANT EXECUTE ON FUNCTION as_turnos.fn_registrar_reemplazo(bigint, uuid, text, text) TO authenticated;
         GRANT EXECUTE ON FUNCTION as_turnos.fn_marcar_extra(date, uuid, uuid, uuid, uuid, text, text) TO authenticated;
         GRANT EXECUTE ON FUNCTION as_turnos.fn_deshacer(bigint, text) TO authenticated;
@@ -558,6 +696,7 @@ BEGIN
     -- Verificar si el rol app_user existe (común en Neon)
     IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_user') THEN
         GRANT EXECUTE ON FUNCTION as_turnos.fn_guardias_disponibles(date, uuid, uuid, uuid) TO app_user;
+        GRANT EXECUTE ON FUNCTION as_turnos.fn_guardias_disponibles_con_asignacion(date, uuid, uuid, uuid) TO app_user;
         GRANT EXECUTE ON FUNCTION as_turnos.fn_registrar_reemplazo(bigint, uuid, text, text) TO app_user;
         GRANT EXECUTE ON FUNCTION as_turnos.fn_marcar_extra(date, uuid, uuid, uuid, uuid, text, text) TO app_user;
         GRANT EXECUTE ON FUNCTION as_turnos.fn_deshacer(bigint, text) TO app_user;
@@ -593,6 +732,7 @@ DO $$
 BEGIN
     RAISE NOTICE '✅ Funciones de turnos creadas exitosamente:';
     RAISE NOTICE '  - as_turnos.fn_guardias_disponibles';
+    RAISE NOTICE '  - as_turnos.fn_guardias_disponibles_con_asignacion';
     RAISE NOTICE '  - as_turnos.fn_registrar_reemplazo';
     RAISE NOTICE '  - as_turnos.fn_marcar_extra';
     RAISE NOTICE '  - as_turnos.fn_deshacer';

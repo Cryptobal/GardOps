@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 export async function POST(req: NextRequest) {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] 🚀 Endpoint de guardado de pauta mensual ejecutándose`);
+  
   try {
     const body = await req.json();
     
@@ -29,6 +32,7 @@ export async function POST(req: NextRequest) {
       // Si tiene actualizaciones, procesarlas directamente
       if (body.actualizaciones && Array.isArray(body.actualizaciones) && body.actualizaciones.length > 0) {
         console.log('📝 Procesando actualizaciones directamente:', body.actualizaciones.length);
+        console.log('📝 Datos recibidos:', JSON.stringify(body.actualizaciones.slice(0, 3), null, 2)); // Mostrar solo los primeros 3
         return await procesarTurnos(body.actualizaciones);
       }
 
@@ -173,17 +177,66 @@ async function procesarTurnos(turnos: any[]) {
           continue;
         }
 
+        // Regla de unicidad por guardia/día: antes de insertar, liberar otros puestos del mismo guardia en ese día
+        if (guardia_id && estado === 'planificado') {
+          try {
+            await query(
+              `
+              UPDATE as_turnos_pauta_mensual
+              SET guardia_id = NULL,
+                  estado = 'libre',
+                  estado_ui = 'libre',
+                  updated_at = NOW()
+              WHERE guardia_id = $1
+                AND anio = $2 AND mes = $3 AND dia = $4
+                AND puesto_id <> $5
+                AND COALESCE(estado_ui, '') <> 'te'
+                AND COALESCE(meta->>'tipo', '') <> 'turno_extra'
+                AND COALESCE(estado, '') NOT IN ('trabajado', 'inasistencia', 'permiso', 'vacaciones')
+                AND COALESCE(meta->>'cobertura_guardia_id', '') = ''
+              `,
+              [guardia_id, anio, mes, dia, puesto_id]
+            );
+          } catch (preCleanErr) {
+            console.warn('⚠️ No se pudo pre-liberar duplicados guardia/día:', { turno, error: preCleanErr });
+          }
+        }
+
+        // Limpieza previa: si el día quedó marcado con cobertura (reemplazo/PPC) o 'te' en estado_ui,
+        // y NO es turno extra real ni tiene marcaje de diaria, limpiamos esas banderas para permitir la planificación.
+        try {
+          await query(
+            `
+            UPDATE as_turnos_pauta_mensual
+            SET 
+              estado_ui = CASE WHEN LOWER(COALESCE(estado_ui,'')) = 'te' THEN NULL ELSE estado_ui END,
+              meta = CASE 
+                       WHEN meta ? 'cobertura_guardia_id' THEN (meta - 'cobertura_guardia_id')
+                       ELSE meta
+                     END,
+              updated_at = NOW()
+            WHERE puesto_id = $1 AND anio = $2 AND mes = $3 AND dia = $4
+              AND COALESCE(meta->>'tipo', '') <> 'turno_extra'
+              AND COALESCE(estado, '') NOT IN ('trabajado', 'inasistencia', 'permiso', 'vacaciones')
+            `,
+            [puesto_id, anio, mes, dia]
+          );
+        } catch (preCleanFlagsErr) {
+          console.warn('⚠️ No se pudo limpiar banderas de cobertura/te antes del upsert:', { turno, error: preCleanFlagsErr });
+        }
+
         await query(
           `
           INSERT INTO as_turnos_pauta_mensual (
-            puesto_id, guardia_id, anio, mes, dia, estado,
+            puesto_id, guardia_id, anio, mes, dia, estado, estado_ui,
             observaciones, reemplazo_guardia_id, created_at, updated_at
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
           ON CONFLICT (puesto_id, anio, mes, dia)
           DO UPDATE SET
             guardia_id = EXCLUDED.guardia_id,
             estado = EXCLUDED.estado,
+            estado_ui = EXCLUDED.estado_ui,
             observaciones = EXCLUDED.observaciones,
             reemplazo_guardia_id = EXCLUDED.reemplazo_guardia_id,
             updated_at = NOW()
@@ -200,6 +253,9 @@ async function procesarTurnos(turnos: any[]) {
             mes,
             dia,
             estado,
+            // Establecer estado_ui correctamente según el estado
+            estado === 'planificado' ? 'plan' : 
+            estado === 'libre' ? 'libre' : null,
             observaciones || null,
             reemplazo_guardia_id || null,
           ]
@@ -207,6 +263,55 @@ async function procesarTurnos(turnos: any[]) {
         guardados++;
       }
     } catch (dbError) {
+      // Manejo específico: clave duplicada (guardia ya tiene turno ese día en otro puesto)
+      const pgErr = dbError as any;
+      if (pgErr && (pgErr.code === '23505' || (pgErr.message && pgErr.message.toLowerCase().includes('duplicate key')))) {
+        try {
+          // Solo intentamos resolver si hay guardia_id (no aplica a PPC con guardia_id null)
+          if (guardia_id) {
+            const { rowCount } = await query(
+              `
+              UPDATE as_turnos_pauta_mensual
+              SET 
+                puesto_id = $1,
+                estado = $2,
+                estado_ui = $3,
+                observaciones = $4,
+                reemplazo_guardia_id = $5,
+                updated_at = NOW()
+              WHERE 
+                guardia_id = $6
+                AND anio = $7 
+                AND mes = $8 
+                AND dia = $9
+                AND COALESCE(estado_ui, '') <> 'te'
+                AND COALESCE(meta->>'tipo', '') <> 'turno_extra'
+                AND COALESCE(estado, '') NOT IN ('trabajado', 'inasistencia', 'permiso', 'vacaciones')
+                AND COALESCE(meta->>'cobertura_guardia_id', '') = ''
+              `,
+              [
+                puesto_id,
+                estado,
+                estado === 'planificado' ? 'plan' : (estado === 'libre' ? 'libre' : null),
+                observaciones || null,
+                reemplazo_guardia_id || null,
+                guardia_id,
+                anio,
+                mes,
+                dia,
+              ]
+            );
+            if (rowCount && rowCount > 0) {
+              console.log(`♻️ Resuelto duplicado moviendo turno del guardia ${guardia_id} al puesto ${puesto_id} para día ${dia}`);
+              guardados++;
+              continue;
+            }
+          }
+        } catch (resolveErr) {
+          console.error('❌ Error resolviendo duplicado (guardia/día):', { turno, error: resolveErr });
+        }
+      }
+
       console.error('Error en turno específico:', { turno, error: dbError });
       errores.push(`Error procesando turno para puesto ${puesto_id}, día ${dia}: ${dbError instanceof Error ? dbError.message : 'Error desconocido'}`);
     }
@@ -216,6 +321,8 @@ async function procesarTurnos(turnos: any[]) {
   
   if (errores.length > 0) {
     console.warn('⚠️ Errores encontrados:', errores);
+    console.warn('⚠️ Detalle de errores:', JSON.stringify(errores, null, 2));
+    console.warn('⚠️ Primeros 5 errores:', errores.slice(0, 5));
   }
 
   return NextResponse.json({ 

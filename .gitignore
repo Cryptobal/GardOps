@@ -39,3 +39,11 @@ next-env.d.ts
 # database dumps
 dumps/
 *.sql .env.example
+
+# auditoria node_modules
+auditoria_rbac/node_modules/
+**/node_modules/
+
+# temporary files
+*.tmp
+*.temp

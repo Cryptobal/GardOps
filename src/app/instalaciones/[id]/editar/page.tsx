@@ -14,6 +14,13 @@ import { useToast } from '@/components/ui/toast';
 import { actualizarInstalacion, obtenerDatosCompletosInstalacion, obtenerClientes } from '@/lib/api/instalaciones';
 import { Instalacion, Cliente } from '@/lib/schemas/instalaciones';
 
+// Función para formatear números con puntos como separadores de miles sin decimales
+const formatThousands = (value: number | string): string => {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  const intVal = Number.isFinite(num) ? Math.round(num) : 0;
+  return intVal.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
+
 export default function EditarInstalacionPage() {
   const params = useParams();
   const router = useRouter();
@@ -29,6 +36,7 @@ export default function EditarInstalacionPage() {
     direccion: '',
     ciudad: '',
     comuna: '',
+    telefono: '',
     valor_turno_extra: 0,
     estado: 'Activo' as 'Activo' | 'Inactivo'
   });
@@ -53,6 +61,7 @@ export default function EditarInstalacionPage() {
         direccion: datosCompletos.instalacion.direccion || '',
         ciudad: datosCompletos.instalacion.ciudad || '',
         comuna: datosCompletos.instalacion.comuna || '',
+        telefono: datosCompletos.instalacion.telefono || '',
         valor_turno_extra: datosCompletos.instalacion.valor_turno_extra || 0,
         estado: datosCompletos.instalacion.estado || 'Activo'
       });
@@ -257,9 +266,22 @@ export default function EditarInstalacionPage() {
                 <Input
                   type="text"
                   name="valor_turno_extra"
-                  value={formData.valor_turno_extra.toLocaleString('es-CL')}
+                  value={formatThousands(formData.valor_turno_extra)}
                   onChange={handleInputChange}
                   placeholder="0"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-600">
+                  Teléfono de Contacto
+                </label>
+                <Input
+                  name="telefono"
+                  value={formData.telefono}
+                  onChange={handleInputChange}
+                  placeholder="+56 9 1234 5678"
+                  type="tel"
                 />
               </div>
 

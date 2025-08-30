@@ -408,6 +408,11 @@ function InstalacionModal({ instalacion, isOpen, onClose, onSuccess }: Instalaci
 
   console.log('🔍 InstalacionModal renderizando, isOpen:', isOpen);
   
+  // Si el modal no está abierto, no renderizar nada
+  if (!isOpen) {
+    return null;
+  }
+  
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="2xl">
       <div className="h-[80vh] flex flex-col">

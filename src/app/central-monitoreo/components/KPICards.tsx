@@ -25,26 +25,6 @@ export function KPICards({
 }: KPICardsProps) {
   const kpis = [
     {
-      tipo: 'todos',
-      label: '📊 Total',
-      value: total,
-      icon: BarChart3,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100 dark:bg-purple-900/20',
-      activeBgColor: 'bg-purple-200 dark:bg-purple-800/30',
-      description: 'Del día'
-    },
-    {
-      tipo: 'urgentes',
-      label: '🔴 No Realizados',
-      value: urgentes,
-      icon: AlertCircle,
-      color: 'text-red-600',
-      bgColor: 'bg-red-100 dark:bg-red-900/20',
-      activeBgColor: 'bg-red-200 dark:bg-red-800/30',
-      description: 'Llamados atrasados'
-    },
-    {
       tipo: 'actuales',
       label: '🟡 Actuales',
       value: actuales,
@@ -73,6 +53,26 @@ export function KPICards({
       bgColor: 'bg-green-100 dark:bg-green-900/20',
       activeBgColor: 'bg-green-200 dark:bg-green-800/30',
       description: 'Exitosos'
+    },
+    {
+      tipo: 'urgentes',
+      label: '🔴 No Realizados',
+      value: urgentes,
+      icon: AlertCircle,
+      color: 'text-red-600',
+      bgColor: 'bg-red-100 dark:bg-red-900/20',
+      activeBgColor: 'bg-red-200 dark:bg-red-800/30',
+      description: 'Llamados atrasados'
+    },
+    {
+      tipo: 'todos',
+      label: '📊 Total',
+      value: total,
+      icon: BarChart3,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-100 dark:bg-purple-900/20',
+      activeBgColor: 'bg-purple-200 dark:bg-purple-800/30',
+      description: 'Del día'
     }
   ];
 

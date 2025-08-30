@@ -4,22 +4,33 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Building2, MapPin, Phone, Mail, Calendar, FileText, Settings, Edit, RefreshCw, Users, Clock, Shield, DollarSign, Satellite } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, Phone, Mail, Calendar, FileText, Settings, Edit, RefreshCw, Users, Clock, Shield, DollarSign, Satellite, Check, X } from 'lucide-react';
 import Link from 'next/link';
 import { GoogleMap } from '@/components/ui/google-map';
 import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@/lib/geocoding';
 import { getInstalacion, actualizarInstalacion, obtenerClientes, obtenerComunas, obtenerDatosCompletosInstalacion } from '@/lib/api/instalaciones';
 import { Instalacion, Cliente, Comuna } from '@/lib/schemas/instalaciones';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { useAddressAutocomplete, type AddressData } from '@/lib/useAddressAutocomplete';
 import TurnosInstalacion from './components/TurnosInstalacion';
 import EstructuraServicio from './components/EstructuraServicio';
 import MonitoreoInstalacion from './components/MonitoreoInstalacion';
 import { DocumentManager } from '@/components/shared/document-manager';
 
+// Función para formatear números con puntos como separadores de miles sin decimales
+const formatThousands = (value: number | string): string => {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  const intVal = Number.isFinite(num) ? Math.round(num) : 0;
+  return intVal.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
 
 export default function InstalacionDetallePage() {
   const params = useParams();
   const router = useRouter();
+  const toast = useToast();
   const instalacionId = params.id as string;
   const [instalacion, setInstalacion] = useState<Instalacion | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,6 +42,23 @@ export default function InstalacionDetallePage() {
   const [pendingEstado, setPendingEstado] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  // Estados para edición inline
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
+  const [saving, setSaving] = useState(false);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [selectedAddress, setSelectedAddress] = useState<AddressData | null>(null);
+
+  // Hook para autocompletado de direcciones
+  const {
+    isLoaded: mapsLoaded,
+    suggestions,
+    isLoading: addressLoading,
+    searchAddresses,
+    selectAddress,
+    clearSelection
+  } = useAddressAutocomplete();
+
   // Estados para datos precargados
   const [turnosPrecargados, setTurnosPrecargados] = useState<any[]>([]);
   const [ppcsPrecargados, setPpcsPrecargados] = useState<any[]>([]);
@@ -39,7 +67,17 @@ export default function InstalacionDetallePage() {
 
   useEffect(() => {
     cargarInstalacion();
+    cargarClientes();
   }, [instalacionId]);
+
+  const cargarClientes = async () => {
+    try {
+      const clientesData = await obtenerClientes();
+      setClientes(clientesData || []);
+    } catch (error) {
+      console.error('Error cargando clientes:', error);
+    }
+  };
 
   const cargarInstalacion = async () => {
     try {
@@ -108,10 +146,251 @@ export default function InstalacionDetallePage() {
     }
   };
 
-  const handleEditarInstalacion = () => {
-    // Redirigir a la página de edición o abrir modal
-    router.push(`/instalaciones/${instalacionId}/editar`);
+  // Funciones para edición inline
+  const handleEdit = (field: string, initialValue: string) => {
+    setEditingField(field);
+    setEditValue(initialValue);
+    setSelectedAddress(null); // Limpiar selección al editar
+    clearSelection(); // Limpiar sugerencias al editar
   };
+
+  const handleCancelEdit = () => {
+    setEditingField(null);
+    setEditValue('');
+    setSelectedAddress(null);
+    clearSelection();
+  };
+
+  const handleSave = async (field: string) => {
+    if (!instalacion) return;
+    
+    try {
+      setSaving(true);
+      
+      let dataToUpdate: any = {};
+      
+      if (field === 'valor_turno_extra') {
+        // Remover separadores de miles y convertir a número
+        const numericValue = editValue.replace(/\./g, '');
+        const parsedValue = parseInt(numericValue) || 0;
+        dataToUpdate[field] = parsedValue;
+      } else if (field === 'direccion' && selectedAddress) {
+        // Para dirección con datos de Google Maps - solo guardar la dirección de la calle
+        dataToUpdate[field] = editValue; // Usar el valor editado (dirección limpia)
+        dataToUpdate.latitud = selectedAddress.latitud;
+        dataToUpdate.longitud = selectedAddress.longitud;
+        dataToUpdate.ciudad = selectedAddress.componentes.ciudad;
+        dataToUpdate.comuna = selectedAddress.componentes.comuna;
+      } else {
+        dataToUpdate[field] = editValue;
+      }
+      
+      await actualizarInstalacion(instalacionId, dataToUpdate);
+      
+      // Actualizar estado local
+      setInstalacion(prev => prev ? { ...prev, ...dataToUpdate } : null);
+      
+      // Si se actualizó la dirección, recargar datos geográficos
+      if (field === 'direccion') {
+        await cargarDatosGeograficos(dataToUpdate[field]);
+      }
+      
+      setEditingField(null);
+      setEditValue('');
+      setSelectedAddress(null);
+      clearSelection();
+      
+      toast.success("Campo actualizado correctamente");
+      
+    } catch (error) {
+      console.error('Error guardando campo:', error);
+      toast.error("No se pudo actualizar el campo");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddressInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEditValue(value);
+    
+    // Buscar sugerencias si hay al menos 3 caracteres
+    if (value.length >= 3 && mapsLoaded) {
+      searchAddresses(value);
+    }
+  };
+
+  const handleAddressSelect = async (placeId: string) => {
+    const addressData = await selectAddress(placeId);
+    if (addressData) {
+      setSelectedAddress(addressData);
+      
+      // Función para limpiar la dirección y obtener solo la calle
+      const limpiarDireccion = (direccionCompleta: string): string => {
+        // Para el ejemplo "Av. La Dehesa 226, 7690000 Lo Barnechea, Región Metropolitana, Chile"
+        // Queremos solo "Av. La Dehesa 226"
+        
+        // Dividir por comas y tomar solo la primera parte (la dirección de la calle)
+        const partes = direccionCompleta.split(',').map(p => p.trim());
+        
+        // La primera parte siempre es la dirección de la calle
+        return partes[0];
+      };
+      
+      const direccionCalle = limpiarDireccion(addressData.direccionCompleta);
+      setEditValue(direccionCalle);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, field: string) => {
+    if (e.key === 'Enter') {
+      handleSave(field);
+    } else if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
+  };
+
+  // Componente de campo editable
+  const EditableField = ({ 
+    label, 
+    value, 
+    field, 
+    type = 'text',
+    placeholder = '',
+    className = ''
+  }: {
+    label: string;
+    value: string | number;
+    field: string;
+    type?: string;
+    placeholder?: string;
+    className?: string;
+  }) => {
+    const isEditing = editingField === field;
+    
+    return (
+      <div className={className}>
+        <label className="text-xs sm:text-sm font-medium text-gray-600">{label}</label>
+        {isEditing ? (
+          <div className="flex items-center gap-2 mt-1">
+            {field === 'cliente_id' ? (
+              <Select
+                value={editValue}
+                onValueChange={(value) => setEditValue(value)}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Seleccionar cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clientes.map((cliente) => (
+                    <SelectItem key={cliente.id} value={cliente.id}>
+                      {cliente.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : field === 'direccion' ? (
+              <div className="flex-1 relative">
+                <Input
+                  type={type}
+                  value={editValue}
+                  onChange={handleAddressInputChange}
+                  onKeyDown={(e) => handleKeyDown(e, field)}
+                  placeholder={placeholder}
+                  className="flex-1"
+                  autoFocus
+                />
+                {addressLoading && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 dark:border-white"></div>
+                  </div>
+                )}
+                {/* Lista de sugerencias */}
+                {suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+                    {suggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.placeId}
+                        type="button"
+                        className="w-full px-4 py-3 text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none border-b border-border last:border-b-0"
+                        onClick={() => handleAddressSelect(suggestion.placeId)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate">
+                              {suggestion.direccionPrincipal}
+                            </div>
+                            {suggestion.direccionSecundaria && (
+                              <div className="text-xs text-muted-foreground truncate">
+                                {suggestion.direccionSecundaria}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Input
+                type={type}
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, field)}
+                placeholder={placeholder}
+                className="flex-1"
+                autoFocus
+              />
+            )}
+            <Button
+              size="sm"
+              onClick={() => handleSave(field)}
+              disabled={saving}
+              className="h-8 w-8 p-0"
+            >
+              {saving ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCancelEdit}
+              disabled={saving}
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between mt-1 group">
+            <p className="text-sm sm:text-lg">
+              {field === 'cliente_id' 
+                ? clientes.find(c => c.id === value)?.nombre || 'Cliente no encontrado'
+                : field === 'valor_turno_extra'
+                ? `$${formatThousands(value)}`
+                : value || 'No configurado'
+              }
+            </p>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleEdit(field, value?.toString() || '')}
+              className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+
 
   const handleReintentarGeocodificacion = () => {
     if (instalacion?.direccion) {
@@ -239,16 +518,7 @@ export default function InstalacionDetallePage() {
               </span>
             </button>
           </span>
-          <Button 
-            onClick={handleEditarInstalacion}
-            variant="outline" 
-            size="sm"
-            className="flex items-center gap-2 text-xs sm:text-sm"
-          >
-            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Editar</span>
-            <span className="sm:hidden">Editar</span>
-          </Button>
+
         </div>
       </div>
 
@@ -389,37 +659,40 @@ export default function InstalacionDetallePage() {
             </CardHeader>
             <CardContent className="space-y-4 sm:space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                <div className="space-y-3 sm:space-y-4">
-                  <div>
-                    <label className="text-xs sm:text-sm font-medium text-gray-600">Nombre de la Instalación</label>
-                    <p className="text-sm sm:text-lg font-semibold">{instalacion.nombre}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs sm:text-sm font-medium text-gray-600">Cliente</label>
-                    <p className="text-sm sm:text-lg">{instalacion.cliente_nombre}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-1">
-                      <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
-                      Dirección
-                    </label>
-                    <p className="text-sm sm:text-lg">{instalacion.direccion}</p>
-                  </div>
+                <div className="space-y-3 sm:space-y-4 group">
+                  <EditableField
+                    label="Nombre de la Instalación"
+                    value={instalacion.nombre}
+                    field="nombre"
+                    placeholder="Ingresa el nombre de la instalación"
+                  />
+                  <EditableField
+                    label="Cliente"
+                    value={instalacion.cliente_id}
+                    field="cliente_id"
+                  />
+                  <EditableField
+                    label="Dirección"
+                    value={instalacion.direccion}
+                    field="direccion"
+                    placeholder="Buscar dirección con Google Maps..."
+                  />
                 </div>
-                <div className="space-y-3 sm:space-y-4">
-                  <div>
-                    <label className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-1">
-                      <Phone className="h-3 w-3 sm:h-4 sm:w-4" />
-                      Teléfono de Contacto
-                    </label>
-                    <p className="text-sm sm:text-lg">
-                      {instalacion.telefono || 'No configurado'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-xs sm:text-sm font-medium text-gray-600">Valor Turno Extra</label>
-                    <p className="text-sm sm:text-lg">${instalacion.valor_turno_extra?.toLocaleString() || 0}</p>
-                  </div>
+                <div className="space-y-3 sm:space-y-4 group">
+                  <EditableField
+                    label="Teléfono de Contacto"
+                    value={instalacion.telefono || ''}
+                    field="telefono"
+                    type="tel"
+                    placeholder="+56 9 1234 5678"
+                  />
+                  <EditableField
+                    label="Valor Turno Extra"
+                    value={instalacion.valor_turno_extra || 0}
+                    field="valor_turno_extra"
+                    type="text"
+                    placeholder="0"
+                  />
                   <div>
                     <label className="text-xs sm:text-sm font-medium text-gray-600 flex items-center gap-1">
                       <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -437,19 +710,19 @@ export default function InstalacionDetallePage() {
               </div>
 
               {/* Información geográfica */}
-              {geocodingData && (
+              {(instalacion.ciudad || instalacion.comuna || geocodingData) && (
                 <div className="space-y-3 sm:space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                    {geocodingData.comuna && (
+                    {(instalacion.comuna || geocodingData?.comuna) && (
                       <div>
                         <label className="text-xs sm:text-sm font-medium text-gray-600">Comuna</label>
-                        <p className="text-sm sm:text-lg">{geocodingData.comuna}</p>
+                        <p className="text-sm sm:text-lg">{instalacion.comuna || geocodingData?.comuna}</p>
                       </div>
                     )}
-                    {geocodingData.ciudad && (
+                    {(instalacion.ciudad || geocodingData?.ciudad) && (
                       <div>
                         <label className="text-xs sm:text-sm font-medium text-gray-600">Ciudad</label>
-                        <p className="text-sm sm:text-lg">{geocodingData.ciudad}</p>
+                        <p className="text-sm sm:text-lg">{instalacion.ciudad || geocodingData?.ciudad}</p>
                       </div>
                     )}
                   </div>

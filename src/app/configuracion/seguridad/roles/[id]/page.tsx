@@ -7,7 +7,7 @@ import { rbacFetch } from "@/lib/rbacClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Save, Eye } from "lucide-react";
+import { ArrowLeft, Save, Eye, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Permiso {
@@ -41,7 +41,7 @@ const MODULO_PREFIXES: Record<string, string[]> = {
   'planillas': ['planillas'],
   'logs': ['logs'],
   'central-monitoring': ['central_monitoring', 'central-monitoring'],
-  'configuracion': ['configuracion'],
+  'configuracion': ['configuracion', 'config'],
   'auditoria': ['auditoria'],
   'rbac': ['rbac']
 };
@@ -88,8 +88,11 @@ export default function RolDetallePage() {
 
   const [rol, setRol] = useState<Rol | null>(null);
   const [permisosAsignados, setPermisosAsignados] = useState<Set<string>>(new Set());
+  const [permisosOriginales, setPermisosOriginales] = useState<Set<string>>(new Set());
   const [permisosDisponibles, setPermisosDisponibles] = useState<Permiso[]>([]);
+  const [cambiosPendientes, setCambiosPendientes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const { addToast } = useToast();
@@ -104,38 +107,46 @@ export default function RolDetallePage() {
     let done = false;
     (async () => {
       try {
-        setBusy(true);
+        setLoadingData(true);
         setError(null);
 
         // Cargar rol
-        const rolRes = await rbacFetch(`/api/admin/rbac/roles/${rolId}`);
+        const rolRes = await rbacFetch(`/api/admin/rbac/roles/${rolId}`, { cache: 'no-store' });
         const rolData = await rolRes.json();
         if (!rolRes.ok) throw new Error(rolData?.detail || rolData?.error || `HTTP ${rolRes.status}`);
-        if (!done) setRol(rolData);
+        if (!done) setRol(rolData.item ?? rolData);
 
         // Cargar permisos disponibles
-        const permisosRes = await rbacFetch("/api/admin/rbac/permisos");
+        const permisosRes = await rbacFetch("/api/admin/rbac/permisos", { cache: 'no-store' });
         const permisosData = await permisosRes.json();
         if (!permisosRes.ok) throw new Error(permisosData?.detail || permisosData?.error || `HTTP ${permisosRes.status}`);
         if (!done) setPermisosDisponibles(permisosData.items || []);
 
         // Cargar permisos asignados
-        const asignadosRes = await rbacFetch(`/api/admin/rbac/roles/${rolId}/permisos`);
+        const asignadosRes = await rbacFetch(`/api/admin/rbac/roles/${rolId}/permisos`, { cache: 'no-store' });
         const asignadosData = await asignadosRes.json();
         if (!asignadosRes.ok) throw new Error(asignadosData?.detail || asignadosData?.error || `HTTP ${asignadosRes.status}`);
         if (!done) {
-          const asignadosSet = new Set(asignadosData.permisos?.map((p: any) => p.permiso_id) || []);
+          const asignadosSet = new Set(asignadosData.items?.map((p: any) => p.id) || []);
           setPermisosAsignados(asignadosSet as Set<string>);
+          setPermisosOriginales(asignadosSet as Set<string>);
         }
 
       } catch (e: any) {
         if (!done) setError(e?.message || "Error inesperado");
       } finally {
-        if (!done) setBusy(false);
+        if (!done) setLoadingData(false);
       }
     })();
     return () => { done = true; };
   }, [hasAccess, loading, rolId]);
+
+  // Detectar cambios automáticamente
+  useEffect(() => {
+    const hayCambios = Object.keys(cambiosPendientes).length > 0;
+    console.log('Cambios pendientes detectados:', cambiosPendientes, 'Hay cambios:', hayCambios);
+    setHasChanges(hayCambios);
+  }, [cambiosPendientes]);
 
   // Función para obtener el ID de un permiso por clave
   const getPermisoId = (clave: string) => {
@@ -144,6 +155,10 @@ export default function RolDetallePage() {
 
   // Función para calcular nivel de acceso basado en permisos
   const calcularNivelModulo = (modulo: string): string => {
+    // Si hay un cambio pendiente para este módulo, usar ese nivel
+    if (cambiosPendientes[modulo]) {
+      return cambiosPendientes[modulo];
+    }
     const prefixes = MODULO_PREFIXES[modulo] || [modulo];
     const permisosClaves = Array.from(permisosAsignados).map(id => 
       permisosDisponibles.find(p => p.id === id)?.clave
@@ -156,24 +171,70 @@ export default function RolDetallePage() {
     
     if (wildcard) return 'admin';
     
-    // Verificar si tiene permisos de edit (create, edit, view)
-    const hasEditPermissions = prefixes.some(prefix => {
-      const hasView = permisosClaves.includes(`${prefix}.view`);
-      const hasCreate = permisosClaves.includes(`${prefix}.create`);
-      const hasEdit = permisosClaves.includes(`${prefix}.edit`);
-      return hasView && (hasCreate || hasEdit);
-    });
+      // Verificar si tiene todos los permisos del módulo (admin)
+  const todosLosPermisos = prefixes.some(prefix => {
+    const permisosModulo = permisosDisponibles.filter(p => 
+      p.clave.startsWith(prefix + '.') && !p.clave.endsWith('.*')
+    );
+    const permisosAsignadosModulo = permisosClaves.filter(c => 
+      c.startsWith(prefix + '.') && !c.endsWith('.*')
+    );
+    return permisosModulo.length > 0 && permisosAsignadosModulo.length >= permisosModulo.length;
+  });
+    
+    if (todosLosPermisos) return 'admin';
+    
+      // Verificar si tiene permisos de edición (más que solo view)
+  const hasEditPermissions = prefixes.some(prefix => {
+    const permisosAsignadosModulo = permisosClaves.filter(c => c.startsWith(prefix + '.'));
+    const permisosModulo = permisosDisponibles.filter(p => 
+      p.clave.startsWith(prefix + '.') && !p.clave.endsWith('.*')
+    );
+    
+    // Si tiene más de la mitad de los permisos del módulo, es edit
+    if (permisosModulo.length > 0 && permisosAsignadosModulo.length > permisosModulo.length / 2) {
+      return true;
+    }
+    
+    // O si tiene permisos estándar de edición
+    const hasView = permisosClaves.includes(`${prefix}.view`);
+    const hasCreate = permisosClaves.includes(`${prefix}.create`);
+    const hasEdit = permisosClaves.includes(`${prefix}.edit`);
+    if (hasView && (hasCreate || hasEdit)) {
+      return true;
+    }
+    
+    // O si tiene múltiples permisos (más de 1) del módulo, es edit
+    if (permisosAsignadosModulo.length > 1) {
+      return true;
+    }
+    
+    // O si tiene múltiples permisos en total (incluyendo relacionados), es edit
+    if (permisosClaves.length > 1) {
+      return true;
+    }
+    
+    return false;
+  });
     
     if (hasEditPermissions) return 'edit';
     
-    // Verificar view (solo view)
-    const hasView = prefixes.some(prefix => 
-      permisosClaves.includes(`${prefix}.view`)
-    );
-    
-    if (hasView) return 'view';
-    
-    return 'none';
+      // Verificar view (solo view o pocos permisos)
+  const hasView = prefixes.some(prefix => 
+    permisosClaves.includes(`${prefix}.view`)
+  );
+  
+  if (hasView) return 'view';
+  
+  // Si no tiene view específico pero tiene algún permiso del módulo, es view
+  const hasAnyPermission = prefixes.some(prefix => {
+    const permisosAsignadosModulo = permisosClaves.filter(c => c.startsWith(prefix + '.'));
+    return permisosAsignadosModulo.length > 0;
+  });
+  
+  if (hasAnyPermission) return 'view';
+  
+  return 'none';
   };
 
   // Función para obtener permisos que se asignarán para un nivel
@@ -184,12 +245,14 @@ export default function RolDetallePage() {
     switch (nivel) {
       case 'admin':
         prefixes.forEach(prefix => {
+          // Primero intentar wildcard
           const wildcardId = getPermisoId(`${prefix}.*`);
           if (wildcardId) {
             permisos.push(wildcardId);
           } else {
+            // Si no hay wildcard, asignar todos los permisos del módulo
             permisosDisponibles.forEach(p => {
-              if (p.clave.startsWith(prefix + '.')) {
+              if (p.clave.startsWith(prefix + '.') && !p.clave.endsWith('.*')) {
                 permisos.push(p.id);
               }
             });
@@ -198,16 +261,77 @@ export default function RolDetallePage() {
         break;
       case 'edit':
         prefixes.forEach(prefix => {
-          ['view', 'create', 'edit'].forEach(action => {
-            const permisoId = getPermisoId(`${prefix}.${action}`);
-            if (permisoId) permisos.push(permisoId);
-          });
+          // Intentar asignar permisos estándar si existen
+          const permisosEstandar = ['view', 'create', 'edit'];
+          const permisosEncontrados = permisosEstandar.map(action => getPermisoId(`${prefix}.${action}`)).filter((id): id is string => id !== undefined);
+          
+          if (permisosEncontrados.length > 0) {
+            permisos.push(...permisosEncontrados);
+          } else {
+            // Si no existen permisos estándar, asignar solo algunos permisos (no todos)
+            const permisosModulo = permisosDisponibles.filter(p => 
+              p.clave.startsWith(prefix + '.') && 
+              !p.clave.endsWith('delete') && 
+              !p.clave.endsWith('.*')
+            );
+            
+            if (permisosModulo.length > 0) {
+              // Para evitar que se detecte como "admin", asignar solo algunos permisos
+              // Tomar aproximadamente la mitad de los permisos disponibles
+              const mitad = Math.ceil(permisosModulo.length / 2);
+              const permisosSeleccionados = permisosModulo.slice(0, mitad);
+              permisosSeleccionados.forEach(p => permisos.push(p.id));
+            }
+            
+            // Si el módulo tiene pocos permisos, agregar permisos relacionados para que se detecte como "edit"
+            if (permisosModulo.length <= 2) {
+              // Para central-monitoring, agregar permisos de alertas
+              if (prefix === 'central_monitoring' || prefix === 'central-monitoring') {
+                const permisosAlertas = permisosDisponibles.filter(p => 
+                  p.clave.startsWith('alertas.') && 
+                  !p.clave.endsWith('delete') && 
+                  !p.clave.endsWith('.*')
+                );
+                if (permisosAlertas.length > 0) {
+                  const mitadAlertas = Math.ceil(permisosAlertas.length / 2);
+                  const alertasSeleccionados = permisosAlertas.slice(0, mitadAlertas);
+                  alertasSeleccionados.forEach(p => permisos.push(p.id));
+                }
+              }
+              
+              // Para auditoria, agregar permisos de logs
+              if (prefix === 'auditoria') {
+                const permisosLogs = permisosDisponibles.filter(p => 
+                  p.clave.startsWith('logs.') && 
+                  !p.clave.endsWith('delete') && 
+                  !p.clave.endsWith('.*')
+                );
+                if (permisosLogs.length > 0) {
+                  const mitadLogs = Math.ceil(permisosLogs.length / 2);
+                  const logsSeleccionados = permisosLogs.slice(0, mitadLogs);
+                  logsSeleccionados.forEach(p => permisos.push(p.id));
+                }
+              }
+            }
+          }
         });
         break;
       case 'view':
         prefixes.forEach(prefix => {
-          const permisoId = getPermisoId(`${prefix}.view`);
-          if (permisoId) permisos.push(permisoId);
+          // Intentar asignar view si existe
+          const permisoView = getPermisoId(`${prefix}.view`);
+          if (permisoView) {
+            permisos.push(permisoView);
+          } else {
+            // Si no existe view, asignar el primer permiso disponible del módulo
+            const primerPermiso = permisosDisponibles.find(p => 
+              p.clave.startsWith(prefix + '.') && 
+              !p.clave.endsWith('.*')
+            );
+            if (primerPermiso) {
+              permisos.push(primerPermiso.id);
+            }
+          }
         });
         break;
       case 'none':
@@ -218,28 +342,28 @@ export default function RolDetallePage() {
     return permisos;
   };
 
-  // Función para asignar nivel a un módulo
+  // Función para asignar nivel a un módulo (solo marca cambio pendiente)
   const asignarNivelModulo = (modulo: string, nivel: string) => {
-    if (!canEdit) return;
+    if (!canEdit || busy) return;
     
-    const permisosIds = obtenerPermisosParaNivel(modulo, nivel);
-    const newAsignados = new Set(permisosAsignados);
-    
-    // Remover permisos existentes del módulo
-    const prefixes = MODULO_PREFIXES[modulo] || [modulo];
-    prefixes.forEach(prefix => {
-      permisosDisponibles.forEach(p => {
-        if (p.clave.startsWith(prefix + '.')) {
-          newAsignados.delete(p.id);
-        }
-      });
+    // Solo marcar el cambio pendiente, no modificar permisos aún
+    setCambiosPendientes(prev => ({
+      ...prev,
+      [modulo]: nivel
+    }));
+  };
+
+  // Función para asignar todo a un nivel (todos los módulos) - solo marca cambios pendientes
+  const asignarTodoNivel = (nivel: string) => {
+    if (!canEdit || busy) return;
+
+    // Marcar todos los módulos con el nivel seleccionado
+    const nuevosCambios: Record<string, string> = {};
+    MODULOS.forEach((modulo) => {
+      nuevosCambios[modulo.key] = nivel;
     });
-    
-    // Agregar nuevos permisos
-    permisosIds.forEach(id => newAsignados.add(id));
-    
-    setPermisosAsignados(newAsignados);
-    setHasChanges(true);
+
+    setCambiosPendientes(nuevosCambios);
   };
 
   // Función para guardar cambios
@@ -250,7 +374,28 @@ export default function RolDetallePage() {
       setBusy(true);
       setError(null);
 
-      const permisosArray = Array.from(permisosAsignados);
+      // Aplicar todos los cambios pendientes a los permisos
+      let nuevosPermisos = new Set(permisosAsignados);
+      
+      Object.entries(cambiosPendientes).forEach(([modulo, nivel]) => {
+        // Remover permisos existentes del módulo
+        const prefixes = MODULO_PREFIXES[modulo] || [modulo];
+        prefixes.forEach(prefix => {
+          permisosDisponibles.forEach(p => {
+            if (p.clave.startsWith(prefix + '.')) {
+              nuevosPermisos.delete(p.id);
+            }
+          });
+        });
+
+        // Agregar nuevos permisos para el nivel
+        const permisosIds = obtenerPermisosParaNivel(modulo, nivel);
+        permisosIds.forEach(id => nuevosPermisos.add(id));
+      });
+
+      const permisosArray = Array.from(nuevosPermisos);
+      console.log('Enviando permisos al servidor:', permisosArray.length, 'permisos');
+      console.log('Cambios pendientes aplicados:', cambiosPendientes);
       
       const res = await rbacFetch(`/api/admin/rbac/roles/${rolId}/permisos`, {
         method: "PUT",
@@ -259,15 +404,34 @@ export default function RolDetallePage() {
       });
 
       const data = await res.json();
+      
       if (!res.ok) throw new Error(data?.detail || data?.error || `HTTP ${res.status}`);
+
+      // Actualizar el estado local con los nuevos permisos
+      setPermisosAsignados(nuevosPermisos);
+      setPermisosOriginales(nuevosPermisos);
+      setCambiosPendientes({});
+      setHasChanges(false);
+
+      // Releer desde el backend inmediatamente para evitar estados desfasados/caché
+      try {
+        const asignadosRes = await rbacFetch(`/api/admin/rbac/roles/${rolId}/permisos`, { cache: 'no-store' });
+        const asignadosData = await asignadosRes.json();
+        if (asignadosRes.ok) {
+          const asignadosSet = new Set(asignadosData.items?.map((p: any) => p.id) || []);
+          setPermisosAsignados(asignadosSet as Set<string>);
+          setPermisosOriginales(asignadosSet as Set<string>);
+          console.log('Permisos recargados:', asignadosSet.size);
+        }
+      } catch (e) {
+        console.error('Error al recargar permisos:', e);
+      }
 
       addToast({
         title: "✅ Permisos actualizados",
         description: `Los permisos del rol "${rol?.nombre}" han sido actualizados exitosamente.`,
         type: "success"
       });
-
-      setHasChanges(false);
 
     } catch (e: any) {
       setError(e?.message || "Error al guardar");
@@ -296,11 +460,11 @@ export default function RolDetallePage() {
     alert(mensaje);
   };
 
-  if (loading) {
+  if (loading || loadingData) {
     return (
       <div className="p-6">
         <div className="rounded-xl border p-6 text-center text-muted-foreground">
-          Verificando permisos...
+          Cargando datos del rol...
         </div>
       </div>
     );
@@ -351,28 +515,51 @@ export default function RolDetallePage() {
             Volver
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Permisos del Rol</h1>
+            <h1 className="text-2xl font-bold">
+              Permisos del Rol: {rol?.nombre || 'Cargando...'}
+            </h1>
             <p className="text-muted-foreground">
-              {rol?.nombre} - {rol?.descripcion}
+              {rol?.descripcion || 'Descripción del rol'}
             </p>
           </div>
         </div>
 
         {canEdit && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              {hasChanges && (
+                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
+                  ⚠️ Cambios pendientes
+                </Badge>
+              )}
+              <Button
+                onClick={guardarCambios}
+                disabled={!hasChanges || busy}
+                className={`flex items-center gap-2 ${hasChanges ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+              >
+                <Save className="h-4 w-4" />
+                {busy ? "Guardando..." : "Guardar Cambios"}
+              </Button>
+              {hasChanges && !busy && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setCambiosPendientes({});
+                    setHasChanges(false);
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  Cancelar
+                </Button>
+              )}
+            </div>
             {hasChanges && (
-              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                Cambios pendientes
-              </Badge>
+              <p className="text-sm text-muted-foreground">
+                💡 Los cambios se guardarán solo cuando hagas clic en "Guardar Cambios"
+              </p>
             )}
-            <Button
-              onClick={guardarCambios}
-              disabled={!hasChanges || busy}
-              className="flex items-center gap-2"
-            >
-              <Save className="h-4 w-4" />
-              {busy ? "Guardando..." : "Guardar Cambios"}
-            </Button>
           </div>
         )}
       </div>
@@ -384,9 +571,17 @@ export default function RolDetallePage() {
           <p className="text-sm text-muted-foreground">
             Selecciona el nivel de acceso para cada módulo
           </p>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+                  </CardHeader>
+          <CardContent>
+            {canEdit && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Button variant="outline" size="sm" onClick={() => asignarTodoNivel('none')}>🚫 Todo Sin Acceso</Button>
+                <Button variant="outline" size="sm" onClick={() => asignarTodoNivel('view')}>👁️ Todo Ver</Button>
+                <Button variant="outline" size="sm" onClick={() => asignarTodoNivel('edit')}>✏️ Todo Editar</Button>
+                <Button variant="outline" size="sm" onClick={() => asignarTodoNivel('admin')}>⚙️ Todo Admin</Button>
+              </div>
+            )}
+            <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b">

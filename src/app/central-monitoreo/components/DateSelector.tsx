@@ -26,7 +26,11 @@ export function DateSelector({
   };
 
   const irAHoy = () => {
-    onFechaChange(new Date().toISOString().split('T')[0]);
+    const hoy = new Date();
+    const year = hoy.getFullYear();
+    const month = String(hoy.getMonth() + 1).padStart(2, '0');
+    const day = String(hoy.getDate()).padStart(2, '0');
+    onFechaChange(`${year}-${month}-${day}`);
   };
 
   const formatearFecha = (fecha: string) => {

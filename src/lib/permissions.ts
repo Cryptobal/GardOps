@@ -5,7 +5,45 @@
 import { useEffect, useRef, useState } from "react";
 import { rbacFetch } from "@/lib/rbacClient";
 
-const TTL_MS = 60_000; // 60s
+const TTL_MS = 600_000; // 10 minutos (aumentado para reducir llamadas)
+
+// Caché global para el rol del usuario
+let userRoleCache: string | null = null;
+let userRolePromise: Promise<string | null> | null = null;
+
+// Función para obtener el rol del usuario una sola vez
+async function getUserRole(): Promise<string | null> {
+  if (userRoleCache !== null) {
+    return userRoleCache;
+  }
+
+  if (userRolePromise) {
+    return userRolePromise;
+  }
+
+  userRolePromise = (async () => {
+    try {
+      if (typeof window !== 'undefined') {
+        const m = (document.cookie || '').match(/(?:^|;\s*)auth_token=([^;]+)/);
+        const token = m?.[1] ? decodeURIComponent(m[1]) : null;
+        if (token) {
+          const payloadJson = atob(token.split('.')[1] || '');
+          const payload = JSON.parse(payloadJson || '{}');
+          const role = payload?.rol;
+          userRoleCache = role || null;
+          return role || null;
+        }
+      }
+      return null;
+    } catch {
+      return null;
+    } finally {
+      userRolePromise = null;
+    }
+  })();
+
+  return userRolePromise;
+}
 
 export async function fetchCan(perm: string): Promise<boolean> {
   const normalized = (perm || "").trim();
@@ -17,20 +55,13 @@ export async function fetchCan(perm: string): Promise<boolean> {
     }
     return false;
   }
+
   // Bypass cliente: si el JWT indica rol admin, permitir sin pegarle a la API (acelera la barra)
-  try {
-    if (typeof window !== 'undefined') {
-      const m = (document.cookie || '').match(/(?:^|;\s*)auth_token=([^;]+)/);
-      const token = m?.[1] ? decodeURIComponent(m[1]) : null;
-      if (token) {
-        const payloadJson = atob(token.split('.')[1] || '');
-        const payload = JSON.parse(payloadJson || '{}');
-        if (payload?.rol === 'admin') {
-          return true;
-        }
-      }
-    }
-  } catch {}
+  const userRole = await getUserRole();
+  if (userRole === 'admin') {
+    return true;
+  }
+
   // Primero intentar el nuevo endpoint RBAC (más rápido y consistente)
   const urlRbac = `/api/rbac/can?perm=${encodeURIComponent(normalized)}`;
   let res = await rbacFetch(urlRbac, { cache: "no-store" });
@@ -102,21 +133,34 @@ export function useCan(perm?: string) {
     let cancel = false;
     setLoading(true);
     setError(null);
-    fetchCan(normalized)
-      .then((ok) => {
-        if (cancel || !mounted.current) return;
+    
+    // Verificar rol de usuario primero para bypass rápido
+    getUserRole().then(userRole => {
+      if (cancel || !mounted.current) return;
+      
+      if (userRole === 'admin') {
+        setAllowed(true);
+        setLoading(false);
+        setCachedPermission(normalized, true);
+        return;
+      }
+      
+      // Si no es admin, hacer la verificación normal
+      return fetchCan(normalized);
+    }).then((ok) => {
+      if (cancel || !mounted.current) return;
+      if (ok !== undefined) {
         setCachedPermission(normalized, ok);
         setAllowed(ok);
-      })
-      .catch((e) => {
-        if (cancel || !mounted.current) return;
-        setError(e?.message ?? "error");
-        setAllowed(false);
-      })
-      .finally(() => {
-        if (cancel || !mounted.current) return;
-        setLoading(false);
-      });
+      }
+    }).catch((e) => {
+      if (cancel || !mounted.current) return;
+      setError(e?.message ?? "error");
+      setAllowed(false);
+    }).finally(() => {
+      if (cancel || !mounted.current) return;
+      setLoading(false);
+    });
 
     return () => { cancel = true; };
   }, [normalized]);

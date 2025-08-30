@@ -7,10 +7,11 @@ export async function GET(request: NextRequest) {
     const fecha = searchParams.get('fecha') || new Date().toISOString().split('T')[0];
     const instalacionId = searchParams.get('instalacion');
     const turno = searchParams.get('turno');
+    const incluirLibres = searchParams.get('incluirLibres') === 'true';
 
     const [anio, mes, dia] = fecha.split('-').map(Number);
 
-    console.log(`🔍 Obteniendo datos de control de asistencias para fecha: ${fecha} (${anio}/${mes}/${dia})`);
+    console.log(`🔍 Obteniendo datos de control de asistencias para fecha: ${fecha} (${anio}/${mes}/${dia}), incluirLibres: ${incluirLibres}`);
 
     let query = `
       SELECT
@@ -25,8 +26,9 @@ export async function GET(request: NextRequest) {
         pm.meta->>'estado_semaforo' as estado_semaforo,
         pm.meta->>'observaciones_semaforo' as observaciones_semaforo,
         pm.meta->>'ultima_actualizacion_semaforo' as ultima_actualizacion,
+        pm.estado_ui as estado_pauta_ui,
         g.id as guardia_id,
-        g.nombre as guardia_nombre,
+        CONCAT(g.nombre, ' ', COALESCE(g.apellido_paterno, ''), ' ', COALESCE(g.apellido_materno, '')) as guardia_nombre,
         g.apellido_paterno,
         g.apellido_materno,
         g.telefono as guardia_telefono,
@@ -53,9 +55,16 @@ export async function GET(request: NextRequest) {
       INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       LEFT JOIN guardias g ON pm.guardia_id = g.id
       WHERE pm.anio = $1 AND pm.mes = $2 AND pm.dia = $3
-        AND pm.estado IN ('planificado', 'trabajado', 'libre')
         AND po.activo = true
     `;
+    
+    // Agregar filtro según incluirLibres
+    if (!incluirLibres) {
+      query += ` AND (pm.estado = 'planificado' OR (pm.estado = 'sin_cobertura' AND pm.estado_ui = 'plan'))`;
+    } else {
+      query += ` AND pm.estado IN ('planificado', 'trabajado', 'libre', 'sin_cobertura')`;
+    }
+    
     const params: any[] = [anio, mes, dia];
 
     if (instalacionId) {
@@ -132,7 +141,8 @@ export async function GET(request: NextRequest) {
         tipo_turno: row.tipo_turno,
         estado_semaforo: row.estado_semaforo,
         observaciones_semaforo: row.observaciones_semaforo,
-        ultima_actualizacion: row.ultima_actualizacion
+        ultima_actualizacion: row.ultima_actualizacion,
+        estado_pauta_ui: row.estado_pauta_ui
       });
     });
 
@@ -159,7 +169,8 @@ export async function GET(request: NextRequest) {
           tipo_turno: row.tipo_turno,
           estado_semaforo: row.estado_semaforo,
           observaciones_semaforo: row.observaciones_semaforo,
-          ultima_actualizacion: row.ultima_actualizacion
+          ultima_actualizacion: row.ultima_actualizacion,
+          estado_pauta_ui: row.estado_pauta_ui
         }))
       }
     });

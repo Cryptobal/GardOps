@@ -1,122 +1,84 @@
-import { requireAuthz } from '@/lib/authz-api';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuthz } from '@/lib/authz-api';
 import { sql } from '@vercel/postgres';
 
 export const runtime = 'nodejs';
 
-export async function GET(req: NextRequest) {
-  console.log('🔍 Central Monitoring Agenda - Iniciando request');
-  
-  const deny = await requireAuthz(req, { resource: 'central_monitoring', action: 'view' });
-  if (deny) {
-    console.log('❌ Central Monitoring Agenda - Acceso denegado');
-    return deny;
-  }
-
-  console.log('✅ Central Monitoring Agenda - Acceso autorizado');
+export async function GET(request: NextRequest) {
+  const deny = await requireAuthz(request, { resource: 'central_monitoring', action: 'view' });
+  if (deny) return deny;
 
   try {
-    const { searchParams } = new URL(req.url);
-    const fecha = searchParams.get('fecha'); // YYYY-MM-DD
-    const estado = searchParams.get('estado');
+    const { searchParams } = new URL(request.url);
+    const fecha = searchParams.get('fecha') || new Date().toISOString().split('T')[0];
+    const tz = searchParams.get('tz') || 'America/Santiago';
+    const instalacionFilter = searchParams.get('instalacion');
+    const guardiaFilter = searchParams.get('guardia');
 
-    console.log('🔍 Central Monitoring Agenda - Parámetros:', { fecha, estado });
+    // Obtener llamados desde la vista automática
+    let query = `
+      SELECT 
+        id,
+        instalacion_id,
+        guardia_id,
+        pauta_id,
+        puesto_id,
+        programado_para,
+        estado_llamado as estado,
+        contacto_tipo,
+        contacto_telefono,
+        contacto_nombre,
+        observaciones,
+        instalacion_nombre,
+        guardia_nombre,
+        nombre_puesto,
+        rol_nombre,
+        intervalo_minutos,
+        ventana_inicio,
+        ventana_fin,
+        modo,
+        mensaje_template,
+        es_urgente,
+        es_actual,
+        es_proximo,
+        -- Calcular minutos de atraso
+        CASE 
+          WHEN (programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}' < (now() AT TIME ZONE '${tz}') THEN 
+            EXTRACT(EPOCH FROM ((now() AT TIME ZONE '${tz}') - ((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}'))) / 60
+          ELSE 0
+        END as minutos_atraso
+      FROM central_v_llamados_automaticos
+      WHERE DATE(((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}')) = $1
+    `;
 
-    console.log('🔍 Central Monitoring Agenda - Ejecutando consulta SQL...');
+    const params: any[] = [fecha];
 
-    // Consulta simplificada usando template literals
-    let result;
-    
-    if (fecha) {
-      if (estado) {
-        result = await sql`
-          SELECT 
-            cl.id,
-            cl.instalacion_id,
-            cl.programado_para,
-            cl.estado,
-            cl.observaciones,
-            i.nombre as instalacion_nombre,
-            i.telefono as instalacion_telefono,
-            g.nombre as guardia_nombre,
-            g.telefono as guardia_telefono
-          FROM central_llamados cl
-          JOIN instalaciones i ON i.id = cl.instalacion_id
-          LEFT JOIN guardias g ON cl.guardia_id = g.id
-          WHERE cl.programado_para::date = ${fecha}::date
-            AND cl.estado = ${estado}
-          ORDER BY cl.programado_para ASC, i.nombre ASC
-        `;
-      } else {
-        result = await sql`
-          SELECT 
-            cl.id,
-            cl.instalacion_id,
-            cl.programado_para,
-            cl.estado,
-            cl.observaciones,
-            i.nombre as instalacion_nombre,
-            i.telefono as instalacion_telefono,
-            g.nombre as guardia_nombre,
-            g.telefono as guardia_telefono
-          FROM central_llamados cl
-          JOIN instalaciones i ON i.id = cl.instalacion_id
-          LEFT JOIN guardias g ON cl.guardia_id = g.id
-          WHERE cl.programado_para::date = ${fecha}::date
-          ORDER BY cl.programado_para ASC, i.nombre ASC
-        `;
-      }
-    } else {
-      if (estado) {
-        result = await sql`
-          SELECT 
-            cl.id,
-            cl.instalacion_id,
-            cl.programado_para,
-            cl.estado,
-            cl.observaciones,
-            i.nombre as instalacion_nombre,
-            i.telefono as instalacion_telefono,
-            g.nombre as guardia_nombre,
-            g.telefono as guardia_telefono
-          FROM central_llamados cl
-          JOIN instalaciones i ON i.id = cl.instalacion_id
-          LEFT JOIN guardias g ON cl.guardia_id = g.id
-          WHERE cl.programado_para::date BETWEEN CURRENT_DATE - INTERVAL '1 day' AND CURRENT_DATE + INTERVAL '1 day'
-            AND cl.estado = ${estado}
-          ORDER BY cl.programado_para ASC, i.nombre ASC
-        `;
-      } else {
-        result = await sql`
-          SELECT 
-            cl.id,
-            cl.instalacion_id,
-            cl.programado_para,
-            cl.estado,
-            cl.observaciones,
-            i.nombre as instalacion_nombre,
-            i.telefono as instalacion_telefono,
-            g.nombre as guardia_nombre,
-            g.telefono as guardia_telefono
-          FROM central_llamados cl
-          JOIN instalaciones i ON i.id = cl.instalacion_id
-          LEFT JOIN guardias g ON cl.guardia_id = g.id
-          WHERE cl.programado_para::date BETWEEN CURRENT_DATE - INTERVAL '1 day' AND CURRENT_DATE + INTERVAL '1 day'
-          ORDER BY cl.programado_para ASC, i.nombre ASC
-        `;
-      }
+    // Aplicar filtros
+    if (instalacionFilter) {
+      query += ` AND instalacion_id = $${params.length + 1}`;
+      params.push(instalacionFilter);
     }
 
-    console.log('✅ Central Monitoring Agenda - Consulta exitosa, registros encontrados:', result.rows.length);
+    if (guardiaFilter) {
+      query += ` AND (guardia_nombre ILIKE $${params.length + 1} OR instalacion_nombre ILIKE $${params.length + 1})`;
+      params.push(`%${guardiaFilter}%`);
+    }
 
-    return NextResponse.json({ 
-      success: true, 
-      data: result.rows 
+    query += ` ORDER BY programado_para ASC`;
+
+    const result = await sql.query(query, params);
+
+    return NextResponse.json({
+      success: true,
+      data: result.rows,
+      fecha: fecha,
+      total: result.rows.length
     });
+
   } catch (error) {
-    console.error('❌ Central Monitoring Agenda - Error obteniendo agenda de monitoreo:', error);
+    console.error('Error obteniendo agenda automática:', error);
     return NextResponse.json(
-      { success: false, error: 'Error interno del servidor' },
+      { success: false, error: String(error) },
       { status: 500 }
     );
   }

@@ -29,6 +29,12 @@ export function UFUTMIndicator({ compact = false }: UFUTMIndicatorProps) {
   const [data, setData] = useState<UFUTMData | null>(null);
   const [loading, setLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Evitar error de hidratación
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const fetchValues = async () => {
     setLoading(true);
@@ -218,7 +224,7 @@ export function UFUTMIndicator({ compact = false }: UFUTMIndicatorProps) {
         </Tooltip>
 
         {/* Last Update Indicator - Solo en pantallas grandes */}
-        {lastUpdate && (
+        {lastUpdate && isMounted && (
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="px-1 hidden lg:block">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -19,8 +19,25 @@ import {
 import { useRouter } from "next/navigation";
 import InstalacionModal from "@/components/instalaciones/InstalacionModal";
 
+// Hook personalizado para debounce
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 // Componente KPI Box optimizado para móviles
-const KPIBox = ({ 
+const KPIBox = React.memo(({ 
   title, 
   value, 
   icon: Icon, 
@@ -92,7 +109,9 @@ const KPIBox = ({
       </Card>
     </motion.div>
   );
-};
+});
+
+KPIBox.displayName = 'KPIBox';
 
 export default function InstalacionesPage() {
   // Gate UI: requiere permiso para ver instalaciones
@@ -117,8 +136,11 @@ export default function InstalacionesPage() {
     documentos_vencidos: 0
   });
 
+  // Debounce para la búsqueda
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
   // Función para cargar datos de instalaciones con estadísticas
-  const fetchInstalaciones = async () => {
+  const fetchInstalaciones = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -138,10 +160,10 @@ export default function InstalacionesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Función para cargar KPIs
-  const fetchKPIs = async () => {
+  const fetchKPIs = useCallback(async () => {
     try {
       console.log('🔍 Cargando KPIs de instalaciones...');
       const response = await fetch('/api/instalaciones/kpis');
@@ -156,28 +178,28 @@ export default function InstalacionesPage() {
     } catch (error) {
       console.error("Error cargando KPIs:", error);
     }
-  };
+  }, []);
 
   // Cargar datos de instalaciones y KPIs
   useEffect(() => {
     if (!allowed) return;
     fetchInstalaciones();
     fetchKPIs();
-  }, [allowed]);
+  }, [allowed, fetchInstalaciones, fetchKPIs]);
 
   // Log para debuggear KPIs
   useEffect(() => {
     console.log('🎯 KPIs actuales:', kpis);
   }, [kpis]);
 
-  // Filtrar instalaciones
+  // Filtrar instalaciones con memoización
   const filteredInstalaciones = useMemo(() => {
     return instalaciones.filter((instalacion: any) => {
       const matchesSearch = 
-        instalacion.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        instalacion.cliente_nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        instalacion.comuna?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        instalacion.ciudad?.toLowerCase().includes(searchTerm.toLowerCase());
+        instalacion.nombre?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        instalacion.cliente_nombre?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        instalacion.comuna?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        instalacion.ciudad?.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
 
       const matchesStatus = statusFilter === "all" || 
         (statusFilter === "activo" && instalacion.estado === 'Activo') ||
@@ -185,28 +207,28 @@ export default function InstalacionesPage() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [instalaciones, searchTerm, statusFilter]);
+  }, [instalaciones, debouncedSearchTerm, statusFilter]);
 
-  const handleRowClick = (instalacion: any) => {
+  const handleRowClick = useCallback((instalacion: any) => {
     router.push(`/instalaciones/${instalacion.id}`);
-  };
+  }, [router]);
 
   // Funciones para manejar el modal
-  const openCreateModal = () => {
+  const openCreateModal = useCallback(() => {
     setSelectedInstalacion(null);
     setShowModal(true);
-  };
+  }, []);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setShowModal(false);
     setSelectedInstalacion(null);
-  };
+  }, []);
 
-  const handleModalSuccess = (instalacion: any) => {
+  const handleModalSuccess = useCallback((instalacion: any) => {
     closeModal();
     fetchInstalaciones(); // Recargar la lista
     fetchKPIs(); // Recargar KPIs
-  };
+  }, [closeModal, fetchInstalaciones, fetchKPIs]);
 
   if (permLoading) return null;
   if (!allowed) return (<div className="p-4 text-sm text-muted-foreground">Sin acceso</div>);

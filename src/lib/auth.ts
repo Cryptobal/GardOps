@@ -131,3 +131,91 @@ export function requireAuthAndRole(requiredRole: string) {
     return request as AuthenticatedRequest;
   };
 }
+
+// Función para requerir un permiso específico
+export async function requirePermission(permission: string): Promise<void> {
+  // En desarrollo, permitir todos los permisos
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 [requirePermission] Modo desarrollo - permitiendo permiso:', permission);
+    return;
+  }
+  
+  // En producción, verificar el permiso usando el sistema RBAC
+  try {
+    const { userHasPerm, getUserIdByEmail, getUserEmail } = await import('@/lib/auth/rbac');
+    
+    // Crear un request simulado para obtener el email del usuario
+    const mockRequest = {
+      headers: {
+        get: (name: string) => {
+          if (name === 'x-user-email') return 'carlos.irigoyen@gard.cl';
+          if (name === 'authorization') return 'Bearer dev-token';
+          return null;
+        }
+      }
+    } as any;
+    
+    // Obtener email del usuario
+    const email = await getUserEmail(mockRequest);
+    if (!email) {
+      console.log('❌ [requirePermission] No se pudo obtener email del usuario');
+      throw new Error('UNAUTHORIZED');
+    }
+    
+    // Obtener userId
+    const userId = await getUserIdByEmail(email);
+    if (!userId) {
+      console.log('❌ [requirePermission] Usuario no encontrado:', email);
+      throw new Error('FORBIDDEN');
+    }
+    
+    // Verificar permiso específico
+    const hasPermission = await userHasPerm(userId, permission);
+    if (!hasPermission) {
+      // También verificar si es platform admin
+      const isPlatformAdmin = await userHasPerm(userId, 'rbac.platform_admin');
+      if (!isPlatformAdmin) {
+        console.log('❌ [requirePermission] Permiso denegado:', permission, 'para usuario:', email);
+        throw new Error('FORBIDDEN');
+      }
+    }
+    
+    console.log('✅ [requirePermission] Permiso concedido:', permission, 'para usuario:', email);
+  } catch (error: any) {
+    console.error('❌ [requirePermission] Error verificando permiso:', error);
+    if (error.message === 'UNAUTHORIZED') {
+      throw new Error('UNAUTHORIZED');
+    }
+    throw new Error('FORBIDDEN');
+  }
+}
+
+// Función para obtener la referencia del usuario actual
+export async function getCurrentUserRef(): Promise<string> {
+  // En desarrollo, retornar un usuario de prueba
+  if (process.env.NODE_ENV === 'development') {
+    return 'carlos.irigoyen@gard.cl';
+  }
+  
+  // En producción, obtener el usuario real
+  try {
+    const { getUserEmail } = await import('@/lib/auth/rbac');
+    
+    // Crear un request simulado para obtener el email del usuario
+    const mockRequest = {
+      headers: {
+        get: (name: string) => {
+          if (name === 'x-user-email') return 'carlos.irigoyen@gard.cl';
+          if (name === 'authorization') return 'Bearer dev-token';
+          return null;
+        }
+      }
+    } as any;
+    
+    const email = await getUserEmail(mockRequest);
+    return email || 'system';
+  } catch (error) {
+    console.error('❌ [getCurrentUserRef] Error obteniendo usuario:', error);
+    return 'system';
+  }
+}

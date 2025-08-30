@@ -195,13 +195,13 @@ const ModalAutocompletarPauta = ({
             </div>
           </div>
 
-          {/* Selector visual del patrón - EN UNA LÍNEA */}
+          {/* Selector visual del patrón - UNA LÍNEA */}
           <div>
             <label className="block text-sm font-semibold mb-3 text-gray-900 dark:text-white">
               Punto de inicio del ciclo:
             </label>
             
-            <div className="flex gap-1 justify-center flex-wrap">
+            <div className="flex gap-1 justify-center">
               {Array.from({ length: cicloCompleto }, (_, i) => {
                 const esDiaTrabajo = i < patron.trabajo;
                 const isSelected = diaInicio === i + 1;
@@ -211,7 +211,7 @@ const ModalAutocompletarPauta = ({
                     key={i}
                     onClick={() => setDiaInicio(i + 1)}
                     className={`
-                      w-8 h-8 rounded-md text-xs font-bold transition-all duration-200
+                      w-10 h-10 rounded-md text-xs font-bold transition-all duration-200
                       flex items-center justify-center border-2 shadow-sm
                       ${isSelected 
                         ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 scale-110 shadow-lg' 
@@ -224,10 +224,22 @@ const ModalAutocompletarPauta = ({
                     `}
                     title={`Día ${i + 1} del ciclo - ${esDiaTrabajo ? 'Trabajando' : 'Libre'}`}
                   >
-                    {esDiaTrabajo ? 'planificado' : 'L'}
+                    {esDiaTrabajo ? 'T' : 'L'}
                   </button>
                 );
               })}
+            </div>
+            
+            {/* Leyenda */}
+            <div className="flex justify-center gap-4 mt-3 text-xs text-gray-600 dark:text-gray-400">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded bg-emerald-500"></div>
+                <span>T = Trabajo</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded bg-gray-300 dark:bg-gray-600"></div>
+                <span>L = Libre</span>
+              </div>
             </div>
           </div>
         </div>
@@ -286,7 +298,7 @@ const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean 
         text: "", 
         className: "bg-transparent border-0",
         iconColor: "text-red-600 dark:text-red-400 text-xl font-bold",
-        tooltip: "Falta"
+        tooltip: "Sin Cobertura"
       };
     case "r":
       // Con la unificación, solo entrará aquí si no hay 'cobertura' y se dejó r como dato heredado
@@ -640,7 +652,7 @@ export default function PautaTable({
             <div className="w-8 h-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md flex items-center justify-center">
               <span className="text-red-600 dark:text-red-400 text-lg font-bold">✗</span>
             </div>
-            <span className="text-gray-700 dark:text-gray-300 font-medium">Falta</span>
+            <span className="text-gray-700 dark:text-gray-300 font-medium">Sin Cobertura</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md flex items-center justify-center">
@@ -666,7 +678,7 @@ export default function PautaTable({
                 <div className="flex items-center gap-3"><span className="text-blue-600 text-lg font-bold">●</span> Turno</div>
                 <div className="flex items-center gap-3"><span className="text-gray-500 text-lg font-bold">○</span> Libre</div>
                 <div className="flex items-center gap-3"><span className="text-green-600 text-lg font-bold">✓</span> Asistió</div>
-                <div className="flex items-center gap-3"><span className="text-red-600 text-lg font-bold">✗</span> Falta</div>
+                <div className="flex items-center gap-3"><span className="text-red-600 text-lg font-bold">✗</span> Sin Cobertura</div>
                 <div className="flex items-center gap-3"><span className="text-fuchsia-600 text-sm font-extrabold">TE</span> Turno Extra</div>
                 <div className="flex items-center gap-3"><span className="text-red-600 text-lg font-bold">▲</span> Sin Cobertura</div>
                 <div className="flex items-center gap-3"><span className="text-indigo-600 text-lg">🏖</span> Permiso</div>
@@ -775,18 +787,16 @@ export default function PautaTable({
                             </Link>
                           </div>
                           <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight">
-                            <span className="font-medium">{guardia.rol_nombre || guardia.nombre_puesto}</span>
+                            <span className="font-medium">{guardia.nombre_puesto}</span>
                             {guardia.es_ppc && (
                               <span className="ml-2 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-xs font-medium">
                                 PPC
                               </span>
                             )}
                           </div>
-                          {/* UUID del puesto truncado */}
+                          {/* Rol de servicio */}
                           <div className="text-xs text-muted-foreground">
-                            <span title={guardia.id} className="cursor-help">
-                              {truncateMiddle(guardia.id)}
-                            </span>
+                            <span>{guardia.rol_nombre}</span>
                           </div>
                         </div>
                       </div>

@@ -30,8 +30,8 @@ export async function PUT(
     const guardiaId = params.id;
     const body = await request.json();
     
-    // Por ahora usar un tenant_id fijo para testing
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    // Usar el tenant_id correcto de Gard
+    const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337';
     const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
     
     console.log('✅ API Guardias - Actualizando con datos:', body);
@@ -193,8 +193,8 @@ export async function GET(
   try {
     const guardiaId = params.id;
     
-    // Por ahora usar un tenant_id fijo para testing
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    // Usar el tenant_id correcto de Gard
+    const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337';
     const usuario = 'admin@test.com';
 
     const result = await query(`

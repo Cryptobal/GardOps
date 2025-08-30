@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { useAddressAutocomplete, type AddressData } from '@/lib/useAddressAutocomplete';
 import { 
   ArrowLeft, 
   Building2, 
@@ -19,13 +22,13 @@ import {
   Save,
   X,
   RefreshCw,
-  Loader2
+  Loader2,
+  Check
 } from 'lucide-react';
 import Link from 'next/link';
 import { DocumentManager } from '@/components/shared/document-manager';
 
 import { GoogleMap } from '@/components/ui/google-map';
-import { InputDireccion, type AddressData } from '@/components/ui/input-direccion';
 import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@/lib/geocoding';
 import ErrorModal from '@/components/ui/error-modal';
 
@@ -51,12 +54,11 @@ interface Cliente {
 export default function ClienteDetallePage() {
   const params = useParams();
   const router = useRouter();
+  const toast = useToast();
   const clienteId = params.id as string;
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('informacion');
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<Partial<Cliente>>({});
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [geocodingData, setGeocodingData] = useState<GeocodingResult | null>(null);
   const [mapLoading, setMapLoading] = useState(false);
@@ -65,6 +67,22 @@ export default function ClienteDetallePage() {
   const [pendingEstado, setPendingEstado] = useState<string | null>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorDetails, setErrorDetails] = useState<any>(null);
+
+  // Estados para edición inline
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
+  const [saving, setSaving] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState<AddressData | null>(null);
+
+  // Hook para autocompletado de direcciones
+  const {
+    isLoaded: mapsLoaded,
+    suggestions,
+    isLoading: addressLoading,
+    searchAddresses,
+    selectAddress,
+    clearSelection
+  } = useAddressAutocomplete();
 
   const cargarCliente = useCallback(async () => {
     try {
@@ -83,7 +101,6 @@ export default function ClienteDetallePage() {
       }
       
       setCliente(clienteData);
-      setFormData(clienteData);
       
       // Cargar datos de geocodificación si hay dirección
       if (clienteData.direccion) {
@@ -134,68 +151,266 @@ export default function ClienteDetallePage() {
     }
   };
 
-  const handleEditarCliente = () => {
-    setIsEditing(true);
+  // Funciones para edición inline
+  const handleEdit = (field: string, initialValue: string) => {
+    setEditingField(field);
+    setEditValue(initialValue);
+    setSelectedAddress(null);
+    clearSelection();
   };
 
-  const handleGuardarCliente = async () => {
+  const handleCancelEdit = () => {
+    setEditingField(null);
+    setEditValue('');
+    setSelectedAddress(null);
+    clearSelection();
+  };
+
+  const handleSave = async (field: string) => {
+    if (!cliente) return;
+    
     try {
+      setSaving(true);
+      
+      // Crear objeto con todos los datos del cliente actual
+      let dataToUpdate: any = {
+        nombre: cliente.nombre,
+        rut: cliente.rut,
+        representante_legal: cliente.representante_legal,
+        rut_representante: cliente.rut_representante,
+        email: cliente.email,
+        telefono: cliente.telefono,
+        direccion: cliente.direccion,
+        latitud: cliente.latitud,
+        longitud: cliente.longitud,
+        ciudad: cliente.ciudad,
+        comuna: cliente.comuna,
+        razon_social: cliente.razon_social,
+        estado: cliente.estado
+      };
+      
+      // Actualizar solo el campo específico
+      if (field === 'direccion' && selectedAddress) {
+        // Para dirección con datos de Google Maps - solo guardar la dirección de la calle
+        dataToUpdate[field] = editValue; // Usar el valor editado (dirección limpia)
+        dataToUpdate.latitud = selectedAddress.latitud;
+        dataToUpdate.longitud = selectedAddress.longitud;
+        dataToUpdate.ciudad = selectedAddress.componentes.ciudad;
+        dataToUpdate.comuna = selectedAddress.componentes.comuna;
+      } else {
+        dataToUpdate[field] = editValue;
+      }
+      
       const response = await fetch(`/api/clientes/${clienteId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToUpdate),
       });
 
       if (response.ok) {
         const responseData = await response.json();
         const updatedCliente = responseData.data || responseData;
         setCliente(updatedCliente);
-        setIsEditing(false);
-        setRefreshTrigger(prev => prev + 1);
         
-        // Recargar datos geográficos si cambió la dirección
-        if (updatedCliente.direccion && updatedCliente.direccion !== cliente?.direccion) {
-          await cargarDatosGeograficos(updatedCliente.direccion);
+        // Si se actualizó la dirección, recargar datos geográficos
+        if (field === 'direccion') {
+          await cargarDatosGeograficos(dataToUpdate[field]);
         }
+        
+        setEditingField(null);
+        setEditValue('');
+        setSelectedAddress(null);
+        clearSelection();
+        
+        toast.success("Campo actualizado correctamente");
       } else {
-        console.error('Error al actualizar cliente');
+        throw new Error('Error al actualizar cliente');
       }
     } catch (error) {
-      console.error('Error guardando cliente:', error);
+      console.error('Error guardando campo:', error);
+      toast.error("No se pudo actualizar el campo");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleCancelarEdicion = () => {
-    setFormData(cliente || {});
-    setIsEditing(false);
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleAddressSelect = (addressData: AddressData) => {
-    setFormData(prev => ({
-      ...prev,
-      direccion: addressData.direccionCompleta,
-      latitud: addressData.latitud,
-      longitud: addressData.longitud,
-      ciudad: addressData.componentes.ciudad,
-      comuna: addressData.componentes.comuna
-    }));
+  const handleAddressInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEditValue(value);
     
-    // Actualizar los datos de geocodificación
-    setGeocodingData({
-      latitud: addressData.latitud,
-      longitud: addressData.longitud,
-      comuna: addressData.componentes.comuna,
-      ciudad: addressData.componentes.ciudad,
-      region: addressData.componentes.region,
-      direccionCompleta: addressData.direccionCompleta
-    });
+    // Buscar sugerencias si hay al menos 3 caracteres
+    if (value.length >= 3 && mapsLoaded) {
+      searchAddresses(value);
+    }
+  };
+
+  const handleAddressSelect = async (placeId: string) => {
+    const addressData = await selectAddress(placeId);
+    if (addressData) {
+      setSelectedAddress(addressData);
+      
+      // Función para limpiar la dirección y obtener solo la calle
+      const limpiarDireccion = (direccionCompleta: string): string => {
+        // Para el ejemplo "Av. La Dehesa 226, 7690000 Lo Barnechea, Región Metropolitana, Chile"
+        // Queremos solo "Av. La Dehesa 226"
+        
+        // Dividir por comas y tomar solo la primera parte (la dirección de la calle)
+        const partes = direccionCompleta.split(',').map(p => p.trim());
+        
+        // La primera parte siempre es la dirección de la calle
+        return partes[0];
+      };
+      
+      const direccionCalle = limpiarDireccion(addressData.direccionCompleta);
+      setEditValue(direccionCalle);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, field: string) => {
+    if (e.key === 'Enter') {
+      handleSave(field);
+    } else if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
+  };
+
+  // Componente de campo editable
+  const EditableField = ({ 
+    label, 
+    value, 
+    field, 
+    type = 'text',
+    placeholder = '',
+    className = '',
+    options = []
+  }: {
+    label: string;
+    value: string | number;
+    field: string;
+    type?: string;
+    placeholder?: string;
+    className?: string;
+    options?: { value: string; label: string }[];
+  }) => {
+    const isEditing = editingField === field;
+    
+    return (
+      <div className={className}>
+        <label className="text-xs sm:text-sm font-medium text-gray-600">{label}</label>
+        {isEditing ? (
+          <div className="flex items-center gap-2 mt-1">
+            {options.length > 0 ? (
+              <Select
+                value={editValue}
+                onValueChange={(value) => setEditValue(value)}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder={`Seleccionar ${label.toLowerCase()}`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {options.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : field === 'direccion' ? (
+              <div className="flex-1 relative">
+                <Input
+                  type={type}
+                  value={editValue}
+                  onChange={handleAddressInputChange}
+                  onKeyDown={(e) => handleKeyDown(e, field)}
+                  placeholder={placeholder}
+                  className="flex-1"
+                  autoFocus
+                />
+                {addressLoading && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 dark:border-white"></div>
+                  </div>
+                )}
+                {/* Lista de sugerencias */}
+                {suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+                    {suggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.placeId}
+                        type="button"
+                        className="w-full px-4 py-3 text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none border-b border-border last:border-b-0"
+                        onClick={() => handleAddressSelect(suggestion.placeId)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate">
+                              {suggestion.direccionPrincipal}
+                            </div>
+                            {suggestion.direccionSecundaria && (
+                              <div className="text-xs text-muted-foreground truncate">
+                                {suggestion.direccionSecundaria}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Input
+                type={type}
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, field)}
+                placeholder={placeholder}
+                className="flex-1"
+                autoFocus
+              />
+            )}
+            <Button
+              size="sm"
+              onClick={() => handleSave(field)}
+              disabled={saving}
+              className="h-8 w-8 p-0"
+            >
+              {saving ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCancelEdit}
+              disabled={saving}
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between mt-1 group">
+            <p className="text-sm sm:text-lg">
+              {value || 'No configurado'}
+            </p>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleEdit(field, value?.toString() || '')}
+              className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+    );
   };
 
   const handleToggleEstado = () => {
@@ -219,7 +434,6 @@ export default function ClienteDetallePage() {
         const responseData = await response.json();
         const updatedCliente = responseData.data || responseData;
         setCliente(updatedCliente);
-        setFormData(updatedCliente);
         setShowConfirmModal(false);
         setPendingEstado(null);
         console.log(`Cliente ${pendingEstado === 'Activo' ? 'activado' : 'inactivado'} correctamente`);
@@ -328,34 +542,7 @@ export default function ClienteDetallePage() {
             </button>
           </span>
           
-          {isEditing ? (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCancelarEdicion}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Cancelar
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleGuardarCliente}
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Guardar
-              </Button>
-            </>
-          ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleEditarCliente}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Editar
-            </Button>
-          )}
+          
         </div>
       </div>
 
@@ -423,74 +610,41 @@ export default function ClienteDetallePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">
-                      Nombre de la Empresa
-                    </label>
-                    <Input
-                      name="nombre"
-                      value={formData.nombre || ''}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
+                <EditableField
+                  label="Nombre de la Empresa"
+                  value={cliente.nombre}
+                  field="nombre"
                       placeholder="Nombre de la empresa"
                     />
-                  </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">
-                      RUT
-                    </label>
-                    <Input
-                      name="rut"
-                      value={formData.rut || ''}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
+                <EditableField
+                  label="RUT"
+                  value={cliente.rut}
+                  field="rut"
                       placeholder="12345678-9"
                     />
-                  </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">
-                      Razón Social
-                    </label>
-                    <Input
-                      name="razon_social"
-                      value={formData.razon_social || ''}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
+                                 <EditableField
+                   label="Razón Social"
+                   value={cliente.razon_social || ''}
+                   field="razon_social"
                       placeholder="Razón social"
                     />
-                  </div>
 
-
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    Representante Legal
-                  </label>
-                  <Input
-                    name="representante_legal"
-                    value={formData.representante_legal || ''}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
+                 <EditableField
+                   label="Representante Legal"
+                   value={cliente.representante_legal || ''}
+                   field="representante_legal"
                     placeholder="Nombre del representante legal"
                   />
-                </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    RUT Representante
-                  </label>
-                  <Input
-                    name="rut_representante"
-                    value={formData.rut_representante || ''}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
+                 <EditableField
+                   label="RUT Representante"
+                   value={cliente.rut_representante || ''}
+                   field="rut_representante"
                     placeholder="12345678-9"
                   />
-                </div>
+
               </CardContent>
             </Card>
 
@@ -503,91 +657,42 @@ export default function ClienteDetallePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground flex items-center space-x-2">
-                    <Mail className="h-4 w-4" />
-                    <span>Email</span>
-                  </label>
-                  <Input
-                    name="email"
+                <EditableField
+                  label="Email"
+                  value={cliente.email || ''}
+                  field="email"
                     type="email"
-                    value={formData.email || ''}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
                     placeholder="correo@empresa.cl"
                   />
-                </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground flex items-center space-x-2">
-                    <Phone className="h-4 w-4" />
-                    <span>Teléfono</span>
-                  </label>
-                  <Input
-                    name="telefono"
-                    value={formData.telefono || ''}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
+                <EditableField
+                  label="Teléfono"
+                  value={cliente.telefono || ''}
+                  field="telefono"
                     placeholder="+56 9 1234 5678"
                   />
-                </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground flex items-center space-x-2">
-                    <MapPin className="h-4 w-4" />
-                    <span>Dirección</span>
-                  </label>
-                  {isEditing ? (
-                    <InputDireccion
-                      value={formData.direccion || ''}
-                      onAddressSelect={handleAddressSelect}
-                      placeholder="Buscar dirección..."
-                      initialLatitude={formData.latitud || null}
-                      initialLongitude={formData.longitud || null}
-                      initialCiudad={formData.ciudad || ''}
-                      initialComuna={formData.comuna || ''}
-                      showMap={false}
-                      className="w-full"
-                    />
-                  ) : (
-                    <Input
-                      name="direccion"
-                      value={formData.direccion || ''}
-                      disabled={true}
+                <EditableField
+                  label="Dirección"
+                  value={cliente.direccion || ''}
+                  field="direccion"
                       placeholder="Dirección completa"
-                      className="bg-muted"
                     />
-                  )}
-                </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">
-                      Ciudad
-                    </label>
-                    <Input
-                      name="ciudad"
-                      value={formData.ciudad || ''}
-                      onChange={handleInputChange}
-                      disabled={true}
+                  <EditableField
+                    label="Ciudad"
+                    value={cliente.ciudad || ''}
+                    field="ciudad"
                       placeholder="Se completa automáticamente"
-                      className="bg-muted"
-                    />
-                  </div>
+                  />
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">
-                      Comuna
-                    </label>
-                    <Input
-                      name="comuna"
-                      value={formData.comuna || ''}
-                      onChange={handleInputChange}
-                      disabled={true}
+                  <EditableField
+                    label="Comuna"
+                    value={cliente.comuna || ''}
+                    field="comuna"
                       placeholder="Se completa automáticamente"
-                      className="bg-muted"
                     />
-                  </div>
                 </div>
               </CardContent>
             </Card>

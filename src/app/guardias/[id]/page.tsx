@@ -4,17 +4,21 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, User, MapPin, Phone, Mail, Calendar, FileText, Settings, Edit, RefreshCw, AlertTriangle, CreditCard, Clock, DollarSign } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Phone, Mail, Calendar, FileText, Edit, RefreshCw, AlertTriangle, CreditCard, Clock, Check, X } from 'lucide-react';
 import Link from 'next/link';
-import AsignacionOperativa from './components/AsignacionOperativa';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { useAddressAutocomplete, type AddressData } from '@/lib/useAddressAutocomplete';
+
 import { DocumentManager } from '@/components/shared/document-manager';
 import PermisosGuardia from './components/PermisosGuardia';
 import FiniquitoGuardia from './components/FiniquitoGuardia';
-import DatosBancarios from './components/DatosBancarios';
 import TurnosExtrasGuardia from './components/TurnosExtrasGuardia';
 import HistorialMensual from './components/HistorialMensual';
-import EstructuraGuardia from './components/EstructuraGuardia';
+import AsignacionGuardia from './components/AsignacionGuardia';
+
 import { GoogleMap } from '@/components/ui/google-map';
 import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@/lib/geocoding';
 
@@ -35,21 +39,73 @@ interface Guardia {
   updated_at: string;
 }
 
+interface DatosBancarios {
+  id: string;
+  banco: string | null;
+  tipo_cuenta: string | null;
+  numero_cuenta: string | null;
+  banco_nombre: string | null;
+}
+
+interface Banco {
+  id: string;
+  nombre: string;
+  codigo: string;
+}
+
+const TIPOS_CUENTA = [
+  { value: 'CCT', label: 'Cuenta Corriente' },
+  { value: 'CTE', label: 'Cuenta de Ahorro' },
+  { value: 'CTA', label: 'Cuenta Vista' },
+  { value: 'RUT', label: 'Cuenta RUT' }
+];
+
 export default function GuardiaDetallePage() {
   const params = useParams();
   const router = useRouter();
+  const toast = useToast();
   const guardiaId = params.id as string;
   const [guardia, setGuardia] = useState<Guardia | null>(null);
+  const [datosBancarios, setDatosBancarios] = useState<DatosBancarios | null>(null);
+  const [bancos, setBancos] = useState<Banco[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('informacion');
   const [geocodingData, setGeocodingData] = useState<GeocodingResult | null>(null);
   const [mapLoading, setMapLoading] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
+  // Estados para edición inline
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
+  const [saving, setSaving] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState<AddressData | null>(null);
+
+  // Hook para autocompletado de direcciones
+  const {
+    isLoaded: mapsLoaded,
+    suggestions,
+    isLoading: addressLoading,
+    searchAddresses,
+    selectAddress,
+    clearSelection
+  } = useAddressAutocomplete();
 
   useEffect(() => {
     cargarGuardia();
+    cargarBancos();
   }, [guardiaId]);
+
+  const cargarBancos = async () => {
+    try {
+      const response = await fetch('/api/bancos');
+      if (response.ok) {
+        const data = await response.json();
+        setBancos(data.bancos || []);
+      }
+    } catch (error) {
+      console.error('Error cargando bancos:', error);
+    }
+  };
 
   const cargarGuardia = async () => {
     try {
@@ -60,6 +116,13 @@ export default function GuardiaDetallePage() {
       }
       const guardiaData = await response.json();
       setGuardia(guardiaData);
+      
+      // Cargar datos bancarios
+      const datosBancariosResponse = await fetch(`/api/guardias/${guardiaId}/banco`);
+      if (datosBancariosResponse.ok) {
+        const datosBancariosData = await datosBancariosResponse.json();
+        setDatosBancarios(datosBancariosData);
+      }
       
       if (guardiaData.direccion) {
         await cargarDatosGeograficos(guardiaData.direccion);
@@ -96,8 +159,273 @@ export default function GuardiaDetallePage() {
     }
   };
 
-  const handleEditarGuardia = () => {
-    router.push(`/guardias/${guardiaId}/editar`);
+  // Funciones para edición inline
+  const handleEdit = (field: string, initialValue: string) => {
+    setEditingField(field);
+    setEditValue(initialValue);
+    setSelectedAddress(null);
+    clearSelection();
+  };
+
+  const handleCancelEdit = () => {
+    setEditingField(null);
+    setEditValue('');
+    setSelectedAddress(null);
+    clearSelection();
+  };
+
+  const handleSave = async (field: string) => {
+    if (!guardia) return;
+    
+    try {
+      setSaving(true);
+      
+      let dataToUpdate: any = {};
+      
+      if (field === 'direccion' && selectedAddress) {
+        // Para dirección con datos de Google Maps - solo guardar la dirección de la calle
+        dataToUpdate[field] = editValue; // Usar el valor editado (dirección limpia)
+        dataToUpdate.latitud = selectedAddress.latitud;
+        dataToUpdate.longitud = selectedAddress.longitud;
+        dataToUpdate.ciudad = selectedAddress.componentes.ciudad;
+        dataToUpdate.comuna = selectedAddress.componentes.comuna;
+      } else {
+        dataToUpdate[field] = editValue;
+      }
+      
+      // Determinar si es un campo del guardia o de datos bancarios
+      const isBancoField = ['banco', 'tipo_cuenta', 'numero_cuenta'].includes(field);
+      
+      if (isBancoField) {
+        // Actualizar datos bancarios
+        const response = await fetch(`/api/guardias/${guardiaId}/banco`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dataToUpdate)
+        });
+        
+        if (response.ok) {
+          const updatedDatosBancarios = await response.json();
+          setDatosBancarios(updatedDatosBancarios);
+        } else {
+          throw new Error('Error actualizando datos bancarios');
+        }
+      } else {
+        // Actualizar datos del guardia
+        const response = await fetch(`/api/guardias/${guardiaId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dataToUpdate)
+        });
+        
+        if (response.ok) {
+          const updatedGuardia = await response.json();
+          setGuardia(updatedGuardia);
+          
+          // Si se actualizó la dirección, recargar datos geográficos
+          if (field === 'direccion') {
+            await cargarDatosGeograficos(dataToUpdate[field]);
+          }
+        } else {
+          throw new Error('Error actualizando guardia');
+        }
+      }
+      
+      setEditingField(null);
+      setEditValue('');
+      setSelectedAddress(null);
+      clearSelection();
+      
+      toast.success("Campo actualizado correctamente");
+      
+    } catch (error) {
+      console.error('Error guardando campo:', error);
+      toast.error("No se pudo actualizar el campo");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddressInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEditValue(value);
+    
+    // Buscar sugerencias si hay al menos 3 caracteres
+    if (value.length >= 3 && mapsLoaded) {
+      searchAddresses(value);
+    }
+  };
+
+  const handleAddressSelect = async (placeId: string) => {
+    const addressData = await selectAddress(placeId);
+    if (addressData) {
+      setSelectedAddress(addressData);
+      
+      // Función para limpiar la dirección y obtener solo la calle
+      const limpiarDireccion = (direccionCompleta: string): string => {
+        // Para el ejemplo "Av. La Dehesa 226, 7690000 Lo Barnechea, Región Metropolitana, Chile"
+        // Queremos solo "Av. La Dehesa 226"
+        
+        // Dividir por comas y tomar solo la primera parte (la dirección de la calle)
+        const partes = direccionCompleta.split(',').map(p => p.trim());
+        
+        // La primera parte siempre es la dirección de la calle
+        return partes[0];
+      };
+      
+      const direccionCalle = limpiarDireccion(addressData.direccionCompleta);
+      setEditValue(direccionCalle);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, field: string) => {
+    if (e.key === 'Enter') {
+      handleSave(field);
+    } else if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
+  };
+
+  // Componente de campo editable
+  const EditableField = ({ 
+    label, 
+    value, 
+    field, 
+    type = 'text',
+    placeholder = '',
+    className = '',
+    options = []
+  }: {
+    label: string;
+    value: string | number;
+    field: string;
+    type?: string;
+    placeholder?: string;
+    className?: string;
+    options?: { value: string; label: string }[];
+  }) => {
+    const isEditing = editingField === field;
+    
+    return (
+      <div className={className}>
+        <label className="text-xs sm:text-sm font-medium text-gray-600">{label}</label>
+        {isEditing ? (
+          <div className="flex items-center gap-2 mt-1">
+            {options.length > 0 ? (
+              <Select
+                value={editValue}
+                onValueChange={(value) => setEditValue(value)}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder={`Seleccionar ${label.toLowerCase()}`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {options.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : field === 'direccion' ? (
+              <div className="flex-1 relative">
+                <Input
+                  type={type}
+                  value={editValue}
+                  onChange={handleAddressInputChange}
+                  onKeyDown={(e) => handleKeyDown(e, field)}
+                  placeholder={placeholder}
+                  className="flex-1"
+                  autoFocus
+                />
+                {addressLoading && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 dark:border-white"></div>
+                  </div>
+                )}
+                {/* Lista de sugerencias */}
+                {suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+                    {suggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.placeId}
+                        type="button"
+                        className="w-full px-4 py-3 text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none border-b border-border last:border-b-0"
+                        onClick={() => handleAddressSelect(suggestion.placeId)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate">
+                              {suggestion.direccionPrincipal}
+                            </div>
+                            {suggestion.direccionSecundaria && (
+                              <div className="text-xs text-muted-foreground truncate">
+                                {suggestion.direccionSecundaria}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Input
+                type={type}
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, field)}
+                placeholder={placeholder}
+                className="flex-1"
+                autoFocus
+              />
+            )}
+            <Button
+              size="sm"
+              onClick={() => handleSave(field)}
+              disabled={saving}
+              className="h-8 w-8 p-0"
+            >
+              {saving ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCancelEdit}
+              disabled={saving}
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between mt-1 group">
+            <p className="text-sm sm:text-lg">
+              {field === 'banco' 
+                ? bancos.find(b => b.id === value)?.nombre || 'No especificado'
+                : field === 'tipo_cuenta'
+                ? TIPOS_CUENTA.find(t => t.value === value)?.label || value || 'No especificado'
+                : value || 'No configurado'
+              }
+            </p>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleEdit(field, value?.toString() || '')}
+              className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+    );
   };
 
   const handleReintentarGeocodificacion = () => {
@@ -171,15 +499,7 @@ export default function GuardiaDetallePage() {
           }`}>
             {guardia.estado === 'activo' ? 'Activo' : 'Inactivo'}
           </span>
-          <Button 
-            onClick={handleEditarGuardia}
-            variant="outline" 
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <Edit className="h-4 w-4" />
-            Editar
-          </Button>
+
         </div>
       </div>
 
@@ -200,17 +520,7 @@ export default function GuardiaDetallePage() {
               <User className="h-4 w-4 flex-shrink-0" />
               <span>Información</span>
             </button>
-            <button
-              onClick={() => setActiveTab('asignacion')}
-              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
-                activeTab === 'asignacion' 
-                  ? 'bg-background shadow-sm text-foreground' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Settings className="h-4 w-4 flex-shrink-0" />
-              <span>Asignación</span>
-            </button>
+
             <button
               onClick={() => setActiveTab('permisos')}
               className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
@@ -232,17 +542,6 @@ export default function GuardiaDetallePage() {
             >
               <FileText className="h-4 w-4 flex-shrink-0" />
               <span>Documentos</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('datos-bancarios')}
-              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
-                activeTab === 'datos-bancarios' 
-                  ? 'bg-background shadow-sm text-foreground' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <CreditCard className="h-4 w-4 flex-shrink-0" />
-              <span>Datos Bancarios</span>
             </button>
             <button
               onClick={() => setActiveTab('finiquito')}
@@ -267,6 +566,17 @@ export default function GuardiaDetallePage() {
               <span>Turnos Extras</span>
             </button>
             <button
+              onClick={() => setActiveTab('asignacion')}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'asignacion' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <MapPin className="h-4 w-4 flex-shrink-0" />
+              <span>Asignación</span>
+            </button>
+            <button
               onClick={() => setActiveTab('historial-mensual')}
               className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
                 activeTab === 'historial-mensual' 
@@ -277,17 +587,7 @@ export default function GuardiaDetallePage() {
               <Calendar className="h-4 w-4 flex-shrink-0" />
               <span>Historial Mensual</span>
             </button>
-            <button
-              onClick={() => setActiveTab('estructura')}
-              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-200 hover:bg-muted/60 ${
-                activeTab === 'estructura' 
-                  ? 'bg-background shadow-sm text-foreground' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <DollarSign className="h-4 w-4 flex-shrink-0" />
-              <span>Estructura</span>
-            </button>
+
           </div>
 
           {/* Móvil: Diseño en 2 filas de 3 pestañas cada una */}
@@ -304,17 +604,7 @@ export default function GuardiaDetallePage() {
               <User className="h-4 w-4" />
               <span>Información</span>
             </button>
-            <button
-              onClick={() => setActiveTab('asignacion')}
-              className={`flex flex-col items-center gap-1 px-3 py-4 text-xs font-medium rounded-lg transition-all duration-200 hover:bg-muted/60 ${
-                activeTab === 'asignacion' 
-                  ? 'bg-background shadow-sm text-foreground' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Settings className="h-4 w-4" />
-              <span>Asignación</span>
-            </button>
+
             <button
               onClick={() => setActiveTab('permisos')}
               className={`flex flex-col items-center gap-1 px-3 py-4 text-xs font-medium rounded-lg transition-all duration-200 hover:bg-muted/60 ${
@@ -339,17 +629,6 @@ export default function GuardiaDetallePage() {
               <span>Documentos</span>
             </button>
             <button
-              onClick={() => setActiveTab('datos-bancarios')}
-              className={`flex flex-col items-center gap-1 px-3 py-4 text-xs font-medium rounded-lg transition-all duration-200 hover:bg-muted/60 ${
-                activeTab === 'datos-bancarios' 
-                  ? 'bg-background shadow-sm text-foreground' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <CreditCard className="h-4 w-4" />
-              <span>Bancarios</span>
-            </button>
-            <button
               onClick={() => setActiveTab('finiquito')}
               className={`flex flex-col items-center gap-1 px-3 py-4 text-xs font-medium rounded-lg transition-all duration-200 hover:bg-muted/60 ${
                 activeTab === 'finiquito' 
@@ -372,6 +651,17 @@ export default function GuardiaDetallePage() {
               <span>Extras</span>
             </button>
             <button
+              onClick={() => setActiveTab('asignacion')}
+              className={`flex flex-col items-center gap-1 px-3 py-4 text-xs font-medium rounded-lg transition-all duration-200 hover:bg-muted/60 ${
+                activeTab === 'asignacion' 
+                  ? 'bg-background shadow-sm text-foreground' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <MapPin className="h-4 w-4" />
+              <span>Asignación</span>
+            </button>
+            <button
               onClick={() => setActiveTab('historial-mensual')}
               className={`flex flex-col items-center gap-1 px-3 py-4 text-xs font-medium rounded-lg transition-all duration-200 hover:bg-muted/60 ${
                 activeTab === 'historial-mensual' 
@@ -382,17 +672,7 @@ export default function GuardiaDetallePage() {
               <Calendar className="h-4 w-4" />
               <span>Historial</span>
             </button>
-            <button
-              onClick={() => setActiveTab('estructura')}
-              className={`flex flex-col items-center gap-1 px-3 py-4 text-xs font-medium rounded-lg transition-all duration-200 hover:bg-muted/60 ${
-                activeTab === 'estructura' 
-                  ? 'bg-background shadow-sm text-foreground' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <DollarSign className="h-4 w-4" />
-              <span>Estructura</span>
-            </button>
+
           </div>
         </div>
       </div>
@@ -409,68 +689,88 @@ export default function GuardiaDetallePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                      Nombre Completo
-                    </label>
-                    <p className="text-sm font-medium">
-                      {guardia.nombre} {guardia.apellidos}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                      RUT
-                    </label>
-                    <p className="text-sm">{guardia.rut}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1">
-                      <Mail className="h-3 w-3" />
-                      Email
-                    </label>
-                    <p className="text-sm">{guardia.email}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1">
-                      <Phone className="h-3 w-3" />
-                      Teléfono
-                    </label>
-                    <p className="text-sm">{guardia.telefono}</p>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <EditableField
+                    label="Nombre"
+                    value={guardia.nombre}
+                    field="nombre"
+                    placeholder="Nombre del guardia"
+                  />
+                  <EditableField
+                    label="Apellidos"
+                    value={guardia.apellidos}
+                    field="apellidos"
+                    placeholder="Apellidos del guardia"
+                  />
+                  <EditableField
+                    label="RUT"
+                    value={guardia.rut}
+                    field="rut"
+                    placeholder="12.345.678-9"
+                  />
+                  <EditableField
+                    label="Email"
+                    value={guardia.email}
+                    field="email"
+                    type="email"
+                    placeholder="email@ejemplo.com"
+                  />
+                  <EditableField
+                    label="Teléfono"
+                    value={guardia.telefono}
+                    field="telefono"
+                    type="tel"
+                    placeholder="+56 9 1234 5678"
+                  />
+                  <EditableField
+                    label="Tipo de Guardia"
+                    value={guardia.tipo_guardia || ''}
+                    field="tipo_guardia"
+                    options={[
+                      { value: 'contratado', label: 'Contratado' },
+                      { value: 'esporadico', label: 'Esporádico' }
+                    ]}
+                  />
+                  <EditableField
+                    label="Vencimiento OS10"
+                    value={guardia.fecha_os10 || ''}
+                    field="fecha_os10"
+                    type="date"
+                    placeholder="Fecha de vencimiento"
+                  />
                 </div>
-                
-                {/* Tipo de Guardia y Vencimiento OS10 en fila adicional */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                      Tipo de Guardia
-                    </label>
-                    <p className="text-sm font-medium">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        guardia.tipo_guardia === 'contratado' 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
-                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-                      }`}>
-                        {guardia.tipo_guardia === 'contratado' ? 'Contratado' : 'Esporádico'}
-                      </span>
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                      Vencimiento OS10
-                    </label>
-                    <p className="text-sm">
-                      {guardia.fecha_os10 
-                        ? new Date(guardia.fecha_os10).toLocaleDateString('es-ES', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })
-                        : 'No especificada'
-                      }
-                    </p>
-                  </div>
+              </CardContent>
+            </Card>
+
+            {/* Sección 2: Datos Bancarios */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <CreditCard className="h-4 w-4" />
+                  Datos Bancarios
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <EditableField
+                    label="Banco"
+                    value={datosBancarios?.banco || ''}
+                    field="banco"
+                    options={bancos.map(b => ({ value: b.id, label: b.nombre }))}
+                  />
+                  <EditableField
+                    label="Tipo de Cuenta"
+                    value={datosBancarios?.tipo_cuenta || ''}
+                    field="tipo_cuenta"
+                    options={TIPOS_CUENTA}
+                  />
+                  <EditableField
+                    label="Número de Cuenta"
+                    value={datosBancarios?.numero_cuenta || ''}
+                    field="numero_cuenta"
+                    type="text"
+                    placeholder="Número de cuenta"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -487,12 +787,12 @@ export default function GuardiaDetallePage() {
                 {/* Información de ubicación - Lado izquierdo */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-3">
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                        Dirección
-                      </label>
-                      <p className="text-sm">{guardia.direccion}</p>
-                    </div>
+                    <EditableField
+                      label="Dirección"
+                      value={guardia.direccion}
+                      field="direccion"
+                      placeholder="Buscar dirección con Google Maps..."
+                    />
                     {geocodingData?.comuna && (
                       <div>
                         <label className="text-xs font-medium text-muted-foreground mb-1 block">
@@ -581,12 +881,7 @@ export default function GuardiaDetallePage() {
           </div>
         )}
 
-        {/* Contenido de la pestaña Asignación */}
-        {activeTab === 'asignacion' && (
-          <div className="mt-6">
-            <AsignacionOperativa guardiaId={guardiaId} />
-          </div>
-        )}
+
 
         {/* Contenido de la pestaña Permisos */}
         {activeTab === 'permisos' && (
@@ -617,13 +912,6 @@ export default function GuardiaDetallePage() {
           </div>
         )}
 
-        {/* Contenido de la pestaña Datos Bancarios */}
-        {activeTab === 'datos-bancarios' && (
-          <div className="mt-6">
-            <DatosBancarios guardiaId={guardiaId} />
-          </div>
-        )}
-
         {/* Contenido de la pestaña Finiquito */}
         {activeTab === 'finiquito' && (
           <div className="mt-6">
@@ -641,6 +929,13 @@ export default function GuardiaDetallePage() {
           </div>
         )}
 
+        {/* Contenido de la pestaña Asignación */}
+        {activeTab === 'asignacion' && (
+          <div className="mt-6">
+            <AsignacionGuardia guardiaId={guardiaId} />
+          </div>
+        )}
+
         {/* Contenido de la pestaña Historial Mensual */}
         {activeTab === 'historial-mensual' && (
           <div className="mt-6">
@@ -648,12 +943,7 @@ export default function GuardiaDetallePage() {
           </div>
         )}
 
-        {/* Contenido de la pestaña Estructura */}
-        {activeTab === 'estructura' && (
-          <div className="mt-6">
-            <EstructuraGuardia guardiaId={guardiaId} />
-          </div>
-        )}
+
 
       {/* Modal de confirmación */}
 

@@ -6,6 +6,7 @@ import { GuardiaSearchModal } from '@/components/ui/guardia-search-modal';
 import { useToast } from '@/components/ui/toast';
 import { UserPlus } from 'lucide-react';
 import { asignarGuardiaPPC } from '@/lib/api/instalaciones';
+import ConfirmacionReasignacionModal from '@/components/ui/confirmacion-reasignacion-modal';
 
 interface AsignarGuardiaDropdownProps {
   instalacionId: string;
@@ -29,6 +30,9 @@ export default function AsignarGuardiaDropdown({
   const [loading, setLoading] = useState(false);
   const [cargandoGuardias, setCargandoGuardias] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [showConfirmacionModal, setShowConfirmacionModal] = useState(false);
+  const [asignacionActual, setAsignacionActual] = useState<any>(null);
+  const [guardiaSeleccionado, setGuardiaSeleccionado] = useState<string>('');
 
   // Cargar guardias cuando se abre el modal
   useEffect(() => {
@@ -63,9 +67,36 @@ export default function AsignarGuardiaDropdown({
   };
 
   const handleSelectGuardia = async (guardiaId: string) => {
+    setGuardiaSeleccionado(guardiaId);
+    
     try {
       setLoading(true);
-      await asignarGuardiaPPC(instalacionId, ppcId, guardiaId);
+      
+      // Intentar asignar el guardia
+      const response = await fetch('/api/ppc/asignar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          guardia_id: guardiaId,
+          puesto_operativo_id: ppcId
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 409 && data.requiere_confirmacion) {
+          // El guardia ya está asignado, mostrar modal de confirmación
+          setAsignacionActual(data.asignacion_actual);
+          setShowConfirmacionModal(true);
+          setModalOpen(false);
+          setLoading(false);
+          return;
+        }
+        throw new Error(data.error || 'Error al asignar guardia');
+      }
       
       toast.success('Guardia asignado correctamente', 'Éxito');
       onAsignacionCompletada();
@@ -73,6 +104,42 @@ export default function AsignarGuardiaDropdown({
     } catch (error) {
       console.error('Error asignando guardia:', error);
       toast.error('No se pudo asignar el guardia', 'Error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmarReasignacion = async () => {
+    if (!guardiaSeleccionado) return;
+
+    try {
+      setLoading(true);
+      
+      // Asignar con confirmación de reasignación
+      const response = await fetch('/api/ppc/asignar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          guardia_id: guardiaSeleccionado,
+          puesto_operativo_id: ppcId,
+          confirmar_reasignacion: true
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al reasignar guardia');
+      }
+      
+      toast.success('Guardia reasignado correctamente', 'Éxito');
+      onAsignacionCompletada();
+      setShowConfirmacionModal(false);
+    } catch (error) {
+      console.error('Error reasignando guardia:', error);
+      toast.error('No se pudo reasignar el guardia', 'Error');
     } finally {
       setLoading(false);
     }
@@ -109,6 +176,19 @@ export default function AsignarGuardiaDropdown({
         instalacionId={instalacionId}
         instalacionNombre={instalacionNombre}
       />
+
+      {/* Modal de confirmación de reasignación */}
+      {showConfirmacionModal && asignacionActual && (
+        <ConfirmacionReasignacionModal
+          isOpen={showConfirmacionModal}
+          onClose={() => setShowConfirmacionModal(false)}
+          onConfirmar={handleConfirmarReasignacion}
+          guardiaNombre={guardias.find(g => g.id === guardiaSeleccionado)?.nombre_completo || 'Guardia'}
+          asignacionActual={asignacionActual}
+          nuevaInstalacionNombre={instalacionNombre}
+          nuevoRolServicioNombre={rolServicioNombre}
+        />
+      )}
     </>
   );
 } 

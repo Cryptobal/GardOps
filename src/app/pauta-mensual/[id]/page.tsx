@@ -254,7 +254,9 @@ export default function PautaMensualUnificadaPage() {
             let turnoCompleto = guardiaPauta.nombre_puesto; // fallback
             if (puestoOperativo?.rol_servicio) {
               const { dias_trabajo, dias_descanso, horas_turno, hora_inicio, hora_termino } = puestoOperativo.rol_servicio;
-              turnoCompleto = `Día ${dias_trabajo}x${dias_descanso}x${horas_turno} / ${hora_inicio} ${hora_termino}`;
+              // Determinar si es día o noche basándose en la hora de inicio
+              const tipoTurno = hora_inicio && hora_inicio < '12:00' ? 'Día' : 'Noche';
+              turnoCompleto = `${tipoTurno} ${dias_trabajo}x${dias_descanso}x${horas_turno} / ${hora_inicio} ${hora_termino}`;
             }
             
                         return {
@@ -300,17 +302,19 @@ export default function PautaMensualUnificadaPage() {
             let turnoCompleto = puesto.nombre_completo; // fallback
             if (puesto.rol_servicio) {
               const { dias_trabajo, dias_descanso, horas_turno, hora_inicio, hora_termino } = puesto.rol_servicio;
-              turnoCompleto = `Día ${dias_trabajo}x${dias_descanso}x${horas_turno} / ${hora_inicio} ${hora_termino}`;
+              // Determinar si es día o noche basándose en la hora de inicio
+              const tipoTurno = hora_inicio && hora_inicio < '12:00' ? 'Día' : 'Noche';
+              turnoCompleto = `${tipoTurno} ${dias_trabajo}x${dias_descanso}x${horas_turno} / ${hora_inicio} ${hora_termino}`;
             }
               
             const nombreMostrar = puesto.tipo === 'ppc' 
-              ? `${puesto.nombre_completo} (PPC)` 
-              : puesto.nombre_completo;
+              ? `PPC ${puesto.nombre_puesto}` 
+              : (puesto.nombre_completo || 'Sin asignar');
             
             pautaInicial.push({
               id: puesto.id,
               nombre: nombreMostrar,
-              nombre_puesto: puesto.nombre_completo,
+              nombre_puesto: puesto.nombre_puesto || puesto.nombre_completo,
               patron_turno: puesto.rol_servicio ? `${puesto.rol_servicio.dias_trabajo}x${puesto.rol_servicio.dias_descanso}` : '4x4',
               dias: Array.from({ length: diasEnMes }, () => ''), // Días vacíos por defecto
               tipo: puesto.tipo,
@@ -395,9 +399,22 @@ export default function PautaMensualUnificadaPage() {
       for (const guardia of pautaData) {
         const original = originalById.get(guardia.id);
         
+        console.log(`🔍 Procesando guardia ${guardia.nombre}: ${guardia.dias.length} días`);
+        
         for (let diaIndex = 0; diaIndex < guardia.dias.length; diaIndex++) {
           const estadoActual = guardia.dias[diaIndex];
           const estadoOriginal = original?.dias?.[diaIndex];
+          
+          // Log para debug del día 31
+          if (diaIndex === 30) {
+            console.log(`🔍 Debug día 31:`, {
+              estadoActual,
+              estadoOriginal,
+              guardiaId: guardia.id,
+              guardiaNombre: guardia.nombre,
+              diasLength: guardia.dias.length
+            });
+          }
           
           // Política: siempre enviar planificación explícita (planificado/L)
           // y solo eliminar si antes era planificación
@@ -416,14 +433,41 @@ export default function PautaMensualUnificadaPage() {
             continue; // ignorar A, I, R, P, V, M, etc.
           }
           
-          actualizaciones.push({
-            puesto_id: guardia.id,
-            guardia_id: guardia.es_ppc ? null : (guardia.guardia_id || guardia.id),
-            anio: parseInt(anio.toString()),
-            mes: parseInt(mes.toString()),
-            dia: diaIndex + 1,
-            estado: estadoDB,
-          });
+          // Log para debug del día 31
+          if (diaIndex === 30) {
+            console.log(`🔍 Debug día 31:`, {
+              estadoActual,
+              estadoOriginal,
+              estadoDB,
+              guardiaId: guardia.id,
+              guardiaNombre: guardia.nombre
+            });
+          }
+          
+                      // Validar que el estado no esté incompleto
+            if (estadoDB && typeof estadoDB === 'string' && estadoDB.trim() !== '') {
+              // Validar que el estado sea válido
+              if (['planificado', 'libre'].includes(estadoDB)) {
+                actualizaciones.push({
+                  puesto_id: guardia.id,
+                  guardia_id: guardia.es_ppc ? null : (guardia.guardia_id || guardia.id),
+                  anio: parseInt(anio.toString()),
+                  mes: parseInt(mes.toString()),
+                  dia: diaIndex + 1,
+                  estado: estadoDB,
+                });
+              }
+            } else if (estadoDB === null) {
+              // Solo agregar si es null (para eliminar)
+              actualizaciones.push({
+                puesto_id: guardia.id,
+                guardia_id: guardia.es_ppc ? null : (guardia.guardia_id || guardia.id),
+                anio: parseInt(anio.toString()),
+                mes: parseInt(mes.toString()),
+                dia: diaIndex + 1,
+                estado: estadoDB,
+              });
+            }
         }
       }
 
@@ -434,6 +478,8 @@ export default function PautaMensualUnificadaPage() {
         setGuardando(false);
         return;
       }
+
+      console.log(`[${timestamp}] 📤 Enviando actualizaciones:`, JSON.stringify(actualizaciones, null, 2));
 
       const response = await fetch('/api/pauta-mensual/guardar', {
         method: 'POST',
@@ -492,9 +538,16 @@ export default function PautaMensualUnificadaPage() {
       return;
     }
     
-    const nuevaPautaData = [...pautaData];
-    nuevaPautaData[guardiaIndex].dias[diaIndex] = nuevoEstado;
-    setPautaData(nuevaPautaData);
+    // Usar actualización funcional para evitar condiciones de carrera con estado stale
+    setPautaData((prevData) => {
+      const nueva = prevData.map((g, idx) => {
+        if (idx !== guardiaIndex) return g;
+        const dias = g.dias.slice();
+        dias[diaIndex] = nuevoEstado;
+        return { ...g, dias };
+      });
+      return nueva;
+    });
   };
 
   const eliminarGuardia = (guardiaIndex: number) => {

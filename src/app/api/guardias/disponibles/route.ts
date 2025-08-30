@@ -41,11 +41,11 @@ export async function GET(request: NextRequest) {
   try {
     // Verificar si usamos la nueva API con funciones de Neon (server-safe)
     if (isNewTurnosApiEnabledServer()) {
-      console.info('[guardias/disponibles] Usando función de Neon fn_guardias_disponibles');
+      console.info('[guardias/disponibles] Usando función de Neon fn_guardias_disponibles_con_asignacion');
       
-      // Usar función de Neon para obtener guardias disponibles
+      // Usar función de Neon mejorada para obtener guardias disponibles con información de asignación
       const { rows } = await sql`
-        SELECT * FROM as_turnos.fn_guardias_disponibles(
+        SELECT * FROM as_turnos.fn_guardias_disponibles_con_asignacion(
           ${fecha}::date,
           ${instalacion_id}::uuid,
           ${rol_id || null}::uuid,
@@ -53,18 +53,24 @@ export async function GET(request: NextRequest) {
         );
       `;
       
-      // La función retorna guardia_id y nombre
+      // La función retorna guardia_id, nombre, rut, instalacion_actual_id, instalacion_actual_nombre, puesto_actual_nombre
       const items = rows.map(row => ({
         id: row.guardia_id,
         nombre_completo: row.nombre,
-        rut: row.rut || '', // Agregar campo rut
+        rut: row.rut || '',
         // Para compatibilidad con el frontend
         nombre: row.nombre?.split(',')[1]?.trim() || row.nombre,
         apellido_paterno: row.nombre?.split(',')[0]?.split(' ')[0] || '',
-        apellido_materno: row.nombre?.split(',')[0]?.split(' ')[1] || ''
+        apellido_materno: row.nombre?.split(',')[0]?.split(' ')[1] || '',
+        // Información de asignación actual
+        instalacion_actual_id: row.instalacion_actual_id,
+        instalacion_actual_nombre: row.instalacion_actual_nombre,
+        puesto_actual_nombre: row.puesto_actual_nombre
       }));
       
       console.log(`[Neon] Guardias disponibles encontrados: ${items.length}`);
+      console.log(`[Neon] Guardias con asignación actual: ${items.filter(g => g.instalacion_actual_id).length}`);
+      
       return NextResponse.json({ items });
     }
     
@@ -154,7 +160,7 @@ export async function GET(request: NextRequest) {
     // Si el error es específico, proporcionar más detalles
     if (error instanceof Error && error.message.includes('does not exist')) {
       return NextResponse.json(
-        { error: 'Función fn_guardias_disponibles no encontrada. Asegúrese de ejecutar las migraciones.' },
+        { error: 'Función fn_guardias_disponibles_con_asignacion no encontrada. Asegúrese de ejecutar las migraciones.' },
         { status: 500 }
       );
     }

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -52,14 +52,31 @@ interface Llamado {
   rol_nombre: string | null;
   nombre_puesto: string | null;
   minutos_atraso?: number;
+  // Flags calculados por backend (vista)
+  es_urgente?: boolean;
+  es_actual?: boolean;
+  es_proximo?: boolean;
 }
 
 export default function CentralMonitoreoPage() {
   // Estados principales
   const [loading, setLoading] = useState(true);
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+  const [fecha, setFecha] = useState(() => {
+    const hoy = new Date();
+    const year = hoy.getFullYear();
+    const month = String(hoy.getMonth() + 1).padStart(2, '0');
+    const day = String(hoy.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
   const [llamados, setLlamados] = useState<Llamado[]>([]);
-  const [filtroEstado, setFiltroEstado] = useState<string>('todos');
+  const [kpis, setKpis] = useState({
+    total: 0,
+    actuales: 0,
+    proximos: 0,
+    urgentes: 0,
+    completados: 0
+  });
+  const [filtroEstado, setFiltroEstado] = useState<string>('actuales');
   const [busqueda, setBusqueda] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [modalRegistro, setModalRegistro] = useState(false);
@@ -67,94 +84,94 @@ export default function CentralMonitoreoPage() {
   const [estadoRegistro, setEstadoRegistro] = useState('');
   const [observacionesRegistro, setObservacionesRegistro] = useState('');
 
-  // Función para cargar datos
-  const cargarDatos = async () => {
-    setLoading(true);
+  // Función para cargar datos automáticamente
+  const cargarDatos = useCallback(async (isSilent = false) => {
+    if (!isSilent) {
+      setLoading(true);
+    }
     try {
-      const response = await rbacFetch(`/api/central-monitoring/agenda?fecha=${fecha}`);
-      if (response.ok) {
-        const data = await response.json();
-        setLlamados(data.data || []);
+      // Cargar agenda
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Santiago';
+      const responseAgenda = await rbacFetch(`/api/central-monitoring/agenda?fecha=${fecha}&tz=${encodeURIComponent(tz)}`);
+      if (responseAgenda.ok) {
+        const dataAgenda = await responseAgenda.json();
+        setLlamados(dataAgenda.data || []);
+      }
+
+      // Cargar KPIs desde el backend
+      const responseKPIs = await rbacFetch(`/api/central-monitoring/kpis?fecha=${fecha}&tz=${encodeURIComponent(tz)}`);
+      if (responseKPIs.ok) {
+        const dataKPIs = await responseKPIs.json();
+        setKpis({
+          total: dataKPIs.data.kpis.total || 0,
+          actuales: dataKPIs.data.kpis.actuales || 0,
+          proximos: dataKPIs.data.kpis.proximos || 0,
+          urgentes: dataKPIs.data.kpis.urgentes || 0,
+          completados: dataKPIs.data.kpis.exitosos || 0
+        });
+      }
+      
+      // Notificar a otras pestañas sobre la actualización
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('central-monitoreo-update', JSON.stringify({
+          fecha,
+          timestamp: new Date().toISOString()
+        }));
       }
     } catch (error) {
-      console.error('Error cargando datos:', error);
-      toast.error('Error al cargar los datos');
+      console.error('Error cargando datos automáticos:', error);
+      if (!isSilent) {
+        toast.error('Error al cargar los datos automáticos');
+      }
     } finally {
-      setLoading(false);
+      if (!isSilent) {
+        setLoading(false);
+      }
     }
-  };
+  }, [fecha]);
 
   // Efecto para cargar datos
   useEffect(() => {
     cargarDatos();
   }, [fecha]);
 
-  // Auto-refresh cada 30 segundos
+  // Auto-refresh cada 30 segundos (silencioso)
   useEffect(() => {
     if (!autoRefresh) return;
-    const interval = setInterval(cargarDatos, 30000);
+    const interval = setInterval(() => cargarDatos(true), 30000);
     return () => clearInterval(interval);
-  }, [autoRefresh, fecha]);
+  }, [autoRefresh, cargarDatos]);
 
-  // Calcular KPIs
-  const kpis = useMemo(() => {
-    const ahora = new Date();
-    const horaActual = ahora.getHours();
-    
-    const urgentes = llamados.filter(l => {
-      const hora = new Date(l.programado_para);
-      const minutosDiff = (ahora.getTime() - hora.getTime()) / 60000;
-      return l.estado === 'pendiente' && minutosDiff > 15;
-    });
-    
-    const actuales = llamados.filter(l => {
-      const hora = new Date(l.programado_para).getHours();
-      return hora === horaActual;
-    });
-    
-    const proximos = llamados.filter(l => {
-      const hora = new Date(l.programado_para).getHours();
-      return hora > horaActual && l.estado === 'pendiente';
-    });
-    
-    // Completados incluye todos los estados que no son 'pendiente'
-    const completados = llamados.filter(l => l.estado !== 'pendiente');
-    
-    return {
-      urgentes: urgentes.length,
-      actuales: actuales.length,
-      proximos: proximos.length,
-      completados: completados.length,
-      total: llamados.length
+  // Escuchar cambios en otras pestañas
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'central-monitoreo-update' && e.newValue) {
+        const updateData = JSON.parse(e.newValue);
+        if (updateData.fecha === fecha) {
+          console.log('🔄 Actualización detectada desde otra pestaña');
+          cargarDatos(true);
+        }
+      }
     };
-  }, [llamados]);
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [fecha, cargarDatos]);
+
+
 
   // Filtrar llamados
   const llamadosFiltrados = useMemo(() => {
     let filtrados = [...llamados];
     
-    // Filtro por estado/tiempo
+    // Usar flags calculados en backend para evitar desalineaciones de TZ
     if (filtroEstado === 'urgentes') {
-      const ahora = new Date();
-      filtrados = filtrados.filter(l => {
-        const hora = new Date(l.programado_para);
-        const minutosDiff = (ahora.getTime() - hora.getTime()) / 60000;
-        return l.estado === 'pendiente' && minutosDiff > 15;
-      });
+      filtrados = filtrados.filter(l => l.estado === 'pendiente' && l.es_urgente);
     } else if (filtroEstado === 'actuales') {
-      const horaActual = new Date().getHours();
-      filtrados = filtrados.filter(l => {
-        const hora = new Date(l.programado_para).getHours();
-        return hora === horaActual;
-      });
+      filtrados = filtrados.filter(l => l.es_actual);
     } else if (filtroEstado === 'proximos') {
-      const horaActual = new Date().getHours();
-      filtrados = filtrados.filter(l => {
-        const hora = new Date(l.programado_para).getHours();
-        return hora > horaActual && l.estado === 'pendiente';
-      });
+      filtrados = filtrados.filter(l => l.es_proximo);
     } else if (filtroEstado === 'completados') {
-      // Completados incluye todos los estados que no son 'pendiente'
       filtrados = filtrados.filter(l => l.estado !== 'pendiente');
     }
     
@@ -232,23 +249,8 @@ export default function CentralMonitoreoPage() {
     }
   };
 
-  const handleGenerarAgenda = async () => {
-    try {
-      const response = await rbacFetch('/api/central-monitoring/agenda/generar', {
-        method: 'POST',
-        body: JSON.stringify({ fecha })
-      });
-      
-      if (response.ok) {
-        toast.success('Agenda generada exitosamente');
-        cargarDatos();
-      } else {
-        toast.error('Error al generar la agenda');
-      }
-    } catch (error) {
-      toast.error('Error al generar la agenda');
-    }
-  };
+  // Función para generar agenda (ELIMINADA - ahora es automática)
+  // Los datos se calculan automáticamente desde la pauta mensual
 
   if (loading) {
     return (
@@ -268,10 +270,6 @@ export default function CentralMonitoreoPage() {
             <p className="text-gray-600">Monitoreo de guardias en tiempo real</p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={handleGenerarAgenda} variant="outline">
-              <Plus className="h-4 w-4 mr-2" />
-              Generar Agenda
-            </Button>
             <Button variant="outline">
               <Download className="h-4 w-4 mr-2" />
               Exportar
@@ -309,38 +307,28 @@ export default function CentralMonitoreoPage() {
         </div>
       </div>
 
-      {/* Tabs de filtros */}
-      <Tabs value={filtroEstado} onValueChange={setFiltroEstado}>
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="todos">Todos ({llamados.length})</TabsTrigger>
-          <TabsTrigger value="urgentes">🔴 Urgentes ({kpis.urgentes})</TabsTrigger>
-          <TabsTrigger value="actuales">🟡 Actuales ({kpis.actuales})</TabsTrigger>
-          <TabsTrigger value="proximos">🔵 Próximos ({kpis.proximos})</TabsTrigger>
-          <TabsTrigger value="completados">🟢 Completados ({kpis.completados})</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value={filtroEstado} className="mt-6">
-          {llamadosFiltrados.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <p className="text-gray-500">No hay llamados en esta categoría</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                             {llamadosFiltrados.map(llamado => (
-                 <LlamadoCard
-                   key={llamado.id}
-                   llamado={llamado}
-                   onRegistrar={handleRegistrar}
-                   onWhatsApp={handleWhatsApp}
-                   onObservacionesUpdate={handleObservacionesUpdate}
-                 />
-               ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+      {/* Lista de llamados */}
+      <div className="mt-6">
+        {llamadosFiltrados.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-500">No hay llamados en esta categoría</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-stretch">
+            {llamadosFiltrados.map(llamado => (
+              <LlamadoCard
+                key={llamado.id}
+                llamado={llamado}
+                onRegistrar={handleRegistrar}
+                onWhatsApp={handleWhatsApp}
+                onObservacionesUpdate={handleObservacionesUpdate}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Modal de registro */}
       <RegistroModal

@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/components/ui/toast';
 import { Search, AlertTriangle, User, UserCheck } from 'lucide-react';
 import { asignarGuardiaPPC } from '@/lib/api/instalaciones';
+import ConfirmacionReasignacionModal from '@/components/ui/confirmacion-reasignacion-modal';
 
 interface AsignarGuardiaModalProps {
   isOpen: boolean;
@@ -36,6 +37,8 @@ export default function AsignarGuardiaModal({
   const [cargandoGuardias, setCargandoGuardias] = useState(true);
   const [showWarning, setShowWarning] = useState(false);
   const [guardiaConAdvertencia, setGuardiaConAdvertencia] = useState<any>(null);
+  const [showConfirmacionModal, setShowConfirmacionModal] = useState(false);
+  const [asignacionActual, setAsignacionActual] = useState<any>(null);
 
   // Función para filtrar guardias por nombre, apellido o RUT
   const guardiasFiltrados = guardias.filter(guardia => {
@@ -127,7 +130,31 @@ export default function AsignarGuardiaModal({
 
     try {
       setLoading(true);
-      await asignarGuardiaPPC(instalacionId, ppcId, guardiaSeleccionado);
+      
+      // Intentar asignar el guardia
+      const response = await fetch('/api/ppc/asignar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          guardia_id: guardiaSeleccionado,
+          puesto_operativo_id: ppcId
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 409 && data.requiere_confirmacion) {
+          // El guardia ya está asignado, mostrar modal de confirmación
+          setAsignacionActual(data.asignacion_actual);
+          setShowConfirmacionModal(true);
+          setLoading(false);
+          return;
+        }
+        throw new Error(data.error || 'Error al asignar guardia');
+      }
       
       toast.success('Guardia asignado correctamente', 'Éxito');
       onAsignacionCompletada();
@@ -140,20 +167,60 @@ export default function AsignarGuardiaModal({
     }
   };
 
+  const handleConfirmarReasignacion = async () => {
+    if (!guardiaSeleccionado) return;
+
+    try {
+      setLoading(true);
+      
+      // Asignar con confirmación de reasignación
+      const response = await fetch('/api/ppc/asignar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          guardia_id: guardiaSeleccionado,
+          puesto_operativo_id: ppcId,
+          confirmar_reasignacion: true
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al reasignar guardia');
+      }
+      
+      toast.success('Guardia reasignado correctamente', 'Éxito');
+      onAsignacionCompletada();
+      setShowConfirmacionModal(false);
+      onClose();
+    } catch (error) {
+      console.error('Error reasignando guardia:', error);
+      toast.error('No se pudo reasignar el guardia', 'Error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleClose = () => {
     // Limpiar estado antes de cerrar
     setGuardiaSeleccionado('');
     setFiltroGuardias('');
     setShowWarning(false);
     setGuardiaConAdvertencia(null);
+    setShowConfirmacionModal(false);
+    setAsignacionActual(null);
     onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-md mx-4">
+    <>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <Card className="w-full max-w-md mx-4">
         <CardHeader>
           <CardTitle>Seleccionar Guardia</CardTitle>
         </CardHeader>
@@ -250,5 +317,19 @@ export default function AsignarGuardiaModal({
         </CardContent>
       </Card>
     </div>
+
+      {/* Modal de confirmación de reasignación */}
+      {showConfirmacionModal && asignacionActual && (
+        <ConfirmacionReasignacionModal
+          isOpen={showConfirmacionModal}
+          onClose={() => setShowConfirmacionModal(false)}
+          onConfirmar={handleConfirmarReasignacion}
+          guardiaNombre={guardias.find(g => g.id === guardiaSeleccionado)?.nombre_completo || 'Guardia'}
+          asignacionActual={asignacionActual}
+          nuevaInstalacionNombre={instalacionNombre}
+          nuevoRolServicioNombre={rolServicioNombre}
+        />
+      )}
+    </>
   );
 } 

@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
           i.direccion,
           i.ciudad,
           i.comuna,
+          i.telefono,
           i.estado,
           i.cliente_id,
           COALESCE(c.nombre, 'Cliente no encontrado') as cliente_nombre,
@@ -106,6 +107,7 @@ export async function GET(request: NextRequest) {
             i.longitud,
             i.ciudad,
             i.comuna,
+            i.telefono,
             i.valor_turno_extra,
             i.estado,
             i.created_at,
@@ -190,6 +192,7 @@ export async function GET(request: NextRequest) {
         i.longitud,
         i.ciudad,
         i.comuna,
+        i.telefono,
         i.valor_turno_extra,
         i.estado,
         i.created_at,
@@ -296,7 +299,7 @@ export async function PUT(request: NextRequest) {
     
     // Obtener datos originales ANTES de la actualización
     const datosOriginales = await query(`
-      SELECT nombre, cliente_id, direccion, latitud, longitud, ciudad, comuna, valor_turno_extra, estado
+      SELECT nombre, cliente_id, direccion, latitud, longitud, ciudad, comuna, telefono, valor_turno_extra, estado
       FROM instalaciones WHERE id = $1
     `, [validatedData.id]);
     
@@ -338,6 +341,9 @@ export async function PUT(request: NextRequest) {
               break;
             case 'comuna':
               cambios.push('comuna');
+              break;
+            case 'telefono':
+              cambios.push('teléfono');
               break;
             case 'valor_turno_extra':
               cambios.push('valor turno extra');
@@ -457,6 +463,7 @@ async function ensureInstalacionesTable() {
           longitud DECIMAL(11, 8),
           ciudad VARCHAR(100),
           comuna VARCHAR(100),
+          telefono VARCHAR(20),
           valor_turno_extra DECIMAL(10, 2) DEFAULT 0,
           estado VARCHAR(20) DEFAULT 'Activo' CHECK (estado IN ('Activo', 'Inactivo')),
           created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -492,6 +499,11 @@ async function ensureInstalacionesTable() {
       if (!columnNames.includes('comuna')) {
         await query(`ALTER TABLE instalaciones ADD COLUMN comuna VARCHAR(100)`);
         console.log('✅ Columna comuna agregada');
+      }
+
+      if (!columnNames.includes('telefono')) {
+        await query(`ALTER TABLE instalaciones ADD COLUMN telefono VARCHAR(20)`);
+        console.log('✅ Columna telefono agregada');
       }
       
       console.log('✅ Tabla instalaciones verificada');
@@ -587,6 +599,12 @@ async function actualizarInstalacionDB(id: string, data: any) {
   if (data.comuna !== undefined) {
     updates.push(`comuna = $${paramIndex}`);
     values.push(data.comuna);
+    paramIndex++;
+  }
+
+  if (data.telefono !== undefined) {
+    updates.push(`telefono = $${paramIndex}`);
+    values.push(data.telefono);
     paramIndex++;
   }
 

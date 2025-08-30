@@ -28,6 +28,7 @@ export async function GET(
         i.longitud,
         i.ciudad,
         i.comuna,
+        i.telefono,
         i.valor_turno_extra,
         i.estado,
         i.created_at,
@@ -369,6 +370,7 @@ export async function GET(
         apellido_paterno: row.guardia_nombre?.split(' ')[1] || '',
         apellido_materno: row.guardia_nombre?.split(' ')[2] || '',
         nombre_completo: row.guardia_nombre || 'Sin nombre',
+        nombre_puesto: row.nombre_puesto, // Agregar el nombre del puesto
         rut: '', // No disponible en esta consulta
         comuna: '', // No disponible en esta consulta
         region: '', // No disponible en esta consulta
@@ -395,10 +397,11 @@ export async function GET(
         
         return {
           id: ppc.id,
-          nombre: `PPC ${ppc.id.substring(0, 8)}`,
+          nombre: `PPC ${ppc.nombre_puesto}`,
           apellido_paterno: '',
           apellido_materno: '',
-          nombre_completo: `PPC ${ppc.id.substring(0, 8)}`,
+          nombre_completo: `PPC ${ppc.nombre_puesto}`,
+          nombre_puesto: ppc.nombre_puesto, // Agregar el nombre del puesto
           rut: '',
           comuna: '',
           region: '',

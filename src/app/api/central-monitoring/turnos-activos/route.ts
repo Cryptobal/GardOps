@@ -40,10 +40,10 @@ export async function GET(request: NextRequest) {
       INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       LEFT JOIN as_turnos_pauta_mensual pm ON pm.puesto_id = po.id
       LEFT JOIN guardias g ON pm.guardia_id = g.id
-      INNER JOIN central_config_instalacion cci ON cci.instalacion_id = i.id
+      LEFT JOIN central_config_instalacion cci ON cci.instalacion_id = i.id
       WHERE po.activo = true
         AND pm.estado = 'Activo'
-        AND cci.habilitado = true
+        AND (cci.habilitado = true OR cci.habilitado IS NULL)
         AND pm.anio = EXTRACT(YEAR FROM $1::date)
         AND pm.mes = EXTRACT(MONTH FROM $1::date)
         AND pm.dia = EXTRACT(DAY FROM $1::date)

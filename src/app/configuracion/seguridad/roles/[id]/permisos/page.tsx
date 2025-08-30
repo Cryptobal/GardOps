@@ -177,7 +177,10 @@ export default function PermisosRolPage() {
         const asignadosData = await asignadosRes.json();
         if (!asignadosRes.ok) throw new Error(asignadosData?.detail || asignadosData?.error || `HTTP ${asignadosRes.status}`);
         if (!done) {
-          const asignadosSet = new Set(asignadosData.permisos?.map((p: any) => p.permiso_id) || []);
+          const fuente = Array.isArray(asignadosData.items) ? asignadosData.items : asignadosData.permisos || [];
+          const asignadosSet = new Set(
+            fuente.map((p: any) => p.permiso_id || p.id).filter(Boolean)
+          );
           setPermisosAsignados(asignadosSet as Set<string>);
         }
 
@@ -221,87 +224,106 @@ export default function PermisosRolPage() {
   // Función para calcular nivel de acceso basado en permisos
   const calcularNivelesDesdePermisos = (modulo: string): string => {
     const prefixes = MODULO_PREFIXES[modulo] || [modulo];
+
     const permisosClaves = Array.from(permisosAsignados).map(id => 
       permisosDisponibles.find(p => p.id === id)?.clave
     ).filter(Boolean) as string[];
-    
-    // Verificar wildcard (admin)
-    const wildcard = prefixes.some(prefix => 
-      permisosClaves.includes(`${prefix}.*`)
+
+    // Claves del módulo en catálogo
+    const clavesModulo = permisosDisponibles
+      .filter(p => prefixes.some(px => p.clave.startsWith(px + '.')))
+      .map(p => p.clave)
+      .filter(Boolean);
+
+    // Wildcard -> admin
+    const hasWildcard = prefixes.some(px => permisosClaves.includes(`${px}.*`));
+    if (hasWildcard) return 'admin';
+
+    // Si tiene todos los permisos del modulo asignados -> admin
+    const setAsignados = new Set(
+      permisosClaves.filter(c => prefixes.some(px => c.startsWith(px + '.')) && !c.endsWith('.*'))
     );
-    
-    if (wildcard) return 'admin';
-    
-    // Verificar si tiene todos los permisos individuales
-    const allIndividual = prefixes.every(prefix => {
-      const individualPerms = permisosClaves.filter(p => 
-        p.startsWith(prefix + '.') && !p.endsWith('.*')
-      );
-      return individualPerms.length >= 3; // view, edit, create, etc.
+    const setModulo = new Set(
+      clavesModulo.filter(c => !c.endsWith('.*'))
+    );
+    if (setModulo.size > 0 && setAsignados.size >= setModulo.size) {
+      return 'admin';
+    }
+
+    // ¿Tiene permisos de edición/acción (no solo view/delete)?
+    const hasEditLike = permisosClaves.some(c => {
+      if (!prefixes.some(px => c.startsWith(px + '.'))) return false;
+      const suffix = c.split('.').slice(1).join('.');
+      return suffix && !suffix.endsWith('view') && !suffix.endsWith('delete') && !suffix.endsWith('.*');
     });
-    
-    if (allIndividual) return 'admin';
-    
-    // Verificar edit (tiene edit o create)
-    const hasEdit = prefixes.some(prefix => 
-      permisosClaves.some(p => p.startsWith(prefix + '.') && (p.includes('.edit') || p.includes('.create')))
+    if (hasEditLike) return 'edit';
+
+    // ¿Tiene view?
+    const hasView = permisosClaves.some(c => 
+      prefixes.some(px => c === `${px}.view`)
     );
-    
-    if (hasEdit) return 'edit';
-    
-    // Verificar view
-    const hasView = prefixes.some(prefix => 
-      permisosClaves.some(p => p.startsWith(prefix + '.') && p.includes('.view'))
-    );
-    
     if (hasView) return 'view';
-    
+
     return 'none';
   };
 
   // Función para obtener permisos que se asignarán para un nivel
   const obtenerPermisosParaNivel = (modulo: string, nivel: string): string[] => {
     const prefixes = MODULO_PREFIXES[modulo] || [modulo];
-    const permisos = [];
-    
+    const result: string[] = [];
+
+    // Utilidades
+    const pushIf = (clave: string) => {
+      const id = getPermisoId(clave);
+      if (id) result.push(id);
+    };
+
+    const idsDeClavesModulo = (filtro?: (clave: string) => boolean) => {
+      const ids: string[] = [];
+      permisosDisponibles.forEach(p => {
+        if (prefixes.some(px => p.clave.startsWith(px + '.'))) {
+          if (!filtro || filtro(p.clave)) ids.push(p.id);
+        }
+      });
+      return ids;
+    };
+
     switch (nivel) {
-      case 'admin':
-        // Agregar wildcard si existe, sino todos los permisos individuales
-        prefixes.forEach(prefix => {
-          const wildcardId = getPermisoId(`${prefix}.*`);
-          if (wildcardId) {
-            permisos.push(wildcardId);
-          } else {
-            // Agregar todos los permisos individuales del módulo
-            permisosDisponibles.forEach(p => {
-              if (p.clave.startsWith(prefix + '.')) {
-                permisos.push(p.id);
-              }
-            });
+      case 'admin': {
+        // Preferir wildcard si existe, si no, todos los permisos del módulo
+        prefixes.forEach(px => {
+          const wildcard = getPermisoId(`${px}.*`);
+          if (wildcard) {
+            result.push(wildcard);
           }
         });
+        if (result.length === 0) {
+          idsDeClavesModulo().forEach(id => result.push(id));
+        }
         break;
-      case 'edit':
-        prefixes.forEach(prefix => {
-          ['view', 'create', 'edit'].forEach(action => {
-            const permisoId = getPermisoId(`${prefix}.${action}`);
-            if (permisoId) permisos.push(permisoId);
-          });
+      }
+      case 'edit': {
+        // Intentar view/create/edit
+        prefixes.forEach(px => {
+          ['view', 'create', 'edit'].forEach(action => pushIf(`${px}.${action}`));
         });
+        // Si no existen acciones estándar, tomar "todas menos delete y wildcard"
+        if (result.length === 0) {
+          idsDeClavesModulo((c) => !c.endsWith('delete') && !c.endsWith('.*')).forEach(id => result.push(id));
+        }
         break;
-      case 'view':
-        prefixes.forEach(prefix => {
-          const permisoId = getPermisoId(`${prefix}.view`);
-          if (permisoId) permisos.push(permisoId);
-        });
+      }
+      case 'view': {
+        prefixes.forEach(px => pushIf(`${px}.view`));
         break;
+      }
       case 'none':
       default:
-        // No agregar permisos
+        // no agregar permisos
         break;
     }
-    
-    return permisos;
+
+    return result;
   };
 
   // Función para asignar nivel a un módulo

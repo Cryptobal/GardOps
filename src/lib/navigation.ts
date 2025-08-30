@@ -68,6 +68,12 @@ export const navigationItems: NavigationItem[] = [
     permission: "pautas.view"
   },
   {
+    name: "Central de Monitoreo",
+    href: "/central-monitoreo",
+    icon: Phone,
+    permission: "central_monitoring.view"
+  },
+  {
     name: "Turnos Extras",
     href: "/pauta-diaria/turnos-extras",
     icon: DollarSign,
@@ -102,12 +108,6 @@ export const navigationItems: NavigationItem[] = [
     href: "/asignaciones",
     icon: Target,
     permission: "asignaciones.view"
-  },
-  {
-    name: "Central de Monitoreo",
-    href: "/central-monitoreo",
-    icon: Phone,
-    permission: "central_monitoring.view"
   },
   {
     name: "Configuración",

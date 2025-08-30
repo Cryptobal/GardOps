@@ -23,8 +23,14 @@ WITH pauta_dedup AS (
     i.nombre as instalacion_nombre,
     
     -- Información del guardia titular
-    g.id as guardia_titular_id,
-    CONCAT(g.apellido_paterno, ' ', g.apellido_materno, ', ', g.nombre) as guardia_titular_nombre,
+    COALESCE(pm.guardia_id, po.guardia_id) as guardia_titular_id,
+    CASE 
+      WHEN pm.guardia_id IS NOT NULL THEN CONCAT(g.apellido_paterno, ' ', g.apellido_materno, ', ', g.nombre)
+      WHEN po.guardia_id IS NOT NULL THEN 
+        (SELECT CONCAT(apellido_paterno, ' ', apellido_materno, ', ', nombre) 
+         FROM guardias WHERE id = po.guardia_id)
+      ELSE NULL
+    END as guardia_titular_nombre,
     
     -- Información del puesto
     po.nombre_puesto as puesto_nombre,
@@ -69,12 +75,12 @@ SELECT
   CASE 
     WHEN pd.estado IN ('trabajado', 'T') AND pd.cobertura_guardia_id IS NOT NULL THEN 'reemplazo'
     WHEN pd.estado IN ('trabajado', 'T') THEN 'asistido'
-    WHEN pd.estado = 'libre' THEN 'libre'
     WHEN pd.estado = 'sin_cobertura' THEN 'sin_cobertura'
     WHEN pd.estado = 'inasistencia' THEN 'sin_cobertura'
     WHEN pd.estado = 'permiso' THEN 'permiso'
     WHEN pd.estado = 'licencia' THEN 'licencia'
-    WHEN pd.es_ppc AND pd.guardia_id IS NULL THEN 'ppc_libre'
+    WHEN pd.es_ppc AND pd.estado = 'planificado' THEN 'ppc_plan'
+    WHEN pd.estado = 'libre' THEN 'libre'
     ELSE 'plan'
   END as estado_ui,
   

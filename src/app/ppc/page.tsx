@@ -64,16 +64,16 @@ const KPIBox = ({
     transition={{ duration: 0.5 }}
   >
     <Card className="h-full cursor-help hover:shadow-md transition-shadow">
-      <CardContent className="p-4 flex flex-col justify-between h-full">
+      <CardContent className="p-3 sm:p-4 flex flex-col justify-between h-full">
         <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1">
               {title}
               {tooltip && <Info className="h-3 w-3" />}
             </p>
-            <p className="text-2xl font-bold mt-1">{value}</p>
+            <p className="text-xl sm:text-2xl font-bold mt-1">{value}</p>
             {subtitle && (
-              <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+              <p className="text-xs text-muted-foreground mt-1 truncate">{subtitle}</p>
             )}
             {trend && (
               <div className="flex items-center gap-1 mt-1">
@@ -88,8 +88,8 @@ const KPIBox = ({
               </div>
             )}
           </div>
-          <div className={`p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/20 flex-shrink-0 ml-3`}>
-            <Icon className={`h-5 w-5 text-${color}-600 dark:text-${color}-400`} />
+          <div className={`p-2 sm:p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/20 flex-shrink-0 ml-2 sm:ml-3`}>
+            <Icon className={`h-4 w-4 sm:h-5 sm:w-5 text-${color}-600 dark:text-${color}-400`} />
           </div>
         </div>
       </CardContent>
@@ -100,22 +100,22 @@ const KPIBox = ({
 // Componente de resumen por instalación - Solo PPC activos (minimalista)
 const ResumenInstalacion = ({ instalaciones }: { instalaciones: any[] }) => (
   <Card className="h-full">
-    <CardContent className="p-6">
+    <CardContent className="p-4 sm:p-6">
       <div className="flex items-center space-x-2 mb-4">
         <Building2 className="h-5 w-5 text-blue-600" />
-        <h3 className="text-lg font-semibold">PPC Activos por Instalación</h3>
-        <Badge variant="outline" className="ml-auto">
+        <h3 className="text-base sm:text-lg font-semibold">PPC Activos por Instalación</h3>
+        <Badge variant="outline" className="ml-auto text-xs">
           Total: {instalaciones.reduce((sum, inst) => sum + inst.ppc_activos, 0)}
         </Badge>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         {instalaciones.map((inst) => (
-          <div key={inst.instalacion} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-            <div className="flex-1">
+          <div key={inst.instalacion} className="flex items-center justify-between p-2 sm:p-3 bg-muted/30 rounded-lg">
+            <div className="flex-1 min-w-0">
               <h4 className="font-medium text-sm truncate">{inst.instalacion}</h4>
             </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-lg font-bold text-red-600">{inst.ppc_activos}</span>
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <span className="text-base sm:text-lg font-bold text-red-600">{inst.ppc_activos}</span>
               <Badge variant="destructive" className="text-xs">
                 PPC
               </Badge>
@@ -130,23 +130,23 @@ const ResumenInstalacion = ({ instalaciones }: { instalaciones: any[] }) => (
 // Componente de resumen por rol - Solo PPC activos (minimalista)
 const ResumenRol = ({ roles }: { roles: any[] }) => (
   <Card className="h-full">
-    <CardContent className="p-6">
+    <CardContent className="p-4 sm:p-6">
       <div className="flex items-center space-x-2 mb-4">
         <Users className="h-5 w-5 text-orange-600" />
-        <h3 className="text-lg font-semibold">PPC Activos por Rol</h3>
-        <Badge variant="outline" className="ml-auto">
+        <h3 className="text-base sm:text-lg font-semibold">PPC Activos por Rol</h3>
+        <Badge variant="outline" className="ml-auto text-xs">
           Total: {roles.reduce((sum, rol) => sum + rol.ppc_activos, 0)}
         </Badge>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         {roles.map((rol) => (
-          <div key={rol.rol} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-            <div className="flex-1">
-              <h4 className="font-medium text-sm">{rol.rol}</h4>
-              <p className="text-xs text-muted-foreground">{rol.horario}</p>
+          <div key={rol.rol} className="flex items-center justify-between p-2 sm:p-3 bg-muted/30 rounded-lg">
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium text-sm truncate">{rol.rol}</h4>
+              <p className="text-xs text-muted-foreground truncate">{rol.horario}</p>
             </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-lg font-bold text-red-600">{rol.ppc_activos}</span>
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <span className="text-base sm:text-lg font-bold text-red-600">{rol.ppc_activos}</span>
               <Badge variant="destructive" className="text-xs">
                 PPC
               </Badge>
@@ -158,133 +158,11 @@ const ResumenRol = ({ roles }: { roles: any[] }) => (
   </Card>
 );
 
-// Componente Combobox para asignación inline
-const AsignarGuardiaCombobox = ({ 
-  ppc, 
-  onAsignar 
-}: {
-  ppc: any;
-  onAsignar: (guardiaId: string) => void;
-}) => {
-  const [guardias, setGuardias] = useState<any[]>([]);
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [searchValue, setSearchValue] = useState("");
-
-  useEffect(() => {
-    fetchGuardiasDisponibles();
-  }, []);
-
-  const fetchGuardiasDisponibles = async () => {
-    try {
-      // Para PPC, usamos fecha actual y no necesitamos instalacion_id específico
-      const fecha = new Date().toISOString().split('T')[0];
-      const params = new URLSearchParams({
-        fecha,
-        instalacion_id: '00000000-0000-0000-0000-000000000000' // UUID dummy para PPCs
-      });
-      
-      const response = await fetch(`/api/guardias/disponibles?${params.toString()}`);
-      if (response.ok) {
-        const data = await response.json();
-        setGuardias(data.items || data.guardias || []);
-      }
-    } catch (error) {
-      console.error("Error cargando guardias disponibles:", error);
-    }
-  };
-
-  const handleAsignar = async (guardiaId: string) => {
-    setLoading(true);
-    try {
-      const response = await fetch("/api/ppc/asignar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ppc_id: ppc.id,
-          guardia_id: guardiaId
-        })
-      });
-
-      if (response.ok) {
-        onAsignar(guardiaId);
-        setOpen(false);
-      }
-    } catch (error) {
-      console.error("Error asignando guardia:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredGuardias = guardias.filter(guardia =>
-    guardia.nombre_completo.toLowerCase().includes(searchValue.toLowerCase()) ||
-    guardia.rut.includes(searchValue)
-  );
-
-  return (
-    <div className="relative">
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={loading}
-        onClick={() => setOpen(!open)}
-        className="w-full justify-start"
-      >
-        {loading ? (
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            Asignando...
-          </div>
-        ) : (
-          <>
-            <User className="h-3 w-3 mr-2" />
-            Asignar guardia
-          </>
-        )}
-      </Button>
-      
-      {open && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-50">
-          <div className="p-2 border-b">
-            <Input
-              placeholder="Buscar guardia..."
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              className="w-full"
-            />
-          </div>
-          <div className="max-h-48 overflow-y-auto">
-            {filteredGuardias.length === 0 ? (
-              <div className="p-2 text-sm text-muted-foreground">No se encontraron guardias.</div>
-            ) : (
-              filteredGuardias.map((guardia) => (
-                <div
-                  key={guardia.id}
-                  onClick={() => handleAsignar(guardia.id)}
-                  className="p-2 hover:bg-muted cursor-pointer flex items-center gap-2"
-                >
-                  <User className="h-4 w-4" />
-                  <div>
-                    <p className="font-medium">{guardia.nombre_completo}</p>
-                    <p className="text-xs text-muted-foreground">{guardia.rut}</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
 export default function PPCPage() {
   const router = useRouter();
   const [ppcs, setPpcs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [metricas, setMetricas] = useState<any>(null);
-  const [asignandoId, setAsignandoId] = useState<string | null>(null);
 
   // Filtros mejorados - Solo PPC activos por defecto
   const [filtros, setFiltros] = useState({
@@ -336,6 +214,10 @@ export default function PPCPage() {
       calcularResumenes(data || []);
     } catch (error) {
       console.error("Error cargando PPCs:", error);
+      // En caso de error, mostrar datos de ejemplo
+      setPpcs([]);
+      setResumenInstalaciones([]);
+      setResumenRoles([]);
     } finally {
       setLoading(false);
     }
@@ -353,6 +235,13 @@ export default function PPCPage() {
       }
     } catch (error) {
       console.error("Error cargando métricas:", error);
+      // En caso de error, usar valores por defecto
+      setKpis({
+        total_abiertos: 0,
+        total_cubiertos: 0,
+        total_ppc: 0,
+        tasa_actual: 0
+      });
     }
   };
 
@@ -518,27 +407,26 @@ export default function PPCPage() {
       render: (ppc) => (
         <div className="flex flex-col gap-2">
           {ppc.estado === 'Pendiente' ? (
-            <AsignarGuardiaCombobox
-              ppc={ppc}
-              onAsignar={(guardiaId) => {
-                setAsignandoId(ppc.id);
-                // Actualizar estado localmente
-                setPpcs(prev => prev.map(p => 
-                  p.id === ppc.id 
-                    ? { ...p, estado: 'Cubierto', guardia_asignado: { id: guardiaId, nombre: 'Guardia asignado' } }
-                    : p
-                ));
-                setAsignandoId(null);
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("Asignar guardia para PPC:", ppc.id);
               }}
-            />
+              className="text-xs"
+            >
+              Asignar Guardia
+            </Button>
           ) : (
             <Button
               size="sm"
               variant="outline"
-              onClick={() => router.push(`/ppc/${ppc.id}`)}
+              onClick={() => router.push(`/instalaciones/${ppc.instalacion_id}`)}
               className="text-xs"
             >
-              Ver detalle
+              Ver instalación
             </Button>
           )}
         </div>
@@ -550,26 +438,21 @@ export default function PPCPage() {
   const instalaciones = Array.from(new Set(ppcs.map((p: any) => p.instalacion))).sort();
   const roles = Array.from(new Set(ppcs.map((p: any) => p.rol))).sort();
 
-  const handleAsignarGuardia = (guardiaId: string) => {
-    console.log("✅ Guardia asignado exitosamente:", guardiaId);
-    fetchPPCs(); // Recargar datos
-  };
-
   return (
-    <div className="container mx-auto p-4 space-y-6">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center space-x-4 mb-6">
-        <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/20">
-          <BarChart3 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+      <div className="flex items-center space-x-3 sm:space-x-4 mb-4 sm:mb-6">
+        <div className="p-2 sm:p-3 rounded-full bg-blue-100 dark:bg-blue-900/20">
+          <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
         </div>
-        <div>
-          <h1 className="text-3xl font-bold">PPC Activos</h1>
-          <p className="text-base text-muted-foreground">Gestión de puestos por cubrir pendientes de asignación</p>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold truncate">PPC Activos</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Gestión de puestos por cubrir pendientes de asignación</p>
         </div>
       </div>
 
       {/* KPIs - Solo PPC activos */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <KPIBox
           title="PPC Activos"
           value={kpis.total_abiertos}
@@ -597,7 +480,7 @@ export default function PPCPage() {
       </div>
 
       {/* Resúmenes en cajas horizontales - Minimalistas */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {resumenInstalaciones.length > 0 && (
           <ResumenInstalacion instalaciones={resumenInstalaciones} />
         )}
@@ -609,8 +492,8 @@ export default function PPCPage() {
 
       {/* Filtros mejorados */}
       <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 mb-4">
             <div className="flex items-center space-x-2">
               <Filter className="h-5 w-5" />
               <h3 className="text-lg font-semibold">Filtros</h3>
@@ -626,12 +509,12 @@ export default function PPCPage() {
                 className="flex items-center gap-2"
               >
                 <RotateCcw className="h-4 w-4" />
-                Limpiar
+                <span className="hidden sm:inline">Limpiar</span>
               </Button>
             </div>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div>
               <label className="block text-sm font-medium mb-2">Estado</label>
               <Select
@@ -690,7 +573,7 @@ export default function PPCPage() {
 
             <div>
               <label className="block text-sm font-medium mb-2">Rango de fechas</label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   type="date"
                   value={filtros.fechaDesde}
@@ -781,26 +664,26 @@ export default function PPCPage() {
                     
                     <div className="pt-2">
                       {ppc.estado === 'Pendiente' ? (
-                        <AsignarGuardiaCombobox
-                          ppc={ppc}
-                          onAsignar={(guardiaId) => {
-                            setAsignandoId(ppc.id);
-                            setPpcs(prev => prev.map(p => 
-                              p.id === ppc.id 
-                                ? { ...p, estado: 'Cubierto', guardia_asignado: { id: guardiaId, nombre: 'Guardia asignado' } }
-                                : p
-                            ));
-                            setAsignandoId(null);
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log("Asignar guardia para PPC:", ppc.id);
                           }}
-                        />
+                        >
+                          Asignar Guardia
+                        </Button>
                       ) : (
                         <Button
                           size="sm"
                           variant="outline"
                           className="w-full"
-                          onClick={() => router.push(`/ppc/${ppc.id}`)}
+                          onClick={() => router.push(`/instalaciones/${ppc.instalacion_id}`)}
                         >
-                          Ver detalle
+                          Ver instalación
                         </Button>
                       )}
                     </div>

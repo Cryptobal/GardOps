@@ -34,6 +34,16 @@ interface Llamado {
   rol_nombre: string | null;
   nombre_puesto: string | null;
   minutos_atraso?: number;
+  // Nuevos campos de la vista automática
+  es_urgente?: boolean;
+  es_actual?: boolean;
+  es_proximo?: boolean;
+  contacto_nombre?: string;
+  intervalo_minutos?: number;
+  ventana_inicio?: string;
+  ventana_fin?: string;
+  modo?: string;
+  mensaje_template?: string;
 }
 
 interface LlamadoCardProps {
@@ -51,8 +61,9 @@ export function LlamadoCard({ llamado, onRegistrar, onWhatsApp, onObservacionesU
   const ahora = new Date();
   const programadoPara = new Date(llamado.programado_para);
   const minutosDiff = Math.floor((ahora.getTime() - programadoPara.getTime()) / 60000);
-  const esUrgente = llamado.estado === 'pendiente' && minutosDiff > 15;
-  const esActual = Math.abs(minutosDiff) <= 30;
+  // Usar campos calculados de la vista automática si están disponibles
+  const esUrgente = llamado.es_urgente || (llamado.estado === 'pendiente' && minutosDiff > 15);
+  const esActual = llamado.es_actual || Math.abs(minutosDiff) <= 30;
   const esCompletado = llamado.estado !== 'pendiente';
   
   const getEstadoBadge = () => {
@@ -130,8 +141,8 @@ export function LlamadoCard({ llamado, onRegistrar, onWhatsApp, onObservacionesU
   
   return (
     <>
-      <Card className={`${esUrgente ? 'border-red-500 shadow-lg' : esActual ? 'border-yellow-500' : ''} transition-all hover:shadow-md`}>
-        <CardHeader className="pb-3">
+      <Card className={`${esUrgente ? 'border-red-500 shadow-lg' : esActual ? 'border-yellow-500' : ''} transition-all hover:shadow-md h-full flex flex-col`}>
+        <CardHeader className="pb-3 flex-shrink-0">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h3 className="font-semibold text-lg flex items-center gap-2">
@@ -146,94 +157,97 @@ export function LlamadoCard({ llamado, onRegistrar, onWhatsApp, onObservacionesU
           </div>
         </CardHeader>
         
-        <CardContent className="space-y-3">
-          {/* Información del guardia */}
-          {llamado.guardia_nombre && (
+        <CardContent className="space-y-3 flex-1 flex flex-col">
+          {/* Contenido principal con altura mínima fija */}
+          <div className="flex-1 space-y-3">
+            {/* Información del guardia */}
+            {llamado.guardia_nombre && (
+              <div className="flex items-center gap-2 text-sm">
+                <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                <span className="font-medium">Guardia:</span>
+                <span className="truncate">{llamado.guardia_nombre}</span>
+              </div>
+            )}
+            
+            {/* Teléfono de contacto */}
             <div className="flex items-center gap-2 text-sm">
-              <User className="h-4 w-4 text-gray-500" />
-              <span className="font-medium">Guardia:</span>
-              <span>{llamado.guardia_nombre}</span>
+              <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
+              <span className="font-medium">Teléfono:</span>
+              <span className="truncate">{llamado.contacto_telefono || llamado.instalacion_telefono || 'No disponible'}</span>
             </div>
-          )}
-          
-          {/* Teléfono de contacto */}
-          <div className="flex items-center gap-2 text-sm">
-            <Phone className="h-4 w-4 text-gray-500" />
-            <span className="font-medium">Teléfono:</span>
-            <span>{llamado.contacto_telefono || llamado.instalacion_telefono || 'No disponible'}</span>
+            
+            {/* Puesto y rol */}
+            {llamado.nombre_puesto && (
+              <div className="text-sm text-gray-600">
+                <span className="font-medium">Puesto:</span> {llamado.nombre_puesto}
+                {llamado.rol_nombre && <span> • {llamado.rol_nombre}</span>}
+              </div>
+            )}
+            
+            {/* Observaciones */}
+            {llamado.observaciones && (
+              <div className="text-sm bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">Observaciones:</span>
+                  {esCompletado && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowEditModal(true)}
+                      className="h-6 px-2 flex-shrink-0"
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+                <p className="mt-1 line-clamp-2">{llamado.observaciones}</p>
+              </div>
+            )}
           </div>
           
-          {/* Puesto y rol */}
-          {llamado.nombre_puesto && (
-            <div className="text-sm text-gray-600">
-              <span className="font-medium">Puesto:</span> {llamado.nombre_puesto}
-              {llamado.rol_nombre && <span> • {llamado.rol_nombre}</span>}
-            </div>
-          )}
-          
-          {/* Observaciones */}
-          {llamado.observaciones && (
-            <div className="text-sm bg-gray-50 dark:bg-gray-800 p-2 rounded">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Observaciones:</span>
-                {esCompletado && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setShowEditModal(true)}
-                    className="h-6 px-2"
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                )}
+          {/* Sección de acciones fija en la parte inferior */}
+          <div className="flex-shrink-0 pt-2">
+            {llamado.estado === 'pendiente' && (
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  className="flex-1 h-9"
+                  onClick={() => {
+                    const telefono = llamado.contacto_telefono || llamado.instalacion_telefono;
+                    if (telefono) {
+                      onWhatsApp(telefono, generarMensajeWhatsApp());
+                    }
+                  }}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  WhatsApp
+                </Button>
+                
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 h-9"
+                  onClick={() => onRegistrar(llamado)}
+                >
+                  <PhoneCall className="h-4 w-4 mr-2" />
+                  Registrar
+                </Button>
               </div>
-              <p className="mt-1">{llamado.observaciones}</p>
-            </div>
-          )}
-          
-          {/* Acciones */}
-          {llamado.estado === 'pendiente' && (
-            <div className="flex gap-2 pt-2">
-              <Button
-                size="sm"
-                className="flex-1"
-                onClick={() => {
-                  const telefono = llamado.contacto_telefono || llamado.instalacion_telefono;
-                  if (telefono) {
-                    onWhatsApp(telefono, generarMensajeWhatsApp());
-                  }
-                }}
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                WhatsApp
-              </Button>
-              
-              <Button
-                size="sm"
-                variant="outline"
-                className="flex-1"
-                onClick={() => onRegistrar(llamado)}
-              >
-                <PhoneCall className="h-4 w-4 mr-2" />
-                Registrar
-              </Button>
-            </div>
-          )}
+            )}
 
-          {/* Botón para agregar observaciones si no hay */}
-          {esCompletado && !llamado.observaciones && (
-            <div className="pt-2">
+            {/* Botón para agregar observaciones si no hay */}
+            {esCompletado && !llamado.observaciones && (
               <Button
                 size="sm"
                 variant="outline"
-                className="w-full"
+                className="w-full h-9"
                 onClick={() => setShowEditModal(true)}
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Agregar Observaciones
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </CardContent>
       </Card>
 

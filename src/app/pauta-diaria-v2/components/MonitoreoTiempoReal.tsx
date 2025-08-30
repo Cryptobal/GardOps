@@ -18,7 +18,8 @@ import {
   Building2,
   Activity,
   ChevronDown,
-  XCircle
+  XCircle,
+  Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -36,6 +37,7 @@ interface Turno {
   estado_semaforo: string;
   observaciones_semaforo: string | null;
   ultima_actualizacion: string | null;
+  estado_pauta_ui: string;
 }
 
 interface KPIData {
@@ -69,14 +71,18 @@ export function MonitoreoTiempoReal() {
   const [data, setData] = useState<MonitoreoData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [vistaTurnos, setVistaTurnos] = useState<'instalaciones' | 'todos'>('instalaciones');
+  const [autoRefresh, setAutoRefresh] = useState(false); // Desactivado por defecto
+  const [vistaTurnos, setVistaTurnos] = useState<'instalaciones' | 'todos' | 'dia_noche'>('dia_noche');
   const [modoVista, setModoVista] = useState<'lista' | 'grid'>('grid'); // Grid por defecto
-  const [filtroTurno, setFiltroTurno] = useState<'todos' | 'dia' | 'noche'>('todos');
-  const [filtroEstado, setFiltroEstado] = useState<string>('todos');
-  const [busqueda, setBusqueda] = useState('');
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [incluirLibres, setIncluirLibres] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Evitar error de hidratación
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Cargar datos
   const cargarDatos = useCallback(async () => {
@@ -86,7 +92,7 @@ export function MonitoreoTiempoReal() {
       
       const params = new URLSearchParams({
         fecha,
-        ...(filtroTurno !== 'todos' && { turno: filtroTurno })
+        ...(incluirLibres && { incluirLibres: 'true' })
       });
 
       console.log('🔍 Cargando datos de control de asistencias...');
@@ -112,7 +118,7 @@ export function MonitoreoTiempoReal() {
     } finally {
       setLoading(false);
     }
-  }, [fecha, filtroTurno]);
+  }, [fecha, incluirLibres]);
 
   // Auto-refresh con intervalo más frecuente para tiempo real
   useEffect(() => {
@@ -143,50 +149,27 @@ export function MonitoreoTiempoReal() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [fecha, cargarDatos]);
 
-  // Filtrar turnos
+  // Datos filtrados según la vista seleccionada
   const turnosFiltrados = useMemo(() => {
-    if (!data) return [];
+    return data?.turnos || [];
+  }, [data]);
 
-    let turnos = data.turnos;
-
-    // Filtro por estado
-    if (filtroEstado !== 'todos') {
-      turnos = turnos.filter(turno => turno.estado_semaforo === filtroEstado);
-    }
-
-    // Filtro por búsqueda
-    if (busqueda) {
-      const searchLower = busqueda.toLowerCase();
-      turnos = turnos.filter(turno => 
-        turno.instalacion_nombre.toLowerCase().includes(searchLower) ||
-        turno.guardia_nombre.toLowerCase().includes(searchLower) ||
-        turno.puesto_nombre.toLowerCase().includes(searchLower)
-      );
-    }
-
-    return turnos;
-  }, [data, filtroEstado, busqueda]);
-
-  // Filtrar instalaciones
   const instalacionesFiltradas = useMemo(() => {
-    if (!data) return [];
+    return data?.instalaciones || [];
+  }, [data]);
 
-    let instalaciones = data.instalaciones;
-
-    // Filtro por búsqueda
-    if (busqueda) {
-      const searchLower = busqueda.toLowerCase();
-      instalaciones = instalaciones.filter(instalacion => 
-        instalacion.instalacion_nombre.toLowerCase().includes(searchLower) ||
-        instalacion.turnos.some(turno => 
-          turno.guardia_nombre.toLowerCase().includes(searchLower) ||
-          turno.puesto_nombre.toLowerCase().includes(searchLower)
-        )
-      );
-    }
-
-    return instalaciones;
-  }, [data, busqueda]);
+  // Agrupar turnos por día y noche
+  const turnosPorDiaNoche = useMemo(() => {
+    if (!data?.turnos) return { dia: [], noche: [] };
+    
+    const turnosDia = data.turnos.filter(turno => turno.tipo_turno === 'dia');
+    const turnosNoche = data.turnos.filter(turno => turno.tipo_turno === 'noche');
+    
+    return {
+      dia: turnosDia,
+      noche: turnosNoche
+    };
+  }, [data]);
 
   const handleEstadoChange = async (pautaId: string, estado: string) => {
     try {
@@ -301,28 +284,32 @@ export function MonitoreoTiempoReal() {
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Button 
-              onClick={cargarDatos} 
-              variant="outline" 
-              size="sm"
-              disabled={loading}
-              className="h-8 px-2"
-            >
-              <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Actualizar</span>
-            </Button>
-            
+            {/* Fecha del día */}
+            <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-950/50 rounded-lg border border-blue-200 dark:border-blue-800">
+              <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                {new Date(fecha).toLocaleDateString('es-CL', { 
+                  weekday: 'short', 
+                  month: 'short', 
+                  day: 'numeric' 
+                })}
+              </span>
+            </div>
+
+            {/* Botón Ver Libres */}
             <Button
-              onClick={() => setAutoRefresh(!autoRefresh)}
-              variant={autoRefresh ? "default" : "outline"}
+              onClick={() => setIncluirLibres(!incluirLibres)}
+              variant={incluirLibres ? "default" : "outline"}
               size="sm"
-              className="h-8 px-2"
+              className="h-8 px-3"
             >
-              <Clock className="w-3 h-3 mr-1" />
-              <span className="hidden sm:inline">{autoRefresh ? 'Auto ON' : 'Auto OFF'}</span>
+              <Eye className="w-3 h-3 mr-1" />
+              <span className="text-xs">Ver Libres</span>
             </Button>
 
-            {/* KPI Total arriba */}
+
+
+            {/* KPI Total */}
             <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-950/50 rounded-lg border border-blue-200 dark:border-blue-800">
               <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Total:</span>
@@ -353,115 +340,67 @@ export function MonitoreoTiempoReal() {
           </div>
         </div>
 
-        {/* Filtros */}
-        <div className="flex flex-col gap-2">
-          <Input
-            placeholder="Buscar instalación, guardia o puesto..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full"
-          />
-          
-          <div className="flex gap-2">
-            <Select value={filtroTurno} onValueChange={(value: 'todos' | 'dia' | 'noche') => setFiltroTurno(value)}>
-              <SelectTrigger className="flex-1 h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="dia">Día</SelectItem>
-                <SelectItem value="noche">Noche</SelectItem>
-              </SelectContent>
-            </Select>
 
-            <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-              <SelectTrigger className="flex-1 h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="pendiente">Pendiente</SelectItem>
-                <SelectItem value="en_camino">En camino</SelectItem>
-                <SelectItem value="llego">Llegó</SelectItem>
-                <SelectItem value="no_contesta">No contesta</SelectItem>
-                <SelectItem value="no_ira">No irá</SelectItem>
-                <SelectItem value="retrasado">Retrasado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
       </div>
 
-      {/* KPIs con consistencia de nombres */}
-      <div className="grid grid-cols-2 gap-2">
-        <Card className="border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/50">
+      {/* KPIs optimizados en una sola línea */}
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        <Card className="border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/50 min-w-[120px] flex-shrink-0">
           <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Pendiente</p>
-                <p className="text-lg font-bold text-gray-800 dark:text-gray-200">{data.kpis.pendiente}</p>
-              </div>
-              <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <div className="flex flex-col items-center text-center">
+              <Clock className="w-4 h-4 text-gray-600 dark:text-gray-400 mb-1" />
+              <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Pendiente</p>
+              <p className="text-lg font-bold text-gray-800 dark:text-gray-200">{data.kpis.pendiente}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-yellow-200 dark:border-yellow-800 bg-yellow-50/50 dark:bg-yellow-950/50">
+        <Card className="border-yellow-200 dark:border-yellow-800 bg-yellow-50/50 dark:bg-yellow-950/50 min-w-[120px] flex-shrink-0">
           <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-yellow-700 dark:text-yellow-300">En Camino</p>
-                <p className="text-lg font-bold text-yellow-800 dark:text-yellow-200">{data.kpis.en_camino}</p>
-              </div>
-              <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+            <div className="flex flex-col items-center text-center">
+              <Clock className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mb-1" />
+              <p className="text-xs font-medium text-yellow-700 dark:text-yellow-300">En Camino</p>
+              <p className="text-lg font-bold text-yellow-800 dark:text-yellow-200">{data.kpis.en_camino}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/50">
+        <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/50 min-w-[120px] flex-shrink-0">
           <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-green-700 dark:text-green-300">Llegó</p>
-                <p className="text-lg font-bold text-green-800 dark:text-green-200">{data.kpis.llego}</p>
-              </div>
-              <Activity className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <div className="flex flex-col items-center text-center">
+              <Activity className="w-4 h-4 text-green-600 dark:text-green-400 mb-1" />
+              <p className="text-xs font-medium text-green-700 dark:text-green-300">Llegó</p>
+              <p className="text-lg font-bold text-green-800 dark:text-green-200">{data.kpis.llego}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/50">
+        <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/50 min-w-[120px] flex-shrink-0">
           <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-red-700 dark:text-red-300">No Contesta</p>
-                <p className="text-lg font-bold text-red-800 dark:text-red-200">{data.kpis.no_contesta}</p>
-              </div>
-              <Activity className="w-5 h-5 text-red-600 dark:text-red-400" />
+            <div className="flex flex-col items-center text-center">
+              <Activity className="w-4 h-4 text-red-600 dark:text-red-400 mb-1" />
+              <p className="text-xs font-medium text-red-700 dark:text-red-300">No Contesta</p>
+              <p className="text-lg font-bold text-red-800 dark:text-red-200">{data.kpis.no_contesta}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-red-600 dark:border-red-800 bg-red-100/50 dark:bg-red-950/50">
+        <Card className="border-red-600 dark:border-red-800 bg-red-100/50 dark:bg-red-950/50 min-w-[120px] flex-shrink-0">
           <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-red-700 dark:text-red-300">No Irá</p>
-                <p className="text-lg font-bold text-red-800 dark:text-red-200">{data.kpis.no_ira}</p>
-              </div>
-              <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+            <div className="flex flex-col items-center text-center">
+              <XCircle className="w-4 h-4 text-red-600 dark:text-red-400 mb-1" />
+              <p className="text-xs font-medium text-red-700 dark:text-red-300">No Irá</p>
+              <p className="text-lg font-bold text-red-800 dark:text-red-200">{data.kpis.no_ira}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/50">
+        <Card className="border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/50 min-w-[120px] flex-shrink-0">
           <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-orange-700 dark:text-orange-300">Retrasado</p>
-                <p className="text-lg font-bold text-orange-800 dark:text-orange-200">{data.kpis.retrasado}</p>
-              </div>
-              <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+            <div className="flex flex-col items-center text-center">
+              <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400 mb-1" />
+              <p className="text-xs font-medium text-orange-700 dark:text-orange-300">Retrasado</p>
+              <p className="text-lg font-bold text-orange-800 dark:text-orange-200">{data.kpis.retrasado}</p>
             </div>
           </CardContent>
         </Card>
@@ -470,13 +409,22 @@ export function MonitoreoTiempoReal() {
       {/* Indicador de última actualización */}
       <div className="text-center">
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          Última actualización: {lastUpdate.toLocaleTimeString()}
+          Última actualización: {isMounted ? lastUpdate.toLocaleTimeString('es-CL', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        }) : '--:--:--'}
         </p>
       </div>
 
       {/* Selector de vista */}
-      <Tabs value={vistaTurnos} onValueChange={(value: string) => setVistaTurnos(value as 'instalaciones' | 'todos')} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 h-9">
+      <Tabs value={vistaTurnos} onValueChange={(value: string) => setVistaTurnos(value as 'instalaciones' | 'todos' | 'dia_noche')} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 h-9">
+          <TabsTrigger value="dia_noche" className="flex items-center gap-1 text-xs">
+            <Clock className="w-3 h-3" />
+            <span className="hidden sm:inline">Día y Noche</span>
+            <span className="sm:hidden">Día/Noche</span>
+          </TabsTrigger>
           <TabsTrigger value="instalaciones" className="flex items-center gap-1 text-xs">
             <Building2 className="w-3 h-3" />
             <span className="hidden sm:inline">Por Instalación</span>
@@ -545,6 +493,113 @@ export function MonitoreoTiempoReal() {
               </div>
             )}
           </div>
+        ) : vistaTurnos === 'dia_noche' ? (
+          /* Vista por Día y Noche */
+          <div className="space-y-4">
+            {/* Turnos de Día */}
+            <Card className="border-amber-200 dark:border-amber-700 bg-amber-50/30 dark:bg-amber-950/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center justify-between text-sm text-amber-900 dark:text-amber-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+                    <span>Turnos de Día</span>
+                  </div>
+                  <Badge variant="outline" className="border-amber-300 dark:border-amber-600 text-amber-700 dark:text-amber-300 text-xs">
+                    {turnosPorDiaNoche.dia.length}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {modoVista === 'lista' ? (
+                  <div className="space-y-2">
+                    {turnosPorDiaNoche.dia.map((turno) => (
+                      <TurnoCard 
+                        key={turno.pauta_id} 
+                        turno={turno} 
+                        onEstadoChange={handleEstadoChange}
+                        onWhatsApp={handleWhatsApp}
+                        onTelefono={handleTelefono}
+                        onObservaciones={handleObservaciones}
+                        modoVista="lista"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {turnosPorDiaNoche.dia.map((turno) => (
+                      <TurnoCard 
+                        key={turno.pauta_id} 
+                        turno={turno} 
+                        onEstadoChange={handleEstadoChange}
+                        onWhatsApp={handleWhatsApp}
+                        onTelefono={handleTelefono}
+                        onObservaciones={handleObservaciones}
+                        modoVista="grid"
+                      />
+                    ))}
+                  </div>
+                )}
+                
+                {turnosPorDiaNoche.dia.length === 0 && (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-amber-600 dark:text-amber-400">No hay turnos de día</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Turnos de Noche */}
+            <Card className="border-blue-200 dark:border-blue-700 bg-blue-50/30 dark:bg-blue-950/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center justify-between text-sm text-blue-900 dark:text-blue-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <span>Turnos de Noche</span>
+                  </div>
+                  <Badge variant="outline" className="border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-300 text-xs">
+                    {turnosPorDiaNoche.noche.length}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {modoVista === 'lista' ? (
+                  <div className="space-y-2">
+                    {turnosPorDiaNoche.noche.map((turno) => (
+                      <TurnoCard 
+                        key={turno.pauta_id} 
+                        turno={turno} 
+                        onEstadoChange={handleEstadoChange}
+                        onWhatsApp={handleWhatsApp}
+                        onTelefono={handleTelefono}
+                        onObservaciones={handleObservaciones}
+                        modoVista="lista"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {turnosPorDiaNoche.noche.map((turno) => (
+                      <TurnoCard 
+                        key={turno.pauta_id} 
+                        turno={turno} 
+                        onEstadoChange={handleEstadoChange}
+                        onWhatsApp={handleWhatsApp}
+                        onTelefono={handleTelefono}
+                        onObservaciones={handleObservaciones}
+                        modoVista="grid"
+                      />
+                    ))}
+                  </div>
+                )}
+                
+                {turnosPorDiaNoche.noche.length === 0 && (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-blue-600 dark:text-blue-400">No hay turnos de noche</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         ) : (
           /* Vista de Todos los Turnos */
           <div className="space-y-2">
@@ -606,6 +661,12 @@ function TurnoCard({
   onObservaciones: (pautaId: string, observaciones: string) => void;
   modoVista: 'lista' | 'grid';
 }) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Evitar error de hidratación
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   const estadosSemaforo = [
     { value: 'pendiente', label: 'Pendiente', color: 'bg-gray-500', borderColor: 'border-gray-500' },
     { value: 'en_camino', label: 'En Camino', color: 'bg-yellow-500', borderColor: 'border-yellow-500' },
@@ -630,14 +691,21 @@ function TurnoCard({
           {/* Header con información principal */}
           <div className="mb-3">
             <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate mb-1">
-              {turno.guardia_nombre}
+              {turno.guardia_nombre || 'Sin asignar'}
             </h4>
             <p className="text-xs text-gray-600 dark:text-gray-400 truncate mb-2">
               {turno.puesto_nombre} • {turno.rol_nombre}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-1">
               {turno.instalacion_nombre}
             </p>
+            {/* Estado de la pauta diaria */}
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-gray-500 dark:text-gray-400">Estado:</span>
+              <Badge variant="outline" className="text-xs px-1 py-0 h-4">
+                {turno.estado_pauta_ui}
+              </Badge>
+            </div>
           </div>
 
           {/* Horario */}
@@ -678,7 +746,14 @@ function TurnoCard({
             <Button 
               size="sm" 
               variant="outline" 
-              onClick={() => onTelefono(turno.guardia_telefono || turno.instalacion_telefono || '')} 
+              onClick={() => {
+                const telefono = turno.guardia_telefono || turno.instalacion_telefono;
+                if (telefono) {
+                  onTelefono(telefono);
+                } else {
+                  toast.error('No hay teléfono disponible');
+                }
+              }} 
               className="flex-1 h-7 text-xs border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700" 
               disabled={!turno.guardia_telefono && !turno.instalacion_telefono}
             >
@@ -688,7 +763,14 @@ function TurnoCard({
             <Button 
               size="sm" 
               variant="outline" 
-              onClick={() => onWhatsApp(turno.guardia_telefono || turno.instalacion_telefono || '', turno.guardia_nombre)} 
+              onClick={() => {
+                const telefono = turno.guardia_telefono || turno.instalacion_telefono;
+                if (telefono) {
+                  onWhatsApp(telefono, turno.guardia_nombre || 'Guardia');
+                } else {
+                  toast.error('No hay teléfono disponible');
+                }
+              }} 
               className="flex-1 h-7 text-xs border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700" 
               disabled={!turno.guardia_telefono && !turno.instalacion_telefono}
             >
@@ -707,7 +789,11 @@ function TurnoCard({
           {/* Última actualización */}
           {turno.ultima_actualizacion && (
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Última actualización: {new Date(turno.ultima_actualizacion).toLocaleTimeString()}
+              Última actualización: {isMounted ? new Date(turno.ultima_actualizacion).toLocaleTimeString('es-CL', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+              }) : '--:--:--'}
             </div>
           )}
         </CardContent>
@@ -727,11 +813,18 @@ function TurnoCard({
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
           <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-            {turno.guardia_nombre}
+            {turno.guardia_nombre || 'Sin asignar'}
           </h4>
           <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
             {turno.puesto_nombre} • {turno.rol_nombre}
           </p>
+          {/* Estado de la pauta diaria */}
+          <div className="flex items-center gap-1 mt-1">
+            <span className="text-xs text-gray-500 dark:text-gray-400">Estado:</span>
+            <Badge variant="outline" className="text-xs px-1 py-0 h-4">
+              {turno.estado_pauta_ui}
+            </Badge>
+          </div>
         </div>
         
         <div className="text-right ml-3">
@@ -776,7 +869,14 @@ function TurnoCard({
           <Button 
             size="sm" 
             variant="outline" 
-            onClick={() => onTelefono(turno.guardia_telefono || turno.instalacion_telefono || '')} 
+            onClick={() => {
+              const telefono = turno.guardia_telefono || turno.instalacion_telefono;
+              if (telefono) {
+                onTelefono(telefono);
+              } else {
+                toast.error('No hay teléfono disponible');
+              }
+            }} 
             className="h-8 w-8 p-0 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700" 
             disabled={!turno.guardia_telefono && !turno.instalacion_telefono}
             title="Llamar"
@@ -786,7 +886,14 @@ function TurnoCard({
           <Button 
             size="sm" 
             variant="outline" 
-            onClick={() => onWhatsApp(turno.guardia_telefono || turno.instalacion_telefono || '', turno.guardia_nombre)} 
+            onClick={() => {
+              const telefono = turno.guardia_telefono || turno.instalacion_telefono;
+              if (telefono) {
+                onWhatsApp(telefono, turno.guardia_nombre || 'Guardia');
+              } else {
+                toast.error('No hay teléfono disponible');
+              }
+            }} 
             className="h-8 w-8 p-0 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700" 
             disabled={!turno.guardia_telefono && !turno.instalacion_telefono}
             title="WhatsApp"
@@ -806,7 +913,11 @@ function TurnoCard({
       {/* Última actualización */}
       {turno.ultima_actualizacion && (
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-          Última actualización: {new Date(turno.ultima_actualizacion).toLocaleTimeString()}
+          Última actualización: {isMounted ? new Date(turno.ultima_actualizacion).toLocaleTimeString('es-CL', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+          }) : '--:--:--'}
         </div>
       )}
     </div>

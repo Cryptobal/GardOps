@@ -243,7 +243,7 @@ export default function GuardiasPage() {
           </div>
           <div>
             <p className="font-medium">{guardia.nombre || guardia.nombre_completo || 'Sin nombre'}</p>
-            <p className="text-sm text-muted-foreground">{guardia.rut || guardia.id}</p>
+            <p className="text-sm text-muted-foreground">{guardia.rut || 'Sin RUT'}</p>
           </div>
         </div>
       ),
@@ -343,8 +343,8 @@ export default function GuardiasPage() {
         </div>
       </div>
 
-      {/* KPIs mobile-first: 1 col en xs, 2 en sm+ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
+      {/* KPIs en una sola línea */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
         <KPIBox
           title="Guardias Activos"
           value={kpis.activos}
@@ -407,6 +407,27 @@ export default function GuardiasPage() {
           </Button>
         </div>
 
+        {/* Contador de resultados filtrados */}
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            {filteredGuardias.length === guardias.length ? (
+              <span>Mostrando todos los {filteredGuardias.length} guardias</span>
+            ) : (
+              <span>
+                Mostrando {filteredGuardias.length} de {guardias.length} guardias
+                {searchTerm && ` para "${searchTerm}"`}
+                {statusFilter !== 'all' && ` (${statusFilter === 'activo' ? 'Activos' : 'Inactivos'})`}
+                {tipoFilter !== 'all' && ` (${tipoFilter === 'contratado' ? 'Contratados' : 'Esporádicos'})`}
+                {os10Filter !== 'all' && (
+                  os10Filter === 'por_vencer' ? ' (OS10 Por Vencer)' :
+                  os10Filter === 'vencido' ? ' (OS10 Vencidos)' :
+                  ' (Sin OS10)'
+                )}
+              </span>
+            )}
+          </div>
+        </div>
+
         {/* Filtros expandibles */}
         {showFilters && (
           <motion.div
@@ -456,8 +477,6 @@ export default function GuardiasPage() {
                 <option value="vencido">OS10 Vencidos</option>
                 <option value="sin_fecha">Sin OS10</option>
               </select>
-            </div>
-            <div className="flex justify-end mt-3">
               <Button
                 variant="outline"
                 size="sm"
@@ -468,7 +487,7 @@ export default function GuardiasPage() {
                   setOs10Filter("all");
                   setSearchTerm("");
                 }}
-                className="text-xs"
+                className="text-xs h-10 px-3"
               >
                 Limpiar Filtros
               </Button>
@@ -523,7 +542,7 @@ export default function GuardiasPage() {
                     
                     <div className="space-y-1">
                       <h3 className="font-medium text-sm truncate">{guardia.nombre || guardia.nombre_completo || 'Sin nombre'}</h3>
-                      <p className="text-xs text-muted-foreground truncate">{guardia.rut || guardia.id}</p>
+                      <p className="text-xs text-muted-foreground truncate">{guardia.rut || 'Sin RUT'}</p>
                       
                       <div className="flex items-center space-x-1">
                         <span className="text-xs font-medium">{guardia.telefono}</span>

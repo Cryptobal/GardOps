@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     try {
       const params: any[] = [];
       let sql = `
-        SELECT id::text, nombre, estado
+        SELECT id::text, nombre, rut, estado
         FROM public.rrhh_guardias
         WHERE 1=1
       `;
@@ -53,22 +53,39 @@ export async function GET(req: NextRequest) {
         paramCount++;
       }
       
-      sql += ` ORDER BY nombre LIMIT 100`;
+      sql += ` ORDER BY nombre`;
       const { rows } = await client.query(sql, params);
       return NextResponse.json({ items: rows });
     } catch (err) {
       console.log('[guardias] Tabla rrhh_guardias no disponible, probando tabla guardias');
       
-      // Segundo intento: tabla guardias
-      try {
-        const params: any[] = [];
-        let sql = `
-          SELECT id::text, 
-                 trim(concat_ws(' ', nombre, apellido_paterno, apellido_materno)) AS nombre, 
-                 CASE WHEN activo THEN 'activo' ELSE 'inactivo' END as estado
-          FROM public.guardias
-          WHERE 1=1
-        `;
+              // Segundo intento: tabla guardias
+        try {
+          const params: any[] = [];
+          let sql = `
+            SELECT 
+              g.id::text, 
+              trim(concat_ws(' ', g.nombre, g.apellido_paterno, g.apellido_materno)) AS nombre,
+              g.rut,
+              CASE WHEN g.activo THEN 'activo' ELSE 'inactivo' END as estado,
+              g.tipo_guardia,
+              g.email,
+              g.telefono,
+              g.direccion,
+              g.fecha_os10,
+              g.created_at,
+              g.updated_at,
+              -- Información de instalación asignada
+              po.instalacion_id,
+              i.nombre as instalacion_asignada,
+              -- Información del rol asignado
+              rs.nombre as rol_actual
+            FROM public.guardias g
+            LEFT JOIN public.as_turnos_puestos_operativos po ON po.guardia_id = g.id AND po.activo = true
+            LEFT JOIN public.instalaciones i ON i.id = po.instalacion_id
+            LEFT JOIN public.as_turnos_roles_servicio rs ON rs.id = po.rol_id
+            WHERE 1=1
+          `;
         let paramCount = 1;
         
         if (estado) {
@@ -85,7 +102,7 @@ export async function GET(req: NextRequest) {
           paramCount++;
         }
         
-        sql += ` ORDER BY nombre LIMIT 100`;
+        sql += ` ORDER BY nombre`;
         const { rows } = await client.query(sql, params);
         return NextResponse.json({ items: rows });
       } catch (err2) {
@@ -97,12 +114,12 @@ export async function GET(req: NextRequest) {
             SELECT DISTINCT 
               guardia_trabajo_id::text as id,
               guardia_trabajo_nombre as nombre,
+              guardia_trabajo_rut as rut,
               'activo' as estado
             FROM as_turnos_v_pauta_diaria_dedup
             WHERE guardia_trabajo_id IS NOT NULL
               AND guardia_trabajo_nombre IS NOT NULL
             ORDER BY guardia_trabajo_nombre
-            LIMIT 100
           `);
           
           // Si no hay datos, devolver array vacío
@@ -259,6 +276,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar duplicados por RUT y Email dentro del tenant
+    // Primero verificar en la tabla guardias
     const dupRut = await client.query(
       'SELECT id, nombre, apellido_paterno, rut FROM guardias WHERE rut = $1 AND tenant_id = $2 LIMIT 1',
       [rutNormalizado, tenantId]
@@ -268,14 +286,57 @@ export async function POST(request: NextRequest) {
       'SELECT id, nombre, apellido_paterno, email FROM guardias WHERE email = $1 AND tenant_id = $2 LIMIT 1',
       [email, tenantId]
     );
+
+    // También verificar en la tabla rrhh_guardias si existe
+    let dupRutRRHH = null;
+    let dupEmailRRHH = null;
+    try {
+      dupRutRRHH = await client.query(
+        'SELECT id, nombre, rut FROM rrhh_guardias WHERE rut = $1 LIMIT 1',
+        [rutNormalizado]
+      );
+      
+      dupEmailRRHH = await client.query(
+        'SELECT id, nombre, email FROM rrhh_guardias WHERE email = $1 LIMIT 1',
+        [email]
+      );
+    } catch (err) {
+      // Si la tabla rrhh_guardias no existe, ignorar
+      console.log('Tabla rrhh_guardias no disponible para validación de duplicados');
+    }
     
     // Construir mensaje de error específico
     const errores = [];
+    const detalles = {
+      rut_duplicado: false,
+      email_duplicado: false,
+      rut_existente: null,
+      email_existente: null,
+      rut_existente_rrhh: null,
+      email_existente_rrhh: null
+    };
+
     if (dupRut.rows.length > 0) {
       errores.push('RUT');
+      detalles.rut_duplicado = true;
+      detalles.rut_existente = dupRut.rows[0];
     }
+    
     if (dupEmail.rows.length > 0) {
       errores.push('email');
+      detalles.email_duplicado = true;
+      detalles.email_existente = dupEmail.rows[0];
+    }
+
+    // Verificar también en rrhh_guardias si existe
+    if (dupRutRRHH && dupRutRRHH.rows.length > 0) {
+      errores.push('RUT (RRHH)');
+      detalles.rut_existente_rrhh = dupRutRRHH.rows[0];
+    }
+    
+    if (dupEmailRRHH && dupEmailRRHH.rows.length > 0) {
+      errores.push('email (RRHH)');
+      detalles.email_existente_rrhh = dupEmailRRHH.rows[0];
     }
     
     if (errores.length > 0) {
@@ -283,18 +344,13 @@ export async function POST(request: NextRequest) {
       if (errores.length === 1) {
         mensajeError = `Ya existe un guardia con ese ${errores[0]}`;
       } else {
-        mensajeError = `Ya existe un guardia con ese RUT y ese email`;
+        mensajeError = `Ya existe un guardia con ese RUT y/o email`;
       }
       
       return NextResponse.json(
         { 
           error: mensajeError,
-          detalles: {
-            rut_duplicado: dupRut.rows.length > 0,
-            email_duplicado: dupEmail.rows.length > 0,
-            rut_existente: dupRut.rows[0] || null,
-            email_existente: dupEmail.rows[0] || null
-          }
+          detalles
         },
         { status: 409 }
       );

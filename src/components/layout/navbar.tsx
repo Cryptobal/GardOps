@@ -18,13 +18,27 @@ export function Navbar({ onMobileMenuToggle }: NavbarProps) {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isThemeInitialized, setIsThemeInitialized] = useState(false);
+  const [isPathnameInitialized, setIsPathnameInitialized] = useState(false);
   const [user, setUser] = useState<any>(null);
   
-  const currentPage = navigationItems.find(item => item.href === pathname);
+  // Solo calcular el título de la página después de que pathname esté disponible
+  const currentPage = isPathnameInitialized ? navigationItems.find(item => item.href === pathname) : null;
   const pageTitle = currentPage?.name || "GardOps";
   const pageDescription = currentPage?.description;
 
+  // Formatear fecha para mostrar en la navbar (solo en inicio)
+  const fecha = new Date().toLocaleDateString('es-CL', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric'
+  });
+
   // Efectos para evitar errores de hidratación
+  useEffect(() => {
+    // Marcar pathname como inicializado
+    setIsPathnameInitialized(true);
+  }, [pathname]);
+
   useEffect(() => {
     // Parsear token solo en el cliente
     const token = document.cookie.match(/(?:^|;\s*)auth_token=([^;]+)/)?.[1];
@@ -139,10 +153,18 @@ export function Navbar({ onMobileMenuToggle }: NavbarProps) {
 
         {/* Page title and description - Responsive */}
         <div className="flex flex-col ml-2 sm:ml-3 md:ml-4 flex-1 min-w-0">
-          <h1 className="text-sm sm:text-base md:text-lg font-semibold text-foreground truncate">{pageTitle}</h1>
-          {pageDescription && (
+          <h1 className="text-sm sm:text-base md:text-lg font-semibold text-foreground truncate">
+            {isPathnameInitialized ? pageTitle : "GardOps"}
+          </h1>
+          {pageDescription && isPathnameInitialized && (
             <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground truncate hidden sm:block">
               {pageDescription}
+            </p>
+          )}
+          {/* Mostrar fecha solo en la página de inicio */}
+          {pathname === '/' && (
+            <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
+              {fecha}
             </p>
           )}
         </div>

@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
         pm.meta,
         po.nombre_puesto,
         po.es_ppc,
+        po.guardia_id as puesto_guardia_id,
         g.nombre as guardia_nombre,
         g.apellido_paterno,
         g.apellido_materno,
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
         END as tipo_cobertura
       FROM as_turnos_pauta_mensual pm
       INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
-      LEFT JOIN guardias g ON pm.guardia_id = g.id
+      LEFT JOIN guardias g ON (pm.guardia_id = g.id OR (pm.guardia_id IS NULL AND po.guardia_id = g.id))
       LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       LEFT JOIN guardias rg ON rg.id::text = (pm.meta->>'cobertura_guardia_id')
       WHERE po.instalacion_id = $1 
@@ -89,7 +90,10 @@ export async function GET(request: NextRequest) {
         g.nombre as guardia_nombre,
         g.apellido_paterno,
         g.apellido_materno,
-        CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, '')) as nombre_completo
+        CASE 
+          WHEN po.guardia_id IS NOT NULL THEN CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, ''))
+          ELSE NULL
+        END as nombre_completo
       FROM as_turnos_puestos_operativos po
       LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       LEFT JOIN guardias g ON po.guardia_id = g.id
@@ -190,7 +194,7 @@ export async function GET(request: NextRequest) {
 
       return {
         id: puesto.puesto_id,
-        nombre: puesto.nombre_completo,
+        nombre: puesto.es_ppc ? `PPC ${puesto.nombre_puesto}` : (puesto.nombre_completo || 'Sin asignar'),
         nombre_puesto: puesto.nombre_puesto,
         patron_turno: puesto.patron_turno || '4x4',
         dias: dias,

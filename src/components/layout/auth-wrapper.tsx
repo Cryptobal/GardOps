@@ -29,6 +29,15 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
       console.log('🔍 AuthWrapper: Ruta actual:', pathname)
       console.log('🔍 AuthWrapper: Es ruta pública:', isPublicRoute)
       
+      // Bypass de desarrollo: permitir acceso sin autenticación
+      const isDev = process.env.NODE_ENV === 'development'
+      if (isDev) {
+        console.log('🔍 AuthWrapper: Modo desarrollo - bypass de autenticación')
+        setIsAuth(true)
+        setIsLoading(false)
+        return
+      }
+      
       const auth = isAuthenticated()
       console.log('🔍 AuthWrapper: Usuario autenticado:', auth)
       
@@ -41,8 +50,15 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
       }
     }
 
-    checkAuth()
-  }, [pathname, isPublicRoute])
+    // Ejecutar inmediatamente en modo desarrollo
+    if (process.env.NODE_ENV === 'development') {
+      checkAuth()
+    } else {
+      // Usar setTimeout para evitar problemas de hidratación en producción
+      const timer = setTimeout(checkAuth, 0)
+      return () => clearTimeout(timer)
+    }
+  }, [pathname, isPublicRoute, router])
 
   // Cerrar menú móvil al cambiar de página
   useEffect(() => {

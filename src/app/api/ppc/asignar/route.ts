@@ -3,7 +3,7 @@ import { query } from "@/lib/database";
 
 export async function POST(request: NextRequest) {
   try {
-    const { guardia_id, puesto_operativo_id } = await request.json();
+    const { guardia_id, puesto_operativo_id, confirmar_reasignacion = false } = await request.json();
 
     if (!guardia_id || !puesto_operativo_id) {
       return NextResponse.json(
@@ -55,13 +55,35 @@ export async function POST(request: NextRequest) {
 
     // Verificar si el guardia ya tiene una asignación activa
     const asignacionExistente = await query(`
-      SELECT id, instalacion_id, rol_id
-      FROM as_turnos_puestos_operativos
-      WHERE guardia_id = $1 AND es_ppc = false
+      SELECT 
+        po.id, 
+        po.instalacion_id, 
+        po.rol_id,
+        po.nombre_puesto,
+        i.nombre as instalacion_nombre,
+        rs.nombre as rol_servicio_nombre,
+        rs.hora_inicio,
+        rs.hora_termino
+      FROM as_turnos_puestos_operativos po
+      INNER JOIN instalaciones i ON po.instalacion_id = i.id
+      INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+      WHERE po.guardia_id = $1 AND po.es_ppc = false
     `, [guardia_id]);
 
-    // Si tiene asignación activa, liberar el puesto actual (convertirlo en PPC)
-    if (asignacionExistente.rows.length > 0) {
+    // Si tiene asignación activa y no se confirma la reasignación, devolver error
+    if (asignacionExistente.rows.length > 0 && !confirmar_reasignacion) {
+      return NextResponse.json(
+        { 
+          error: 'El guardia ya tiene una asignación activa',
+          requiere_confirmacion: true,
+          asignacion_actual: asignacionExistente.rows[0]
+        },
+        { status: 409 }
+      );
+    }
+
+    // Si tiene asignación activa y se confirma la reasignación, liberar el puesto actual
+    if (asignacionExistente.rows.length > 0 && confirmar_reasignacion) {
       const asignacionActual = asignacionExistente.rows[0];
       console.log(`🔄 Liberando asignación actual del guardia ${guardia_id} en puesto ${asignacionActual.id}`);
       

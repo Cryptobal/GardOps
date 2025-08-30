@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/database';
+import { sql } from '@/lib/db';
 
-// GET: Obtener asignaciones de un guardia específico
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -9,134 +8,92 @@ export async function GET(
   try {
     const guardiaId = params.id;
 
-    // Verificar que el guardia existe
-    const guardiaCheck = await query(
-      'SELECT id, nombre, apellido_paterno, apellido_materno FROM guardias WHERE id = $1',
-      [guardiaId]
-    );
-
-    if (guardiaCheck.rows.length === 0) {
+    if (!guardiaId) {
       return NextResponse.json(
-        { error: 'Guardia no encontrado' },
-        { status: 404 }
+        { error: 'ID de guardia es requerido' },
+        { status: 400 }
       );
     }
 
-    // Obtener asignación actual del guardia (desde PPCs activos)
-    const asignacionActual = await query(`
+    // Obtener asignación actual (directa en puestos operativos)
+    const { rows: asignacionActualRows } = await sql`
       SELECT 
-        ppc.id as ppc_id,
-        ppc.fecha_asignacion,
-        ppc.estado as ppc_estado,
-        ppc.motivo as ppc_motivo,
-        ppc.observaciones,
-        ppc.created_at,
-        ppc.updated_at,
-        
-        -- Datos de la instalación
-        i.id as instalacion_id,
+        po.id,
+        po.instalacion_id,
         i.nombre as instalacion_nombre,
-        i.direccion as instalacion_direccion,
-        i.ciudad as instalacion_ciudad,
-        i.comuna as instalacion_comuna,
-        
-        -- Datos del rol de servicio
-        rs.id as rol_servicio_id,
-        rs.nombre as rol_servicio_nombre,
-        rs.hora_inicio,
-        rs.hora_termino,
-        rs.dias_trabajo,
-        rs.dias_descanso
-        
-      FROM as_turnos_ppc ppc
-      INNER JOIN as_turnos_requisitos rp ON ppc.requisito_puesto_id = rp.id
-      INNER JOIN instalaciones i ON rp.instalacion_id = i.id
-      INNER JOIN roles_servicio rs ON rp.rol_servicio_id = rs.id
-      WHERE ppc.guardia_asignado_id = $1 AND ppc.estado = 'Asignado'
-      ORDER BY ppc.fecha_asignacion DESC
-    `, [guardiaId]);
+        po.nombre_puesto,
+        po.actualizado_en as fecha_inicio,
+        'activa' as estado,
+        'directa' as tipo_asignacion
+      FROM public.as_turnos_puestos_operativos po
+      JOIN public.instalaciones i ON i.id = po.instalacion_id
+      WHERE po.guardia_id = ${guardiaId}::uuid
+        AND po.activo = true
+      ORDER BY po.actualizado_en DESC
+      LIMIT 1;
+    `;
 
-    // Obtener historial completo de asignaciones
-    const historialAsignaciones = await query(`
+    // Obtener historial de asignaciones en pauta mensual
+    const { rows: historialRows } = await sql`
       SELECT 
-        ag.id as asignacion_id,
-        ag.fecha_inicio,
-        ag.fecha_termino,
-        ag.estado as estado_asignacion,
-        ag.tipo_asignacion,
-        ag.observaciones,
-        ag.created_at,
-        ag.updated_at,
-        
-        -- Datos de la instalación
-        i.id as instalacion_id,
+        pm.id,
+        po.instalacion_id,
         i.nombre as instalacion_nombre,
-        i.direccion as instalacion_direccion,
-        i.ciudad as instalacion_ciudad,
-        i.comuna as instalacion_comuna,
-        
-        -- Datos del rol de servicio
-        rs.id as rol_servicio_id,
-        rs.nombre as rol_servicio_nombre,
-        rs.hora_inicio,
-        rs.hora_termino,
-        rs.dias_trabajo,
-        rs.dias_descanso
-        
-      FROM as_turnos_asignaciones ag
-      INNER JOIN as_turnos_requisitos rp ON ag.requisito_puesto_id = rp.id
-      INNER JOIN instalaciones i ON rp.instalacion_id = i.id
-      INNER JOIN roles_servicio rs ON rp.rol_servicio_id = rs.id
-      WHERE ag.guardia_id = $1
-      ORDER BY ag.fecha_inicio DESC, ag.created_at DESC
-    `, [guardiaId]);
+        po.nombre_puesto,
+        pm.created_at as fecha_inicio,
+        CASE 
+          WHEN pm.estado = 'Asignado' THEN 'activa'
+          ELSE 'finalizada'
+        END as estado,
+        'pauta_mensual' as tipo_asignacion
+      FROM public.as_turnos_pauta_mensual pm
+      JOIN public.as_turnos_puestos_operativos po ON po.id = pm.puesto_id
+      JOIN public.instalaciones i ON i.id = po.instalacion_id
+      WHERE pm.guardia_id = ${guardiaId}::uuid
+        AND pm.estado = 'Asignado'
+      ORDER BY pm.created_at DESC
+      LIMIT 20;
+    `;
 
-    // Obtener estadísticas de asignaciones
-    const estadisticas = await query(`
-      SELECT 
-        COUNT(*) as total_asignaciones,
-        COUNT(CASE WHEN estado = 'Activa' AND fecha_termino IS NULL THEN 1 END) as asignaciones_activas,
-        COUNT(CASE WHEN estado = 'Finalizada' THEN 1 END) as asignaciones_finalizadas,
-        COUNT(CASE WHEN tipo_asignacion = 'PPC' THEN 1 END) as asignaciones_ppc,
-        COUNT(CASE WHEN tipo_asignacion = 'Reasignación' THEN 1 END) as reasignaciones
-      FROM as_turnos_asignaciones 
-      WHERE guardia_id = $1
-    `, [guardiaId]);
+    // Combinar y formatear resultados
+    const asignacionActual = asignacionActualRows.length > 0 ? {
+      id: asignacionActualRows[0].id,
+      instalacion_id: asignacionActualRows[0].instalacion_id,
+      instalacion_nombre: asignacionActualRows[0].instalacion_nombre,
+      puesto_nombre: asignacionActualRows[0].nombre_puesto,
+      fecha_inicio: asignacionActualRows[0].fecha_inicio,
+      estado: asignacionActualRows[0].estado,
+      tipo_asignacion: asignacionActualRows[0].tipo_asignacion
+    } : null;
 
-    // Combinar asignación actual con historial
-    const todasLasAsignaciones = [
-      ...asignacionActual.rows.map(row => ({ 
-        ...row, 
-        fuente: 'ppc_activo',
-        es_actual: true,
-        duracion_dias: row.fecha_asignacion ? 
-          Math.ceil((new Date().getTime() - new Date(row.fecha_asignacion).getTime()) / (1000 * 60 * 60 * 24)) : 0
-      })),
-      ...historialAsignaciones.rows.map(row => ({ 
-        ...row, 
-        fuente: 'historial',
-        es_actual: false,
-        duracion_dias: row.fecha_inicio && row.fecha_termino ? 
-          Math.ceil((new Date(row.fecha_termino).getTime() - new Date(row.fecha_inicio).getTime()) / (1000 * 60 * 60 * 24)) : 0
-      }))
-    ].sort((a, b) => {
-      const fechaA = a.fecha_asignacion || a.fecha_inicio;
-      const fechaB = b.fecha_asignacion || b.fecha_inicio;
-      return new Date(fechaB).getTime() - new Date(fechaA).getTime();
-    });
+    const historial = historialRows.map(row => ({
+      id: row.id,
+      instalacion_id: row.instalacion_id,
+      instalacion_nombre: row.instalacion_nombre,
+      puesto_nombre: row.nombre_puesto,
+      fecha_inicio: row.fecha_inicio,
+      estado: row.estado,
+      tipo_asignacion: row.tipo_asignacion
+    }));
+
+    // Combinar historial con asignación actual (evitando duplicados)
+    const todasLasAsignaciones = [...historial];
+    
+    // Solo agregar asignación actual si no está en el historial
+    if (asignacionActual && !historial.some(h => 
+      h.instalacion_id === asignacionActual.instalacion_id && 
+      h.puesto_nombre === asignacionActual.puesto_nombre
+    )) {
+      todasLasAsignaciones.unshift(asignacionActual);
+    }
 
     return NextResponse.json({
-      guardia: guardiaCheck.rows[0],
-      asignacion_actual: asignacionActual.rows[0] || null,
-      asignaciones: todasLasAsignaciones,
-      estadisticas: estadisticas.rows[0],
-      total: todasLasAsignaciones.length,
-      ppc_activos: asignacionActual.rows.length,
-      historial: historialAsignaciones.rows.length
+      asignacionActual,
+      asignaciones: todasLasAsignaciones
     });
 
   } catch (error) {
-    console.error('Error obteniendo asignaciones del guardia:', error);
+    console.error('Error al obtener asignaciones del guardia:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
