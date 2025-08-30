@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -84,7 +84,11 @@ export default function CentralMonitoreoPage() {
   const [estadoRegistro, setEstadoRegistro] = useState('');
   const [observacionesRegistro, setObservacionesRegistro] = useState('');
 
-  // Función para cargar datos automáticamente
+  // Ref para evitar recargas innecesarias
+  const fechaRef = useRef(fecha);
+  fechaRef.current = fecha;
+
+  // Función para cargar datos automáticamente (optimizada)
   const cargarDatos = useCallback(async (isSilent = false) => {
     if (!isSilent) {
       setLoading(true);
@@ -92,14 +96,16 @@ export default function CentralMonitoreoPage() {
     try {
       // Cargar agenda
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Santiago';
-      const responseAgenda = await rbacFetch(`/api/central-monitoring/agenda?fecha=${fecha}&tz=${encodeURIComponent(tz)}`);
+      const currentFecha = fechaRef.current;
+      
+      const responseAgenda = await rbacFetch(`/api/central-monitoring/agenda?fecha=${currentFecha}&tz=${encodeURIComponent(tz)}`);
       if (responseAgenda.ok) {
         const dataAgenda = await responseAgenda.json();
         setLlamados(dataAgenda.data || []);
       }
 
       // Cargar KPIs desde el backend
-      const responseKPIs = await rbacFetch(`/api/central-monitoring/kpis?fecha=${fecha}&tz=${encodeURIComponent(tz)}`);
+      const responseKPIs = await rbacFetch(`/api/central-monitoring/kpis?fecha=${currentFecha}&tz=${encodeURIComponent(tz)}`);
       if (responseKPIs.ok) {
         const dataKPIs = await responseKPIs.json();
         setKpis({
@@ -114,7 +120,7 @@ export default function CentralMonitoreoPage() {
       // Notificar a otras pestañas sobre la actualización
       if (typeof window !== 'undefined') {
         localStorage.setItem('central-monitoreo-update', JSON.stringify({
-          fecha,
+          fecha: currentFecha,
           timestamp: new Date().toISOString()
         }));
       }
@@ -128,35 +134,43 @@ export default function CentralMonitoreoPage() {
         setLoading(false);
       }
     }
-  }, [fecha]);
+  }, []); // Sin dependencias para evitar recreaciones
 
-  // Efecto para cargar datos
+  // Efecto para cargar datos cuando cambia la fecha
   useEffect(() => {
     cargarDatos();
-  }, [fecha]);
+  }, [fecha, cargarDatos]);
 
-  // Auto-refresh cada 30 segundos (silencioso)
+  // Auto-refresh cada 30 segundos (silencioso) - optimizado
   useEffect(() => {
     if (!autoRefresh) return;
-    const interval = setInterval(() => cargarDatos(true), 30000);
+    
+    const interval = setInterval(() => {
+      cargarDatos(true);
+    }, 30000);
+    
     return () => clearInterval(interval);
   }, [autoRefresh, cargarDatos]);
 
-  // Escuchar cambios en otras pestañas
+  // Escuchar cambios en otras pestañas - optimizado
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'central-monitoreo-update' && e.newValue) {
-        const updateData = JSON.parse(e.newValue);
-        if (updateData.fecha === fecha) {
-          console.log('🔄 Actualización detectada desde otra pestaña');
-          cargarDatos(true);
+        try {
+          const updateData = JSON.parse(e.newValue);
+          if (updateData.fecha === fechaRef.current) {
+            console.log('🔄 Actualización detectada desde otra pestaña - Recargando KPIs');
+            cargarDatos(true);
+          }
+        } catch (error) {
+          console.error('Error parsing storage update:', error);
         }
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, [fecha, cargarDatos]);
+  }, [cargarDatos]);
 
 
 
