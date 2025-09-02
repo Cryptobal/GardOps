@@ -16,6 +16,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    console.log('🔍 Descargando documento:', { documentId, modulo });
+    
     // Obtener información del documento
     const sql = `
       SELECT 
@@ -31,6 +33,7 @@ export async function GET(request: NextRequest) {
     const result = await query(sql, [documentId]);
     
     if (result.rows.length === 0) {
+      console.log('❌ Documento no encontrado:', documentId);
       return NextResponse.json({ 
         success: false, 
         error: 'Documento no encontrado' 
@@ -38,6 +41,12 @@ export async function GET(request: NextRequest) {
     }
     
     const documento = result.rows[0];
+    console.log('📄 Documento encontrado:', {
+      id: documento.id,
+      nombre: documento.nombre_original,
+      url: documento.url,
+      tamaño: documento.tamaño
+    });
     
     // Construir URL completa de Cloudflare R2
     let r2Url = documento.url;
@@ -45,21 +54,37 @@ export async function GET(request: NextRequest) {
     // Si la URL no es completa, construir la URL completa de R2
     if (!r2Url.startsWith('http')) {
       const r2PublicUrl = process.env.R2_PUBLIC_URL || `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
-      r2Url = `${r2PublicUrl}/${process.env.R2_BUCKET_NAME}/${r2Url}`;
+      const bucketName = process.env.R2_BUCKET_NAME;
+      
+      if (!bucketName) {
+        console.error('❌ R2_BUCKET_NAME no configurado');
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Configuración de R2 incompleta' 
+        }, { status: 500 });
+      }
+      
+      r2Url = `${r2PublicUrl}/${bucketName}/${r2Url}`;
+      console.log('🔗 URL R2 construida:', r2Url);
     }
     
     // Descargar y servir el archivo desde R2
     if (r2Url && r2Url.startsWith('http')) {
-              try {
-          // Descargar el archivo desde R2
-          const response = await fetch(r2Url);
+      try {
+        console.log('☁️ Descargando desde R2:', r2Url);
+        
+        // Descargar el archivo desde R2
+        const response = await fetch(r2Url);
         
         if (!response.ok) {
+          console.error('❌ Error descargando desde R2:', response.status, response.statusText);
           throw new Error(`Error descargando desde R2: ${response.status}`);
         }
         
         const arrayBuffer = await response.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
+        
+        console.log('✅ Archivo descargado de R2, tamaño:', buffer.length);
         
         // Determinar el tipo MIME basado en la extensión
         const extension = documento.nombre_original.split('.').pop()?.toLowerCase();
@@ -87,12 +112,14 @@ export async function GET(request: NextRequest) {
         console.error('❌ Error descargando desde R2:', error);
         return NextResponse.json({ 
           success: false, 
-          error: 'Error al descargar archivo desde R2' 
+          error: 'Error al descargar archivo desde R2',
+          details: error.message
         }, { status: 500 });
       }
     }
     
     // Si no hay URL, devolver error
+    console.error('❌ URL del documento no disponible:', documento.url);
     return NextResponse.json({ 
       success: false, 
       error: 'URL del documento no disponible' 
@@ -100,9 +127,10 @@ export async function GET(request: NextRequest) {
     
   } catch (error) {
     console.error('❌ Error en GET /api/download-document:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Error al obtener documento' 
+    return NextResponse.json({
+      success: false,
+      error: 'Error al obtener documento',
+      details: error.message
     }, { status: 500 });
   }
 } 

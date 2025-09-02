@@ -294,28 +294,56 @@ export function DocumentManager({
 
   const descargarDocumento = useCallback(async (documento: Documento) => {
     try {
-      const downloadUrl = `/api/download-document?id=${documento.id}&modulo=${modulo}`;
-      const response = await fetch(downloadUrl, { method: 'HEAD' });
+      const response = await fetch(`/api/download-document?id=${documento.id}&modulo=${modulo}`, {
+        method: 'GET'
+      });
       
       if (response.ok) {
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = documento.nombre;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = documento.nombre;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
       } else {
-        alert("Este documento no está disponible para descarga.");
+        console.error('❌ Error al descargar documento:', response.statusText);
+        alert('Error al descargar el documento');
       }
     } catch (error) {
-      alert("Error al descargar el documento");
+      console.error('❌ Error al descargar documento:', error);
+      alert('Error al descargar el documento');
     }
   }, [modulo]);
 
-  const verDocumento = useCallback((documento: Documento) => {
-    setSelectedDocument(documento);
-    setViewerOpen(true);
-  }, []);
+  const verDocumento = useCallback(async (documento: Documento) => {
+    try {
+      // Abrir en nueva pestaña para ver
+      const response = await fetch(`/api/download-document?id=${documento.id}&modulo=${modulo}`, {
+        method: 'GET'
+      });
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        console.error('❌ Error al ver documento:', response.statusText);
+        alert('Error al abrir el documento');
+      }
+    } catch (error) {
+      console.error('❌ Error al ver documento:', error);
+      alert('Error al abrir el documento');
+    }
+  }, [modulo]);
 
   // Funciones para el nuevo visualizador premium
   const abrirVisualizador = useCallback((documento: Documento) => {
