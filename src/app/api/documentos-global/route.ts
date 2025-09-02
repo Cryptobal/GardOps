@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
           d.id,
           d.nombre_original as nombre,
           d.tamaño,
-          d.created_at,
+          d.creado_en,
           d.fecha_vencimiento,
           td.nombre as tipo_documento_nombre,
           td.id as tipo_documento_id,
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
           d.id,
           d.nombre_original as nombre,
           d.tamaño,
-          d.created_at,
+          d.creado_en,
           d.fecha_vencimiento,
           td.nombre as tipo_documento_nombre,
           td.id as tipo_documento_id,
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
           d.id,
           d.nombre_original as nombre,
           d.tamaño,
-          d.created_at,
+          d.creado_en,
           d.fecha_vencimiento,
           td.nombre as tipo_documento_nombre,
           td.id as tipo_documento_id,
@@ -160,7 +160,7 @@ export async function GET(request: NextRequest) {
       paramIndex++;
     }
     
-    sql += ` ORDER BY created_at DESC`;
+    sql += ` ORDER BY creado_en DESC`;
     
     // Agregar paginación
     sql += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;

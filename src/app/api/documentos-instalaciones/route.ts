@@ -24,17 +24,16 @@ export async function GET(request: NextRequest) {
         d.instalacion_id,
         d.tipo_documento_id,
         d.url as url_archivo,
-        d.created_at as fecha_subida,
+        d.creado_en as fecha_subida,
         d.fecha_vencimiento,
         d.tipo as estado,
         d.nombre_original,
         d.tamaño,
-        td.nombre as tipo_documento_nombre,
-        td.requiere_vencimiento
+        td.nombre as tipo_documento_nombre
       FROM documentos d
       LEFT JOIN tipos_documentos_postulacion td ON d.tipo_documento_id = td.id
       WHERE d.instalacion_id = $1
-      ORDER BY d.created_at DESC
+      ORDER BY d.creado_en DESC
     `;
     
     const result = await query(sql, [instalacionId]);
