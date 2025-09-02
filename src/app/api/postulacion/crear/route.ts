@@ -362,13 +362,15 @@ async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: 
       }
     };
 
-    // Enviar webhook con delay pequeño
-    setTimeout(async () => {
-      try {
-        console.log(`🚀 Enviando webhook a: ${webhookUrl}`);
-        
-        // Función para enviar webhook con reintentos robusta
-        const enviarWebhookConReintentos = async (intento: number = 1): Promise<any> => {
+    // Log del payload para debug
+    console.log('📦 Payload del webhook:', JSON.stringify(payload, null, 2));
+    
+    // Enviar webhook de manera inmediata (sin setTimeout)
+    try {
+      console.log(`🚀 Enviando webhook a: ${webhookUrl}`);
+      
+      // Función para enviar webhook con reintentos robusta
+      const enviarWebhookConReintentos = async (intento: number = 1): Promise<any> => {
           try {
             console.log(`🚀 Enviando webhook (intento ${intento}) a: ${webhookUrl}`);
             
@@ -455,7 +457,9 @@ async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: 
           console.error('❌ Error guardando log del webhook en BD:', dbError);
         }
       }
-    }, 2000); // 2 segundos de delay
+    } catch (webhookError) {
+      console.error('❌ Error general enviando webhook:', webhookError);
+    }
 
   } catch (error) {
     console.error('❌ Error en función de webhook:', error);
