@@ -280,6 +280,14 @@ async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: 
 
     const webhookUrl = webhookConfig.rows[0].url_webhook;
 
+    // Validar URL del webhook
+    try {
+      new URL(webhookUrl);
+    } catch (error) {
+      console.error('❌ URL de webhook inválida:', webhookUrl);
+      return;
+    }
+
     // Preparar payload del webhook
     const payload = {
       evento: 'nueva_postulacion_guardia',
@@ -338,13 +346,18 @@ async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: 
     // Enviar webhook con delay pequeño
     setTimeout(async () => {
       try {
+        console.log(`🚀 Enviando webhook a: ${webhookUrl}`);
+        
         const response = await fetch(webhookUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'User-Agent': 'GardOps-Postulacion/1.0'
           },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          // Opciones adicionales para evitar problemas SSL
+          signal: AbortSignal.timeout(30000), // 30 segundos timeout
+          keepalive: true
         });
 
         // Log del webhook
@@ -368,20 +381,31 @@ async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: 
         console.error('❌ Error enviando webhook:', error);
         
         const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorCode = error instanceof Error && 'code' in error ? (error as any).code : 'UNKNOWN';
+        
+        // Log detallado del error
+        console.error('🔍 Detalles del error del webhook:');
+        console.error('   - URL:', webhookUrl);
+        console.error('   - Código de error:', errorCode);
+        console.error('   - Mensaje:', errorMessage);
         
         // Log del error del webhook
-        await client.query(`
-          INSERT INTO webhook_logs (
-            tenant_id, guardia_id, url_webhook, payload_sent, 
-            error_message, created_at
-          ) VALUES ($1, $2, $3, $4, $5, NOW())
-        `, [
-          tenantId,
-          guardiaId,
-          webhookUrl,
-          JSON.stringify(payload),
-          errorMessage
-        ]);
+        try {
+          await client.query(`
+            INSERT INTO webhook_logs (
+              tenant_id, guardia_id, url_webhook, payload_sent, 
+              error_message, created_at
+            ) VALUES ($1, $2, $3, $4, $5, NOW())
+          `, [
+            tenantId,
+            guardiaId,
+            webhookUrl,
+            JSON.stringify(payload),
+            errorMessage
+          ]);
+        } catch (dbError) {
+          console.error('❌ Error guardando log del webhook en BD:', dbError);
+        }
       }
     }, 2000); // 2 segundos de delay
 
