@@ -209,14 +209,16 @@ export async function POST(request: NextRequest) {
       enviarEmailConfirmacion(datosGuardia);
 
       // Log de la operación
-      await logCRUD({
-        accion: 'CREATE',
-        entidad: 'guardias',
-        entidad_id: guardiaCreado.id,
-        usuario: 'postulacion_publica',
-        detalles: `Guardia creado desde formulario público: ${guardiaCreado.nombre} ${guardiaCreado.apellido_paterno}`,
-        tenant_id: body.tenant_id
-      });
+      await logCRUD(
+        'guardias',
+        guardiaCreado.id,
+        'CREATE',
+        'postulacion_publica',
+        undefined,
+        datosGuardia,
+        body.tenant_id,
+        'api'
+      );
 
       return NextResponse.json({
         success: true,
@@ -228,19 +230,24 @@ export async function POST(request: NextRequest) {
       client.release?.();
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Error en API de postulación:', error);
     
-    await logError({
-      error: error.message,
-      stack: error.stack,
-      contexto: 'API postulación crear guardia',
-      datos_entrada: body
-    });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    await logError(
+      'postulacion',
+      'unknown',
+      'postulacion_publica',
+      { message: errorMessage, stack: errorStack },
+      { datos_entrada: body },
+      body?.tenant_id
+    );
 
     return NextResponse.json({
       error: 'Error interno del servidor',
-      detalles: process.env.NODE_ENV === 'development' ? error.message : undefined
+      detalles: process.env.NODE_ENV === 'development' ? errorMessage : undefined
     }, { status: 500 });
   }
 }
@@ -346,8 +353,10 @@ async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: 
 
         console.log(`✅ Webhook enviado exitosamente a ${webhookUrl}`);
 
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('❌ Error enviando webhook:', error);
+        
+        const errorMessage = error instanceof Error ? error.message : String(error);
         
         // Log del error del webhook
         await client.query(`
@@ -360,7 +369,7 @@ async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: 
           guardiaId,
           webhookUrl,
           JSON.stringify(payload),
-          error.message
+          errorMessage
         ]);
       }
     }, 2000); // 2 segundos de delay
