@@ -310,7 +310,7 @@ export default function PostulacionPage() {
       nombre: 'Juan',
       apellido_paterno: 'Pérez',
       apellido_materno: 'González',
-      sexo: 'Masculino',
+              sexo: 'Hombre',
       fecha_nacimiento: '1990-01-01',
       nacionalidad: 'Chilena',
       email: 'juan.perez@example.com',
@@ -651,8 +651,8 @@ export default function PostulacionPage() {
                         <SelectValue placeholder="-Seleccionar-" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Masculino">Masculino</SelectItem>
-                        <SelectItem value="Femenino">Femenino</SelectItem>
+                        <SelectItem value="Hombre">Hombre</SelectItem>
+                        <SelectItem value="Mujer">Mujer</SelectItem>
                       </SelectContent>
                     </Select>
                     {errors.sexo && <p className="text-red-500 text-sm mt-1">{errors.sexo}</p>}
