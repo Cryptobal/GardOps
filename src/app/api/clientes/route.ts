@@ -19,6 +19,17 @@ export async function GET(req: NextRequest) {
       const dev = isDev ? process.env.NEXT_PUBLIC_DEV_USER_EMAIL : undefined;
       const email = fromJwt || fromHeader || dev || null;
       
+      console.log('🔍 Debug de autenticación:', {
+        fromJwt,
+        fromHeader,
+        dev,
+        email,
+        headers: {
+          'x-user-email': h.get('x-user-email'),
+          'authorization': h.get('authorization')
+        }
+      });
+      
       if (!email) {
         console.log('❌ No se pudo obtener email del usuario');
         return NextResponse.json({ ok: false, error: 'no-auth' }, { status: 401 });
