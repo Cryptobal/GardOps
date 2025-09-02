@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
             ELSE 'vigente'
           END as estado
         FROM documentos d
-        LEFT JOIN tipos_documentos_postulacion td ON d.tipo_documento_id = td.id
+        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id
         LEFT JOIN clientes c ON d.cliente_id = c.id
         WHERE d.cliente_id IS NOT NULL
         
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
             ELSE 'vigente'
           END as estado
         FROM documentos d
-        LEFT JOIN tipos_documentos_postulacion td ON d.tipo_documento_id = td.id
+        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id
         LEFT JOIN instalaciones i ON d.instalacion_id = i.id
         WHERE d.instalacion_id IS NOT NULL
         
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
             ELSE 'vigente'
           END as estado
         FROM documentos d
-        LEFT JOIN tipos_documentos_postulacion td ON d.tipo_documento_id = td.id
+        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id
         LEFT JOIN guardias g ON d.guardia_id = g.id
         WHERE d.guardia_id IS NOT NULL
       )
