@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 
 interface Configuracion {
@@ -26,6 +27,7 @@ export default function ConfiguracionPage() {
   const [configuraciones, setConfiguraciones] = useState<Configuracion[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
+  const [savingSwitch, setSavingSwitch] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
   const cargarConfiguraciones = async () => {
@@ -47,6 +49,46 @@ export default function ConfiguracionPage() {
     }
   };
 
+  // Función para guardar solo el switch de monitoreo activo
+  const guardarSwitchMonitoreo = async (config: Configuracion, habilitado: boolean) => {
+    setSavingSwitch(prev => ({ ...prev, [config.id]: true }));
+    try {
+      const res = await fetch('/api/central-monitoring/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...config, habilitado })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast({
+          title: "Monitoreo actualizado",
+          description: `Monitoreo ${habilitado ? 'activado' : 'desactivado'} para ${config.instalacion_nombre}`,
+        });
+        // Actualizar solo el campo habilitado en el estado local
+        setConfiguraciones(prev => 
+          prev.map(c => c.id === config.id ? { ...c, habilitado } : c)
+        );
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error('Error guardando switch de monitoreo:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el estado del monitoreo",
+        variant: "destructive"
+      });
+      // Revertir el cambio en caso de error
+      setConfiguraciones(prev => 
+        prev.map(c => c.id === config.id ? { ...c, habilitado: !habilitado } : c)
+      );
+    } finally {
+      setSavingSwitch(prev => ({ ...prev, [config.id]: false }));
+    }
+  };
+
+  // Función para guardar configuración completa (método y mensaje)
   const guardarConfiguracion = async (config: Configuracion) => {
     setSaving(prev => ({ ...prev, [config.id]: true }));
     try {
@@ -136,77 +178,119 @@ export default function ConfiguracionPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Label htmlFor={`habilitado-${config.id}`}>Habilitado</Label>
+                    <Label htmlFor={`habilitado-${config.id}`}>Monitoreo Activo</Label>
                     <Switch
                       id={`habilitado-${config.id}`}
                       checked={config.habilitado}
+                      disabled={savingSwitch[config.id]}
                       onCheckedChange={(checked) => {
-                        actualizarCampo(config.id, 'habilitado', checked);
-                        guardarConfiguracion({ ...config, habilitado: checked });
+                        // Guardar automáticamente al cambiar el switch
+                        guardarSwitchMonitoreo(config, checked);
                       }}
                     />
+                    {savingSwitch[config.id] && (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    )}
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor={`intervalo-${config.id}`}>Intervalo (minutos)</Label>
-                    <Input
-                      id={`intervalo-${config.id}`}
-                      type="number"
-                      min="15"
-                      max="180"
-                      value={config.intervalo_minutos}
-                      onChange={(e) => actualizarCampo(config.id, 'intervalo_minutos', parseInt(e.target.value))}
-                      onBlur={() => guardarConfiguracion(config)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor={`inicio-${config.id}`}>Inicio (HH:MM)</Label>
-                    <Input
-                      id={`inicio-${config.id}`}
-                      type="time"
-                      value={config.ventana_inicio}
-                      onChange={(e) => actualizarCampo(config.id, 'ventana_inicio', e.target.value)}
-                      onBlur={() => guardarConfiguracion(config)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor={`fin-${config.id}`}>Fin (HH:MM)</Label>
-                    <Input
-                      id={`fin-${config.id}`}
-                      type="time"
-                      value={config.ventana_fin}
-                      onChange={(e) => actualizarCampo(config.id, 'ventana_fin', e.target.value)}
-                      onBlur={() => guardarConfiguracion(config)}
-                    />
+                {/* Configuración Básica - Se guarda automáticamente */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-sm text-gray-700">📋 Configuración Básica</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor={`intervalo-${config.id}`}>Intervalo (minutos)</Label>
+                      <Input
+                        id={`intervalo-${config.id}`}
+                        type="number"
+                        min="15"
+                        max="180"
+                        value={config.intervalo_minutos}
+                        onChange={(e) => actualizarCampo(config.id, 'intervalo_minutos', parseInt(e.target.value))}
+                        onBlur={() => guardarConfiguracion(config)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`inicio-${config.id}`}>Ventana de Monitoreo</Label>
+                      <Input
+                        id={`inicio-${config.id}`}
+                        type="time"
+                        value={config.ventana_inicio}
+                        onChange={(e) => actualizarCampo(config.id, 'ventana_inicio', e.target.value)}
+                        onBlur={() => guardarConfiguracion(config)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`fin-${config.id}`}>&nbsp;</Label>
+                      <Input
+                        id={`fin-${config.id}`}
+                        type="time"
+                        value={config.ventana_fin}
+                        onChange={(e) => actualizarCampo(config.id, 'ventana_fin', e.target.value)}
+                        onBlur={() => guardarConfiguracion(config)}
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor={`template-${config.id}`}>Mensaje Template</Label>
-                  <Textarea
-                    id={`template-${config.id}`}
-                    value={config.mensaje_template}
-                    onChange={(e) => actualizarCampo(config.id, 'mensaje_template', e.target.value)}
-                    onBlur={() => guardarConfiguracion(config)}
-                    placeholder="Central de Monitoreo GARD: Confirmar estado de turno en {instalacion} a las {hora}."
-                    rows={2}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Variables: {'{instalacion}'} = nombre instalación, {'{hora}'} = hora del llamado
-                  </p>
+                {/* Método de Contacto y Mensaje - Requiere botón Guardar */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-sm text-gray-700">📞 Contacto y Mensaje</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor={`modo-${config.id}`}>Método</Label>
+                      <Select
+                        value={config.modo}
+                        onValueChange={(valor) => actualizarCampo(config.id, 'modo', valor)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar método" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                          <SelectItem value="telefono">Teléfono</SelectItem>
+                          <SelectItem value="sms">SMS</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor={`template-${config.id}`}>Mensaje</Label>
+                      <Textarea
+                        id={`template-${config.id}`}
+                        value={config.mensaje_template}
+                        onChange={(e) => actualizarCampo(config.id, 'mensaje_template', e.target.value)}
+                        placeholder="Hola, soy de la central de monitoreo. ¿Todo bien en la instalación?"
+                        rows={2}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Variables: {'{instalacion}'} = nombre instalación, {'{hora}'} = hora del llamado
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Botón Guardar solo para método y mensaje */}
+                  <div className="flex justify-end pt-2">
+                    <Button
+                      onClick={() => guardarConfiguracion(config)}
+                      disabled={saving[config.id]}
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {saving[config.id] ? 'Guardando...' : '💾 Guardar Cambios'}
+                    </Button>
+                  </div>
                 </div>
 
-                <div className="flex justify-end">
-                  <Button
-                    onClick={() => guardarConfiguracion(config)}
-                    disabled={saving[config.id]}
-                    size="sm"
-                  >
-                    {saving[config.id] ? 'Guardando...' : '💾 Guardar'}
-                  </Button>
+                {/* Información */}
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <h4 className="font-medium text-sm text-gray-700 mb-2">ℹ️ Información</h4>
+                  <ul className="text-xs text-gray-600 space-y-1">
+                    <li>• Llamadas automáticas según pauta</li>
+                    <li>• Solo en ventana configurada</li>
+                    <li>• Estados: Pendiente, Exitoso, No contesta, Incidente</li>
+                    <li>• Usa teléfono de instalación o guardia</li>
+                  </ul>
                 </div>
               </CardContent>
             </Card>
