@@ -100,8 +100,10 @@ JOIN public.roles_permisos rp ON rp.rol_id = r.id
 JOIN public.permisos p ON p.id = rp.permiso_id
 WHERE 1=1;
 
--- 7. Crear o reemplazar la función mejorada
-CREATE OR REPLACE FUNCTION public.fn_usuario_tiene_permiso(
+-- 7. Eliminar y recrear la función mejorada
+DROP FUNCTION IF EXISTS public.fn_usuario_tiene_permiso(UUID, TEXT);
+
+CREATE FUNCTION public.fn_usuario_tiene_permiso(
   p_usuario_id UUID,
   p_permiso_clave TEXT
 ) RETURNS BOOLEAN AS $$
