@@ -286,9 +286,17 @@ export default function PostulacionPage() {
   const handleInputChange = (field: keyof FormData, value: string | number) => {
     console.log(`Campo ${field} cambiado a:`, value);
     setFormData(prev => ({ ...prev, [field]: value }));
+    
     // Limpiar error del campo
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+    
+    // Si es el campo RUT, limpiar también el error de duplicado
+    if (field === 'rut') {
+      setErrors(prev => ({ ...prev, rut: '' }));
+      // También limpiar cualquier mensaje de éxito o estado anterior
+      setSuccess(false);
     }
   };
 
@@ -405,6 +413,10 @@ export default function PostulacionPage() {
       }
     }
 
+    // Limpiar errores anteriores antes de enviar
+    setErrors({});
+    setSuccess(false);
+    
     setLoading(true);
     try {
       console.log('🚀 Enviando formulario a:', '/api/postulacion/crear');
@@ -432,6 +444,8 @@ export default function PostulacionPage() {
         const errorData = await guardiaResponse.json().catch(() => ({}));
         console.log('❌ Error del servidor:', errorData);
         if (guardiaResponse.status === 409) {
+          // Limpiar errores anteriores y establecer el error de RUT duplicado
+          setErrors(prev => ({ ...prev, rut: 'RUT ya existe en el sistema' }));
           throw new Error('RUT ya existe en el sistema');
         } else {
           throw new Error(errorData.message || `Error del servidor: ${guardiaResponse.status}`);
