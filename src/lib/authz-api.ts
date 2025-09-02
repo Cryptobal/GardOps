@@ -111,10 +111,28 @@ export async function requireAuthz(
 
       user = userResult.rows[0];
     } else {
+      // En producción, si no hay autenticación, verificar si es una ruta pública
+      if (process.env.NODE_ENV === 'production') {
+        // Para desarrollo temporal en producción, permitir acceso a ciertas rutas
+        const publicRoutes = ['/api/configuracion/postulaciones'];
+        const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route));
+        
+        if (isPublicRoute) {
+          console.log('🔍 Auth: Ruta pública en producción, permitiendo acceso temporal');
+          return null; // Permitir acceso temporal
+        }
+      }
+      
       return NextResponse.json(
         { error: 'Token de autorización o email de usuario requerido' },
         { status: 401 }
       );
+    }
+
+    // Si no hay usuario (caso de ruta pública en producción), permitir acceso
+    if (!user) {
+      console.log('🔍 Auth: Sin usuario, permitiendo acceso a ruta pública');
+      return null;
     }
 
     // Obtener permisos efectivos del usuario

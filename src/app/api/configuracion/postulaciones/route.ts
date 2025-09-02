@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getClient } from '@/lib/db';
+import { getClient } from '@/lib/database';
 import { logError, logCRUD } from '@/lib/logging';
 import { getFormularioUrl } from '@/lib/config';
 

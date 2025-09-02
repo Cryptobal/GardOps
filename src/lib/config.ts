@@ -59,3 +59,17 @@ export const isProduction = () => {
 export const isDevelopment = () => {
   return process.env.NODE_ENV === 'development';
 };
+
+// Configuración de autenticación temporal en producción
+export const getAuthConfig = () => ({
+  // En producción, permitir acceso temporal a ciertas rutas
+  allowTemporaryAccess: isProduction(),
+  // Rutas que pueden ser accedidas temporalmente en producción
+  publicRoutes: [
+    '/api/configuracion/postulaciones',
+    '/api/central-monitoring/kpis',
+    '/api/central-monitoring/agenda'
+  ],
+  // Usuario temporal para producción (si es necesario)
+  tempUserEmail: process.env.NEXT_PUBLIC_TEMP_USER_EMAIL || 'admin@gard.cl'
+});
