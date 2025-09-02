@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     // 3. Crear rol admin si no existe
     let adminRoleId;
     const adminRole = await sql`
-      SELECT id FROM roles WHERE nombre = 'admin' OR nombre = 'Administrador' LIMIT 1
+      SELECT * FROM roles WHERE nombre = 'admin' OR nombre = 'Administrador' LIMIT 1
     `;
     
     if (adminRole.rows.length === 0) {
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     
     // 5. Asignar TODOS los permisos al rol admin
     console.log('🔗 Asignando TODOS los permisos al rol admin...');
-    const allPermisos = await sql`SELECT id, clave FROM permisos`;
+    const allPermisos = await sql`SELECT * FROM permisos`;
     
     for (const perm of allPermisos.rows) {
       try {
