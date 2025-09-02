@@ -247,12 +247,12 @@ export default function GuardiasPage() {
         const result = await api.guardias.getAll() as any;
         console.log("🔍 GuardiasPage: Respuesta recibida:", result);
         
-        if (result.success) {
+        // La API devuelve directamente {items: [...]}
+        if (result.items) {
           console.log("🔍 GuardiasPage: Datos recibidos:", result);
           console.log("🔍 GuardiasPage: Items array:", result.items);
           console.log("🔍 GuardiasPage: Cantidad de guardias:", result.items?.length || 0);
           
-          // Usar data.items en lugar de data.guardias
           const guardiasData = result.items || [];
           setGuardias(guardiasData);
           
