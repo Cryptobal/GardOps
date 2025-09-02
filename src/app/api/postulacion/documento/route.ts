@@ -198,31 +198,19 @@ export async function POST(request: NextRequest) {
       // Convertir archivo a buffer
       const buffer = Buffer.from(await archivo.arrayBuffer());
 
-      // Generar nombre único para el archivo en R2
+      // Generar nombre único para el archivo
       const uuid = randomUUID();
       const key = `postulacion/${uuid}.${extension}`;
 
-      // Subir archivo a Cloudflare R2 usando fetch nativo
-      console.log('📤 Subiendo archivo a Cloudflare R2:', key);
-      
-      await uploadToR2WithFetch(
-        buffer,
-        key,
-        archivo.type || 'application/octet-stream',
-        {
-          originalName: archivo.name,
-          guardiaId: guardiaId,
-          tipoDocumento: tipoDocumento
-        }
-      );
-      
-      console.log('✅ Archivo subido exitosamente a Cloudflare R2');
+      // NOTA: Debido a problemas de SSL entre Vercel y Cloudflare R2,
+      // guardamos los documentos directamente en la base de datos
+      console.log('💾 Guardando documento en base de datos (bypass R2 por problemas SSL)');
 
       // Generar nombre descriptivo para la base de datos
       const timestamp = Date.now();
       const nombreArchivo = `${guardiaId}_${tipoDocumento.replace(/\s+/g, '_')}_${timestamp}.${extension}`;
 
-      // Guardar en la tabla de documentos de postulación (solo metadatos, no el archivo)
+      // Guardar en la tabla de documentos de postulación (ahora CON el archivo)
       const insertQuery = `
         INSERT INTO documentos_postulacion (
           guardia_id, tipo_documento_id, nombre_archivo, url_archivo,
@@ -243,8 +231,8 @@ export async function POST(request: NextRequest) {
         guardiaId,
         tipoDoc.id,
         nombreArchivo,
-        key, // URL de R2
-        null, // Ya no guardamos el contenido del archivo
+        key, // Guardamos el key para referencia futura
+        buffer, // AHORA SÍ guardamos el contenido del archivo
         archivo.size,
         extension
       ];
@@ -268,8 +256,7 @@ export async function POST(request: NextRequest) {
         success: true,
         documento_id: documentoGuardado.id,
         nombre_archivo: documentoGuardado.nombre_archivo,
-        url_r2: key,
-        mensaje: 'Documento subido exitosamente a Cloudflare R2'
+        mensaje: 'Documento guardado exitosamente en base de datos'
       }, { status: 201 });
 
     } finally {
