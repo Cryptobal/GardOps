@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
         COUNT(CASE WHEN estado_llamado = 'ocupado' THEN 1 END) as ocupado,
         COUNT(CASE WHEN estado_llamado = 'incidente' THEN 1 END) as incidentes
       FROM central_v_llamados_automaticos
-      WHERE DATE(((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}')) = $1
+      WHERE DATE(((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}')) >= $1
       GROUP BY instalacion_id, instalacion_nombre
       ORDER BY total_llamados DESC
     `, [fecha]);
