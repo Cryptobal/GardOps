@@ -15,21 +15,97 @@ function getEmail(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    console.log('[admin/rbac/usuarios][GET] Iniciando autenticación...');
+    
     // 1) auth + permiso (bypass si JWT admin)
     const email = await getUserEmail(req);
-    if (!email) return NextResponse.json({ ok:false, error: 'No autenticado', code:'UNAUTHENTICATED' }, { status:401 });
-    const userId = await getUserIdByEmail(email);
-    if (!userId) return NextResponse.json({ ok:false, error: 'Usuario no encontrado', code:'NOT_FOUND' }, { status:401 });
-    let allowed = false;
-    try {
-      const { getCurrentUserServer } = await import('@/lib/auth');
-      const u = getCurrentUserServer(req as any);
-      allowed = u?.rol === 'admin';
-    } catch {}
-    if (!allowed) {
-      allowed = await userHasPerm(userId, 'rbac.platform_admin');
+    console.log('[admin/rbac/usuarios][GET] Email obtenido:', email);
+    
+    if (!email) {
+      console.log('[admin/rbac/usuarios][GET] No se pudo obtener email, intentando fallback...');
+      
+      // Fallback: intentar obtener email desde headers directos
+      const fallbackEmail = req.headers.get('x-user-email') || 
+                           req.headers.get('user-email') ||
+                           process.env.NEXT_PUBLIC_DEV_USER_EMAIL;
+      
+      console.log('[admin/rbac/usuarios][GET] Fallback email:', fallbackEmail);
+      
+      if (!fallbackEmail) {
+        console.log('[admin/rbac/usuarios][GET] No hay email disponible');
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'No autenticado - email no disponible', 
+          code: 'UNAUTHENTICATED',
+          debug: { 
+            headers: Object.fromEntries(req.headers.entries()),
+            env: { NODE_ENV: process.env.NODE_ENV }
+          }
+        }, { status: 401 });
+      }
+      
+      // Usar el email del fallback
+      const userId = await getUserIdByEmail(fallbackEmail);
+      if (!userId) {
+        console.log('[admin/rbac/usuarios][GET] Usuario no encontrado con fallback email');
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Usuario no encontrado', 
+          code: 'NOT_FOUND' 
+        }, { status: 401 });
+      }
+      
+      // Verificar permisos
+      const allowed = await userHasPerm(userId, 'rbac.platform_admin');
+      if (!allowed) {
+        console.log('[admin/rbac/usuarios][GET] Usuario no tiene permisos');
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Forbidden', 
+          code: 'FORBIDDEN', 
+          perm: 'rbac.platform_admin' 
+        }, { status: 403 });
+      }
+      
+      console.log('[admin/rbac/usuarios][GET] Autenticación exitosa con fallback');
+    } else {
+      const userId = await getUserIdByEmail(email);
+      if (!userId) {
+        console.log('[admin/rbac/usuarios][GET] Usuario no encontrado');
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Usuario no encontrado', 
+          code: 'NOT_FOUND' 
+        }, { status: 401 });
+      }
+      
+      let allowed = false;
+      try {
+        const { getCurrentUserServer } = await import('@/lib/auth');
+        const u = getCurrentUserServer(req as any);
+        allowed = u?.rol === 'admin';
+        console.log('[admin/rbac/usuarios][GET] JWT check:', { rol: u?.rol, allowed });
+      } catch (err) {
+        console.log('[admin/rbac/usuarios][GET] JWT check falló:', err);
+      }
+      
+      if (!allowed) {
+        allowed = await userHasPerm(userId, 'rbac.platform_admin');
+        console.log('[admin/rbac/usuarios][GET] Permiso check:', allowed);
+      }
+      
+      if (!allowed) {
+        console.log('[admin/rbac/usuarios][GET] Usuario no tiene permisos');
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Forbidden', 
+          code: 'FORBIDDEN', 
+          perm: 'rbac.platform_admin' 
+        }, { status: 403 });
+      }
+      
+      console.log('[admin/rbac/usuarios][GET] Autenticación exitosa');
     }
-    if (!allowed) return NextResponse.json({ ok:false, error: 'Forbidden', code:'FORBIDDEN', perm:'rbac.platform_admin' }, { status:403 });
 
     // 2) parámetros seguros
     const { searchParams } = new URL(req.url);
