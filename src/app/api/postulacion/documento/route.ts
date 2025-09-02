@@ -1,28 +1,80 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClient } from '@/lib/database';
 import { logCRUD, logError } from '@/lib/logging';
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 
-// Configurar cliente S3 para Cloudflare R2
-const s3 = new S3Client({
-  region: "auto",
-  endpoint: process.env.R2_ENDPOINT,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-  },
-  // Configuración SSL robusta para evitar errores EPROTO
-  requestHandler: {
-    httpOptions: {
-      timeout: 30000, // 30 segundos
-      keepAlive: true,
-    }
-  },
-  // Configuración de reintentos
-  maxAttempts: 3,
-  retryMode: 'adaptive'
-});
+// Función para subir archivo usando fetch nativo (más robusto para SSL)
+async function uploadToR2WithFetch(buffer: Buffer, key: string, contentType: string, metadata: any) {
+  const endpoint = process.env.R2_ENDPOINT;
+  const bucket = process.env.R2_BUCKET;
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+
+  if (!endpoint || !bucket || !accessKeyId || !secretAccessKey) {
+    throw new Error('Configuración R2 incompleta');
+  }
+
+  // Construir URL completa
+  const url = `${endpoint}/${bucket}/${key}`;
+  
+  // Crear headers de autenticación
+  const date = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
+  const dateStamp = date.slice(0, 8);
+  const region = 'auto';
+  const service = 's3';
+  
+  // Crear canonical request
+  const canonicalRequest = [
+    'PUT',
+    `/${key}`,
+    '',
+    'content-type:' + contentType,
+    'host:' + new URL(endpoint).host,
+    'x-amz-date:' + date,
+    '',
+    'content-type;host;x-amz-date',
+    require('crypto').createHash('sha256').update(buffer).digest('hex')
+  ].join('\n');
+  
+  // Crear string to sign
+  const stringToSign = [
+    'AWS4-HMAC-SHA256',
+    date,
+    `${dateStamp}/${region}/${service}/aws4_request`,
+    require('crypto').createHash('sha256').update(canonicalRequest).digest('hex')
+  ].join('\n');
+  
+  // Calcular signature
+  const kDate = require('crypto').createHmac('sha256', 'AWS4' + secretAccessKey).update(dateStamp).digest();
+  const kRegion = require('crypto').createHmac('sha256', kDate).update(region).digest();
+  const kService = require('crypto').createHmac('sha256', kRegion).update(service).digest();
+  const kSigning = require('crypto').createHmac('sha256', kService).update('aws4_request').digest();
+  const signature = require('crypto').createHmac('sha256', kSigning).update(stringToSign).digest('hex');
+  
+  // Crear authorization header
+  const authorization = `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${dateStamp}/${region}/${service}/aws4_request,SignedHeaders=content-type;host;x-amz-date,Signature=${signature}`;
+  
+  // Subir usando fetch
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': contentType,
+      'X-Amz-Date': date,
+      'Authorization': authorization,
+      'Content-Length': buffer.length.toString()
+    },
+    body: buffer,
+    // Configuración SSL robusta
+    signal: AbortSignal.timeout(60000), // 60 segundos
+    keepalive: true
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
+  }
+  
+  return response;
+}
 
 export async function POST(request: NextRequest) {
   let formData: FormData | null = null;
@@ -113,22 +165,20 @@ export async function POST(request: NextRequest) {
       const uuid = randomUUID();
       const key = `postulacion/${uuid}.${extension}`;
 
-      // Subir archivo a Cloudflare R2
+      // Subir archivo a Cloudflare R2 usando fetch nativo
       console.log('📤 Subiendo archivo a Cloudflare R2:', key);
       
-      const uploadCommand = new PutObjectCommand({
-        Bucket: process.env.R2_BUCKET!,
-        Key: key,
-        Body: buffer,
-        ContentType: archivo.type || 'application/octet-stream',
-        Metadata: {
+      await uploadToR2WithFetch(
+        buffer,
+        key,
+        archivo.type || 'application/octet-stream',
+        {
           originalName: archivo.name,
           guardiaId: guardiaId,
           tipoDocumento: tipoDocumento
         }
-      });
-
-      await s3.send(uploadCommand);
+      );
+      
       console.log('✅ Archivo subido exitosamente a Cloudflare R2');
 
       // Generar nombre descriptivo para la base de datos
@@ -191,51 +241,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('❌ Error en API de documento de postulación:', error);
-    
-    // Manejo específico para errores SSL/TLS
-    if (error.code === 'EPROTO' || error.message.includes('SSL') || error.message.includes('TLS')) {
-      console.error('🔒 Error SSL/TLS detectado, intentando con configuración alternativa');
-      
-      // Intentar con configuración SSL más permisiva
-      try {
-        const s3Retry = new S3Client({
-          region: "auto",
-          endpoint: process.env.R2_ENDPOINT,
-          credentials: {
-            accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-            secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-          },
-          // Configuración SSL más permisiva
-          requestHandler: {
-            httpOptions: {
-              timeout: 60000, // 60 segundos
-              keepAlive: true,
-            }
-          },
-          maxAttempts: 1 // Solo un intento para evitar loops
-        });
-        
-        // Reintentar la subida
-        const uploadCommandRetry = new PutObjectCommand({
-          Bucket: process.env.R2_BUCKET!,
-          Key: `postulacion/${randomUUID()}.${archivo?.name?.split('.').pop()?.toLowerCase() || 'pdf'}`,
-          Body: Buffer.from(await archivo?.arrayBuffer() || new ArrayBuffer(0)),
-          ContentType: archivo?.type || 'application/octet-stream',
-        });
-        
-        await s3Retry.send(uploadCommandRetry);
-        console.log('✅ Archivo subido exitosamente con configuración SSL alternativa');
-        
-        // Continuar con el resto del proceso...
-        return NextResponse.json({
-          success: true,
-          mensaje: 'Documento subido exitosamente con configuración SSL alternativa'
-        }, { status: 201 });
-        
-      } catch (retryError: any) {
-        console.error('❌ Error en reintento SSL:', retryError);
-      }
-    }
     
     await logError({
       error: error.message,
