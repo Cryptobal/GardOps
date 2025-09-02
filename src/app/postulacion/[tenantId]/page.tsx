@@ -362,20 +362,7 @@ export default function PostulacionPage() {
 
   const siguientePagina = async () => {
     if (validarFormulario()) {
-      // Verificar si el RUT ya existe
-      if (formData.rut) {
-        const rutExiste = await verificarRutDuplicado(formData.rut);
-        if (rutExiste) {
-          setErrors(prev => ({ ...prev, rut: 'RUT ya existe en el sistema' }));
-          mostrarModalRut(
-            'duplicate',
-            'RUT Ya Existe',
-            'Este RUT ya está registrado en el sistema. Por favor, verifique su RUT o contacte al administrador.',
-            formData.rut
-          );
-          return;
-        }
-      }
+      // La validación de RUT duplicado se hace en la API al enviar
       setCurrentPage(2);
     }
   };
@@ -396,22 +383,8 @@ export default function PostulacionPage() {
       return;
     }
 
-    // Verificar RUT duplicado antes de enviar
-    if (formData.rut) {
-      console.log('🔍 Verificando RUT antes de enviar:', formData.rut);
-      const rutExiste = await verificarRutDuplicado(formData.rut);
-      console.log('🔍 Resultado verificación RUT:', rutExiste);
-      if (rutExiste) {
-        setErrors(prev => ({ ...prev, rut: 'RUT ya existe en el sistema' }));
-        mostrarModalRut(
-          'duplicate',
-          'RUT Ya Existe',
-          'Este RUT ya está registrado en el sistema. Por favor, verifique su RUT o contacte al administrador.',
-          formData.rut
-        );
-        return;
-      }
-    }
+    // La validación de RUT duplicado se hace en la API, no aquí
+    console.log('🚀 Enviando formulario sin validación previa de RUT');
 
     // Limpiar errores anteriores antes de enviar
     setErrors({});
