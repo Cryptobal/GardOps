@@ -84,21 +84,27 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      console.log('✅ Email no duplicado');
+
       // Verificar que el banco existe
       if (body.banco_id) {
+        console.log('🔍 Verificando banco:', body.banco_id);
         const bancoCheck = await client.query(
           'SELECT id FROM bancos WHERE id = $1 LIMIT 1',
           [body.banco_id]
         );
         if (bancoCheck.rows.length === 0) {
+          console.log('❌ Banco no encontrado');
           return NextResponse.json(
             { error: 'Banco no encontrado' },
             { status: 400 }
           );
         }
+        console.log('✅ Banco verificado');
       }
 
       // Preparar datos para inserción
+      console.log('🔍 Preparando datos para inserción...');
       const datosGuardia = {
         rut: rutLimpio,
         nombre: body.nombre.trim(),
@@ -144,7 +150,10 @@ export async function POST(request: NextRequest) {
         user_agent_postulacion: body.user_agent_postulacion || null
       };
 
+      console.log('📋 Datos preparados:', JSON.stringify(datosGuardia, null, 2));
+
       // Insertar guardia
+      console.log('🚀 Insertando guardia en base de datos...');
       const insertQuery = `
         INSERT INTO guardias (
           rut, nombre, apellido_paterno, apellido_materno, email, telefono,
@@ -179,6 +188,9 @@ export async function POST(request: NextRequest) {
         datosGuardia.estado_postulacion, datosGuardia.ip_postulacion,
         datosGuardia.user_agent_postulacion
       ];
+
+      console.log('🔍 Query de inserción:', insertQuery);
+      console.log('🔍 Parámetros:', insertParams);
 
       const result = await client.query(insertQuery, insertParams);
       const guardiaCreado = result.rows[0];
