@@ -89,6 +89,22 @@ export default function TestAuthPage() {
     }
   };
 
+  const fixAdminPermissionsDirect = async () => {
+    setTestLoading(true);
+    try {
+      console.log('🔧 Asignando permisos DIRECTAMENTE al admin...');
+      const response = await fetch('/api/fix-admin-permissions-direct', { method: 'POST' });
+      const result = await response.json();
+      setTestResult(result);
+      console.log('✅ Resultado de asignación directa:', result);
+    } catch (error) {
+      console.error('❌ Error asignando permisos:', error);
+      setTestResult({ error: error.message });
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto p-6">
@@ -206,6 +222,15 @@ export default function TestAuthPage() {
               variant="destructive"
             >
               {testLoading ? 'Restaurando...' : '🔧 Restaurar RBAC'}
+            </Button>
+
+            <Button 
+              onClick={fixAdminPermissionsDirect} 
+              disabled={testLoading || !isAuthenticated}
+              variant="destructive"
+              className="bg-red-800 hover:bg-red-900"
+            >
+              {testLoading ? 'Asignando...' : '🚨 SOLUCIÓN DIRECTA'}
             </Button>
           </div>
           
