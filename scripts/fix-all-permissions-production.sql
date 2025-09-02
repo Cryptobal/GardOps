@@ -38,9 +38,11 @@ VALUES
 ON CONFLICT (clave) DO NOTHING;
 
 -- 3. Asegurar que el rol admin existe
-INSERT INTO public.roles (clave, nombre, descripcion)
-VALUES ('admin', 'Administrador', 'Rol de administrador con acceso completo')
-ON CONFLICT (clave) DO NOTHING;
+INSERT INTO public.roles (nombre, descripcion)
+SELECT 'admin', 'Rol de administrador con acceso completo'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.roles WHERE nombre = 'admin'
+);
 
 -- 4. Asignar el usuario al rol admin (eliminar primero por si existe)
 DELETE FROM public.usuarios_roles 
@@ -53,12 +55,12 @@ SELECT
 FROM public.usuarios u
 CROSS JOIN public.roles r
 WHERE lower(u.email) = lower('carlos.irigoyen@gard.cl')
-  AND r.clave = 'admin';
+  AND r.nombre = 'admin';
 
 -- 5. Asignar TODOS los permisos al rol admin
 -- Primero eliminar todos los permisos existentes del rol admin
 DELETE FROM public.roles_permisos 
-WHERE rol_id = (SELECT id FROM public.roles WHERE clave = 'admin');
+WHERE rol_id = (SELECT id FROM public.roles WHERE nombre = 'admin');
 
 -- Luego asignar TODOS los permisos
 INSERT INTO public.roles_permisos (rol_id, permiso_id)
@@ -67,7 +69,7 @@ SELECT
   p.id
 FROM public.roles r
 CROSS JOIN public.permisos p
-WHERE r.clave = 'admin';
+WHERE r.nombre = 'admin';
 
 -- 6. Crear o reemplazar las vistas necesarias
 CREATE OR REPLACE VIEW public.v_usuarios_permisos AS
@@ -75,7 +77,6 @@ SELECT DISTINCT
   u.id as usuario_id,
   u.email,
   u.rol as usuario_rol,
-  r.clave as rol_clave,
   r.nombre as rol_nombre,
   p.clave as permiso_clave,
   p.descripcion as permiso_descripcion,
