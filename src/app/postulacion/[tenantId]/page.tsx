@@ -416,12 +416,21 @@ export default function PostulacionPage() {
       if (!guardiaResponse.ok) {
         const errorData = await guardiaResponse.json().catch(() => ({}));
         console.log('❌ Error del servidor:', errorData);
+        
         if (guardiaResponse.status === 409) {
-          // Limpiar errores anteriores y establecer el error de RUT duplicado
-          setErrors(prev => ({ ...prev, rut: 'RUT ya existe en el sistema' }));
-          throw new Error('RUT ya existe en el sistema');
+          // Manejar diferentes tipos de errores 409
+          if (errorData.error?.includes('RUT')) {
+            setErrors(prev => ({ ...prev, rut: 'RUT ya existe en el sistema' }));
+            throw new Error('RUT ya existe en el sistema');
+          } else if (errorData.error?.includes('email')) {
+            setErrors(prev => ({ ...prev, email: 'Email ya existe en el sistema' }));
+            throw new Error('Email ya existe en el sistema');
+          } else {
+            // Error 409 genérico
+            throw new Error(errorData.error || 'Conflicto en el sistema');
+          }
         } else {
-          throw new Error(errorData.message || `Error del servidor: ${guardiaResponse.status}`);
+          throw new Error(errorData.error || `Error del servidor: ${guardiaResponse.status}`);
         }
       }
 
