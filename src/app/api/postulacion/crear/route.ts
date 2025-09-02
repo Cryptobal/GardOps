@@ -60,17 +60,29 @@ export async function POST(request: NextRequest) {
       }
 
       // Verificar duplicados por RUT y Email dentro del tenant
+      console.log('🔍 Verificando duplicados por RUT:', rutLimpio, 'en tenant:', body.tenant_id);
+      
       const dupRut = await client.query(
         'SELECT id FROM guardias WHERE rut = $1 AND tenant_id = $2 LIMIT 1',
         [rutLimpio, body.tenant_id]
       );
       
+      console.log('📊 Resultado de verificación RUT:', {
+        rut: rutLimpio,
+        tenant_id: body.tenant_id,
+        filas_encontradas: dupRut.rows.length,
+        resultado: dupRut.rows
+      });
+      
       if (dupRut.rows.length > 0) {
+        console.log('❌ RUT duplicado encontrado:', dupRut.rows[0]);
         return NextResponse.json(
           { error: 'Ya existe un guardia con este RUT en este tenant' },
           { status: 409 }
         );
       }
+      
+      console.log('✅ RUT no duplicado');
 
       const dupEmail = await client.query(
         'SELECT id FROM guardias WHERE email = $1 AND tenant_id = $2 LIMIT 1',
