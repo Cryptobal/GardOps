@@ -74,6 +74,8 @@ export function DocumentManager({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [documentoToDelete, setDocumentoToDelete] = useState<Documento | null>(null);
   const [deletingDocument, setDeletingDocument] = useState(false);
+  const [editingFechaId, setEditingFechaId] = useState<string | null>(null);
+  const [nuevaFechaVencimiento, setNuevaFechaVencimiento] = useState<string>("");
 
   // Obtener el tipo seleccionado para verificar si requiere vencimiento
   const tipoSeleccionado = React.useMemo(() => 
@@ -350,6 +352,38 @@ export function DocumentManager({
       alert('Error al descargar el documento');
     }
   }, [modulo]);
+
+  const actualizarFechaVencimiento = useCallback(async (documentoId: string) => {
+    if (!nuevaFechaVencimiento) {
+      alert('Por favor selecciona una fecha de vencimiento');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/documentos/${documentoId}/fecha-vencimiento`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fecha_vencimiento: nuevaFechaVencimiento
+        })
+      });
+
+      if (response.ok) {
+        // Recargar documentos para mostrar la fecha actualizada
+        await cargarDocumentos(true);
+        setEditingFechaId(null);
+        setNuevaFechaVencimiento("");
+      } else {
+        const error = await response.json();
+        alert(`Error al actualizar fecha: ${error.error || 'Error desconocido'}`);
+      }
+    } catch (error) {
+      console.error('❌ Error actualizando fecha:', error);
+      alert('Error al actualizar la fecha de vencimiento');
+    }
+  }, [nuevaFechaVencimiento, cargarDocumentos]);
 
   const verDocumento = useCallback(async (documento: Documento) => {
     try {
@@ -634,6 +668,38 @@ export function DocumentManager({
                           </span>
                         )}
                       </div>
+                      
+                      {/* Campo de edición de fecha */}
+                      {editingFechaId === documento.id && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <input
+                            type="date"
+                            value={nuevaFechaVencimiento}
+                            onChange={(e) => setNuevaFechaVencimiento(e.target.value)}
+                            min={new Date().toISOString().split('T')[0]}
+                            className="px-2 py-1 text-xs border border-border rounded bg-background"
+                          />
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => actualizarFechaVencimiento(documento.id)}
+                            className="h-7 text-xs px-2"
+                          >
+                            Guardar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditingFechaId(null);
+                              setNuevaFechaVencimiento("");
+                            }}
+                            className="h-7 text-xs px-2"
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -659,6 +725,35 @@ export function DocumentManager({
                       <Download className="h-3.5 w-3.5" />
                       Descargar
                     </Button>
+                    {/* Botón para editar fecha de vencimiento */}
+                    {(!documento.fecha_vencimiento || documento.fecha_vencimiento === 'Invalid Date') && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingFechaId(documento.id);
+                          setNuevaFechaVencimiento(documento.fecha_vencimiento || "");
+                        }}
+                        className="flex-1 sm:flex-none justify-center gap-2 text-xs h-9"
+                        title="Agregar fecha de vencimiento"
+                      >
+                        📅 Agregar Fecha
+                      </Button>
+                    )}
+                    {documento.fecha_vencimiento && documento.fecha_vencimiento !== 'Invalid Date' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingFechaId(documento.id);
+                          setNuevaFechaVencimiento(documento.fecha_vencimiento?.split('T')[0] || "");
+                        }}
+                        className="flex-1 sm:flex-none justify-center gap-2 text-xs h-9"
+                        title="Editar fecha de vencimiento"
+                      >
+                        ✏️ Editar Fecha
+                      </Button>
+                    )}
                   </div>
                 </div>
               );

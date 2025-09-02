@@ -118,12 +118,14 @@ export async function POST(request: NextRequest) {
   let guardiaId: string | null = null;
   let tipoDocumento: string | null = null;
   let archivo: File | null = null;
+  let fechaVencimiento: string | null = null;
   
   try {
     formData = await request.formData();
     guardiaId = formData.get('guardia_id') as string;
     tipoDocumento = formData.get('tipo_documento') as string;
     archivo = formData.get('archivo') as File;
+    fechaVencimiento = formData.get('fecha_vencimiento') as string;
 
     console.log('📤 API Postulación - Subiendo documento:', {
       guardia_id: guardiaId,
@@ -208,9 +210,9 @@ export async function POST(request: NextRequest) {
       const insertQuery = `
         INSERT INTO documentos (
           guardia_id, tipo, url, contenido_archivo, tamaño, 
-          tipo_documento_id, nombre_original, creado_en, actualizado_en
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-        RETURNING id, tipo, url
+          tipo_documento_id, nombre_original, fecha_vencimiento, creado_en, actualizado_en
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+        RETURNING id, tipo, url, fecha_vencimiento
       `;
 
       const insertParams = [
@@ -220,7 +222,8 @@ export async function POST(request: NextRequest) {
         buffer, // Contenido del archivo
         archivo.size, // Tamaño del archivo
         tipoDoc.id,
-        nombreArchivo // Nombre original del archivo
+        nombreArchivo, // Nombre original del archivo
+        fechaVencimiento || null // Fecha de vencimiento (puede ser null)
       ];
 
       const result = await client.query(insertQuery, insertParams);
