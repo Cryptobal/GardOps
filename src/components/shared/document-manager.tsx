@@ -84,6 +84,7 @@ export function DocumentManager({
     }
 
     try {
+      console.log('🔍 CARGANDO DOCUMENTOS:', { modulo, entidadId, forceReload });
       setCargando(true);
       
       // Usar endpoint específico según el módulo
@@ -99,11 +100,16 @@ export function DocumentManager({
         apiUrl = `/api/documentos-global?modulo=${modulo}&entidad_id=${entidadId}`;
       }
       
+      console.log('🌐 Llamando API:', apiUrl);
+      
       const response = await fetch(apiUrl, {
         cache: 'no-store'
       });
       
+      console.log('📡 Respuesta API:', { status: response.status, ok: response.ok });
+      
       const data = await response.json();
+      console.log('📋 Datos recibidos:', data);
       
       if (data.success) {
         // Mapear los documentos según la estructura de la API
@@ -127,14 +133,15 @@ export function DocumentManager({
           }));
         }
         
+        console.log('📄 Documentos mapeados:', docsConTipo);
         setDocumentos(docsConTipo);
         setLastLoadTime(now);
       } else {
-        console.error("Error cargando documentos:", data.error);
+        console.error("❌ Error cargando documentos:", data.error);
         setDocumentos([]);
       }
     } catch (error) {
-      console.error("Error en cargarDocumentos:", error);
+      console.error("❌ Error en cargarDocumentos:", error);
       setDocumentos([]);
     } finally {
       setCargando(false);
@@ -441,11 +448,15 @@ export function DocumentManager({
 
   // useEffect para cargar datos cuando cambia la entidad o refreshTrigger
   useEffect(() => {
+    console.log('🔄 useEffect ejecutado:', { entidadId, refreshTrigger, modulo });
+    
     // Solo cargar documentos si hay una entidad seleccionada
     if (entidadId && entidadId.trim() !== "") {
+      console.log('✅ Entidad válida, cargando documentos...');
       cargarDocumentos(true);
       cargarTiposDocumentos();
     } else {
+      console.log('❌ Entidad inválida o vacía, limpiando documentos');
       // Limpiar documentos si no hay entidad seleccionada
       setDocumentos([]);
       setCargando(false);
