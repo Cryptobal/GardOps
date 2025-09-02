@@ -132,10 +132,16 @@ export function DocumentManager({
             estado: doc.estado
           }));
         } else if (data.data) {
-          // Para APIs que devuelven data
+          // Para APIs que devuelven data (instalaciones y guardias)
           docsConTipo = data.data.map((doc: any) => ({
-            ...doc,
-            tipo_documento_nombre: doc.tipo_documento_nombre || "Sin categoría"
+            id: doc.id,
+            nombre: doc.nombre_original || doc.nombre,
+            tamaño: doc.tamaño,
+            created_at: doc.creado_en || doc.created_at,
+            fecha_vencimiento: doc.fecha_vencimiento,
+            tipo_documento_nombre: doc.tipo_documento_nombre || "Sin categoría",
+            url: doc.url,
+            estado: doc.estado
           }));
         }
         
