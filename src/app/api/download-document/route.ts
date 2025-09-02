@@ -51,8 +51,31 @@ export async function GET(request: NextRequest) {
     // Construir URL completa de Cloudflare R2
     let r2Url = documento.url;
     
+    // Si la URL es de docs.gard.cl (URL personalizada), construir la URL real de R2
+    if (r2Url.includes('docs.gard.cl')) {
+      // Extraer la ruta del archivo de la URL personalizada
+      const urlParts = r2Url.split('docs.gard.cl/');
+      if (urlParts.length > 1) {
+        const filePath = urlParts[1]; // ej: "clientes/06bf2385-d03c-46aa-b86d-cda6d2dac8ff.png"
+        
+        // Construir la URL real de R2
+        const r2PublicUrl = process.env.R2_PUBLIC_URL || `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+        const bucketName = process.env.R2_BUCKET_NAME;
+        
+        if (!bucketName) {
+          console.error('❌ R2_BUCKET_NAME no configurado');
+          return NextResponse.json({ 
+            success: false, 
+            error: 'Configuración de R2 incompleta' 
+          }, { status: 500 });
+        }
+        
+        r2Url = `${r2PublicUrl}/${bucketName}/${filePath}`;
+        console.log('🔗 URL R2 real construida:', r2Url);
+      }
+    }
     // Si la URL no es completa, construir la URL completa de R2
-    if (!r2Url.startsWith('http')) {
+    else if (!r2Url.startsWith('http')) {
       const r2PublicUrl = process.env.R2_PUBLIC_URL || `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
       const bucketName = process.env.R2_BUCKET_NAME;
       
