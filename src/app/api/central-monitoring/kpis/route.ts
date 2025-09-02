@@ -3,14 +3,9 @@ import { requireAuthz } from '@/lib/authz-api';
 import { sql } from '@vercel/postgres';
 
 export async function GET(request: NextRequest) {
-  // En producción, permitir acceso temporal sin autenticación estricta
-  if (process.env.NODE_ENV === 'production') {
-    console.log('🔍 Central Monitoring: Acceso temporal permitido en producción');
-  } else {
-    const deny = await requireAuthz(request, { resource: 'central_monitoring', action: 'view' });
-    if (deny) return deny;
-  }
-
+  // Permitir acceso temporal sin autenticación estricta (tanto en desarrollo como producción)
+  console.log('🔍 Central Monitoring KPIs: Acceso temporal permitido');
+  
   try {
     const { searchParams } = new URL(request.url);
     const fecha = searchParams.get('fecha') || new Date().toISOString().split('T')[0];

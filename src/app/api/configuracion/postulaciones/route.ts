@@ -4,6 +4,8 @@ import { logError, logCRUD } from '@/lib/logging';
 import { getFormularioUrl } from '@/lib/config';
 
 export async function GET(request: NextRequest) {
+  console.log('🔍 Configuración Postulaciones: Iniciando GET');
+  
   try {
     // Por ahora usar el tenant Gard para testing
     // En producción, obtener del token de autenticación
