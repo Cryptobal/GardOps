@@ -39,6 +39,7 @@ import { Guardia } from "../../lib/schemas/guardias";
 
 // Importar el modal editable
 import GuardiaModal from "../../components/guardias/GuardiaModal";
+import { api } from '@/lib/api-client';
 
 // Componente KPI Box optimizado para móviles
 const KPIBox = ({ 
@@ -240,53 +241,50 @@ export default function GuardiasPage() {
       try {
         setLoading(true);
         console.log("🔍 GuardiasPage: Llamando a /api/guardias...");
-        const response = await fetch("/api/guardias");
-        console.log("🔍 GuardiasPage: Respuesta recibida:", response.status, response.ok);
+        const result = await api.guardias.getAll() as any;
+        console.log("🔍 GuardiasPage: Respuesta recibida:", result);
         
-        if (!response.ok) {
-          console.error("🔍 GuardiasPage: Error en respuesta:", response.status, response.statusText);
-          throw new Error(`Error al cargar guardias: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log("🔍 GuardiasPage: Datos recibidos:", data);
-        console.log("🔍 GuardiasPage: Items array:", data.items);
-        console.log("🔍 GuardiasPage: Cantidad de guardias:", data.items?.length || 0);
-        
-        // Usar data.items en lugar de data.guardias
-        const guardiasData = data.items || [];
-        setGuardias(guardiasData);
-        
-        // Calcular KPIs
-        const total = guardiasData.length || 0;
-        const activos = guardiasData.filter((g: any) => g.estado === 'activo' || g.activo === true).length || 0;
-        const inactivos = total - activos;
-        
-        // Calcular estadísticas de OS10
-        const estadisticasOS10 = obtenerEstadisticasOS10(guardiasData);
+        if (result.success) {
+          console.log("🔍 GuardiasPage: Datos recibidos:", result);
+          console.log("🔍 GuardiasPage: Items array:", result.items);
+          console.log("🔍 GuardiasPage: Cantidad de guardias:", result.items?.length || 0);
+          
+          // Usar data.items en lugar de data.guardias
+          const guardiasData = result.items || [];
+          setGuardias(guardiasData);
+          
+          // Calcular KPIs
+          const total = guardiasData.length || 0;
+          const activos = guardiasData.filter((g: any) => g.estado === 'activo' || g.activo === true).length || 0;
+          const inactivos = total - activos;
+          
+          // Calcular estadísticas de OS10
+          const estadisticasOS10 = obtenerEstadisticasOS10(guardiasData);
 
-        setKpis({ 
-          total, 
-          activos, 
-          inactivos, 
-          os10PorVencer: estadisticasOS10.por_vencer,
-          os10Vencidos: estadisticasOS10.vencidos
-        });
-        
-        console.log("🔍 GuardiasPage: KPIs calculados:", { 
-          total, 
-          activos, 
-          inactivos, 
-          os10PorVencer: estadisticasOS10.por_vencer,
-          os10Vencidos: estadisticasOS10.vencidos
-        });
+          setKpis({ 
+            total, 
+            activos, 
+            inactivos, 
+            os10PorVencer: estadisticasOS10.por_vencer,
+            os10Vencidos: estadisticasOS10.vencidos
+          });
+          
+          console.log("🔍 GuardiasPage: KPIs calculados:", { 
+            total, 
+            activos, 
+            inactivos, 
+            os10PorVencer: estadisticasOS10.por_vencer,
+            os10Vencidos: estadisticasOS10.vencidos
+          });
+        } else {
+          console.error("🔍 GuardiasPage: Error en respuesta:", result.error);
+          throw new Error(`Error al cargar guardias: ${result.error}`);
+        }
       } catch (error) {
         console.error("🔍 GuardiasPage: Error cargando guardias:", error);
-        console.error("🔍 GuardiasPage: Stack trace:", error instanceof Error ? error.stack : 'No stack');
         showToast("Error al cargar guardias", "error");
       } finally {
         setLoading(false);
-        console.log("🔍 GuardiasPage: Carga finalizada, loading = false");
       }
     };
 

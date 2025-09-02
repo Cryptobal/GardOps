@@ -18,6 +18,7 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { api } from '@/lib/api-client';
 
 // Importar componentes genéricos
 import { DataTable, Column } from "../../components/ui/data-table";
@@ -79,21 +80,20 @@ export default function ClientesPage() {
   useEffect(() => {
     const fetchClientes = async () => {
       if (!allowed) return;
-    try {
-      setLoading(true);
-      const response = await fetch("/api/clientes");
-      const result = await response.json();
+      try {
+        setLoading(true);
+        const result = await api.clientes.getAll();
 
-      if (result.success) {
-        setClientes(result.data);
-      } else {
+        if (result.success) {
+          setClientes(result.data);
+        } else {
           console.error("Error al cargar clientes:", result.error);
+        }
+      } catch (error) {
+        console.error("Error cargando clientes:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error cargando clientes:", error);
-    } finally {
-      setLoading(false);
-    }
     };
 
     fetchClientes();

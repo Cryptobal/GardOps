@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import InstalacionModal from "@/components/instalaciones/InstalacionModal";
+import { api } from '@/lib/api-client';
 
 // Hook personalizado para debounce
 function useDebounce<T>(value: T, delay: number): T {
@@ -144,14 +145,13 @@ export default function InstalacionesPage() {
     try {
       setLoading(true);
       
-      const response = await fetch('/api/instalaciones?simple=true');
-      const data = await response.json();
+      const result = await api.instalaciones.getAll({ simple: 'true' });
       
-      if (data.success) {
-        console.log('🔍 Datos de instalaciones recibidos:', data.data);
-        setInstalaciones(data.data || []);
+      if (result.success) {
+        console.log('🔍 Datos de instalaciones recibidos:', result.data);
+        setInstalaciones(result.data || []);
       } else {
-        console.error("Error cargando instalaciones:", data.error);
+        console.error("Error cargando instalaciones:", result.error);
         setInstalaciones([]);
       }
     } catch (error) {
