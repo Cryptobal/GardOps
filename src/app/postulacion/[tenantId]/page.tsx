@@ -56,6 +56,7 @@ interface Documento {
   tipo: string;
   archivo: File | null;
   obligatorio: boolean;
+  fecha_vencimiento?: string;
 }
 
 // Datos estáticos
@@ -95,10 +96,10 @@ export default function PostulacionPage() {
   });
 
   const [documentos, setDocumentos] = useState<Documento[]>([
-    { tipo: 'Certificado OS10', archivo: null, obligatorio: true },
+    { tipo: 'Certificado OS10', archivo: null, obligatorio: true, fecha_vencimiento: '' },
     { tipo: 'Carnet Identidad Frontal', archivo: null, obligatorio: false },
     { tipo: 'Carnet Identidad Reverso', archivo: null, obligatorio: false },
-    { tipo: 'Certificado Antecedentes', archivo: null, obligatorio: false },
+    { tipo: 'Certificado Antecedentes', archivo: null, obligatorio: false, fecha_vencimiento: '' },
     { tipo: 'Certificado Enseñanza Media', archivo: null, obligatorio: false },
     { tipo: 'Certificado AFP', archivo: null, obligatorio: false },
     { tipo: 'Certificado AFC', archivo: null, obligatorio: false },
@@ -278,9 +279,27 @@ export default function PostulacionPage() {
   };
 
   const validarDocumentos = (): boolean => {
-    return documentos.every(doc => 
+    // Verificar documentos obligatorios
+    const todosObligatorios = documentos.every(doc => 
       doc.obligatorio ? (doc.archivo) : true
     );
+    
+    // Verificar fecha de vencimiento del OS10
+    const os10 = documentos.find(doc => doc.tipo === 'Certificado OS10');
+    const os10TieneFecha = !os10 || !os10.archivo || !!os10.fecha_vencimiento;
+    
+    if (!os10TieneFecha) {
+      mostrarModalRut(
+        'error',
+        'Fecha de Vencimiento Requerida',
+        'El Certificado OS10 requiere una fecha de vencimiento.',
+        undefined,
+        undefined
+      );
+      return false;
+    }
+    
+    return todosObligatorios;
   };
 
   const handleInputChange = (field: keyof FormData, value: string | number) => {
@@ -346,10 +365,10 @@ export default function PostulacionPage() {
     
     // Limpiar documentos (sin archivos)
     setDocumentos([
-      { tipo: 'Certificado OS10', archivo: null, obligatorio: true },
+      { tipo: 'Certificado OS10', archivo: null, obligatorio: true, fecha_vencimiento: '' },
       { tipo: 'Carnet Identidad Frontal', archivo: null, obligatorio: false },
       { tipo: 'Carnet Identidad Reverso', archivo: null, obligatorio: false },
-      { tipo: 'Certificado Antecedentes', archivo: null, obligatorio: false },
+      { tipo: 'Certificado Antecedentes', archivo: null, obligatorio: false, fecha_vencimiento: '' },
       { tipo: 'Certificado Enseñanza Media', archivo: null, obligatorio: false },
       { tipo: 'Certificado AFP', archivo: null, obligatorio: false },
       { tipo: 'Certificado AFC', archivo: null, obligatorio: false },
@@ -446,6 +465,11 @@ export default function PostulacionPage() {
           
           if (doc.archivo) {
             formData.append('archivo', doc.archivo);
+          }
+          
+          // Agregar fecha de vencimiento si existe
+          if (doc.fecha_vencimiento) {
+            formData.append('fecha_vencimiento', doc.fecha_vencimiento);
           }
 
           await fetch('/api/postulacion/documento', {
@@ -1069,6 +1093,28 @@ export default function PostulacionPage() {
                           <span className="text-sm text-green-700">
                             Archivo: {doc.archivo.name}
                           </span>
+                        </div>
+                      )}
+                      
+                      {/* Campo de fecha de vencimiento para OS10 y Antecedentes */}
+                      {(doc.tipo === 'Certificado OS10' || doc.tipo === 'Certificado Antecedentes') && (
+                        <div className="mt-2">
+                          <Label htmlFor={`fecha-${index}`} className="text-sm">
+                            Fecha de Vencimiento {doc.tipo === 'Certificado OS10' ? '*' : ''}
+                          </Label>
+                          <Input
+                            id={`fecha-${index}`}
+                            type="date"
+                            min={new Date().toISOString().split('T')[0]}
+                            value={doc.fecha_vencimiento || ''}
+                            onChange={(e) => {
+                              const newDocs = [...documentos];
+                              newDocs[index].fecha_vencimiento = e.target.value;
+                              setDocumentos(newDocs);
+                            }}
+                            className="mt-1"
+                            required={doc.tipo === 'Certificado OS10'}
+                          />
                         </div>
                       )}
                       
