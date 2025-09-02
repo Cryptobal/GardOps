@@ -58,6 +58,21 @@ export default function TestAuthPage() {
     }
   };
 
+  const testDebugClientesAuth = async () => {
+    setTestLoading(true);
+    try {
+      console.log('🔍 Probando debug clientes auth...');
+      const result = await api.debug.clientesAuth();
+      setTestResult(result);
+      console.log('✅ Resultado de debug clientes auth:', result);
+    } catch (error) {
+      console.error('❌ Error en debug clientes auth:', error);
+      setTestResult({ error: error.message });
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto p-6">
@@ -159,6 +174,14 @@ export default function TestAuthPage() {
               variant="outline"
             >
               {testLoading ? 'Probando...' : 'Debug Headers'}
+            </Button>
+
+            <Button 
+              onClick={testDebugClientesAuth} 
+              disabled={testLoading || !isAuthenticated}
+              variant="outline"
+            >
+              {testLoading ? 'Probando...' : 'Debug Clientes Auth'}
             </Button>
           </div>
           

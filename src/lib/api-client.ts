@@ -292,6 +292,7 @@ export const api = {
   // Debug
   debug: {
     headers: () => apiClient.get('/api/debug-headers'),
+    clientesAuth: () => apiClient.get('/api/debug-clientes-auth'),
   },
 };
 
