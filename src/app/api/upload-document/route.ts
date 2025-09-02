@@ -3,14 +3,20 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 import pool from "@/lib/database";
 
-const s3 = new S3Client({
-  region: "auto",
-  endpoint: process.env.R2_ENDPOINT,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-  },
-});
+// Inicializar cliente S3 solo si tenemos las credenciales
+const s3 = process.env.R2_ENDPOINT && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY
+  ? new S3Client({
+      region: "auto",
+      endpoint: process.env.R2_ENDPOINT,
+      credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+      },
+      // Configuración adicional para evitar errores de SSL
+      forcePathStyle: true,
+      tls: true,
+    })
+  : null;
 
 export async function POST(req: NextRequest) {
   try {
@@ -46,9 +52,14 @@ export async function POST(req: NextRequest) {
     let r2Success = false;
 
     // En producción, intentar cargar en Cloudflare R2
-    if (isProduction && hasR2Config) {
+    if (isProduction && hasR2Config && s3) {
       try {
         console.log('☁️ Subiendo archivo a Cloudflare R2...');
+        console.log('📍 Configuración R2:', {
+          endpoint: process.env.R2_ENDPOINT,
+          bucket: process.env.R2_BUCKET_NAME || 'gardops-documents',
+          hasCredentials: !!(process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY)
+        });
         
         const uploadCommand = new PutObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME || 'gardops-documents',
@@ -65,12 +76,27 @@ export async function POST(req: NextRequest) {
 
         await s3.send(uploadCommand);
         r2Success = true;
-        r2Url = `${process.env.R2_PUBLIC_URL || process.env.R2_ENDPOINT}/${key}`;
+        
+        // Construir la URL pública correctamente
+        const bucketName = process.env.R2_BUCKET_NAME || 'gardops-documents';
+        const publicUrl = process.env.R2_PUBLIC_URL || `https://pub-${process.env.R2_ACCOUNT_ID}.r2.dev`;
+        r2Url = `${publicUrl}/${key}`;
         
         console.log('✅ Archivo subido exitosamente a R2:', r2Url);
-      } catch (r2Error) {
+      } catch (r2Error: any) {
         console.error('❌ Error subiendo a R2:', r2Error);
+        console.error('📋 Detalles del error:', {
+          code: r2Error.code,
+          message: r2Error.message,
+          syscall: r2Error.syscall
+        });
         console.log('🔄 Fallback: Guardando en base de datos');
+      }
+    } else {
+      if (!isProduction) {
+        console.log('🔧 Modo desarrollo: Guardando en base de datos');
+      } else if (!hasR2Config) {
+        console.log('⚠️ Configuración R2 incompleta: Guardando en base de datos');
       }
     }
 
@@ -83,8 +109,30 @@ export async function POST(req: NextRequest) {
     let insertQuery = "";
     let insertParams: (string | number | Buffer | null)[] = [];
 
-    if (modulo === "clientes" || modulo === "instalaciones") {
-      // Para clientes e instalaciones, usar instalacion_id
+    if (modulo === "clientes") {
+      // Para clientes, usar cliente_id
+      insertQuery = `
+        INSERT INTO documentos (
+          nombre_original, tipo, url, cliente_id, tipo_documento_id, 
+          contenido_archivo, tamaño, fecha_vencimiento
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id, url as nombre, fecha_vencimiento
+      `;
+      
+      insertParams = [
+        file.name,                    // nombre_original
+        'otros',                      // tipo
+        r2Success ? r2Url : key,     // url (R2 URL o key local)
+        entidad_id,                   // cliente_id
+        tipo_documento_id,            // tipo_documento_id
+        r2Success ? null : buffer,    // contenido_archivo (solo si no está en R2)
+        file.size,                    // tamaño
+        fecha_vencimiento || null     // fecha_vencimiento
+      ];
+      
+    } else if (modulo === "instalaciones") {
+      // Para instalaciones, usar instalacion_id
       insertQuery = `
         INSERT INTO documentos (
           nombre_original, tipo, url, instalacion_id, tipo_documento_id, 
