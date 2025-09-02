@@ -390,7 +390,7 @@ export default function PostulacionPage() {
     setCurrentPage(1);
   };
 
-  const enviarFormulario = async () => {
+  const enviarFormulario = async (modoPrueba: boolean = false) => {
     if (!validarDocumentos()) {
       mostrarModalRut(
         'error',
@@ -421,6 +421,7 @@ export default function PostulacionPage() {
         body: JSON.stringify({
           ...formData,
           tenant_id: tenantId,
+          modo_prueba: modoPrueba, // Indicar si es modo prueba
           ip_postulacion: '127.0.0.1', // En producción obtener IP real
           user_agent_postulacion: navigator.userAgent
         })
@@ -1148,14 +1149,28 @@ export default function PostulacionPage() {
                     Atrás
                   </Button>
                   
-                  <Button
-                    onClick={enviarFormulario}
-                    disabled={loading}
-                    className="bg-green-600 hover:bg-green-700"
-                    size="lg"
-                  >
-                    {loading ? 'Enviando...' : 'Enviar Postulación'}
-                  </Button>
+                  <div className="flex gap-3">
+                    {/* Botón de Probar Webhook */}
+                    <Button
+                      onClick={() => enviarFormulario(true)}
+                      disabled={loading}
+                      variant="outline"
+                      className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                      size="lg"
+                    >
+                      🧪 Probar Webhook
+                    </Button>
+                    
+                    {/* Botón de Enviar Postulación */}
+                    <Button
+                      onClick={() => enviarFormulario(false)}
+                      disabled={loading}
+                      className="bg-green-600 hover:bg-green-700"
+                      size="lg"
+                    >
+                      {loading ? 'Enviando...' : 'Enviar Postulación'}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

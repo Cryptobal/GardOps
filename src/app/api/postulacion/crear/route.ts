@@ -125,6 +125,8 @@ export async function POST(request: NextRequest) {
 
     // Preparar datos para inserción
     console.log('🔍 Preparando datos para inserción...');
+    const modoPrueba = body.modo_prueba === true;
+    
     const datosGuardia = {
       rut: rutLimpio,
       nombre: body.nombre.trim(),
@@ -235,7 +237,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ Guardia creado exitosamente:', guardiaCreado);
 
     // Enviar webhook (asíncrono)
-    enviarWebhook(body.tenant_id, guardiaCreado.id, datosGuardia);
+    enviarWebhook(body.tenant_id, guardiaCreado.id, datosGuardia, modoPrueba);
 
     // Enviar email de confirmación (asíncrono)
     enviarEmailConfirmacion(datosGuardia);
@@ -283,7 +285,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Función para enviar webhook (asíncrona)
-async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: any) {
+async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: any, modoPrueba: boolean = false) {
   try {
     // Obtener configuración del webhook del tenant
     const client = await getClient();
@@ -369,7 +371,9 @@ async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: 
           ip_postulacion: datosGuardia.ip_postulacion,
           user_agent_postulacion: datosGuardia.user_agent_postulacion
         }
-      }
+      },
+      test_mode: modoPrueba,
+      test_timestamp: modoPrueba ? new Date().toISOString() : undefined
     };
 
     // Log del payload para debug
