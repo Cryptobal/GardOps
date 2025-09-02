@@ -153,7 +153,7 @@ const SimpleInputDireccion = React.forwardRef<HTMLInputElement, SimpleInputDirec
             onFocus={handleInputFocus}
             onBlur={handleInputBlur}
             placeholder={placeholder}
-            disabled={disabled || !isLoaded}
+            disabled={disabled}
             required={required}
             name={name}
             id={id}
@@ -175,14 +175,21 @@ const SimpleInputDireccion = React.forwardRef<HTMLInputElement, SimpleInputDirec
             <Button
               type="button"
               variant="ghost"
-              size="icon"
-              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8"
+              size="sm"
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted/50"
               onClick={handleClear}
             >
               <X className="h-3 w-3" />
             </Button>
           )}
         </div>
+
+        {/* Mensaje cuando Google Maps no está disponible */}
+        {!isLoaded && (
+          <div className="mt-2 text-xs text-amber-500 bg-amber-500/10 p-2 rounded-md border border-amber-500/20">
+            ⚠️ Google Maps no está disponible. Puedes escribir la dirección manualmente.
+          </div>
+        )}
 
         {/* Lista de sugerencias */}
         {showSuggestions && suggestions.length > 0 && (
@@ -203,6 +210,14 @@ const SimpleInputDireccion = React.forwardRef<HTMLInputElement, SimpleInputDirec
                 )}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Mensaje cuando no hay sugerencias */}
+        {showSuggestions && suggestions.length === 0 && inputValue.length >= 3 && !isLoading && isLoaded && (
+          <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-background border border-border rounded-md shadow-lg p-4 text-center">
+            <p className="text-sm text-muted-foreground">No se encontraron direcciones para "{inputValue}"</p>
+            <p className="text-xs text-muted-foreground mt-1">Intenta con una dirección más específica</p>
           </div>
         )}
       </div>
