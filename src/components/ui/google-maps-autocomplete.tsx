@@ -19,8 +19,8 @@ interface GoogleMapsAutocompleteProps {
 declare global {
   interface Window {
     google: typeof google;
-    googleMapsLoading: boolean;
     googleMapsLoaded: boolean;
+    googleMapsLoading: boolean;
   }
 }
 
@@ -92,10 +92,12 @@ export function GoogleMapsAutocomplete({
   disabled = false,
   className = ""
 }: GoogleMapsAutocompleteProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
+  const [inputValue, setInputValue] = useState(value);
 
   useEffect(() => {
     const loadGoogleMaps = async () => {
@@ -106,6 +108,8 @@ export function GoogleMapsAutocomplete({
         setIsGoogleLoaded(true);
       } catch (error) {
         console.error('Error cargando Google Maps:', error);
+        // Fallback: permitir entrada manual
+        setIsGoogleLoaded(false);
       } finally {
         setIsLoading(false);
       }
@@ -115,7 +119,9 @@ export function GoogleMapsAutocomplete({
   }, []);
 
   useEffect(() => {
-    if (!isGoogleLoaded || !inputRef.current || disabled) return;
+    if (!isGoogleLoaded || !inputRef.current || !window.google?.maps?.places) {
+      return;
+    }
 
     try {
       // Crear autocompletado
@@ -157,6 +163,7 @@ export function GoogleMapsAutocomplete({
           
           // Llamar callbacks
           onChange(fullAddress);
+          setInputValue(fullAddress);
           if (onPlaceSelect) {
             onPlaceSelect(place);
           }
@@ -169,14 +176,38 @@ export function GoogleMapsAutocomplete({
         }
       };
     } catch (error) {
-      console.error('Error inicializando Google Maps Autocomplete:', error);
+      console.error('Error configurando autocompletado:', error);
+      // Fallback: permitir entrada manual
+      setIsGoogleLoaded(false);
     }
-  }, [isGoogleLoaded, onChange, onPlaceSelect, disabled]);
+  }, [isGoogleLoaded, onChange, onPlaceSelect]);
+
+  // Sincronizar valor externo con estado interno
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+    
+    // Si Google Maps no está disponible, permitir entrada manual
+    if (!isGoogleLoaded) {
+      onChange(newValue);
+    }
+  };
+
+  const handleInputBlur = () => {
+    // Sincronizar valor al perder foco
+    if (inputValue !== value) {
+      onChange(inputValue);
+    }
+  };
 
   return (
-    <div className={className}>
+    <div className={`space-y-2 ${className}`}>
       {label && (
-        <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <Label htmlFor="google-maps-input" className="text-sm font-medium">
           {label}
         </Label>
       )}
@@ -184,29 +215,34 @@ export function GoogleMapsAutocomplete({
       <div className="relative">
         <Input
           ref={inputRef}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          id="google-maps-input"
+          type="text"
+          value={inputValue}
+          onChange={handleInputChange}
+          onBlur={handleInputBlur}
           placeholder={placeholder}
-          disabled={disabled || isLoading}
+          disabled={disabled}
           className={`pr-10 ${error ? 'border-red-500' : ''}`}
         />
         
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
           {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+            <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+          ) : isGoogleLoaded ? (
+            <MapPin className="w-4 h-4 text-blue-500" />
           ) : (
-            <MapPin className="h-4 w-4 text-gray-400" />
+            <MapPin className="w-4 h-4 text-gray-400" />
           )}
         </div>
       </div>
       
       {error && (
-        <p className="mt-1 text-sm text-red-500">{error}</p>
+        <p className="text-sm text-red-500">{error}</p>
       )}
       
       {!isGoogleLoaded && !isLoading && (
-        <p className="mt-1 text-xs text-gray-500">
-          Cargando autocompletado de direcciones...
+        <p className="text-xs text-gray-500">
+          Autocompletado no disponible. Puede escribir la dirección manualmente.
         </p>
       )}
     </div>

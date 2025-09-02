@@ -482,8 +482,8 @@ export function DocumentManager({
         </CardHeader>
 
         <CardContent className="flex-1 overflow-hidden">
-          {/* Lista de documentos */}
-          <div className="h-full overflow-y-auto space-y-2">
+          {/* Lista de documentos - Mobile-first */}
+          <div className="h-full overflow-y-auto space-y-3">
             {documentosDelTipo.map((documento) => {
               const diasRestantes = documento.fecha_vencimiento ? calcularDiasRestantes(documento.fecha_vencimiento) : null;
               const estadoVencimiento = diasRestantes !== null ? getEstadoVencimiento(diasRestantes) : null;
@@ -491,68 +491,78 @@ export function DocumentManager({
               return (
                 <div
                   key={documento.id}
-                  className="flex items-center justify-between p-3 border border-border/30 rounded-lg hover:bg-muted/10 transition-colors group"
+                  className="group relative p-4 border border-border/30 rounded-lg hover:bg-muted/10 transition-colors bg-card/50"
                 >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                  {/* Botón de eliminar - Siempre visible en móviles */}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => eliminarDocumento(documento.id)}
+                    className="absolute top-3 right-3 h-8 w-8 p-0 hover:bg-red-600/20 text-red-400 opacity-100 transition-opacity"
+                    title="Eliminar documento"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+
+                  <div className="flex items-start gap-3 pr-12">
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center">
-                        <span className="text-white text-xs font-medium">
+                      <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+                        <span className="text-white text-sm font-medium">
                           {documento.nombre.split('.').pop()?.toUpperCase().slice(0, 3) || 'DOC'}
                         </span>
                       </div>
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-2">
                         <p className="text-white font-medium truncate text-sm">
                           {documento.nombre}
                         </p>
                         {estadoVencimiento && (
-                          <Badge className={`text-xs px-2 py-0.5 ${estadoVencimiento.color}`}>
+                          <Badge className={`text-xs px-2 py-1 ${estadoVencimiento.color}`}>
                             {getTextoEstado(diasRestantes!)}
                           </Badge>
                         )}
                       </div>
                       
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span>{formatearTamaño(documento.tamaño)}</span>
-                        <span>Subido: {formatearFecha(documento.created_at)}</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          📁 {formatearTamaño(documento.tamaño)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          📅 {formatearFecha(documento.created_at)}
+                        </span>
                         {documento.fecha_vencimiento && (
                           <span className={`flex items-center gap-1 ${diasRestantes! < 0 ? 'text-red-400' : diasRestantes! <= 7 ? 'text-orange-400' : 'text-white/60'}`}>
-                            📅 Vence: {formatearFechaCompleta(documento.fecha_vencimiento)}
+                            ⏰ {formatearFechaCompleta(documento.fecha_vencimiento)}
                           </span>
                         )}
                       </div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {/* Botones de acción - Apilados verticalmente en móviles */}
+                  <div className="flex flex-col sm:flex-row gap-2 mt-4 pt-3 border-t border-border/20">
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant="outline"
                       onClick={() => abrirVisualizador(documento)}
-                      className="h-7 w-7 p-0 hover:bg-blue-600/20"
+                      className="flex-1 sm:flex-none justify-center gap-2 text-xs h-9"
                       title="Ver documento"
                     >
                       <Eye className="h-3.5 w-3.5" />
+                      Ver
                     </Button>
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant="outline"
                       onClick={() => descargarDocumento(documento)}
-                      className="h-7 w-7 p-0 hover:bg-green-600/20"
+                      className="flex-1 sm:flex-none justify-center gap-2 text-xs h-9"
                       title="Descargar"
                     >
                       <Download className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => eliminarDocumento(documento.id)}
-                      className="h-7 w-7 p-0 hover:bg-red-600/20 text-red-400"
-                      title="Eliminar"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      Descargar
                     </Button>
                   </div>
                 </div>
@@ -680,9 +690,6 @@ export function DocumentManager({
                 value={fechaVencimiento}
                 onChange={setFechaVencimiento}
                 placeholder="Seleccionar fecha de vencimiento"
-                minDate={new Date()}
-                showClearButton={true}
-                required={tipoSeleccionado?.requiere_vencimiento}
               />
               <p className="text-xs text-muted-foreground">
                 Este tipo de documento requiere fecha de vencimiento

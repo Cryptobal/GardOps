@@ -314,21 +314,10 @@ export default function PostulacionPage() {
     setDocumentos(newDocumentos);
   };
 
-  const tomarFoto = async (index: number) => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      const video = document.createElement('video');
-      video.srcObject = stream;
-      video.play();
-      
-      // Simular captura de foto (en producción usar canvas)
-      setTimeout(() => {
-        stream.getTracks().forEach(track => track.stop());
-        handleDocumentChange(index, 'foto_camara', 'data:image/jpeg;base64,simulated_photo');
-      }, 1000);
-    } catch (error) {
-      console.error('Error accediendo a la cámara:', error);
-    }
+  const eliminarDocumento = (index: number) => {
+    const newDocumentos = [...documentos];
+    newDocumentos[index] = { ...newDocumentos[index], archivo: null };
+    setDocumentos(newDocumentos);
   };
 
   const siguientePagina = async () => {
@@ -1012,7 +1001,7 @@ export default function PostulacionPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => tomarFoto(index)}
+                          onClick={() => handleDocumentChange(index, 'foto_camara', 'data:image/jpeg;base64,simulated_photo')}
                           className="flex items-center space-x-2"
                         >
                           <Camera className="w-4 h-4" />
@@ -1027,6 +1016,17 @@ export default function PostulacionPage() {
                           <Upload className="w-4 h-4" />
                           <span>Archivo</span>
                         </Button>
+                        {doc.archivo && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => eliminarDocumento(index)}
+                            className="flex items-center space-x-2 text-red-500"
+                          >
+                            <X className="w-4 h-4" />
+                            <span>Eliminar</span>
+                          </Button>
+                        )}
                       </div>
                     </div>
                     
