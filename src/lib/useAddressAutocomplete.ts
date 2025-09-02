@@ -42,10 +42,18 @@ export const useAddressAutocomplete = () => {
   useEffect(() => {
     const initializeGoogleMaps = async () => {
       try {
+        // Verificar que la API key esté disponible
+        if (!GOOGLE_MAPS_CONFIG.API_KEY) {
+          console.error('Google Maps API key no está configurada');
+          return;
+        }
+
         const loader = new Loader({
           apiKey: GOOGLE_MAPS_CONFIG.API_KEY,
           version: 'weekly',
           libraries: GOOGLE_MAPS_CONFIG.LIBRARIES,
+          language: 'es', // Forzar idioma español
+          region: 'CL', // Forzar región Chile
         });
 
         await loader.load();
@@ -55,13 +63,17 @@ export const useAddressAutocomplete = () => {
         
         // Crear un div temporal para PlacesService
         const mapDiv = document.createElement('div');
-        const map = new google.maps.Map(mapDiv);
+        const map = new google.maps.Map(mapDiv, {
+          zoom: 1,
+          center: { lat: -33.4489, lng: -70.6693 }, // Santiago, Chile
+        });
         placesService.current = new google.maps.places.PlacesService(map);
 
         setIsLoaded(true);
-        console.log('Google Maps API cargada correctamente');
+        console.log('✅ Google Maps API cargada correctamente');
       } catch (error) {
-        console.error('Error al cargar Google Maps API:', error);
+        console.error('❌ Error al cargar Google Maps API:', error);
+        setIsLoaded(false);
       }
     };
 

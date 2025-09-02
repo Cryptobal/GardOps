@@ -75,12 +75,24 @@ const SimpleInputDireccion = React.forwardRef<HTMLInputElement, SimpleInputDirec
 
     // Manejar selección de sugerencia
     const handleSuggestionSelect = async (suggestion: AddressSuggestion) => {
-      const addressData = await selectAddress(suggestion.placeId);
-      if (addressData) {
-        setInputValue(addressData.direccionCompleta);
-        setShowSuggestions(false);
-        onAddressSelect?.(addressData);
-        onAddressChange?.(addressData.direccionCompleta);
+      try {
+        const addressData = await selectAddress(suggestion.placeId);
+        if (addressData) {
+          setInputValue(addressData.direccionCompleta);
+          setShowSuggestions(false);
+          onAddressSelect?.(addressData);
+          onAddressChange?.(addressData.direccionCompleta);
+        } else {
+          console.warn('No se pudo obtener detalles de la dirección seleccionada');
+          // Mantener la sugerencia seleccionada en el input
+          setInputValue(suggestion.direccionPrincipal);
+          onAddressChange?.(suggestion.direccionPrincipal);
+        }
+      } catch (error) {
+        console.error('Error al seleccionar dirección:', error);
+        // En caso de error, usar la descripción de la sugerencia
+        setInputValue(suggestion.descripcion);
+        onAddressChange?.(suggestion.descripcion);
       }
     };
 
