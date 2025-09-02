@@ -1,71 +1,99 @@
-import { NextRequest, NextResponse } from "next/server";
-import pool from "@/lib/database";
+import { NextRequest, NextResponse } from 'next/server';
+import { query } from '@/lib/database';
 
-// Configuración para evitar errores de Dynamic Server Usage
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const documentId = searchParams.get('id');
+  const modulo = searchParams.get('modulo');
+  
+  if (!documentId || !modulo) {
+    return NextResponse.json({ 
+      success: false, 
+      error: 'ID del documento y módulo requeridos' 
+    }, { status: 400 });
+  }
+
   try {
-    const { searchParams } = new URL(req.url);
-    const documentId = searchParams.get("id");
-    const modulo = searchParams.get("modulo");
-
-    console.log("🔍 Descarga solicitada:", { documentId, modulo });
-
-    if (!documentId || !modulo) {
-      return NextResponse.json({ error: "Faltan parámetros requeridos" }, { status: 400 });
-    }
-
-    let query = "";
-    let params = [documentId];
-
-    // Usar la tabla unificada de documentos para todos los módulos
-    query = `
-      SELECT url as archivo_url, url as nombre, tipo, contenido_archivo
-      FROM documentos 
-      WHERE id = $1
+    // Obtener información del documento
+    const sql = `
+      SELECT 
+        d.id,
+        d.nombre_original,
+        d.url,
+        d.tamaño,
+        d.creado_en
+      FROM documentos d
+      WHERE d.id = $1
     `;
-
-    const result = await pool.query(query, params);
+    
+    const result = await query(sql, [documentId]);
     
     if (result.rows.length === 0) {
-      console.log("❌ Documento no encontrado");
-      return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Documento no encontrado' 
+      }, { status: 404 });
     }
-
+    
     const documento = result.rows[0];
     
-    // Extraer el nombre del archivo de la URL
-    const fileName = documento.archivo_url.split('/').pop() || 'documento';
-    
-    console.log("📄 Documento encontrado:", { 
-      nombre: fileName, 
-      tieneContenido: !!documento.contenido_archivo 
-    });
-
-    // Si tenemos el contenido del archivo en la BD, servirlo directamente
-    if (documento.contenido_archivo) {
-      console.log("✅ Sirviendo desde BD");
-      const buffer = Buffer.from(documento.contenido_archivo);
-      
-      return new NextResponse(buffer, {
-        headers: {
-          'Content-Type': documento.tipo || 'application/octet-stream',
-          'Content-Disposition': `attachment; filename="${fileName}"`,
-          'Content-Length': buffer.length.toString(),
-        },
-      });
+    // Si hay URL de Cloudflare R2, descargar y servir el archivo
+    if (documento.url && documento.url.startsWith('http')) {
+      try {
+        // Descargar el archivo desde R2
+        const response = await fetch(documento.url);
+        
+        if (!response.ok) {
+          throw new Error(`Error descargando desde R2: ${response.status}`);
+        }
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        // Determinar el tipo MIME basado en la extensión
+        const extension = documento.nombre_original.split('.').pop()?.toLowerCase();
+        let contentType = 'application/octet-stream';
+        
+        if (extension === 'pdf') contentType = 'application/pdf';
+        else if (extension === 'doc') contentType = 'application/msword';
+        else if (extension === 'docx') contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        else if (extension === 'xls') contentType = 'application/vnd.ms-excel';
+        else if (extension === 'xlsx') contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        else if (extension === 'jpg' || extension === 'jpeg') contentType = 'image/jpeg';
+        else if (extension === 'png') contentType = 'image/png';
+        
+        // Servir el archivo
+        return new NextResponse(buffer, {
+          headers: {
+            'Content-Type': contentType,
+            'Content-Disposition': `attachment; filename="${documento.nombre_original}"`,
+            'Content-Length': buffer.length.toString(),
+            'Cache-Control': 'no-cache',
+          },
+        });
+        
+      } catch (error) {
+        console.error('❌ Error descargando desde R2:', error);
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Error al descargar archivo desde R2' 
+        }, { status: 500 });
+      }
     }
-
-    // Si no tenemos contenido, devolver un error explicativo
-    console.log("❌ No hay contenido almacenado");
+    
+    // Si no hay URL, devolver error
     return NextResponse.json({ 
-      error: "Archivo no disponible", 
-      message: "El archivo no se pudo subir correctamente a R2 y no hay copia en la base de datos" 
+      success: false, 
+      error: 'URL del documento no disponible' 
     }, { status: 404 });
-
+    
   } catch (error) {
-    console.error("❌ Error descargando documento:", error);
-    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
+    console.error('❌ Error en GET /api/download-document:', error);
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Error al obtener documento' 
+    }, { status: 500 });
   }
 } 

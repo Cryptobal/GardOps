@@ -86,22 +86,49 @@ export function DocumentManager({
     try {
       setCargando(true);
       
-      // Usar endpoint unificado para todos los módulos
-      const response = await fetch(`/api/documentos?modulo=${modulo}&entidad_id=${entidadId}`, {
+      // Usar endpoint específico según el módulo
+      let apiUrl = '';
+      if (modulo === 'clientes') {
+        apiUrl = `/api/documentos-por-cliente?cliente_id=${entidadId}`;
+      } else if (modulo === 'instalaciones') {
+        apiUrl = `/api/documentos-instalaciones?instalacion_id=${entidadId}`;
+      } else if (modulo === 'guardias') {
+        apiUrl = `/api/documentos-guardias?guardia_id=${entidadId}`;
+      } else {
+        // Fallback al endpoint global
+        apiUrl = `/api/documentos-global?modulo=${modulo}&entidad_id=${entidadId}`;
+      }
+      
+      const response = await fetch(apiUrl, {
         cache: 'no-store'
       });
       
       const data = await response.json();
       
       if (data.success) {
-        const docsConTipo = data.data.map((doc: any) => ({
-          ...doc,
-          tipo_documento_nombre: doc.tipo_documento_nombre || "Sin categoría"
-        }));
+        // Mapear los documentos según la estructura de la API
+        let docsConTipo = [];
+        if (modulo === 'clientes' && data.documentos) {
+          docsConTipo = data.documentos.map((doc: any) => ({
+            id: doc.id,
+            nombre: doc.nombre_original,
+            tamaño: doc.tamaño,
+            created_at: doc.creado_en,
+            fecha_vencimiento: doc.fecha_vencimiento,
+            tipo_documento_nombre: doc.tipo_documento_nombre || "Sin categoría",
+            url: doc.url,
+            estado: doc.estado
+          }));
+        } else if (data.data) {
+          // Para APIs que devuelven data
+          docsConTipo = data.data.map((doc: any) => ({
+            ...doc,
+            tipo_documento_nombre: doc.tipo_documento_nombre || "Sin categoría"
+          }));
+        }
+        
         setDocumentos(docsConTipo);
         setLastLoadTime(now);
-        
-        // No establecer tipoActivo aquí, se maneja en un useEffect separado
       } else {
         console.error("Error cargando documentos:", data.error);
         setDocumentos([]);

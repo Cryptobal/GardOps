@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '../../../lib/database';
+import { query } from '@/lib/database';
 
 // Configuración para evitar errores de Dynamic Server Usage
 export const dynamic = 'force-dynamic';
@@ -95,42 +95,77 @@ export async function GET(request: NextRequest) {
 
 // DELETE /api/documentos?id=uuid - Eliminar documento
 export async function DELETE(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const documentId = searchParams.get('id');
+  const modulo = searchParams.get('modulo');
+  
+  if (!documentId || !modulo) {
+    return NextResponse.json({ 
+      success: false, 
+      error: 'ID del documento y módulo requeridos' 
+    }, { status: 400 });
+  }
+
   try {
-    const { searchParams } = new URL(request.url);
-    const documentoId = searchParams.get('id');
-    const modulo = searchParams.get('modulo');
+    // Verificar que el documento existe
+    const checkSql = `
+      SELECT 
+        d.id,
+        d.nombre_original,
+        d.url,
+        d.cliente_id,
+        d.instalacion_id,
+        d.guardia_id
+      FROM documentos d
+      WHERE d.id = $1
+    `;
     
-    if (!documentoId || !modulo) {
-      return NextResponse.json(
-        { success: false, error: 'ID del documento y módulo requeridos' },
-        { status: 400 }
-      );
-    }
-
-    let sql = '';
-    let params: any[] = [];
-
-    // Query unificada para eliminar documentos
-    sql = `DELETE FROM documentos WHERE id = $1 RETURNING *`;
-
-    params = [documentoId];
-    const result = await query(sql, params);
+    const checkResult = await query(checkSql, [documentId]);
     
-    if (result.rows.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'Documento no encontrado' },
-        { status: 404 }
-      );
+    if (checkResult.rows.length === 0) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Documento no encontrado' 
+      }, { status: 404 });
     }
     
-    console.log(`✅ Documento eliminado del módulo ${modulo}:`, result.rows[0]);
+    const documento = checkResult.rows[0];
     
-    return NextResponse.json({ success: true, data: result.rows[0] });
+    // Verificar que el documento pertenece al módulo correcto
+    let belongsToModule = false;
+    if (modulo === 'clientes' && documento.cliente_id) {
+      belongsToModule = true;
+    } else if (modulo === 'instalaciones' && documento.instalacion_id) {
+      belongsToModule = true;
+    } else if (modulo === 'guardias' && documento.guardia_id) {
+      belongsToModule = true;
+    }
+    
+    if (!belongsToModule) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Documento no pertenece al módulo especificado' 
+      }, { status: 403 });
+    }
+    
+    // Eliminar el documento
+    const deleteSql = `DELETE FROM documentos WHERE id = $1`;
+    await query(deleteSql, [documentId]);
+    
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Documento eliminado correctamente',
+      documento: {
+        id: documento.id,
+        nombre: documento.nombre_original
+      }
+    });
+    
   } catch (error) {
     console.error('❌ Error en DELETE /api/documentos:', error);
-    return NextResponse.json(
-      { success: false, error: 'Error al eliminar documento' },
-      { status: 500 }
-    );
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Error al eliminar documento' 
+    }, { status: 500 });
   }
 } 
