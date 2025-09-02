@@ -73,6 +73,22 @@ export default function TestAuthPage() {
     }
   };
 
+  const restoreRBACSystem = async () => {
+    setTestLoading(true);
+    try {
+      console.log('🔧 Restaurando sistema RBAC...');
+      const response = await fetch('/api/fix-rbac-system', { method: 'POST' });
+      const result = await response.json();
+      setTestResult(result);
+      console.log('✅ Resultado de restauración RBAC:', result);
+    } catch (error) {
+      console.error('❌ Error restaurando RBAC:', error);
+      setTestResult({ error: error.message });
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto p-6">
@@ -182,6 +198,14 @@ export default function TestAuthPage() {
               variant="outline"
             >
               {testLoading ? 'Probando...' : 'Debug Clientes Auth'}
+            </Button>
+
+            <Button 
+              onClick={restoreRBACSystem} 
+              disabled={testLoading || !isAuthenticated}
+              variant="destructive"
+            >
+              {testLoading ? 'Restaurando...' : '🔧 Restaurar RBAC'}
             </Button>
           </div>
           
