@@ -25,7 +25,10 @@ import {
   UserCheck,
   Trash2,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Copy,
+  X,
+  Search
 } from "lucide-react";
 import { obtenerResumenPautasMensuales, crearPautaMensualAutomatica, verificarRolesServicio, eliminarPautaMensual } from "../../lib/api/pauta-mensual";
 import { useToast } from "../../components/ui/toast";
@@ -132,6 +135,11 @@ export default function PautaMensualPage() {
   const [loading, setLoading] = useState(false);
   const [loadingInstalacion, setLoadingInstalacion] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
+
+  // Debug: Log del estado inicial
+  useEffect(() => {
+    console.log('🔍 Estado inicial - loading:', loading, 'selectedMes:', selectedMes, 'selectedAnio:', selectedAnio);
+  }, [loading, selectedMes, selectedAnio]);
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
     instalacionId: string | null;
@@ -141,6 +149,14 @@ export default function PautaMensualPage() {
     instalacionId: null,
     instalacionNombre: null
   });
+
+  const [replicarModal, setReplicarModal] = useState<boolean>(false);
+  const [instalacionesDisponibles, setInstalacionesDisponibles] = useState<Array<{
+    id: string;
+    nombre: string;
+    seleccionada: boolean;
+  }>>([]);
+  const [busquedaInstalacion, setBusquedaInstalacion] = useState<string>('');
 
   // Obtener año actual
   const anioActual = new Date().getFullYear();
@@ -297,6 +313,110 @@ export default function PautaMensualPage() {
 
   const porcentajeProgreso = resumen ? Math.round(resumen.progreso * 100) : 0;
 
+  const abrirModalReplicar = async () => {
+    console.log('🔍 abrirModalReplicar llamado');
+    console.log('📅 selectedMes:', selectedMes, 'selectedAnio:', selectedAnio);
+    
+    if (!selectedMes || !selectedAnio) {
+      toast.error('Por favor selecciona un mes y año primero', 'Error');
+      return;
+    }
+
+    try {
+      console.log('🌐 Llamando a API de instalaciones disponibles...');
+      // Obtener instalaciones disponibles para replicar
+      const response = await fetch(`/api/pauta-mensual/instalaciones-disponibles?anio=${selectedAnio}&mes=${selectedMes}`);
+      console.log('📡 Respuesta de API:', response.status, response.ok);
+      
+      const data = await response.json();
+      console.log('📊 Datos recibidos:', data);
+      
+      if (response.ok && data.instalaciones) {
+        const instalaciones = data.instalaciones.map((inst: any) => ({
+          id: inst.instalacion_id,
+          nombre: inst.instalacion_nombre,
+          seleccionada: true // Por defecto todas seleccionadas
+        }));
+        console.log('🏢 Instalaciones procesadas:', instalaciones);
+        setInstalacionesDisponibles(instalaciones);
+        setReplicarModal(true);
+        console.log('✅ Modal abierto correctamente');
+      } else {
+        console.error('❌ Error en respuesta de API:', data);
+        toast.error('Error al cargar instalaciones disponibles', 'Error');
+      }
+    } catch (error) {
+      console.error('❌ Error cargando instalaciones:', error);
+      toast.error('Error de conexión', 'Error');
+    }
+  };
+
+  const cerrarModalReplicar = () => {
+    setReplicarModal(false);
+  };
+
+  const replicarPautas = async () => {
+    if (!selectedMes || !selectedAnio) {
+      toast.error('Por favor selecciona un mes y año para replicar', 'Error');
+      return;
+    }
+
+    // Obtener solo las instalaciones seleccionadas
+    const instalacionesSeleccionadas = instalacionesDisponibles
+      .filter(inst => inst.seleccionada)
+      .map(inst => inst.id);
+
+    if (instalacionesSeleccionadas.length === 0) {
+      toast.error('Por favor selecciona al menos una instalación', 'Error');
+      return;
+    }
+
+    setLoading(true);
+    setMensaje(null);
+
+    try {
+      const response = await fetch('/api/pauta-mensual/replicar-mes-anterior', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          anio: parseInt(selectedAnio),
+          mes: parseInt(selectedMes),
+          instalaciones_ids: instalacionesSeleccionadas
+        }),
+      });
+
+      const resultado = await response.json();
+
+      if (response.ok && resultado.success) {
+        toast.success(
+          `✅ Pautas replicadas exitosamente: ${resultado.total_replicados} registros`,
+          'Replicación completada'
+        );
+        
+        // Recargar el resumen para mostrar el progreso actualizado
+        await cargarResumen();
+        
+        // Cerrar el modal
+        setReplicarModal(false);
+      } else {
+        toast.error(
+          resultado.error || 'Error al replicar pautas',
+          'Error en replicación'
+        );
+      }
+    } catch (error: any) {
+      console.error('Error replicando pautas:', error);
+      toast.error(
+        'Error de conexión al replicar pautas',
+        'Error de red'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Mensaje de confirmación en consola
   useEffect(() => {
     if (resumen) {
@@ -392,6 +512,95 @@ export default function PautaMensualPage() {
         </CardContent>
       </Card>
 
+      {/* Selector de Período y Replicar Pautas - Combinados en una línea */}
+      {resumen && (
+        <Card>
+          <CardContent className="p-4 sm:p-6">
+            <div className="space-y-4">
+              {/* Primera fila: Selector de Período y Botón Replicar */}
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                {/* Selector de Período */}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="h-4 w-4 text-blue-600" />
+                    <h3 className="text-sm font-medium">Período: {(() => {
+                      const mesLabel = meses.find((m) => m.value === selectedMes)?.label || "Mes";
+                      return `${mesLabel} ${selectedAnio || new Date().getFullYear()}`;
+                    })()}</h3>
+                  </div>
+                  <div className="flex gap-2">
+                    <Select value={selectedMes} onValueChange={setSelectedMes}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {meses.map((mes) => (
+                          <SelectItem key={mes.value} value={mes.value}>
+                            {mes.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={selectedAnio} onValueChange={setSelectedAnio}>
+                      <SelectTrigger className="w-20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {anios.map((anio) => (
+                          <SelectItem key={anio} value={anio.toString()}>
+                            {anio}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Botón de Replicar Pautas */}
+                <div className="flex-shrink-0">
+                  <Button
+                    onClick={() => {
+                      console.log('🖱️ Botón clickeado, loading:', loading);
+                      abrirModalReplicar();
+                    }}
+                    disabled={loading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white w-full lg:w-auto"
+                    size="sm"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Replicar Pautas
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-1 text-center lg:text-left">
+                    Replica del mes anterior manteniendo series
+                  </p>
+                </div>
+              </div>
+
+              {/* Segunda fila: Barra de Progreso */}
+              <div className="border-t pt-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 space-y-2 sm:space-y-0">
+                  <span className="text-xs sm:text-sm font-medium">Progreso del mes</span>
+                  <span className="text-xs sm:text-sm text-muted-foreground">
+                    {resumen.instalaciones_con_pauta_count} de {resumen.total_instalaciones} instalaciones
+                  </span>
+                </div>
+                <Progress value={porcentajeProgreso} className="h-2 sm:h-3" />
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-3 sm:mt-4 text-xs sm:text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
+                    <span>Con pauta creada</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
+                    <span>Pendiente de crear</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* KPIs optimizados para móviles */}
       {resumen && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
@@ -421,31 +630,6 @@ export default function PautaMensualPage() {
             color="purple"
           />
         </div>
-      )}
-
-      {/* Barra de Progreso optimizada para móviles */}
-      {resumen && (
-        <Card>
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 space-y-2 sm:space-y-0">
-              <span className="text-xs sm:text-sm font-medium">Progreso del mes</span>
-              <span className="text-xs sm:text-sm text-muted-foreground">
-                {resumen.instalaciones_con_pauta_count} de {resumen.total_instalaciones} instalaciones
-              </span>
-            </div>
-            <Progress value={porcentajeProgreso} className="h-2 sm:h-3" />
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-3 sm:mt-4 text-xs sm:text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
-                <span>Con pauta creada</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
-                <span>Pendiente de crear</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       )}
 
       {/* Mensaje de estado optimizado para móviles */}
@@ -554,6 +738,171 @@ export default function PautaMensualPage() {
         title="Eliminar Pauta Mensual"
         message={`¿Estás seguro de que quieres eliminar completamente la pauta mensual de ${deleteModal.instalacionNombre}? Esta acción no se puede deshacer y eliminará todos los datos de la pauta para ${selectedMes}/${selectedAnio}.`}
       />
+
+      {/* Modal de Replicación de Pautas */}
+      {replicarModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-lg">
+                    <Copy className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold">Replicar Pautas Mensuales</h2>
+                    <p className="text-blue-100 text-sm">
+                      Replicar desde {(() => {
+                        const mesLabel = meses.find((m) => m.value === selectedMes)?.label || "Mes";
+                        return `${mesLabel} ${selectedAnio || new Date().getFullYear()}`;
+                      })()}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={cerrarModalReplicar}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* Instrucciones */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-blue-800 dark:text-blue-200">
+                    <p className="font-medium mb-1">¿Cómo funciona la replicación?</p>
+                    <p>Se replicarán las pautas del mes anterior manteniendo las series de turnos (4x4, 5x2, etc.) para continuar exactamente donde terminaron.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Filtro de búsqueda */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Buscar instalaciones
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por nombre de instalación..."
+                    value={busquedaInstalacion}
+                    onChange={(e) => setBusquedaInstalacion(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Lista de instalaciones */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Instalaciones disponibles
+                  </label>
+                  <span className="text-xs text-gray-500">
+                    {instalacionesDisponibles.filter(inst => 
+                      inst.nombre.toLowerCase().includes(busquedaInstalacion.toLowerCase())
+                    ).filter(inst => inst.seleccionada).length} de {instalacionesDisponibles.filter(inst => 
+                      inst.nombre.toLowerCase().includes(busquedaInstalacion.toLowerCase())
+                    ).length} seleccionadas
+                  </span>
+                </div>
+                
+                <div className="max-h-64 overflow-y-auto space-y-2 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+                  {instalacionesDisponibles
+                    .filter(inst => 
+                      inst.nombre.toLowerCase().includes(busquedaInstalacion.toLowerCase())
+                    )
+                    .map((instalacion) => (
+                      <label
+                        key={instalacion.id}
+                        className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={instalacion.seleccionada}
+                          onChange={(e) => {
+                            setInstalacionesDisponibles(prev => 
+                              prev.map(inst => 
+                                inst.id === instalacion.id 
+                                  ? { ...inst, seleccionada: e.target.checked }
+                                  : inst
+                              )
+                            );
+                          }}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {instalacion.nombre}
+                        </span>
+                      </label>
+                    ))}
+                </div>
+
+                {/* Acciones rápidas */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setInstalacionesDisponibles(prev => 
+                      prev.map(inst => ({ ...inst, seleccionada: true }))
+                    )}
+                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Seleccionar todas
+                  </button>
+                  <button
+                    onClick={() => setInstalacionesDisponibles(prev => 
+                      prev.map(inst => ({ ...inst, seleccionada: false }))
+                    )}
+                    className="text-xs text-gray-600 hover:text-gray-700 font-medium"
+                  >
+                    Deseleccionar todas
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-50 dark:bg-gray-800 px-6 py-4 flex items-center justify-between">
+              <button
+                onClick={cerrarModalReplicar}
+                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium transition-colors"
+                disabled={loading}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={replicarPautas}
+                disabled={loading || instalacionesDisponibles.filter(inst => inst.seleccionada).length === 0}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Replicando...
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" />
+                    Replicar Pautas
+                  </>
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 } 

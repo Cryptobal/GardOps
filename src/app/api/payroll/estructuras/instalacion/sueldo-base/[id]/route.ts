@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
 // PUT: actualizar monto/fechas de la línea sueldo_base de esa estructura
-export async function PUT(request: NextRequest, { params }: { params: { estructura_id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { estructura_id } = params;
+    const { id } = params;
     const body = await request.json();
     const { monto, vigencia_desde, vigencia_hasta } = body || {};
 
@@ -21,7 +21,7 @@ export async function PUT(request: NextRequest, { params }: { params: { estructu
          WHERE estructura_id = $1 AND item_codigo = 'sueldo_base' AND activo = TRUE
          ORDER BY vigencia_desde DESC
          LIMIT 1`,
-        [estructura_id]
+        [id]
       );
       const linea = Array.isArray(lineaRes) ? lineaRes[0] : (lineaRes.rows || [])[0];
       if (!linea) {
@@ -39,7 +39,7 @@ export async function PUT(request: NextRequest, { params }: { params: { estructu
            AND daterange(x.vigencia_desde, COALESCE(x.vigencia_hasta, 'infinity'::date), '[]')
                && daterange($3::date, COALESCE($4::date, 'infinity'::date), '[]')
          LIMIT 1`,
-        [estructura_id, linea.id, vigencia_desde, vigencia_hasta || null]
+        [id, linea.id, vigencia_desde, vigencia_hasta || null]
       );
       const solape = Array.isArray(solapeRes) ? solapeRes : (solapeRes.rows || []);
       if (solape.length > 0) {
@@ -73,9 +73,9 @@ export async function PUT(request: NextRequest, { params }: { params: { estructu
 }
 
 // DELETE: soft delete de sueldo_base
-export async function DELETE(_request: NextRequest, { params }: { params: { estructura_id: string } }) {
+export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { estructura_id } = params;
+    const { id } = params;
 
     await query('BEGIN');
     try {
@@ -84,7 +84,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: { estr
          WHERE estructura_id = $1 AND item_codigo = 'sueldo_base' AND activo = TRUE
          ORDER BY vigencia_desde DESC
          LIMIT 1`,
-        [estructura_id]
+        [id]
       );
       const linea = Array.isArray(lineaRes) ? lineaRes[0] : (lineaRes.rows || [])[0];
       if (!linea) {
@@ -110,5 +110,3 @@ export async function DELETE(_request: NextRequest, { params }: { params: { estr
     return NextResponse.json({ error: error?.message || 'Error interno del servidor' }, { status: 500 });
   }
 }
-
-

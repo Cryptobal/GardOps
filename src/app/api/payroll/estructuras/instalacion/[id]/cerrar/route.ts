@@ -1,3 +1,4 @@
+import { requireAuthz } from '@/lib/authz-api'
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 
@@ -6,7 +7,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const estructuraId = params.id;
+    const id = params.id;
     const { vigencia_hasta } = await request.json();
 
     if (!vigencia_hasta) {
@@ -35,7 +36,7 @@ export async function PATCH(
         WHERE id = $1 AND activo = true
       `;
       
-      const estructuraResult = await query(estructuraQuery, [estructuraId]);
+      const estructuraResult = await query(estructuraQuery, [id]);
       const estructura = Array.isArray(estructuraResult) ? estructuraResult[0] : (estructuraResult.rows || [])[0];
 
       if (!estructura) {
@@ -62,14 +63,14 @@ export async function PATCH(
         WHERE id = $2
       `;
       
-      await query(updateQuery, [vigencia_hasta, estructuraId]);
+      await query(updateQuery, [vigencia_hasta, id]);
 
       await query('COMMIT');
 
       return NextResponse.json({
         success: true,
         data: {
-          id: estructuraId,
+          id: id,
           vigencia_desde: estructura.vigencia_desde,
           vigencia_hasta: vigencia_hasta
         },

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
 import { 
   Calendar, 
   Building2, 
@@ -24,7 +25,9 @@ import {
   FileText,
   Download,
   FileSpreadsheet,
-  RefreshCw
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { obtenerPautaMensual, guardarPautaMensual, crearPautaMensualAutomatica, exportarPautaMensualPDF, exportarPautaMensualXLSX } from "../../../lib/api/pauta-mensual";
 import { useToast } from "../../../hooks/use-toast";
@@ -116,6 +119,7 @@ export default function PautaMensualUnificadaPage() {
   const [exportandoXLSX, setExportandoXLSX] = useState(false);
   const [actualizando, setActualizando] = useState(false);
   const [tab, setTab] = useState<'dia' | 'semana' | 'mes'>(typeof window !== 'undefined' && window.innerWidth >= 640 ? 'mes' : 'dia');
+  const [instalacionesDisponibles, setInstalacionesDisponibles] = useState<Array<{id: string, nombre: string}>>([]);
   // Calcular inicio de semana (lunes) para el día actual o 1
   const calcularInicioSemana = (dia: number) => {
     const fecha = new Date(anio, mes - 1, dia);
@@ -342,10 +346,26 @@ export default function PautaMensualUnificadaPage() {
     }
   };
 
+  // Función para cargar instalaciones disponibles
+  const cargarInstalacionesDisponibles = async () => {
+    try {
+      const response = await fetch('/api/pauta-mensual/resumen?mes=' + mes + '&anio=' + anio);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.instalaciones_con_pauta) {
+          setInstalacionesDisponibles(data.instalaciones_con_pauta);
+        }
+      }
+    } catch (error) {
+      console.error('Error cargando instalaciones disponibles:', error);
+    }
+  };
+
   // Cargar datos iniciales
   useEffect(() => {
     if (instalacionId) {
       cargarDatos(false);
+      cargarInstalacionesDisponibles();
     }
   }, [instalacionId, anio, mes]);
 
@@ -684,6 +704,49 @@ export default function PautaMensualUnificadaPage() {
               </Link>
               {" - "}{mes}/{anio}
             </p>
+            
+            {/* Navegación entre meses */}
+            <div className="flex items-center gap-2 mt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  let nuevoMes = mes - 1;
+                  let nuevoAnio = anio;
+                  if (nuevoMes === 0) {
+                    nuevoMes = 12;
+                    nuevoAnio = anio - 1;
+                  }
+                  router.push(`/pauta-mensual/${instalacionId}?mes=${nuevoMes}&anio=${nuevoAnio}`);
+                }}
+                className="h-8 px-2"
+              >
+                <ChevronLeft className="h-3 w-3" />
+                <span className="hidden sm:inline ml-1">Mes anterior</span>
+              </Button>
+              
+              <span className="text-xs text-muted-foreground px-2">
+                {mes}/{anio}
+              </span>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  let nuevoMes = mes + 1;
+                  let nuevoAnio = anio;
+                  if (nuevoMes === 13) {
+                    nuevoMes = 1;
+                    nuevoAnio = anio + 1;
+                  }
+                  router.push(`/pauta-mensual/${instalacionId}?mes=${nuevoMes}&anio=${nuevoAnio}`);
+                }}
+                className="h-8 px-2"
+              >
+                <span className="hidden sm:inline mr-1">Mes siguiente</span>
+                <ChevronRight className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
         </div>
         
@@ -834,6 +897,29 @@ export default function PautaMensualUnificadaPage() {
                 Cliente: {instalacion.cliente_nombre}
               </p>
             )}
+            
+            {/* Selector de instalaciones */}
+            <div className="mt-3">
+              <label className="text-xs text-muted-foreground mb-2 block">
+                Cambiar a otra instalación:
+              </label>
+              <Select onValueChange={(value) => {
+                if (value && value !== instalacionId) {
+                  router.push(`/pauta-mensual/${value}?mes=${mes}&anio=${anio}`);
+                }
+              }}>
+                <SelectTrigger className="w-full text-xs">
+                  <SelectValue placeholder="Seleccionar instalación" />
+                </SelectTrigger>
+                <SelectContent>
+                  {instalacionesDisponibles.map((inst) => (
+                    <SelectItem key={inst.id} value={inst.id}>
+                      {inst.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
         </Card>
 

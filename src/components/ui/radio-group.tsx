@@ -12,8 +12,28 @@ interface RadioGroupItemProps extends React.InputHTMLAttributes<HTMLInputElement
   value: string
 }
 
+// Función recursiva para encontrar todos los RadioGroupItem
+const findRadioGroupItems = (children: React.ReactNode): React.ReactElement[] => {
+  const items: React.ReactElement[] = [];
+  
+  const traverse = (node: React.ReactNode) => {
+    if (!React.isValidElement(node)) return;
+    
+    if (node.type === RadioGroupItem) {
+      items.push(node);
+    } else if (node.props && node.props.children) {
+      React.Children.forEach(node.props.children, traverse);
+    }
+  };
+  
+  React.Children.forEach(children, traverse);
+  return items;
+};
+
 const RadioGroup = React.forwardRef<HTMLDivElement, RadioGroupProps>(
   ({ className, value, onValueChange, children, ...props }, ref) => {
+    const radioItems = React.useMemo(() => findRadioGroupItems(children), [children]);
+    
     return (
       <div
         ref={ref}
@@ -22,6 +42,25 @@ const RadioGroup = React.forwardRef<HTMLDivElement, RadioGroupProps>(
       >
         {React.Children.map(children, (child) => {
           if (React.isValidElement(child)) {
+            // Si es un div u otro contenedor, clonarlo con sus hijos procesados
+            if (child.type !== RadioGroupItem) {
+              return React.cloneElement(child, {
+                children: React.Children.map(child.props.children, (grandChild) => {
+                  if (React.isValidElement(grandChild) && grandChild.type === RadioGroupItem) {
+                    return React.cloneElement(grandChild, {
+                      checked: grandChild.props.value === value,
+                      onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                        if (e.target.checked) {
+                          onValueChange?.(grandChild.props.value);
+                        }
+                      },
+                    } as any);
+                  }
+                  return grandChild;
+                })
+              });
+            }
+            // Si es un RadioGroupItem directo, procesarlo normalmente
             return React.cloneElement(child, {
               checked: child.props.value === value,
               onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,9 +68,9 @@ const RadioGroup = React.forwardRef<HTMLDivElement, RadioGroupProps>(
                   onValueChange?.(child.props.value);
                 }
               },
-            } as any)
+            } as any);
           }
-          return child
+          return child;
         })}
       </div>
     )

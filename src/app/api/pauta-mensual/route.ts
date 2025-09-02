@@ -209,8 +209,8 @@ export async function GET(request: NextRequest) {
     const endTime = Date.now();
     const duration = endTime - startTime;
     
-    // Crear un ID único para la pauta mensual
-    const pautaId = `${instalacion_id}_${anio}_${mes}`;
+    // Generar un UUID válido para el log
+    const pautaId = crypto.randomUUID();
     
     // Log de lectura de pauta mensual
     await logCRUD(
@@ -256,8 +256,8 @@ export async function GET(request: NextRequest) {
     
     // Log del error
     await logCRUD(
-      'pauta_mensual',
-      'ERROR',
+      'pauta-mensual',
+      crypto.randomUUID(),
       'READ',
       'admin@test.com',
       null,

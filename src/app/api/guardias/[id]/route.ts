@@ -85,8 +85,24 @@ export async function PUT(
         numero_cuenta = $13,
         tipo_guardia = $14,
         activo = $15,
+        sexo = $16,
+        nacionalidad = $17,
+        fecha_nacimiento = $18,
+        afp = $19,
+        descuento_afp = $20,
+        prevision_salud = $21,
+        cotiza_sobre_7 = $22,
+        monto_pactado_uf = $23,
+        es_pensionado = $24,
+        asignacion_familiar = $25,
+        tramo_asignacion = $26,
+        talla_camisa = $27,
+        talla_pantalon = $28,
+        talla_zapato = $29,
+        altura_cm = $30,
+        peso_kg = $31,
         updated_at = NOW()
-      WHERE id = $16 AND tenant_id = $17
+      WHERE id = $32 AND tenant_id = $33
       RETURNING *
     `, [
       body.nombre,
@@ -104,6 +120,22 @@ export async function PUT(
       body.numero_cuenta || null,
       body.tipo_guardia || 'contratado',
       activo,
+      body.sexo || null,
+      body.nacionalidad || null,
+      body.fecha_nacimiento || null,
+      body.afp || null,
+      body.descuento_afp || null,
+      body.prevision_salud || null,
+      body.cotiza_sobre_7 || null,
+      body.monto_pactado_uf || null,
+      body.es_pensionado || null,
+      body.asignacion_familiar || null,
+      body.tramo_asignacion || null,
+      body.talla_camisa || null,
+      body.talla_pantalon || null,
+      body.talla_zapato || null,
+      body.altura_cm || null,
+      body.peso_kg || null,
       guardiaId,
       tenantId
     ]);
@@ -149,7 +181,31 @@ export async function PUT(
       tipo_cuenta: guardiaActualizado.tipo_cuenta,
       numero_cuenta: guardiaActualizado.numero_cuenta,
       created_at: guardiaActualizado.created_at,
-      updated_at: guardiaActualizado.updated_at
+      updated_at: guardiaActualizado.updated_at,
+      
+      // Campos del formulario de postulación
+      sexo: guardiaActualizado.sexo,
+      nacionalidad: guardiaActualizado.nacionalidad,
+      fecha_nacimiento: guardiaActualizado.fecha_nacimiento,
+      afp: guardiaActualizado.afp,
+      descuento_afp: guardiaActualizado.descuento_afp,
+      prevision_salud: guardiaActualizado.prevision_salud,
+      cotiza_sobre_7: guardiaActualizado.cotiza_sobre_7,
+      monto_pactado_uf: guardiaActualizado.monto_pactado_uf,
+      es_pensionado: guardiaActualizado.es_pensionado,
+      asignacion_familiar: guardiaActualizado.asignacion_familiar,
+      tramo_asignacion: guardiaActualizado.tramo_asignacion,
+      talla_camisa: guardiaActualizado.talla_camisa,
+      talla_pantalon: guardiaActualizado.talla_pantalon,
+      talla_zapato: guardiaActualizado.talla_zapato,
+      altura_cm: guardiaActualizado.altura_cm,
+      peso_kg: guardiaActualizado.peso_kg,
+      
+      // Campos de postulación
+      fecha_postulacion: guardiaActualizado.fecha_postulacion,
+      estado_postulacion: guardiaActualizado.estado_postulacion,
+      ip_postulacion: guardiaActualizado.ip_postulacion,
+      user_agent_postulacion: guardiaActualizado.user_agent_postulacion
     };
 
     return NextResponse.json({
@@ -251,7 +307,31 @@ export async function GET(
       created_at: guardia.created_at,
       updated_at: guardia.updated_at,
       instalacion_nombre: guardia.instalacion_nombre,
-      cliente_nombre: guardia.cliente_nombre
+      cliente_nombre: guardia.cliente_nombre,
+      
+      // Campos del formulario de postulación
+      sexo: guardia.sexo,
+      nacionalidad: guardia.nacionalidad,
+      fecha_nacimiento: guardia.fecha_nacimiento,
+      afp: guardia.afp,
+      descuento_afp: guardia.descuento_afp,
+      prevision_salud: guardia.prevision_salud,
+      cotiza_sobre_7: guardia.cotiza_sobre_7,
+      monto_pactado_uf: guardia.monto_pactado_uf,
+      es_pensionado: guardia.es_pensionado,
+      asignacion_familiar: guardia.asignacion_familiar,
+      tramo_asignacion: guardia.tramo_asignacion,
+      talla_camisa: guardia.talla_camisa,
+      talla_pantalon: guardia.talla_pantalon,
+      talla_zapato: guardia.talla_zapato,
+      altura_cm: guardia.altura_cm,
+      peso_kg: guardia.peso_kg,
+      
+      // Campos de postulación
+      fecha_postulacion: guardia.fecha_postulacion,
+      estado_postulacion: guardia.estado_postulacion,
+      ip_postulacion: guardia.ip_postulacion,
+      user_agent_postulacion: guardia.user_agent_postulacion
     };
 
     return NextResponse.json(guardiaFormateado);

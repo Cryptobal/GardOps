@@ -35,6 +35,24 @@ interface Guardia {
   estado: string;
   tipo_guardia?: 'contratado' | 'esporadico';
   fecha_os10?: string;
+  // Campos del formulario de postulación
+  sexo?: string;
+  nacionalidad?: string;
+  fecha_nacimiento?: string;
+  afp?: string;
+  descuento_afp?: number;
+  prevision_salud?: string;
+  cotiza_sobre_7?: boolean;
+  monto_pactado_uf?: number;
+  es_pensionado?: boolean;
+  asignacion_familiar?: boolean;
+  tramo_asignacion?: string;
+  // Campos de información física
+  talla_camisa?: string;
+  talla_pantalon?: string;
+  talla_zapato?: number;
+  altura_cm?: number;
+  peso_kg?: number;
   created_at: string;
   updated_at: string;
 }
@@ -742,7 +760,82 @@ export default function GuardiaDetallePage() {
               </CardContent>
             </Card>
 
-            {/* Sección 2: Datos Bancarios */}
+            {/* Sección 2: Información Física */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <User className="h-4 w-4" />
+                  Información Física
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <EditableField
+                    label="Talla Camisa"
+                    value={guardia.talla_camisa || ''}
+                    field="talla_camisa"
+                    placeholder="No configurado"
+                    options={[
+                      { value: 'XS', label: 'XS' },
+                      { value: 'S', label: 'S' },
+                      { value: 'M', label: 'M' },
+                      { value: 'L', label: 'L' },
+                      { value: 'XL', label: 'XL' },
+                      { value: 'XXL', label: 'XXL' },
+                      { value: 'XXXL', label: 'XXXL' }
+                    ]}
+                  />
+                  <EditableField
+                    label="Talla Pantalón"
+                    value={guardia.talla_pantalon || ''}
+                    field="talla_pantalon"
+                    placeholder="No configurado"
+                    options={[
+                      { value: '38', label: '38' },
+                      { value: '40', label: '40' },
+                      { value: '42', label: '42' },
+                      { value: '44', label: '44' },
+                      { value: '46', label: '46' },
+                      { value: '48', label: '48' },
+                      { value: '50', label: '50' },
+                      { value: '52', label: '52' },
+                      { value: '54', label: '54' }
+                    ]}
+                  />
+                  <EditableField
+                    label="Talla Zapato"
+                    value={guardia.talla_zapato?.toString() || ''}
+                    field="talla_zapato"
+                    placeholder="40"
+                  />
+                  <EditableField
+                    label="Altura (cm)"
+                    value={guardia.altura_cm?.toString() || ''}
+                    field="altura_cm"
+                    placeholder="170"
+                  />
+                  <EditableField
+                    label="Peso (kg)"
+                    value={guardia.peso_kg?.toString() || ''}
+                    field="peso_kg"
+                    placeholder="70.0"
+                  />
+                  <div className="col-span-full md:col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                      IMC
+                    </label>
+                    <div className="text-sm font-medium p-2 bg-muted/50 rounded border text-center">
+                      {guardia.altura_cm && guardia.peso_kg 
+                        ? ((guardia.peso_kg / Math.pow(guardia.altura_cm / 100, 2)) || 0).toFixed(1)
+                        : 'No calculable'
+                      }
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Sección 3: Datos Bancarios */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-lg">

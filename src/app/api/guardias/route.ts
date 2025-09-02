@@ -16,15 +16,29 @@ export async function GET(req: NextRequest) {
     const dev = isDev ? process.env.NEXT_PUBLIC_DEV_USER_EMAIL : undefined;
     const email = fromJwt || fromHeader || dev || null;
     if (!email) return NextResponse.json({ ok:false, error:'no-auth' }, { status:401 });
-    const { sql } = await import('@vercel/postgres');
-    const { rows } = await sql`
-      with me as (select id from public.usuarios where lower(email)=lower(${email}) limit 1)
-      select public.fn_usuario_tiene_permiso((select id from me), ${'guardias.view'}) as allowed
-    `;
-    if (rows?.[0]?.allowed !== true) {
-      return NextResponse.json({ ok:false, error:'forbidden', perm:'guardias.view' }, { status:403 });
+    
+    // Verificación simplificada para desarrollo
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Desarrollo: Saltando verificación de permisos para:', email);
+    } else {
+      const { sql } = await import('@vercel/postgres');
+      const { rows } = await sql`
+        with me as (select id from public.usuarios where lower(email)=lower(${email}) limit 1)
+        select public.fn_usuario_tiene_permiso((select id from me), ${'guardias.view'}) as allowed
+      `;
+      if (rows?.[0]?.allowed !== true) {
+        return NextResponse.json({ ok:false, error:'forbidden', perm:'guardias.view' }, { status:403 });
+      }
     }
-  } catch {}
+  } catch (error) {
+    console.error('❌ Error en verificación de permisos:', error);
+    // En desarrollo, continuar sin verificación
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Desarrollo: Continuando sin verificación de permisos');
+    } else {
+      return NextResponse.json({ ok:false, error:'auth-error' }, { status:500 });
+    }
+  }
   const client = await getClient();
   try {
     const url = new URL(req.url);

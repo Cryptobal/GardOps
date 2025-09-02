@@ -1030,6 +1030,57 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
             )}
           </div>
 
+          {/* Botones de contacto: Llamar y WhatsApp */}
+          {(row.guardia_trabajo_telefono || row.cobertura_guardia_telefono || row.guardia_titular_telefono) && (
+            <div className="space-y-2">
+              <div className="text-xs text-muted-foreground font-medium">📞 Contacto del guardia</div>
+              <div className="flex gap-2">
+                {/* Botón Llamar */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    const telefono = row.guardia_trabajo_telefono || row.cobertura_guardia_telefono || row.guardia_titular_telefono;
+                    if (telefono) {
+                      llamarTelefono(telefono);
+                    }
+                  }}
+                >
+                  📞 Llamar
+                </Button>
+                
+                {/* Botón WhatsApp */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    const telefono = row.guardia_trabajo_telefono || row.cobertura_guardia_telefono || row.guardia_titular_telefono;
+                    if (telefono) {
+                      abrirWhatsApp(telefono);
+                    }
+                  }}
+                >
+                  💬 WhatsApp
+                </Button>
+              </div>
+              
+              {/* Mostrar información del guardia contactado */}
+              <div className="text-xs text-muted-foreground">
+                {row.cobertura_guardia_telefono && (
+                  <span>📱 Cobertura: {row.cobertura_guardia_nombre || 'Guardia de cobertura'}</span>
+                )}
+                {!row.cobertura_guardia_telefono && row.guardia_trabajo_telefono && (
+                  <span>📱 Trabajando: {row.guardia_trabajo_nombre || 'Guardia asignado'}</span>
+                )}
+                {!row.cobertura_guardia_telefono && !row.guardia_trabajo_telefono && row.guardia_titular_telefono && (
+                  <span>📱 Titular: {row.guardia_titular_nombre || 'Guardia titular'}</span>
+                )}
+              </div>
+            </div>
+          )}
+
           {isExpanded && (
             <div className="mt-2 p-3 rounded border bg-muted/30 space-y-3">
               {panelData.type === 'no_asistio' && (

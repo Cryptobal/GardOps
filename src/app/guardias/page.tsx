@@ -18,7 +18,9 @@ import {
   Search,
   Filter,
   Clock,
-  XCircle
+  XCircle,
+  Download,
+  Upload
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { calcularEstadoOS10, obtenerEstadisticasOS10 } from "../../lib/utils/os10-status";
@@ -127,6 +129,98 @@ export default function GuardiasPage() {
 
   const showToast = (message: string, type: string = "info") => {
     console.log(`Toast [${type}]:`, message);
+  };
+
+  // Función para exportar guardias a Excel
+  const exportarExcel = async () => {
+    try {
+      const response = await fetch('/api/guardias/exportar');
+      
+      if (!response.ok) {
+        throw new Error('Error al exportar datos');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `guardias_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      showToast("✅ Excel exportado correctamente", "success");
+    } catch (error) {
+      console.error('Error exportando Excel:', error);
+      showToast("❌ Error al exportar Excel", "error");
+    }
+  };
+
+  // Función para descargar plantilla de nuevos guardias
+  const descargarPlantilla = async () => {
+    try {
+      const response = await fetch('/api/guardias/plantilla');
+      
+      if (!response.ok) {
+        throw new Error('Error al descargar plantilla');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `plantilla_nuevos_guardias.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      showToast("✅ Plantilla descargada correctamente", "success");
+    } catch (error) {
+      console.error('Error descargando plantilla:', error);
+      showToast("❌ Error al descargar plantilla", "error");
+    }
+  };
+
+  // Función para importar guardias desde Excel
+  const importarExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/guardias/importar', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al importar archivo');
+      }
+
+      const result = await response.json();
+      
+      const mensaje = result.creados > 0 && result.actualizados > 0 
+        ? `✅ Importación completada: ${result.creados} guardias creados, ${result.actualizados} actualizados`
+        : result.creados > 0 
+        ? `✅ Importación completada: ${result.creados} guardias creados`
+        : `✅ Importación completada: ${result.actualizados} guardias actualizados`;
+      
+      showToast(mensaje, "success");
+      
+      // Recargar la lista de guardias
+      window.location.reload();
+    } catch (error) {
+      console.error('Error importando Excel:', error);
+      showToast(`❌ Error: ${error instanceof Error ? error.message : 'Error al importar'}`, "error");
+    } finally {
+      // Limpiar el input para permitir cargar el mismo archivo nuevamente
+      event.target.value = '';
+    }
   };
 
   // Estados para KPIs
@@ -405,6 +499,49 @@ export default function GuardiasPage() {
             <span className="hidden sm:inline">Nuevo Guardia</span>
             <span className="sm:hidden">Nuevo</span>
           </Button>
+
+          {/* Botón Exportar Excel */}
+          <Button 
+            onClick={exportarExcel} 
+            variant="outline" 
+            className="flex items-center space-x-2 w-full sm:w-auto"
+            disabled={loading || guardias.length === 0}
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Exportar Excel</span>
+            <span className="sm:hidden">Exportar</span>
+          </Button>
+
+          {/* Botón Descargar Plantilla */}
+          <Button 
+            onClick={descargarPlantilla} 
+            variant="outline" 
+            className="flex items-center space-x-2 w-full sm:w-auto"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Plantilla</span>
+            <span className="sm:hidden">Plantilla</span>
+          </Button>
+
+          {/* Botón Importar Excel */}
+          <Button 
+            onClick={() => document.getElementById('import-excel')?.click()} 
+            variant="outline" 
+            className="flex items-center space-x-2 w-full sm:w-auto"
+          >
+            <Upload className="h-4 w-4" />
+            <span className="hidden sm:inline">Importar Excel</span>
+            <span className="sm:hidden">Importar</span>
+          </Button>
+
+          {/* Input oculto para seleccionar archivo */}
+          <input
+            id="import-excel"
+            type="file"
+            accept=".xlsx,.xls"
+            onChange={importarExcel}
+            className="hidden"
+          />
         </div>
 
         {/* Contador de resultados filtrados */}

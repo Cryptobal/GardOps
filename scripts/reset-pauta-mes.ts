@@ -4,9 +4,9 @@ import { query } from '../src/lib/database';
 
 async function resetPautaMes() {
   const anio = 2025;
-  const mes = 8; // Agosto
+  const mes = 9; // Septiembre
   const inicio = `${anio}-${String(mes).padStart(2, '0')}-01`;
-  const fin = `${anio}-${String(mes).padStart(2, '0')}-31`;
+  const fin = `${anio}-${String(mes).padStart(2, '0')}-30`;
 
   console.log(`🔧 Reseteando pauta mensual ${anio}-${String(mes).padStart(2, '0')}...\n`);
 

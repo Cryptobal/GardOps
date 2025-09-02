@@ -202,3 +202,47 @@ export async function exportarPautaMensualXLSX(instalacion_id: string, anio: num
     throw error;
   }
 } 
+
+// Función para obtener instalaciones con pauta del mes anterior
+export async function obtenerInstalacionesMesAnterior(anio: number, mes: number) {
+  try {
+    const response = await fetch(`/api/pauta-mensual/instalaciones-mes-anterior?anio=${anio}&mes=${mes}`);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al obtener instalaciones del mes anterior');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error obteniendo instalaciones del mes anterior:', error);
+    throw error;
+  }
+}
+
+// Función para replicar pautas del mes anterior
+export async function replicarPautasMesAnterior(anio: number, mes: number, instalaciones_ids?: string[]) {
+  try {
+    const response = await fetch('/api/pauta-mensual/replicar-mes-anterior', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        anio,
+        mes,
+        instalaciones_ids
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al replicar pautas del mes anterior');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error replicando pautas del mes anterior:', error);
+    throw error;
+  }
+} 

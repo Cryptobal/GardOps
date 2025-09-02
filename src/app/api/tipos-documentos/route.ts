@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../lib/database';
 
-// Configuración para evitar errores de Dynamic Server Usage
 export const dynamic = 'force-dynamic';
 
-// GET /api/tipos-documentos?modulo=clientes - Obtener tipos de documentos
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -52,7 +50,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/tipos-documentos - Crear nuevo tipo de documento
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -118,7 +115,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PUT /api/tipos-documentos?id=uuid - Actualizar tipo de documento
 export async function PUT(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -137,7 +133,7 @@ export async function PUT(request: NextRequest) {
     // Si se está actualizando nombre y módulo, verificar duplicados
     if (body.nombre && body.modulo) {
       const existeResult = await query(`
-        SELECT id FROM tipos_documentos 
+        SELECT id FROM documentos_tipos 
         WHERE modulo = $1 AND nombre = $2 AND id != $3
       `, [body.modulo, body.nombre, id]);
       
@@ -188,7 +184,7 @@ export async function PUT(request: NextRequest) {
     params.push(id);
     
     const sql = `
-      UPDATE tipos_documentos 
+      UPDATE documentos_tipos 
       SET ${updates.join(', ')}
       WHERE id = $${paramIndex}
       RETURNING 
@@ -227,7 +223,6 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE /api/tipos-documentos?id=uuid - Eliminar tipo de documento
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -243,7 +238,7 @@ export async function DELETE(request: NextRequest) {
     console.log('🗑️ Eliminando tipo con ID:', id);
 
     const result = await query(`
-      DELETE FROM tipos_documentos 
+      DELETE FROM documentos_tipos 
       WHERE id = $1
       RETURNING id, nombre, modulo
     `, [id]);

@@ -22,7 +22,9 @@ export const AuthWrapperWorking = React.memo(function AuthWrapperWorking({ child
 
   // Rutas públicas que no requieren autenticación
   const publicRoutes = ['/login', '/recuperar-contrasena', '/restablecer-contrasena']
-  const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/restablecer-contrasena')
+  const isPublicRoute = publicRoutes.includes(pathname) || 
+                       pathname.startsWith('/restablecer-contrasena') ||
+                       pathname.startsWith('/postulacion/')
 
   // Bypass de desarrollo: permitir acceso sin autenticación
   const isDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')

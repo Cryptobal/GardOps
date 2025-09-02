@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { FileText, Clock, DollarSign, MapPin, Lock, User } from "lucide-react";
+import { FileText, Clock, DollarSign, MapPin, Lock, User, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import { useCan } from "@/lib/permissions";
 
@@ -33,6 +33,26 @@ export default function ConfiguracionPage() {
               </p>
               <div className="mt-4 flex items-center text-indigo-500 text-sm font-medium group-hover:underline">
                 Gestionar perfil →
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Postulaciones */}
+        <Link href="/configuracion/postulaciones">
+          <Card className="card-elegant hover:shadow-lg transition-all duration-200 cursor-pointer group h-full">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <ClipboardList className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+                📝 Postulaciones
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Configurar formulario de postulación, webhooks y notificaciones para nuevos guardias
+              </p>
+              <div className="mt-4 flex items-center text-emerald-500 text-sm font-medium group-hover:underline">
+                Gestionar postulaciones →
               </div>
             </CardContent>
           </Card>
