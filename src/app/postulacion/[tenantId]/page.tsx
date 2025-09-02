@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { GoogleMapsAutocomplete } from "@/components/ui/google-maps-autocomplete";
-import { Camera, Upload, ArrowRight, ArrowLeft, CheckCircle, AlertCircle, Sun, Moon } from "lucide-react";
+import { Camera, Upload, ArrowRight, ArrowLeft, CheckCircle, AlertCircle, Sun, Moon, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { RutValidationModal } from "@/components/ui/rut-validation-modal";
 
@@ -131,23 +131,8 @@ export default function PostulacionPage() {
     cargarBancos();
   }, []);
 
-  // Persistir estado del formulario en localStorage
-  useEffect(() => {
-    const savedFormData = localStorage.getItem(`formData_${tenantId}`);
-    if (savedFormData) {
-      try {
-        const parsedData = JSON.parse(savedFormData);
-        setFormData(prev => ({ ...prev, ...parsedData }));
-      } catch (error) {
-        console.error('Error cargando datos del formulario:', error);
-      }
-    }
-  }, [tenantId]);
-
-  // Guardar estado del formulario en localStorage cuando cambie
-  useEffect(() => {
-    localStorage.setItem(`formData_${tenantId}`, JSON.stringify(formData));
-  }, [formData, tenantId]);
+  // NOTA: Se eliminó la persistencia en localStorage por seguridad
+  // Cada usuario debe ver un formulario limpio sin datos de sesiones anteriores
 
   const cargarBancos = async () => {
     try {
@@ -434,8 +419,7 @@ export default function PostulacionPage() {
 
       setSuccess(true);
       
-      // Limpiar localStorage después de envío exitoso
-      localStorage.removeItem(`formData_${tenantId}`);
+              // localStorage.removeItem(`formData_${tenantId}`); // Eliminado por seguridad
       
       // Enviar webhook (automático)
       // Enviar email de confirmación (automático)
