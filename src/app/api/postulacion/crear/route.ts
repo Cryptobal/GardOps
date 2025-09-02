@@ -367,7 +367,7 @@ async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: 
       try {
         console.log(`🚀 Enviando webhook a: ${webhookUrl}`);
         
-        // Función para enviar webhook con reintentos
+        // Función para enviar webhook con reintentos robusta
         const enviarWebhookConReintentos = async (intento: number = 1): Promise<any> => {
           try {
             console.log(`🚀 Enviando webhook (intento ${intento}) a: ${webhookUrl}`);
@@ -386,11 +386,22 @@ async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: 
             
             return response;
           } catch (error: any) {
-            if (intento < 3 && (error.name === 'TimeoutError' || error.code === 23)) {
-              console.log(`⏰ Timeout en intento ${intento}, reintentando en 5 segundos...`);
-              await new Promise(resolve => setTimeout(resolve, 5000));
+            // Detectar diferentes tipos de errores para reintentos
+            const shouldRetry = intento < 3 && (
+              error.name === 'TimeoutError' || 
+              error.code === 23 || // Timeout
+              error.code === 'UND_ERR_SOCKET' || // Socket cerrado
+              error.message?.includes('fetch failed') || // Fetch falló
+              error.message?.includes('other side closed') // Conexión cerrada
+            );
+            
+            if (shouldRetry) {
+              const delay = intento * 3; // Delay progresivo: 3s, 6s, 9s
+              console.log(`🔄 Error en intento ${intento} (${error.message}), reintentando en ${delay} segundos...`);
+              await new Promise(resolve => setTimeout(resolve, delay * 1000));
               return enviarWebhookConReintentos(intento + 1);
             }
+            
             throw error;
           }
         };
