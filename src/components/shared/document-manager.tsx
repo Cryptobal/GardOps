@@ -10,6 +10,7 @@ import { Modal } from "../ui/modal";
 import { DatePickerComponent } from "../ui/date-picker";
 import { Upload, FileText, Download, Eye, Trash2, X, Calendar } from "lucide-react";
 import { DocumentViewer } from "./document-viewer";
+import "@/styles/date-input.css";
 
 export interface Documento {
   id: string;
@@ -778,8 +779,10 @@ export function DocumentManager({
                 type="date"
                 value={fechaVencimiento}
                 onChange={(e) => setFechaVencimiento(e.target.value)}
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground cursor-pointer hover:bg-accent/50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 min={new Date().toISOString().split('T')[0]}
+                placeholder="Seleccionar fecha"
+                required={tipoSeleccionado?.requiere_vencimiento}
               />
               <p className="text-xs text-muted-foreground">
                 Este tipo de documento requiere fecha de vencimiento
