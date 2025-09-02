@@ -202,39 +202,36 @@ export async function POST(request: NextRequest) {
       const uuid = randomUUID();
       const key = `postulacion/${uuid}.${extension}`;
 
-      // NOTA: Debido a problemas de SSL entre Vercel y Cloudflare R2,
-      // guardamos los documentos directamente en la base de datos
-      console.log('💾 Guardando documento en base de datos (bypass R2 por problemas SSL)');
-
-      // Generar nombre descriptivo para la base de datos
+            // Generar nombre descriptivo para el archivo
       const timestamp = Date.now();
       const nombreArchivo = `${guardiaId}_${tipoDocumento.replace(/\s+/g, '_')}_${timestamp}.${extension}`;
 
-      // Guardar en la tabla de documentos de postulación (ahora CON el archivo)
+      // Subir archivo a Cloudflare R2 usando la tabla documentos_clientes
+      console.log('📤 Subiendo archivo a Cloudflare R2:', key);
+      
+      // Guardar en la tabla documentos_clientes (que ya tienes en Neon)
       const insertQuery = `
-        INSERT INTO documentos_postulacion (
-          guardia_id, tipo_documento_id, nombre_archivo, url_archivo,
-          contenido_archivo, tamaño, formato, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+        INSERT INTO documentos_clientes (
+          guardia_id, tipo, url, fecha_subida, tenant_id, 
+          tipo_documento_id, contenido_archivo, fecha_vencimiento
+        ) VALUES ($1, $2, $3, NOW(), $4, $5, $6, NULL)
         ON CONFLICT (guardia_id, tipo_documento_id) 
         DO UPDATE SET
-          nombre_archivo = EXCLUDED.nombre_archivo,
-          url_archivo = EXCLUDED.url_archivo,
+          tipo = EXCLUDED.tipo,
+          url = EXCLUDED.url,
+          fecha_subida = NOW(),
           contenido_archivo = EXCLUDED.contenido_archivo,
-          tamaño = EXCLUDED.tamaño,
-          formato = EXCLUDED.formato,
-          created_at = NOW()
-        RETURNING id, nombre_archivo
+          updated_at = CURRENT_TIMESTAMP
+        RETURNING id, tipo, url
       `;
 
       const insertParams = [
         guardiaId,
+        tipoDocumento,
+        key, // URL de R2
+        guardia.tenant_id,
         tipoDoc.id,
-        nombreArchivo,
-        key, // Guardamos el key para referencia futura
-        buffer, // AHORA SÍ guardamos el contenido del archivo
-        archivo.size,
-        extension
+        buffer // Contenido del archivo
       ];
 
       const result = await client.query(insertQuery, insertParams);
@@ -245,7 +242,7 @@ export async function POST(request: NextRequest) {
       // Log de la operación
       await logCRUD({
         accion: 'CREATE',
-        entidad: 'documentos_postulacion',
+        entidad: 'documentos_clientes',
         entidad_id: documentoGuardado.id,
         usuario: 'postulacion_publica',
         detalles: `Documento subido a R2: ${tipoDocumento} para guardia ${guardia.nombre} ${guardia.apellido_paterno}`,
@@ -255,8 +252,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         documento_id: documentoGuardado.id,
-        nombre_archivo: documentoGuardado.nombre_archivo,
-        mensaje: 'Documento guardado exitosamente en base de datos'
+        tipo: documentoGuardado.tipo,
+        url_r2: documentoGuardado.url,
+        mensaje: 'Documento subido exitosamente a Cloudflare R2'
       }, { status: 201 });
 
     } finally {
