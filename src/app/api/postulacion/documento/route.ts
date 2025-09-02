@@ -54,26 +54,63 @@ async function uploadToR2WithFetch(buffer: Buffer, key: string, contentType: str
   // Crear authorization header
   const authorization = `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${dateStamp}/${region}/${service}/aws4_request,SignedHeaders=content-type;host;x-amz-date,Signature=${signature}`;
   
-  // Subir usando fetch
-  const response = await fetch(url, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': contentType,
-      'X-Amz-Date': date,
-      'Authorization': authorization,
-      'Content-Length': buffer.length.toString()
+  // Intentar múltiples enfoques para evitar problemas SSL
+  const fetchOptions = [
+    // Enfoque 1: Fetch estándar con timeout largo
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': contentType,
+        'X-Amz-Date': date,
+        'Authorization': authorization,
+        'Content-Length': buffer.length.toString()
+      },
+      body: buffer,
+      signal: AbortSignal.timeout(120000), // 2 minutos
+      keepalive: true
     },
-    body: buffer,
-    // Configuración SSL robusta
-    signal: AbortSignal.timeout(60000), // 60 segundos
-    keepalive: true
-  });
+    // Enfoque 2: Fetch con configuración más permisiva
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': contentType,
+        'X-Amz-Date': date,
+        'Authorization': authorization,
+        'Content-Length': buffer.length.toString()
+      },
+      body: buffer,
+      signal: AbortSignal.timeout(180000), // 3 minutos
+      keepalive: false
+    }
+  ];
   
-  if (!response.ok) {
-    throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
+  let lastError: any;
+  
+  for (let i = 0; i < fetchOptions.length; i++) {
+    try {
+      console.log(`🔄 Intento ${i + 1} de subida a R2 con configuración ${i + 1}`);
+      
+      const response = await fetch(url, fetchOptions[i]);
+      
+      if (response.ok) {
+        console.log(`✅ Archivo subido exitosamente con configuración ${i + 1}`);
+        return response;
+      } else {
+        throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error: any) {
+      lastError = error;
+      console.log(`❌ Intento ${i + 1} falló:`, error.message);
+      
+      if (i < fetchOptions.length - 1) {
+        console.log(`⏳ Esperando 3 segundos antes del siguiente intento...`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+    }
   }
   
-  return response;
+  // Si todos los intentos fallan, lanzar el último error
+  throw new Error(`Todos los intentos de subida fallaron. Último error: ${lastError.message}`);
 }
 
 export async function POST(request: NextRequest) {
