@@ -171,19 +171,14 @@ export async function POST(request: NextRequest) {
 
       // Validar formato del archivo
       const extension = archivo.name.split('.').pop()?.toLowerCase();
-      const formatoPermitido = tipoDoc.formato_permitido.split(',');
       
-      let formatoValido = false;
-      if (formatoPermitido.includes('IMAGEN')) {
-        formatoValido = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension || '');
-      }
-      if (formatoPermitido.includes('PDF')) {
-        formatoValido = formatoValido || extension === 'pdf';
-      }
+      // Como no tenemos formato_permitido en la tabla, permitimos imágenes y PDFs para todos
+      const formatosPermitidos = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'];
+      const formatoValido = formatosPermitidos.includes(extension || '');
 
       if (!formatoValido) {
         return NextResponse.json({
-          error: `Formato de archivo no permitido. Tipos permitidos: ${tipoDoc.formato_permitido}`
+          error: `Formato de archivo no permitido. Tipos permitidos: JPG, PNG, GIF, WEBP, PDF`
         }, { status: 400 });
       }
 
