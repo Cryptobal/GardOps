@@ -17,7 +17,8 @@ export async function GET(req: NextRequest) {
       const fromHeader = h.get('x-user-email') || null;
       const isDev = process.env.NODE_ENV !== 'production';
       const dev = isDev ? process.env.NEXT_PUBLIC_DEV_USER_EMAIL : undefined;
-      const email = fromJwt || fromHeader || dev || null;
+      // PRIORIZAR el header x-user-email sobre JWT cuando JWT tiene user@example.com
+      const email = (fromJwt === 'user@example.com' ? fromHeader : fromJwt) || fromHeader || dev || null;
       
       console.log('🔍 Debug de autenticación:', {
         fromJwt,
