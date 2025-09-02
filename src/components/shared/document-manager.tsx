@@ -264,13 +264,21 @@ export function DocumentManager({
   }, [file, tipoDocumentoId, fechaVencimiento, modulo, entidadId, tipoSeleccionado, onUploadSuccess, cargarDocumentos]);
 
   const eliminarDocumento = useCallback(async (documentoId: string) => {
-    if (!confirm("¿Estás seguro de eliminar este documento?")) return;
-
     const documento = documentos.find(doc => doc.id === documentoId);
-    const nombreDocumento = documento?.nombre || "Documento";
+    if (documento) {
+      setDocumentoToDelete(documento);
+      setShowDeleteModal(true);
+    }
+  }, [documentos]);
+
+  const confirmarEliminacion = useCallback(async () => {
+    if (!documentoToDelete) return;
+
+    setDeletingDocument(true);
+    const nombreDocumento = documentoToDelete.nombre || "Documento";
 
     try {
-      const response = await fetch(`/api/documentos?id=${documentoId}&modulo=${modulo}`, {
+      const response = await fetch(`/api/documentos?id=${documentoToDelete.id}&modulo=${modulo}`, {
         method: "DELETE",
       });
 
@@ -295,14 +303,20 @@ export function DocumentManager({
         } catch (error) {
           console.error('Error registrando log:', error);
         }
+
+        // Cerrar modal y limpiar estado
+        setShowDeleteModal(false);
+        setDocumentoToDelete(null);
       } else {
         alert("Error al eliminar el documento");
       }
     } catch (error) {
       console.error("Error eliminando documento:", error);
       alert("Error al eliminar el documento");
+    } finally {
+      setDeletingDocument(false);
     }
-  }, [documentos, modulo, entidadId, onDocumentDeleted, cargarDocumentos]);
+  }, [documentoToDelete, modulo, entidadId, onDocumentDeleted, cargarDocumentos]);
 
   const descargarDocumento = useCallback(async (documento: Documento) => {
     try {
@@ -873,23 +887,7 @@ export function DocumentManager({
             </Button>
             <Button
               variant="destructive"
-              onClick={() => {
-                if (documentoToDelete) {
-                  setDeletingDocument(true);
-                  eliminarDocumento(documentoToDelete.id)
-                    .then(() => {
-                      setShowDeleteModal(false);
-                      setDocumentoToDelete(null);
-                    })
-                    .catch(error => {
-                      console.error('Error al eliminar documento:', error);
-                      alert('Error al eliminar el documento.');
-                    })
-                    .finally(() => {
-                      setDeletingDocument(false);
-                    });
-                }
-              }}
+              onClick={confirmarEliminacion}
               disabled={deletingDocument}
               className="min-w-[100px]"
             >
