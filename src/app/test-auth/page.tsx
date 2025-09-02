@@ -42,6 +42,22 @@ export default function TestAuthPage() {
     }
   };
 
+  const testDebugHeaders = async () => {
+    setTestLoading(true);
+    try {
+      console.log('🔍 Probando debug headers...');
+      const response = await fetch('/api/debug-headers');
+      const result = await response.json();
+      setTestResult(result);
+      console.log('✅ Resultado de debug headers:', result);
+    } catch (error) {
+      console.error('❌ Error en debug headers:', error);
+      setTestResult({ error: error.message });
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto p-6">
@@ -135,6 +151,14 @@ export default function TestAuthPage() {
               variant="outline"
             >
               {testLoading ? 'Probando...' : 'Probar Permisos'}
+            </Button>
+
+            <Button 
+              onClick={testDebugHeaders} 
+              disabled={testLoading || !isAuthenticated}
+              variant="outline"
+            >
+              {testLoading ? 'Probando...' : 'Debug Headers'}
             </Button>
           </div>
           
