@@ -309,6 +309,31 @@ async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: 
       return;
     }
 
+    // Obtener datos completos del guardia incluyendo el nombre del banco
+    let datosCompletos = { ...datosGuardia };
+    
+    // Si hay banco_id, obtener el nombre del banco
+    if (datosGuardia.banco_id) {
+      try {
+        const bancoQuery = await client.query(`
+          SELECT b.nombre as banco_nombre 
+          FROM bancos b 
+          WHERE b.id = $1
+        `, [datosGuardia.banco_id]);
+        
+        if (bancoQuery.rows.length > 0) {
+          datosCompletos.banco_nombre = bancoQuery.rows[0].banco_nombre;
+          console.log('✅ Nombre del banco obtenido:', datosCompletos.banco_nombre);
+        } else {
+          console.log('⚠️ Banco no encontrado para ID:', datosGuardia.banco_id);
+          datosCompletos.banco_nombre = null;
+        }
+      } catch (error) {
+        console.error('❌ Error obteniendo nombre del banco:', error);
+        datosCompletos.banco_nombre = null;
+      }
+    }
+
     // Generar URLs de la ficha del guardia
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ops.gard.cl';
     const fichaGuardiaUrl = `${baseUrl}/guardias?id=${guardiaId}`;
@@ -327,49 +352,50 @@ async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: 
       },
       datos: {
         personal: {
-          rut: datosGuardia.rut,
-          nombre: datosGuardia.nombre,
-          apellido_paterno: datosGuardia.apellido_paterno,
-          apellido_materno: datosGuardia.apellido_materno,
-          sexo: datosGuardia.sexo,
-          fecha_nacimiento: datosGuardia.fecha_nacimiento,
-          nacionalidad: datosGuardia.nacionalidad,
-          email: datosGuardia.email,
-          telefono: datosGuardia.telefono,
-          direccion: datosGuardia.direccion,
-          ciudad: datosGuardia.ciudad,
-          comuna: datosGuardia.comuna
+          rut: datosCompletos.rut,
+          nombre: datosCompletos.nombre,
+          apellido_paterno: datosCompletos.apellido_paterno,
+          apellido_materno: datosCompletos.apellido_materno,
+          sexo: datosCompletos.sexo,
+          fecha_nacimiento: datosCompletos.fecha_nacimiento,
+          nacionalidad: datosCompletos.nacionalidad,
+          email: datosCompletos.email,
+          telefono: datosCompletos.telefono,
+          direccion: datosCompletos.direccion,
+          ciudad: datosCompletos.ciudad,
+          comuna: datosCompletos.comuna
         },
         previsional: {
-          afp: datosGuardia.afp,
-          descuento_afp: datosGuardia.descuento_afp,
-          prevision_salud: datosGuardia.prevision_salud,
-          cotiza_sobre_7: datosGuardia.cotiza_sobre_7,
-          monto_pactado_uf: datosGuardia.monto_pactado_uf,
-          es_pensionado: datosGuardia.es_pensionado,
-          asignacion_familiar: datosGuardia.asignacion_familiar,
-          tramo_asignacion: datosGuardia.tramo_asignacion
+          afp: datosCompletos.afp,
+          descuento_afp: datosCompletos.descuento_afp,
+          prevision_salud: datosCompletos.prevision_salud,
+          cotiza_sobre_7: datosCompletos.cotiza_sobre_7,
+          monto_pactado_uf: datosCompletos.monto_pactado_uf,
+          es_pensionado: datosCompletos.es_pensionado,
+          asignacion_familiar: datosCompletos.asignacion_familiar,
+          tramo_asignacion: datosCompletos.tramo_asignacion
         },
         bancario: {
-          banco_id: datosGuardia.banco_id,
-          tipo_cuenta: datosGuardia.tipo_cuenta,
-          numero_cuenta: datosGuardia.numero_cuenta
+          banco_id: datosCompletos.banco_id,
+          banco_nombre: datosCompletos.banco_nombre,
+          tipo_cuenta: datosCompletos.tipo_cuenta,
+          numero_cuenta: datosCompletos.numero_cuenta
         },
         fisico: {
-          talla_camisa: datosGuardia.talla_camisa,
-          talla_pantalon: datosGuardia.talla_pantalon,
-          talla_zapato: datosGuardia.talla_zapato,
-          altura_cm: datosGuardia.altura_cm,
-          peso_kg: datosGuardia.peso_kg,
-          imc: datosGuardia.altura_cm && datosGuardia.peso_kg 
-            ? (datosGuardia.peso_kg / Math.pow(datosGuardia.altura_cm / 100, 2)).toFixed(1)
+          talla_camisa: datosCompletos.talla_camisa,
+          talla_pantalon: datosCompletos.talla_pantalon,
+          talla_zapato: datosCompletos.talla_zapato,
+          altura_cm: datosCompletos.altura_cm,
+          peso_kg: datosCompletos.peso_kg,
+          imc: datosCompletos.altura_cm && datosCompletos.peso_kg 
+            ? (datosCompletos.peso_kg / Math.pow(datosCompletos.altura_cm / 100, 2)).toFixed(1)
             : null
         },
         postulacion: {
-          fecha_postulacion: datosGuardia.fecha_postulacion,
-          estado_postulacion: datosGuardia.estado_postulacion,
-          ip_postulacion: datosGuardia.ip_postulacion,
-          user_agent_postulacion: datosGuardia.user_agent_postulacion
+          fecha_postulacion: datosCompletos.fecha_postulacion,
+          estado_postulacion: datosCompletos.estado_postulacion,
+          ip_postulacion: datosCompletos.ip_postulacion,
+          user_agent_postulacion: datosCompletos.user_agent_postulacion
         }
       },
       test_mode: modoPrueba,
@@ -399,29 +425,27 @@ async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: 
             signal: AbortSignal.timeout(120000), // 2 minutos timeout
             keepalive: true
           });
-          
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
           return response;
-        } catch (error: any) {
-          // Detectar diferentes tipos de errores para reintentos
-          const shouldRetry = intento < 3 && (
-            error.name === 'TimeoutError' || 
-            error.code === 23 || // Timeout
-            error.code === 'UND_ERR_SOCKET' || // Socket cerrado
-            error.message?.includes('fetch failed') || // Fetch falló
-            error.message?.includes('other side closed') // Conexión cerrada
-          );
+        } catch (error: unknown) {
+          console.error(`❌ Error en intento ${intento}:`, error);
           
-          if (shouldRetry) {
-            const delay = intento * 3; // Delay progresivo: 3s, 6s, 9s
-            console.log(`🔄 Error en intento ${intento} (${error.message}), reintentando en ${delay} segundos...`);
-            await new Promise(resolve => setTimeout(resolve, delay * 1000));
+          // Reintentar hasta 3 veces con delay exponencial
+          if (intento < 3) {
+            const delay = Math.pow(2, intento) * 1000; // 2s, 4s, 8s
+            console.log(`⏳ Reintentando en ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
             return enviarWebhookConReintentos(intento + 1);
           }
           
           throw error;
         }
       };
-      
+
       const response = await enviarWebhookConReintentos();
 
       // Log del webhook
