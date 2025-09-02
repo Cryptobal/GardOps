@@ -332,53 +332,7 @@ export default function PostulacionPage() {
     setDocumentos(newDocumentos);
   };
 
-  const completarFormularioPrueba = () => {
-    setFormData({
-      rut: '12345678-9',
-      nombre: 'Juan',
-      apellido_paterno: 'Pérez',
-      apellido_materno: 'González',
-              sexo: 'Hombre',
-      fecha_nacimiento: '1990-01-01',
-      nacionalidad: 'Chilena',
-      email: 'juan.perez@example.com',
-      celular: '987654321',
-      direccion: 'Av. Siempre Viva 123',
-      comuna: 'Santiago',
-      ciudad: 'Santiago',
-      afp: 'Capital',
-      descuento_afp: '1%',
-      prevision_salud: 'FONASA',
-      cotiza_sobre_7: 'No',
-      monto_pactado_uf: '100',
-      es_pensionado: 'No',
-      asignacion_familiar: 'No',
-      tramo_asignacion: '',
-      banco_id: '413ca99e-71dc-4d2b-9d8d-f1417747ffaf', // UUID válido de banco
-      tipo_cuenta: 'CCT',
-      numero_cuenta: '000123456789',
-      talla_camisa: 'M',
-      talla_pantalon: '40',
-      talla_zapato: 42,
-      altura_cm: 175,
-      peso_kg: 75
-    });
-    
-    // Limpiar documentos (sin archivos)
-    setDocumentos([
-      { tipo: 'Certificado OS10', archivo: null, obligatorio: true, fecha_vencimiento: '' },
-      { tipo: 'Carnet Identidad Frontal', archivo: null, obligatorio: false },
-      { tipo: 'Carnet Identidad Reverso', archivo: null, obligatorio: false },
-      { tipo: 'Certificado Antecedentes', archivo: null, obligatorio: false },
-      { tipo: 'Certificado Enseñanza Media', archivo: null, obligatorio: false },
-      { tipo: 'Certificado AFP', archivo: null, obligatorio: false },
-      { tipo: 'Certificado AFC', archivo: null, obligatorio: false },
-      { tipo: 'Certificado FONASA/ISAPRE', archivo: null, obligatorio: false }
-    ]);
-    
-    setErrors({});
-    mostrarModalRut('info', 'Formulario Completado', 'El formulario ha sido completado con datos de prueba. Recuerda que aún necesitas subir los documentos obligatorios.');
-  };
+
 
   const siguientePagina = async () => {
     if (validarFormulario()) {
@@ -391,7 +345,7 @@ export default function PostulacionPage() {
     setCurrentPage(1);
   };
 
-  const enviarFormulario = async (modoPrueba: boolean = false) => {
+  const enviarFormulario = async () => {
     if (!validarDocumentos()) {
       mostrarModalRut(
         'error',
@@ -422,7 +376,6 @@ export default function PostulacionPage() {
         body: JSON.stringify({
           ...formData,
           tenant_id: tenantId,
-          modo_prueba: modoPrueba, // Indicar si es modo prueba
           ip_postulacion: '127.0.0.1', // En producción obtener IP real
           user_agent_postulacion: navigator.userAgent
         })
@@ -584,17 +537,7 @@ export default function PostulacionPage() {
             Completa el formulario para postular como guardia de seguridad
           </p>
           
-          {/* Botón para completar formulario de prueba */}
-          <div className="mt-4 flex justify-center">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={completarFormularioPrueba}
-              className="bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
-            >
-              🧪 Completar Formulario de Prueba
-            </Button>
-          </div>
+
           
           <div className="flex justify-center items-center space-x-2 mt-4">
             <div className={`w-3 h-3 rounded-full ${currentPage >= 1 ? 'bg-blue-500' : 'bg-gray-300'}`} />
@@ -1148,20 +1091,9 @@ export default function PostulacionPage() {
                   </Button>
                   
                   <div className="flex gap-3">
-                    {/* Botón de Probar Webhook */}
-                    <Button
-                      onClick={() => enviarFormulario(true)}
-                      disabled={loading}
-                      variant="outline"
-                      className="border-blue-500 text-blue-600 hover:bg-blue-50"
-                      size="lg"
-                    >
-                      🧪 Probar Webhook
-                    </Button>
-                    
                     {/* Botón de Enviar Postulación */}
                     <Button
-                      onClick={() => enviarFormulario(false)}
+                      onClick={enviarFormulario}
                       disabled={loading}
                       className="bg-green-600 hover:bg-green-700"
                       size="lg"
