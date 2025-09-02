@@ -38,68 +38,95 @@ export async function POST(req: NextRequest) {
     const uuid = randomUUID();
     const key = `${modulo}/${uuid}.${fileExtension}`;
 
-    // Por ahora, guardar directamente en la base de datos sin R2
-    let r2Success = false;
-    console.log('📁 Guardando archivo directamente en la base de datos');
+    // Determinar si estamos en producción o desarrollo
+    const isProduction = process.env.NODE_ENV === 'production';
+    const hasR2Config = process.env.R2_ENDPOINT && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY;
 
-    // Usar la tabla documentos con la estructura actual
+    let r2Url = null;
+    let r2Success = false;
+
+    // En producción, intentar cargar en Cloudflare R2
+    if (isProduction && hasR2Config) {
+      try {
+        console.log('☁️ Subiendo archivo a Cloudflare R2...');
+        
+        const uploadCommand = new PutObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME || 'gardops-documents',
+          Key: key,
+          Body: buffer,
+          ContentType: file.type || 'application/octet-stream',
+          Metadata: {
+            originalName: file.name,
+            modulo: modulo,
+            entidadId: entidad_id,
+            tipoDocumentoId: tipo_documento_id
+          }
+        });
+
+        await s3.send(uploadCommand);
+        r2Success = true;
+        r2Url = `${process.env.R2_PUBLIC_URL || process.env.R2_ENDPOINT}/${key}`;
+        
+        console.log('✅ Archivo subido exitosamente a R2:', r2Url);
+      } catch (r2Error) {
+        console.error('❌ Error subiendo a R2:', r2Error);
+        console.log('🔄 Fallback: Guardando en base de datos');
+      }
+    }
+
+    // Si no estamos en producción o falló R2, guardar en base de datos
+    if (!r2Success) {
+      console.log('📁 Guardando archivo en la base de datos (modo desarrollo/fallback)');
+    }
+
+    // Construir la consulta según el módulo
     let insertQuery = "";
     let insertParams: (string | number | Buffer | null)[] = [];
 
-    // Determinar el campo de entidad según el módulo
-    let entidadField = "";
-    if (modulo === "instalaciones") {
-      entidadField = "instalacion_id";
-    } else if (modulo === "clientes") {
-      // Los clientes no tienen documentos directos, usar instalacion_id
-      entidadField = "instalacion_id";
-    } else if (modulo === "guardias") {
-      entidadField = "guardia_id";
-    } else {
-      entidadField = "entidad_id";
-    }
-
-    // Usar 'otros' como tipo por defecto - el tipo real se determina por el tipo_documento_id
-    // que viene del frontend, no por la extensión del archivo
-    const tipoDocumento = 'otros';
-    
-    // Construir la consulta específica según el módulo
     if (modulo === "clientes" || modulo === "instalaciones") {
+      // Para clientes e instalaciones, usar instalacion_id
       insertQuery = `
         INSERT INTO documentos (
-          tipo, url, instalacion_id, tipo_documento_id, 
-          contenido_archivo, fecha_vencimiento, creado_en
+          nombre_original, tipo, url, instalacion_id, tipo_documento_id, 
+          contenido_archivo, tamaño, fecha_vencimiento
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING id, url as nombre, fecha_vencimiento
       `;
+      
       insertParams = [
-        tipoDocumento,
-        key,
-        entidad_id,
-        tipo_documento_id,
-        buffer,
-        fecha_vencimiento || null,
-        new Date().toISOString()
+        file.name,                    // nombre_original
+        'otros',                      // tipo
+        r2Success ? r2Url : key,     // url (R2 URL o key local)
+        entidad_id,                   // instalacion_id
+        tipo_documento_id,            // tipo_documento_id
+        r2Success ? null : buffer,    // contenido_archivo (solo si no está en R2)
+        file.size,                    // tamaño
+        fecha_vencimiento || null     // fecha_vencimiento
       ];
+      
     } else if (modulo === "guardias") {
+      // Para guardias, usar guardia_id
       insertQuery = `
         INSERT INTO documentos (
-          tipo, url, guardia_id, tipo_documento_id, 
-          contenido_archivo, fecha_vencimiento, creado_en
+          nombre_original, tipo, url, guardia_id, tipo_documento_id, 
+          contenido_archivo, tamaño, fecha_vencimiento
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING id, url as nombre, fecha_vencimiento
       `;
+      
       insertParams = [
-        tipoDocumento,
-        key,
-        entidad_id,
-        tipo_documento_id,
-        buffer,
-        fecha_vencimiento || null,
-        new Date().toISOString()
+        file.name,                    // nombre_original
+        'otros',                      // tipo
+        r2Success ? r2Url : key,     // url (R2 URL o key local)
+        entidad_id,                   // guardia_id
+        tipo_documento_id,            // tipo_documento_id
+        r2Success ? null : buffer,    // contenido_archivo (solo si no está en R2)
+        file.size,                    // tamaño
+        fecha_vencimiento || null     // fecha_vencimiento
       ];
+      
     } else {
       return NextResponse.json({ error: "Módulo no válido" }, { status: 400 });
     }
@@ -113,7 +140,9 @@ export async function POST(req: NextRequest) {
     console.log('✅ Documento guardado en BD:', {
       id: documentoCreado.id,
       nombre: documentoCreado.nombre,
-      fecha_vencimiento: documentoCreado.fecha_vencimiento
+      fecha_vencimiento: documentoCreado.fecha_vencimiento,
+      r2Success,
+      r2Url
     });
 
     return NextResponse.json({ 
@@ -121,10 +150,17 @@ export async function POST(req: NextRequest) {
       key: key,
       nombre_original: file.name,
       documento_id: documentoCreado.id,
-      fecha_vencimiento: documentoCreado.fecha_vencimiento
+      fecha_vencimiento: documentoCreado.fecha_vencimiento,
+      r2Success,
+      r2Url,
+      storage: r2Success ? 'cloudflare-r2' : 'database'
     });
+
   } catch (error) {
     console.error("❌ Error subiendo documento:", error);
-    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Error interno del servidor", 
+      details: error instanceof Error ? error.message : String(error) 
+    }, { status: 500 });
   }
 } 

@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
 import { MapPin, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { GOOGLE_MAPS_CONFIG } from '../../lib/config/google-maps';
+import { useGoogleMaps } from '../../lib/useGoogleMaps';
 
 interface GoogleMapProps {
   center?: { lat: number; lng: number };
@@ -35,73 +35,60 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isMapReady, setIsMapReady] = useState(false);
+  
+  // Usar el hook centralizado de Google Maps
+  const { isLoaded, isLoading, error } = useGoogleMaps();
 
-  // Inicializar Google Maps
+  // Inicializar el mapa cuando Google Maps esté cargado
   useEffect(() => {
+    if (!isLoaded || !mapRef.current) return;
+
     const initMap = async () => {
       try {
-        setIsLoading(true);
-        setError(null);
-
-        const loader = new Loader({
-          apiKey: GOOGLE_MAPS_CONFIG.API_KEY,
-          version: 'weekly',
-          libraries: GOOGLE_MAPS_CONFIG.LIBRARIES,
+        // Crear el mapa
+        const map = new google.maps.Map(mapRef.current!, {
+          center,
+          zoom,
+          mapTypeControl: true,
+          streetViewControl: true,
+          fullscreenControl: true,
+          zoomControl: true,
+          styles: [
+            {
+              featureType: 'poi',
+              elementType: 'labels',
+              stylers: [{ visibility: 'on' }]
+            }
+          ]
         });
 
-        await loader.load();
+        mapInstanceRef.current = map;
 
-        if (mapRef.current) {
-          // Crear el mapa
-          const map = new google.maps.Map(mapRef.current, {
-            center,
-            zoom,
-            mapTypeControl: true,
-            streetViewControl: true,
-            fullscreenControl: true,
-            zoomControl: true,
-            styles: [
-              {
-                featureType: 'poi',
-                elementType: 'labels',
-                stylers: [{ visibility: 'on' }]
-              }
-            ]
+        // Crear InfoWindow
+        infoWindowRef.current = new google.maps.InfoWindow();
+
+        // Agregar event listener para clicks en el mapa
+        if (onMapClick) {
+          map.addListener('click', (event: google.maps.MapMouseEvent) => {
+            if (event.latLng) {
+              onMapClick({
+                lat: event.latLng.lat(),
+                lng: event.latLng.lng()
+              });
+            }
           });
-
-          mapInstanceRef.current = map;
-
-          // Crear InfoWindow
-          infoWindowRef.current = new google.maps.InfoWindow();
-
-          // Agregar event listener para clicks en el mapa
-          if (onMapClick) {
-            map.addListener('click', (event: google.maps.MapMouseEvent) => {
-              if (event.latLng) {
-                onMapClick({
-                  lat: event.latLng.lat(),
-                  lng: event.latLng.lng()
-                });
-              }
-            });
-          }
-
-          setIsLoaded(true);
-          console.log('Mapa de Google Maps cargado exitosamente');
         }
+
+        setIsMapReady(true);
+        console.log('Mapa de Google Maps inicializado exitosamente');
       } catch (err) {
-        console.error('Error al cargar Google Maps:', err);
-        setError('Error al cargar el mapa. Verifica la conexión a internet.');
-      } finally {
-        setIsLoading(false);
+        console.error('Error al inicializar el mapa:', err);
       }
     };
 
     initMap();
-  }, [center, zoom, onMapClick]);
+  }, [isLoaded, center, zoom, onMapClick]);
 
   // Actualizar centro del mapa
   useEffect(() => {

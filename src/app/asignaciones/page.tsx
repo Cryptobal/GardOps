@@ -10,6 +10,7 @@
 
 import { useState, useEffect, Fragment } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
+import GoogleMapsManager from '@/lib/useGoogleMaps';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectItem, SelectContent } from '@/components/ui/select';
@@ -37,9 +38,22 @@ export default function Asignaciones() {
 
   /* Inicializar mapa una sola vez */
   useEffect(()=>{
-    new Loader({ apiKey: process.env.NEXT_PUBLIC_GMAPS_KEY!, libraries:['places'] })
-      .load()
-      .then(()=>{ setMap(new google.maps.Map(document.getElementById('map') as HTMLElement,{ zoom:6, center:{lat:-33.45,lng:-70.66}, styles:[/*dark theme*/] })); });
+    const initMap = async () => {
+      try {
+        const manager = GoogleMapsManager.getInstance();
+        await manager.load();
+        
+        setMap(new google.maps.Map(document.getElementById('map') as HTMLElement,{ 
+          zoom:6, 
+          center:{lat:-33.45,lng:-70.66}, 
+          styles:[/*dark theme*/] 
+        }));
+      } catch (error) {
+        console.error('Error cargando Google Maps:', error);
+      }
+    };
+    
+    initMap();
   },[]);
 
   /* Cada vez que cambian instalación o radio → actualiza guards + markers */

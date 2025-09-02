@@ -8,6 +8,11 @@ export const GOOGLE_MAPS_CONFIG = {
     south: -56.0,
     east: -66.4,
     west: -109.5
+  },
+  // Configuración global para el loader
+  LOADER_OPTIONS: {
+    language: 'es',
+    region: 'CL'
   }
 };
 

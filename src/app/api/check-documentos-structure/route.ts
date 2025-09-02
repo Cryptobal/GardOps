@@ -1,50 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '../../../lib/database';
+import pool from '@/lib/database';
 
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const tables = ['documentos', 'documentos_clientes', 'documentos_instalacion', 'documentos_guardias', 'documentos_tipos'];
-    const results: Record<string, any> = {};
-
-    for (const tableName of tables) {
-      try {
-        const result = await query(`
-          SELECT 
-            column_name,
-            data_type,
-            is_nullable,
-            column_default
-          FROM information_schema.columns 
-          WHERE table_name = $1
-          ORDER BY ordinal_position
-        `, [tableName]);
-        
-        results[tableName] = {
-          exists: true,
-          columns: result.rows
-        };
-      } catch (error) {
-        results[tableName] = {
-          exists: false,
-          error: error instanceof Error ? error.message : String(error)
-        };
-      }
+    console.log('🔍 Verificando estructura de tabla documentos...');
+    
+    // Verificar si la tabla existe
+    const tableExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'documentos'
+      )
+    `);
+    
+    if (!tableExists.rows[0].exists) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Tabla documentos no existe',
+        suggestion: 'Crear tabla documentos'
+      }, { status: 404 });
     }
-
-    return NextResponse.json({
-      success: true,
-      tables: results
+    
+    // Obtener estructura de la tabla
+    const structure = await pool.query(`
+      SELECT column_name, data_type, is_nullable, column_default
+      FROM information_schema.columns 
+      WHERE table_name = 'documentos' 
+      AND table_schema = 'public'
+      ORDER BY ordinal_position
+    `);
+    
+    console.log('📋 Estructura de tabla documentos:', structure.rows);
+    
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Tabla documentos existe',
+      structure: structure.rows
     });
-
+    
   } catch (error) {
     console.error('❌ Error verificando estructura:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Error verificando estructura',
-        details: error instanceof Error ? error.message : String(error)
-      },
-      { status: 500 }
-    );
+    
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Error verificando estructura',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }

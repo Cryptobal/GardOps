@@ -18,18 +18,69 @@ export async function GET(req: NextRequest) {
       const isDev = process.env.NODE_ENV !== 'production';
       const dev = isDev ? process.env.NEXT_PUBLIC_DEV_USER_EMAIL : undefined;
       const email = fromJwt || fromHeader || dev || null;
-      if (!email) return NextResponse.json({ ok:false, error:'no-auth' }, { status:401 });
-      const { sql } = await import('@vercel/postgres');
-      const { rows } = await sql`
-        with me as (select id from public.usuarios where lower(email)=lower(${email}) limit 1)
-        select public.fn_usuario_tiene_permiso((select id from me), ${'clientes.view'}) as allowed
-      `;
-      if (rows?.[0]?.allowed !== true) {
-        return NextResponse.json({ ok:false, error:'forbidden', perm:'clientes.view' }, { status:403 });
+      
+      if (!email) {
+        console.log('❌ No se pudo obtener email del usuario');
+        return NextResponse.json({ ok: false, error: 'no-auth' }, { status: 401 });
       }
-    } catch {}
-    const clientes = await obtenerClientes();
-    return NextResponse.json({ success: true, data: clientes });
+
+      console.log('🔍 Verificando permisos para:', email);
+
+      // Verificar permisos usando el sistema RBAC existente
+      const { sql } = await import('@vercel/postgres');
+      
+      // Primero verificar si el usuario existe
+      const userCheck = await sql`
+        SELECT id, rol FROM public.usuarios WHERE lower(email) = lower(${email}) LIMIT 1
+      `;
+
+      if (userCheck.rows.length === 0) {
+        console.log('❌ Usuario no encontrado en BD:', email);
+        return NextResponse.json({ ok: false, error: 'user-not-found' }, { status: 403 });
+      }
+
+      const user = userCheck.rows[0];
+      console.log('✅ Usuario encontrado:', { id: user.id, rol: user.rol });
+
+      // Si es admin, permitir acceso
+      if (user.rol === 'admin') {
+        console.log('✅ Usuario es admin, permitiendo acceso');
+      } else {
+        // Verificar permiso específico usando la función helper
+        try {
+          const permCheck = await sql`
+            SELECT public.fn_usuario_tiene_permiso(${email}, ${'clientes.view'}) as allowed
+          `;
+          
+          const hasPermission = permCheck.rows?.[0]?.allowed === true;
+          console.log('🔍 Verificación de permiso clientes.view:', hasPermission);
+          
+          if (!hasPermission) {
+            console.log('❌ Usuario no tiene permiso clientes.view');
+            return NextResponse.json({ ok: false, error: 'forbidden', perm: 'clientes.view' }, { status: 403 });
+          }
+        } catch (permError) {
+          console.error('❌ Error verificando permiso:', permError);
+          // Si falla la verificación de permisos, permitir acceso para admin o en desarrollo
+          if (user.rol !== 'admin' && process.env.NODE_ENV === 'production') {
+            return NextResponse.json({ ok: false, error: 'permission-check-failed' }, { status: 403 });
+          }
+        }
+      }
+
+      console.log('✅ Permisos verificados, obteniendo clientes...');
+      const clientes = await obtenerClientes();
+      return NextResponse.json({ success: true, data: clientes });
+    } catch (authError) {
+      console.error('❌ Error en verificación de permisos:', authError);
+      // En desarrollo, permitir acceso si falla la verificación
+      if (process.env.NODE_ENV === 'development') {
+        console.log('⚠️ Modo desarrollo: permitiendo acceso por fallo en verificación');
+        const clientes = await obtenerClientes();
+        return NextResponse.json({ success: true, data: clientes });
+      }
+      return NextResponse.json({ ok: false, error: 'auth-error' }, { status: 500 });
+    }
   } catch (error) {
     console.error('❌ Error en GET /api/clientes:', error);
     return NextResponse.json(

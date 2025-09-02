@@ -1,5 +1,8 @@
 // Utilidades para geocodificación de direcciones usando Google Maps
 
+import { GOOGLE_MAPS_CONFIG } from './config/google-maps';
+import GoogleMapsManager from './useGoogleMaps';
+
 export interface GeocodingResult {
   latitud: number;
   longitud: number;
@@ -20,15 +23,10 @@ export async function cargarGoogleMaps(): Promise<boolean> {
 
     console.log('Cargando Google Maps dinámicamente...');
 
-    // Cargar Google Maps dinámicamente usando el loader
-    const { Loader } = await import('@googlemaps/js-api-loader');
-    const loader = new Loader({
-      apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyBHIoHJDp6StLJlUAQV_gK7woFsEYgbzHY',
-      version: 'weekly',
-      libraries: ['places'],
-    });
-
-    await loader.load();
+    // Usar el manager centralizado
+    const manager = GoogleMapsManager.getInstance();
+    await manager.load();
+    
     console.log('Google Maps cargado dinámicamente exitosamente');
     return true;
   } catch (error) {

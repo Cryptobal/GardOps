@@ -38,31 +38,51 @@ export async function GET(req: NextRequest) {
       console.log("✅ Tabla documentos creada con estructura corregida");
     }
 
-    // Crear índices para mejorar rendimiento
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_documentos_instalacion 
-      ON documentos(instalacion_id)
+    // Crear índices solo si las columnas existen
+    const structure = await pool.query(`
+      SELECT column_name
+      FROM information_schema.columns 
+      WHERE table_name = 'documentos'
     `);
-
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_documentos_guardia 
-      ON documentos(guardia_id)
-    `);
-
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_documentos_cliente 
-      ON documentos(cliente_id)
-    `);
-
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_documentos_creado_en 
-      ON documentos(creado_en DESC)
-    `);
+    
+    const existingColumns = structure.rows.map(col => col.column_name);
+    
+    if (existingColumns.includes('instalacion_id')) {
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS idx_documentos_instalacion 
+        ON documentos(instalacion_id)
+      `);
+      console.log("✅ Índice en instalacion_id creado");
+    }
+    
+    if (existingColumns.includes('guardia_id')) {
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS idx_documentos_guardia 
+        ON documentos(guardia_id)
+      `);
+      console.log("✅ Índice en guardia_id creado");
+    }
+    
+    if (existingColumns.includes('cliente_id')) {
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS idx_documentos_cliente 
+        ON documentos(cliente_id)
+      `);
+      console.log("✅ Índice en cliente_id creado");
+    }
+    
+    if (existingColumns.includes('creado_en')) {
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS idx_documentos_creado_en 
+        ON documentos(creado_en DESC)
+      `);
+      console.log("✅ Índice en creado_en creado");
+    }
 
     console.log("✅ Índices creados");
 
     // Verificar estructura
-    const structure = await pool.query(`
+    const finalStructure = await pool.query(`
       SELECT column_name, data_type, is_nullable
       FROM information_schema.columns 
       WHERE table_name = $1 
@@ -70,14 +90,14 @@ export async function GET(req: NextRequest) {
     `, ['documentos']);
 
     console.log("📋 Estructura de tabla documentos:");
-    structure.rows.forEach(col => {
+    finalStructure.rows.forEach(col => {
       console.log(`  - ${col.column_name} (${col.data_type}) ${col.is_nullable === 'NO' ? 'NOT NULL' : ''}`);
     });
 
     return NextResponse.json({ 
       success: true, 
       message: "Migración de documentos completada con estructura corregida",
-      structure: structure.rows
+      structure: finalStructure.rows
     });
 
   } catch (error) {

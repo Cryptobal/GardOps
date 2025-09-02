@@ -206,22 +206,15 @@ export async function POST(request: NextRequest) {
       const timestamp = Date.now();
       const nombreArchivo = `${guardiaId}_${tipoDocumento.replace(/\s+/g, '_')}_${timestamp}.${extension}`;
 
-      // Subir archivo a Cloudflare R2 usando la tabla documentos_clientes
+      // Subir archivo a Cloudflare R2 usando la tabla documentos
       console.log('📤 Subiendo archivo a Cloudflare R2:', key);
       
-      // Guardar en la tabla documentos_clientes (que ya tienes en Neon)
+      // Guardar en la tabla documentos (que tiene la columna guardia_id)
       const insertQuery = `
-        INSERT INTO documentos_clientes (
-          guardia_id, tipo, url, fecha_subida, tenant_id, 
-          tipo_documento_id, contenido_archivo, fecha_vencimiento
-        ) VALUES ($1, $2, $3, NOW(), $4, $5, $6, NULL)
-        ON CONFLICT (guardia_id, tipo_documento_id) 
-        DO UPDATE SET
-          tipo = EXCLUDED.tipo,
-          url = EXCLUDED.url,
-          fecha_subida = NOW(),
-          contenido_archivo = EXCLUDED.contenido_archivo,
-          updated_at = CURRENT_TIMESTAMP
+        INSERT INTO documentos (
+          guardia_id, tipo, url, contenido_archivo, tamaño, 
+          tipo_documento_id, nombre_original, creado_en, actualizado_en
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
         RETURNING id, tipo, url
       `;
 
@@ -229,9 +222,10 @@ export async function POST(request: NextRequest) {
         guardiaId,
         tipoDocumento,
         key, // URL de R2
-        guardia.tenant_id,
+        buffer, // Contenido del archivo
+        archivo.size, // Tamaño del archivo
         tipoDoc.id,
-        buffer // Contenido del archivo
+        nombreArchivo // Nombre original del archivo
       ];
 
       const result = await client.query(insertQuery, insertParams);
@@ -239,15 +233,21 @@ export async function POST(request: NextRequest) {
 
       console.log('✅ Documento guardado exitosamente:', documentoGuardado);
 
-      // Log de la operación
-      await logCRUD({
-        accion: 'CREATE',
-        entidad: 'documentos_clientes',
-        entidad_id: documentoGuardado.id,
-        usuario: 'postulacion_publica',
-        detalles: `Documento subido a R2: ${tipoDocumento} para guardia ${guardia.nombre} ${guardia.apellido_paterno}`,
-        tenant_id: guardia.tenant_id
-      });
+      // Log de la operación usando logCRUD
+      await logCRUD(
+        'documentos',
+        documentoGuardado.id,
+        'CREATE',
+        'postulacion_publica',
+        undefined, // datosAnteriores
+        { // datosNuevos
+          tipo: tipoDocumento,
+          url: key,
+          guardia_id: guardiaId,
+          nombre_original: nombreArchivo,
+          tamaño: archivo.size
+        }
+      );
 
       return NextResponse.json({
         success: true,
@@ -264,15 +264,27 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('❌ Error en API de documento de postulación:', error);
     
-    await logError({
-      error: error.message,
-      stack: error.stack,
-      contexto: 'API postulación subir documento',
-      datos_entrada: {
-        guardia_id: guardiaId,
-        tipo_documento: tipoDocumento
-      }
-    });
+    // Log del error usando logCRUD
+    try {
+      await logCRUD(
+        'documentos',
+        'error',
+        'CREATE',
+        'postulacion_publica',
+        undefined,
+        {
+          error: error.message,
+          stack: error.stack,
+          contexto: 'API postulación subir documento',
+          datos_entrada: {
+            guardia_id: guardiaId,
+            tipo_documento: tipoDocumento
+          }
+        }
+      );
+    } catch (logError) {
+      console.error('❌ Error al registrar log de error:', logError);
+    }
 
     return NextResponse.json({
       error: 'Error interno del servidor',

@@ -1,39 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '../../../lib/database';
+import pool from '@/lib/database';
 
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    console.log('🔌 Probando conexión a la base de datos...');
+    console.log('🧪 Probando conexión a la base de datos...');
     
-    // Probar una consulta simple
-    const result = await query('SELECT 1 as test');
-    console.log('✅ Conexión exitosa');
+    // Probar conexión simple
+    const result = await pool.query('SELECT NOW() as current_time');
     
-    // Listar todas las tablas
-    const tables = await query(`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public'
-      ORDER BY table_name
-    `);
+    console.log('✅ Conexión exitosa:', result.rows[0]);
     
-    console.log('📋 Tablas disponibles:', tables.rows.map(row => row.table_name));
-    
-    return NextResponse.json({
-      success: true,
-      message: 'Conexión exitosa',
-      tables: tables.rows.map(row => row.table_name)
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Conexión a base de datos exitosa',
+      current_time: result.rows[0].current_time
     });
-
+    
   } catch (error) {
-    console.error('❌ Error de conexión:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Error de conexión',
-        details: error instanceof Error ? error.message : String(error)
-      },
-      { status: 500 }
-    );
+    console.error('❌ Error en conexión a base de datos:', error);
+    
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Error en conexión a base de datos',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
