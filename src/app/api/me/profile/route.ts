@@ -7,7 +7,6 @@ function getEmail(req: NextRequest) {
   const h = req.headers;
   const fromHeader =
     h.get('x-user-email') ||
-    h.get('x-user-email(next/headers)') ||
     '';
   const fromJwt = getCurrentUserServer(req as any)?.email || '';
   const isDev = process.env.NODE_ENV !== 'production';

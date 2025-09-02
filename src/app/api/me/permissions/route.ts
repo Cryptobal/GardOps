@@ -13,7 +13,7 @@ export async function GET(req: Request) {
     if (!perm) return NextResponse.json({ ok:false, error:'perm requerido', code:'BAD_REQUEST' }, { status:400 })
 
     const h = headers()
-    const fromHeader = h.get('x-user-email') || h.get('x-user-email(next/headers)')
+    const fromHeader = h.get('x-user-email') || null
     const userFromJwt = getCurrentUserServer(req as any)
     const fromJwt = userFromJwt?.email || null
     const isDev = process.env.NODE_ENV !== 'production'

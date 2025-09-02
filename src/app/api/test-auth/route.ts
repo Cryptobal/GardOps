@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
 
     // Obtener email del usuario
     const h = req.headers;
-    const fromHeader = h.get('x-user-email') || h.get('x-user-email(next/headers)') || null;
+    const fromHeader = h.get('x-user-email') || null;
     const isDev = process.env.NODE_ENV !== 'production';
     const dev = isDev ? process.env.NEXT_PUBLIC_DEV_USER_EMAIL : undefined;
     const email = fromHeader || dev || null;

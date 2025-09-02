@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       const h = request.headers;
       const { getCurrentUserServer } = await import('@/lib/auth');
       const fromJwt = getCurrentUserServer(request as any)?.email || null;
-      const fromHeader = h.get('x-user-email') || h.get('x-user-email(next/headers)') || null;
+      const fromHeader = h.get('x-user-email') || null;
       const isDev = process.env.NODE_ENV !== 'production';
       const dev = isDev ? process.env.NEXT_PUBLIC_DEV_USER_EMAIL : undefined;
       const email = fromJwt || fromHeader || dev || null;

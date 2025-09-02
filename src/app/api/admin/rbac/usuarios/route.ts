@@ -8,7 +8,6 @@ function getEmail(req: NextRequest) {
   // en dev, permitimos x-user-email
   return (
     h.get('x-user-email') ||
-    h.get('x-user-email(next/headers)') || // por si viene proxificada
     process.env.NEXT_PUBLIC_DEV_USER_EMAIL ||
     ''
   ).trim().toLowerCase();
