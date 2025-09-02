@@ -7,39 +7,39 @@ SET rol = 'admin'
 WHERE lower(email) = lower('carlos.irigoyen@gard.cl');
 
 -- 2. Crear TODOS los permisos necesarios si no existen
-INSERT INTO public.permisos (clave, descripcion, categoria, activo)
+INSERT INTO public.permisos (clave, descripcion, categoria)
 VALUES 
-  ('clientes.view', 'Ver clientes', 'clientes', true),
-  ('clientes.create', 'Crear clientes', 'clientes', true),
-  ('clientes.update', 'Actualizar clientes', 'clientes', true),
-  ('clientes.delete', 'Eliminar clientes', 'clientes', true),
-  ('guardias.view', 'Ver guardias', 'guardias', true),
-  ('guardias.create', 'Crear guardias', 'guardias', true),
-  ('guardias.update', 'Actualizar guardias', 'guardias', true),
-  ('guardias.delete', 'Eliminar guardias', 'guardias', true),
-  ('instalaciones.view', 'Ver instalaciones', 'instalaciones', true),
-  ('instalaciones.create', 'Crear instalaciones', 'instalaciones', true),
-  ('instalaciones.update', 'Actualizar instalaciones', 'instalaciones', true),
-  ('instalaciones.delete', 'Eliminar instalaciones', 'instalaciones', true),
-  ('documentos.view', 'Ver documentos', 'documentos', true),
-  ('documentos.create', 'Crear documentos', 'documentos', true),
-  ('documentos.update', 'Actualizar documentos', 'documentos', true),
-  ('documentos.delete', 'Eliminar documentos', 'documentos', true),
-  ('usuarios.view', 'Ver usuarios', 'usuarios', true),
-  ('usuarios.create', 'Crear usuarios', 'usuarios', true),
-  ('usuarios.update', 'Actualizar usuarios', 'usuarios', true),
-  ('usuarios.delete', 'Eliminar usuarios', 'usuarios', true),
-  ('roles.view', 'Ver roles', 'roles', true),
-  ('roles.create', 'Crear roles', 'roles', true),
-  ('roles.update', 'Actualizar roles', 'roles', true),
-  ('roles.delete', 'Eliminar roles', 'roles', true),
-  ('permisos.view', 'Ver permisos', 'permisos', true),
-  ('permisos.assign', 'Asignar permisos', 'permisos', true)
+  ('clientes.view', 'Ver clientes', 'clientes'),
+  ('clientes.create', 'Crear clientes', 'clientes'),
+  ('clientes.update', 'Actualizar clientes', 'clientes'),
+  ('clientes.delete', 'Eliminar clientes', 'clientes'),
+  ('guardias.view', 'Ver guardias', 'guardias'),
+  ('guardias.create', 'Crear guardias', 'guardias'),
+  ('guardias.update', 'Actualizar guardias', 'guardias'),
+  ('guardias.delete', 'Eliminar guardias', 'guardias'),
+  ('instalaciones.view', 'Ver instalaciones', 'instalaciones'),
+  ('instalaciones.create', 'Crear instalaciones', 'instalaciones'),
+  ('instalaciones.update', 'Actualizar instalaciones', 'instalaciones'),
+  ('instalaciones.delete', 'Eliminar instalaciones', 'instalaciones'),
+  ('documentos.view', 'Ver documentos', 'documentos'),
+  ('documentos.create', 'Crear documentos', 'documentos'),
+  ('documentos.update', 'Actualizar documentos', 'documentos'),
+  ('documentos.delete', 'Eliminar documentos', 'documentos'),
+  ('usuarios.view', 'Ver usuarios', 'usuarios'),
+  ('usuarios.create', 'Crear usuarios', 'usuarios'),
+  ('usuarios.update', 'Actualizar usuarios', 'usuarios'),
+  ('usuarios.delete', 'Eliminar usuarios', 'usuarios'),
+  ('roles.view', 'Ver roles', 'roles'),
+  ('roles.create', 'Crear roles', 'roles'),
+  ('roles.update', 'Actualizar roles', 'roles'),
+  ('roles.delete', 'Eliminar roles', 'roles'),
+  ('permisos.view', 'Ver permisos', 'permisos'),
+  ('permisos.assign', 'Asignar permisos', 'permisos')
 ON CONFLICT (clave) DO NOTHING;
 
 -- 3. Asegurar que el rol admin existe
-INSERT INTO public.roles (clave, nombre, descripcion, activo)
-VALUES ('admin', 'Administrador', 'Rol de administrador con acceso completo', true)
+INSERT INTO public.roles (clave, nombre, descripcion)
+VALUES ('admin', 'Administrador', 'Rol de administrador con acceso completo')
 ON CONFLICT (clave) DO NOTHING;
 
 -- 4. Asignar el usuario al rol admin (eliminar primero por si existe)
@@ -67,8 +67,7 @@ SELECT
   p.id
 FROM public.roles r
 CROSS JOIN public.permisos p
-WHERE r.clave = 'admin'
-  AND p.activo = true;
+WHERE r.clave = 'admin';
 
 -- 6. Crear o reemplazar las vistas necesarias
 CREATE OR REPLACE VIEW public.v_usuarios_permisos AS
@@ -86,8 +85,7 @@ LEFT JOIN public.usuarios_roles ur ON ur.usuario_id = u.id
 LEFT JOIN public.roles r ON r.id = ur.rol_id
 LEFT JOIN public.roles_permisos rp ON rp.rol_id = r.id
 LEFT JOIN public.permisos p ON p.id = rp.permiso_id
-WHERE r.activo = true 
-  AND p.activo = true;
+WHERE 1=1;
 
 CREATE OR REPLACE VIEW public.v_check_permiso AS
 SELECT 
@@ -99,8 +97,7 @@ JOIN public.usuarios_roles ur ON ur.usuario_id = u.id
 JOIN public.roles r ON r.id = ur.rol_id
 JOIN public.roles_permisos rp ON rp.rol_id = r.id
 JOIN public.permisos p ON p.id = rp.permiso_id
-WHERE r.activo = true 
-  AND p.activo = true;
+WHERE 1=1;
 
 -- 7. Crear o reemplazar la función mejorada
 CREATE OR REPLACE FUNCTION public.fn_usuario_tiene_permiso(
@@ -132,8 +129,7 @@ BEGIN
     JOIN public.permisos p ON p.id = rp.permiso_id
     WHERE ur.usuario_id = p_usuario_id
       AND p.clave = p_permiso_clave
-      AND r.activo = true
-      AND p.activo = true
+
   ) INTO v_tiene_permiso;
   
   RETURN COALESCE(v_tiene_permiso, FALSE);
@@ -155,7 +151,7 @@ SELECT
   COUNT(*)::text as email,
   '' as rol
 FROM public.permisos
-WHERE activo = true
+
 
 UNION ALL
 
