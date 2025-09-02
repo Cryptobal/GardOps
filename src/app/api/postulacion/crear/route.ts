@@ -201,19 +201,35 @@ export async function POST(request: NextRequest) {
       datosGuardia.ip_postulacion, datosGuardia.user_agent_postulacion
     ], null, 2));
 
-    const result = await client.query(insertQuery, [
-      datosGuardia.rut, datosGuardia.nombre, datosGuardia.apellido_paterno, datosGuardia.apellido_materno,
-      datosGuardia.email, datosGuardia.telefono, datosGuardia.direccion, datosGuardia.ciudad, datosGuardia.comuna,
-      datosGuardia.latitud, datosGuardia.longitud, datosGuardia.banco, datosGuardia.tipo_cuenta,
-      datosGuardia.numero_cuenta, datosGuardia.tenant_id, datosGuardia.activo, datosGuardia.tipo_guardia,
-      datosGuardia.sexo, datosGuardia.nacionalidad, datosGuardia.fecha_nacimiento, datosGuardia.afp,
-      datosGuardia.descuento_afp, datosGuardia.prevision_salud, datosGuardia.cotiza_sobre_7,
-      datosGuardia.monto_pactado_uf, datosGuardia.es_pensionado, datosGuardia.asignacion_familiar,
-      datosGuardia.tramo_asignacion, datosGuardia.talla_camisa, datosGuardia.talla_pantalon,
-      datosGuardia.talla_zapato, datosGuardia.altura_cm, datosGuardia.peso_kg,
-      datosGuardia.fecha_postulacion, datosGuardia.estado_postulacion,
-      datosGuardia.ip_postulacion, datosGuardia.user_agent_postulacion
-    ]);
+    console.log('🚀 Ejecutando query de inserción...');
+    let result: any;
+    try {
+      result = await client.query(insertQuery, [
+        datosGuardia.rut, datosGuardia.nombre, datosGuardia.apellido_paterno, datosGuardia.apellido_materno,
+        datosGuardia.email, datosGuardia.telefono, datosGuardia.direccion, datosGuardia.ciudad, datosGuardia.comuna,
+        datosGuardia.latitud, datosGuardia.longitud, datosGuardia.banco, datosGuardia.tipo_cuenta,
+        datosGuardia.numero_cuenta, datosGuardia.tenant_id, datosGuardia.activo, datosGuardia.tipo_guardia,
+        datosGuardia.sexo, datosGuardia.nacionalidad, datosGuardia.fecha_nacimiento, datosGuardia.afp,
+        datosGuardia.descuento_afp, datosGuardia.prevision_salud, datosGuardia.cotiza_sobre_7,
+        datosGuardia.monto_pactado_uf, datosGuardia.es_pensionado, datosGuardia.asignacion_familiar,
+        datosGuardia.tramo_asignacion, datosGuardia.talla_camisa, datosGuardia.talla_pantalon,
+        datosGuardia.talla_zapato, datosGuardia.altura_cm, datosGuardia.peso_kg,
+        datosGuardia.fecha_postulacion, datosGuardia.estado_postulacion,
+        datosGuardia.ip_postulacion, datosGuardia.user_agent_postulacion
+      ]);
+      console.log('✅ Query de inserción ejecutada exitosamente');
+    } catch (insertError: unknown) {
+      console.error('❌ Error en inserción:', insertError);
+      if (insertError && typeof insertError === 'object' && 'code' in insertError) {
+        console.error('🔍 Detalles del error:', {
+          code: (insertError as any).code,
+          message: (insertError as any).message,
+          detail: (insertError as any).detail,
+          hint: (insertError as any).hint
+        });
+      }
+      throw insertError;
+    }
 
     const guardiaCreado = result.rows[0];
     console.log('✅ Guardia creado exitosamente:', guardiaCreado);
