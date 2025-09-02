@@ -122,7 +122,6 @@ export async function POST(request: NextRequest) {
         numero_cuenta: body.numero_cuenta.trim(),
         tenant_id: body.tenant_id,
         activo: true,
-        estado: 'Activo',
         tipo_guardia: 'contratado',
         
         // Nuevos campos del formulario
@@ -158,7 +157,7 @@ export async function POST(request: NextRequest) {
         INSERT INTO guardias (
           rut, nombre, apellido_paterno, apellido_materno, email, telefono,
           direccion, ciudad, comuna, latitud, longitud, banco_id, tipo_cuenta,
-          numero_cuenta, tenant_id, activo, estado, tipo_guardia,
+          numero_cuenta, tenant_id, activo, tipo_guardia,
           sexo, nacionalidad, fecha_nacimiento, afp, descuento_afp,
           prevision_salud, cotiza_sobre_7, monto_pactado_uf, es_pensionado,
           asignacion_familiar, tramo_asignacion, talla_camisa, talla_pantalon,
@@ -167,7 +166,7 @@ export async function POST(request: NextRequest) {
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
           $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28,
-          $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, NOW(), NOW()
+          $29, $30, $31, $32, $33, $34, $35, $36, $37, NOW(), NOW()
         ) RETURNING id, nombre, apellido_paterno, email, rut
       `;
 
@@ -177,7 +176,7 @@ export async function POST(request: NextRequest) {
         datosGuardia.direccion, datosGuardia.ciudad, datosGuardia.comuna,
         datosGuardia.latitud, datosGuardia.longitud, datosGuardia.banco_id,
         datosGuardia.tipo_cuenta, datosGuardia.numero_cuenta, datosGuardia.tenant_id,
-        datosGuardia.activo, datosGuardia.estado, datosGuardia.tipo_guardia,
+        datosGuardia.activo, datosGuardia.tipo_guardia,
         datosGuardia.sexo, datosGuardia.nacionalidad, datosGuardia.fecha_nacimiento,
         datosGuardia.afp, datosGuardia.descuento_afp, datosGuardia.prevision_salud,
         datosGuardia.cotiza_sobre_7, datosGuardia.monto_pactado_uf,
