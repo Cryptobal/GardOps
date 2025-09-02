@@ -3,6 +3,9 @@ import { getClient } from '@/lib/database';
 import { logError, logCRUD } from '@/lib/logging';
 import { getFormularioUrl } from '@/lib/config';
 
+// Forzar que esta ruta sea dinámica para evitar renderizado estático
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   console.log('🔍 Configuración Postulaciones: Iniciando GET');
   
