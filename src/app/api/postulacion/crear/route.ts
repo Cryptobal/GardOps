@@ -2,171 +2,193 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getClient } from '@/lib/database';
 import { logCRUD, logError } from '@/lib/logging';
 
+// Función para detectar la tabla correcta
+async function getTableName(client: any): Promise<string> {
+  try {
+    // Intentar con guardias_temp primero (producción)
+    const checkTemp = await client.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'guardias_temp'
+      );
+    `);
+    
+    if (checkTemp.rows[0].exists) {
+      console.log('🔍 Usando tabla: guardias_temp (producción)');
+      return 'guardias_temp';
+    }
+    
+    // Si no existe, usar guardias (local)
+    console.log('🔍 Usando tabla: guardias (local)');
+    return 'guardias';
+  } catch (error) {
+    console.log('🔍 Error detectando tabla, usando guardias por defecto');
+    return 'guardias';
+  }
+}
+
 export async function POST(request: NextRequest) {
-  let body: any;
+  const client = await getClient();
   
   try {
-    body = await request.json();
+    const body = await request.json();
+    
+    // Detectar la tabla correcta
+    const tableName = await getTableName(client);
+    
     console.log('🚀 API Postulación - Creando nuevo guardia:', body);
 
-    const client = await getClient();
+    // Validar campos requeridos
+    const camposRequeridos = [
+      'rut', 'nombre', 'apellido_paterno', 'email', 'celular', 
+      'direccion', 'tenant_id'
+    ];
     
-    try {
-      // Validar campos requeridos
-      const camposRequeridos = [
-        'rut', 'nombre', 'apellido_paterno', 'email', 'celular', 'direccion',
-        'afp', 'prevision_salud', 'banco_id', 'tipo_cuenta', 'numero_cuenta',
-        'tenant_id'
-      ];
-
-      for (const campo of camposRequeridos) {
-        if (!body[campo]) {
-          return NextResponse.json(
-            { error: `Campo requerido faltante: ${campo}` },
-            { status: 400 }
-          );
-        }
-      }
-
-      // Validar RUT
-      const rutLimpio = body.rut.replace(/\./g, '').replace(/\s+/g, '');
-      const rutRegex = /^\d{7,8}-[\dkK]$/;
-      if (!rutRegex.test(rutLimpio)) {
+    for (const campo of camposRequeridos) {
+      if (!body[campo] || body[campo].toString().trim() === '') {
         return NextResponse.json(
-          { error: 'RUT inválido. Formato esperado: 12345678-9' },
+          { error: `Campo requerido: ${campo}` },
           { status: 400 }
         );
       }
+    }
 
-      // Validar dígito verificador
-      const [numeroStr, dvStr] = rutLimpio.split('-');
-      const dv = dvStr.toLowerCase();
-      let suma = 0;
-      let multiplicador = 2;
-      
-      for (let i = numeroStr.length - 1; i >= 0; i--) {
-        suma += parseInt(numeroStr[i]) * multiplicador;
-        multiplicador = multiplicador === 7 ? 2 : multiplicador + 1;
-      }
-      
-      const dvEsperado = 11 - (suma % 11);
-      const dvCalculado = dvEsperado === 11 ? '0' : dvEsperado === 10 ? 'k' : dvEsperado.toString();
-      
-      if (dv !== dvCalculado) {
+    // Validar RUT
+    const rutLimpio = body.rut.replace(/\./g, '').replace(/\s+/g, '');
+    const rutRegex = /^\d{7,8}-[\dkK]$/;
+    if (!rutRegex.test(rutLimpio)) {
+      return NextResponse.json(
+        { error: 'RUT inválido. Formato esperado: 12345678-9' },
+        { status: 400 }
+      );
+    }
+
+    // Validar dígito verificador
+    const [numeroStr, dvStr] = rutLimpio.split('-');
+    const dv = dvStr.toLowerCase();
+    let suma = 0;
+    let multiplicador = 2;
+    
+    for (let i = numeroStr.length - 1; i >= 0; i--) {
+      suma += parseInt(numeroStr[i]) * multiplicador;
+      multiplicador = multiplicador === 7 ? 2 : multiplicador + 1;
+    }
+    
+    const dvEsperado = 11 - (suma % 11);
+    const dvCalculado = dvEsperado === 11 ? '0' : dvEsperado === 10 ? 'k' : dvEsperado.toString();
+    
+    if (dv !== dvCalculado) {
+      return NextResponse.json(
+        { error: 'RUT inválido. Dígito verificador incorrecto' },
+        { status: 400 }
+      );
+    }
+
+    // Verificar duplicados por RUT y Email dentro del tenant
+    console.log('🔍 Verificando duplicados por RUT:', rutLimpio, 'en tenant:', body.tenant_id);
+    
+    const dupRut = await client.query(
+      `SELECT id FROM ${tableName} WHERE rut = $1 AND tenant_id = $2 LIMIT 1`,
+      [rutLimpio, body.tenant_id]
+    );
+    
+    console.log('📊 Resultado de verificación RUT:', {
+      rut: rutLimpio,
+      tenant_id: body.tenant_id,
+      filas_encontradas: dupRut.rows.length,
+      resultado: dupRut.rows,
+      tabla_usada: tableName
+    });
+    
+    if (dupRut.rows.length > 0) {
+      console.log('❌ RUT duplicado encontrado:', dupRut.rows[0]);
+      return NextResponse.json(
+        { error: 'Ya existe un guardia con este RUT en este tenant' },
+        { status: 409 }
+      );
+    }
+    
+    console.log('✅ RUT no duplicado');
+
+    const dupEmail = await client.query(
+      `SELECT id FROM ${tableName} WHERE email = $1 AND tenant_id = $2 LIMIT 1`,
+      [body.email, body.tenant_id]
+    );
+    
+    if (dupEmail.rows.length > 0) {
+      return NextResponse.json(
+        { error: 'Ya existe un guardia con este email en este tenant' },
+        { status: 409 }
+      );
+    }
+
+    console.log('✅ Email no duplicado');
+
+    // Verificar que el banco existe
+    if (body.banco_id) {
+      console.log('🔍 Verificando banco:', body.banco_id);
+      const bancoCheck = await client.query(
+        'SELECT id FROM bancos WHERE id = $1 LIMIT 1',
+        [body.banco_id]
+      );
+      if (bancoCheck.rows.length === 0) {
+        console.log('❌ Banco no encontrado');
         return NextResponse.json(
-          { error: 'RUT inválido. Dígito verificador incorrecto' },
+          { error: 'Banco no encontrado' },
           { status: 400 }
         );
       }
+      console.log('✅ Banco verificado');
+    }
 
-      // Verificar duplicados por RUT y Email dentro del tenant
-      console.log('🔍 Verificando duplicados por RUT:', rutLimpio, 'en tenant:', body.tenant_id);
-      
-      const dupRut = await client.query(
-        'SELECT id FROM guardias WHERE rut = $1 AND tenant_id = $2 LIMIT 1',
-        [rutLimpio, body.tenant_id]
-      );
-      
-      console.log('📊 Resultado de verificación RUT:', {
-        rut: rutLimpio,
-        tenant_id: body.tenant_id,
-        filas_encontradas: dupRut.rows.length,
-        resultado: dupRut.rows
-      });
-      
-      if (dupRut.rows.length > 0) {
-        console.log('❌ RUT duplicado encontrado:', dupRut.rows[0]);
-        return NextResponse.json(
-          { error: 'Ya existe un guardia con este RUT en este tenant' },
-          { status: 409 }
-        );
-      }
-      
-      console.log('✅ RUT no duplicado');
+    // Preparar datos para inserción
+    console.log('🔍 Preparando datos para inserción...');
+    const datosGuardia = {
+      rut: rutLimpio,
+      nombre: body.nombre.trim(),
+      apellido_paterno: body.apellido_paterno.trim(),
+      apellido_materno: body.apellido_materno?.trim() || '',
+      email: body.email.trim().toLowerCase(),
+      telefono: body.celular.trim(),
+      direccion: body.direccion.trim(),
+      ciudad: body.ciudad || '',
+      comuna: body.comuna || '',
+      latitud: null,
+      longitud: null,
+      banco: body.banco_id,
+      tipo_cuenta: body.tipo_cuenta || '',
+      numero_cuenta: body.numero_cuenta || '',
+      tenant_id: body.tenant_id,
+      activo: true,
+      tipo_guardia: 'contratado',
+      sexo: body.sexo || '',
+      nacionalidad: body.nacionalidad || '',
+      fecha_nacimiento: body.fecha_nacimiento || null,
+      afp: body.afp || '',
+      descuento_afp: parseFloat(body.descuento_afp?.replace('%', '') || '0'),
+      prevision_salud: body.prevision_salud || '',
+      cotiza_sobre_7: body.cotiza_sobre_7 === 'Sí' || body.cotiza_sobre_7 === 'Yes',
+      monto_pactado_uf: parseFloat(body.monto_pactado_uf || '0'),
+      es_pensionado: body.es_pensionado === 'Sí' || body.es_pensionado === 'Yes',
+      asignacion_familiar: body.asignacion_familiar === 'Sí' || body.asignacion_familiar === 'Yes',
+      tramo_asignacion: body.tramo_asignacion || null,
+      talla_camisa: body.talla_camisa || '',
+      talla_pantalon: body.talla_pantalon || '',
+      talla_zapato: parseInt(body.talla_zapato) || null,
+      altura_cm: parseInt(body.altura_cm) || null,
+      peso_kg: parseInt(body.peso_kg) || null,
+      fecha_postulacion: new Date().toISOString(),
+      estado_postulacion: 'pendiente',
+      ip_postulacion: request.headers.get('x-forwarded-for') || request.ip || null,
+      user_agent_postulacion: request.headers.get('user-agent') || null
+    };
 
-      const dupEmail = await client.query(
-        'SELECT id FROM guardias WHERE email = $1 AND tenant_id = $2 LIMIT 1',
-        [body.email, body.tenant_id]
-      );
-      
-      if (dupEmail.rows.length > 0) {
-        return NextResponse.json(
-          { error: 'Ya existe un guardia con este email en este tenant' },
-          { status: 409 }
-        );
-      }
+    console.log('📋 Datos preparados:', JSON.stringify(datosGuardia, null, 2));
 
-      console.log('✅ Email no duplicado');
-
-      // Verificar que el banco existe
-      if (body.banco_id) {
-        console.log('🔍 Verificando banco:', body.banco_id);
-        const bancoCheck = await client.query(
-          'SELECT id FROM bancos WHERE id = $1 LIMIT 1',
-          [body.banco_id]
-        );
-        if (bancoCheck.rows.length === 0) {
-          console.log('❌ Banco no encontrado');
-          return NextResponse.json(
-            { error: 'Banco no encontrado' },
-            { status: 400 }
-          );
-        }
-        console.log('✅ Banco verificado');
-      }
-
-      // Preparar datos para inserción
-      console.log('🔍 Preparando datos para inserción...');
-      const datosGuardia = {
-        rut: rutLimpio,
-        nombre: body.nombre.trim(),
-        apellido_paterno: body.apellido_paterno.trim(),
-        apellido_materno: body.apellido_materno?.trim() || '',
-        email: body.email.trim().toLowerCase(),
-        telefono: body.celular.trim(),
-        direccion: body.direccion.trim(),
-        ciudad: body.ciudad || '',
-        comuna: body.comuna || '',
-        latitud: body.latitud || null,
-        longitud: body.longitud || null,
-        banco: body.banco_id,
-        tipo_cuenta: body.tipo_cuenta,
-        numero_cuenta: body.numero_cuenta.trim(),
-        tenant_id: body.tenant_id,
-        activo: true,
-        tipo_guardia: 'contratado',
-        
-        // Nuevos campos del formulario
-        sexo: body.sexo || null,
-        nacionalidad: body.nacionalidad || 'Chilena',
-        fecha_nacimiento: body.fecha_nacimiento || null,
-        afp: body.afp || null,
-        descuento_afp: body.descuento_afp === '1%' ? 1.00 : 0.00,
-        prevision_salud: body.prevision_salud || null,
-        cotiza_sobre_7: body.cotiza_sobre_7 === 'Sí',
-        monto_pactado_uf: body.monto_pactado_uf ? parseFloat(body.monto_pactado_uf) : null,
-        es_pensionado: body.es_pensionado === 'Sí',
-        asignacion_familiar: body.asignacion_familiar === 'Sí',
-        tramo_asignacion: body.tramo_asignacion || null,
-        talla_camisa: body.talla_camisa || null,
-        talla_pantalon: body.talla_pantalon || null,
-        talla_zapato: body.talla_zapato || null,
-        altura_cm: body.altura_cm || null,
-        peso_kg: body.peso_kg || null,
-        
-        // Campos de postulación
-        fecha_postulacion: new Date().toISOString(),
-        estado_postulacion: 'pendiente',
-        ip_postulacion: body.ip_postulacion || null,
-        user_agent_postulacion: body.user_agent_postulacion || null
-      };
-
-      console.log('📋 Datos preparados:', JSON.stringify(datosGuardia, null, 2));
-
-      // Insertar guardia
-      console.log('🚀 Insertando guardia en base de datos...');
-      const insertQuery = `
-        INSERT INTO guardias (
+    // Insertar en la base de datos
+    console.log('🚀 Insertando guardia en base de datos...');
+    const insertQuery = `
+        INSERT INTO ${tableName} (
           rut, nombre, apellido_paterno, apellido_materno, email, telefono,
           direccion, ciudad, comuna, latitud, longitud, banco, tipo_cuenta,
           numero_cuenta, tenant_id, activo, tipo_guardia,
@@ -181,77 +203,62 @@ export async function POST(request: NextRequest) {
           $29, $30, $31, $32, $33, $34, $35, $36, $37, NOW(), NOW()
         ) RETURNING id, nombre, apellido_paterno, email, rut
       `;
+    
+    console.log('🔍 Query de inserción:', insertQuery);
+    console.log('🔍 Parámetros:', JSON.stringify([
+      datosGuardia.rut, datosGuardia.nombre, datosGuardia.apellido_paterno, datosGuardia.apellido_materno,
+      datosGuardia.email, datosGuardia.telefono, datosGuardia.direccion, datosGuardia.ciudad, datosGuardia.comuna,
+      datosGuardia.latitud, datosGuardia.longitud, datosGuardia.banco, datosGuardia.tipo_cuenta,
+      datosGuardia.numero_cuenta, datosGuardia.tenant_id, datosGuardia.activo, datosGuardia.tipo_guardia,
+      datosGuardia.sexo, datosGuardia.nacionalidad, datosGuardia.fecha_nacimiento, datosGuardia.afp,
+      datosGuardia.descuento_afp, datosGuardia.prevision_salud, datosGuardia.cotiza_sobre_7,
+      datosGuardia.monto_pactado_uf, datosGuardia.es_pensionado, datosGuardia.asignacion_familiar,
+      datosGuardia.tramo_asignacion, datosGuardia.talla_camisa, datosGuardia.talla_pantalon,
+      datosGuardia.talla_zapato, datosGuardia.altura_cm, datosGuardia.peso_kg,
+      datosGuardia.fecha_postulacion, datosGuardia.estado_postulacion,
+      datosGuardia.ip_postulacion, datosGuardia.user_agent_postulacion
+    ], null, 2));
 
-      const insertParams = [
-        datosGuardia.rut, datosGuardia.nombre, datosGuardia.apellido_paterno,
-        datosGuardia.apellido_materno, datosGuardia.email, datosGuardia.telefono,
-        datosGuardia.direccion, datosGuardia.ciudad, datosGuardia.comuna,
-        datosGuardia.latitud, datosGuardia.longitud, datosGuardia.banco,
-        datosGuardia.tipo_cuenta, datosGuardia.numero_cuenta, datosGuardia.tenant_id,
-        datosGuardia.activo, datosGuardia.tipo_guardia,
-        datosGuardia.sexo, datosGuardia.nacionalidad, datosGuardia.fecha_nacimiento,
-        datosGuardia.afp, datosGuardia.descuento_afp, datosGuardia.prevision_salud,
-        datosGuardia.cotiza_sobre_7, datosGuardia.monto_pactado_uf,
-        datosGuardia.es_pensionado, datosGuardia.asignacion_familiar,
-        datosGuardia.tramo_asignacion, datosGuardia.talla_camisa,
-        datosGuardia.talla_pantalon, datosGuardia.talla_zapato,
-        datosGuardia.altura_cm, datosGuardia.peso_kg, datosGuardia.fecha_postulacion,
-        datosGuardia.estado_postulacion, datosGuardia.ip_postulacion,
-        datosGuardia.user_agent_postulacion
-      ];
+    const result = await client.query(insertQuery, [
+      datosGuardia.rut, datosGuardia.nombre, datosGuardia.apellido_paterno, datosGuardia.apellido_materno,
+      datosGuardia.email, datosGuardia.telefono, datosGuardia.direccion, datosGuardia.ciudad, datosGuardia.comuna,
+      datosGuardia.latitud, datosGuardia.longitud, datosGuardia.banco, datosGuardia.tipo_cuenta,
+      datosGuardia.numero_cuenta, datosGuardia.tenant_id, datosGuardia.activo, datosGuardia.tipo_guardia,
+      datosGuardia.sexo, datosGuardia.nacionalidad, datosGuardia.fecha_nacimiento, datosGuardia.afp,
+      datosGuardia.descuento_afp, datosGuardia.prevision_salud, datosGuardia.cotiza_sobre_7,
+      datosGuardia.monto_pactado_uf, datosGuardia.es_pensionado, datosGuardia.asignacion_familiar,
+      datosGuardia.tramo_asignacion, datosGuardia.talla_camisa, datosGuardia.talla_pantalon,
+      datosGuardia.talla_zapato, datosGuardia.altura_cm, datosGuardia.peso_kg,
+      datosGuardia.fecha_postulacion, datosGuardia.estado_postulacion,
+      datosGuardia.ip_postulacion, datosGuardia.user_agent_postulacion
+    ]);
 
-      console.log('🔍 Query de inserción:', insertQuery);
-      console.log('🔍 Parámetros:', insertParams);
+    const guardiaCreado = result.rows[0];
+    console.log('✅ Guardia creado exitosamente:', guardiaCreado);
 
-      const result = await client.query(insertQuery, insertParams);
-      const guardiaCreado = result.rows[0];
+    // Enviar webhook (asíncrono)
+    enviarWebhook(body.tenant_id, guardiaCreado.id, datosGuardia);
 
-      console.log('✅ Guardia creado exitosamente:', guardiaCreado);
+    // Enviar email de confirmación (asíncrono)
+    enviarEmailConfirmacion(datosGuardia);
 
-      // Crear notificación interna
-      try {
-        await client.query(`
-          INSERT INTO notificaciones_postulaciones (
-            tenant_id, guardia_id, tipo, titulo, mensaje
-          ) VALUES ($1, $2, $3, $4, $5)
-        `, [
-          body.tenant_id,
-          guardiaCreado.id,
-          'nueva_postulacion',
-          'Nueva Postulación de Guardia',
-          `Se ha recibido una nueva postulación de ${guardiaCreado.nombre} ${guardiaCreado.apellido_paterno} (${guardiaCreado.rut})`
-        ]);
-      } catch (error) {
-        console.warn('⚠️ Error creando notificación interna:', error);
-      }
+    // Log de la operación
+    await logCRUD(
+      tableName,
+      guardiaCreado.id,
+      'CREATE',
+      'postulacion_publica',
+      undefined,
+      datosGuardia,
+      body.tenant_id,
+      'api'
+    );
 
-      // Enviar webhook (asíncrono)
-      enviarWebhook(body.tenant_id, guardiaCreado.id, datosGuardia);
-
-      // Enviar email de confirmación (asíncrono)
-      enviarEmailConfirmacion(datosGuardia);
-
-      // Log de la operación
-      await logCRUD(
-        'guardias',
-        guardiaCreado.id,
-        'CREATE',
-        'postulacion_publica',
-        undefined,
-        datosGuardia,
-        body.tenant_id,
-        'api'
-      );
-
-      return NextResponse.json({
-        success: true,
-        guardia_id: guardiaCreado.id,
-        mensaje: 'Guardia creado exitosamente'
-      }, { status: 201 });
-
-    } finally {
-      client.release?.();
-    }
+    return NextResponse.json({
+      success: true,
+      guardia_id: guardiaCreado.id,
+      mensaje: 'Guardia creado exitosamente'
+    }, { status: 201 });
 
   } catch (error: unknown) {
     console.error('❌ Error en API de postulación:', error);
@@ -264,14 +271,16 @@ export async function POST(request: NextRequest) {
       'unknown',
       'postulacion_publica',
       { message: errorMessage, stack: errorStack },
-      { datos_entrada: body },
-      body?.tenant_id
+      { datos_entrada: 'Error en procesamiento' },
+      'unknown'
     );
 
     return NextResponse.json({
       error: 'Error interno del servidor',
       detalles: process.env.NODE_ENV === 'development' ? errorMessage : undefined
     }, { status: 500 });
+  } finally {
+    client.release?.();
   }
 }
 
