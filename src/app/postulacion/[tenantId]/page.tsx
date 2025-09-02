@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { GoogleMapsAutocomplete } from "@/components/ui/google-maps-autocomplete";
+import { DatePickerComponent } from "@/components/ui/date-picker";
 import { Camera, Upload, ArrowRight, ArrowLeft, CheckCircle, AlertCircle, Sun, Moon, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { RutValidationModal } from "@/components/ui/rut-validation-modal";
@@ -99,7 +100,7 @@ export default function PostulacionPage() {
     { tipo: 'Certificado OS10', archivo: null, obligatorio: true, fecha_vencimiento: '' },
     { tipo: 'Carnet Identidad Frontal', archivo: null, obligatorio: false },
     { tipo: 'Carnet Identidad Reverso', archivo: null, obligatorio: false },
-    { tipo: 'Certificado Antecedentes', archivo: null, obligatorio: false, fecha_vencimiento: '' },
+    { tipo: 'Certificado Antecedentes', archivo: null, obligatorio: false },
     { tipo: 'Certificado Enseñanza Media', archivo: null, obligatorio: false },
     { tipo: 'Certificado AFP', archivo: null, obligatorio: false },
     { tipo: 'Certificado AFC', archivo: null, obligatorio: false },
@@ -368,7 +369,7 @@ export default function PostulacionPage() {
       { tipo: 'Certificado OS10', archivo: null, obligatorio: true, fecha_vencimiento: '' },
       { tipo: 'Carnet Identidad Frontal', archivo: null, obligatorio: false },
       { tipo: 'Carnet Identidad Reverso', archivo: null, obligatorio: false },
-      { tipo: 'Certificado Antecedentes', archivo: null, obligatorio: false, fecha_vencimiento: '' },
+      { tipo: 'Certificado Antecedentes', archivo: null, obligatorio: false },
       { tipo: 'Certificado Enseñanza Media', archivo: null, obligatorio: false },
       { tipo: 'Certificado AFP', archivo: null, obligatorio: false },
       { tipo: 'Certificado AFC', archivo: null, obligatorio: false },
@@ -1097,24 +1098,21 @@ export default function PostulacionPage() {
                         </div>
                       )}
                       
-                      {/* Campo de fecha de vencimiento para OS10 y Antecedentes */}
-                      {(doc.tipo === 'Certificado OS10' || doc.tipo === 'Certificado Antecedentes') && (
+                      {/* Campo de fecha de vencimiento solo para OS10 */}
+                      {doc.tipo === 'Certificado OS10' && (
                         <div className="mt-2">
-                          <Label htmlFor={`fecha-${index}`} className="text-sm">
-                            Fecha de Vencimiento {doc.tipo === 'Certificado OS10' ? '*' : ''}
+                          <Label className="text-sm">
+                            Fecha de Vencimiento *
                           </Label>
-                          <Input
-                            id={`fecha-${index}`}
-                            type="date"
-                            min={new Date().toISOString().split('T')[0]}
+                          <DatePickerComponent
                             value={doc.fecha_vencimiento || ''}
-                            onChange={(e) => {
+                            onChange={(dateStr: string) => {
                               const newDocs = [...documentos];
-                              newDocs[index].fecha_vencimiento = e.target.value;
+                              newDocs[index].fecha_vencimiento = dateStr;
                               setDocumentos(newDocs);
                             }}
+                            placeholder="Seleccionar fecha de vencimiento"
                             className="mt-1"
-                            required={doc.tipo === 'Certificado OS10'}
                           />
                         </div>
                       )}
