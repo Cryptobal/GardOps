@@ -5,15 +5,17 @@
 import { useEffect, useRef, useState } from "react";
 import { rbacFetch } from "@/lib/rbacClient";
 
-const TTL_MS = 600_000; // 10 minutos (aumentado para reducir llamadas)
+const TTL_MS = 60_000; // 1 minuto (reducido para reflejar cambios más rápido)
 
 // Caché global para el rol del usuario
 let userRoleCache: string | null = null;
 let userRolePromise: Promise<string | null> | null = null;
+let userRoleCacheTime: number = 0;
 
-// Función para obtener el rol del usuario una sola vez
+// Función para obtener el rol del usuario con caché de 1 minuto
 async function getUserRole(): Promise<string | null> {
-  if (userRoleCache !== null) {
+  const now = Date.now();
+  if (userRoleCache !== null && (now - userRoleCacheTime) < 60000) {
     return userRoleCache;
   }
 
@@ -31,6 +33,7 @@ async function getUserRole(): Promise<string | null> {
           const payload = JSON.parse(payloadJson || '{}');
           const role = payload?.rol;
           userRoleCache = role || null;
+          userRoleCacheTime = Date.now();
           return role || null;
         }
       }
@@ -85,6 +88,13 @@ export async function fetchCan(perm: string): Promise<boolean> {
 // Caché en memoria con TTL para evitar flapping
 type CacheEntry = { value: boolean; expiresAt: number };
 const canCache = new Map<string, CacheEntry>();
+
+// Función para limpiar el caché cuando hay cambios
+export function clearPermissionsCache() {
+  canCache.clear();
+  userRoleCache = null;
+  userRoleCacheTime = 0;
+}
 
 function getCachedPermission(perm: string): boolean | null {
   const entry = canCache.get(perm);
