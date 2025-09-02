@@ -334,7 +334,7 @@ export default function PostulacionPage() {
       es_pensionado: 'No',
       asignacion_familiar: 'No',
       tramo_asignacion: '',
-      banco_id: '1', // Ejemplo de banco
+      banco_id: '413ca99e-71dc-4d2b-9d8d-f1417747ffaf', // UUID válido de banco
       tipo_cuenta: 'CCT',
       numero_cuenta: '000123456789',
       talla_camisa: 'M',
