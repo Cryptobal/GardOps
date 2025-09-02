@@ -186,8 +186,14 @@ const SimpleInputDireccion = React.forwardRef<HTMLInputElement, SimpleInputDirec
 
         {/* Mensaje cuando Google Maps no está disponible */}
         {!isLoaded && (
-          <div className="mt-2 text-xs text-amber-500 bg-amber-500/10 p-2 rounded-md border border-amber-500/20">
-            ⚠️ Google Maps no está disponible. Puedes escribir la dirección manualmente.
+          <div className="mt-2 text-xs text-amber-600 bg-amber-500/10 p-3 rounded-md border border-amber-500/20">
+            <div className="flex items-center gap-2">
+              <span className="text-amber-500">⚠️</span>
+              <div>
+                <p className="font-medium">Google Maps no está disponible</p>
+                <p className="text-amber-600/80">Puedes escribir la dirección manualmente. El sistema la guardará correctamente.</p>
+              </div>
+            </div>
           </div>
         )}
 

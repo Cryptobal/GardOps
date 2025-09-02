@@ -113,9 +113,12 @@ export const useAddressAutocomplete = () => {
             console.warn('Google Maps Autocomplete status:', status);
             setSuggestions([]);
             
-            // Si es un error de autorización, mostrar mensaje específico
+            // Si es un error de autorización, desactivar Google Maps completamente
             if (status === google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
-              console.error('❌ Google Maps API no autorizada para este dominio. Contacta al administrador.');
+              console.error('❌ Google Maps API no autorizada. Desactivando autocompletado.');
+              setIsLoaded(false);
+              autocompleteService.current = null;
+              placesService.current = null;
             }
           }
           setIsLoading(false);
@@ -126,9 +129,12 @@ export const useAddressAutocomplete = () => {
       setSuggestions([]);
       setIsLoading(false);
       
-      // Si es un error de autorización, mostrar mensaje específico
+      // Si es un error de autorización, desactivar Google Maps completamente
       if (error instanceof Error && error.message.includes('RefererNotAllowedMapError')) {
-        console.error('❌ Google Maps no está autorizado para este dominio. Contacta al administrador.');
+        console.error('❌ Google Maps no está autorizado. Desactivando autocompletado.');
+        setIsLoaded(false);
+        autocompleteService.current = null;
+        placesService.current = null;
       }
     }
   };
