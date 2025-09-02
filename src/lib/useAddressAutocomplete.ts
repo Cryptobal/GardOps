@@ -254,6 +254,26 @@ export const useAddressAutocomplete = () => {
         }
       }
 
+      // Si aún no se determinó comuna, usar locality como fallback
+      if (!components.comuna && localityComponents.length > 0) {
+        components.comuna = localityComponents[0];
+      }
+
+      // Si aún no se determinó ciudad, usar administrative_area_level_1 como fallback
+      if (!components.ciudad && administrativeLevel1) {
+        components.ciudad = administrativeLevel1;
+      }
+
+      // Log para debugging
+      console.log('🔍 Componentes extraídos:', {
+        original: place.formatted_address,
+        components,
+        localityComponents,
+        sublocalityComponents,
+        administrativeLevel2,
+        administrativeLevel1
+      });
+
       // Región
       if (administrativeLevel1) {
         components.region = administrativeLevel1;

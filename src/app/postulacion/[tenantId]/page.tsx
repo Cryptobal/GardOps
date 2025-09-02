@@ -304,6 +304,54 @@ export default function PostulacionPage() {
     setDocumentos(newDocumentos);
   };
 
+  const completarFormularioPrueba = () => {
+    setFormData({
+      rut: '12345678-9',
+      nombre: 'Juan',
+      apellido_paterno: 'Pérez',
+      apellido_materno: 'González',
+      sexo: 'Masculino',
+      fecha_nacimiento: '1990-01-01',
+      nacionalidad: 'Chilena',
+      email: 'juan.perez@example.com',
+      celular: '987654321',
+      direccion: 'Av. Siempre Viva 123',
+      comuna: 'Santiago',
+      ciudad: 'Santiago',
+      afp: 'Capital',
+      descuento_afp: '1%',
+      prevision_salud: 'FONASA',
+      cotiza_sobre_7: 'No',
+      monto_pactado_uf: '100',
+      es_pensionado: 'No',
+      asignacion_familiar: 'No',
+      tramo_asignacion: '',
+      banco_id: '1', // Ejemplo de banco
+      tipo_cuenta: 'CCT',
+      numero_cuenta: '000123456789',
+      talla_camisa: 'M',
+      talla_pantalon: '40',
+      talla_zapato: 42,
+      altura_cm: 175,
+      peso_kg: 75
+    });
+    
+    // Limpiar documentos (sin archivos)
+    setDocumentos([
+      { tipo: 'Certificado OS10', archivo: null, obligatorio: true },
+      { tipo: 'Carnet Identidad Frontal', archivo: null, obligatorio: false },
+      { tipo: 'Carnet Identidad Reverso', archivo: null, obligatorio: false },
+      { tipo: 'Certificado Antecedentes', archivo: null, obligatorio: false },
+      { tipo: 'Certificado Enseñanza Media', archivo: null, obligatorio: false },
+      { tipo: 'Certificado AFP', archivo: null, obligatorio: false },
+      { tipo: 'Certificado AFC', archivo: null, obligatorio: false },
+      { tipo: 'Certificado FONASA/ISAPRE', archivo: null, obligatorio: false }
+    ]);
+    
+    setErrors({});
+    mostrarModalRut('info', 'Formulario Completado', 'El formulario ha sido completado con datos de prueba. Recuerda que aún necesitas subir los documentos obligatorios.');
+  };
+
   const siguientePagina = async () => {
     if (validarFormulario()) {
       // Verificar si el RUT ya existe
@@ -513,6 +561,19 @@ export default function PostulacionPage() {
           <p className="text-lg text-gray-600 dark:text-gray-300">
             Completa el formulario para postular como guardia de seguridad
           </p>
+          
+          {/* Botón para completar formulario de prueba */}
+          <div className="mt-4 flex justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={completarFormularioPrueba}
+              className="bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
+            >
+              🧪 Completar Formulario de Prueba
+            </Button>
+          </div>
+          
           <div className="flex justify-center items-center space-x-2 mt-4">
             <div className={`w-3 h-3 rounded-full ${currentPage >= 1 ? 'bg-blue-500' : 'bg-gray-300'}`} />
             <div className={`w-3 h-3 rounded-full ${currentPage >= 2 ? 'bg-blue-500' : 'bg-gray-300'}`} />
@@ -970,38 +1031,27 @@ export default function PostulacionPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 {documentos.map((doc, index) => (
-                  <div key={doc.tipo} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <Label className="text-lg font-medium">
-                        {doc.tipo} {doc.obligatorio && <span className="text-red-500">*</span>}
-                      </Label>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDocumentChange(index, 'archivo', 'data:image/jpeg;base64,simulated_photo')}
-                          className="flex items-center space-x-2"
-                        >
-                          <Camera className="w-4 h-4" />
-                          <span>Cámara</span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => document.getElementById(`file-${index}`)?.click()}
-                          className="flex items-center space-x-2"
-                        >
-                          <Upload className="w-4 h-4" />
-                          <span>Archivo</span>
-                        </Button>
+                                     <div key={doc.tipo} className="border rounded-lg p-4 space-y-4">
+                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                       <Label className="text-base font-medium">
+                         {doc.tipo} {doc.obligatorio && <span className="text-red-500">*</span>}
+                       </Label>
+                       <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                         <label
+                           htmlFor={`file-${index}`}
+                           className="cursor-pointer inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-full sm:w-auto"
+                         >
+                           <Upload className="w-4 h-4 mr-2" />
+                           Cargar Archivo
+                         </label>
                         {doc.archivo && (
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => eliminarDocumento(index)}
-                            className="flex items-center space-x-2 text-red-500"
+                            className="flex items-center justify-center text-red-500 w-full sm:w-auto"
                           >
-                            <X className="w-4 h-4" />
+                            <X className="w-4 h-4 mr-2" />
                             <span>Eliminar</span>
                           </Button>
                         )}
