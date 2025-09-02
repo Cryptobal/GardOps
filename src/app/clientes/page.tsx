@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { api } from '@/lib/api-client';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 // Importar componentes genéricos
 import { DataTable, Column } from "../../components/ui/data-table";
@@ -70,6 +71,7 @@ export default function ClientesPage() {
   // Gate UI: requiere permiso para ver clientes
   const { useCan } = require("@/lib/permissions");
   const { allowed, loading: permLoading } = useCan('clientes.view');
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,25 +81,30 @@ export default function ClientesPage() {
   // Cargar clientes
   useEffect(() => {
     const fetchClientes = async () => {
-      if (!allowed) return;
+      if (!allowed || !isAuthenticated) return;
+      
       try {
         setLoading(true);
+        console.log('🔍 ClientesPage: Iniciando carga de clientes...');
+        console.log('🔍 ClientesPage: Usuario autenticado:', user?.email);
+        
         const result = await api.clientes.getAll();
 
         if (result.success) {
           setClientes(result.data);
+          console.log('✅ ClientesPage: Clientes cargados exitosamente:', result.data.length);
         } else {
-          console.error("Error al cargar clientes:", result.error);
+          console.error("❌ ClientesPage: Error al cargar clientes:", result.error);
         }
       } catch (error) {
-        console.error("Error cargando clientes:", error);
+        console.error("❌ ClientesPage: Error cargando clientes:", error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchClientes();
-  }, [allowed]);
+  }, [allowed, isAuthenticated, user]);
 
   // Filtrar clientes
   const filteredClientes = useMemo(() => {
@@ -249,8 +256,56 @@ export default function ClientesPage() {
     </Card>
   );
 
-  if (permLoading) return null;
-  if (!allowed) return (<div className="p-4 text-sm text-muted-foreground">Sin acceso</div>);
+  // Mostrar información de depuración si no hay permisos
+  if (permLoading || authLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4">Verificando permisos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-red-600 mb-2">Usuario No Autenticado</h2>
+            <p className="text-gray-600 mb-4">
+              Debes iniciar sesión para acceder a esta página.
+            </p>
+            <Button onClick={() => router.push('/login')}>
+              Ir al Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!allowed) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-red-600 mb-2">Acceso Denegado</h2>
+            <p className="text-gray-600 mb-4">
+              No tienes permisos para ver clientes.
+            </p>
+            <div className="text-sm text-gray-500 space-y-1">
+              <p><strong>Usuario:</strong> {user?.email}</p>
+              <p><strong>Estado de autenticación:</strong> {isAuthenticated ? 'Sí' : 'No'}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <motion.div 

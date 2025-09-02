@@ -26,39 +26,133 @@ class ApiClient {
       const devEmail = process.env.NEXT_PUBLIC_DEV_USER_EMAIL;
       if (devEmail) {
         headers['x-user-email'] = devEmail;
+        console.log('🔧 Dev mode: usando email de entorno:', devEmail);
         return headers;
       }
     }
 
     // En producción, obtener el email del usuario autenticado
     try {
-      // Intentar obtener desde cookies
+      // Verificar si estamos en el navegador
       if (typeof document !== 'undefined') {
+        console.log('🌐 Cliente API ejecutándose en navegador');
+        
+        // Intentar obtener desde cookies
         const tenantCookie = document.cookie
           .split('; ')
           .find((row) => row.startsWith('tenant='))
           ?.split('=')[1];
 
         if (tenantCookie) {
-          const tenantInfo = JSON.parse(decodeURIComponent(tenantCookie));
-          if (tenantInfo.email) {
-            headers['x-user-email'] = tenantInfo.email;
-            return headers;
+          try {
+            const tenantInfo = JSON.parse(decodeURIComponent(tenantCookie));
+            console.log('🍪 Cookie tenant encontrada:', tenantInfo);
+            if (tenantInfo.email) {
+              headers['x-user-email'] = tenantInfo.email;
+              console.log('✅ Email obtenido de cookie tenant:', tenantInfo.email);
+              return headers;
+            }
+          } catch (parseError) {
+            console.warn('⚠️ Error parseando cookie tenant:', parseError);
+          }
+        } else {
+          console.log('❌ Cookie tenant no encontrada');
+        }
+
+        // Intentar obtener desde localStorage
+        const currentUser = localStorage.getItem('current_user');
+        if (currentUser) {
+          try {
+            const userInfo = JSON.parse(currentUser);
+            console.log('💾 localStorage current_user encontrado:', userInfo);
+            if (userInfo.email) {
+              headers['x-user-email'] = userInfo.email;
+              console.log('✅ Email obtenido de localStorage:', userInfo.email);
+              return headers;
+            }
+          } catch (parseError) {
+            console.warn('⚠️ Error parseando localStorage current_user:', parseError);
+          }
+        } else {
+          console.log('❌ localStorage current_user no encontrado');
+        }
+
+        // Verificar si hay auth_token cookie
+        const authToken = document.cookie
+          .split('; ')
+          .find((row) => row.startsWith('auth_token='))
+          ?.split('=')[1];
+        
+        if (authToken) {
+          console.log('🔑 Cookie auth_token encontrada');
+        } else {
+          console.log('❌ Cookie auth_token no encontrada');
+        }
+
+        console.log('📋 Estado de cookies completo:', document.cookie);
+      } else {
+        console.log('🖥️ Cliente API ejecutándose en servidor');
+      }
+    } catch (error) {
+      console.error('❌ Error obteniendo email del usuario:', error);
+    }
+
+    console.warn('⚠️ No se pudo obtener email del usuario, enviando petición sin x-user-email');
+    return headers;
+  }
+
+  // Método para obtener headers de autenticación de forma síncrona
+  // Esto es útil cuando se necesita el header inmediatamente
+  private getAuthHeadersSync(): Record<string, string> {
+    const headers = { ...this.defaultHeaders };
+
+    // En desarrollo, usar la variable de entorno
+    if (process.env.NODE_ENV === 'development') {
+      const devEmail = process.env.NEXT_PUBLIC_DEV_USER_EMAIL;
+      if (devEmail) {
+        headers['x-user-email'] = devEmail;
+        return headers;
+      }
+    }
+
+    // En producción, obtener el email del usuario autenticado
+    try {
+      // Verificar si estamos en el navegador
+      if (typeof document !== 'undefined') {
+        // Intentar obtener desde cookies
+        const tenantCookie = document.cookie
+          .split('; ')
+          .find((row) => row.startsWith('tenant='))
+          ?.split('=')[1];
+
+        if (tenantCookie) {
+          try {
+            const tenantInfo = JSON.parse(decodeURIComponent(tenantCookie));
+            if (tenantInfo.email) {
+              headers['x-user-email'] = tenantInfo.email;
+              return headers;
+            }
+          } catch (parseError) {
+            // Silenciar error de parsing
           }
         }
 
         // Intentar obtener desde localStorage
         const currentUser = localStorage.getItem('current_user');
         if (currentUser) {
-          const userInfo = JSON.parse(currentUser);
-          if (userInfo.email) {
-            headers['x-user-email'] = userInfo.email;
-            return headers;
+          try {
+            const userInfo = JSON.parse(currentUser);
+            if (userInfo.email) {
+              headers['x-user-email'] = userInfo.email;
+              return headers;
+            }
+          } catch (parseError) {
+            // Silenciar error de parsing
           }
         }
       }
     } catch (error) {
-      console.warn('Error obteniendo email del usuario:', error);
+      // Silenciar error
     }
 
     return headers;
@@ -69,7 +163,9 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    const authHeaders = await this.getAuthHeaders();
+    
+    // Usar versión síncrona para evitar problemas de timing
+    const authHeaders = this.getAuthHeadersSync();
     
     const config: RequestInit = {
       ...options,

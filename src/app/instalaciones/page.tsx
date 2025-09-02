@@ -19,6 +19,7 @@ import {
 import { useRouter } from "next/navigation";
 import InstalacionModal from "@/components/instalaciones/InstalacionModal";
 import { api } from '@/lib/api-client';
+import { useAuth } from "@/lib/hooks/useAuth";
 
 // Hook personalizado para debounce
 function useDebounce<T>(value: T, delay: number): T {
@@ -118,6 +119,7 @@ export default function InstalacionesPage() {
   // Gate UI: requiere permiso para ver instalaciones
   const { useCan } = require("@/lib/permissions");
   const { allowed, loading: permLoading } = useCan('instalaciones.view');
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [instalaciones, setInstalaciones] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,7 +147,7 @@ export default function InstalacionesPage() {
     try {
       setLoading(true);
       
-      const result = await api.instalaciones.getAll({ simple: 'true' });
+      const result = await api.instalaciones.getAll({ simple: 'true' }) as any;
       
       if (result.success) {
         console.log('🔍 Datos de instalaciones recibidos:', result.data);
@@ -230,8 +232,56 @@ export default function InstalacionesPage() {
     fetchKPIs(); // Recargar KPIs
   }, [closeModal, fetchInstalaciones, fetchKPIs]);
 
-  if (permLoading) return null;
-  if (!allowed) return (<div className="p-4 text-sm text-muted-foreground">Sin acceso</div>);
+  // Mostrar información de depuración si no hay permisos
+  if (permLoading || authLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4">Verificando permisos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-red-600 mb-2">Usuario No Autenticado</h2>
+            <p className="text-gray-600 mb-4">
+              Debes iniciar sesión para acceder a esta página.
+            </p>
+            <Button onClick={() => router.push('/login')}>
+              Ir al Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!allowed) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-red-600 mb-2">Acceso Denegado</h2>
+            <p className="text-gray-600 mb-4">
+              No tienes permisos para ver instalaciones.
+            </p>
+            <div className="text-sm text-gray-500 space-y-1">
+              <p><strong>Usuario:</strong> {user?.email}</p>
+              <p><strong>Estado de autenticación:</strong> {isAuthenticated ? 'Sí' : 'No'}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6">

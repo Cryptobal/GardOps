@@ -33,6 +33,7 @@ import { DataTable, Column } from "../../components/ui/data-table";
 // Importar hooks
 import { useEntityModal } from "../../hooks/useEntityModal";
 import { useCrudOperations } from "../../hooks/useCrudOperations";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 // Importar tipos y esquemas
 import { Guardia } from "../../lib/schemas/guardias";
@@ -87,7 +88,7 @@ export default function GuardiasPage() {
   // Gate UI: requiere permiso para ver guardias
   const { useCan } = require("@/lib/permissions");
   const { allowed, loading: permLoading } = useCan('guardias.view');
-
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [guardias, setGuardias] = useState<Guardia[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,6 +100,7 @@ export default function GuardiasPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [os10ModalOpen, setOs10ModalOpen] = useState(false);
   const [os10ModalTipo, setOs10ModalTipo] = useState<'por_vencer' | 'vencido' | 'sin_fecha' | null>(null);
+  const [showOS10Stats, setShowOS10Stats] = useState(false);
 
   // Hooks para modales y operaciones CRUD
   const { 
@@ -233,11 +235,12 @@ export default function GuardiasPage() {
     os10Vencidos: 0
   });
 
-  // Cargar datos de guardias
+  // Cargar guardias
   useEffect(() => {
     const fetchGuardias = async () => {
-      if (!allowed) return; // no cargar si no tiene permiso
+      if (!allowed || !isAuthenticated) return; // no cargar si no tiene permiso o no está autenticado
       console.log("🔍 GuardiasPage: Iniciando carga de guardias...");
+      console.log("🔍 GuardiasPage: Usuario autenticado:", user?.email);
       try {
         setLoading(true);
         console.log("🔍 GuardiasPage: Llamando a /api/guardias...");
@@ -289,7 +292,7 @@ export default function GuardiasPage() {
     };
 
     fetchGuardias();
-  }, [allowed]);
+  }, [allowed, isAuthenticated, user]);
 
   // Filtrar guardias (con dependencias explícitas)
   const filteredGuardias = useMemo(() => {
@@ -419,8 +422,56 @@ export default function GuardiasPage() {
   // Obtener instalaciones únicas para el filtro
   const instalaciones = Array.from(new Set(guardias.map((g: any) => g.instalacion_asignada).filter(Boolean))).sort();
 
-  if (permLoading) return null;
-  if (!allowed) return (<div className="p-4 text-sm text-muted-foreground">Sin acceso</div>);
+  // Mostrar información de depuración si no hay permisos
+  if (permLoading || authLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4">Verificando permisos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-red-600 mb-2">Usuario No Autenticado</h2>
+            <p className="text-gray-600 mb-4">
+              Debes iniciar sesión para acceder a esta página.
+            </p>
+            <Button onClick={() => router.push('/login')}>
+              Ir al Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!allowed) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-red-600 mb-2">Acceso Denegado</h2>
+            <p className="text-gray-600 mb-4">
+              No tienes permisos para ver guardias.
+            </p>
+            <div className="text-sm text-gray-500 space-y-1">
+              <p><strong>Usuario:</strong> {user?.email}</p>
+              <p><strong>Estado de autenticación:</strong> {isAuthenticated ? 'Sí' : 'No'}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6">
