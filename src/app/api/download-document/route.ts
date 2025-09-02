@@ -39,11 +39,20 @@ export async function GET(request: NextRequest) {
     
     const documento = result.rows[0];
     
-    // Si hay URL de Cloudflare R2, descargar y servir el archivo
-    if (documento.url && documento.url.startsWith('http')) {
-      try {
-        // Descargar el archivo desde R2
-        const response = await fetch(documento.url);
+    // Construir URL completa de Cloudflare R2
+    let r2Url = documento.url;
+    
+    // Si la URL no es completa, construir la URL completa de R2
+    if (!r2Url.startsWith('http')) {
+      const r2PublicUrl = process.env.R2_PUBLIC_URL || `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+      r2Url = `${r2PublicUrl}/${process.env.R2_BUCKET_NAME}/${r2Url}`;
+    }
+    
+    // Descargar y servir el archivo desde R2
+    if (r2Url && r2Url.startsWith('http')) {
+              try {
+          // Descargar el archivo desde R2
+          const response = await fetch(r2Url);
         
         if (!response.ok) {
           throw new Error(`Error descargando desde R2: ${response.status}`);
