@@ -385,96 +385,92 @@ async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: 
       
       // Función para enviar webhook con reintentos robusta
       const enviarWebhookConReintentos = async (intento: number = 1): Promise<any> => {
-          try {
-            console.log(`🚀 Enviando webhook (intento ${intento}) a: ${webhookUrl}`);
-            
-            const response = await fetch(webhookUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'User-Agent': 'GardOps-Postulacion/1.0'
-              },
-              body: JSON.stringify(payload),
-              // Timeout más largo para Make.com
-              signal: AbortSignal.timeout(120000), // 2 minutos timeout
-              keepalive: true
-            });
-            
-            return response;
-          } catch (error: any) {
-            // Detectar diferentes tipos de errores para reintentos
-            const shouldRetry = intento < 3 && (
-              error.name === 'TimeoutError' || 
-              error.code === 23 || // Timeout
-              error.code === 'UND_ERR_SOCKET' || // Socket cerrado
-              error.message?.includes('fetch failed') || // Fetch falló
-              error.message?.includes('other side closed') // Conexión cerrada
-            );
-            
-            if (shouldRetry) {
-              const delay = intento * 3; // Delay progresivo: 3s, 6s, 9s
-              console.log(`🔄 Error en intento ${intento} (${error.message}), reintentando en ${delay} segundos...`);
-              await new Promise(resolve => setTimeout(resolve, delay * 1000));
-              return enviarWebhookConReintentos(intento + 1);
-            }
-            
-            throw error;
+        try {
+          console.log(`🚀 Enviando webhook (intento ${intento}) a: ${webhookUrl}`);
+          
+          const response = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'User-Agent': 'GardOps-Postulacion/1.0'
+            },
+            body: JSON.stringify(payload),
+            // Timeout más largo para Make.com
+            signal: AbortSignal.timeout(120000), // 2 minutos timeout
+            keepalive: true
+          });
+          
+          return response;
+        } catch (error: any) {
+          // Detectar diferentes tipos de errores para reintentos
+          const shouldRetry = intento < 3 && (
+            error.name === 'TimeoutError' || 
+            error.code === 23 || // Timeout
+            error.code === 'UND_ERR_SOCKET' || // Socket cerrado
+            error.message?.includes('fetch failed') || // Fetch falló
+            error.message?.includes('other side closed') // Conexión cerrada
+          );
+          
+          if (shouldRetry) {
+            const delay = intento * 3; // Delay progresivo: 3s, 6s, 9s
+            console.log(`🔄 Error en intento ${intento} (${error.message}), reintentando en ${delay} segundos...`);
+            await new Promise(resolve => setTimeout(resolve, delay * 1000));
+            return enviarWebhookConReintentos(intento + 1);
           }
-        };
-        
-        const response = await enviarWebhookConReintentos();
+          
+          throw error;
+        }
+      };
+      
+      const response = await enviarWebhookConReintentos();
 
-        // Log del webhook
+      // Log del webhook
+      await client.query(`
+        INSERT INTO webhook_logs (
+          tenant_id, guardia_id, url_webhook, payload_sent, 
+          response_status, response_body, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      `, [
+        tenantId,
+        guardiaId,
+        webhookUrl,
+        JSON.stringify(payload),
+        response.status,
+        await response.text().catch(() => 'Error leyendo respuesta')
+      ]);
+
+      console.log(`✅ Webhook enviado exitosamente a ${webhookUrl}`);
+
+    } catch (error: unknown) {
+      console.error('❌ Error enviando webhook:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorCode = error instanceof Error && 'code' in error ? (error as any).code : 'UNKNOWN';
+      
+      // Log detallado del error
+      console.error('🔍 Detalles del error del webhook:');
+      console.error('   - URL:', webhookUrl);
+      console.error('   - Código de error:', errorCode);
+      console.error('   - Mensaje:', errorMessage);
+      
+      // Log del error del webhook
+      try {
         await client.query(`
           INSERT INTO webhook_logs (
             tenant_id, guardia_id, url_webhook, payload_sent, 
-            response_status, response_body, created_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            error_message, created_at
+          ) VALUES ($1, $2, $3, $4, $5, NOW())
         `, [
           tenantId,
           guardiaId,
           webhookUrl,
           JSON.stringify(payload),
-          response.status,
-          await response.text().catch(() => 'Error leyendo respuesta')
+          errorMessage
         ]);
-
-        console.log(`✅ Webhook enviado exitosamente a ${webhookUrl}`);
-
-      } catch (error: unknown) {
-        console.error('❌ Error enviando webhook:', error);
-        
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        const errorCode = error instanceof Error && 'code' in error ? (error as any).code : 'UNKNOWN';
-        
-        // Log detallado del error
-        console.error('🔍 Detalles del error del webhook:');
-        console.error('   - URL:', webhookUrl);
-        console.error('   - Código de error:', errorCode);
-        console.error('   - Mensaje:', errorMessage);
-        
-        // Log del error del webhook
-        try {
-          await client.query(`
-            INSERT INTO webhook_logs (
-              tenant_id, guardia_id, url_webhook, payload_sent, 
-              error_message, created_at
-            ) VALUES ($1, $2, $3, $4, $5, NOW())
-          `, [
-            tenantId,
-            guardiaId,
-            webhookUrl,
-            JSON.stringify(payload),
-            errorMessage
-          ]);
-        } catch (dbError) {
-          console.error('❌ Error guardando log del webhook en BD:', dbError);
-        }
+      } catch (dbError) {
+        console.error('❌ Error guardando log del webhook en BD:', dbError);
       }
-    } catch (webhookError) {
-      console.error('❌ Error general enviando webhook:', webhookError);
     }
-
   } catch (error) {
     console.error('❌ Error en función de webhook:', error);
   }
