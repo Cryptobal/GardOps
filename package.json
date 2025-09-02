@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/fix-constraint-on-build.js && next build",
+    "build": "next build",
     "start": "next start",
     "prod": "cp .env.local .env.production && npm run build && npm start",
     "prod:check": "cp .env.local .env.production && npx tsc --noEmit && npm run build && npm start",
