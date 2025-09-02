@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
         comuna: body.comuna || '',
         latitud: body.latitud || null,
         longitud: body.longitud || null,
-        banco_id: body.banco_id,
+        banco: body.banco_id,
         tipo_cuenta: body.tipo_cuenta,
         numero_cuenta: body.numero_cuenta.trim(),
         tenant_id: body.tenant_id,
@@ -154,9 +154,9 @@ export async function POST(request: NextRequest) {
       // Insertar guardia
       console.log('🚀 Insertando guardia en base de datos...');
       const insertQuery = `
-        INSERT INTO guardias_temp (
+        INSERT INTO guardias (
           rut, nombre, apellido_paterno, apellido_materno, email, telefono,
-          direccion, ciudad, comuna, latitud, longitud, banco_id, tipo_cuenta,
+          direccion, ciudad, comuna, latitud, longitud, banco, tipo_cuenta,
           numero_cuenta, tenant_id, activo, tipo_guardia,
           sexo, nacionalidad, fecha_nacimiento, afp, descuento_afp,
           prevision_salud, cotiza_sobre_7, monto_pactado_uf, es_pensionado,
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
         datosGuardia.rut, datosGuardia.nombre, datosGuardia.apellido_paterno,
         datosGuardia.apellido_materno, datosGuardia.email, datosGuardia.telefono,
         datosGuardia.direccion, datosGuardia.ciudad, datosGuardia.comuna,
-        datosGuardia.latitud, datosGuardia.longitud, datosGuardia.banco_id,
+        datosGuardia.latitud, datosGuardia.longitud, datosGuardia.banco,
         datosGuardia.tipo_cuenta, datosGuardia.numero_cuenta, datosGuardia.tenant_id,
         datosGuardia.activo, datosGuardia.tipo_guardia,
         datosGuardia.sexo, datosGuardia.nacionalidad, datosGuardia.fecha_nacimiento,
