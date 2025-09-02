@@ -77,10 +77,10 @@ export async function POST(req: NextRequest) {
         await s3.send(uploadCommand);
         r2Success = true;
         
-        // Construir la URL pública correctamente
-        const bucketName = process.env.R2_BUCKET_NAME || 'gardops-documents';
-        const publicUrl = process.env.R2_PUBLIC_URL || `https://pub-${process.env.R2_ACCOUNT_ID}.r2.dev`;
-        r2Url = `${publicUrl}/${key}`;
+        // Construir la URL pública correctamente usando docs.gard.cl
+        const bucketName = process.env.R2_BUCKET_NAME || 'gardops-docs';
+        // Usar docs.gard.cl como dominio principal para producción
+        r2Url = `https://docs.gard.cl/${key}`;
         
         console.log('✅ Archivo subido exitosamente a R2:', r2Url);
       } catch (r2Error: any) {
