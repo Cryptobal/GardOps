@@ -307,12 +307,22 @@ async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: 
       return;
     }
 
+    // Generar URLs de la ficha del guardia
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ops.gard.cl';
+    const fichaGuardiaUrl = `${baseUrl}/guardias?id=${guardiaId}`;
+    const fichaGuardiaDirectUrl = `${baseUrl}/guardias/${guardiaId}`;
+    
     // Preparar payload del webhook
     const payload = {
       evento: 'nueva_postulacion_guardia',
       tenant_id: tenantId,
       guardia_id: guardiaId,
       timestamp: new Date().toISOString(),
+      urls: {
+        ficha_guardia: fichaGuardiaUrl,
+        ficha_guardia_directa: fichaGuardiaDirectUrl,
+        sistema_principal: baseUrl
+      },
       datos: {
         personal: {
           rut: datosGuardia.rut,
