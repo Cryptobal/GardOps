@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
         -- Documentos de clientes
         SELECT 
           d.id,
-          d.nombre as nombre,
+          d.nombre_original as nombre,
           d.tamaño,
           d.created_at,
           d.fecha_vencimiento,
@@ -52,25 +52,26 @@ export async function GET(request: NextRequest) {
           'clientes' as modulo,
           c.nombre as entidad_nombre,
           c.id as entidad_id,
-          d.archivo_url as url,
+          d.url,
           CASE 
             WHEN d.fecha_vencimiento IS NULL THEN 'sin_vencimiento'
             WHEN d.fecha_vencimiento < CURRENT_DATE THEN 'vencido'
             WHEN d.fecha_vencimiento <= CURRENT_DATE + INTERVAL '30 days' THEN 'por_vencer'
             ELSE 'vigente'
           END as estado
-        FROM documentos_clientes d
-        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id
+        FROM documentos d
+        LEFT JOIN tipos_documentos_postulacion td ON d.tipo_documento_id = td.id
         LEFT JOIN clientes c ON d.cliente_id = c.id
+        WHERE d.cliente_id IS NOT NULL
         
         UNION ALL
         
         -- Documentos de instalaciones
         SELECT 
           d.id,
-          d.tipo as nombre,
-          0 as tamaño,
-          d.fecha_subida as created_at,
+          d.nombre_original as nombre,
+          d.tamaño,
+          d.created_at,
           d.fecha_vencimiento,
           td.nombre as tipo_documento_nombre,
           td.id as tipo_documento_id,
@@ -84,18 +85,19 @@ export async function GET(request: NextRequest) {
             WHEN d.fecha_vencimiento <= CURRENT_DATE + INTERVAL '30 days' THEN 'por_vencer'
             ELSE 'vigente'
           END as estado
-        FROM documentos_instalacion d
-        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id
+        FROM documentos d
+        LEFT JOIN tipos_documentos_postulacion td ON d.tipo_documento_id = td.id
         LEFT JOIN instalaciones i ON d.instalacion_id = i.id
+        WHERE d.instalacion_id IS NOT NULL
         
         UNION ALL
         
         -- Documentos de guardias
         SELECT 
           d.id,
-          d.tipo as nombre,
-          0 as tamaño,
-          d.fecha_subida as created_at,
+          d.nombre_original as nombre,
+          d.tamaño,
+          d.created_at,
           d.fecha_vencimiento,
           td.nombre as tipo_documento_nombre,
           td.id as tipo_documento_id,
@@ -109,9 +111,10 @@ export async function GET(request: NextRequest) {
             WHEN d.fecha_vencimiento <= CURRENT_DATE + INTERVAL '30 days' THEN 'por_vencer'
             ELSE 'vigente'
           END as estado
-        FROM documentos_guardias d
-        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id
+        FROM documentos d
+        LEFT JOIN tipos_documentos_postulacion td ON d.tipo_documento_id = td.id
         LEFT JOIN guardias g ON d.guardia_id = g.id
+        WHERE d.guardia_id IS NOT NULL
       )
       SELECT * FROM documentos_unidos
       WHERE 1=1
@@ -179,7 +182,8 @@ export async function GET(request: NextRequest) {
             WHEN d.fecha_vencimiento <= CURRENT_DATE + INTERVAL '30 days' THEN 'por_vencer'
             ELSE 'vigente'
           END as estado
-        FROM documentos_clientes d
+        FROM documentos d
+        WHERE d.cliente_id IS NOT NULL
         
         UNION ALL
         
@@ -191,7 +195,8 @@ export async function GET(request: NextRequest) {
             WHEN d.fecha_vencimiento <= CURRENT_DATE + INTERVAL '30 days' THEN 'por_vencer'
             ELSE 'vigente'
           END as estado
-        FROM documentos_instalacion d
+        FROM documentos d
+        WHERE d.instalacion_id IS NOT NULL
         
         UNION ALL
         
@@ -203,7 +208,8 @@ export async function GET(request: NextRequest) {
             WHEN d.fecha_vencimiento <= CURRENT_DATE + INTERVAL '30 days' THEN 'por_vencer'
             ELSE 'vigente'
           END as estado
-        FROM documentos_guardias d
+        FROM documentos d
+        WHERE d.guardia_id IS NOT NULL
       )
       SELECT 
         COUNT(*) as total,

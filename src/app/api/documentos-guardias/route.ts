@@ -24,15 +24,17 @@ export async function GET(request: NextRequest) {
         d.guardia_id,
         d.tipo_documento_id,
         d.url as url_archivo,
-        d.creado_en as fecha_subida,
+        d.created_at as fecha_subida,
         d.fecha_vencimiento,
         d.tipo as estado,
+        d.nombre_original,
+        d.tamaño,
         td.nombre as tipo_documento_nombre,
         td.requiere_vencimiento
       FROM documentos d
-      LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id
+      LEFT JOIN tipos_documentos_postulacion td ON d.tipo_documento_id = td.id
       WHERE d.guardia_id = $1
-      ORDER BY d.creado_en DESC
+      ORDER BY d.created_at DESC
     `;
     
     const result = await query(sql, [guardiaId]);
@@ -76,9 +78,9 @@ export async function PUT(request: NextRequest) {
 
     // Actualizar fecha de vencimiento
     const sql = `
-      UPDATE documentos_guardias 
+      UPDATE documentos 
       SET fecha_vencimiento = $1, updated_at = NOW()
-      WHERE id = $2 
+      WHERE id = $2 AND guardia_id IS NOT NULL
       RETURNING *
     `;
     

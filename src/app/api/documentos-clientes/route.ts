@@ -28,9 +28,9 @@ export async function PUT(request: NextRequest) {
 
     // Actualizar fecha de vencimiento
     const sql = `
-      UPDATE documentos_clientes 
+      UPDATE documentos 
       SET fecha_vencimiento = $1, updated_at = NOW()
-      WHERE id = $2 
+      WHERE id = $2 AND cliente_id IS NOT NULL
       RETURNING *
     `;
     

@@ -4,6 +4,56 @@ import { query } from '../../../lib/database';
 // Configuración para evitar errores de Dynamic Server Usage
 export const dynamic = 'force-dynamic';
 
+// GET /api/documentos-instalaciones?instalacion_id=uuid - Obtener documentos de una instalación
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const instalacionId = searchParams.get('instalacion_id');
+    
+    if (!instalacionId) {
+      return NextResponse.json(
+        { success: false, error: 'ID de la instalación requerido' },
+        { status: 400 }
+      );
+    }
+
+    // Obtener documentos de la instalación
+    const sql = `
+      SELECT 
+        d.id,
+        d.instalacion_id,
+        d.tipo_documento_id,
+        d.url as url_archivo,
+        d.created_at as fecha_subida,
+        d.fecha_vencimiento,
+        d.tipo as estado,
+        d.nombre_original,
+        d.tamaño,
+        td.nombre as tipo_documento_nombre,
+        td.requiere_vencimiento
+      FROM documentos d
+      LEFT JOIN tipos_documentos_postulacion td ON d.tipo_documento_id = td.id
+      WHERE d.instalacion_id = $1
+      ORDER BY d.created_at DESC
+    `;
+    
+    const result = await query(sql, [instalacionId]);
+    
+    console.log(`✅ Documentos obtenidos para instalación ${instalacionId}:`, result.rows.length);
+    
+    return NextResponse.json({ 
+      success: true, 
+      data: result.rows 
+    });
+  } catch (error) {
+    console.error('❌ Error obteniendo documentos de la instalación:', error);
+    return NextResponse.json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Error desconocido'
+    }, { status: 500 });
+  }
+}
+
 // PUT /api/documentos-instalaciones?id=uuid - Actualizar fecha de vencimiento
 export async function PUT(request: NextRequest) {
   try {
@@ -28,9 +78,9 @@ export async function PUT(request: NextRequest) {
 
     // Actualizar fecha de vencimiento
     const sql = `
-      UPDATE documentos_instalacion 
+      UPDATE documentos 
       SET fecha_vencimiento = $1, updated_at = NOW()
-      WHERE id = $2 
+      WHERE id = $2 AND instalacion_id IS NOT NULL
       RETURNING *
     `;
     
