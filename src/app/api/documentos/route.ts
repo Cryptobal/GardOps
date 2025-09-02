@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
+import { DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { s3 } from '@/lib/r2';
 
 // Configuración para evitar errores de Dynamic Server Usage
 export const dynamic = 'force-dynamic';
@@ -148,9 +150,36 @@ export async function DELETE(request: NextRequest) {
       }, { status: 403 });
     }
     
-    // Eliminar el documento
+    // Eliminar archivo de R2 si existe y tenemos configuración
+    if (s3 && documento.url && documento.url.includes('docs.gard.cl')) {
+      try {
+        console.log('🗑️ Eliminando archivo de R2:', documento.url);
+        
+        // Extraer la key del archivo de la URL
+        const urlParts = documento.url.split('docs.gard.cl/');
+        if (urlParts.length > 1) {
+          const key = urlParts[1];
+          console.log('🔑 Key del archivo en R2:', key);
+          
+          const deleteCommand = new DeleteObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME || 'gardops-docs',
+            Key: key,
+          });
+          
+          await s3.send(deleteCommand);
+          console.log('✅ Archivo eliminado de R2:', key);
+        }
+      } catch (r2Error) {
+        console.error('❌ Error eliminando de R2:', r2Error);
+        // Continuar con la eliminación de la BD aunque falle R2
+      }
+    }
+    
+    // Eliminar el documento de la base de datos
     const deleteSql = `DELETE FROM documentos WHERE id = $1`;
     await query(deleteSql, [documentId]);
+    
+    console.log('✅ Documento eliminado de la BD:', documentId);
     
     return NextResponse.json({ 
       success: true, 
