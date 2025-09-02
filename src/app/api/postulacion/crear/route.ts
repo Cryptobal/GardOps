@@ -367,17 +367,35 @@ async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: 
       try {
         console.log(`🚀 Enviando webhook a: ${webhookUrl}`);
         
-        const response = await fetch(webhookUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'User-Agent': 'GardOps-Postulacion/1.0'
-          },
-          body: JSON.stringify(payload),
-          // Opciones adicionales para evitar problemas SSL
-          signal: AbortSignal.timeout(30000), // 30 segundos timeout
-          keepalive: true
-        });
+        // Función para enviar webhook con reintentos
+        const enviarWebhookConReintentos = async (intento: number = 1): Promise<any> => {
+          try {
+            console.log(`🚀 Enviando webhook (intento ${intento}) a: ${webhookUrl}`);
+            
+            const response = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'GardOps-Postulacion/1.0'
+              },
+              body: JSON.stringify(payload),
+              // Timeout más largo para Make.com
+              signal: AbortSignal.timeout(120000), // 2 minutos timeout
+              keepalive: true
+            });
+            
+            return response;
+          } catch (error: any) {
+            if (intento < 3 && (error.name === 'TimeoutError' || error.code === 23)) {
+              console.log(`⏰ Timeout en intento ${intento}, reintentando en 5 segundos...`);
+              await new Promise(resolve => setTimeout(resolve, 5000));
+              return enviarWebhookConReintentos(intento + 1);
+            }
+            throw error;
+          }
+        };
+        
+        const response = await enviarWebhookConReintentos();
 
         // Log del webhook
         await client.query(`
