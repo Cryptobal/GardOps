@@ -69,6 +69,11 @@ export function DocumentManager({
   const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
   const [loadingTipos, setLoadingTipos] = useState(true);
 
+  // Estados para el modal de eliminación
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [documentoToDelete, setDocumentoToDelete] = useState<Documento | null>(null);
+  const [deletingDocument, setDeletingDocument] = useState(false);
+
   // Obtener el tipo seleccionado para verificar si requiere vencimiento
   const tipoSeleccionado = React.useMemo(() => 
     tiposDocumentos.find(tipo => tipo.id === tipoDocumentoId), 
@@ -564,7 +569,10 @@ export function DocumentManager({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => eliminarDocumento(documento.id)}
+                    onClick={() => {
+                      setDocumentoToDelete(documento);
+                      setShowDeleteModal(true);
+                    }}
                     className="absolute top-3 right-3 h-8 w-8 p-0 hover:bg-red-600/20 text-red-400 opacity-100 transition-opacity"
                     title="Eliminar documento"
                   >
@@ -752,10 +760,12 @@ export function DocumentManager({
                 <Calendar className="h-4 w-4" />
                 Fecha de Vencimiento *
               </label>
-              <DatePickerComponent
+              <input
+                type="date"
                 value={fechaVencimiento}
-                onChange={setFechaVencimiento}
-                placeholder="Seleccionar fecha de vencimiento"
+                onChange={(e) => setFechaVencimiento(e.target.value)}
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                min={new Date().toISOString().split('T')[0]}
               />
               <p className="text-xs text-muted-foreground">
                 Este tipo de documento requiere fecha de vencimiento
@@ -814,6 +824,90 @@ export function DocumentManager({
           modulo={modulo}
         />
       )}
+
+      {/* Modal de eliminación de documentos */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDocumentoToDelete(null);
+        }}
+        title="Confirmar Eliminación"
+        size="sm"
+      >
+        <div className="p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Eliminar Documento</h3>
+              <p className="text-sm text-muted-foreground">
+                ¿Estás seguro de que quieres eliminar este documento?
+              </p>
+            </div>
+          </div>
+          
+          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+            <p className="text-sm font-medium text-foreground">
+              {documentoToDelete?.nombre || 'Documento'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Esta acción no se puede deshacer
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setDocumentoToDelete(null);
+              }}
+              disabled={deletingDocument}
+              className="min-w-[100px]"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (documentoToDelete) {
+                  setDeletingDocument(true);
+                  eliminarDocumento(documentoToDelete.id)
+                    .then(() => {
+                      setShowDeleteModal(false);
+                      setDocumentoToDelete(null);
+                    })
+                    .catch(error => {
+                      console.error('Error al eliminar documento:', error);
+                      alert('Error al eliminar el documento.');
+                    })
+                    .finally(() => {
+                      setDeletingDocument(false);
+                    });
+                }
+              }}
+              disabled={deletingDocument}
+              className="min-w-[100px]"
+            >
+              {deletingDocument ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Eliminando...
+                </>
+              ) : (
+                "Eliminar"
+              )}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 } 
