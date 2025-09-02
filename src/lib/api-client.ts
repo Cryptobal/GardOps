@@ -288,6 +288,11 @@ export const api = {
     profile: () => apiClient.get('/api/me/profile'),
     updatePassword: (data: any) => apiClient.post('/api/me/password', data),
   },
+
+  // Debug
+  debug: {
+    headers: () => apiClient.get('/api/debug-headers'),
+  },
 };
 
 export default apiClient;

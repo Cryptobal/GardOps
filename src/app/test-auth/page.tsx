@@ -46,8 +46,8 @@ export default function TestAuthPage() {
     setTestLoading(true);
     try {
       console.log('🔍 Probando debug headers...');
-      const response = await fetch('/api/debug-headers');
-      const result = await response.json();
+      // Usar el cliente API personalizado en lugar de fetch directo
+      const result = await api.get('/api/debug-headers');
       setTestResult(result);
       console.log('✅ Resultado de debug headers:', result);
     } catch (error) {
