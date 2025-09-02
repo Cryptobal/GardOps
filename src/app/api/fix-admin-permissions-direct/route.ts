@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     
     // 4. Asignar rol admin al usuario si no lo tiene
     const userRole = await sql`
-      SELECT id FROM usuarios_roles WHERE usuario_id = ${admin.id} AND rol_id = ${adminRoleId} LIMIT 1
+      SELECT * FROM usuarios_roles WHERE usuario_id = ${admin.id} AND rol_id = ${adminRoleId} LIMIT 1
     `;
     
     if (userRole.rows.length === 0) {
@@ -77,6 +77,8 @@ export async function POST(req: NextRequest) {
         INSERT INTO usuarios_roles (usuario_id, rol_id) VALUES (${admin.id}, ${adminRoleId})
       `;
       console.log('✅ Rol admin asignado al usuario');
+    } else {
+      console.log('✅ Rol admin ya estaba asignado al usuario');
     }
     
     // 5. Asignar TODOS los permisos al rol admin
@@ -87,7 +89,7 @@ export async function POST(req: NextRequest) {
       try {
         // Verificar si ya está asignado
         const alreadyAssigned = await sql`
-          SELECT id FROM roles_permisos WHERE rol_id = ${adminRoleId} AND permiso_id = ${perm.id} LIMIT 1
+          SELECT * FROM roles_permisos WHERE rol_id = ${adminRoleId} AND permiso_id = ${perm.id} LIMIT 1
         `;
         
         if (alreadyAssigned.rows.length === 0) {
