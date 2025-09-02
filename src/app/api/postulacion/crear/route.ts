@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
       // Insertar guardia
       console.log('🚀 Insertando guardia en base de datos...');
       const insertQuery = `
-        INSERT INTO guardias (
+        INSERT INTO guardias_temp (
           rut, nombre, apellido_paterno, apellido_materno, email, telefono,
           direccion, ciudad, comuna, latitud, longitud, banco_id, tipo_cuenta,
           numero_cuenta, tenant_id, activo, tipo_guardia,
