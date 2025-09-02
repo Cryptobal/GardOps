@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
 
       // Verificar que el tipo de documento es válido
       const tipoDocCheck = await client.query(
-        'SELECT id, nombre, formato_permitido FROM tipos_documentos_postulacion WHERE nombre = $1 AND activo = true',
+        'SELECT id, nombre FROM documentos_tipos WHERE nombre = $1 AND modulo = \'guardias\' AND activo = true',
         [tipoDocumento]
       );
 
