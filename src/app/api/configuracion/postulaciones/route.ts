@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getClient } from '@/lib/database';
-import { logCRUD, logError } from '@/lib/logging';
+import { getClient } from '@/lib/db';
+import { logError, logCRUD } from '@/lib/logging';
+import { getFormularioUrl } from '@/lib/config';
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,9 +38,8 @@ export async function GET(request: NextRequest) {
         activo: false
       };
 
-      // Construir URL del formulario
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-      const formularioUrl = `${baseUrl}/postulacion/${tenantId}`;
+      // Construir URL del formulario usando la configuración centralizada
+      const formularioUrl = getFormularioUrl(tenantId);
 
       const config = {
         id: tenant.id,

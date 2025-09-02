@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sql } from '@vercel/postgres'
 import crypto from 'crypto'
 import { sendPasswordResetEmail } from '@/lib/email'
+import { getApiBaseUrl } from '@/lib/config';
 
 export async function POST(req: NextRequest) {
   try {
@@ -61,9 +62,9 @@ export async function POST(req: NextRequest) {
       VALUES (${user.id}, ${token}, ${expiresAt.toISOString()})
     `
 
-    // Construir URL de restablecimiento
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ops.gard.cl'
-    const resetUrl = `${baseUrl}/restablecer-contrasena?token=${token}`
+    // Construir URL de restablecimiento usando la configuración centralizada
+    const baseUrl = getApiBaseUrl();
+    const resetUrl = `${baseUrl}/restablecer-contrasena?token=${token}`;
 
     console.log('✅ Solicitud de recuperación procesada para:', user.email)
     if (process.env.NODE_ENV === 'development') {

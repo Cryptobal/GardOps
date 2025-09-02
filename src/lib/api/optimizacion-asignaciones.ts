@@ -1,5 +1,5 @@
 // API functions para optimización de asignaciones
-import { query } from '../database';
+import { getApiBaseUrl } from '@/lib/config';
 
 export interface LocationData {
   id: string;
@@ -35,27 +35,10 @@ export interface SearchResult {
 }
 
 // Obtener guardias con coordenadas
-export async function getGuardiasConCoordenadas(): Promise<LocationData[]> {
+export const obtenerGuardiasConCoordenadas = async (): Promise<GuardiaConCoordenadas[]> => {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-    
-    // Obtener token de autenticación desde cookies
-    const token = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('auth_token='))
-      ?.split('=')[1];
-    
-    if (!token) {
-      console.warn('No hay token de autenticación en cookies');
-      return [];
-    }
-    
-    const response = await fetch(`${baseUrl}/api/guardias-con-coordenadas`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/guardias-con-coordenadas`);
     const result = await response.json();
     
     console.log('API Guardias - Response:', result);
@@ -78,27 +61,10 @@ export async function getGuardiasConCoordenadas(): Promise<LocationData[]> {
 }
 
 // Obtener instalaciones con coordenadas
-export async function getInstalacionesConCoordenadas(): Promise<LocationData[]> {
+export const obtenerInstalacionesConCoordenadas = async (): Promise<InstalacionConCoordenadas[]> => {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-    
-    // Obtener token de autenticación desde cookies
-    const token = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('auth_token='))
-      ?.split('=')[1];
-    
-    if (!token) {
-      console.warn('No hay token de autenticación en cookies');
-      return [];
-    }
-    
-    const response = await fetch(`${baseUrl}/api/instalaciones-con-coordenadas`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones-con-coordenadas`);
     const result = await response.json();
     
     console.log('API Instalaciones - Response:', result);

@@ -12,236 +12,324 @@ import {
   CrearTurnoInstalacionData,
   TurnoInstalacion
 } from "../schemas/instalaciones";
+import { getApiBaseUrl } from '@/lib/config';
 
 
 // Obtener todas las instalaciones
 export const obtenerInstalaciones = async (): Promise<Instalacion[]> => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-  const response = await fetch(`${baseUrl}/api/instalaciones`);
-  const result = await response.json();
-  
-  if (!result.success) {
-    throw new Error(result.error || "Error al obtener instalaciones");
+  try {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones`);
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || "Error al obtener instalaciones");
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Error obteniendo instalaciones:', error);
+    throw error;
   }
-  
-  return result.data;
 };
 
 // Obtener una instalación específica
 export const getInstalacion = async (id: string): Promise<Instalacion> => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-  const response = await fetch(`${baseUrl}/api/instalaciones/${id}`);
-  
-  if (!response.ok) {
-    throw new Error(`Error al obtener instalación: ${response.statusText}`);
+  try {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones/${id}`);
+    
+    if (!response.ok) {
+      throw new Error(`Error al obtener instalación: ${response.statusText}`);
+    }
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || "Error al obtener instalación");
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Error obteniendo instalación:', error);
+    throw error;
   }
-  
-  const result = await response.json();
-  
-  if (!result.success) {
-    throw new Error(result.error || "Error al obtener instalación");
-  }
-  
-  return result.data;
 };
 
 // Crear nueva instalación
 export const crearInstalacion = async (data: CrearInstalacionData): Promise<Instalacion> => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-  const response = await fetch(`${baseUrl}/api/instalaciones`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  
-  const result = await response.json();
-  
-  if (!result.success) {
-    throw new Error(result.error || "Error al crear instalación");
+  try {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || "Error al crear instalación");
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Error creando instalación:', error);
+    throw error;
   }
-  
-  return result.data;
 };
 
 // Actualizar instalación
 export const actualizarInstalacion = async (id: string, data: Partial<CrearInstalacionData>): Promise<Instalacion> => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-  const response = await fetch(`${baseUrl}/api/instalaciones`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, ...data }),
-  });
-  
-  const result = await response.json();
-  
-  if (!result.success) {
-    throw new Error(result.error || "Error al actualizar instalación");
+  try {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones?id=${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...data }),
+    });
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || "Error al actualizar instalación");
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Error actualizando instalación:', error);
+    throw error;
   }
-  
-  return result.data;
 };
 
 // Eliminar instalación
 export const eliminarInstalacion = async (id: string): Promise<void> => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-  const response = await fetch(`${baseUrl}/api/instalaciones?id=${id}`, {
-    method: "DELETE",
-  });
-  
-  const result = await response.json();
-  
-  if (!result.success) {
-    throw new Error(result.error || "Error al eliminar instalación");
+  try {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones?id=${id}`, {
+      method: "DELETE",
+    });
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || "Error al eliminar instalación");
+    }
+  } catch (error) {
+    console.error('Error eliminando instalación:', error);
+    throw error;
   }
 };
 
 // Cambiar estado de instalación
 export const cambiarEstadoInstalacion = async (id: string, estado: "Activo" | "Inactivo"): Promise<Instalacion> => {
-  const response = await fetch(`/api/instalaciones/${id}/estado`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ estado }),
-  });
-  
-  const result = await response.json();
-  
-  if (!result.success) {
-    throw new Error(result.error || "Error al cambiar estado de instalación");
+  try {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones/${id}/estado`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ estado }),
+    });
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || "Error al cambiar estado de instalación");
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Error cambiando estado de instalación:', error);
+    throw error;
   }
-  
-  return result.data;
 };
 
 // Obtener guardias asignados a una instalación
 export const obtenerGuardiasAsignados = async (instalacionId: string): Promise<GuardiaAsignado[]> => {
-  const response = await fetch(`/api/instalaciones/${instalacionId}/guardias`);
-  const result = await response.json();
-  
-  if (!result.success) {
-    throw new Error(result.error || "Error al obtener guardias asignados");
+  try {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/guardias`);
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || "Error al obtener guardias asignados");
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Error obteniendo guardias asignados:', error);
+    throw error;
   }
-  
-  return result.data;
 };
 
 // Obtener puestos operativos de una instalación
 export const obtenerPuestosOperativos = async (instalacionId: string): Promise<PuestoOperativo[]> => {
-  const response = await fetch(`/api/instalaciones/${instalacionId}/puestos`);
-  const result = await response.json();
-  
-  if (!result.success) {
-    throw new Error(result.error || "Error al obtener puestos operativos");
+  try {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/puestos`);
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || "Error al obtener puestos operativos");
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Error obteniendo puestos operativos:', error);
+    throw error;
   }
-  
-  return result.data;
 };
 
 // Obtener documentos de una instalación
 export const obtenerDocumentosInstalacion = async (instalacionId: string): Promise<DocumentoInstalacion[]> => {
-  const response = await fetch(`/api/instalaciones/${instalacionId}/documentos`);
-  const result = await response.json();
-  
-  if (!result.success) {
-    throw new Error(result.error || "Error al obtener documentos");
+  try {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/documentos`);
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || "Error al obtener documentos");
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Error obteniendo documentos de instalación:', error);
+    throw error;
   }
-  
-  return result.data;
 };
 
 // Obtener logs de una instalación
 export const obtenerLogsInstalacion = async (instalacionId: string): Promise<LogInstalacion[]> => {
-  const response = await fetch(`/api/instalaciones/${instalacionId}/logs`);
-  const result = await response.json();
-  
-  if (!result.success) {
-    throw new Error(result.error || "Error al obtener logs");
+  try {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/logs`);
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || "Error al obtener logs");
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Error obteniendo logs de instalación:', error);
+    throw error;
   }
-  
-  return result.data;
 };
 
 // Obtener clientes para dropdown
 export const obtenerClientes = async (): Promise<Cliente[]> => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-  const response = await fetch(`${baseUrl}/api/clientes`);
-  const result = await response.json();
-  
-  if (!result.success) {
-    throw new Error(result.error || "Error al obtener clientes");
+  try {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/clientes`);
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || "Error al obtener clientes");
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Error obteniendo clientes:', error);
+    throw error;
   }
-  
-  return result.data;
 };
 
 // Obtener comunas para dropdown
 export const obtenerComunas = async (): Promise<Comuna[]> => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-  const response = await fetch(`${baseUrl}/api/comunas`);
-  const result = await response.json();
-  
-  if (!result.success) {
-    throw new Error(result.error || "Error al obtener comunas");
+  try {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/comunas`);
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || "Error al obtener comunas");
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Error obteniendo comunas:', error);
+    throw error;
   }
-  
-  return result.data;
 };
 
 // Obtener estadísticas de instalación
 export const obtenerEstadisticasInstalacion = async (instalacionId: string) => {
-  const response = await fetch(`/api/instalaciones/${instalacionId}/estadisticas_v2`);
-  const result = await response.json();
-  
-  if (!result.success) {
-    throw new Error(result.error || "Error al obtener estadísticas");
+  try {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/estadisticas_v2`);
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || "Error al obtener estadísticas");
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Error obteniendo estadísticas de instalación:', error);
+    throw error;
   }
-  
-  return result.data;
 }; 
 
 // Logs para instalaciones
 export const logInstalacionCreada = async (instalacionId: string, detalles: string) => {
-  await fetch("/api/logs", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      modulo: "instalaciones",
-      entidadId: instalacionId,
-      accion: "CREAR",
-      detalles
-    }),
-  });
+  try {
+    const baseUrl = getApiBaseUrl();
+    await fetch(`${baseUrl}/api/logs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        modulo: "instalaciones",
+        entidadId: instalacionId,
+        accion: "CREAR",
+        detalles
+      }),
+    });
+  } catch (error) {
+    console.error('Error logueando creación de instalación:', error);
+  }
 };
 
 export const logEdicionInstalacion = async (instalacionId: string, detalles: string) => {
-  await fetch("/api/logs", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      modulo: "instalaciones",
-      entidadId: instalacionId,
-      accion: "EDITAR",
-      detalles
-    }),
-  });
+  try {
+    const baseUrl = getApiBaseUrl();
+    await fetch(`${baseUrl}/api/logs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        modulo: "instalaciones",
+        entidadId: instalacionId,
+        accion: "EDITAR",
+        detalles
+      }),
+    });
+  } catch (error) {
+    console.error('Error logueando edición de instalación:', error);
+  }
 };
 
 export const logCambioEstadoInstalacion = async (instalacionId: string, nuevoEstado: string) => {
-  await fetch("/api/logs", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      modulo: "instalaciones",
-      entidadId: instalacionId,
-      accion: "CAMBIAR_ESTADO",
-      detalles: `Estado cambiado a: ${nuevoEstado}`
-    }),
-  });
+  try {
+    const baseUrl = getApiBaseUrl();
+    await fetch(`${baseUrl}/api/logs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        modulo: "instalaciones",
+        entidadId: instalacionId,
+        accion: "CAMBIAR_ESTADO",
+        detalles: `Estado cambiado a: ${nuevoEstado}`
+      }),
+    });
+  } catch (error) {
+    console.error('Error logueando cambio de estado de instalación:', error);
+  }
 }; 
 
 // Funciones para turnos de instalación
 export async function getTurnosInstalacion(instalacionId: string): Promise<TurnoInstalacionConDetalles[]> {
   try {
-    const response = await fetch(`/api/instalaciones/${instalacionId}/turnos_v2`, {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/turnos_v2`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -261,7 +349,8 @@ export async function getTurnosInstalacion(instalacionId: string): Promise<Turno
 
 export async function getRolesServicio(): Promise<RolServicio[]> {
   try {
-    const response = await fetch('/api/roles-servicio', {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/roles-servicio`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -285,7 +374,8 @@ export async function getRolesServicio(): Promise<RolServicio[]> {
 
 export async function crearTurnoInstalacion(data: CrearTurnoInstalacionData): Promise<any> {
   try {
-    const response = await fetch(`/api/instalaciones/${data.instalacion_id}/turnos_v2`, {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones/${data.instalacion_id}/turnos_v2`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -311,7 +401,8 @@ export async function crearTurnoInstalacion(data: CrearTurnoInstalacionData): Pr
 // Funciones para PPCs
 export async function getPPCsInstalacion(instalacionId: string): Promise<any[]> {
   try {
-    const response = await fetch(`/api/instalaciones/${instalacionId}/ppc`, {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/ppc`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -331,7 +422,8 @@ export async function getPPCsInstalacion(instalacionId: string): Promise<any[]> 
 
 export async function asignarGuardiaPPC(instalacionId: string, ppcId: string, guardiaId: string): Promise<any> {
   try {
-    const response = await fetch('/api/ppc/asignar', {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/ppc/asignar`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -356,7 +448,8 @@ export async function asignarGuardiaPPC(instalacionId: string, ppcId: string, gu
 
 export async function eliminarRolServicio(rolId: string): Promise<any> {
   try {
-    const response = await fetch(`/api/roles-servicio/${rolId}`, {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/roles-servicio/${rolId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -377,7 +470,8 @@ export async function eliminarRolServicio(rolId: string): Promise<any> {
 
 export async function eliminarTurnoInstalacion(instalacionId: string, turnoId: string): Promise<any> {
   try {
-    const response = await fetch(`/api/instalaciones/${instalacionId}/turnos/${turnoId}/eliminar_turno_v2`, {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/turnos/${turnoId}/eliminar_turno_v2`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -404,6 +498,7 @@ export async function getGuardiasDisponibles(
   excluir_guardia_id?: string
 ): Promise<any[]> {
   try {
+    const baseUrl = getApiBaseUrl();
     const params = new URLSearchParams({
       fecha,
       instalacion_id
@@ -417,7 +512,7 @@ export async function getGuardiasDisponibles(
       params.append('excluir_guardia_id', excluir_guardia_id);
     }
     
-    const response = await fetch(`/api/guardias/disponibles?${params.toString()}`);
+    const response = await fetch(`${baseUrl}/api/guardias/disponibles?${params.toString()}`);
     if (!response.ok) {
       throw new Error('Error al obtener guardias disponibles');
     }
@@ -432,7 +527,8 @@ export async function getGuardiasDisponibles(
 // Obtener PPCs activos de una instalación
 export async function getPPCsActivosInstalacion(instalacionId: string): Promise<any[]> {
   try {
-    const response = await fetch(`/api/instalaciones/${instalacionId}/ppc-activos_v2`);
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/ppc-activos_v2`);
     
     if (!response.ok) {
       throw new Error(`Error al obtener PPCs activos: ${response.statusText}`);
@@ -448,7 +544,8 @@ export async function getPPCsActivosInstalacion(instalacionId: string): Promise<
 // Desasignar guardia de un PPC
 export async function desasignarGuardiaPPC(instalacionId: string, ppcId: string): Promise<any> {
   try {
-    const response = await fetch(`/api/instalaciones/${instalacionId}/ppc/${ppcId}/desasignar_v2`, {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/ppc/${ppcId}/desasignar_v2`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -470,7 +567,8 @@ export async function desasignarGuardiaPPC(instalacionId: string, ppcId: string)
 // Eliminar PPC
 export async function eliminarPPC(instalacionId: string, ppcId: string): Promise<any> {
   try {
-    const response = await fetch(`/api/instalaciones/${instalacionId}/ppc/${ppcId}`, {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/ppc/${ppcId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -492,7 +590,8 @@ export async function eliminarPPC(instalacionId: string, ppcId: string): Promise
 // Agregar puestos a un turno existente
 export async function agregarPuestosARol(instalacionId: string, turnoId: string, cantidad: number): Promise<any> {
   try {
-    const response = await fetch(`/api/instalaciones/${instalacionId}/turnos/${turnoId}/agregar-ppcs`, {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/turnos/${turnoId}/agregar-ppcs`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -516,15 +615,20 @@ export async function agregarPuestosARol(instalacionId: string, turnoId: string,
 
 // Obtener todas las instalaciones con estadísticas optimizadas
 export const obtenerInstalacionesConEstadisticas = async (): Promise<Instalacion[]> => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-  const response = await fetch(`${baseUrl}/api/instalaciones?withStats=true`);
-  const result = await response.json();
-  
-  if (!result.success) {
-    throw new Error(result.error || "Error al obtener instalaciones");
+  try {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones?withStats=true`);
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || "Error al obtener instalaciones");
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Error obteniendo instalaciones con estadísticas:', error);
+    throw error;
   }
-  
-  return result.data;
 };
 
 // Obtener todos los datos necesarios en una sola llamada (instalaciones + clientes + comunas)
@@ -533,15 +637,20 @@ export const obtenerDatosCompletosInstalaciones = async (): Promise<{
   clientes: Cliente[];
   comunas: Comuna[];
 }> => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-  const response = await fetch(`${baseUrl}/api/instalaciones?withAllData=true`);
-  const result = await response.json();
-  
-  if (!result.success) {
-    throw new Error(result.error || "Error al obtener datos completos");
+  try {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones?withAllData=true`);
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || "Error al obtener datos completos");
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Error obteniendo datos completos de instalaciones:', error);
+    throw error;
   }
-  
-  return result.data;
 }; 
 
 // Obtener todos los datos de una instalación en una sola llamada optimizada
@@ -552,15 +661,20 @@ export const obtenerDatosCompletosInstalacion = async (instalacionId: string): P
   guardias: any[];
   roles: RolServicio[];
 }> => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-  const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/completa`);
-  const result = await response.json();
-  
-  if (!result.success) {
-    throw new Error(result.error || "Error al obtener datos completos de la instalación");
+  try {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/completa`);
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || "Error al obtener datos completos de la instalación");
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Error obteniendo datos completos de una instalación:', error);
+    throw error;
   }
-  
-  return result.data;
 }; 
 
 // Obtener documentos vencidos de instalaciones
@@ -572,13 +686,18 @@ export const obtenerDocumentosVencidosInstalaciones = async (): Promise<{
   }>;
   total: number;
 }> => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-  const response = await fetch(`${baseUrl}/api/instalaciones/documentos-vencidos`);
-  const result = await response.json();
-  
-  if (!result.success) {
-    throw new Error(result.error || "Error al obtener documentos vencidos");
+  try {
+    const baseUrl = getApiBaseUrl();
+    const response = await fetch(`${baseUrl}/api/instalaciones/documentos-vencidos`);
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || "Error al obtener documentos vencidos");
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Error obteniendo documentos vencidos:', error);
+    throw error;
   }
-  
-  return result.data;
 }; 
