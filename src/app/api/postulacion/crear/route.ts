@@ -4,27 +4,9 @@ import { logCRUD, logError } from '@/lib/logging';
 
 // Función para detectar la tabla correcta
 async function getTableName(client: any): Promise<string> {
-  try {
-    // Intentar con guardias_temp primero (producción)
-    const checkTemp = await client.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_name = 'guardias_temp'
-      );
-    `);
-    
-    if (checkTemp.rows[0].exists) {
-      console.log('🔍 Usando tabla: guardias_temp (producción)');
-      return 'guardias_temp';
-    }
-    
-    // Si no existe, usar guardias (local)
-    console.log('🔍 Usando tabla: guardias (local)');
-    return 'guardias';
-  } catch (error) {
-    console.log('🔍 Error detectando tabla, usando guardias por defecto');
-    return 'guardias';
-  }
+  // La tabla correcta es 'guardias' en ambos entornos
+  console.log('🔍 Usando tabla: guardias (producción y local)');
+  return 'guardias';
 }
 
 export async function POST(request: NextRequest) {
