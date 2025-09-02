@@ -55,7 +55,6 @@ interface FormData {
 interface Documento {
   tipo: string;
   archivo: File | null;
-  foto_camara: string | null;
   obligatorio: boolean;
 }
 
@@ -96,14 +95,14 @@ export default function PostulacionPage() {
   });
 
   const [documentos, setDocumentos] = useState<Documento[]>([
-    { tipo: 'Certificado OS10', archivo: null, foto_camara: null, obligatorio: true },
-    { tipo: 'Carnet Identidad Frontal', archivo: null, foto_camara: null, obligatorio: false },
-    { tipo: 'Carnet Identidad Reverso', archivo: null, foto_camara: null, obligatorio: false },
-    { tipo: 'Certificado Antecedentes', archivo: null, foto_camara: null, obligatorio: false },
-    { tipo: 'Certificado Enseñanza Media', archivo: null, foto_camara: null, obligatorio: false },
-    { tipo: 'Certificado AFP', archivo: null, foto_camara: null, obligatorio: false },
-    { tipo: 'Certificado AFC', archivo: null, foto_camara: null, obligatorio: false },
-    { tipo: 'Certificado FONASA/ISAPRE', archivo: null, foto_camara: null, obligatorio: false }
+    { tipo: 'Certificado OS10', archivo: null, obligatorio: true },
+    { tipo: 'Carnet Identidad Frontal', archivo: null, obligatorio: false },
+    { tipo: 'Carnet Identidad Reverso', archivo: null, obligatorio: false },
+    { tipo: 'Certificado Antecedentes', archivo: null, obligatorio: false },
+    { tipo: 'Certificado Enseñanza Media', archivo: null, obligatorio: false },
+    { tipo: 'Certificado AFP', archivo: null, obligatorio: false },
+    { tipo: 'Certificado AFC', archivo: null, obligatorio: false },
+    { tipo: 'Certificado FONASA/ISAPRE', archivo: null, obligatorio: false }
   ]);
 
   const [bancos, setBancos] = useState<Array<{id: string, nombre: string}>>([]);
@@ -280,7 +279,7 @@ export default function PostulacionPage() {
 
   const validarDocumentos = (): boolean => {
     return documentos.every(doc => 
-      doc.obligatorio ? (doc.archivo || doc.foto_camara) : true
+      doc.obligatorio ? (doc.archivo) : true
     );
   };
 
@@ -293,7 +292,7 @@ export default function PostulacionPage() {
     }
   };
 
-  const handleDocumentChange = (index: number, field: 'archivo' | 'foto_camara', value: File | string | null) => {
+  const handleDocumentChange = (index: number, field: 'archivo', value: File | null) => {
     const newDocumentos = [...documentos];
     newDocumentos[index] = { ...newDocumentos[index], [field]: value };
     setDocumentos(newDocumentos);
@@ -396,18 +395,13 @@ export default function PostulacionPage() {
 
       // Subir documentos
       for (const doc of documentos) {
-        if (doc.archivo || doc.foto_camara) {
+        if (doc.archivo) {
           const formData = new FormData();
           formData.append('guardia_id', guardiaId);
           formData.append('tipo_documento', doc.tipo);
           
           if (doc.archivo) {
             formData.append('archivo', doc.archivo);
-          } else if (doc.foto_camara) {
-            // Convertir base64 a blob
-            const response = await fetch(doc.foto_camara);
-            const blob = await response.blob();
-            formData.append('archivo', blob, `${doc.tipo}.jpg`);
           }
 
           await fetch('/api/postulacion/documento', {
@@ -985,7 +979,7 @@ export default function PostulacionPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleDocumentChange(index, 'foto_camara', 'data:image/jpeg;base64,simulated_photo')}
+                          onClick={() => handleDocumentChange(index, 'archivo', 'data:image/jpeg;base64,simulated_photo')}
                           className="flex items-center space-x-2"
                         >
                           <Camera className="w-4 h-4" />
@@ -1032,16 +1026,7 @@ export default function PostulacionPage() {
                         </div>
                       )}
                       
-                      {doc.foto_camara && (
-                        <div className="flex items-center space-x-2 p-2 bg-blue-50 rounded">
-                          <Camera className="w-4 h-4 text-blue-500" />
-                          <span className="text-sm text-blue-700">
-                            Foto tomada con cámara
-                          </span>
-                        </div>
-                      )}
-                      
-                      {!doc.archivo && !doc.foto_camara && doc.obligatorio && (
+                      {!doc.archivo && doc.obligatorio && (
                         <div className="flex items-center space-x-2 p-2 bg-red-50 rounded">
                           <AlertCircle className="w-4 h-4 text-red-500" />
                           <span className="text-sm text-red-700">

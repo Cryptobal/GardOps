@@ -3,8 +3,10 @@ import { getClient } from '@/lib/database';
 import { logCRUD, logError } from '@/lib/logging';
 
 export async function POST(request: NextRequest) {
+  let body: any;
+  
   try {
-    const body = await request.json();
+    body = await request.json();
     console.log('🚀 API Postulación - Creando nuevo guardia:', body);
 
     const client = await getClient();
