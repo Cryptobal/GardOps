@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`✅ Login exitoso para: ${email} (${authResult.user.nombre} ${authResult.user.apellido}) - Tenant: ${authResult.user.tenant_id}`)
+    console.log(`✅ Login exitoso para: ${email} (${authResult.user.nombre} ${authResult.user.apellido}) - Tenant: ${authResult.user.tenant_id} - Rol: ${authResult.user.rol}`)
 
     // Crear response con cookies configuradas
     const response = NextResponse.json({
