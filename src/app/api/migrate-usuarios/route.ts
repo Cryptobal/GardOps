@@ -3,6 +3,15 @@ import { query } from '../../../lib/database';
 import { hashPassword } from '../../../lib/auth';
 
 export async function GET() {
+  console.log('🚫 API /api/migrate-usuarios DESHABILITADA - Ya no recrea usuarios automáticamente');
+  return NextResponse.json({
+    success: false,
+    error: 'Esta API ha sido deshabilitada para prevenir recreación automática de usuarios',
+    message: 'Los usuarios se gestionan manualmente desde el frontend'
+  }, { status: 410 });
+  
+  // CÓDIGO ORIGINAL DESHABILITADO:
+  /*
   try {
     console.log('🔧 Iniciando migración completa de usuarios...');
 
@@ -157,4 +166,5 @@ export async function GET() {
       { status: 500 }
     );
   }
+  */
 } 
