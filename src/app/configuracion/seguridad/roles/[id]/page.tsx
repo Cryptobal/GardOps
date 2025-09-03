@@ -170,82 +170,52 @@ export default function RolDetallePage() {
     if (cambiosPendientes[modulo]) {
       return cambiosPendientes[modulo];
     }
+    
     const prefixes = MODULO_PREFIXES[modulo] || [modulo];
     const permisosClaves = Array.from(permisosAsignados).map(id => 
       permisosDisponibles.find(p => p.id === id)?.clave
     ).filter(Boolean) as string[];
     
-    // Verificar wildcard (admin)
-    const wildcard = prefixes.some(prefix => 
-      permisosClaves.includes(`${prefix}.*`)
+    // Obtener permisos del módulo
+    const permisosDelModulo = prefixes.reduce((acc, prefix) => {
+      const permisos = permisosClaves.filter(c => c.startsWith(prefix + '.'));
+      return [...acc, ...permisos];
+    }, [] as string[]);
+    
+    // Si no tiene permisos del módulo
+    if (permisosDelModulo.length === 0) return 'none';
+    
+    // 1. ADMIN: Si tiene wildcard
+    const hasWildcard = prefixes.some(prefix => 
+      permisosDelModulo.includes(`${prefix}.*`)
     );
+    if (hasWildcard) return 'admin';
     
-    if (wildcard) return 'admin';
+    // 2. ADMIN: Si tiene TODOS los permisos disponibles del módulo
+    const todosPermisosDisponibles = prefixes.reduce((acc, prefix) => {
+      const permisos = permisosDisponibles
+        .filter(p => p.clave.startsWith(prefix + '.') && !p.clave.endsWith('.*'))
+        .map(p => p.clave);
+      return [...acc, ...permisos];
+    }, [] as string[]);
     
-      // Verificar si tiene todos los permisos del módulo (admin)
-  const todosLosPermisos = prefixes.some(prefix => {
-    const permisosModulo = permisosDisponibles.filter(p => 
-      p.clave.startsWith(prefix + '.') && !p.clave.endsWith('.*')
-    );
-    const permisosAsignadosModulo = permisosClaves.filter(c => 
-      c.startsWith(prefix + '.') && !c.endsWith('.*')
-    );
-    return permisosModulo.length > 0 && permisosAsignadosModulo.length >= permisosModulo.length;
-  });
-    
-    if (todosLosPermisos) return 'admin';
-    
-      // Verificar si tiene permisos de edición (más que solo view)
-  const hasEditPermissions = prefixes.some(prefix => {
-    const permisosAsignadosModulo = permisosClaves.filter(c => c.startsWith(prefix + '.'));
-    const permisosModulo = permisosDisponibles.filter(p => 
-      p.clave.startsWith(prefix + '.') && !p.clave.endsWith('.*')
-    );
-    
-    // Si tiene más de la mitad de los permisos del módulo, es edit
-    if (permisosModulo.length > 0 && permisosAsignadosModulo.length > permisosModulo.length / 2) {
-      return true;
+    if (todosPermisosDisponibles.length > 0 && 
+        todosPermisosDisponibles.every(p => permisosDelModulo.includes(p))) {
+      return 'admin';
     }
     
-    // O si tiene permisos estándar de edición
-    const hasView = permisosClaves.includes(`${prefix}.view`);
-    const hasCreate = permisosClaves.includes(`${prefix}.create`);
-    const hasEdit = permisosClaves.includes(`${prefix}.edit`);
-    if (hasView && (hasCreate || hasEdit)) {
-      return true;
-    }
+    // 3. EDIT: Si tiene create, edit o delete (acciones de modificación)
+    const hasModifyActions = permisosDelModulo.some(p => 
+      p.includes('.create') || 
+      p.includes('.edit') || 
+      p.includes('.delete') ||
+      p.includes('.update') ||
+      p.includes('.write')
+    );
+    if (hasModifyActions) return 'edit';
     
-    // O si tiene múltiples permisos (más de 1) del módulo, es edit
-    if (permisosAsignadosModulo.length > 1) {
-      return true;
-    }
-    
-    // O si tiene múltiples permisos en total (incluyendo relacionados), es edit
-    if (permisosClaves.length > 1) {
-      return true;
-    }
-    
-    return false;
-  });
-    
-    if (hasEditPermissions) return 'edit';
-    
-      // Verificar view (solo view o pocos permisos)
-  const hasView = prefixes.some(prefix => 
-    permisosClaves.includes(`${prefix}.view`)
-  );
-  
-  if (hasView) return 'view';
-  
-  // Si no tiene view específico pero tiene algún permiso del módulo, es view
-  const hasAnyPermission = prefixes.some(prefix => {
-    const permisosAsignadosModulo = permisosClaves.filter(c => c.startsWith(prefix + '.'));
-    return permisosAsignadosModulo.length > 0;
-  });
-  
-  if (hasAnyPermission) return 'view';
-  
-  return 'none';
+    // 4. VIEW: Si solo tiene view o permisos de lectura
+    return 'view';
   };
 
   // Función para obtener permisos que se asignarán para un nivel
