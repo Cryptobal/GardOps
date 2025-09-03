@@ -60,26 +60,45 @@ export function verifyToken(token: string): any {
   }
 }
 
-// Función para obtener usuario actual del servidor (simplificada)
+// Función para obtener usuario actual del servidor (lee JWT real)
 export function getCurrentUserServer(req: NextRequest): CurrentUserServer | null {
   try {
-    // En desarrollo, simular usuario
-    if (process.env.NODE_ENV === 'development') {
-      return {
-        user_id: 'dev-user-id',
-        email: process.env.NEXT_PUBLIC_DEV_USER_EMAIL || 'dev@example.com',
-        rol: 'admin',
-        tenant_id: 'dev-tenant'
-      };
+    // Intentar leer JWT real de cookies o headers
+    const cookieHeader = req.headers.get('cookie') || '';
+    const authHeader = req.headers.get('authorization') || '';
+    
+    let token = null;
+    
+    // Extraer token de cookie auth_token
+    const cookieMatch = cookieHeader.match(/(?:^|;\s*)auth_token=([^;]+)/);
+    if (cookieMatch) {
+      token = decodeURIComponent(cookieMatch[1]);
     }
-
-    // En producción, simular usuario por ahora
+    
+    // Fallback: extraer de Authorization header
+    if (!token && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+    
+    if (!token) {
+      console.log('🔍 getCurrentUserServer: No se encontró token');
+      return null;
+    }
+    
+    // Decodificar JWT
+    const payload = verifyToken(token);
+    if (!payload) {
+      console.log('🔍 getCurrentUserServer: Token inválido');
+      return null;
+    }
+    
     return {
-      user_id: 'prod-user-id',
-      email: 'user@example.com',
-      rol: 'admin',
-      tenant_id: 'prod-tenant'
+      user_id: payload.user_id || 'unknown',
+      email: payload.email || 'unknown@example.com',
+      rol: payload.rol || 'Sin rol',
+      tenant_id: payload.tenant_id
     };
+    
   } catch (error) {
     console.error('getCurrentUserServer error:', error);
     return null;
