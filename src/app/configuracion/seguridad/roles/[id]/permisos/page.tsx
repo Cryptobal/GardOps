@@ -449,6 +449,22 @@ export default function PermisosRolPage() {
         type: "success"
       });
 
+      // 🔄 RECARGAR PERMISOS DESPUÉS DE GUARDAR
+      try {
+        const asignadosRes = await rbacFetch(`/api/admin/rbac/roles/${rolId}/permisos`);
+        const asignadosData = await asignadosRes.json();
+        if (asignadosRes.ok) {
+          const fuente = Array.isArray(asignadosData.items) ? asignadosData.items : asignadosData.permisos || [];
+          const asignadosSet = new Set(
+            fuente.map((p: any) => p.permiso_id || p.id).filter(Boolean)
+          );
+          setPermisosAsignados(asignadosSet as Set<string>);
+          console.log('🔄 Permisos recargados desde el servidor:', asignadosSet.size, 'permisos');
+        }
+      } catch (reloadError) {
+        console.warn('⚠️ Error al recargar permisos:', reloadError);
+      }
+
       setHasChanges(false);
 
     } catch (e: any) {
