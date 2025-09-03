@@ -25,14 +25,16 @@ export async function POST(req: NextRequest) {
     const modulo = form.get("modulo") as string;
     const entidad_id = form.get("entidad_id") as string;
     const tipo_documento_id = form.get("tipo_documento_id") as string;
+    const nombre_documento = form.get("nombre_documento") as string;
     const fecha_vencimiento = form.get("fecha_vencimiento") as string;
 
-    if (!file || !modulo || !entidad_id || !tipo_documento_id) {
+    if (!file || !modulo || !entidad_id || !tipo_documento_id || !nombre_documento?.trim()) {
       return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 });
     }
 
     console.log('📤 Subiendo documento:', {
       archivo: file.name,
+      nombre_documento,
       modulo,
       entidad_id,
       tipo_documento_id,
@@ -121,7 +123,7 @@ export async function POST(req: NextRequest) {
       `;
       
       insertParams = [
-        file.name,                    // nombre_original
+        nombre_documento.trim(),      // nombre_original (usar el nombre personalizado)
         'otros',                      // tipo
         r2Success ? r2Url : key,     // url (R2 URL o key local)
         entidad_id,                   // cliente_id
@@ -143,7 +145,7 @@ export async function POST(req: NextRequest) {
       `;
       
       insertParams = [
-        file.name,                    // nombre_original
+        nombre_documento.trim(),      // nombre_original (usar el nombre personalizado)
         'otros',                      // tipo
         r2Success ? r2Url : key,     // url (R2 URL o key local)
         entidad_id,                   // instalacion_id
@@ -165,7 +167,7 @@ export async function POST(req: NextRequest) {
       `;
       
       insertParams = [
-        file.name,                    // nombre_original
+        nombre_documento.trim(),      // nombre_original (usar el nombre personalizado)
         'otros',                      // tipo
         r2Success ? r2Url : key,     // url (R2 URL o key local)
         entidad_id,                   // guardia_id

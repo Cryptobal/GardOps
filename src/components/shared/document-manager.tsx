@@ -64,6 +64,7 @@ export function DocumentManager({
   // Estados para el modal de subida
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [nombreDocumento, setNombreDocumento] = useState("");
   const [tipoDocumentoId, setTipoDocumentoId] = useState("");
   const [fechaVencimiento, setFechaVencimiento] = useState("");
   const [tiposDocumentos, setTiposDocumentos] = useState<TipoDocumento[]>([]);
@@ -196,7 +197,7 @@ export function DocumentManager({
   }, [modulo]);
 
   const handleUpload = useCallback(async () => {
-    if (!file || !tipoDocumentoId) {
+    if (!file || !tipoDocumentoId || !nombreDocumento.trim()) {
       setUploadStatus("error");
       return;
     }
@@ -216,6 +217,7 @@ export function DocumentManager({
       formData.append('modulo', modulo);
       formData.append('entidad_id', entidadId);
       formData.append('tipo_documento_id', tipoDocumentoId);
+      formData.append('nombre_documento', nombreDocumento.trim());
       if (fechaVencimiento) {
         formData.append('fecha_vencimiento', fechaVencimiento);
       }
@@ -233,6 +235,7 @@ export function DocumentManager({
         
         // Limpiar formulario
         setFile(null);
+        setNombreDocumento("");
         setTipoDocumentoId("");
         setFechaVencimiento("");
         
@@ -270,7 +273,7 @@ export function DocumentManager({
       console.error('❌ Error en subida:', error);
       setUploadStatus("error");
     }
-  }, [file, tipoDocumentoId, fechaVencimiento, modulo, entidadId, tipoSeleccionado, onUploadSuccess, cargarDocumentos]);
+  }, [file, nombreDocumento, tipoDocumentoId, fechaVencimiento, modulo, entidadId, tipoSeleccionado, onUploadSuccess, cargarDocumentos]);
 
   const eliminarDocumento = useCallback(async (documentoId: string) => {
     const documento = documentos.find(doc => doc.id === documentoId);
@@ -798,6 +801,7 @@ export function DocumentManager({
         onClose={() => {
           setShowUploadModal(false);
           setFile(null);
+          setNombreDocumento("");
           setTipoDocumentoId("");
           setFechaVencimiento("");
           setUploadStatus("idle");
@@ -813,7 +817,15 @@ export function DocumentManager({
             </label>
             <Input
               type="file"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              onChange={(e) => {
+                const selectedFile = e.target.files?.[0] || null;
+                setFile(selectedFile);
+                // Auto-llenar nombre con el nombre del archivo (sin extensión)
+                if (selectedFile && !nombreDocumento) {
+                  const nameWithoutExtension = selectedFile.name.replace(/\.[^/.]+$/, "");
+                  setNombreDocumento(nameWithoutExtension);
+                }
+              }}
               accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
               className="cursor-pointer"
             />
@@ -822,6 +834,24 @@ export function DocumentManager({
                 Archivo seleccionado: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
               </p>
             )}
+          </div>
+
+          {/* Nombre del documento */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Nombre del Documento *
+            </label>
+            <Input
+              type="text"
+              value={nombreDocumento}
+              onChange={(e) => setNombreDocumento(e.target.value)}
+              placeholder="Ej: Certificado OS10 Juan Pérez"
+              className="w-full"
+              maxLength={100}
+            />
+            <p className="text-xs text-muted-foreground">
+              Este nombre aparecerá en el listado de documentos (máximo 100 caracteres)
+            </p>
           </div>
 
           {/* Selección de tipo de documento */}
@@ -898,6 +928,7 @@ export function DocumentManager({
               onClick={() => {
                 setShowUploadModal(false);
                 setFile(null);
+                setNombreDocumento("");
                 setTipoDocumentoId("");
                 setFechaVencimiento("");
                 setUploadStatus("idle");
@@ -908,7 +939,7 @@ export function DocumentManager({
             </Button>
             <Button
               onClick={handleUpload}
-              disabled={!file || !tipoDocumentoId || uploadStatus === "uploading" || (tipoSeleccionado?.requiere_vencimiento && !fechaVencimiento)}
+              disabled={!file || !nombreDocumento.trim() || !tipoDocumentoId || uploadStatus === "uploading" || (tipoSeleccionado?.requiere_vencimiento && !fechaVencimiento)}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {uploadStatus === "uploading" ? "Subiendo..." : 
