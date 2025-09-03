@@ -14,8 +14,17 @@ import {
   Calendar
 } from 'lucide-react';
 import Link from 'next/link';
+import ProtectedPage from '@/components/ProtectedPage';
 
 export default function PayrollPage() {
+  return (
+    <ProtectedPage permission="payroll.view" moduleName="el módulo de Payroll">
+      <PayrollContent />
+    </ProtectedPage>
+  );
+}
+
+function PayrollContent() {
   const payrollModules = [
     {
       title: 'Ítems Globales',

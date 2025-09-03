@@ -12,7 +12,7 @@ export default function SeguridadPage() {
   const { allowed: canPermisosRead } = useCan('rbac.permisos.read');
   const { allowed: canTenantsRead } = useCan('rbac.tenants.read');
   const { allowed: isPlatformAdmin, loading } = useCan('rbac.platform_admin');
-  // Bypass de visualización para admin
+  // Bypass SOLO para roles específicos de admin
   let adminBypass = false;
   try {
     if (typeof document !== 'undefined') {
@@ -20,7 +20,9 @@ export default function SeguridadPage() {
       const token = m?.[1] ? decodeURIComponent(m[1]) : null;
       if (token) {
         const payload = JSON.parse(atob(token.split('.')[1] || '')) || {};
-        adminBypass = payload?.rol === 'admin';
+        adminBypass = payload?.rol === 'Super Admin' || 
+                     payload?.rol === 'Platform Admin' || 
+                     payload?.rol === 'Tenant Admin';
       }
     }
   } catch {}
