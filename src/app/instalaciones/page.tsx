@@ -14,7 +14,9 @@ import {
   FileText,
   Shield,
   Search,
-  Filter
+  Filter,
+  Download,
+  Upload
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import InstalacionModal from "@/components/instalaciones/InstalacionModal";
@@ -141,6 +143,99 @@ export default function InstalacionesPage() {
 
   // Debounce para la búsqueda
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Función para exportar instalaciones a Excel
+  const exportarExcel = async () => {
+    try {
+      const response = await fetch('/api/instalaciones/exportar', {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al exportar archivo');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `instalaciones_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      console.log('✅ Instalaciones exportadas exitosamente');
+    } catch (error) {
+      console.error('Error exportando instalaciones:', error);
+    }
+  };
+
+  // Función para descargar plantilla
+  const descargarPlantilla = async () => {
+    try {
+      const response = await fetch('/api/instalaciones/plantilla', {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al descargar plantilla');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'plantilla_nuevas_instalaciones.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      console.log('✅ Plantilla de instalaciones descargada exitosamente');
+    } catch (error) {
+      console.error('Error descargando plantilla:', error);
+    }
+  };
+
+  // Función para importar instalaciones desde Excel
+  const importarExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/instalaciones/importar', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al importar archivo');
+      }
+
+      const result = await response.json();
+      
+      const mensaje = result.creados > 0 && result.actualizados > 0 
+        ? `✅ Importación completada: ${result.creados} instalaciones creadas, ${result.actualizados} actualizadas`
+        : result.creados > 0 
+        ? `✅ Importación completada: ${result.creados} instalaciones creadas`
+        : `✅ Importación completada: ${result.actualizados} instalaciones actualizadas`;
+      
+      console.log(mensaje);
+      
+      // Recargar la lista de instalaciones
+      window.location.reload();
+    } catch (error) {
+      console.error('Error importando Excel:', error);
+    } finally {
+      // Limpiar el input para permitir cargar el mismo archivo nuevamente
+      event.target.value = '';
+    }
+  };
 
   // Función para cargar datos de instalaciones con estadísticas
   const fetchInstalaciones = useCallback(async () => {
@@ -336,6 +431,46 @@ export default function InstalacionesPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 w-full"
             />
+          </div>
+          
+          {/* Botones de Excel */}
+          <Button 
+            onClick={exportarExcel}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Exportar Excel</span>
+          </Button>
+          <Button 
+            onClick={descargarPlantilla}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1"
+          >
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Plantilla</span>
+          </Button>
+          <div className="relative">
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={importarExcel}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              id="import-excel-instalaciones"
+            />
+            <Button 
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1"
+              asChild
+            >
+              <label htmlFor="import-excel-instalaciones" className="cursor-pointer">
+                <Upload className="h-4 w-4" />
+                <span className="hidden sm:inline">Importar Excel</span>
+              </label>
+            </Button>
           </div>
           
           <Button 
