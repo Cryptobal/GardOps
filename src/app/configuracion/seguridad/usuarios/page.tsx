@@ -12,7 +12,16 @@ import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-type UsuarioRow = { id: string; email: string; nombre: string | null; activo: boolean; tenant_id: string | null; userRole?: string; roles?: string };
+type UsuarioRow = { 
+  id: string; 
+  email: string; 
+  nombre: string | null; 
+  apellido?: string | null;
+  activo: boolean; 
+  tenant_id: string | null; 
+  userRole?: string; 
+  roles?: string 
+};
 type Rol = { id: string; nombre: string; tenant_id: string | null };
 
 export default function UsuariosPage() {
@@ -36,6 +45,13 @@ export default function UsuariosPage() {
   const [deletingUser, setDeletingUser] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UsuarioRow | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<UsuarioRow | null>(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [editApellido, setEditApellido] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [editShowPassword, setEditShowPassword] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
   const { addToast: toast } = useToast();
   const router = useRouter();
 
@@ -61,6 +77,51 @@ export default function UsuariosPage() {
   function openDeleteModal(user: UsuarioRow) {
     setUserToDelete(user);
     setShowDeleteModal(true);
+  }
+
+  function openEditModal(user: UsuarioRow) {
+    setUserToEdit(user);
+    setEditNombre(user.nombre || "");
+    setEditApellido(user.apellido || "");
+    setEditPassword("");
+    setEditShowPassword(false);
+    setShowEditModal(true);
+  }
+
+  async function saveUserEdit() {
+    if (!userToEdit) return;
+    
+    setSavingEdit(true);
+    try {
+      const updates: any = {};
+      if (editNombre !== userToEdit.nombre) updates.nombre = editNombre;
+      if (editApellido !== userToEdit.apellido) updates.apellido = editApellido;
+      if (editPassword) updates.password = editPassword;
+      
+      const res = await rbacFetch(`/api/admin/rbac/usuarios/${userToEdit.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      
+      if (res.ok) {
+        // Actualizar el usuario en la lista
+        setRows(prev => prev.map(u => 
+          u.id === userToEdit.id 
+            ? { ...u, nombre: editNombre, apellido: editApellido }
+            : u
+        ));
+        toast?.({ title: 'Usuario actualizado', type: 'success' });
+        setShowEditModal(false);
+      } else {
+        const json = await res.json().catch(() => ({}));
+        throw new Error((json as any)?.error || "Error al actualizar");
+      }
+    } catch (error: any) {
+      toast?.({ title: 'Error', description: error.message, type: 'error' });
+    } finally {
+      setSavingEdit(false);
+    }
   }
 
   async function openRolesModal(user: UsuarioRow) {
@@ -328,6 +389,15 @@ export default function UsuariosPage() {
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-muted-foreground">—</td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openEditModal(row)}
+                            disabled={loading}
+                            aria-label="Editar usuario"
+                          >
+                            ✏️
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
@@ -654,6 +724,80 @@ export default function UsuariosPage() {
               disabled={deletingUser !== null}
             >
               {deletingUser ? "Eliminando..." : "Eliminar Usuario"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Modal de Edición de Usuario */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Usuario</DialogTitle>
+            <DialogDescription>
+              Modifica la información del usuario
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Email</label>
+              <Input
+                value={userToEdit?.email || ""}
+                disabled
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Nombre</label>
+              <Input
+                value={editNombre}
+                onChange={(e) => setEditNombre(e.target.value)}
+                placeholder="Nombre del usuario"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Apellido</label>
+              <Input
+                value={editApellido}
+                onChange={(e) => setEditApellido(e.target.value)}
+                placeholder="Apellido del usuario"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Nueva Contraseña (opcional)</label>
+              <div className="relative mt-1">
+                <Input
+                  type={editShowPassword ? "text" : "password"}
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  placeholder="Dejar en blanco para no cambiar"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setEditShowPassword(!editShowPassword)}
+                >
+                  {editShowPassword ? "🙈" : "👁️"}
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowEditModal(false)}
+              disabled={savingEdit}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={saveUserEdit}
+              disabled={savingEdit}
+            >
+              {savingEdit ? "Guardando..." : "Guardar Cambios"}
             </Button>
           </DialogFooter>
         </DialogContent>
