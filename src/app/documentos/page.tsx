@@ -149,8 +149,7 @@ export default function DocumentosGlobalesPage() {
   const [nuevaFechaVencimiento, setNuevaFechaVencimiento] = useState('');
   
   // Estados para limpieza automática
-  const [isCleaning, setIsCleaning] = useState(false);
-  const [isSettingUp, setIsSettingUp] = useState(false);
+
 
   // Estados de filtros
   const [filtros, setFiltros] = useState({
@@ -462,50 +461,6 @@ export default function DocumentosGlobalesPage() {
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${cargando ? 'animate-spin' : ''}`} />
             Actualizar
-          </Button>
-          <Button
-            onClick={() => {
-              if (confirm('¿Estás seguro de que quieres limpiar los documentos "fantasmas"? Esta acción eliminará documentos que ya no existen en Cloudflare.')) {
-                fetch('/api/cleanup-documents', { method: 'POST' })
-                  .then(response => response.json())
-                  .then(result => {
-                    toast.success(`✅ Limpieza completada: Se eliminaron ${result.estadisticas.documentos_eliminados} documentos fantasmas`);
-                    setRefreshTrigger(prev => prev + 1);
-                  })
-                  .catch(error => {
-                    toast.error(error.message || "Error en la limpieza");
-                  });
-              }
-            }}
-            variant="outline"
-            size="sm"
-            className="hover:bg-red-50 border-red-200 text-red-600 hover:text-red-700"
-            disabled={isCleaning}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            {isCleaning ? 'Limpiando...' : 'Limpiar Fantasmas'}
-          </Button>
-          <Button
-            onClick={() => {
-              if (confirm('¿Estás seguro de que quieres configurar los tipos de documentos predefinidos para guardias? Esta acción actualizará la configuración existente.')) {
-                fetch('/api/setup-document-types', { method: 'POST' })
-                  .then(response => response.json())
-                  .then(result => {
-                    toast.success(`${result.estadisticas.total_tipos} tipos de documentos configurados para guardias`);
-                    cargarTiposDocumentos();
-                  })
-                  .catch(error => {
-                    toast.error(error.message || "Error en la configuración");
-                  });
-              }
-            }}
-            variant="outline"
-            size="sm"
-            className="hover:bg-blue-50 border-blue-200 text-blue-600 hover:text-blue-700"
-            disabled={isSettingUp}
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            {isSettingUp ? 'Configurando...' : 'Configurar Tipos'}
           </Button>
         </div>
       </div>
