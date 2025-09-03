@@ -164,7 +164,7 @@ export default function RolDetallePage() {
     return permisosDisponibles.find(p => p.clave === clave)?.id;
   };
 
-  // Función para calcular nivel de acceso basado en permisos
+  // Función para calcular nivel de acceso basado en permisos - CORREGIDA
   const calcularNivelModulo = (modulo: string): string => {
     // Si hay un cambio pendiente para este módulo, usar ese nivel
     if (cambiosPendientes[modulo]) {
@@ -176,11 +176,10 @@ export default function RolDetallePage() {
       permisosDisponibles.find(p => p.id === id)?.clave
     ).filter(Boolean) as string[];
     
-    // Obtener permisos del módulo
-    const permisosDelModulo = prefixes.reduce((acc, prefix) => {
-      const permisos = permisosClaves.filter(c => c.startsWith(prefix + '.'));
-      return [...acc, ...permisos];
-    }, [] as string[]);
+    // Obtener SOLO los permisos de este módulo específico
+    const permisosDelModulo = permisosClaves.filter(clave => 
+      prefixes.some(prefix => clave.startsWith(prefix + '.'))
+    );
     
     // Si no tiene permisos del módulo
     if (permisosDelModulo.length === 0) return 'none';
@@ -191,30 +190,20 @@ export default function RolDetallePage() {
     );
     if (hasWildcard) return 'admin';
     
-    // 2. ADMIN: Si tiene TODOS los permisos disponibles del módulo
-    const todosPermisosDisponibles = prefixes.reduce((acc, prefix) => {
-      const permisos = permisosDisponibles
-        .filter(p => p.clave.startsWith(prefix + '.') && !p.clave.endsWith('.*'))
-        .map(p => p.clave);
-      return [...acc, ...permisos];
-    }, [] as string[]);
+    // 2. ADMIN: Si tiene 4+ permisos del módulo
+    if (permisosDelModulo.length >= 4) return 'admin';
     
-    if (todosPermisosDisponibles.length > 0 && 
-        todosPermisosDisponibles.every(p => permisosDelModulo.includes(p))) {
-      return 'admin';
-    }
-    
-    // 3. EDIT: Si tiene create, edit o delete (acciones de modificación)
-    const hasModifyActions = permisosDelModulo.some(p => 
+    // 3. EDIT: Si tiene create O edit O delete
+    const hasEditPermissions = permisosDelModulo.some(p => 
       p.includes('.create') || 
       p.includes('.edit') || 
       p.includes('.delete') ||
       p.includes('.update') ||
       p.includes('.write')
     );
-    if (hasModifyActions) return 'edit';
+    if (hasEditPermissions) return 'edit';
     
-    // 4. VIEW: Si solo tiene view o permisos de lectura
+    // 4. VIEW: Si tiene view o cualquier otro permiso
     return 'view';
   };
 
