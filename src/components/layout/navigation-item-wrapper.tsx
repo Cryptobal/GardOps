@@ -35,7 +35,7 @@ export const NavigationItemWrapper = React.memo(function NavigationItemWrapper({
   const { allowed: checkedAllowed, loading } = useCan(shouldCheck ? perm : undefined);
   const adoV2On = useFlag('ado_v2');
   
-  // Bypass rápido en cliente: si el JWT tiene rol admin, mostrar ítems sin esperar
+  // Bypass SOLO para roles específicos de admin
   const adminBypass = useMemo(() => {
     try {
       if (typeof document !== 'undefined') {
@@ -43,7 +43,10 @@ export const NavigationItemWrapper = React.memo(function NavigationItemWrapper({
         const token = m?.[1] ? decodeURIComponent(m[1]) : null;
         if (token) {
           const payload = JSON.parse(atob(token.split('.')[1] || '')) || {};
-          return payload?.rol === 'admin';
+          // SOLO permitir bypass para roles específicos de admin
+          return payload?.rol === 'Super Admin' || 
+                 payload?.rol === 'Platform Admin' || 
+                 payload?.rol === 'Tenant Admin';
         }
       }
     } catch {}

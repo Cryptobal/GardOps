@@ -59,9 +59,9 @@ export async function fetchCan(perm: string): Promise<boolean> {
     return false;
   }
 
-  // Bypass cliente: si el JWT indica rol admin, permitir sin pegarle a la API (acelera la barra)
+  // Bypass SOLO para roles específicos de admin
   const userRole = await getUserRole();
-  if (userRole === 'admin') {
+  if (userRole === 'Super Admin' || userRole === 'Platform Admin' || userRole === 'Tenant Admin') {
     return true;
   }
 
@@ -74,11 +74,11 @@ export async function fetchCan(perm: string): Promise<boolean> {
     res = await rbacFetch(urlLegacy, { cache: "no-store" });
   }
   if (!res.ok) {
-    // En caso de error 5xx, no bloquear toda la UI.
+    // En caso de error, DENEGAR acceso por seguridad
     if (process.env.NODE_ENV !== 'production') {
-      console.warn('[fetchCan] /api/me/permissions falló con status', res.status, '→ assuming true for admin UX continuity');
+      console.warn('[fetchCan] API falló con status', res.status, '→ DENEGANDO acceso por seguridad');
     }
-    return true;
+    return false; // CAMBIO CRÍTICO: denegar en lugar de permitir
   }
   const data = await res.json();
   // Si la API indica override (jwt_admin), permitir explícitamente

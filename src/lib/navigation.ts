@@ -112,6 +112,7 @@ export const navigationItems: NavigationItem[] = [
   {
     name: "Configuración",
     href: "/configuracion",
-    icon: Settings
+    icon: Settings,
+    permission: "configuracion.view"
   }
 ]; 
