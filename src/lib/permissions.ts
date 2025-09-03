@@ -148,14 +148,15 @@ export function useCan(perm?: string) {
     getUserRole().then(userRole => {
       if (cancel || !mounted.current) return;
       
-      if (userRole === 'admin') {
+      // SOLO bypass para roles específicos de admin RBAC
+      if (userRole === 'Super Admin' || userRole === 'Platform Admin' || userRole === 'Tenant Admin') {
         setAllowed(true);
         setLoading(false);
         setCachedPermission(normalized, true);
         return;
       }
       
-      // Si no es admin, hacer la verificación normal
+      // Si no es admin específico, hacer la verificación normal
       return fetchCan(normalized);
     }).then((ok) => {
       if (cancel || !mounted.current) return;
