@@ -313,19 +313,20 @@ async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: 
     let datosCompletos = { ...datosGuardia };
     
     // Si hay banco_id, obtener el nombre del banco
-    if (datosGuardia.banco_id) {
+    if (datosGuardia.banco_id || datosGuardia.banco) {
       try {
+        const bancoId = datosGuardia.banco_id || datosGuardia.banco;
         const bancoQuery = await client.query(`
           SELECT b.nombre as banco_nombre 
           FROM bancos b 
           WHERE b.id = $1
-        `, [datosGuardia.banco_id]);
+        `, [bancoId]);
         
         if (bancoQuery.rows.length > 0) {
           datosCompletos.banco_nombre = bancoQuery.rows[0].banco_nombre;
           console.log('✅ Nombre del banco obtenido:', datosCompletos.banco_nombre);
         } else {
-          console.log('⚠️ Banco no encontrado para ID:', datosGuardia.banco_id);
+          console.log('⚠️ Banco no encontrado para ID:', bancoId);
           datosCompletos.banco_nombre = null;
         }
       } catch (error) {
@@ -376,7 +377,7 @@ async function enviarWebhook(tenantId: string, guardiaId: string, datosGuardia: 
           tramo_asignacion: datosCompletos.tramo_asignacion
         },
         bancario: {
-          banco_id: datosCompletos.banco_id,
+          banco_id: datosCompletos.banco_id || datosCompletos.banco,
           banco_nombre: datosCompletos.banco_nombre,
           tipo_cuenta: datosCompletos.tipo_cuenta,
           numero_cuenta: datosCompletos.numero_cuenta

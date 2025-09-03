@@ -57,7 +57,8 @@ export async function POST(request: NextRequest) {
         tramo_asignacion: 'A',
         
         // Información Bancaria
-        banco_id: '1',
+        banco_id: 'eaf03a6a-c53a-43b5-8eda-80f0c44cef40',
+        banco_nombre: 'Banco Falabella',
         tipo_cuenta: 'CCT',
         numero_cuenta: '123456789',
         
