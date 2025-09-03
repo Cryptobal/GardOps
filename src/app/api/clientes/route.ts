@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
       
       // Primero verificar si el usuario existe
       const userCheck = await sql`
-        SELECT id, rol FROM public.usuarios WHERE lower(email) = lower(${email}) LIMIT 1
+        SELECT id FROM public.usuarios WHERE lower(email) = lower(${email}) LIMIT 1
       `;
 
       if (userCheck.rows.length === 0) {
@@ -52,32 +52,24 @@ export async function GET(req: NextRequest) {
       }
 
       const user = userCheck.rows[0];
-      console.log('✅ Usuario encontrado:', { id: user.id, rol: user.rol });
+      console.log('✅ Usuario encontrado:', { id: user.id });
 
-      // Si es admin, permitir acceso
-      if (user.rol === 'admin') {
-        console.log('✅ Usuario es admin, permitiendo acceso');
-      } else {
-        // Verificar permiso específico usando la función helper
-        try {
-          const permCheck = await sql`
-            SELECT public.fn_usuario_tiene_permiso(${email}, ${'clientes.view'}) as allowed
-          `;
-          
-          const hasPermission = permCheck.rows?.[0]?.allowed === true;
-          console.log('🔍 Verificación de permiso clientes.view:', hasPermission);
-          
-          if (!hasPermission) {
-            console.log('❌ Usuario no tiene permiso clientes.view');
-            return NextResponse.json({ ok: false, error: 'forbidden', perm: 'clientes.view' }, { status: 403 });
-          }
-        } catch (permError) {
-          console.error('❌ Error verificando permiso:', permError);
-          // Si falla la verificación de permisos, permitir acceso para admin o en desarrollo
-          if (user.rol !== 'admin' && process.env.NODE_ENV === 'production') {
-            return NextResponse.json({ ok: false, error: 'permission-check-failed' }, { status: 403 });
-          }
+      // Verificar permiso específico usando la función helper
+      try {
+        const permCheck = await sql`
+          SELECT public.fn_usuario_tiene_permiso(${email}, ${'clientes.view'}) as allowed
+        `;
+        
+        const hasPermission = permCheck.rows?.[0]?.allowed === true;
+        console.log('🔍 Verificación de permiso clientes.view:', hasPermission);
+        
+        if (!hasPermission) {
+          console.log('❌ Usuario no tiene permiso clientes.view');
+          return NextResponse.json({ ok: false, error: 'forbidden', perm: 'clientes.view' }, { status: 403 });
         }
+      } catch (permError) {
+        console.error('❌ Error verificando permiso:', permError);
+        return NextResponse.json({ ok: false, error: 'permission-check-failed' }, { status: 500 });
       }
 
       console.log('✅ Permisos verificados, obteniendo clientes...');
