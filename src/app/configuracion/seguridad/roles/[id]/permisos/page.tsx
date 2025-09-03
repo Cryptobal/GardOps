@@ -111,16 +111,17 @@ const MODULOS_PERMISOS = {
   "Documentos": {
     icon: "📄",
     permisos: [
-      { clave: "documentos.view", nombre: "Ver", descripcion: "Consultar documentos" },
+      { clave: "documentos.view", nombre: "Ver", descripcion: "Consultar documentos y KPIs" },
       { clave: "documentos.upload", nombre: "Subir", descripcion: "Subir documentos" },
       { clave: "documentos.edit", nombre: "Editar", descripcion: "Modificar documentos" },
       { clave: "documentos.delete", nombre: "Eliminar", descripcion: "Eliminar documentos" },
-      { clave: "documentos.*", nombre: "Todo", descripcion: "Acceso completo" }
+      { clave: "documentos.*", nombre: "Todo", descripcion: "Acceso completo a documentos" }
     ]
   },
   "Reportes": {
     icon: "📈",
     permisos: [
+      { clave: "reportes.view", nombre: "Ver", descripcion: "Ver reportes y alertas" },
       { clave: "reportes.asistencia", nombre: "Asistencia", descripcion: "Reportes de asistencia" },
       { clave: "reportes.turnos", nombre: "Turnos", descripcion: "Reportes de turnos" },
       { clave: "reportes.payroll", nombre: "Payroll", descripcion: "Reportes de nómina" },

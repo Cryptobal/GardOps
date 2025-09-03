@@ -98,12 +98,6 @@ export const navigationItems: NavigationItem[] = [
     permission: "documentos.view"
   },
   {
-    name: "Alertas y KPIs",
-    href: "/alertas",
-    icon: AlertTriangle,
-    permission: "reportes.view"
-  },
-  {
     name: "Asignaciones",
     href: "/asignaciones",
     icon: Target,
