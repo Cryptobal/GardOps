@@ -7,14 +7,23 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const ctx = await requirePlatformAdmin(req);
     const { id } = params;
     const body = await req.json();
-    const { nombre, activo, tenant_id } = body || {};
-    console.log('[admin/rbac/usuarios/:id][PUT]', { email: ctx.ok ? ctx.email : undefined, userId: ctx.ok ? ctx.userId : undefined, targetId: id, body })
+    const { nombre, apellido, activo, tenant_id, password } = body || {};
+    console.log('[admin/rbac/usuarios/:id][PUT]', { email: ctx.ok ? ctx.email : undefined, userId: ctx.ok ? ctx.userId : undefined, targetId: id, body: { ...body, password: password ? '[REDACTED]' : undefined } })
+
+    // Si se proporciona contraseña, hashearla con el método correcto
+    let hashedPassword = undefined;
+    if (password) {
+      const salt = 'gardops-salt-2024';
+      hashedPassword = Buffer.from(password + salt).toString('base64');
+    }
 
     await sql`
       update usuarios set
         nombre = coalesce(${nombre}, nombre),
+        apellido = coalesce(${apellido}, apellido),
         activo = coalesce(${activo}, activo),
-        tenant_id = coalesce(${tenant_id}, tenant_id)
+        tenant_id = coalesce(${tenant_id}, tenant_id),
+        password = coalesce(${hashedPassword}, password)
       where id = ${id}::uuid
     `;
     return NextResponse.json({ success: true });
