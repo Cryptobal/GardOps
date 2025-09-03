@@ -215,78 +215,6 @@ export default function DocumentosGlobalesPage() {
     }
   };
 
-  // Función para limpieza automática de documentos
-  const handleCleanupDocuments = useCallback(async () => {
-    try {
-      setIsCleaning(true);
-      
-      // Confirmar antes de proceder
-      if (!confirm('¿Estás seguro de que quieres limpiar los documentos "fantasmas"? Esta acción eliminará documentos que ya no existen en Cloudflare.')) {
-        return;
-      }
-      
-      toast.success("🧹 Iniciando limpieza automática");
-      
-      const response = await fetch('/api/cleanup-documents', {
-        method: 'POST'
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        
-        toast.success(`✅ Limpieza completada: Se eliminaron ${result.estadisticas.documentos_eliminados} documentos fantasmas`);
-        
-        // Recargar documentos después de la limpieza
-        setRefreshTrigger(prev => prev + 1);
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Error en la limpieza');
-      }
-      
-    } catch (error: any) {
-      console.error('Error en limpieza:', error);
-              toast.error(error.message || "Error interno del servidor");
-    } finally {
-      setIsCleaning(false);
-    }
-  }, [toast]);
-
-  // Función para configurar tipos de documentos predefinidos
-  const handleSetupDocumentTypes = useCallback(async () => {
-    try {
-      setIsSettingUp(true);
-      
-      // Confirmar antes de proceder
-      if (!confirm('¿Estás seguro de que quieres configurar los tipos de documentos predefinidos para guardias? Esta acción actualizará la configuración existente.')) {
-        return;
-      }
-      
-      toast.success("🔧 Configurando tipos de documentos");
-      
-      const response = await fetch('/api/setup-document-types', {
-        method: 'POST'
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        
-        toast.success(`${result.estadisticas.total_tipos} tipos de documentos configurados para guardias`);
-        
-        // Recargar tipos de documentos
-        cargarTiposDocumentos();
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Error en la configuración');
-      }
-      
-    } catch (error: any) {
-      console.error('Error configurando tipos:', error);
-              toast.error(error.message || "Error interno del servidor");
-    } finally {
-      setIsSettingUp(false);
-    }
-  }, [toast, cargarTiposDocumentos]);
-
   // Cargar alertas de documentos
   const cargarAlertas = async () => {
     if (!allowedReportes) return;
@@ -536,7 +464,19 @@ export default function DocumentosGlobalesPage() {
             Actualizar
           </Button>
           <Button
-            onClick={handleCleanupDocuments}
+            onClick={() => {
+              if (confirm('¿Estás seguro de que quieres limpiar los documentos "fantasmas"? Esta acción eliminará documentos que ya no existen en Cloudflare.')) {
+                fetch('/api/cleanup-documents', { method: 'POST' })
+                  .then(response => response.json())
+                  .then(result => {
+                    toast.success(`✅ Limpieza completada: Se eliminaron ${result.estadisticas.documentos_eliminados} documentos fantasmas`);
+                    setRefreshTrigger(prev => prev + 1);
+                  })
+                  .catch(error => {
+                    toast.error(error.message || "Error en la limpieza");
+                  });
+              }
+            }}
             variant="outline"
             size="sm"
             className="hover:bg-red-50 border-red-200 text-red-600 hover:text-red-700"
@@ -546,7 +486,19 @@ export default function DocumentosGlobalesPage() {
             {isCleaning ? 'Limpiando...' : 'Limpiar Fantasmas'}
           </Button>
           <Button
-            onClick={handleSetupDocumentTypes}
+            onClick={() => {
+              if (confirm('¿Estás seguro de que quieres configurar los tipos de documentos predefinidos para guardias? Esta acción actualizará la configuración existente.')) {
+                fetch('/api/setup-document-types', { method: 'POST' })
+                  .then(response => response.json())
+                  .then(result => {
+                    toast.success(`${result.estadisticas.total_tipos} tipos de documentos configurados para guardias`);
+                    cargarTiposDocumentos();
+                  })
+                  .catch(error => {
+                    toast.error(error.message || "Error en la configuración");
+                  });
+              }
+            }}
             variant="outline"
             size="sm"
             className="hover:bg-blue-50 border-blue-200 text-blue-600 hover:text-blue-700"

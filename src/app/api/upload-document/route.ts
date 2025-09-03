@@ -32,6 +32,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 });
     }
 
+    // Obtener tenant_id del usuario actual (por ahora usar 'Gard')
+    let tenantId: string;
+    try {
+      const tenantResult = await pool.query(`
+        SELECT id FROM tenants WHERE nombre = 'Gard' LIMIT 1
+      `);
+      
+      if (tenantResult.rows.length === 0) {
+        // Crear tenant 'Gard' si no existe
+        const newTenant = await pool.query(`
+          INSERT INTO tenants (nombre, activo) VALUES ('Gard', true) RETURNING id
+        `);
+        tenantId = newTenant.rows[0].id;
+      } else {
+        tenantId = tenantResult.rows[0].id;
+      }
+    } catch (error) {
+      console.error('Error obteniendo tenant_id:', error);
+      return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
+    }
+
     console.log('📤 Subiendo documento:', {
       archivo: file.name,
       nombre_documento,
@@ -116,9 +137,9 @@ export async function POST(req: NextRequest) {
       insertQuery = `
         INSERT INTO documentos (
           nombre_original, tipo, url, cliente_id, tipo_documento_id, 
-          contenido_archivo, tamaño, fecha_vencimiento
+          contenido_archivo, tamaño, fecha_vencimiento, tenant_id
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING id, url as nombre, fecha_vencimiento
       `;
       
@@ -130,7 +151,8 @@ export async function POST(req: NextRequest) {
         tipo_documento_id,            // tipo_documento_id
         r2Success ? null : buffer,    // contenido_archivo (solo si no está en R2)
         file.size,                    // tamaño
-        fecha_vencimiento || null     // fecha_vencimiento
+        fecha_vencimiento || null,    // fecha_vencimiento
+        tenantId                      // tenant_id
       ];
       
     } else if (modulo === "instalaciones") {
@@ -138,9 +160,9 @@ export async function POST(req: NextRequest) {
       insertQuery = `
         INSERT INTO documentos (
           nombre_original, tipo, url, instalacion_id, tipo_documento_id, 
-          contenido_archivo, tamaño, fecha_vencimiento
+          contenido_archivo, tamaño, fecha_vencimiento, tenant_id
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING id, url as nombre, fecha_vencimiento
       `;
       
@@ -152,7 +174,8 @@ export async function POST(req: NextRequest) {
         tipo_documento_id,            // tipo_documento_id
         r2Success ? null : buffer,    // contenido_archivo (solo si no está en R2)
         file.size,                    // tamaño
-        fecha_vencimiento || null     // fecha_vencimiento
+        fecha_vencimiento || null,    // fecha_vencimiento
+        tenantId                      // tenant_id
       ];
       
     } else if (modulo === "guardias") {
@@ -160,9 +183,9 @@ export async function POST(req: NextRequest) {
       insertQuery = `
         INSERT INTO documentos (
           nombre_original, tipo, url, guardia_id, tipo_documento_id, 
-          contenido_archivo, tamaño, fecha_vencimiento
+          contenido_archivo, tamaño, fecha_vencimiento, tenant_id
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING id, url as nombre, fecha_vencimiento
       `;
       
@@ -174,7 +197,8 @@ export async function POST(req: NextRequest) {
         tipo_documento_id,            // tipo_documento_id
         r2Success ? null : buffer,    // contenido_archivo (solo si no está en R2)
         file.size,                    // tamaño
-        fecha_vencimiento || null     // fecha_vencimiento
+        fecha_vencimiento || null,    // fecha_vencimiento
+        tenantId                      // tenant_id
       ];
       
     } else {

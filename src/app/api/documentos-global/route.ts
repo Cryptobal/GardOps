@@ -37,6 +37,27 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '100');
     const offset = parseInt(searchParams.get('offset') || '0');
 
+    // Obtener tenant_id del usuario actual (por ahora usar 'Gard')
+    let tenantId: string;
+    try {
+      const tenantResult = await query(`
+        SELECT id FROM tenants WHERE nombre = 'Gard' LIMIT 1
+      `);
+      
+      if (tenantResult.rows.length === 0) {
+        // Crear tenant 'Gard' si no existe
+        const newTenant = await query(`
+          INSERT INTO tenants (nombre, activo) VALUES ('Gard', true) RETURNING id
+        `);
+        tenantId = newTenant.rows[0].id;
+      } else {
+        tenantId = tenantResult.rows[0].id;
+      }
+    } catch (error) {
+      console.error('Error obteniendo tenant_id:', error);
+      return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
+    }
+
     // Query global para todos los módulos
     let sql = `
       WITH documentos_unidos AS (
@@ -60,9 +81,9 @@ export async function GET(request: NextRequest) {
             ELSE 'vigente'
           END as estado
         FROM documentos d
-        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id
+        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id AND td.tenant_id = $1
         LEFT JOIN clientes c ON d.cliente_id = c.id
-        WHERE d.cliente_id IS NOT NULL
+        WHERE d.cliente_id IS NOT NULL AND d.tenant_id = $1
         
         UNION ALL
         
@@ -86,9 +107,9 @@ export async function GET(request: NextRequest) {
             ELSE 'vigente'
           END as estado
         FROM documentos d
-        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id
+        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id AND td.tenant_id = $1
         LEFT JOIN instalaciones i ON d.instalacion_id = i.id
-        WHERE d.instalacion_id IS NOT NULL
+        WHERE d.instalacion_id IS NOT NULL AND d.tenant_id = $1
         
         UNION ALL
         
@@ -112,9 +133,9 @@ export async function GET(request: NextRequest) {
             ELSE 'vigente'
           END as estado
         FROM documentos d
-        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id
+        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id AND td.tenant_id = $1
         LEFT JOIN guardias g ON d.guardia_id = g.id
-        WHERE d.guardia_id IS NOT NULL
+        WHERE d.guardia_id IS NOT NULL AND d.tenant_id = $1
       )
       SELECT * FROM documentos_unidos
       WHERE 1=1
@@ -183,7 +204,7 @@ export async function GET(request: NextRequest) {
             ELSE 'vigente'
           END as estado
         FROM documentos d
-        WHERE d.cliente_id IS NOT NULL
+        WHERE d.cliente_id IS NOT NULL AND d.tenant_id = $1
         
         UNION ALL
         
@@ -196,7 +217,7 @@ export async function GET(request: NextRequest) {
             ELSE 'vigente'
           END as estado
         FROM documentos d
-        WHERE d.instalacion_id IS NOT NULL
+        WHERE d.instalacion_id IS NOT NULL AND d.tenant_id = $1
         
         UNION ALL
         
@@ -209,7 +230,7 @@ export async function GET(request: NextRequest) {
             ELSE 'vigente'
           END as estado
         FROM documentos d
-        WHERE d.guardia_id IS NOT NULL
+        WHERE d.guardia_id IS NOT NULL AND d.tenant_id = $1
       )
       SELECT 
         COUNT(*) as total,
@@ -220,7 +241,7 @@ export async function GET(request: NextRequest) {
       FROM documentos_unidos
     `;
     
-    const statsResult = await query(statsQuery);
+    const statsResult = await query(statsQuery, [tenantId]);
     const stats = statsResult.rows[0] || {
       total: 0,
       vigentes: 0,

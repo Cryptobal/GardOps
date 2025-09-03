@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
           cliente_id,
           instalacion_id,
           guardia_id,
+          tenant_id,
           created_at
         FROM documentos 
         WHERE url IS NOT NULL 

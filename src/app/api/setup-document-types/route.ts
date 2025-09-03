@@ -8,12 +8,24 @@ export async function POST(req: NextRequest) {
     const client = await pool.connect();
     
     try {
-      // 1. Desactivar tipos existentes para guardias
+      // 1. Obtener tenant_id del usuario actual (por ahora usar 'Gard')
+      const tenantResult = await client.query(`
+        SELECT id FROM tenants WHERE nombre = 'Gard' LIMIT 1
+      `);
+      
+      if (tenantResult.rows.length === 0) {
+        throw new Error('Tenant "Gard" no encontrado');
+      }
+      
+      const tenantId = tenantResult.rows[0].id;
+      console.log('✅ Tenant ID obtenido:', tenantId);
+
+      // 2. Desactivar tipos existentes para guardias
       await client.query(`
         UPDATE documentos_tipos 
         SET activo = false 
-        WHERE modulo = 'guardias'
-      `);
+        WHERE modulo = 'guardias' AND tenant_id = $1
+      `, [tenantId]);
       console.log('✅ Tipos existentes desactivados');
 
       // 2. Insertar/actualizar tipos de documentos para guardias con nombres predefinidos
@@ -52,15 +64,15 @@ export async function POST(req: NextRequest) {
 
       for (const tipo of tiposDocumentos) {
         await client.query(`
-          INSERT INTO documentos_tipos (id, modulo, nombre, requiere_vencimiento, dias_antes_alarma, activo, creado_en)
-          VALUES (gen_random_uuid(), 'guardias', $1, $2, $3, true, NOW())
-          ON CONFLICT (modulo, nombre) 
+          INSERT INTO documentos_tipos (id, modulo, nombre, requiere_vencimiento, dias_antes_alarma, activo, creado_en, tenant_id)
+          VALUES (gen_random_uuid(), 'guardias', $1, $2, $3, true, NOW(), $4)
+          ON CONFLICT (modulo, nombre, tenant_id) 
           DO UPDATE SET 
               requiere_vencimiento = EXCLUDED.requiere_vencimiento,
               dias_antes_alarma = EXCLUDED.dias_antes_alarma,
               activo = EXCLUDED.activo,
               updated_at = NOW()
-        `, [tipo.nombre, tipo.requiere_vencimiento, tipo.dias_antes_alarma]);
+        `, [tipo.nombre, tipo.requiere_vencimiento, tipo.dias_antes_alarma, tenantId]);
       }
 
       console.log(`✅ ${tiposDocumentos.length} tipos de documentos configurados`);
@@ -75,9 +87,9 @@ export async function POST(req: NextRequest) {
           dias_antes_alarma, 
           activo
         FROM documentos_tipos 
-        WHERE modulo = 'guardias' AND activo = true
+        WHERE modulo = 'guardias' AND activo = true AND tenant_id = $1
         ORDER BY nombre
-      `);
+      `, [tenantId]);
 
       // 4. Estadísticas finales
       const stats = await client.query(`
@@ -86,8 +98,8 @@ export async function POST(req: NextRequest) {
           COUNT(CASE WHEN requiere_vencimiento THEN 1 END) as con_vencimiento,
           COUNT(CASE WHEN NOT requiere_vencimiento THEN 1 END) as sin_vencimiento
         FROM documentos_tipos 
-        WHERE modulo = 'guardias' AND activo = true
-      `);
+        WHERE modulo = 'guardias' AND activo = true AND tenant_id = $1
+      `, [tenantId]);
 
       const statsData = stats.rows[0];
 
@@ -129,6 +141,17 @@ export async function GET(req: NextRequest) {
     const client = await pool.connect();
     
     try {
+      // Obtener tenant_id del usuario actual (por ahora usar 'Gard')
+      const tenantResult = await client.query(`
+        SELECT id FROM tenants WHERE nombre = 'Gard' LIMIT 1
+      `);
+      
+      if (tenantResult.rows.length === 0) {
+        throw new Error('Tenant "Gard" no encontrado');
+      }
+      
+      const tenantId = tenantResult.rows[0].id;
+
       const tiposGuardias = await client.query(`
         SELECT 
           id, 
@@ -139,7 +162,7 @@ export async function GET(req: NextRequest) {
           created_at,
           updated_at
         FROM documentos_tipos 
-        WHERE modulo = 'guardias'
+        WHERE modulo = 'guardias' AND tenant_id = $1
         ORDER BY 
           CASE 
             WHEN nombre LIKE '%Carnet%' THEN 1
@@ -160,7 +183,7 @@ export async function GET(req: NextRequest) {
             ELSE 99
           END,
           nombre
-      `);
+      `, [tenantId]);
 
       const stats = await client.query(`
         SELECT 
@@ -170,8 +193,8 @@ export async function GET(req: NextRequest) {
           COUNT(CASE WHEN requiere_vencimiento THEN 1 END) as con_vencimiento,
           COUNT(CASE WHEN NOT requiere_vencimiento THEN 1 END) as sin_vencimiento
         FROM documentos_tipos 
-        WHERE modulo = 'guardias'
-      `);
+        WHERE modulo = 'guardias' AND tenant_id = $1
+      `, [tenantId]);
 
       const statsData = stats.rows[0];
 
