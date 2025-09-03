@@ -43,7 +43,7 @@ export async function createUser(data: CreateUsuarioData): Promise<Usuario | nul
 
 export async function authenticateUser(credentials: LoginCredentials): Promise<AuthResponse | null> {
   try {
-    // 1) Intentar en Vercel Postgres con crypt()
+    // 1) Buscar usuario por email y verificar contraseña con Base64+salt
     let user: any = null;
     try {
       const rows = await vercelSql<{
@@ -51,52 +51,53 @@ export async function authenticateUser(credentials: LoginCredentials): Promise<A
         email: string;
         nombre: string;
         apellido: string;
-        rol: string;
         tenant_id: string;
       }>`
-        SELECT id::text as id, email, nombre, apellido, rol, tenant_id::text as tenant_id
+        SELECT id::text as id, email, nombre, apellido, tenant_id::text as tenant_id, password
         FROM public.usuarios
         WHERE lower(email) = lower(${credentials.email})
           AND activo = true
-          AND password = crypt(${credentials.password}, password)
         LIMIT 1
       `;
-      user = rows?.rows?.[0] ?? null;
+      
+      const u = rows?.rows?.[0] ?? null;
+      if (u && comparePassword(credentials.password, u.password)) {
+        user = { 
+          id: u.id, 
+          email: u.email, 
+          nombre: u.nombre, 
+          apellido: u.apellido, 
+          tenant_id: u.tenant_id 
+        };
+      }
     } catch (e) {
-      // Ignorar, probamos fallback
-    }
-
-    // 1b) Si aún no, intentar Vercel Postgres trayendo hash y comparando con bcrypt (migraciones antiguas)
-    if (!user) {
-      try {
-        const rows = await vercelSql<{
-          id: string; email: string; password: string; nombre: string; apellido: string; rol: string; tenant_id: string;
-        }>`
-          SELECT id::text as id, email, password, nombre, apellido, rol, tenant_id::text as tenant_id
-          FROM public.usuarios
-          WHERE lower(email) = lower(${credentials.email}) AND activo = true
-          LIMIT 1
-        `;
-        const u = rows?.rows?.[0] ?? null;
-        if (u && comparePassword(credentials.password, u.password)) {
-          user = { id: u.id, email: u.email, nombre: u.nombre, apellido: u.apellido, rol: u.rol, tenant_id: u.tenant_id };
-        }
-      } catch {}
+      console.error('Error en autenticación Vercel Postgres:', e);
     }
 
     // 2) Fallback a DATABASE_URL pool si no encontramos usuario
     if (!user) {
       try {
         const res = await query(
-          `SELECT id::text as id, email, nombre, apellido, rol, tenant_id::text as tenant_id
+          `SELECT id::text as id, email, nombre, apellido, tenant_id::text as tenant_id, password
            FROM public.usuarios
            WHERE lower(email) = lower($1) AND activo = true
-             AND password = crypt($2, password)
            LIMIT 1`,
-          [credentials.email, credentials.password]
+          [credentials.email]
         );
-        user = res?.rows?.[0] ?? null;
-      } catch {}
+        
+        const u = res?.rows?.[0] ?? null;
+        if (u && comparePassword(credentials.password, u.password)) {
+          user = { 
+            id: u.id, 
+            email: u.email, 
+            nombre: u.nombre, 
+            apellido: u.apellido, 
+            tenant_id: u.tenant_id 
+          };
+        }
+      } catch (e) {
+        console.error('Error en autenticación fallback:', e);
+      }
     }
 
     if (!user) {
@@ -125,6 +126,23 @@ export async function authenticateUser(credentials: LoginCredentials): Promise<A
       try { await query('UPDATE public.usuarios SET ultimo_acceso = NOW() WHERE id = $1::uuid', [user.id]); } catch {}
     }
 
+    // Obtener rol desde usuarios_roles
+    let userRole = 'Sin rol';
+    try {
+      const roleResult = await vercelSql`
+        SELECT r.nombre
+        FROM usuarios_roles ur
+        JOIN roles r ON ur.rol_id = r.id
+        WHERE ur.usuario_id = ${user.id}::uuid
+        LIMIT 1
+      `;
+      if (roleResult.rows.length > 0) {
+        userRole = roleResult.rows[0].nombre;
+      }
+    } catch (e) {
+      console.error('Error obteniendo rol:', e);
+    }
+
     // Crear JWT token con tenant_id
     const access_token = signToken({
       user_id: user.id,
@@ -132,7 +150,7 @@ export async function authenticateUser(credentials: LoginCredentials): Promise<A
       name: `${user.nombre} ${user.apellido}`.trim(),
       nombre: user.nombre,
       apellido: user.apellido,
-      rol: user.rol as any,
+      rol: userRole,
       tenant_id: user.tenant_id
     });
 
@@ -143,7 +161,7 @@ export async function authenticateUser(credentials: LoginCredentials): Promise<A
         email: user.email,
         nombre: user.nombre,
         apellido: user.apellido,
-        rol: user.rol,
+        rol: userRole,
         tenant_id: user.tenant_id
       }
     };
