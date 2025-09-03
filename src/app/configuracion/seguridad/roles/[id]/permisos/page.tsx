@@ -147,6 +147,15 @@ export default function PermisosRolPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const { addToast } = useToast();
 
+  // Debug: Log del estado de permisos
+  useEffect(() => {
+    console.log('🔍 Estado actual de permisos asignados:', {
+      count: permisosAsignados.size,
+      ids: Array.from(permisosAsignados),
+      hasChanges
+    });
+  }, [permisosAsignados, hasChanges]);
+
   const hasAccess = canRead || isPlatformAdmin;
   const canEdit = canWrite || isPlatformAdmin;
 
@@ -451,18 +460,31 @@ export default function PermisosRolPage() {
 
       // 🔄 RECARGAR PERMISOS DESPUÉS DE GUARDAR
       try {
+        console.log('🔄 Recargando permisos desde el servidor...');
         const asignadosRes = await rbacFetch(`/api/admin/rbac/roles/${rolId}/permisos`);
         const asignadosData = await asignadosRes.json();
+        
         if (asignadosRes.ok) {
           const fuente = Array.isArray(asignadosData.items) ? asignadosData.items : asignadosData.permisos || [];
           const asignadosSet = new Set(
             fuente.map((p: any) => p.permiso_id || p.id).filter(Boolean)
           );
-          setPermisosAsignados(asignadosSet as Set<string>);
-          console.log('🔄 Permisos recargados desde el servidor:', asignadosSet.size, 'permisos');
+          
+          console.log('📊 Permisos recibidos del servidor:', fuente.length);
+          console.log('🔑 IDs de permisos:', Array.from(asignadosSet));
+          
+          // Forzar actualización del estado
+          setPermisosAsignados(new Set(asignadosSet));
+          
+          // Verificar que se actualizó correctamente
+          setTimeout(() => {
+            console.log('✅ Estado actualizado. Permisos asignados:', asignadosSet.size, 'permisos');
+          }, 100);
+        } else {
+          console.error('❌ Error al recargar permisos:', asignadosData);
         }
       } catch (reloadError) {
-        console.warn('⚠️ Error al recargar permisos:', reloadError);
+        console.error('❌ Error al recargar permisos:', reloadError);
       }
 
       setHasChanges(false);
