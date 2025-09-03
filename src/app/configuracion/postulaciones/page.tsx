@@ -18,7 +18,8 @@ import {
   Settings,
   Link,
   ExternalLink,
-  TestTube
+  TestTube,
+  FileText
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 
@@ -50,10 +51,22 @@ export default function ConfiguracionPostulacionesPage() {
   const [webhookLogs, setWebhookLogs] = useState<WebhookLog[]>([]);
   const [testingWebhook, setTestingWebhook] = useState(false);
   const [activeTab, setActiveTab] = useState("configuracion");
+  
+  // Estados para gestión de documentos
+  const [tiposDocumentos, setTiposDocumentos] = useState<any[]>([]);
+  const [cargandoDocumentos, setCargandoDocumentos] = useState(false);
+  const [editandoDocumento, setEditandoDocumento] = useState<string | null>(null);
+  const [nuevoDocumento, setNuevoDocumento] = useState({
+    nombre: '',
+    obligatorio: false,
+    requiere_vencimiento: false,
+    dias_antes_alarma: 30
+  });
 
   useEffect(() => {
     cargarConfiguracion();
     cargarWebhookLogs();
+    cargarTiposDocumentos();
   }, []);
 
   const cargarConfiguracion = async () => {
@@ -84,6 +97,90 @@ export default function ConfiguracionPostulacionesPage() {
     } catch (error) {
       console.error('Error cargando logs de webhook:', error);
     }
+  };
+
+  // Cargar tipos de documentos
+  const cargarTiposDocumentos = async () => {
+    try {
+      setCargandoDocumentos(true);
+      const response = await fetch('/api/setup-document-types');
+      if (response.ok) {
+        const data = await response.json();
+        setTiposDocumentos(data.tipos_documentos || []);
+      }
+    } catch (error) {
+      console.error('Error cargando tipos de documentos:', error);
+      toast.error('Error al cargar tipos de documentos');
+    } finally {
+      setCargandoDocumentos(false);
+    }
+  };
+
+  // Guardar configuración de documentos
+  const guardarConfiguracionDocumentos = async () => {
+    try {
+      const response = await fetch('/api/setup-document-types', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          tipos_documentos: tiposDocumentos
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Configuración de documentos guardada exitosamente');
+        await cargarTiposDocumentos();
+      } else {
+        throw new Error('Error al guardar');
+      }
+    } catch (error: any) {
+      console.error('Error guardando configuración:', error);
+      toast.error(error.message || 'Error al guardar configuración');
+    }
+  };
+
+  // Agregar nuevo tipo de documento
+  const agregarNuevoDocumento = () => {
+    if (!nuevoDocumento.nombre?.trim()) {
+      toast.error('El nombre es obligatorio');
+      return;
+    }
+
+    const nuevo = {
+      id: `nuevo-${Date.now()}`,
+      nombre: nuevoDocumento.nombre.trim(),
+      obligatorio: nuevoDocumento.obligatorio,
+      requiere_vencimiento: nuevoDocumento.requiere_vencimiento,
+      dias_antes_alarma: nuevoDocumento.dias_antes_alarma,
+      activo: true,
+      modulo: 'guardias'
+    };
+
+    setTiposDocumentos(prev => [...prev, nuevo]);
+    setNuevoDocumento({
+      nombre: '',
+      obligatorio: false,
+      requiere_vencimiento: false,
+      dias_antes_alarma: 30
+    });
+    toast.success('Nuevo tipo de documento agregado');
+  };
+
+  // Eliminar tipo de documento
+  const eliminarDocumento = (id: string) => {
+    if (confirm('¿Estás seguro de que quieres eliminar este tipo de documento?')) {
+      setTiposDocumentos(prev => prev.filter(tipo => tipo.id !== id));
+      toast.success('Tipo de documento eliminado');
+    }
+  };
+
+  // Actualizar documento
+  const actualizarDocumento = (id: string, campo: string, valor: any) => {
+    setTiposDocumentos(prev => prev.map(tipo => 
+      tipo.id === id ? { ...tipo, [campo]: valor } : tipo
+    ));
   };
 
   const toggleWebhook = async (activo: boolean) => {
@@ -192,8 +289,9 @@ export default function ConfiguracionPostulacionesPage() {
         </motion.div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="configuracion">Configuración</TabsTrigger>
+            <TabsTrigger value="documentos">Documentos</TabsTrigger>
             <TabsTrigger value="formulario">Vista del Formulario</TabsTrigger>
             <TabsTrigger value="webhooks">Logs de Webhook</TabsTrigger>
           </TabsList>
@@ -316,6 +414,158 @@ export default function ConfiguracionPostulacionesPage() {
             </motion.div>
           </TabsContent>
 
+          {/* Tab: Documentos */}
+          <TabsContent value="documentos">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Card className="shadow-xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <FileText className="w-5 h-5" />
+                    <span>Gestión de Documentos Requeridos</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Formulario para nuevo documento */}
+                  <div className="bg-muted/50 p-4 rounded-lg border">
+                    <h3 className="font-semibold text-foreground mb-4">➕ Agregar Nuevo Tipo de Documento</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div>
+                        <Label htmlFor="nombre_documento">Nombre del Documento *</Label>
+                        <Input
+                          id="nombre_documento"
+                          placeholder="Ej: Certificado de Capacitación"
+                          value={nuevoDocumento.nombre}
+                          onChange={(e) => setNuevoDocumento(prev => ({ ...prev, nombre: e.target.value }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="obligatorio"
+                          checked={nuevoDocumento.obligatorio}
+                          onCheckedChange={(checked) => setNuevoDocumento(prev => ({ ...prev, obligatorio: checked }))}
+                        />
+                        <Label htmlFor="obligatorio">Documento Obligatorio</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="requiere_vencimiento"
+                          checked={nuevoDocumento.requiere_vencimiento}
+                          onCheckedChange={(checked) => setNuevoDocumento(prev => ({ ...prev, requiere_vencimiento: checked }))}
+                        />
+                        <Label htmlFor="requiere_vencimiento">Requiere Vencimiento</Label>
+                      </div>
+                      <div>
+                        <Button onClick={agregarNuevoDocumento} className="w-full">
+                          Agregar Documento
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {nuevoDocumento.requiere_vencimiento && (
+                      <div className="mt-4">
+                        <Label htmlFor="dias_alarma">Días antes del aviso</Label>
+                        <Input
+                          id="dias_alarma"
+                          type="number"
+                          value={nuevoDocumento.dias_antes_alarma}
+                          onChange={(e) => setNuevoDocumento(prev => ({ ...prev, dias_antes_alarma: parseInt(e.target.value) || 30 }))}
+                          min="1"
+                          max="365"
+                          className="mt-1 w-32"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Lista de documentos configurados */}
+                  <div className="bg-muted/50 p-4 rounded-lg border">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold text-foreground">📋 Documentos Configurados</h3>
+                      <Button onClick={guardarConfiguracionDocumentos} className="bg-green-600 hover:bg-green-700">
+                        💾 Guardar Configuración
+                      </Button>
+                    </div>
+                    
+                    {cargandoDocumentos ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                        <p className="text-muted-foreground">Cargando documentos...</p>
+                      </div>
+                    ) : tiposDocumentos.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                        <p>No hay tipos de documentos configurados</p>
+                        <p className="text-sm">Agrega documentos usando el formulario de arriba</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {tiposDocumentos.map((documento) => (
+                          <div key={documento.id} className="flex items-center justify-between p-3 bg-background rounded border">
+                            <div className="flex items-center space-x-4">
+                              <div className="flex items-center space-x-2">
+                                <Switch
+                                  checked={documento.obligatorio || false}
+                                  onCheckedChange={(checked) => actualizarDocumento(documento.id, 'obligatorio', checked)}
+                                />
+                                <Label className="text-sm font-medium">Obligatorio</Label>
+                              </div>
+                              
+                              <div className="flex items-center space-x-2">
+                                <Switch
+                                  checked={documento.requiere_vencimiento || false}
+                                  onCheckedChange={(checked) => actualizarDocumento(documento.id, 'requiere_vencimiento', checked)}
+                                />
+                                <Label className="text-sm font-medium">Con vencimiento</Label>
+                              </div>
+                              
+                              {documento.requiere_vencimiento && (
+                                <div className="flex items-center space-x-2">
+                                  <Label className="text-sm">Días antes del aviso:</Label>
+                                  <Input
+                                    type="number"
+                                    value={documento.dias_antes_alarma || 30}
+                                    onChange={(e) => actualizarDocumento(documento.id, 'dias_antes_alarma', parseInt(e.target.value) || 30)}
+                                    min="1"
+                                    max="365"
+                                    className="w-20 h-8 text-sm"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              <span className="font-medium text-foreground">{documento.nombre}</span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => eliminarDocumento(documento.id)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                🗑️
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Nota informativa */}
+                  <div className="pt-4">
+                    <p className="text-sm text-muted-foreground text-center">
+                      💡 Los documentos configurados aquí aparecerán en el formulario de postulación para los guardias
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+
           {/* Tab: Vista del Formulario */}
           <TabsContent value="formulario">
             <motion.div
@@ -366,15 +616,31 @@ export default function ConfiguracionPostulacionesPage() {
                     
                     <div className="bg-card p-4 rounded border">
                       <h3 className="font-semibold mb-2 text-foreground">📄 Documentos Requeridos</h3>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-muted-foreground">
-                        <p>• Certificado OS10</p>
-                        <p>• Carnet identidad (frontal/reverso)</p>
-                        <p>• Certificado antecedentes</p>
-                        <p>• Certificado enseñanza media</p>
-                        <p>• Certificado AFP</p>
-                        <p>• Certificado AFC</p>
-                        <p>• Certificado FONASA/ISAPRE</p>
-                      </div>
+                      {cargandoDocumentos ? (
+                        <div className="text-center py-4">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                          <p className="text-sm text-muted-foreground">Cargando documentos...</p>
+                        </div>
+                      ) : tiposDocumentos.length === 0 ? (
+                        <div className="text-center py-4 text-muted-foreground">
+                          <p className="text-sm">No hay documentos configurados</p>
+                          <p className="text-xs">Configura los documentos en la pestaña "Documentos"</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                          {tiposDocumentos.map((documento) => (
+                            <div key={documento.id} className="flex items-center space-x-2">
+                              <span>• {documento.nombre}</span>
+                              {documento.obligatorio && (
+                                <Badge variant="destructive" className="text-xs">Obligatorio</Badge>
+                              )}
+                              {documento.requiere_vencimiento && (
+                                <Badge variant="secondary" className="text-xs">Con vencimiento</Badge>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     
                     <div className="text-center mt-6">

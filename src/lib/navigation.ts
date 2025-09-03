@@ -115,10 +115,5 @@ export const navigationItems: NavigationItem[] = [
     icon: Settings,
     permission: "configuracion.view"
   },
-  {
-    name: "Documentos Postulación",
-    href: "/configuracion/documentos-postulacion",
-    icon: FileText,
-    permission: "configuracion.view"
-  }
+
 ]; 
