@@ -443,10 +443,10 @@ export default function UsuariosPage() {
             setFormError(null);
             setEmail("");
             setNombre("");
-            setTenantId("");
             setPassword("");
             setShowPassword(false);
             setCreating(false);
+            setSelectedRole(null);
           }
         }}
       >
