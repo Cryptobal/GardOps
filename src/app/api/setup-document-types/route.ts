@@ -3,6 +3,55 @@ import pool from "@/lib/database";
 
 export async function POST(req: NextRequest) {
   try {
+    const body = await req.json();
+    const { tipos_documentos } = body;
+
+    // Si se envían tipos_documentos desde el frontend, actualizar los existentes
+    if (tipos_documentos && Array.isArray(tipos_documentos)) {
+      console.log('🔄 Actualizando configuración de documentos desde frontend...');
+      
+      const client = await pool.connect();
+      
+      try {
+        // Obtener tenant_id del usuario actual (por ahora usar 'Gard')
+        const tenantResult = await client.query(`
+          SELECT id FROM tenants WHERE nombre = 'Gard' LIMIT 1
+        `);
+        
+        if (tenantResult.rows.length === 0) {
+          throw new Error('Tenant "Gard" no encontrado');
+        }
+        
+        const tenantId = tenantResult.rows[0].id;
+        console.log('✅ Tenant ID obtenido:', tenantId);
+
+        // Actualizar cada tipo de documento existente
+        for (const tipo of tipos_documentos) {
+          if (tipo.id && !tipo.id.startsWith('nuevo-')) {
+            await client.query(`
+              UPDATE documentos_tipos 
+              SET 
+                requiere_vencimiento = $1,
+                dias_antes_alarma = $2,
+                activo = $3
+              WHERE id = $4 AND tenant_id = $5
+            `, [tipo.requiere_vencimiento, tipo.dias_antes_alarma, tipo.activo, tipo.id, tenantId]);
+          }
+        }
+
+        console.log(`✅ ${tipos_documentos.length} tipos de documentos actualizados`);
+
+        return NextResponse.json({
+          success: true,
+          message: "Configuración de documentos actualizada exitosamente"
+        });
+
+      } finally {
+        client.release();
+      }
+    }
+
+    // Si no se envían tipos_documentos, crear la configuración inicial
     console.log('🔧 Configurando tipos de documentos predefinidos para guardias...');
 
     const client = await pool.connect();
@@ -20,15 +69,21 @@ export async function POST(req: NextRequest) {
       const tenantId = tenantResult.rows[0].id;
       console.log('✅ Tenant ID obtenido:', tenantId);
 
-      // 2. Desactivar tipos existentes para guardias
-      await client.query(`
-        UPDATE documentos_tipos 
-        SET activo = false 
-        WHERE modulo = 'guardias' AND tenant_id = $1
+      // 2. Verificar si ya existen tipos de documentos para este tenant
+      const tiposExistentes = await client.query(`
+        SELECT COUNT(*) as total FROM documentos_tipos WHERE modulo = 'guardias' AND tenant_id = $1
       `, [tenantId]);
-      console.log('✅ Tipos existentes desactivados');
 
-      // 2. Insertar/actualizar tipos de documentos para guardias con nombres predefinidos
+      if (parseInt(tiposExistentes.rows[0].total) > 0) {
+        console.log('⚠️ Ya existen tipos de documentos para este tenant');
+        return NextResponse.json({
+          success: true,
+          message: "Los tipos de documentos ya están configurados",
+          warning: "No se crearon nuevos registros porque ya existen"
+        });
+      }
+
+      // 3. Insertar tipos de documentos predefinidos
       const tiposDocumentos = [
         // Documentos de identidad (sin vencimiento)
         { nombre: 'Carnet Identidad Frontal', requiere_vencimiento: false, dias_antes_alarma: 0 },
@@ -71,7 +126,7 @@ export async function POST(req: NextRequest) {
 
       console.log(`✅ ${tiposDocumentos.length} tipos de documentos configurados`);
 
-      // 3. Verificar que se crearon correctamente
+      // 4. Verificar que se crearon correctamente
       const tiposCreados = await client.query(`
         SELECT 
           id, 
@@ -85,7 +140,7 @@ export async function POST(req: NextRequest) {
         ORDER BY nombre
       `, [tenantId]);
 
-      // 4. Estadísticas finales
+      // 5. Estadísticas finales
       const stats = await client.query(`
         SELECT 
           COUNT(*) as total_tipos,
