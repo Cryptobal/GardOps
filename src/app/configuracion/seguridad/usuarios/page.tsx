@@ -395,8 +395,9 @@ export default function UsuariosPage() {
                             onClick={() => openEditModal(row)}
                             disabled={loading}
                             aria-label="Editar usuario"
+                            title="Editar usuario"
                           >
-                            ✏️
+                            ✏️ Editar
                           </Button>
                           <Button
                             size="sm"
