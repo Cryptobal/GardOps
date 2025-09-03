@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
           td.nombre as tipo_documento_nombre,
           td.id as tipo_documento_id,
           'guardias' as modulo,
-          g.nombre_completo as entidad_nombre,
+          CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, '')) as entidad_nombre,
           g.id as entidad_id,
           d.url,
           CASE 
