@@ -147,6 +147,10 @@ export default function DocumentosGlobalesPage() {
   const [documentoParaVer, setDocumentoParaVer] = useState<DocumentoGlobal | null>(null);
   const [documentoParaEditar, setDocumentoParaEditar] = useState<DocumentoGlobal | null>(null);
   const [nuevaFechaVencimiento, setNuevaFechaVencimiento] = useState('');
+  
+  // Estados para limpieza automática
+  const [isCleaning, setIsCleaning] = useState(false);
+  const [isSettingUp, setIsSettingUp] = useState(false);
 
   // Estados de filtros
   const [filtros, setFiltros] = useState({
@@ -210,6 +214,98 @@ export default function DocumentosGlobalesPage() {
       console.error('❌ Error cargando tipos de documentos:', error);
     }
   };
+
+  // Función para limpieza automática de documentos
+  const handleCleanupDocuments = useCallback(async () => {
+    try {
+      setIsCleaning(true);
+      
+      // Confirmar antes de proceder
+      if (!confirm('¿Estás seguro de que quieres limpiar los documentos "fantasmas"? Esta acción eliminará documentos que ya no existen en Cloudflare.')) {
+        return;
+      }
+      
+      toast({
+        title: "🧹 Iniciando limpieza automática",
+        description: "Verificando documentos en Cloudflare R2...",
+      });
+      
+      const response = await fetch('/api/cleanup-documents', {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        
+        toast({
+          title: "✅ Limpieza completada",
+          description: `Se eliminaron ${result.estadisticas.documentos_eliminados} documentos fantasmas. Total restante: ${result.estadisticas.total_final}`,
+        });
+        
+        // Recargar documentos después de la limpieza
+        setRefreshTrigger(prev => prev + 1);
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Error en la limpieza');
+      }
+      
+    } catch (error: any) {
+      console.error('Error en limpieza:', error);
+      toast({
+        title: "❌ Error en limpieza",
+        description: error.message || "Error interno del servidor",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCleaning(false);
+    }
+  }, [toast]);
+
+  // Función para configurar tipos de documentos predefinidos
+  const handleSetupDocumentTypes = useCallback(async () => {
+    try {
+      setIsSettingUp(true);
+      
+      // Confirmar antes de proceder
+      if (!confirm('¿Estás seguro de que quieres configurar los tipos de documentos predefinidos para guardias? Esta acción actualizará la configuración existente.')) {
+        return;
+      }
+      
+      toast({
+        title: "🔧 Configurando tipos de documentos",
+        description: "Estableciendo nombres predefinidos para guardias...",
+      });
+      
+      const response = await fetch('/api/setup-document-types', {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        
+        toast({
+          title: "✅ Tipos configurados",
+          description: `${result.estadisticas.total_tipos} tipos de documentos configurados para guardias`,
+        });
+        
+        // Recargar tipos de documentos
+        cargarTiposDocumentos();
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Error en la configuración');
+      }
+      
+    } catch (error: any) {
+      console.error('Error configurando tipos:', error);
+      toast({
+        title: "❌ Error en configuración",
+        description: error.message || "Error interno del servidor",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSettingUp(false);
+    }
+  }, [toast, cargarTiposDocumentos]);
 
   // Cargar alertas de documentos
   const cargarAlertas = async () => {
@@ -458,6 +554,26 @@ export default function DocumentosGlobalesPage() {
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${cargando ? 'animate-spin' : ''}`} />
             Actualizar
+          </Button>
+          <Button
+            onClick={handleCleanupDocuments}
+            variant="outline"
+            size="sm"
+            className="hover:bg-red-50 border-red-200 text-red-600 hover:text-red-700"
+            disabled={isCleaning}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            {isCleaning ? 'Limpiando...' : 'Limpiar Fantasmas'}
+          </Button>
+          <Button
+            onClick={handleSetupDocumentTypes}
+            variant="outline"
+            size="sm"
+            className="hover:bg-blue-50 border-blue-200 text-blue-600 hover:text-blue-700"
+            disabled={isSettingUp}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            {isSettingUp ? 'Configurando...' : 'Configurar Tipos'}
           </Button>
         </div>
       </div>
