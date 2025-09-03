@@ -226,8 +226,12 @@ export async function POST(req: NextRequest) {
     // 4) Insert con password obligatoria; si existe, 409
     console.log('[admin/rbac/usuarios][POST] SQL insert', { text: 'insert into public.usuarios(...) returning ...', values: { email, nombre, tenantIdFinal } })
     
+    // Hash password con el método correcto (Base64+salt)
+    const salt = 'gardops-salt-2024';
+    const hashedPassword = Buffer.from(password + salt).toString('base64');
+    
     const inserted = await sql<{ id: string; email: string; nombre: string | null; activo: boolean; tenant_id: string | null }>`
-      INSERT INTO public.usuarios (id, email, nombre, apellido, activo, tenant_id, password, rol, fecha_creacion)
+      INSERT INTO public.usuarios (id, email, nombre, apellido, activo, tenant_id, password, fecha_creacion)
       VALUES (
         gen_random_uuid(),
         lower(${email}),
@@ -235,8 +239,7 @@ export async function POST(req: NextRequest) {
         '',
         true,
         ${tenantIdFinal},
-        crypt(${password}, gen_salt('bf')),
-        'guardia',
+        ${hashedPassword},
         NOW()
       )
       ON CONFLICT (email) DO NOTHING
