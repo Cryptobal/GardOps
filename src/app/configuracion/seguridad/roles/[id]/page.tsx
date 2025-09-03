@@ -386,21 +386,29 @@ export default function RolDetallePage() {
       setError(null);
 
       // Aplicar todos los cambios pendientes a los permisos
-      let nuevosPermisos = new Set(permisosAsignados);
+      let nuevosPermisos = new Set(permisosOriginales); // Empezar desde los originales, no los asignados
+      
+      console.log('🔧 Aplicando cambios pendientes:', cambiosPendientes);
+      console.log('📊 Permisos originales:', permisosOriginales.size);
       
       Object.entries(cambiosPendientes).forEach(([modulo, nivel]) => {
         // Remover permisos existentes del módulo
         const prefixes = MODULO_PREFIXES[modulo] || [modulo];
+        let removidos = 0;
         prefixes.forEach(prefix => {
           permisosDisponibles.forEach(p => {
             if (p.clave.startsWith(prefix + '.')) {
-              nuevosPermisos.delete(p.id);
+              if (nuevosPermisos.delete(p.id)) {
+                removidos++;
+              }
             }
           });
         });
+        console.log(`🗑️ Removidos ${removidos} permisos de ${modulo}`);
 
         // Agregar nuevos permisos para el nivel
         const permisosIds = obtenerPermisosParaNivel(modulo, nivel);
+        console.log(`➕ Agregando ${permisosIds.length} permisos para ${modulo} nivel ${nivel}`);
         permisosIds.forEach(id => nuevosPermisos.add(id));
       });
 
