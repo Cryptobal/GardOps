@@ -77,14 +77,25 @@ class ApiClient {
           console.log('❌ localStorage current_user no encontrado');
         }
 
-        // Verificar si hay auth_token cookie
-        const authToken = document.cookie
-          .split('; ')
-          .find((row) => row.startsWith('auth_token='))
-          ?.split('=')[1];
+        // Intentar obtener desde JWT
+        const authToken = localStorage.getItem('auth_token') || 
+                         document.cookie.match(/(?:^|;\s*)auth_token=([^;]+)/)?.[1];
         
         if (authToken) {
           console.log('🔑 Cookie auth_token encontrada');
+          try {
+            const parts = authToken.split('.');
+            if (parts.length === 3) {
+              const payload = JSON.parse(atob(parts[1]));
+              if (payload.email) {
+                headers['x-user-email'] = payload.email;
+                console.log('✅ Email obtenido de JWT:', payload.email);
+                return headers;
+              }
+            }
+          } catch (parseError) {
+            console.warn('⚠️ Error parseando JWT:', parseError);
+          }
         } else {
           console.log('❌ Cookie auth_token no encontrada');
         }
@@ -145,6 +156,25 @@ class ApiClient {
             if (userInfo.email) {
               headers['x-user-email'] = userInfo.email;
               return headers;
+            }
+          } catch (parseError) {
+            // Silenciar error de parsing
+          }
+        }
+        
+        // Intentar obtener desde JWT
+        const authToken = localStorage.getItem('auth_token') || 
+                         document.cookie.match(/(?:^|;\s*)auth_token=([^;]+)/)?.[1];
+        
+        if (authToken) {
+          try {
+            const parts = authToken.split('.');
+            if (parts.length === 3) {
+              const payload = JSON.parse(atob(parts[1]));
+              if (payload.email) {
+                headers['x-user-email'] = payload.email;
+                return headers;
+              }
             }
           } catch (parseError) {
             // Silenciar error de parsing

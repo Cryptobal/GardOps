@@ -3,6 +3,9 @@
 export async function rbacFetch(input: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers || {});
 
+  // Intentar obtener el email del usuario autenticado
+  let userEmail = null;
+  
   // Solo inyectar cabecera de desarrollo cuando realmente estamos en desarrollo.
   // Evita suplantar al usuario autenticado en ambientes reales.
   const devEmail = process.env.NEXT_PUBLIC_DEV_USER_EMAIL;
@@ -11,6 +14,61 @@ export async function rbacFetch(input: string, init: RequestInit = {}) {
   // En desarrollo, siempre inyectar el header x-user-email si no está presente
   if (isDev && devEmail && !headers.has('x-user-email')) {
     headers.set('x-user-email', devEmail);
+    userEmail = devEmail;
+  }
+  
+  // En producción, intentar obtener el email del usuario autenticado
+  if (!userEmail && typeof document !== 'undefined') {
+    // Intentar obtener desde tenant cookie
+    const tenantCookie = document.cookie
+      .split('; ')
+      .find((row) => row.startsWith('tenant='))
+      ?.split('=')[1];
+    
+    if (tenantCookie) {
+      try {
+        const tenantInfo = JSON.parse(decodeURIComponent(tenantCookie));
+        userEmail = tenantInfo.email;
+      } catch (parseError) {
+        console.warn('[rbacFetch] Error parseando cookie tenant:', parseError);
+      }
+    }
+    
+    // Intentar obtener desde localStorage
+    if (!userEmail) {
+      const currentUser = localStorage.getItem('current_user');
+      if (currentUser) {
+        try {
+          const userInfo = JSON.parse(currentUser);
+          userEmail = userInfo.email;
+        } catch (parseError) {
+          console.warn('[rbacFetch] Error parseando localStorage current_user:', parseError);
+        }
+      }
+    }
+    
+    // Intentar obtener desde JWT
+    if (!userEmail) {
+      const authToken = localStorage.getItem('auth_token') || 
+                       document.cookie.match(/(?:^|;\s*)auth_token=([^;]+)/)?.[1];
+      if (authToken) {
+        try {
+          const parts = authToken.split('.');
+          if (parts.length === 3) {
+            const payload = JSON.parse(atob(parts[1]));
+            userEmail = payload.email;
+          }
+        } catch (parseError) {
+          console.warn('[rbacFetch] Error parseando JWT:', parseError);
+        }
+      }
+    }
+    
+    // Si se obtuvo un email, agregarlo al header
+    if (userEmail && !headers.has('x-user-email')) {
+      headers.set('x-user-email', userEmail);
+      console.log('[rbacFetch] Agregando x-user-email header:', userEmail);
+    }
   }
 
   const method = (init.method || 'GET').toUpperCase();
