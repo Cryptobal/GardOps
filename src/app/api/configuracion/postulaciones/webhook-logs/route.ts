@@ -3,8 +3,28 @@ import { getClient } from '@/lib/database';
 
 export async function GET(request: NextRequest) {
   try {
-    // Por ahora usar un tenant_id fijo para testing
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    // Obtener tenant_id del usuario actual (por ahora usar 'Gard')
+    let tenantId: string;
+    try {
+      const client = await getClient();
+      const tenantResult = await client.query(`
+        SELECT id FROM tenants WHERE nombre = 'Gard' LIMIT 1
+      `);
+      
+      if (tenantResult.rows.length === 0) {
+        // Crear tenant 'Gard' si no existe
+        const newTenant = await client.query(`
+          INSERT INTO tenants (nombre, activo) VALUES ('Gard', true) RETURNING id
+        `);
+        tenantId = newTenant.rows[0].id;
+      } else {
+        tenantId = tenantResult.rows[0].id;
+      }
+      client.release?.();
+    } catch (error) {
+      console.error('Error obteniendo tenant_id:', error);
+      return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
+    }
     
     const client = await getClient();
     

@@ -162,7 +162,7 @@ export default function ConfiguracionDocumentosPostulacionPage() {
 
   useEffect(() => {
     cargarTiposDocumentos();
-  }, [cargandoTiposDocumentos]);
+  }, []);
 
   if (cargando) {
     return (
