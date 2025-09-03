@@ -148,6 +148,17 @@ export default function RolDetallePage() {
     setHasChanges(hayCambios);
   }, [cambiosPendientes]);
 
+  // Debug: Log del estado de permisos
+  useEffect(() => {
+    console.log('🔍 Estado actual de permisos:', {
+      asignados: permisosAsignados.size,
+      originales: permisosOriginales.size,
+      ids: Array.from(permisosAsignados).slice(0, 5), // Primeros 5 para no saturar
+      cambiosPendientes: Object.keys(cambiosPendientes).length,
+      hasChanges
+    });
+  }, [permisosAsignados, permisosOriginales, cambiosPendientes, hasChanges]);
+
   // Función para obtener el ID de un permiso por clave
   const getPermisoId = (clave: string) => {
     return permisosDisponibles.find(p => p.clave === clave)?.id;
@@ -413,19 +424,42 @@ export default function RolDetallePage() {
       setCambiosPendientes({});
       setHasChanges(false);
 
-      // Releer desde el backend inmediatamente para evitar estados desfasados/caché
-      try {
-        const asignadosRes = await rbacFetch(`/api/admin/rbac/roles/${rolId}/permisos`, { cache: 'no-store' });
-        const asignadosData = await asignadosRes.json();
-        if (asignadosRes.ok) {
-          const asignadosSet = new Set(asignadosData.items?.map((p: any) => p.id) || []);
-          setPermisosAsignados(asignadosSet as Set<string>);
-          setPermisosOriginales(asignadosSet as Set<string>);
-          console.log('Permisos recargados:', asignadosSet.size);
+      // 🔄 RECARGAR PERMISOS CORRECTAMENTE DESDE EL BACKEND
+      console.log('🔄 Recargando permisos desde el servidor...');
+      setTimeout(async () => {
+        try {
+          const asignadosRes = await rbacFetch(`/api/admin/rbac/roles/${rolId}/permisos`, { 
+            cache: 'no-store',
+            headers: { 
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          });
+          const asignadosData = await asignadosRes.json();
+          
+          if (asignadosRes.ok) {
+            // Crear nuevo Set para forzar re-render
+            const nuevosPermisos = new Set<string>();
+            (asignadosData.items || []).forEach((p: any) => {
+              if (p.id) nuevosPermisos.add(p.id);
+            });
+            
+            console.log('📊 Permisos recibidos del servidor:', asignadosData.items?.length || 0);
+            console.log('🔑 IDs de permisos:', Array.from(nuevosPermisos));
+            
+            // Forzar actualización completa del estado
+            setPermisosAsignados(nuevosPermisos);
+            setPermisosOriginales(nuevosPermisos);
+            setCambiosPendientes({}); // Limpiar cambios pendientes
+            
+            console.log('✅ Estado actualizado. Permisos asignados:', nuevosPermisos.size, 'permisos');
+          } else {
+            console.error('❌ Error al recargar permisos:', asignadosData);
+          }
+        } catch (e) {
+          console.error('❌ Error al recargar permisos:', e);
         }
-      } catch (e) {
-        console.error('Error al recargar permisos:', e);
-      }
+      }, 500); // Pequeño delay para asegurar que el backend procesó los cambios
 
       addToast({
         title: "✅ Permisos actualizados",
