@@ -11,9 +11,9 @@ export async function POST(request: NextRequest) {
     if (result.success) {
       console.log('📡 API: Migración completada exitosamente');
       
-      // Inicializar usuarios por defecto después de las migraciones
-      console.log('👥 API: Inicializando usuarios por defecto...');
-      await initializeDefaultUsers();
+      // ❌ ELIMINADO: NO crear usuarios por defecto automáticamente
+      // Los usuarios se crean manualmente desde el frontend o scripts específicos
+      console.log('✅ Migración completada sin crear usuarios por defecto');
       
       return NextResponse.json({
         success: true,
