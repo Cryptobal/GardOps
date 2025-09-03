@@ -432,42 +432,13 @@ export default function RolDetallePage() {
       setCambiosPendientes({});
       setHasChanges(false);
 
-      // 🔄 RECARGAR PERMISOS CORRECTAMENTE DESDE EL BACKEND
-      console.log('🔄 Recargando permisos desde el servidor...');
-      setTimeout(async () => {
-        try {
-          const asignadosRes = await rbacFetch(`/api/admin/rbac/roles/${rolId}/permisos`, { 
-            cache: 'no-store',
-            headers: { 
-              'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache'
-            }
-          });
-          const asignadosData = await asignadosRes.json();
-          
-          if (asignadosRes.ok) {
-            // Crear nuevo Set para forzar re-render
-            const nuevosPermisos = new Set<string>();
-            (asignadosData.items || []).forEach((p: any) => {
-              if (p.id) nuevosPermisos.add(p.id);
-            });
-            
-            console.log('📊 Permisos recibidos del servidor:', asignadosData.items?.length || 0);
-            console.log('🔑 IDs de permisos:', Array.from(nuevosPermisos));
-            
-            // Forzar actualización completa del estado
-            setPermisosAsignados(nuevosPermisos);
-            setPermisosOriginales(nuevosPermisos);
-            setCambiosPendientes({}); // Limpiar cambios pendientes
-            
-            console.log('✅ Estado actualizado. Permisos asignados:', nuevosPermisos.size, 'permisos');
-          } else {
-            console.error('❌ Error al recargar permisos:', asignadosData);
-          }
-        } catch (e) {
-          console.error('❌ Error al recargar permisos:', e);
-        }
-      }, 500); // Pequeño delay para asegurar que el backend procesó los cambios
+      // 🔄 FORZAR RECARGA COMPLETA DE TODA LA PÁGINA
+      console.log('🔄 FORZANDO RECARGA COMPLETA DE LA PÁGINA...');
+      
+      // Esperar un momento y recargar TODA la página
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
 
       addToast({
         title: "✅ Permisos actualizados",
