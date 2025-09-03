@@ -787,6 +787,20 @@ export async function createUsuariosTable(): Promise<MigrationResult> {
 }
 
 export async function runDatabaseMigrations(preserveData: boolean = false): Promise<MigrationResult> {
+  // 🛡️ FUNCIÓN DESHABILITADA PARA PREVENIR MODIFICACIONES AUTOMÁTICAS
+  console.log('🚫 runDatabaseMigrations DESHABILITADA - Previniendo modificaciones automáticas de BD');
+  
+  const finalResult: MigrationResult = {
+    success: true,
+    message: 'Migraciones deshabilitadas - BD preservada sin cambios',
+    warnings: ['Función de migraciones deshabilitada por seguridad'],
+    errors: []
+  };
+
+  return finalResult;
+
+  // CÓDIGO ORIGINAL DESHABILITADO (PRESERVADO PARA REFERENCIA):
+  /*
   const finalResult: MigrationResult = {
     success: false,
     message: '',
@@ -896,6 +910,7 @@ export async function runDatabaseMigrations(preserveData: boolean = false): Prom
     console.error(finalResult.errors[finalResult.errors.length - 1]);
     return finalResult;
   }
+  */
 }
 
 async function createBasicTablesIfNeeded(): Promise<void> {
