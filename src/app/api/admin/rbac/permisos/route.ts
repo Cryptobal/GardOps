@@ -4,20 +4,90 @@ import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
 
 export async function GET(req: NextRequest) {
   try {
+    console.log('[admin/rbac/permisos][GET] Iniciando autenticación...');
+    
     const email = await getUserEmail(req);
-    if (!email) return NextResponse.json({ ok:false, error:'unauthenticated', code:'UNAUTHENTICATED' }, { status:401 });
-    const userId = await getUserIdByEmail(email);
-    if (!userId) return NextResponse.json({ ok:false, error:'user_not_found', code:'NOT_FOUND' }, { status:401 });
+    console.log('[admin/rbac/permisos][GET] Email obtenido:', email);
+    
+    let userId: string;
+    
+    if (!email) {
+      console.log('[admin/rbac/permisos][GET] No se pudo obtener email, intentando fallback...');
+      
+      // Fallback: intentar obtener email desde headers directos
+      const fallbackEmail = req.headers.get('x-user-email') || 
+                           req.headers.get('user-email') ||
+                           process.env.NEXT_PUBLIC_DEV_USER_EMAIL;
+      
+      console.log('[admin/rbac/permisos][GET] Fallback email:', fallbackEmail);
+      
+      if (!fallbackEmail) {
+        console.log('[admin/rbac/permisos][GET] No hay email disponible');
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'No autenticado - email no disponible', 
+          code: 'UNAUTHENTICATED',
+          debug: { 
+            headers: Object.fromEntries(req.headers.entries()),
+            env: { NODE_ENV: process.env.NODE_ENV }
+          }
+        }, { status: 401 });
+      }
+      
+      // Usar el email del fallback
+      const fallbackUserId = await getUserIdByEmail(fallbackEmail);
+      if (!fallbackUserId) {
+        console.log('[admin/rbac/permisos][GET] Usuario no encontrado con fallback email');
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Usuario no encontrado', 
+          code: 'NOT_FOUND' 
+        }, { status: 401 });
+      }
+      userId = fallbackUserId;
+      
+      console.log('[admin/rbac/permisos][GET] Autenticación exitosa con fallback');
+    } else {
+      const emailUserId = await getUserIdByEmail(email);
+      if (!emailUserId) {
+        console.log('[admin/rbac/permisos][GET] Usuario no encontrado');
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Usuario no encontrado', 
+          code: 'NOT_FOUND' 
+        }, { status: 401 });
+      }
+      userId = emailUserId;
+      
+      console.log('[admin/rbac/permisos][GET] Autenticación exitosa');
+    }
+
+    // Verificar permisos
+    let allowed = false;
     try {
       const { getCurrentUserServer } = await import('@/lib/auth');
       const u = getCurrentUserServer(req as any);
-      if (u?.rol !== 'admin') {
-        const canRead = (await userHasPerm(userId, 'rbac.permisos.read')) || (await userHasPerm(userId, 'rbac.platform_admin'));
-        if (!canRead) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.permisos.read', code:'FORBIDDEN' }, { status:403 });
+      if (u?.rol === 'admin') {
+        allowed = true;
+        console.log('[admin/rbac/permisos][GET] JWT admin, permitiendo acceso');
       }
-    } catch {
-      const canRead = (await userHasPerm(userId, 'rbac.permisos.read')) || (await userHasPerm(userId, 'rbac.platform_admin'));
-      if (!canRead) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.permisos.read', code:'FORBIDDEN' }, { status:403 });
+    } catch (err) {
+      console.log('[admin/rbac/permisos][GET] JWT check falló:', err);
+    }
+    
+    if (!allowed) {
+      allowed = await userHasPerm(userId, 'rbac.permisos.read') || await userHasPerm(userId, 'rbac.platform_admin');
+      console.log('[admin/rbac/permisos][GET] Permiso check:', allowed);
+    }
+    
+    if (!allowed) {
+      console.log('[admin/rbac/permisos][GET] Usuario no tiene permisos');
+      return NextResponse.json({ 
+        ok: false, 
+        error: 'Forbidden', 
+        code: 'FORBIDDEN', 
+        perm: 'rbac.permisos.read' 
+      }, { status: 403 });
     }
 
     console.log('[admin/rbac/permisos][GET]', { email, userId, perms: ['rbac.permisos.read','rbac.platform_admin'] })

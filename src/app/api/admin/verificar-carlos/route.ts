@@ -3,6 +3,8 @@ import { sql } from '@vercel/postgres';
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('🔍 Verificando estado de Carlos Irigoyen...');
+
     // Verificar datos de Carlos
     const carlos = await sql`
       SELECT u.id, u.email, u.tenant_id, t.nombre as tenant_nombre
@@ -36,11 +38,28 @@ export async function GET(request: NextRequest) {
       ORDER BY t.nombre
     `;
 
+    // Verificar permisos del Super Admin si existe
+    let superAdminPermisos = [];
+    if (carlosRoles.rows.length > 0) {
+      superAdminPermisos = await sql`
+        SELECT p.clave, p.descripcion
+        FROM usuarios u
+        JOIN usuarios_roles ur ON u.id = ur.usuario_id
+        JOIN roles r ON ur.rol_id = r.id
+        JOIN roles_permisos rp ON r.id = rp.rol_id
+        JOIN permisos p ON rp.permiso_id = p.id
+        WHERE u.email = 'carlos.irigoyen@gard.cl'
+        ORDER BY p.clave
+      `;
+    }
+
     return NextResponse.json({
       carlos: carlos.rows[0] || null,
       carlosRoles: carlosRoles.rows,
       tenants: tenants.rows,
-      rolesPorTenant: rolesPorTenant.rows
+      rolesPorTenant: rolesPorTenant.rows,
+      superAdminPermisos: superAdminPermisos.rows,
+      necesitaRol: carlosRoles.rows.length === 0
     });
 
   } catch (error) {
@@ -54,6 +73,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔧 Asignando rol Super Admin a Carlos Irigoyen...');
+
     // Obtener tenant Gard
     const gardTenant = await sql`
       SELECT id FROM tenants WHERE nombre = 'Gard' LIMIT 1
@@ -98,9 +119,37 @@ export async function POST(request: NextRequest) {
       )
     `;
 
+    // Verificar la asignación
+    const asignacionVerificada = await sql`
+      SELECT 
+        u.email,
+        r.nombre as rol_asignado,
+        t.nombre as tenant
+      FROM usuarios u
+      JOIN usuarios_roles ur ON u.id = ur.usuario_id
+      JOIN roles r ON ur.rol_id = r.id
+      JOIN tenants t ON r.tenant_id = t.id
+      WHERE u.email = 'carlos.irigoyen@gard.cl'
+    `;
+
+    // Verificar permisos totales
+    const permisosTotales = await sql`
+      SELECT COUNT(p.id) as total_permisos
+      FROM usuarios u
+      JOIN usuarios_roles ur ON u.id = ur.usuario_id
+      JOIN roles r ON ur.rol_id = r.id
+      JOIN roles_permisos rp ON r.id = rp.rol_id
+      JOIN permisos p ON rp.permiso_id = p.id
+      WHERE u.email = 'carlos.irigoyen@gard.cl'
+    `;
+
+    console.log('✅ Rol Super Admin asignado exitosamente a Carlos');
+
     return NextResponse.json({
       success: true,
-      message: 'Carlos asignado correctamente al tenant Gard con rol Super Admin'
+      message: 'Carlos asignado correctamente al tenant Gard con rol Super Admin',
+      asignacion: asignacionVerificada.rows[0],
+      permisosTotales: permisosTotales.rows[0]?.total_permisos || 0
     });
 
   } catch (error) {

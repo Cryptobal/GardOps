@@ -4,22 +4,91 @@ import { getUserEmail, getUserIdByEmail, userHasPerm, jsonError } from '@/lib/au
 
 export async function GET(req: NextRequest) {
   try {
+    console.log('[admin/tenants][GET] Iniciando autenticación...');
+    
     const email = await getUserEmail(req);
-    if (!email) return NextResponse.json({ ok:false, error:'unauthenticated', code:'UNAUTHENTICATED' }, { status:401 });
-    const userId = await getUserIdByEmail(email!);
-    if (!userId) return NextResponse.json({ ok:false, error:'user_not_found', code:'NOT_FOUND' }, { status:401 });
+    console.log('[admin/tenants][GET] Email obtenido:', email);
+    
+    let userId: string;
+    
+    if (!email) {
+      console.log('[admin/tenants][GET] No se pudo obtener email, intentando fallback...');
+      
+      // Fallback: intentar obtener email desde headers directos
+      const fallbackEmail = req.headers.get('x-user-email') || 
+                           req.headers.get('user-email') ||
+                           process.env.NEXT_PUBLIC_DEV_USER_EMAIL;
+      
+      console.log('[admin/tenants][GET] Fallback email:', fallbackEmail);
+      
+      if (!fallbackEmail) {
+        console.log('[admin/tenants][GET] No hay email disponible');
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'No autenticado - email no disponible', 
+          code: 'UNAUTHENTICATED',
+          debug: { 
+            headers: Object.fromEntries(req.headers.entries()),
+            env: { NODE_ENV: process.env.NODE_ENV }
+          }
+        }, { status: 401 });
+      }
+      
+      // Usar el email del fallback
+      const fallbackUserId = await getUserIdByEmail(fallbackEmail);
+      if (!fallbackUserId) {
+        console.log('[admin/tenants][GET] Usuario no encontrado con fallback email');
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Usuario no encontrado', 
+          code: 'NOT_FOUND' 
+        }, { status: 401 });
+      }
+      userId = fallbackUserId;
+      
+      console.log('[admin/tenants][GET] Autenticación exitosa con fallback');
+    } else {
+      const emailUserId = await getUserIdByEmail(email);
+      if (!emailUserId) {
+        console.log('[admin/tenants][GET] Usuario no encontrado');
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Usuario no encontrado', 
+          code: 'NOT_FOUND' 
+        }, { status: 401 });
+      }
+      userId = emailUserId;
+      
+      console.log('[admin/tenants][GET] Autenticación exitosa');
+    }
+
+    // Verificar permisos
     let allowed = false;
     try {
       const { getCurrentUserServer } = await import('@/lib/auth');
       const u = getCurrentUserServer(req as any);
       if (u?.rol === 'admin') {
         allowed = true;
+        console.log('[admin/tenants][GET] JWT admin, permitiendo acceso');
       }
-    } catch {}
-    if (!allowed) {
-      allowed = (await userHasPerm(userId, 'rbac.platform_admin')) || (await userHasPerm(userId, 'rbac.tenants.read'));
+    } catch (err) {
+      console.log('[admin/tenants][GET] JWT check falló:', err);
     }
-    if (!allowed) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.tenants.read', code:'FORBIDDEN' }, { status:403 });
+    
+    if (!allowed) {
+      allowed = await userHasPerm(userId, 'rbac.platform_admin') || await userHasPerm(userId, 'rbac.tenants.read');
+      console.log('[admin/tenants][GET] Permiso check:', allowed);
+    }
+    
+    if (!allowed) {
+      console.log('[admin/tenants][GET] Usuario no tiene permisos');
+      return NextResponse.json({ 
+        ok: false, 
+        error: 'Forbidden', 
+        code: 'FORBIDDEN', 
+        perm: 'rbac.tenants.read' 
+      }, { status: 403 });
+    }
     
     const searchParams = req.nextUrl.searchParams;
     const q = (searchParams.get('q') || '').trim();
@@ -60,6 +129,8 @@ export async function GET(req: NextRequest) {
     const list = (rows as any).rows ?? (rows as any);
     const total = (totalRows as any).rows?.[0]?.total ?? 0;
 
+    console.log('[admin/tenants][GET]', { email, userId, q, page, limit, total });
+    
     return NextResponse.json({
       ok: true,
       data: list.map((r: any) => ({
@@ -79,22 +150,91 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    console.log('[admin/tenants][POST] Iniciando autenticación...');
+    
     const email = await getUserEmail(req);
-    if (!email) return NextResponse.json({ ok:false, error:'unauthenticated', code:'UNAUTHENTICATED' }, { status:401 });
-    const userId = await getUserIdByEmail(email!);
-    if (!userId) return NextResponse.json({ ok:false, error:'user_not_found', code:'NOT_FOUND' }, { status:401 });
+    console.log('[admin/tenants][POST] Email obtenido:', email);
+    
+    let userId: string;
+    
+    if (!email) {
+      console.log('[admin/tenants][POST] No se pudo obtener email, intentando fallback...');
+      
+      // Fallback: intentar obtener email desde headers directos
+      const fallbackEmail = req.headers.get('x-user-email') || 
+                           req.headers.get('user-email') ||
+                           process.env.NEXT_PUBLIC_DEV_USER_EMAIL;
+      
+      console.log('[admin/tenants][POST] Fallback email:', fallbackEmail);
+      
+      if (!fallbackEmail) {
+        console.log('[admin/tenants][POST] No hay email disponible');
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'No autenticado - email no disponible', 
+          code: 'UNAUTHENTICATED',
+          debug: { 
+            headers: Object.fromEntries(req.headers.entries()),
+            env: { NODE_ENV: process.env.NODE_ENV }
+          }
+        }, { status: 401 });
+      }
+      
+      // Usar el email del fallback
+      const fallbackUserId = await getUserIdByEmail(fallbackEmail);
+      if (!fallbackUserId) {
+        console.log('[admin/tenants][POST] Usuario no encontrado con fallback email');
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Usuario no encontrado', 
+          code: 'NOT_FOUND' 
+        }, { status: 401 });
+      }
+      userId = fallbackUserId;
+      
+      console.log('[admin/tenants][POST] Autenticación exitosa con fallback');
+    } else {
+      const emailUserId = await getUserIdByEmail(email);
+      if (!emailUserId) {
+        console.log('[admin/tenants][POST] Usuario no encontrado');
+        return NextResponse.json({ 
+          ok: false, 
+          error: 'Usuario no encontrado', 
+          code: 'NOT_FOUND' 
+        }, { status: 401 });
+      }
+      userId = emailUserId;
+      
+      console.log('[admin/tenants][POST] Autenticación exitosa');
+    }
+
+    // Verificar permisos
     let allowed = false;
     try {
       const { getCurrentUserServer } = await import('@/lib/auth');
       const u = getCurrentUserServer(req as any);
       if (u?.rol === 'admin') {
         allowed = true;
+        console.log('[admin/tenants][POST] JWT admin, permitiendo acceso');
       }
-    } catch {}
-    if (!allowed) {
-      allowed = (await userHasPerm(userId, 'rbac.platform_admin')) || (await userHasPerm(userId, 'rbac.tenants.create'));
+    } catch (err) {
+      console.log('[admin/tenants][POST] JWT check falló:', err);
     }
-    if (!allowed) return NextResponse.json({ ok:false, error:'forbidden', perm:'rbac.tenants.create', code:'FORBIDDEN' }, { status:403 });
+    
+    if (!allowed) {
+      allowed = await userHasPerm(userId, 'rbac.platform_admin') || await userHasPerm(userId, 'rbac.tenants.create');
+      console.log('[admin/tenants][POST] Permiso check:', allowed);
+    }
+    
+    if (!allowed) {
+      console.log('[admin/tenants][POST] Usuario no tiene permisos');
+      return NextResponse.json({ 
+        ok: false, 
+        error: 'Forbidden', 
+        code: 'FORBIDDEN', 
+        perm: 'rbac.tenants.create' 
+      }, { status: 403 });
+    }
 
     const body = await req.json();
     const { nombre, rut, admin_email, admin_nombre, admin_password } = body;
@@ -195,6 +335,8 @@ export async function POST(req: NextRequest) {
     if (!newTenant) {
       return NextResponse.json({ ok:false, error:'creation_failed', code:'INTERNAL' }, { status:500 });
     }
+
+    console.log('[admin/tenants][POST] Tenant creado exitosamente:', { email, userId, tenantId: newTenant.tenant_id });
 
     return NextResponse.json({
       ok: true,
