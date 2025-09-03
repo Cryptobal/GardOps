@@ -66,12 +66,6 @@ export async function POST(req: NextRequest) {
         await client.query(`
           INSERT INTO documentos_tipos (id, modulo, nombre, requiere_vencimiento, dias_antes_alarma, activo, creado_en, tenant_id)
           VALUES (gen_random_uuid(), 'guardias', $1, $2, $3, true, NOW(), $4)
-          ON CONFLICT (modulo, nombre, tenant_id) 
-          DO UPDATE SET 
-              requiere_vencimiento = EXCLUDED.requiere_vencimiento,
-              dias_antes_alarma = EXCLUDED.dias_antes_alarma,
-              activo = EXCLUDED.activo,
-              updated_at = NOW()
         `, [tipo.nombre, tipo.requiere_vencimiento, tipo.dias_antes_alarma, tenantId]);
       }
 
@@ -159,8 +153,7 @@ export async function GET(req: NextRequest) {
           requiere_vencimiento, 
           dias_antes_alarma, 
           activo,
-          created_at,
-          updated_at
+          creado_en
         FROM documentos_tipos 
         WHERE modulo = 'guardias' AND tenant_id = $1
         ORDER BY 

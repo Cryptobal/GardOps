@@ -97,12 +97,7 @@ export const navigationItems: NavigationItem[] = [
     icon: FolderOpen,
     permission: "documentos.view"
   },
-  {
-    name: "Documentos Instalaciones",
-    href: "/instalaciones/documentos",
-    icon: Building2,
-    permission: "documentos.view"
-  },
+  
   {
     name: "Asignaciones",
     href: "/asignaciones",
