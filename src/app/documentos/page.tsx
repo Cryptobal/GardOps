@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { 
   FileText, 
@@ -225,10 +225,7 @@ export default function DocumentosGlobalesPage() {
         return;
       }
       
-      toast({
-        title: "🧹 Iniciando limpieza automática",
-        description: "Verificando documentos en Cloudflare R2...",
-      });
+      toast.success("🧹 Iniciando limpieza automática");
       
       const response = await fetch('/api/cleanup-documents', {
         method: 'POST'
@@ -237,10 +234,7 @@ export default function DocumentosGlobalesPage() {
       if (response.ok) {
         const result = await response.json();
         
-        toast({
-          title: "✅ Limpieza completada",
-          description: `Se eliminaron ${result.estadisticas.documentos_eliminados} documentos fantasmas. Total restante: ${result.estadisticas.total_final}`,
-        });
+        toast.success(`✅ Limpieza completada: Se eliminaron ${result.estadisticas.documentos_eliminados} documentos fantasmas`);
         
         // Recargar documentos después de la limpieza
         setRefreshTrigger(prev => prev + 1);
@@ -251,11 +245,7 @@ export default function DocumentosGlobalesPage() {
       
     } catch (error: any) {
       console.error('Error en limpieza:', error);
-      toast({
-        title: "❌ Error en limpieza",
-        description: error.message || "Error interno del servidor",
-        variant: "destructive"
-      });
+              toast.error(error.message || "Error interno del servidor");
     } finally {
       setIsCleaning(false);
     }
@@ -271,10 +261,7 @@ export default function DocumentosGlobalesPage() {
         return;
       }
       
-      toast({
-        title: "🔧 Configurando tipos de documentos",
-        description: "Estableciendo nombres predefinidos para guardias...",
-      });
+      toast.success("🔧 Configurando tipos de documentos");
       
       const response = await fetch('/api/setup-document-types', {
         method: 'POST'
@@ -283,10 +270,7 @@ export default function DocumentosGlobalesPage() {
       if (response.ok) {
         const result = await response.json();
         
-        toast({
-          title: "✅ Tipos configurados",
-          description: `${result.estadisticas.total_tipos} tipos de documentos configurados para guardias`,
-        });
+        toast.success(`${result.estadisticas.total_tipos} tipos de documentos configurados para guardias`);
         
         // Recargar tipos de documentos
         cargarTiposDocumentos();
@@ -297,11 +281,7 @@ export default function DocumentosGlobalesPage() {
       
     } catch (error: any) {
       console.error('Error configurando tipos:', error);
-      toast({
-        title: "❌ Error en configuración",
-        description: error.message || "Error interno del servidor",
-        variant: "destructive"
-      });
+              toast.error(error.message || "Error interno del servidor");
     } finally {
       setIsSettingUp(false);
     }
