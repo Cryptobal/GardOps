@@ -86,7 +86,23 @@ export default function DocumentosGlobalesPage() {
   const { allowed: allowedReportes, loading: permLoadingReportes } = useCan('reportes.view');
   const router = useRouter();
 
-  // Permisos combinados según pestaña
+  // Estados principales
+  const [pestanaActiva, setPestanaActiva] = useState<'documentos' | 'alertas' | 'kpis'>('documentos');
+  const [documentos, setDocumentos] = useState<DocumentoGlobal[]>([]);
+  const [stats, setStats] = useState<DocumentosStats>({
+    total: 0,
+    vigentes: 0,
+    por_vencer: 0,
+    vencidos: 0,
+    sin_vencimiento: 0
+  });
+  const [tiposDocumentos, setTiposDocumentos] = useState<TipoDocumento[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
+  const { toast } = useToast();
+
+  // Permisos combinados según pestaña (después de declarar pestanaActiva)
   const getPermissionForTab = (tab: string) => {
     switch (tab) {
       case 'documentos':
@@ -102,20 +118,6 @@ export default function DocumentosGlobalesPage() {
   const isTabAllowed = (tab: string) => getPermissionForTab(tab);
   const isCurrentTabAllowed = isTabAllowed(pestanaActiva);
   const permLoading = permLoadingDocumentos || permLoadingReportes;
-  const [documentos, setDocumentos] = useState<DocumentoGlobal[]>([]);
-  const [stats, setStats] = useState<DocumentosStats>({
-    total: 0,
-    vigentes: 0,
-    por_vencer: 0,
-    vencidos: 0,
-    sin_vencimiento: 0
-  });
-  const [tiposDocumentos, setTiposDocumentos] = useState<TipoDocumento[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
-  const [pestanaActiva, setPestanaActiva] = useState<'documentos' | 'alertas' | 'kpis'>('documentos');
-  const { toast } = useToast();
 
   // Ajustar pestaña activa según permisos disponibles
   useEffect(() => {
