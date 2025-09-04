@@ -337,6 +337,16 @@ export default function GuardiaDetallePage() {
       
       const direccionCalle = limpiarDireccion(addressData.direccionCompleta);
       setEditValue(direccionCalle);
+      
+      // Actualizar temporalmente los campos de comuna y ciudad en la UI
+      if (guardia) {
+        setGuardia({
+          ...guardia,
+          comuna: addressData.componentes.comuna,
+          ciudad: addressData.componentes.ciudad,
+          region: addressData.componentes.region
+        });
+      }
     }
   };
 

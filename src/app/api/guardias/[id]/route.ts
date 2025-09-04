@@ -33,7 +33,7 @@ export async function PUT(
     
     // Usar el tenant_id correcto de Gard
     const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337';
-    const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
+    const usuario = email; // Usar el email del usuario autenticado
     
     console.log('✅ API Guardias - Actualizando con datos:', body);
     console.log('🔍 Campos de ubicación recibidos:', {
@@ -265,6 +265,7 @@ export async function PUT(
       longitud: guardiaActualizado.longitud,
       ciudad: guardiaActualizado.ciudad || '',
       comuna: guardiaActualizado.comuna || '',
+      region: guardiaActualizado.region || '',
       estado: guardiaActualizado.activo ? 'activo' : 'inactivo',
       tipo_guardia: guardiaActualizado.tipo_guardia || 'contratado',
       fecha_os10: guardiaActualizado.fecha_os10,
@@ -312,7 +313,7 @@ export async function PUT(
       'guardias',
       params.id,
       'UPDATE',
-      'admin@test.com',
+      email,
       null,
       {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -342,7 +343,7 @@ export async function GET(
     
     // Usar el tenant_id correcto de Gard
     const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337';
-    const usuario = 'admin@test.com';
+    const usuario = email;
 
     // Obtener guardia con vacaciones actualizadas automáticamente
     const guardia = await getGuardiaConVacacionesActualizadas(guardiaId);
@@ -447,7 +448,7 @@ export async function GET(
       'guardias',
       params.id,
       'READ',
-      'admin@test.com',
+      email,
       null,
       {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -494,7 +495,7 @@ export async function PATCH(
     
     // Usar el tenant_id correcto de Gard
     const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337';
-    const usuario = 'admin@test.com';
+    const usuario = email;
     
     console.log('✅ API Guardias - Actualizando estado con datos:', body);
 
@@ -583,7 +584,7 @@ export async function PATCH(
       'guardias',
       params.id,
       'UPDATE',
-      'admin@test.com',
+      email,
       null,
       {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -613,7 +614,7 @@ export async function DELETE(
     
     // Usar el tenant_id correcto de Gard
     const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337';
-    const usuario = 'admin@test.com';
+    const usuario = email;
     
     console.log('✅ API Guardias - Eliminando guardia con ID:', guardiaId);
 
@@ -692,7 +693,7 @@ export async function DELETE(
       'guardias',
       params.id,
       'DELETE',
-      'admin@test.com',
+      email,
       null,
       {
         error: error instanceof Error ? error.message : 'Unknown error',
