@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Satellite, Clock, MessageSquare, Phone, Save, Info } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiClient } from '@/lib/api-client';
+import { getCurrentUser } from '@/lib/auth-client';
 
 interface MonitoreoConfig {
   habilitado: boolean;
@@ -48,32 +48,64 @@ export default function MonitoreoInstalacion({ instalacionId, instalacionNombre 
       setLoading(true);
       console.log('🔍 MonitoreoInstalacion: Cargando configuración para:', instalacionId);
       
-      const data = await apiClient.get(`/api/central-monitoring/config?instalacionId=${instalacionId}`);
-      console.log('🔍 MonitoreoInstalacion: Datos recibidos:', data);
+      // Obtener el usuario actual
+      const user = getCurrentUser();
+      if (!user) {
+        console.error('❌ MonitoreoInstalacion: Usuario no autenticado');
+        toast.error('Usuario no autenticado');
+        return;
+      }
       
-      if (data.data) {
-        const configData = {
-          habilitado: data.data.habilitado,
-          intervalo_minutos: data.data.intervalo_minutos,
-          ventana_inicio: data.data.ventana_inicio,
-          ventana_fin: data.data.ventana_fin,
-          modo: data.data.modo,
-          mensaje_template: data.data.mensaje_template
-        };
-        setConfig(configData);
-        setConfigOriginal(configData);
+      console.log('🔍 MonitoreoInstalacion: Usuario autenticado:', user.email);
+      
+      // Preparar headers con autenticación
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'x-user-email': user.email,
+      };
+      
+      const response = await fetch(`/api/central-monitoring/config?instalacionId=${instalacionId}`, {
+        method: 'GET',
+        headers,
+        cache: 'no-store'
+      });
+      
+      console.log('🔍 MonitoreoInstalacion: Respuesta status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('🔍 MonitoreoInstalacion: Datos recibidos:', data);
+        
+        if (data.data) {
+          const configData = {
+            habilitado: data.data.habilitado,
+            intervalo_minutos: data.data.intervalo_minutos,
+            ventana_inicio: data.data.ventana_inicio,
+            ventana_fin: data.data.ventana_fin,
+            modo: data.data.modo,
+            mensaje_template: data.data.mensaje_template
+          };
+          setConfig(configData);
+          setConfigOriginal(configData);
+        } else {
+          // Si no hay configuración, usar valores por defecto
+          const defaultConfig = {
+            habilitado: false,
+            intervalo_minutos: 60,
+            ventana_inicio: '21:00',
+            ventana_fin: '07:00',
+            modo: 'whatsapp' as const,
+            mensaje_template: 'Hola, soy de la central de monitoreo. ¿Todo bien en la instalación?'
+          };
+          setConfig(defaultConfig);
+          setConfigOriginal(null); // No hay configuración original
+        }
       } else {
-        // Si no hay configuración, usar valores por defecto
-        const defaultConfig = {
-          habilitado: false,
-          intervalo_minutos: 60,
-          ventana_inicio: '21:00',
-          ventana_fin: '07:00',
-          modo: 'whatsapp' as const,
-          mensaje_template: 'Hola, soy de la central de monitoreo. ¿Todo bien en la instalación?'
-        };
-        setConfig(defaultConfig);
-        setConfigOriginal(null); // No hay configuración original
+        // Si hay error, mostrar detalles
+        console.error('❌ MonitoreoInstalacion: Error HTTP:', response.status);
+        const errorText = await response.text();
+        console.error('❌ MonitoreoInstalacion: Error response:', errorText);
+        toast.error(`Error ${response.status}: No se pudo cargar la configuración`);
       }
     } catch (error) {
       console.error('❌ MonitoreoInstalacion: Error cargando configuración:', error);
@@ -86,14 +118,40 @@ export default function MonitoreoInstalacion({ instalacionId, instalacionNombre 
   const guardarConfiguracion = async () => {
     try {
       setSaving(true);
+      
+      // Obtener el usuario actual
+      const user = getCurrentUser();
+      if (!user) {
+        console.error('❌ MonitoreoInstalacion: Usuario no autenticado');
+        toast.error('Usuario no autenticado');
+        return;
+      }
+      
       const payload = {
         instalacion_id: instalacionId,
         ...config
       };
       
-      const data = await apiClient.post('/api/central-monitoring/config', payload);
-      setConfigOriginal(config);
-      toast.success('Configuración guardada exitosamente');
+      // Preparar headers con autenticación
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'x-user-email': user.email,
+      };
+      
+      const response = await fetch('/api/central-monitoring/config', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setConfigOriginal(config);
+        toast.success('Configuración guardada exitosamente');
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Error guardando configuración');
+      }
     } catch (error) {
       console.error('Error guardando configuración:', error);
       toast.error('Error guardando configuración');
