@@ -155,25 +155,36 @@ export default function GuardiaDetallePage() {
 
   const cargarDatosReferencia = async () => {
     try {
+      console.log('🔍 Cargando datos de referencia...');
+      
       // Cargar AFPs
       const afpsResponse = await fetch('/api/afps');
       if (afpsResponse.ok) {
         const afpsData = await afpsResponse.json();
+        console.log('🔍 AFPs cargadas:', afpsData.afps);
         setAfps(afpsData.afps || []);
+      } else {
+        console.error('Error en API AFPs:', afpsResponse.status);
       }
 
       // Cargar ISAPREs
       const isapresResponse = await fetch('/api/isapres');
       if (isapresResponse.ok) {
         const isapresData = await isapresResponse.json();
+        console.log('🔍 ISAPREs cargadas:', isapresData.isapres);
         setIsapres(isapresData.isapres || []);
+      } else {
+        console.error('Error en API ISAPREs:', isapresResponse.status);
       }
 
       // Cargar tramos de asignación
       const tramosResponse = await fetch('/api/tramos-asignacion');
       if (tramosResponse.ok) {
         const tramosData = await tramosResponse.json();
+        console.log('🔍 Tramos cargados:', tramosData.tramos);
         setTramosAsignacion(tramosData.tramos || []);
+      } else {
+        console.error('Error en API Tramos:', tramosResponse.status);
       }
     } catch (error) {
       console.error('Error cargando datos de referencia:', error);
