@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useAddressAutocomplete, type AddressData } from '@/lib/useAddressAutocomplete';
 import { formatearFecha } from '@/lib/utils/date';
+import { QuickNavigation } from '@/components/ui/quick-navigation';
 
 import { DocumentManager } from '@/components/shared/document-manager';
 import PermisosGuardia from './components/PermisosGuardia';
@@ -108,6 +109,7 @@ export default function GuardiaDetallePage() {
     return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
   };
   const [guardia, setGuardia] = useState<Guardia | null>(null);
+  const [guardias, setGuardias] = useState<Guardia[]>([]);
   const [datosBancarios, setDatosBancarios] = useState<DatosBancarios | null>(null);
   const [bancos, setBancos] = useState<Banco[]>([]);
   const [afps, setAfps] = useState<{codigo: string, nombre: string}[]>([]);
@@ -137,9 +139,10 @@ export default function GuardiaDetallePage() {
 
   useEffect(() => {
     cargarGuardia();
+    cargarGuardias();
     cargarBancos();
     cargarDatosReferencia();
-  }, [guardiaId]);
+  }, [guardiaId, cargarGuardia, cargarGuardias]);
 
   const cargarBancos = async () => {
     try {
@@ -191,7 +194,7 @@ export default function GuardiaDetallePage() {
     }
   };
 
-  const cargarGuardia = async () => {
+  const cargarGuardia = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/guardias/${guardiaId}`);
@@ -225,7 +228,23 @@ export default function GuardiaDetallePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [guardiaId]);
+
+  const cargarGuardias = useCallback(async () => {
+    try {
+      const response = await fetch('/api/guardias');
+      if (response.ok) {
+        const data = await response.json();
+        setGuardias(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error cargando lista de guardias:', error);
+    }
+  }, []);
+
+  const handleNavigateToGuardia = useCallback((id: string) => {
+    router.push(`/guardias/${id}`);
+  }, [router]);
 
   const cargarDatosGeograficos = async (direccion: string) => {
     try {
@@ -677,12 +696,28 @@ export default function GuardiaDetallePage() {
               Volver
             </Button>
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {guardia.nombre} {guardia.apellido_paterno} {guardia.apellido_materno}
-            </h1>
-            <p className="text-gray-600">RUT: {guardia.rut}</p>
+          
+          {/* Navegación rápida entre guardias */}
+          <div className="min-w-[250px] max-w-[350px]">
+            <QuickNavigation
+              currentId={guardiaId}
+              items={guardias.map(g => ({
+                id: g.id,
+                name: `${g.nombre} ${g.apellido_paterno} ${g.apellido_materno}`,
+                rut: g.rut,
+                status: g.tipo_guardia === 'contratado' ? 'Activo' : 'Inactivo'
+              }))}
+              onNavigate={handleNavigateToGuardia}
+              placeholder="Cambiar guardia..."
+            />
           </div>
+        </div>
+        
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {guardia.nombre} {guardia.apellido_paterno} {guardia.apellido_materno}
+          </h1>
+          <p className="text-gray-600">RUT: {guardia.rut}</p>
         </div>
         <div className="flex items-center gap-2">
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${

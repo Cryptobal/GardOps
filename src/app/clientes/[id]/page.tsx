@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useAddressAutocomplete, type AddressData } from '@/lib/useAddressAutocomplete';
 import { formatearFecha } from '@/lib/utils/date';
+import { QuickNavigation } from '@/components/ui/quick-navigation';
 import { 
   ArrowLeft, 
   Building2, 
@@ -58,6 +59,7 @@ export default function ClienteDetallePage() {
   const toast = useToast();
   const clienteId = params.id as string;
   const [cliente, setCliente] = useState<Cliente | null>(null);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('informacion');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -114,9 +116,26 @@ export default function ClienteDetallePage() {
     }
   }, [clienteId]);
 
+  const cargarClientes = useCallback(async () => {
+    try {
+      const response = await fetch('/api/clientes');
+      if (response.ok) {
+        const data = await response.json();
+        setClientes(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error cargando lista de clientes:', error);
+    }
+  }, []);
+
+  const handleNavigateToCliente = useCallback((id: string) => {
+    router.push(`/clientes/${id}`);
+  }, [router]);
+
   useEffect(() => {
     cargarCliente();
-  }, [cargarCliente]);
+    cargarClientes();
+  }, [cargarCliente, cargarClientes]);
 
   const cargarDatosGeograficos = async (direccion: string) => {
     try {
@@ -503,10 +522,26 @@ export default function ClienteDetallePage() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{cliente.nombre}</h1>
-            <p className="text-sm text-muted-foreground font-mono">{cliente.rut}</p>
+          
+          {/* Navegación rápida entre clientes */}
+          <div className="min-w-[250px] max-w-[350px]">
+            <QuickNavigation
+              currentId={clienteId}
+              items={clientes.map(c => ({
+                id: c.id,
+                name: c.nombre,
+                rut: c.rut,
+                status: c.estado
+              }))}
+              onNavigate={handleNavigateToCliente}
+              placeholder="Cambiar cliente..."
+            />
           </div>
+        </div>
+        
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">{cliente.nombre}</h1>
+          <p className="text-sm text-muted-foreground font-mono">{cliente.rut}</p>
         </div>
         
         <div className="flex items-center space-x-2">
