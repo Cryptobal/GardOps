@@ -366,6 +366,16 @@ export default function GuardiaDetallePage() {
           region: addressData.componentes.region
         });
       }
+      
+      // Actualizar también geocodingData para mostrar inmediatamente los campos
+      setGeocodingData({
+        latitud: addressData.latitud,
+        longitud: addressData.longitud,
+        comuna: addressData.componentes.comuna,
+        ciudad: addressData.componentes.ciudad,
+        region: addressData.componentes.region,
+        direccionCompleta: addressData.direccionCompleta
+      });
     }
   };
 

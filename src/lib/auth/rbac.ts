@@ -20,7 +20,9 @@ export async function getUserEmail(req: NextRequest): Promise<string | null> {
   // 3) Fallback en desarrollo a variable de entorno
   const devEmail = process.env.NEXT_PUBLIC_DEV_USER_EMAIL;
   const isDev = process.env.NODE_ENV !== 'production';
-  if (isDev && devEmail) return devEmail;
+  if (isDev) {
+    return devEmail || 'carlos.irigoyen@gard.cl';
+  }
 
   // 4) Sin email
   return null;
