@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useAddressAutocomplete, type AddressData } from '@/lib/useAddressAutocomplete';
 import { formatearFecha } from '@/lib/utils/date';
-import { QuickNavigation } from '@/components/ui/quick-navigation';
+import { QuickNavigation } from '@/components/ui/quick-navigation-simple';
 import { 
   ArrowLeft, 
   Building2, 

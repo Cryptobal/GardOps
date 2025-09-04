@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,14 +22,14 @@ interface QuickNavigationProps {
 
 export function QuickNavigation({
   currentId,
-  items,
+  items = [],
   onNavigate,
   placeholder = "Buscar...",
   className
 }: QuickNavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedId, setSelectedId] = useState(currentId);
+  const [selectedId, setSelectedId] = useState(currentId || '');
 
   // Actualizar selectedId cuando cambie currentId
   useEffect(() => {
@@ -39,23 +38,30 @@ export function QuickNavigation({
 
   // Filtrar items por búsqueda
   const filteredItems = useMemo(() => {
+    if (!Array.isArray(items) || items.length === 0) return [];
     if (!searchTerm.trim()) return items;
     
     const term = searchTerm.toLowerCase();
     return items.filter(item => 
-      item.name.toLowerCase().includes(term) ||
-      (item.rut && item.rut.toLowerCase().includes(term))
+      item?.name?.toLowerCase().includes(term) ||
+      (item?.rut && item.rut.toLowerCase().includes(term))
     );
   }, [items, searchTerm]);
 
   // Encontrar el item actual
-  const currentItem = items.find(item => item.id === selectedId);
+  const currentItem = useMemo(() => {
+    if (!Array.isArray(items) || items.length === 0) return null;
+    return items.find(item => item?.id === selectedId) || null;
+  }, [items, selectedId]);
 
   const handleSelect = (id: string) => {
+    if (!id) return;
     setSelectedId(id);
     setIsOpen(false);
     setSearchTerm('');
-    onNavigate(id);
+    if (typeof onNavigate === 'function') {
+      onNavigate(id);
+    }
   };
 
   const handleClearSearch = () => {
