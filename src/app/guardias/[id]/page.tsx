@@ -26,7 +26,9 @@ import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@
 interface Guardia {
   id: string;
   nombre: string;
-  apellidos: string;
+  apellido_paterno: string;
+  apellido_materno: string;
+  apellidos?: string; // Mantener para compatibilidad temporal
   rut: string;
   email: string;
   telefono: string;
@@ -635,7 +637,7 @@ export default function GuardiaDetallePage() {
           </Link>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              {guardia.nombre} {guardia.apellidos}
+              {guardia.nombre} {guardia.apellido_paterno} {guardia.apellido_materno}
             </h1>
             <p className="text-gray-600">RUT: {guardia.rut}</p>
           </div>
@@ -853,10 +855,16 @@ export default function GuardiaDetallePage() {
                     placeholder="Nombre del guardia"
                   />
                   <EditableField
-                    label="Apellidos"
-                    value={guardia.apellidos}
-                    field="apellidos"
-                    placeholder="Apellidos del guardia"
+                    label="Apellido Paterno"
+                    value={guardia.apellido_paterno}
+                    field="apellido_paterno"
+                    placeholder="Apellido paterno del guardia"
+                  />
+                  <EditableField
+                    label="Apellido Materno"
+                    value={guardia.apellido_materno}
+                    field="apellido_materno"
+                    placeholder="Apellido materno del guardia"
                   />
                   <EditableField
                     label="RUT"
@@ -1257,7 +1265,7 @@ export default function GuardiaDetallePage() {
                             lat: geocodingData.latitud,
                             lng: geocodingData.longitud
                           },
-                          title: `${guardia.nombre} ${guardia.apellidos}`,
+                          title: `${guardia.nombre} ${guardia.apellido_paterno} ${guardia.apellido_materno}`,
                           info: geocodingData.direccionCompleta
                         }]}
                         height="200px"
@@ -1356,7 +1364,7 @@ export default function GuardiaDetallePage() {
           <div className="mt-6">
             <TurnosExtrasGuardia 
               guardiaId={guardiaId} 
-              guardiaNombre={`${guardia?.nombre} ${guardia?.apellidos}`} 
+              guardiaNombre={`${guardia?.nombre} ${guardia?.apellido_paterno} ${guardia?.apellido_materno}`} 
             />
           </div>
         )}

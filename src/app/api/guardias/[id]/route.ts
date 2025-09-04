@@ -256,7 +256,9 @@ export async function PUT(
     const guardiaFormateado = {
       id: guardiaActualizado.id,
       nombre: guardiaActualizado.nombre,
-      apellidos: `${guardiaActualizado.apellido_paterno} ${guardiaActualizado.apellido_materno}`.trim(),
+      apellido_paterno: guardiaActualizado.apellido_paterno || '',
+      apellido_materno: guardiaActualizado.apellido_materno || '',
+      apellidos: `${guardiaActualizado.apellido_paterno || ''} ${guardiaActualizado.apellido_materno || ''}`.trim(), // Mantener para compatibilidad
       rut: guardiaActualizado.rut,
       email: guardiaActualizado.email,
       telefono: guardiaActualizado.telefono,
@@ -385,7 +387,9 @@ export async function GET(
     const guardiaFormateado = {
       id: guardia.id,
       nombre: guardia.nombre,
-      apellidos: `${guardia.apellido_paterno} ${guardia.apellido_materno}`.trim(),
+      apellido_paterno: guardia.apellido_paterno || '',
+      apellido_materno: guardia.apellido_materno || '',
+      apellidos: `${guardia.apellido_paterno || ''} ${guardia.apellido_materno || ''}`.trim(), // Mantener para compatibilidad
       rut: guardia.rut,
       email: guardia.email,
       telefono: guardia.telefono,
@@ -567,7 +571,9 @@ export async function PATCH(
     const guardiaFormateado = {
       id: guardiaActualizado.id,
       nombre: guardiaActualizado.nombre,
-      apellidos: `${guardiaActualizado.apellido_paterno} ${guardiaActualizado.apellido_materno}`.trim(),
+      apellido_paterno: guardiaActualizado.apellido_paterno || '',
+      apellido_materno: guardiaActualizado.apellido_materno || '',
+      apellidos: `${guardiaActualizado.apellido_paterno || ''} ${guardiaActualizado.apellido_materno || ''}`.trim(), // Mantener para compatibilidad
       rut: guardiaActualizado.rut,
       email: guardiaActualizado.email,
       telefono: guardiaActualizado.telefono,
