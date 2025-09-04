@@ -24,10 +24,11 @@ export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fe
 
   // Sincronizar activeTab con searchParams
   useEffect(() => {
-    if (searchParams.tab && searchParams.tab !== activeTab) {
-      setActiveTab(searchParams.tab);
+    const tabFromUrl = searchParams.tab || 'pauta';
+    if (tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
     }
-  }, [searchParams.tab]);
+  }, [searchParams.tab, activeTab]);
 
   useEffect(() => {
     let isMounted = true;
