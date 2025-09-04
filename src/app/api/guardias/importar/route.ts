@@ -4,6 +4,70 @@ import * as XLSX from 'xlsx';
 import { geocodificarDireccion, construirDireccionCompleta } from '@/lib/utils/geocoding-batch';
 import { getCurrentUserServer } from '@/lib/auth';
 
+// Función para convertir fechas de diferentes formatos
+function convertirFecha(fecha: any): string | null {
+  if (!fecha) return null;
+  
+  const fechaStr = fecha.toString().trim();
+  if (!fechaStr) return null;
+  
+  // Intentar diferentes formatos de fecha
+  const formatos = [
+    // Formato ISO (YYYY-MM-DD)
+    /^\d{4}-\d{2}-\d{2}$/,
+    // Formato DD/MM/YYYY
+    /^\d{1,2}\/\d{1,2}\/\d{4}$/,
+    // Formato DD-MM-YYYY
+    /^\d{1,2}-\d{1,2}-\d{4}$/,
+    // Formato DD.MM.YYYY
+    /^\d{1,2}\.\d{1,2}\.\d{4}$/,
+    // Formato MM/DD/YYYY
+    /^\d{1,2}\/\d{1,2}\/\d{4}$/,
+    // Formato con texto (ej: "15 de enero de 2024")
+    /^\d{1,2}\s+de\s+\w+\s+de\s+\d{4}$/i
+  ];
+  
+  try {
+    // Si es un número (fecha serial de Excel)
+    if (!isNaN(fecha) && typeof fecha === 'number') {
+      // Excel usa días desde 1900-01-01, pero hay un bug de 1900
+      const fechaExcel = new Date((fecha - 25569) * 86400 * 1000);
+      if (!isNaN(fechaExcel.getTime())) {
+        return fechaExcel.toISOString().split('T')[0];
+      }
+    }
+    
+    // Intentar parsear directamente
+    const fechaParseada = new Date(fechaStr);
+    if (!isNaN(fechaParseada.getTime())) {
+      return fechaParseada.toISOString().split('T')[0];
+    }
+    
+    // Manejar formato DD/MM/YYYY específicamente
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(fechaStr)) {
+      const [dia, mes, año] = fechaStr.split('/');
+      const fechaFormateada = new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
+      if (!isNaN(fechaFormateada.getTime())) {
+        return fechaFormateada.toISOString().split('T')[0];
+      }
+    }
+    
+    // Manejar formato DD-MM-YYYY específicamente
+    if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(fechaStr)) {
+      const [dia, mes, año] = fechaStr.split('-');
+      const fechaFormateada = new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
+      if (!isNaN(fechaFormateada.getTime())) {
+        return fechaFormateada.toISOString().split('T')[0];
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.log(`Error convirtiendo fecha: ${fechaStr}`, error);
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('🚀 Importando guardias desde Excel...');
@@ -164,20 +228,40 @@ export async function POST(request: NextRequest) {
               } else if (excelField === 'Asignación Familiar') {
                 value = value === 'Sí' || value === 'SI' || value === 'S' || value === '1' || value === true;
               } else if (excelField === 'Fecha Nacimiento') {
-                if (value && !isNaN(Date.parse(value))) {
-                  value = new Date(value).toISOString().split('T')[0];
+                const fechaConvertida = convertirFecha(value);
+                if (fechaConvertida) {
+                  value = fechaConvertida;
+                  console.log(`✅ Fecha Nacimiento convertida: ${row[excelField]} -> ${value}`);
+                } else {
+                  console.log(`⚠️ Fecha Nacimiento inválida en fila ${rowNumber}: ${value}`);
+                  continue; // Saltar este campo si la fecha es inválida
                 }
               } else if (excelField === 'Fecha OS10') {
-                if (value && !isNaN(Date.parse(value))) {
-                  value = new Date(value).toISOString().split('T')[0];
+                const fechaConvertida = convertirFecha(value);
+                if (fechaConvertida) {
+                  value = fechaConvertida;
+                  console.log(`✅ Fecha OS10 convertida: ${row[excelField]} -> ${value}`);
+                } else {
+                  console.log(`⚠️ Fecha OS10 inválida en fila ${rowNumber}: ${value}`);
+                  continue; // Saltar este campo si la fecha es inválida
                 }
               } else if (excelField === 'Fecha Ingreso') {
-                if (value && !isNaN(Date.parse(value))) {
-                  value = new Date(value).toISOString().split('T')[0];
+                const fechaConvertida = convertirFecha(value);
+                if (fechaConvertida) {
+                  value = fechaConvertida;
+                  console.log(`✅ Fecha Ingreso convertida: ${row[excelField]} -> ${value}`);
+                } else {
+                  console.log(`⚠️ Fecha Ingreso inválida en fila ${rowNumber}: ${value}`);
+                  continue; // Saltar este campo si la fecha es inválida
                 }
               } else if (excelField === 'Fecha Finiquito') {
-                if (value && !isNaN(Date.parse(value))) {
-                  value = new Date(value).toISOString().split('T')[0];
+                const fechaConvertida = convertirFecha(value);
+                if (fechaConvertida) {
+                  value = fechaConvertida;
+                  console.log(`✅ Fecha Finiquito convertida: ${row[excelField]} -> ${value}`);
+                } else {
+                  console.log(`⚠️ Fecha Finiquito inválida en fila ${rowNumber}: ${value}`);
+                  continue; // Saltar este campo si la fecha es inválida
                 }
               } else if (excelField === 'Monto Anticipo') {
                 // Convertir a entero sin decimales
@@ -316,6 +400,12 @@ export async function POST(request: NextRequest) {
           'Talla Zapato': 'talla_zapato',
           'Altura (cm)': 'altura_cm',
           'Peso (kg)': 'peso_kg',
+          // Nuevos campos
+          'Monto Anticipo': 'monto_anticipo',
+          'PIN': 'pin',
+          'Dias Vac. Pendientes': 'dias_vacaciones_pendientes',
+          'Fecha Ingreso': 'fecha_ingreso',
+          'Fecha Finiquito': 'fecha_finiquito',
           // Campos bancarios
           'Banco': 'banco_id',
           'Tipo de Cuenta': 'tipo_cuenta',
@@ -339,12 +429,66 @@ export async function POST(request: NextRequest) {
               } else if (excelField === 'Asignación Familiar') {
                 value = value === 'Sí' || value === 'SI' || value === 'S' || value === '1' || value === true;
               } else if (excelField === 'Fecha Nacimiento') {
-                if (value && !isNaN(Date.parse(value))) {
-                  value = new Date(value).toISOString().split('T')[0];
+                const fechaConvertida = convertirFecha(value);
+                if (fechaConvertida) {
+                  value = fechaConvertida;
+                  console.log(`✅ Fecha Nacimiento convertida para actualización: ${row[excelField]} -> ${value}`);
+                } else {
+                  console.log(`⚠️ Fecha Nacimiento inválida en fila ${rowNumber}: ${value}`);
+                  continue; // Saltar este campo si la fecha es inválida
                 }
               } else if (excelField === 'Fecha OS10') {
-                if (value && !isNaN(Date.parse(value))) {
-                  value = new Date(value).toISOString().split('T')[0];
+                const fechaConvertida = convertirFecha(value);
+                if (fechaConvertida) {
+                  value = fechaConvertida;
+                  console.log(`✅ Fecha OS10 convertida para actualización: ${row[excelField]} -> ${value}`);
+                } else {
+                  console.log(`⚠️ Fecha OS10 inválida en fila ${rowNumber}: ${value}`);
+                  continue; // Saltar este campo si la fecha es inválida
+                }
+              } else if (excelField === 'Fecha Ingreso') {
+                const fechaConvertida = convertirFecha(value);
+                if (fechaConvertida) {
+                  value = fechaConvertida;
+                  console.log(`✅ Fecha Ingreso convertida para actualización: ${row[excelField]} -> ${value}`);
+                } else {
+                  console.log(`⚠️ Fecha Ingreso inválida en fila ${rowNumber}: ${value}`);
+                  continue; // Saltar este campo si la fecha es inválida
+                }
+              } else if (excelField === 'Fecha Finiquito') {
+                const fechaConvertida = convertirFecha(value);
+                if (fechaConvertida) {
+                  value = fechaConvertida;
+                  console.log(`✅ Fecha Finiquito convertida para actualización: ${row[excelField]} -> ${value}`);
+                } else {
+                  console.log(`⚠️ Fecha Finiquito inválida en fila ${rowNumber}: ${value}`);
+                  continue; // Saltar este campo si la fecha es inválida
+                }
+              } else if (excelField === 'Monto Anticipo') {
+                // Convertir a entero sin decimales
+                const numValue = parseInt(value.toString().replace(/[^\d]/g, ''));
+                if (!isNaN(numValue) && numValue >= 0 && numValue <= 999999) {
+                  value = numValue;
+                } else {
+                  console.log(`⚠️ Monto anticipo inválido en fila ${rowNumber}: ${value}`);
+                  continue; // Saltar este campo si es inválido
+                }
+              } else if (excelField === 'PIN') {
+                // Validar que sea de 4 dígitos
+                const pinStr = value.toString().trim();
+                if (pinStr.length === 4 && /^[0-9]{4}$/.test(pinStr)) {
+                  value = pinStr;
+                } else {
+                  console.log(`⚠️ PIN inválido en fila ${rowNumber}: ${value} (debe ser 4 dígitos)`);
+                  continue; // Saltar este campo si es inválido
+                }
+              } else if (excelField === 'Dias Vac. Pendientes') {
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue) && numValue >= 0) {
+                  value = numValue;
+                } else {
+                  console.log(`⚠️ Días vacaciones inválidos en fila ${rowNumber}: ${value}`);
+                  continue; // Saltar este campo si es inválido
                 }
               } else if (excelField === 'Banco') {
                 // Buscar banco por nombre y obtener su UUID
