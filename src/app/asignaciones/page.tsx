@@ -16,13 +16,14 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectItem, SelectContent } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Table, TableHead, TableRow, TableCell, TableHeader, TableBody } from '@/components/ui/table';
-import { BadgeCheck, MapPin, Loader2 } from 'lucide-react';
+import { BadgeCheck, MapPin, Loader2, Phone, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
+import PPCModal from '@/components/asignaciones/PPCModal';
 
 /* --- Helpers -------------------------------------------------------------- */
 type Inst = { id: string; nombre: string; lat: number; lng: number; };
-type Guard = { id: string; nombre: string; comuna: string; lat: number; lng: number; distancia: number; };
+type Guard = { id: string; nombre: string; comuna: string; lat: number; lng: number; distancia: number; telefono: string; };
 
 const radios = [5,10,15,20,25,30,40,50];
 
@@ -35,6 +36,8 @@ export default function Asignaciones() {
   const [guards,setGuards]=useState<Guard[]>([]);
   const [map,setMap]=useState<google.maps.Map|null>(null);
   const [asignando,setAsignando]=useState<string|null>(null); // ID del guardia siendo asignado
+  const [ppcModalOpen,setPpcModalOpen]=useState(false);
+  const [guardiaSeleccionado,setGuardiaSeleccionado]=useState<Guard|null>(null);
 
   /* Cargar instalaciones para el autocomplete */
   useEffect(()=>{ fetch('/api/instalaciones?withCoords=true').then(r=>r.json()).then(setInstalaciones); },[]);
@@ -119,46 +122,25 @@ export default function Asignaciones() {
   /* Persistir radio en localStorage */
   useEffect(()=>{ localStorage.setItem('radioKm',String(radio)); },[radio]);
 
-  /* Función para asignar guardia */
-  const handleAsignar = async (guardia: Guard) => {
+  /* Función para abrir modal de PPCs */
+  const handleAsignar = (guardia: Guard) => {
     if (!instSelected) {
       toast.error("Selecciona una instalación primero", "Error");
       return;
     }
-
-    setAsignando(guardia.id);
     
-    try {
-      const response = await fetch('/api/asignaciones/crear', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          guardia_id: guardia.id,
-          instalacion_id: instSelected.id,
-          fecha: new Date().toISOString().split('T')[0],
-          motivo: `Asignación optimizada - Radio ${radio}km, Distancia: ${guardia.distancia.toFixed(1)}km`
-        })
-      });
+    setGuardiaSeleccionado(guardia);
+    setPpcModalOpen(true);
+  };
 
-      const data = await response.json();
-
-      if (data.success) {
-        toast.success(`${guardia.nombre} asignado a ${instSelected.nombre}`, "✅ Asignación exitosa");
-        
-        // Actualizar la lista de guardias removiendo el asignado
-        setGuards(prev => prev.filter(g => g.id !== guardia.id));
-        
-      } else {
-        toast.error(data.error || "No se pudo completar la asignación", "Error en asignación");
-      }
-    } catch (error) {
-      console.error('Error asignando guardia:', error);
-      toast.error("Error de conexión al asignar guardia", "Error");
-    } finally {
-      setAsignando(null);
+  /* Función para cerrar modal y actualizar lista */
+  const handleAsignacionExitosa = () => {
+    if (guardiaSeleccionado) {
+      // Actualizar la lista de guardias removiendo el asignado
+      setGuards(prev => prev.filter(g => g.id !== guardiaSeleccionado.id));
     }
+    setPpcModalOpen(false);
+    setGuardiaSeleccionado(null);
   };
 
   return(
@@ -205,32 +187,51 @@ export default function Asignaciones() {
           <TableHeader>
             <TableRow>
               <TableHead>Guardia</TableHead>
+              <TableHead>Teléfono</TableHead>
               <TableHead>Comuna</TableHead>
               <TableHead>Distancia (km)</TableHead>
-              <TableHead>Acción</TableHead>
+              <TableHead>Contacto</TableHead>
+              <TableHead>Asignar</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {guards.sort((a,b)=>a.distancia-b.distancia).map(g=>(
               <TableRow key={g.id}>
-                <TableCell>{g.nombre}</TableCell>
+                <TableCell className="font-medium">{g.nombre}</TableCell>
+                <TableCell>{g.telefono || 'Sin teléfono'}</TableCell>
                 <TableCell>{g.comuna}</TableCell>
                 <TableCell>{g.distancia.toFixed(1)}</TableCell>
+                <TableCell>
+                  <div className="flex gap-1">
+                    {g.telefono && (
+                      <>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => window.open(`tel:${g.telefono}`, '_self')}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Phone className="w-3 h-3" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => window.open(`https://wa.me/56${g.telefono.replace(/\D/g, '')}`, '_blank')}
+                          className="h-8 w-8 p-0"
+                        >
+                          <MessageCircle className="w-3 h-3" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <Button 
                     size="sm" 
                     variant="secondary" 
                     onClick={() => handleAsignar(g)}
-                    disabled={asignando === g.id}
                   >
-                    {asignando === g.id ? (
-                      <>
-                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                        Asignando...
-                      </>
-                    ) : (
-                      'Asignar'
-                    )}
+                    Asignar
                   </Button>
                 </TableCell>
               </TableRow>
@@ -240,6 +241,20 @@ export default function Asignaciones() {
       )}
 
       {(() => { console.log('Optimización de Asignaciones v2 cargada correctamente'); return null; })()}
+
+      {/* Modal de PPCs */}
+      {guardiaSeleccionado && (
+        <PPCModal
+          isOpen={ppcModalOpen}
+          onClose={() => {
+            setPpcModalOpen(false);
+            setGuardiaSeleccionado(null);
+          }}
+          guardia={guardiaSeleccionado}
+          instalacionId={instSelected?.id || ''}
+          onAsignacionExitosa={handleAsignacionExitosa}
+        />
+      )}
     </Fragment>
   );
 }

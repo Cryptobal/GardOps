@@ -1,0 +1,75 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { query } from '@/lib/database';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // Verificar autenticación
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: 'No autorizado' },
+        { status: 401 }
+      );
+    }
+
+    const instalacionId = params.id;
+
+    console.log('🔍 Obteniendo PPCs para instalación:', instalacionId);
+
+    // Obtener PPCs disponibles para la instalación
+    const result = await query(`
+      SELECT 
+        po.id as ppc_id,
+        po.instalacion_id,
+        i.nombre as instalacion_nombre,
+        rs.nombre as rol_nombre,
+        rs.id as rol_id,
+        po.created_at,
+        po.fecha_turno,
+        t.nombre as turno_nombre
+      FROM as_turnos_puestos_operativos po
+      JOIN instalaciones i ON po.instalacion_id = i.id
+      JOIN as_turnos_roles_servicio rs ON po.rol_servicio_id = rs.id
+      LEFT JOIN as_turnos t ON po.turno_id = t.id
+      WHERE po.instalacion_id = $1 
+        AND po.es_ppc = true 
+        AND po.activo = true
+        AND po.guardia_id IS NULL
+      ORDER BY po.created_at ASC
+    `, [instalacionId]);
+
+    const ppcs = result.rows.map((row: any) => ({
+      id: row.ppc_id,
+      instalacion_id: row.instalacion_id,
+      instalacion_nombre: row.instalacion_nombre,
+      rol_nombre: row.rol_nombre,
+      rol_id: row.rol_id,
+      turno_nombre: row.turno_nombre,
+      fecha_turno: row.fecha_turno,
+      created_at: row.created_at
+    }));
+
+    console.log(`✅ PPCs encontrados: ${ppcs.length}`);
+
+    return NextResponse.json({
+      success: true,
+      data: ppcs
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo PPCs:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Error interno del servidor',
+        details: error instanceof Error ? error.message : 'Error desconocido'
+      },
+      { status: 500 }
+    );
+  }
+}

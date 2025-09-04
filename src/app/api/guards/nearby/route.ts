@@ -45,7 +45,8 @@ export async function GET(req: Request) {
       SELECT g.id,
              CONCAT(g.nombre,' ',g.apellido_paterno) AS nombre,
              g.comuna,
-             g.latitud, g.longitud
+             g.latitud, g.longitud,
+             g.telefono
       FROM guardias g
       WHERE g.latitud IS NOT NULL 
         AND g.longitud IS NOT NULL
@@ -71,7 +72,8 @@ export async function GET(req: Request) {
             comuna: guardia.comuna,
             lat: guardLat,
             lng: guardLng,
-            distancia: distancia
+            distancia: distancia,
+            telefono: guardia.telefono || ''
           };
         }
         return null;
