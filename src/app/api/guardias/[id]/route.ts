@@ -343,7 +343,8 @@ export async function GET(
     
     // Usar el tenant_id correcto de Gard
     const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337';
-    const usuario = email;
+    const email = await getUserEmail(request);
+    const usuario = email || 'sistema';
 
     // Obtener guardia con vacaciones actualizadas automáticamente
     const guardia = await getGuardiaConVacacionesActualizadas(guardiaId);
@@ -448,7 +449,7 @@ export async function GET(
       'guardias',
       params.id,
       'READ',
-      email,
+      email || 'sistema',
       null,
       {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -456,7 +457,7 @@ export async function GET(
         endpoint: '/api/guardias/[id]',
         method: 'GET'
       },
-      'accebf8a-bacc-41fa-9601-ed39cb320a52'
+      '1397e653-a702-4020-9702-3ae4f3f8b337'
     );
     
     return NextResponse.json(
@@ -592,7 +593,7 @@ export async function PATCH(
         endpoint: '/api/guardias/[id]',
         method: 'PATCH'
       },
-      'accebf8a-bacc-41fa-9601-ed39cb320a52'
+      '1397e653-a702-4020-9702-3ae4f3f8b337'
     );
     
     return NextResponse.json(
@@ -614,7 +615,8 @@ export async function DELETE(
     
     // Usar el tenant_id correcto de Gard
     const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337';
-    const usuario = email;
+    const email = await getUserEmail(request);
+    const usuario = email || 'sistema';
     
     console.log('✅ API Guardias - Eliminando guardia con ID:', guardiaId);
 
@@ -693,7 +695,7 @@ export async function DELETE(
       'guardias',
       params.id,
       'DELETE',
-      email,
+      email || 'sistema',
       null,
       {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -701,7 +703,7 @@ export async function DELETE(
         endpoint: '/api/guardias/[id]',
         method: 'DELETE'
       },
-      'accebf8a-bacc-41fa-9601-ed39cb320a52'
+      '1397e653-a702-4020-9702-3ae4f3f8b337'
     );
     
     return NextResponse.json(
