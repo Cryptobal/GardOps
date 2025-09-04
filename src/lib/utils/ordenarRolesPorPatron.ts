@@ -48,28 +48,41 @@ function extraerPatronTurno(nombreRol: string): {
   diasTrabajo: number;
   diasDescanso: number;
 } {
-  // Formato esperado: "D 4x4x12 08:00 20:00" o "N 4x4x12 20:00 08:00"
-  const match = nombreRol.match(/^([DN])\s+(\d+)x(\d+)x\d+\s+(\d{1,2}:\d{2})\s+\d{1,2}:\d{2}$/);
+  // Formato actual en producción: "Día 4x4x12 / 08:00 20:00" o "Noche 4x4x12 / 20:00 08:00"
+  const matchActual = nombreRol.match(/^(Día|Noche)\s+(\d+)x(\d+)x\d+\s+\/\s+(\d{1,2}:\d{2})\s+\d{1,2}:\d{2}$/);
   
-  if (!match) {
-    // Fallback para nombres que no siguen el patrón
+  if (matchActual) {
+    const [, tipoTurno, diasTrabajo, diasDescanso, horaInicio] = matchActual;
     return {
-      patron: nombreRol,
-      esDia: true,
-      horaInicio: '00:00',
-      diasTrabajo: 0,
-      diasDescanso: 0
+      patron: `${diasTrabajo}x${diasDescanso}`,
+      esDia: tipoTurno === 'Día',
+      horaInicio,
+      diasTrabajo: parseInt(diasTrabajo),
+      diasDescanso: parseInt(diasDescanso)
     };
   }
   
-  const [, tipoTurno, diasTrabajo, diasDescanso, horaInicio] = match;
+  // Formato esperado futuro: "D 4x4x12 08:00 20:00" o "N 4x4x12 20:00 08:00"
+  const matchFuturo = nombreRol.match(/^([DN])\s+(\d+)x(\d+)x\d+\s+(\d{1,2}:\d{2})\s+\d{1,2}:\d{2}$/);
   
+  if (matchFuturo) {
+    const [, tipoTurno, diasTrabajo, diasDescanso, horaInicio] = matchFuturo;
+    return {
+      patron: `${diasTrabajo}x${diasDescanso}`,
+      esDia: tipoTurno === 'D',
+      horaInicio,
+      diasTrabajo: parseInt(diasTrabajo),
+      diasDescanso: parseInt(diasDescanso)
+    };
+  }
+  
+  // Fallback para nombres que no siguen ningún patrón
   return {
-    patron: `${diasTrabajo}x${diasDescanso}`,
-    esDia: tipoTurno === 'D',
-    horaInicio,
-    diasTrabajo: parseInt(diasTrabajo),
-    diasDescanso: parseInt(diasDescanso)
+    patron: nombreRol,
+    esDia: true,
+    horaInicio: '00:00',
+    diasTrabajo: 0,
+    diasDescanso: 0
   };
 }
 
