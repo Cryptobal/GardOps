@@ -21,7 +21,7 @@ import {
 import { RolServicio, CrearRolServicioData } from '@/lib/schemas/roles-servicio';
 import { calcularNomenclaturaRol } from '@/lib/utils/calcularNomenclaturaRol';
 import { ordenarRolesPorPatron, extraerPatronesUnicos, filtrarRolesPorPatron, extraerPatronTurno, tieneParNoche, crearDatosTurnoNoche } from '@/lib/utils/ordenarRolesPorPatron';
-import ModalCrearRolConSeries from '@/components/roles-servicio/ModalCrearRolConSeries';
+import WizardCrearRol from '@/components/roles-servicio/WizardCrearRol';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,7 +47,7 @@ export default function RolesServicioPage() {
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [infoRol, setInfoRol] = useState<{rol: RolServicio, verificacion: any} | null>(null);
   const [formularioAbierto, setFormularioAbierto] = useState(false);
-  const [showModalSeries, setShowModalSeries] = useState(false);
+  const [showWizardCrear, setShowWizardCrear] = useState(false);
   
   const [nuevoRol, setNuevoRol] = useState({
     dias_trabajo: 4,
@@ -193,17 +193,17 @@ export default function RolesServicioPage() {
     }
   };
 
-  const handleCrearRolConSeries = async (rolData: any) => {
+  const handleCrearRolWizard = async (rolData: any) => {
     try {
       setLoading(true);
       await crearRolServicio(rolData);
-      success('Rol de servicio con series creado exitosamente');
-      setShowModalSeries(false);
+      success('Rol de servicio creado exitosamente');
+      setShowWizardCrear(false);
       cargarRoles();
       cargarStats();
     } catch (err: any) {
       error(err.message || 'Error al crear rol de servicio');
-      throw err; // Re-throw para que el modal maneje el error
+      throw err; // Re-throw para que el wizard maneje el error
     } finally {
       setLoading(false);
     }
@@ -421,96 +421,29 @@ export default function RolesServicioPage() {
         </div>
       )}
 
-      {/* Formulario de Creación Minimalista */}
-      <Card>
-        <CardHeader 
-          className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-          onClick={() => setFormularioAbierto(!formularioAbierto)}
-        >
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="w-5 h-5" />
-              Crear Nuevo Rol de Servicio
-            </CardTitle>
-            {formularioAbierto ? (
-              <ChevronUp className="w-5 h-5" />
-            ) : (
-              <ChevronDown className="w-5 h-5" />
-            )}
+      {/* Botón de Creación Moderno */}
+      <Card className="mb-6">
+        <CardContent className="p-8">
+          <div className="text-center">
+            <div className="mb-4">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Calendar className="h-8 w-8 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Crear Nuevo Rol de Servicio</h3>
+              <p className="text-gray-600 max-w-md mx-auto">
+                Configura horarios personalizados para cada día del ciclo de trabajo
+              </p>
+            </div>
+            <Button 
+              onClick={() => setShowWizardCrear(true)}
+              size="lg"
+              className="bg-blue-600 hover:bg-blue-700 px-8 py-4 text-base font-medium"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Crear Rol de Servicio
+            </Button>
           </div>
-        </CardHeader>
-        
-        {formularioAbierto && (
-          <CardContent className="pt-0">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="dias_trabajo" className="text-xs">Días Trabajo</Label>
-                <Input
-                  id="dias_trabajo"
-                  type="number"
-                  min="1"
-                  value={nuevoRol.dias_trabajo}
-                  onChange={(e) => setNuevoRol({...nuevoRol, dias_trabajo: parseInt(e.target.value) || 0})}
-                  className="h-8"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="dias_descanso" className="text-xs">Días Descanso</Label>
-                <Input
-                  id="dias_descanso"
-                  type="number"
-                  min="1"
-                  value={nuevoRol.dias_descanso}
-                  onChange={(e) => setNuevoRol({...nuevoRol, dias_descanso: parseInt(e.target.value) || 0})}
-                  className="h-8"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="hora_inicio" className="text-xs">Hora Inicio</Label>
-                <Input
-                  id="hora_inicio"
-                  type="time"
-                  value={nuevoRol.hora_inicio}
-                  onChange={(e) => setNuevoRol({...nuevoRol, hora_inicio: e.target.value})}
-                  className="h-8"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="hora_termino" className="text-xs">Hora Término</Label>
-                <Input
-                  id="hora_termino"
-                  type="time"
-                  value={nuevoRol.hora_termino}
-                  onChange={(e) => setNuevoRol({...nuevoRol, hora_termino: e.target.value})}
-                  className="h-8"
-                />
-              </div>
-            </div>
-            
-            {/* Nombre Calculado Compacto */}
-            <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-950/20 rounded border">
-              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Nombre Calculado:</div>
-              <div className="text-sm font-mono text-blue-600 dark:text-blue-400">
-                {nombreCalculado}
-              </div>
-            </div>
-
-            <div className="mt-3 flex justify-end gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowModalSeries(true)} 
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Calendar className="h-4 w-4" />
-                Crear con Series
-              </Button>
-              <Button onClick={handleCrearRol} disabled={creando} size="sm">
-                {creando ? 'Creando...' : 'Crear Rol'}
-              </Button>
-            </div>
-          </CardContent>
-        )}
+        </CardContent>
       </Card>
 
       {/* Filtros en una línea */}
@@ -834,11 +767,11 @@ export default function RolesServicioPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Modal para crear rol con series */}
-      <ModalCrearRolConSeries
-        isOpen={showModalSeries}
-        onClose={() => setShowModalSeries(false)}
-        onSave={handleCrearRolConSeries}
+      {/* Wizard para crear rol */}
+      <WizardCrearRol
+        isOpen={showWizardCrear}
+        onClose={() => setShowWizardCrear(false)}
+        onSave={handleCrearRolWizard}
         tenantId="1" // TODO: Obtener del contexto de usuario
       />
     </div>
