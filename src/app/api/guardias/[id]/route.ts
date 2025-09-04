@@ -424,19 +424,23 @@ export async function GET(
       altura_cm: guardia.altura_cm,
       peso_kg: guardia.peso_kg,
       
+      // Información personal adicional
+      pin: guardia.pin,
+      
+      // Información laboral adicional
+      monto_anticipo: guardia.monto_anticipo,
+      dias_vacaciones_pendientes: guardia.dias_vacaciones_pendientes,
+      fecha_ingreso: guardia.fecha_ingreso,
+      fecha_finiquito: guardia.fecha_finiquito,
+      
       // Campos de postulación
       fecha_postulacion: guardia.fecha_postulacion,
       estado_postulacion: guardia.estado_postulacion,
       ip_postulacion: guardia.ip_postulacion,
       user_agent_postulacion: guardia.user_agent_postulacion,
       
-      // Nuevos campos agregados
-      monto_anticipo: guardia.monto_anticipo,
-      pin: guardia.pin,
-      dias_vacaciones_pendientes: guardia.dias_vacaciones_pendientes,
-      dias_vacaciones_formateados: formatearDiasVacaciones(guardia.dias_vacaciones_pendientes),
-      fecha_ingreso: guardia.fecha_ingreso,
-      fecha_finiquito: guardia.fecha_finiquito
+      // Campos adicionales formateados
+      dias_vacaciones_formateados: formatearDiasVacaciones(guardia.dias_vacaciones_pendientes)
     };
 
     return NextResponse.json(guardiaFormateado);

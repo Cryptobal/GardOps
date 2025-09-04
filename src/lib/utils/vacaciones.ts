@@ -98,11 +98,43 @@ export async function getGuardiaConVacacionesActualizadas(guardiaId: string): Pr
         region,
         activo,
         tipo_guardia,
+        fecha_os10,
+        latitud,
+        longitud,
+        // Información personal adicional
+        sexo,
+        nacionalidad,
+        fecha_nacimiento,
+        pin,
+        // Información previsional
+        afp,
+        descuento_afp,
+        prevision_salud,
+        cotiza_sobre_7,
+        monto_pactado_uf,
+        es_pensionado,
+        asignacion_familiar,
+        tramo_asignacion,
+        // Información física
+        talla_camisa,
+        talla_pantalon,
+        talla_zapato,
+        altura_cm,
+        peso_kg,
+        // Información laboral adicional
         fecha_ingreso,
         dias_vacaciones_pendientes,
         monto_anticipo,
-        pin,
         fecha_finiquito,
+        // Información de postulación
+        fecha_postulacion,
+        estado_postulacion,
+        ip_postulacion,
+        user_agent_postulacion,
+        // Campos bancarios
+        banco_id,
+        tipo_cuenta,
+        numero_cuenta,
         created_at,
         updated_at
       FROM guardias 

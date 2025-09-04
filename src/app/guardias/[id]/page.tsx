@@ -56,6 +56,18 @@ interface Guardia {
   talla_zapato?: number;
   altura_cm?: number;
   peso_kg?: number;
+  // Información personal adicional
+  pin?: string;
+  // Información laboral adicional
+  monto_anticipo?: number;
+  dias_vacaciones_pendientes?: number;
+  fecha_ingreso?: string;
+  fecha_finiquito?: string;
+  // Información de postulación
+  fecha_postulacion?: string;
+  estado_postulacion?: string;
+  ip_postulacion?: string;
+  user_agent_postulacion?: string;
   created_at: string;
   updated_at: string;
 }
@@ -86,6 +98,12 @@ export default function GuardiaDetallePage() {
   const router = useRouter();
   const toast = useToast();
   const guardiaId = params.id as string;
+
+  // Función para formatear texto (primera letra mayúscula, resto minúscula)
+  const formatText = (text: string | null | undefined): string => {
+    if (!text) return '';
+    return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+  };
   const [guardia, setGuardia] = useState<Guardia | null>(null);
   const [datosBancarios, setDatosBancarios] = useState<DatosBancarios | null>(null);
   const [bancos, setBancos] = useState<Banco[]>([]);
@@ -366,7 +384,8 @@ export default function GuardiaDetallePage() {
     type = 'text',
     placeholder = '',
     className = '',
-    options = []
+    options = [],
+    readOnly = false
   }: {
     label: string;
     value: string | number;
@@ -375,6 +394,7 @@ export default function GuardiaDetallePage() {
     placeholder?: string;
     className?: string;
     options?: { value: string; label: string }[];
+    readOnly?: boolean;
   }) => {
     const isEditing = editingField === field;
     
@@ -486,14 +506,16 @@ export default function GuardiaDetallePage() {
                 : value || 'No configurado'
               }
             </p>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => handleEdit(field, value?.toString() || '')}
-              className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
+            {!readOnly && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleEdit(field, value?.toString() || '')}
+                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -811,6 +833,41 @@ export default function GuardiaDetallePage() {
                     placeholder="Fecha de vencimiento"
                   />
                 </div>
+                
+                {/* Segunda fila de información personal */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                  <EditableField
+                    label="Sexo"
+                    value={formatText(guardia.sexo) || ''}
+                    field="sexo"
+                    placeholder="Sexo"
+                    options={[
+                      { value: 'masculino', label: 'Masculino' },
+                      { value: 'femenino', label: 'Femenino' }
+                    ]}
+                  />
+                  <EditableField
+                    label="Nacionalidad"
+                    value={formatText(guardia.nacionalidad) || ''}
+                    field="nacionalidad"
+                    placeholder="Nacionalidad"
+                  />
+                  <EditableField
+                    label="Fecha de Nacimiento"
+                    value={guardia.fecha_nacimiento || ''}
+                    field="fecha_nacimiento"
+                    type="date"
+                    placeholder="Fecha de nacimiento"
+                  />
+                  <EditableField
+                    label="PIN"
+                    value={guardia.pin || ''}
+                    field="pin"
+                    type="text"
+                    placeholder="PIN"
+                    readOnly={true}
+                  />
+                </div>
               </CardContent>
             </Card>
 
@@ -889,7 +946,173 @@ export default function GuardiaDetallePage() {
               </CardContent>
             </Card>
 
-            {/* Sección 3: Datos Bancarios */}
+            {/* Sección 3: Información Previsional */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FileText className="h-4 w-4" />
+                  Información Previsional
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <EditableField
+                    label="AFP"
+                    value={formatText(guardia.afp) || ''}
+                    field="afp"
+                    placeholder="AFP"
+                  />
+                  <EditableField
+                    label="Descuento AFP"
+                    value={guardia.descuento_afp?.toString() || ''}
+                    field="descuento_afp"
+                    type="number"
+                    placeholder="1.00"
+                  />
+                  <EditableField
+                    label="Previsión Salud"
+                    value={formatText(guardia.prevision_salud) || ''}
+                    field="prevision_salud"
+                    placeholder="Previsión de salud"
+                  />
+                  <EditableField
+                    label="Cotiza Sobre 7"
+                    value={guardia.cotiza_sobre_7 ? 'Sí' : 'No'}
+                    field="cotiza_sobre_7"
+                    options={[
+                      { value: 'true', label: 'Sí' },
+                      { value: 'false', label: 'No' }
+                    ]}
+                  />
+                  <EditableField
+                    label="Monto Pactado UF"
+                    value={guardia.monto_pactado_uf?.toString() || ''}
+                    field="monto_pactado_uf"
+                    type="number"
+                    placeholder="0.00"
+                  />
+                  <EditableField
+                    label="Es Pensionado"
+                    value={guardia.es_pensionado ? 'Sí' : 'No'}
+                    field="es_pensionado"
+                    options={[
+                      { value: 'true', label: 'Sí' },
+                      { value: 'false', label: 'No' }
+                    ]}
+                  />
+                  <EditableField
+                    label="Asignación Familiar"
+                    value={guardia.asignacion_familiar ? 'Sí' : 'No'}
+                    field="asignacion_familiar"
+                    options={[
+                      { value: 'true', label: 'Sí' },
+                      { value: 'false', label: 'No' }
+                    ]}
+                  />
+                  <EditableField
+                    label="Tramo Asignación"
+                    value={guardia.tramo_asignacion || ''}
+                    field="tramo_asignacion"
+                    options={[
+                      { value: 'A', label: 'A' },
+                      { value: 'B', label: 'B' },
+                      { value: 'C', label: 'C' }
+                    ]}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Sección 4: Información Laboral Adicional */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Clock className="h-4 w-4" />
+                  Información Laboral Adicional
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <EditableField
+                    label="Monto Anticipo"
+                    value={guardia.monto_anticipo?.toString() || ''}
+                    field="monto_anticipo"
+                    type="number"
+                    placeholder="0"
+                  />
+                  <EditableField
+                    label="Días Vacaciones Pendientes"
+                    value={guardia.dias_vacaciones_pendientes?.toString() || ''}
+                    field="dias_vacaciones_pendientes"
+                    type="number"
+                    placeholder="0"
+                  />
+                  <EditableField
+                    label="Fecha de Ingreso"
+                    value={guardia.fecha_ingreso || ''}
+                    field="fecha_ingreso"
+                    type="date"
+                    placeholder="Fecha de ingreso"
+                  />
+                  <EditableField
+                    label="Fecha de Finiquito"
+                    value={guardia.fecha_finiquito || ''}
+                    field="fecha_finiquito"
+                    type="date"
+                    placeholder="Fecha de finiquito"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Sección 5: Información de Postulación */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Calendar className="h-4 w-4" />
+                  Información de Postulación
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <EditableField
+                    label="Fecha de Postulación"
+                    value={guardia.fecha_postulacion || ''}
+                    field="fecha_postulacion"
+                    type="datetime-local"
+                    placeholder="Fecha de postulación"
+                    readOnly={true}
+                  />
+                  <EditableField
+                    label="Estado de Postulación"
+                    value={formatText(guardia.estado_postulacion) || ''}
+                    field="estado_postulacion"
+                    options={[
+                      { value: 'pendiente', label: 'Pendiente' },
+                      { value: 'revisando', label: 'Revisando' },
+                      { value: 'aprobada', label: 'Aprobada' },
+                      { value: 'rechazada', label: 'Rechazada' }
+                    ]}
+                  />
+                  <EditableField
+                    label="IP de Postulación"
+                    value={guardia.ip_postulacion || ''}
+                    field="ip_postulacion"
+                    placeholder="IP de postulación"
+                    readOnly={true}
+                  />
+                  <EditableField
+                    label="User Agent"
+                    value={guardia.user_agent_postulacion || ''}
+                    field="user_agent_postulacion"
+                    placeholder="User agent"
+                    readOnly={true}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Sección 6: Datos Bancarios */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-lg">
