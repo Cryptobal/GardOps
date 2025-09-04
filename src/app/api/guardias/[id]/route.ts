@@ -71,93 +71,165 @@ export async function PUT(
       apellidoMaterno = body.apellido_materno || '';
     }
 
-    // Convertir estado a booleano para la base de datos
-    const activo = body.estado === 'activo';
+    // Construir query dinámico solo con los campos que se están actualizando
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+    let paramIndex = 1;
 
-    // Preparar parámetros para el query
-    const queryParams = [
-      body.nombre,
-      apellidoPaterno,
-      apellidoMaterno,
-      body.rut,
-      body.email,
-      body.telefono,
-      body.direccion,
-      body.latitud || null,
-      body.longitud || null,
-      body.ciudad || null,
-      body.comuna || null,
-      body.region || null,
-      body.fecha_os10 || null,
-      body.banco_id || null,
-      body.tipo_cuenta || null,
-      body.numero_cuenta || null,
-      body.tipo_guardia || 'contratado',
-      activo,
-      body.sexo || null,
-      body.nacionalidad || null,
-      body.fecha_nacimiento || null,
-      body.afp || null,
-      body.descuento_afp || null,
-      body.prevision_salud || null,
-      body.cotiza_sobre_7 || null,
-      body.monto_pactado_uf || null,
-      body.es_pensionado || null,
-      body.asignacion_familiar || null,
-      body.tramo_asignacion || null,
-      body.talla_camisa || null,
-      body.talla_pantalon || null,
-      body.talla_zapato || null,
-      body.altura_cm || null,
-      body.peso_kg || null,
-      guardiaId,
-      tenantId
-    ];
+    // Agregar campos solo si están presentes en el body
+    if (body.nombre !== undefined) {
+      updateFields.push(`nombre = $${paramIndex++}`);
+      updateValues.push(body.nombre);
+    }
+    if (body.apellido_paterno !== undefined) {
+      updateFields.push(`apellido_paterno = $${paramIndex++}`);
+      updateValues.push(body.apellido_paterno);
+    }
+    if (body.apellido_materno !== undefined) {
+      updateFields.push(`apellido_materno = $${paramIndex++}`);
+      updateValues.push(body.apellido_materno);
+    }
+    if (body.rut !== undefined) {
+      updateFields.push(`rut = $${paramIndex++}`);
+      updateValues.push(body.rut);
+    }
+    if (body.email !== undefined) {
+      updateFields.push(`email = $${paramIndex++}`);
+      updateValues.push(body.email);
+    }
+    if (body.telefono !== undefined) {
+      updateFields.push(`telefono = $${paramIndex++}`);
+      updateValues.push(body.telefono);
+    }
+    if (body.direccion !== undefined) {
+      updateFields.push(`direccion = $${paramIndex++}`);
+      updateValues.push(body.direccion);
+    }
+    if (body.latitud !== undefined) {
+      updateFields.push(`latitud = $${paramIndex++}`);
+      updateValues.push(body.latitud);
+    }
+    if (body.longitud !== undefined) {
+      updateFields.push(`longitud = $${paramIndex++}`);
+      updateValues.push(body.longitud);
+    }
+    if (body.ciudad !== undefined) {
+      updateFields.push(`ciudad = $${paramIndex++}`);
+      updateValues.push(body.ciudad);
+    }
+    if (body.comuna !== undefined) {
+      updateFields.push(`comuna = $${paramIndex++}`);
+      updateValues.push(body.comuna);
+    }
+    if (body.region !== undefined) {
+      updateFields.push(`region = $${paramIndex++}`);
+      updateValues.push(body.region);
+    }
+    if (body.fecha_os10 !== undefined) {
+      updateFields.push(`fecha_os10 = $${paramIndex++}`);
+      updateValues.push(body.fecha_os10);
+    }
+    if (body.banco_id !== undefined) {
+      updateFields.push(`banco = $${paramIndex++}`);
+      updateValues.push(body.banco_id);
+    }
+    if (body.tipo_cuenta !== undefined) {
+      updateFields.push(`tipo_cuenta = $${paramIndex++}`);
+      updateValues.push(body.tipo_cuenta);
+    }
+    if (body.numero_cuenta !== undefined) {
+      updateFields.push(`numero_cuenta = $${paramIndex++}`);
+      updateValues.push(body.numero_cuenta);
+    }
+    if (body.tipo_guardia !== undefined) {
+      updateFields.push(`tipo_guardia = $${paramIndex++}`);
+      updateValues.push(body.tipo_guardia);
+    }
+    if (body.estado !== undefined) {
+      updateFields.push(`activo = $${paramIndex++}`);
+      updateValues.push(body.estado === 'activo');
+    }
+    if (body.sexo !== undefined) {
+      updateFields.push(`sexo = $${paramIndex++}`);
+      updateValues.push(body.sexo);
+    }
+    if (body.nacionalidad !== undefined) {
+      updateFields.push(`nacionalidad = $${paramIndex++}`);
+      updateValues.push(body.nacionalidad);
+    }
+    if (body.fecha_nacimiento !== undefined) {
+      updateFields.push(`fecha_nacimiento = $${paramIndex++}`);
+      updateValues.push(body.fecha_nacimiento);
+    }
+    if (body.afp !== undefined) {
+      updateFields.push(`afp = $${paramIndex++}`);
+      updateValues.push(body.afp);
+    }
+    if (body.descuento_afp !== undefined) {
+      updateFields.push(`descuento_afp = $${paramIndex++}`);
+      updateValues.push(body.descuento_afp);
+    }
+    if (body.prevision_salud !== undefined) {
+      updateFields.push(`prevision_salud = $${paramIndex++}`);
+      updateValues.push(body.prevision_salud);
+    }
+    if (body.cotiza_sobre_7 !== undefined) {
+      updateFields.push(`cotiza_sobre_7 = $${paramIndex++}`);
+      updateValues.push(body.cotiza_sobre_7);
+    }
+    if (body.monto_pactado_uf !== undefined) {
+      updateFields.push(`monto_pactado_uf = $${paramIndex++}`);
+      updateValues.push(body.monto_pactado_uf);
+    }
+    if (body.es_pensionado !== undefined) {
+      updateFields.push(`es_pensionado = $${paramIndex++}`);
+      updateValues.push(body.es_pensionado);
+    }
+    if (body.asignacion_familiar !== undefined) {
+      updateFields.push(`asignacion_familiar = $${paramIndex++}`);
+      updateValues.push(body.asignacion_familiar);
+    }
+    if (body.tramo_asignacion !== undefined) {
+      updateFields.push(`tramo_asignacion = $${paramIndex++}`);
+      updateValues.push(body.tramo_asignacion);
+    }
+    if (body.talla_camisa !== undefined) {
+      updateFields.push(`talla_camisa = $${paramIndex++}`);
+      updateValues.push(body.talla_camisa);
+    }
+    if (body.talla_pantalon !== undefined) {
+      updateFields.push(`talla_pantalon = $${paramIndex++}`);
+      updateValues.push(body.talla_pantalon);
+    }
+    if (body.talla_zapato !== undefined) {
+      updateFields.push(`talla_zapato = $${paramIndex++}`);
+      updateValues.push(body.talla_zapato);
+    }
+    if (body.altura_cm !== undefined) {
+      updateFields.push(`altura_cm = $${paramIndex++}`);
+      updateValues.push(body.altura_cm);
+    }
+    if (body.peso_kg !== undefined) {
+      updateFields.push(`peso_kg = $${paramIndex++}`);
+      updateValues.push(body.peso_kg);
+    }
+
+    // Siempre actualizar updated_at
+    updateFields.push(`updated_at = NOW()`);
+
+    // Agregar parámetros finales
+    updateValues.push(guardiaId, tenantId);
     
-    console.log('🔍 Parámetros del query:', queryParams);
+    console.log('🔍 Campos a actualizar:', updateFields);
+    console.log('🔍 Valores del query:', updateValues);
     
-    // Query para actualizar el guardia
+    // Query dinámico para actualizar solo los campos enviados
     const result = await query(`
       UPDATE guardias 
-      SET 
-        nombre = $1,
-        apellido_paterno = $2,
-        apellido_materno = $3,
-        rut = $4,
-        email = $5,
-        telefono = $6,
-        direccion = $7,
-        latitud = $8,
-        longitud = $9,
-        ciudad = $10,
-        comuna = $11,
-        region = $12,
-        fecha_os10 = $13,
-        banco = $14,
-        tipo_cuenta = $15,
-        numero_cuenta = $16,
-        tipo_guardia = $17,
-        activo = $18,
-        sexo = $19,
-        nacionalidad = $20,
-        fecha_nacimiento = $21,
-        afp = $22,
-        descuento_afp = $23,
-        prevision_salud = $24,
-        cotiza_sobre_7 = $25,
-        monto_pactado_uf = $26,
-        es_pensionado = $27,
-        asignacion_familiar = $28,
-        tramo_asignacion = $29,
-        talla_camisa = $30,
-        talla_pantalon = $31,
-        talla_zapato = $32,
-        altura_cm = $33,
-        peso_kg = $34,
-        updated_at = NOW()
-      WHERE id = $35 AND tenant_id = $36
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramIndex} AND tenant_id = $${paramIndex + 1}
       RETURNING *
-    `, queryParams);
+    `, updateValues);
 
     if (result.rows.length === 0) {
       return NextResponse.json(
@@ -248,7 +320,7 @@ export async function PUT(
         endpoint: '/api/guardias/[id]',
         method: 'PUT'
       },
-      'accebf8a-bacc-41fa-9601-ed39cb320a52'
+      '1397e653-a702-4020-9702-3ae4f3f8b337'
     );
     
     return NextResponse.json(
@@ -420,8 +492,8 @@ export async function PATCH(
     const guardiaId = params.id;
     const body = await request.json();
     
-    // Por ahora usar un tenant_id fijo para testing
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    // Usar el tenant_id correcto de Gard
+    const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337';
     const usuario = 'admin@test.com';
     
     console.log('✅ API Guardias - Actualizando estado con datos:', body);
@@ -539,8 +611,8 @@ export async function DELETE(
   try {
     const guardiaId = params.id;
     
-    // Por ahora usar un tenant_id fijo para testing
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    // Usar el tenant_id correcto de Gard
+    const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337';
     const usuario = 'admin@test.com';
     
     console.log('✅ API Guardias - Eliminando guardia con ID:', guardiaId);
