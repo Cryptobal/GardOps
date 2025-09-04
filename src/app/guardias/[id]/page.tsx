@@ -186,7 +186,20 @@ export default function GuardiaDetallePage() {
       if (resultado) {
         setGeocodingData(resultado);
       } else {
-        setMapError('No se pudo obtener la ubicación de la dirección');
+        // Si no se puede geocodificar, usar las coordenadas existentes si están disponibles
+        if (guardia?.latitud && guardia?.longitud) {
+          console.log('No se pudo geocodificar, usando coordenadas existentes');
+          setGeocodingData({
+            latitud: guardia.latitud,
+            longitud: guardia.longitud,
+            comuna: guardia.comuna || '',
+            ciudad: guardia.ciudad || '',
+            region: guardia.region || '',
+            direccionCompleta: direccion
+          });
+        } else {
+          setMapError('No se pudo obtener la ubicación de la dirección');
+        }
       }
     } catch (error) {
       console.error('Error al cargar datos geográficos:', error);
@@ -219,13 +232,25 @@ export default function GuardiaDetallePage() {
       
       let dataToUpdate: any = {};
       
-      if (field === 'direccion' && selectedAddress) {
-        // Para dirección con datos de Google Maps - solo guardar la dirección de la calle
-        dataToUpdate[field] = editValue; // Usar el valor editado (dirección limpia)
-        dataToUpdate.latitud = selectedAddress.latitud;
-        dataToUpdate.longitud = selectedAddress.longitud;
-        dataToUpdate.ciudad = selectedAddress.componentes.ciudad;
-        dataToUpdate.comuna = selectedAddress.componentes.comuna;
+      if (field === 'direccion') {
+        // Para dirección - guardar la dirección editada
+        dataToUpdate[field] = editValue;
+        
+        if (selectedAddress) {
+          // Si hay datos de Google Maps, usar las nuevas coordenadas
+          dataToUpdate.latitud = selectedAddress.latitud;
+          dataToUpdate.longitud = selectedAddress.longitud;
+          dataToUpdate.ciudad = selectedAddress.componentes.ciudad;
+          dataToUpdate.comuna = selectedAddress.componentes.comuna;
+          dataToUpdate.region = selectedAddress.componentes.region;
+        } else {
+          // Si no hay datos de Google Maps, mantener las coordenadas existentes
+          dataToUpdate.latitud = guardia.latitud;
+          dataToUpdate.longitud = guardia.longitud;
+          dataToUpdate.ciudad = guardia.ciudad;
+          dataToUpdate.comuna = guardia.comuna;
+          dataToUpdate.region = guardia.region;
+        }
       } else {
         dataToUpdate[field] = editValue;
       }
