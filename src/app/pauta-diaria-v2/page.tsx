@@ -13,7 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Building2, Activity } from 'lucide-react';
 
 export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fecha?: string; incluirLibres?: string; tab?: string } }) {
-  const [activeTab, setActiveTab] = useState(searchParams.tab || 'monitoreo');
+  // Inicializar activeTab desde searchParams, por defecto 'pauta' si no hay tab
+  const [activeTab, setActiveTab] = useState(searchParams.tab || 'pauta');
   const [rows, setRows] = useState<PautaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +27,7 @@ export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fe
     if (searchParams.tab && searchParams.tab !== activeTab) {
       setActiveTab(searchParams.tab);
     }
-  }, [searchParams.tab, activeTab]);
+  }, [searchParams.tab]);
 
   useEffect(() => {
     let isMounted = true;
