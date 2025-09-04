@@ -62,20 +62,57 @@ export default function Asignaciones() {
   /* Cada vez que cambian instalación o radio → actualiza guards + markers */
   useEffect(()=>{
     if(!map||!instSelected) return;
+    
+    // Validar coordenadas de la instalación
+    const instLat = parseFloat(instSelected.lat.toString());
+    const instLng = parseFloat(instSelected.lng.toString());
+    
+    if (isNaN(instLat) || isNaN(instLng)) {
+      console.error('Coordenadas de instalación inválidas:', instSelected);
+      return;
+    }
+
     /* Limpia capas previas */
     (map as any).__markers?.forEach((m:google.maps.Marker)=>m.setMap(null));
-    map.setCenter({lat:instSelected.lat,lng:instSelected.lng}); map.setZoom(11);
+    map.setCenter({lat:instLat,lng:instLng}); 
+    map.setZoom(11);
 
     /* Marker rojo instalación */
-    const red=new google.maps.Marker({position:{lat:instSelected.lat,lng:instSelected.lng}, map, icon:'http://maps.google.com/mapfiles/ms/icons/red-dot.png'});
+    const red=new google.maps.Marker({
+      position:{lat:instLat,lng:instLng}, 
+      map, 
+      icon:'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+    });
     (map as any).__markers=[red];
 
     /* Fetch guards */
     fetch(`/api/guards/nearby?installationId=${instSelected.id}&radius=${radio}`)
-      .then(r=>r.json()).then((data:Guard[])=>{
+      .then(r=>r.json())
+      .then((data:Guard[])=>{
+        console.log('Guardias recibidos:', data);
         setGuards(data);
-        const gMarkers=data.map(g=>new google.maps.Marker({position:{lat:g.lat,lng:g.lng},map,icon:'http://maps.google.com/mapfiles/ms/icons/green-dot.png'}));
+        
+        // Validar coordenadas de guardias antes de crear marcadores
+        const gMarkers = data
+          .filter(g => {
+            const lat = parseFloat(g.lat.toString());
+            const lng = parseFloat(g.lng.toString());
+            return !isNaN(lat) && !isNaN(lng);
+          })
+          .map(g => {
+            const lat = parseFloat(g.lat.toString());
+            const lng = parseFloat(g.lng.toString());
+            return new google.maps.Marker({
+              position:{lat,lng},
+              map,
+              icon:'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+            });
+          });
         (map as any).__markers.push(...gMarkers);
+      })
+      .catch(error => {
+        console.error('Error obteniendo guardias cercanos:', error);
+        setGuards([]);
       });
   },[instSelected,radio,map]);
 
