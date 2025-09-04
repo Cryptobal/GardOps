@@ -46,6 +46,11 @@ export async function GET(request: NextRequest) {
         COALESCE(g.altura_cm::text, '') as altura_cm,
         COALESCE(g.peso_kg::text, '') as peso_kg,
         
+        -- Campos bancarios
+        COALESCE(b.nombre, '') as banco,
+        COALESCE(g.tipo_cuenta, '') as tipo_cuenta,
+        COALESCE(g.numero_cuenta, '') as numero_cuenta,
+        
         -- Información de instalación asignada (crítica para operaciones)
         COALESCE(i.nombre, '') as instalacion_asignada,
         COALESCE(rs.nombre, '') as rol_actual
@@ -54,6 +59,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN as_turnos_puestos_operativos po ON po.guardia_id = g.id AND po.activo = true
       LEFT JOIN instalaciones i ON i.id = po.instalacion_id
       LEFT JOIN as_turnos_roles_servicio rs ON rs.id = po.rol_id
+      LEFT JOIN bancos b ON b.id = g.banco_id
       ORDER BY g.nombre, g.apellido_paterno, g.apellido_materno
     `);
 
@@ -100,6 +106,10 @@ export async function GET(request: NextRequest) {
       'Talla Zapato': guardia.talla_zapato || '',
       'Altura (cm)': guardia.altura_cm || '',
       'Peso (kg)': guardia.peso_kg || '',
+      // Campos bancarios
+      'Banco': guardia.banco || '',
+      'Tipo de Cuenta': guardia.tipo_cuenta || '',
+      'Número de Cuenta': guardia.numero_cuenta || '',
       'Fecha Creación': guardia.created_at || '',
       'Fecha Actualización': guardia.updated_at || ''
     }));
@@ -142,6 +152,10 @@ export async function GET(request: NextRequest) {
       { width: 15 }, // Talla Zapato
       { width: 15 }, // Altura
       { width: 15 }, // Peso
+      // Campos bancarios
+      { width: 25 }, // Banco
+      { width: 15 }, // Tipo de Cuenta
+      { width: 20 }, // Número de Cuenta
       { width: 20 }, // Fecha Creación
       { width: 20 }  // Fecha Actualización
     ];
