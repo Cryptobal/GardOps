@@ -119,10 +119,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validar campos requeridos
-    if (!dias_trabajo || !dias_descanso || !hora_inicio || !hora_termino) {
+    // Validar campos requeridos - Si tiene horarios variables, no necesita campos tradicionales
+    if (!tiene_horarios_variables && (!dias_trabajo || !dias_descanso || !hora_inicio || !hora_termino)) {
       return NextResponse.json(
-        { success: false, error: 'Todos los campos de turno son requeridos' },
+        { success: false, error: 'Todos los campos de turno son requeridos para roles tradicionales' },
+        { status: 400 }
+      );
+    }
+    
+    // Si tiene horarios variables, debe tener series_dias
+    if (tiene_horarios_variables && (!series_dias || series_dias.length === 0)) {
+      return NextResponse.json(
+        { success: false, error: 'Series de días son requeridas para roles con horarios variables' },
         { status: 400 }
       );
     }
@@ -142,14 +150,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Calcular horas de turno automáticamente
-    const horas_turno = calcularHorasTurno(hora_inicio, hora_termino);
-
-    // Calcular nombre automáticamente
+    // Calcular horas de turno y nombre automáticamente
+    let horas_turno: number;
     let nombre: string;
+    let calculated_dias_trabajo: number = dias_trabajo;
+    let calculated_dias_descanso: number = dias_descanso;
+    
     if (tiene_horarios_variables && series_dias.length > 0) {
-      nombre = calcularNomenclaturaConSeries(dias_trabajo, dias_descanso, series_dias);
+      // Para horarios variables, calcular desde las series
+      const diasTrabajo = series_dias.filter((dia: any) => dia.es_dia_trabajo);
+      const totalHoras = diasTrabajo.reduce((sum: number, dia: any) => sum + (dia.horas_turno || 0), 0);
+      horas_turno = diasTrabajo.length > 0 ? Math.round(totalHoras / diasTrabajo.length) : 0;
+      
+      // Calcular días de trabajo y descanso desde las series
+      calculated_dias_trabajo = diasTrabajo.length;
+      calculated_dias_descanso = (body.duracion_ciclo_dias || 7) - calculated_dias_trabajo;
+      
+      // Usar nomenclatura con series
+      nombre = calcularNomenclaturaConSeries(calculated_dias_trabajo, calculated_dias_descanso, series_dias);
     } else {
+      // Para horarios tradicionales
+      horas_turno = calcularHorasTurno(hora_inicio, hora_termino);
       nombre = calcularNomenclaturaRol(dias_trabajo, dias_descanso, hora_inicio, hora_termino);
     }
 
@@ -178,25 +199,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificación adicional: evitar duplicados por parámetros específicos
-    const checkDuplicateParams = await sql.query(`
-      SELECT nombre FROM as_turnos_roles_servicio 
-      WHERE dias_trabajo = $1 
-        AND dias_descanso = $2 
-        AND hora_inicio = $3 
-        AND hora_termino = $4
-        AND (tenant_id::text = $5 OR (tenant_id IS NULL AND $5 = '1'))
-    `, [dias_trabajo, dias_descanso, hora_inicio, hora_termino, finalTenantId]);
-
-    if (checkDuplicateParams.rows.length > 0) {
-      const rolExistente = checkDuplicateParams.rows[0].nombre;
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: `Ya existe un rol con los mismos parámetros: "${rolExistente}". Cada combinación de días de trabajo, descanso y horario debe ser única.` 
-        },
-        { status: 400 }
-      );
+    // Verificación adicional: evitar duplicados por parámetros específicos (solo para roles tradicionales)
+    if (!tiene_horarios_variables) {
+      const checkDuplicateParams = await sql.query(`
+        SELECT nombre FROM as_turnos_roles_servicio 
+        WHERE dias_trabajo = $1 
+          AND dias_descanso = $2 
+          AND hora_inicio = $3 
+          AND hora_termino = $4
+          AND (tenant_id::text = $5 OR (tenant_id IS NULL AND $5 = '1'))
+      `, [dias_trabajo, dias_descanso, hora_inicio, hora_termino, finalTenantId]);
+      
+      if (checkDuplicateParams.rows.length > 0) {
+        const rolExistente = checkDuplicateParams.rows[0].nombre;
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: `Ya existe un rol con los mismos parámetros: "${rolExistente}". Cada combinación de días de trabajo, descanso y horario debe ser única.` 
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Crear la tabla sueldo_estructuras_roles si no existe (para evitar error del trigger)
@@ -236,15 +259,15 @@ export async function POST(request: NextRequest) {
     
     const result = await sql.query(insertQuery, [
       nombre,
-      dias_trabajo,
-      dias_descanso,
+      calculated_dias_trabajo,
+      calculated_dias_descanso,
       horas_turno,
-      hora_inicio,
-      hora_termino,
+      tiene_horarios_variables ? null : hora_inicio,
+      tiene_horarios_variables ? null : hora_termino,
       estado,
       finalTenantId === '1' ? null : finalTenantId,
       tiene_horarios_variables,
-      dias_trabajo + dias_descanso, // duracion_ciclo_dias
+      body.duracion_ciclo_dias || (calculated_dias_trabajo + calculated_dias_descanso), // duracion_ciclo_dias
       horas_turno // horas_turno_promedio (se actualizará con trigger si hay series)
     ]);
 
