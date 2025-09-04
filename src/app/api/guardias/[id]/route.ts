@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../../lib/database';
 import { logCRUD } from '@/lib/logging';
 import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
+import { getGuardiaConVacacionesActualizadas, formatearDiasVacaciones } from '@/lib/utils/vacaciones';
 
 // PUT /api/guardias/[id] - Actualizar un guardia específico
 export async function PUT(
@@ -253,9 +254,19 @@ export async function GET(
     const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337';
     const usuario = 'admin@test.com';
 
-    const result = await query(`
+    // Obtener guardia con vacaciones actualizadas automáticamente
+    const guardia = await getGuardiaConVacacionesActualizadas(guardiaId);
+    
+    if (!guardia) {
+      return NextResponse.json(
+        { error: 'Guardia no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    // Obtener información adicional de instalación y cliente
+    const infoAdicional = await query(`
       SELECT 
-        g.*,
         i.nombre as instalacion_nombre,
         COALESCE(c.nombre, 'Cliente no encontrado') as cliente_nombre
       FROM guardias g
@@ -264,15 +275,8 @@ export async function GET(
       WHERE g.id = $1 AND g.tenant_id = $2
     `, [guardiaId, tenantId]);
 
-    if (result.rows.length === 0) {
-      return NextResponse.json(
-        { error: 'Guardia no encontrado' },
-        { status: 404 }
-      );
-    }
-
-    const guardia = result.rows[0];
-    console.log('✅ Guardia obtenido exitosamente');
+    const info = infoAdicional.rows[0] || {};
+    console.log('✅ Guardia obtenido exitosamente con vacaciones actualizadas');
 
     // Log de lectura (opcional)
     await logCRUD(
@@ -306,8 +310,8 @@ export async function GET(
       fecha_os10: guardia.fecha_os10,
       created_at: guardia.created_at,
       updated_at: guardia.updated_at,
-      instalacion_nombre: guardia.instalacion_nombre,
-      cliente_nombre: guardia.cliente_nombre,
+      instalacion_nombre: info.instalacion_nombre,
+      cliente_nombre: info.cliente_nombre,
       
       // Campos del formulario de postulación
       sexo: guardia.sexo,
@@ -331,7 +335,15 @@ export async function GET(
       fecha_postulacion: guardia.fecha_postulacion,
       estado_postulacion: guardia.estado_postulacion,
       ip_postulacion: guardia.ip_postulacion,
-      user_agent_postulacion: guardia.user_agent_postulacion
+      user_agent_postulacion: guardia.user_agent_postulacion,
+      
+      // Nuevos campos agregados
+      monto_anticipo: guardia.monto_anticipo,
+      pin: guardia.pin,
+      dias_vacaciones_pendientes: guardia.dias_vacaciones_pendientes,
+      dias_vacaciones_formateados: formatearDiasVacaciones(guardia.dias_vacaciones_pendientes),
+      fecha_ingreso: guardia.fecha_ingreso,
+      fecha_finiquito: guardia.fecha_finiquito
     };
 
     return NextResponse.json(guardiaFormateado);
