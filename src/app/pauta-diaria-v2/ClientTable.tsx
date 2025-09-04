@@ -1263,8 +1263,14 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                         value={fechaStr}
                         onChange={(e) => {
                           const params = new URLSearchParams();
-                          if (activeTab) params.set('tab', activeTab);
-                          const newUrl = `/pauta-diaria-v2?fecha=${e.target.value}${params.toString() ? '&' + params.toString() : ''}`;
+                          if (f.instalacion) params.set('instalacion', f.instalacion);
+                          if (f.estado && f.estado !== 'todos') params.set('estado', f.estado);
+                          if (f.ppc !== 'all') params.set('ppc', f.ppc === true ? 'true' : 'false');
+                          if (f.q) params.set('q', f.q);
+                          if (mostrarLibres) params.set('incluirLibres', 'true');
+                          
+                          // ✅ NAVEGAR A LA NUEVA PÁGINA SEPARADA
+                          const newUrl = `/pauta-diaria?fecha=${e.target.value}${params.toString() ? '&' + params.toString() : ''}`;
                           router.push(newUrl);
                         }}
                       />
@@ -1283,8 +1289,14 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                       onClick={() => {
                         const hoy = toYmd(new Date());
                         const params = new URLSearchParams();
-                        if (activeTab) params.set('tab', activeTab);
-                        const newUrl = `/pauta-diaria-v2?fecha=${hoy}${params.toString() ? '&' + params.toString() : ''}`;
+                        if (f.instalacion) params.set('instalacion', f.instalacion);
+                        if (f.estado && f.estado !== 'todos') params.set('estado', f.estado);
+                        if (f.ppc !== 'all') params.set('ppc', f.ppc === true ? 'true' : 'false');
+                        if (f.q) params.set('q', f.q);
+                        if (mostrarLibres) params.set('incluirLibres', 'true');
+                        
+                        // ✅ NAVEGAR A LA NUEVA PÁGINA SEPARADA
+                        const newUrl = `/pauta-diaria?fecha=${hoy}${params.toString() ? '&' + params.toString() : ''}`;
                         router.push(newUrl);
                       }}
                     >

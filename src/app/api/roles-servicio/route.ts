@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { calcularNomenclaturaRol, calcularHorasTurno } from '@/lib/utils/calcularNomenclaturaRol';
+import { 
+  validarSerieDias, 
+  calcularNomenclaturaConSeries, 
+  generarSeriePorDefecto,
+  obtenerEstadisticasSerie 
+} from '@/lib/utils/roles-servicio-series';
+import { SerieDia } from '@/lib/schemas/roles-servicio';
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,7 +41,10 @@ export async function GET(request: NextRequest) {
         tenant_id,
         created_at,
         updated_at,
-        fecha_inactivacion
+        fecha_inactivacion,
+        tiene_horarios_variables,
+        duracion_ciclo_dias,
+        horas_turno_promedio
       FROM as_turnos_roles_servicio 
       WHERE 1=1
     `;
@@ -92,7 +102,9 @@ export async function POST(request: NextRequest) {
       hora_inicio, 
       hora_termino, 
       estado = 'Activo', 
-      tenantId 
+      tenantId,
+      tiene_horarios_variables = false,
+      series_dias = []
     } = body;
 
     // Si no viene tenantId, inferirlo desde el usuario autenticado (multi-tenant estricto)
@@ -115,16 +127,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validar series si se proporcionan
+    if (tiene_horarios_variables && series_dias.length > 0) {
+      const validacion = validarSerieDias(series_dias, dias_trabajo, dias_descanso);
+      if (!validacion.esValida) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Serie de días inválida', 
+            detalles: validacion.errores 
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Calcular horas de turno automáticamente
     const horas_turno = calcularHorasTurno(hora_inicio, hora_termino);
 
     // Calcular nombre automáticamente
-    const nombre = calcularNomenclaturaRol(
-      dias_trabajo,
-      dias_descanso,
-      hora_inicio,
-      hora_termino
-    );
+    let nombre: string;
+    if (tiene_horarios_variables && series_dias.length > 0) {
+      nombre = calcularNomenclaturaConSeries(dias_trabajo, dias_descanso, series_dias);
+    } else {
+      nombre = calcularNomenclaturaRol(dias_trabajo, dias_descanso, hora_inicio, hora_termino);
+    }
 
     console.log('🔍 POST roles-servicio - Datos recibidos:', {
       dias_trabajo,
@@ -200,9 +227,10 @@ export async function POST(request: NextRequest) {
     const insertQuery = `
       INSERT INTO as_turnos_roles_servicio (
         nombre, dias_trabajo, dias_descanso, horas_turno, 
-        hora_inicio, hora_termino, estado, tenant_id
+        hora_inicio, hora_termino, estado, tenant_id,
+        tiene_horarios_variables, duracion_ciclo_dias, horas_turno_promedio
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *
     `;
     
@@ -214,8 +242,32 @@ export async function POST(request: NextRequest) {
       hora_inicio,
       hora_termino,
       estado,
-      finalTenantId === '1' ? null : finalTenantId
+      finalTenantId === '1' ? null : finalTenantId,
+      tiene_horarios_variables,
+      dias_trabajo + dias_descanso, // duracion_ciclo_dias
+      horas_turno // horas_turno_promedio (se actualizará con trigger si hay series)
     ]);
+
+    const nuevoRol = result.rows[0];
+
+    // Si tiene series, insertarlas
+    if (tiene_horarios_variables && series_dias.length > 0) {
+      for (const dia of series_dias) {
+        await sql.query(`
+          INSERT INTO as_turnos_series_dias (
+            rol_servicio_id, posicion_en_ciclo, es_dia_trabajo,
+            hora_inicio, hora_termino, observaciones
+          ) VALUES ($1, $2, $3, $4, $5, $6)
+        `, [
+          nuevoRol.id,
+          dia.posicion_en_ciclo,
+          dia.es_dia_trabajo,
+          dia.hora_inicio || null,
+          dia.hora_termino || null,
+          dia.observaciones || null
+        ]);
+      }
+    }
 
     return NextResponse.json({
       success: true,

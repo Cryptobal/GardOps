@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Save, X, Download, Eye, EyeOff, AlertCircle, ChevronDown, ChevronUp, Moon } from 'lucide-react';
+import { Plus, Edit, Save, X, Download, Eye, EyeOff, AlertCircle, ChevronDown, ChevronUp, Moon, Calendar } from 'lucide-react';
 import { 
   getRolesServicio, 
   crearRolServicio, 
@@ -21,6 +21,7 @@ import {
 import { RolServicio, CrearRolServicioData } from '@/lib/schemas/roles-servicio';
 import { calcularNomenclaturaRol } from '@/lib/utils/calcularNomenclaturaRol';
 import { ordenarRolesPorPatron, extraerPatronesUnicos, filtrarRolesPorPatron, extraerPatronTurno, tieneParNoche, crearDatosTurnoNoche } from '@/lib/utils/ordenarRolesPorPatron';
+import ModalCrearRolConSeries from '@/components/roles-servicio/ModalCrearRolConSeries';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +47,7 @@ export default function RolesServicioPage() {
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [infoRol, setInfoRol] = useState<{rol: RolServicio, verificacion: any} | null>(null);
   const [formularioAbierto, setFormularioAbierto] = useState(false);
+  const [showModalSeries, setShowModalSeries] = useState(false);
   
   const [nuevoRol, setNuevoRol] = useState({
     dias_trabajo: 4,
@@ -188,6 +190,22 @@ export default function RolesServicioPage() {
       error('No se pudo crear el rol', 'Error');
     } finally {
       setCreando(false);
+    }
+  };
+
+  const handleCrearRolConSeries = async (rolData: any) => {
+    try {
+      setLoading(true);
+      await crearRolServicio(rolData);
+      success('Rol de servicio con series creado exitosamente');
+      setShowModalSeries(false);
+      cargarRoles();
+      cargarStats();
+    } catch (err: any) {
+      error(err.message || 'Error al crear rol de servicio');
+      throw err; // Re-throw para que el modal maneje el error
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -477,7 +495,16 @@ export default function RolesServicioPage() {
               </div>
             </div>
 
-            <div className="mt-3 flex justify-end">
+            <div className="mt-3 flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowModalSeries(true)} 
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Calendar className="h-4 w-4" />
+                Crear con Series
+              </Button>
               <Button onClick={handleCrearRol} disabled={creando} size="sm">
                 {creando ? 'Creando...' : 'Crear Rol'}
               </Button>
@@ -806,6 +833,14 @@ export default function RolesServicioPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal para crear rol con series */}
+      <ModalCrearRolConSeries
+        isOpen={showModalSeries}
+        onClose={() => setShowModalSeries(false)}
+        onSave={handleCrearRolConSeries}
+        tenantId="1" // TODO: Obtener del contexto de usuario
+      />
     </div>
   );
 }
