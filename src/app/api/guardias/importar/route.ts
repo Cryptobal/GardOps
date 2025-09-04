@@ -231,43 +231,10 @@ export async function POST(request: NextRequest) {
 
           console.log(`✅ Nuevo guardia creado correctamente en fila ${rowNumber}`);
 
-          // Geocodificar dirección si está disponible
+          // Geocodificación desactivada temporalmente debido a restricciones de API key
+          // Los guardias se pueden geocodificar manualmente después de la importación
           if (nuevoGuardiaId && row['Dirección']) {
-            try {
-              const direccionCompleta = construirDireccionCompleta(
-                row['Dirección']?.toString().trim() || '',
-                row['Comuna']?.toString().trim(),
-                row['Ciudad']?.toString().trim()
-              );
-              
-              console.log(`🗺️ Geocodificando dirección para nuevo guardia: ${direccionCompleta}`);
-              
-              // Intentar geocodificar inmediatamente
-              const geocodingResult = await geocodificarDireccion(direccionCompleta);
-              
-              if (geocodingResult) {
-                // Actualizar el guardia con las coordenadas
-                await query(
-                  `UPDATE guardias 
-                   SET latitud = $1, longitud = $2, comuna = $3, ciudad = $4, region = $5
-                   WHERE id = $6`,
-                  [
-                    geocodingResult.latitud,
-                    geocodingResult.longitud,
-                    geocodingResult.comuna,
-                    geocodingResult.ciudad,
-                    geocodingResult.region,
-                    nuevoGuardiaId
-                  ]
-                );
-                
-                console.log(`✅ Coordenadas actualizadas para guardia ${nuevoGuardiaId}: ${geocodingResult.latitud}, ${geocodingResult.longitud}`);
-              } else {
-                console.log(`⚠️ No se pudo obtener coordenadas para dirección: ${direccionCompleta}`);
-              }
-            } catch (error) {
-              console.warn(`⚠️ Error geocodificando dirección para guardia en fila ${rowNumber}:`, error);
-            }
+            console.log(`📍 Dirección registrada para geocodificación posterior: ${row['Dirección']?.toString().trim() || ''}`);
           }
 
         } else {
