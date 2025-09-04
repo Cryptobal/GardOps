@@ -9,37 +9,29 @@ function convertirFecha(fecha: any): string | null {
   if (!fecha) return null;
   
   const fechaStr = fecha.toString().trim();
-  if (!fechaStr) return null;
-  
-  // Intentar diferentes formatos de fecha
-  const formatos = [
-    // Formato ISO (YYYY-MM-DD)
-    /^\d{4}-\d{2}-\d{2}$/,
-    // Formato DD/MM/YYYY
-    /^\d{1,2}\/\d{1,2}\/\d{4}$/,
-    // Formato DD-MM-YYYY
-    /^\d{1,2}-\d{1,2}-\d{4}$/,
-    // Formato DD.MM.YYYY
-    /^\d{1,2}\.\d{1,2}\.\d{4}$/,
-    // Formato MM/DD/YYYY
-    /^\d{1,2}\/\d{1,2}\/\d{4}$/,
-    // Formato con texto (ej: "15 de enero de 2024")
-    /^\d{1,2}\s+de\s+\w+\s+de\s+\d{4}$/i
-  ];
+  if (!fechaStr || fechaStr === 'undefined' || fechaStr === 'null') return null;
   
   try {
     // Si es un número (fecha serial de Excel)
     if (!isNaN(fecha) && typeof fecha === 'number') {
       // Excel usa días desde 1900-01-01, pero hay un bug de 1900
-      const fechaExcel = new Date((fecha - 25569) * 86400 * 1000);
-      if (!isNaN(fechaExcel.getTime())) {
-        return fechaExcel.toISOString().split('T')[0];
+      // Para fechas válidas de Excel (mayor a 1)
+      if (fecha > 1) {
+        const fechaExcel = new Date((fecha - 25569) * 86400 * 1000);
+        if (!isNaN(fechaExcel.getTime()) && fechaExcel.getFullYear() > 1900) {
+          return fechaExcel.toISOString().split('T')[0];
+        }
       }
+    }
+    
+    // Si es un objeto Date de JavaScript
+    if (fecha instanceof Date && !isNaN(fecha.getTime())) {
+      return fecha.toISOString().split('T')[0];
     }
     
     // Intentar parsear directamente
     const fechaParseada = new Date(fechaStr);
-    if (!isNaN(fechaParseada.getTime())) {
+    if (!isNaN(fechaParseada.getTime()) && fechaParseada.getFullYear() > 1900) {
       return fechaParseada.toISOString().split('T')[0];
     }
     
@@ -47,7 +39,7 @@ function convertirFecha(fecha: any): string | null {
     if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(fechaStr)) {
       const [dia, mes, año] = fechaStr.split('/');
       const fechaFormateada = new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
-      if (!isNaN(fechaFormateada.getTime())) {
+      if (!isNaN(fechaFormateada.getTime()) && fechaFormateada.getFullYear() > 1900) {
         return fechaFormateada.toISOString().split('T')[0];
       }
     }
@@ -56,11 +48,30 @@ function convertirFecha(fecha: any): string | null {
     if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(fechaStr)) {
       const [dia, mes, año] = fechaStr.split('-');
       const fechaFormateada = new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
-      if (!isNaN(fechaFormateada.getTime())) {
+      if (!isNaN(fechaFormateada.getTime()) && fechaFormateada.getFullYear() > 1900) {
         return fechaFormateada.toISOString().split('T')[0];
       }
     }
     
+    // Manejar formato DD.MM.YYYY específicamente
+    if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(fechaStr)) {
+      const [dia, mes, año] = fechaStr.split('.');
+      const fechaFormateada = new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
+      if (!isNaN(fechaFormateada.getTime()) && fechaFormateada.getFullYear() > 1900) {
+        return fechaFormateada.toISOString().split('T')[0];
+      }
+    }
+    
+    // Manejar formato MM/DD/YYYY (formato americano)
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(fechaStr)) {
+      const [mes, dia, año] = fechaStr.split('/');
+      const fechaFormateada = new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
+      if (!isNaN(fechaFormateada.getTime()) && fechaFormateada.getFullYear() > 1900) {
+        return fechaFormateada.toISOString().split('T')[0];
+      }
+    }
+    
+    console.log(`⚠️ No se pudo convertir fecha: ${fechaStr}`);
     return null;
   } catch (error) {
     console.log(`Error convirtiendo fecha: ${fechaStr}`, error);
@@ -293,16 +304,43 @@ export async function POST(request: NextRequest) {
                 // Buscar banco por nombre y obtener su UUID
                 const bancoNombre = value.toString().trim();
                 try {
+                  // Mapeo de variaciones comunes de nombres de bancos
+                  const mapeoVariaciones: { [key: string]: string } = {
+                    'banco estado': 'Banco del Estado de Chile',
+                    'banco chile': 'Banco de Chile',
+                    'banco santander': 'Banco Santander Chile',
+                    'banco bci': 'Banco de Crédito e Inversiones',
+                    'banco falabella': 'Banco Falabella',
+                    'banco ripley': 'Banco Ripley',
+                    'banco scotiabank': 'Scotiabank Chile',
+                    'scotiabank': 'Scotiabank Chile',
+                    'mach': 'Mach',
+                    'mercadopago': 'MercadoPago',
+                    'coopeuch': 'Coopeuch',
+                    'tenpo prepago s.a': 'Tenpo Prepago S.A.',
+                    'banco bci nova': 'Banco de Crédito e Inversiones',
+                    'ninguno': '', // Sin banco
+                  };
+
+                  // Normalizar nombre del banco
+                  const nombreNormalizado = bancoNombre.toLowerCase();
+                  const nombreFinal = mapeoVariaciones[nombreNormalizado] || bancoNombre;
+
+                  if (!nombreFinal) {
+                    console.log(`⚠️ Banco vacío en fila ${rowNumber}, omitiendo campo banco`);
+                    continue; // Saltar este campo si está vacío
+                  }
+
                   const bancoResult = await query(
                     'SELECT id FROM bancos WHERE LOWER(nombre) = LOWER($1)',
-                    [bancoNombre]
+                    [nombreFinal]
                   );
                   
                   if (bancoResult.rows.length > 0) {
                     value = bancoResult.rows[0].id;
-                    console.log(`✅ Banco encontrado: ${bancoNombre} -> ${value}`);
+                    console.log(`✅ Banco encontrado: ${bancoNombre} -> ${nombreFinal} (${value})`);
                   } else {
-                    console.log(`⚠️ Banco no encontrado en fila ${rowNumber}: ${bancoNombre}`);
+                    console.log(`⚠️ Banco no encontrado en fila ${rowNumber}: ${bancoNombre} (normalizado: ${nombreFinal})`);
                     continue; // Saltar este campo si el banco no existe
                   }
                 } catch (error) {

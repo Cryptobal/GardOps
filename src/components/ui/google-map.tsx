@@ -46,9 +46,17 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
 
     const initMap = async () => {
       try {
+        // Validar coordenadas del centro
+        const validCenter = (center && 
+          typeof center.lat === 'number' && typeof center.lng === 'number' &&
+          !isNaN(center.lat) && !isNaN(center.lng) &&
+          isFinite(center.lat) && isFinite(center.lng)) 
+          ? center 
+          : DEFAULT_CENTER;
+
         // Crear el mapa
         const map = new google.maps.Map(mapRef.current!, {
-          center,
+          center: validCenter,
           zoom,
           mapTypeControl: true,
           streetViewControl: true,
@@ -92,7 +100,10 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
 
   // Actualizar centro del mapa
   useEffect(() => {
-    if (mapInstanceRef.current && isLoaded) {
+    if (mapInstanceRef.current && isLoaded && center && 
+        typeof center.lat === 'number' && typeof center.lng === 'number' &&
+        !isNaN(center.lat) && !isNaN(center.lng) &&
+        isFinite(center.lat) && isFinite(center.lng)) {
       mapInstanceRef.current.setCenter(center);
       mapInstanceRef.current.setZoom(zoom);
     }
