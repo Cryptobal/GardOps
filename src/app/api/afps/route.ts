@@ -6,11 +6,19 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔍 API AFPs - Obteniendo lista de AFPs');
     
+    // Primero verificar qué columnas tiene la tabla
+    const columnsResult = await query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'sueldo_afp'
+      ORDER BY ordinal_position
+    `);
+    
+    console.log('🔍 Columnas en sueldo_afp:', columnsResult.rows.map(r => r.column_name));
+    
     const result = await query(`
       SELECT 
-        codigo,
         nombre,
-        comision,
         activo
       FROM sueldo_afp 
       WHERE activo = true
@@ -18,9 +26,8 @@ export async function GET(request: NextRequest) {
     `);
 
     const afps = result.rows.map(row => ({
-      codigo: row.codigo,
+      codigo: row.nombre.toLowerCase().replace(/afp\s+/i, '').replace(/\s+/g, ''),
       nombre: row.nombre,
-      comision: row.comision,
       activo: row.activo
     }));
 
