@@ -137,6 +137,7 @@ export default function GuardiasPage() {
 
   // Función para inactivar guardia
   const handleInactivateGuardia = async (guardia: Guardia, event?: React.MouseEvent) => {
+    console.log('🔍 handleInactivateGuardia llamado para:', guardia.nombre);
     if (event) {
       event.stopPropagation(); // Evitar que se active el onClick de la fila
     }
@@ -154,9 +155,11 @@ export default function GuardiasPage() {
       const { can_inactivate, blockers = [] } = checkData.data;
       const nombreCompleto = `${guardia.nombre} ${guardia.apellido_paterno || ''} ${guardia.apellido_materno || ''}`.trim();
 
+      console.log('🔍 Llamando a inactivateGuardia con:', nombreCompleto);
       await inactivateGuardia(
         nombreCompleto,
         async () => {
+          console.log('🔍 Función de confirmación ejecutada');
           const response = await fetch(`/api/guardias/${guardia.id}/inactivar`, {
             method: 'POST',
             headers: {

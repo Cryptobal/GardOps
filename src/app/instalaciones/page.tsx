@@ -319,6 +319,7 @@ export default function InstalacionesPage() {
 
   // Función para inactivar instalación
   const handleInactivateInstalacion = useCallback(async (instalacion: any, event?: React.MouseEvent) => {
+    console.log('🔍 handleInactivateInstalacion llamado para:', instalacion.nombre);
     if (event) {
       event.stopPropagation(); // Evitar que se active el onClick de la fila
     }
@@ -335,9 +336,11 @@ export default function InstalacionesPage() {
 
       const { can_inactivate, blockers = [] } = checkData.data;
 
+      console.log('🔍 Llamando a inactivateInstalacion con:', instalacion.nombre);
       await inactivateInstalacion(
         instalacion.nombre,
         async () => {
+          console.log('🔍 Función de confirmación ejecutada');
           const response = await fetch(`/api/instalaciones/${instalacion.id}/inactivar`, {
             method: 'POST',
             headers: {

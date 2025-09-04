@@ -22,11 +22,14 @@ export function ActionDropdown({
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
   const handleAction = async (action: () => void | Promise<void>, event?: React.MouseEvent) => {
+    console.log('🔍 ActionDropdown: handleAction llamado');
     if (event) {
       event.stopPropagation();
     }
     setIsOpen(false);
+    console.log('🔍 ActionDropdown: ejecutando acción');
     await action();
+    console.log('🔍 ActionDropdown: acción completada');
   };
 
   // Cerrar dropdown al hacer click fuera
