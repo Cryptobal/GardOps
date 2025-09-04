@@ -423,8 +423,8 @@ export default function GuardiasPage() {
       label: "Contacto",
       render: (guardia) => (
         <div>
-          <p className="font-medium">{guardia.telefono}</p>
-          <p className="text-sm text-muted-foreground">{guardia.email}</p>
+          <p className="font-medium">{guardia.email || 'Sin email'}</p>
+          <p className="text-sm text-muted-foreground">{guardia.telefono || 'Sin teléfono'}</p>
         </div>
       ),
     },
