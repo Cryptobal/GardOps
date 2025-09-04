@@ -5,6 +5,9 @@ import * as XLSX from 'xlsx';
 export async function POST(request: NextRequest) {
   try {
     console.log('🚀 Importando instalaciones desde Excel...');
+    
+    // Tenant ID para Gard
+    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -173,10 +176,13 @@ export async function POST(request: NextRequest) {
           // Construir query de inserción
           const placeholders = insertValues.map((_, index) => `$${index + 1}`).join(', ');
           const insertQuery = `
-            INSERT INTO instalaciones (${insertFields.join(', ')}, created_at, updated_at)
-            VALUES (${placeholders}, NOW(), NOW())
+            INSERT INTO instalaciones (${insertFields.join(', ')}, tenant_id, created_at, updated_at)
+            VALUES (${placeholders}, $${insertValues.length + 1}, NOW(), NOW())
             RETURNING id
           `;
+          
+          // Agregar tenant_id a los valores
+          insertValues.push(tenantId);
 
           const insertResult = await query(insertQuery, insertValues);
           creados++;

@@ -241,15 +241,14 @@ export async function POST(request: NextRequest) {
                 // Actualizar el guardia con las coordenadas
                 await query(
                   `UPDATE guardias 
-                   SET latitud = $1, longitud = $2, comuna = $3, ciudad = $4, region = $5, direccion_completa = $6
-                   WHERE id = $7`,
+                   SET latitud = $1, longitud = $2, comuna = $3, ciudad = $4, region = $5
+                   WHERE id = $6`,
                   [
                     geocodingResult.latitud,
                     geocodingResult.longitud,
                     geocodingResult.comuna,
                     geocodingResult.ciudad,
                     geocodingResult.region,
-                    geocodingResult.direccionCompleta,
                     nuevoGuardiaId
                   ]
                 );
