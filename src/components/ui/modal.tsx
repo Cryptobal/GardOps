@@ -178,7 +178,7 @@ export function useConfirmModal() {
     setConfig(null);
   }, []);
 
-  const ConfirmModal = React.useMemo(() => {
+  const ConfirmModal = () => {
     console.log('🔍 useConfirmModal: ConfirmModal renderizando, isOpen:', isOpen, 'config:', config);
     if (!config) return null;
 
@@ -224,7 +224,7 @@ export function useConfirmModal() {
         </div>
       </Modal>
     );
-  }, [isOpen, config]);
+  };
 
   return { confirm, ConfirmModal };
 } 
