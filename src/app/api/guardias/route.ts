@@ -81,8 +81,12 @@ export async function GET(req: NextRequest) {
             SELECT 
               g.id::text, 
               trim(concat_ws(' ', g.nombre, g.apellido_paterno, g.apellido_materno)) AS nombre,
+              g.nombre as nombre_solo,
+              g.apellido_paterno,
+              g.apellido_materno,
               g.rut,
               CASE WHEN g.activo THEN 'activo' ELSE 'inactivo' END as estado,
+              g.activo,
               g.tipo_guardia,
               g.email,
               g.telefono,
@@ -90,6 +94,12 @@ export async function GET(req: NextRequest) {
               g.fecha_os10,
               g.created_at,
               g.updated_at,
+              -- Campos adicionales importantes
+              g.fecha_ingreso,
+              g.monto_anticipo,
+              g.pin,
+              g.dias_vacaciones_pendientes,
+              g.fecha_finiquito,
               -- Información de instalación asignada
               po.instalacion_id,
               i.nombre as instalacion_asignada,

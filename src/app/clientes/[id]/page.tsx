@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAddressAutocomplete, type AddressData } from '@/lib/useAddressAutocomplete';
+import { formatearFecha } from '@/lib/utils/date';
 import { 
   ArrowLeft, 
   Building2, 
@@ -276,6 +277,7 @@ export default function ClienteDetallePage() {
     }
   };
 
+
   // Componente de campo editable
   const EditableField = ({ 
     label, 
@@ -397,7 +399,10 @@ export default function ClienteDetallePage() {
         ) : (
           <div className="flex items-center justify-between mt-1 group">
             <p className="text-sm sm:text-lg">
-              {value || 'No configurado'}
+              {(field === 'fecha_vencimiento' || field === 'fecha_creacion' || field === 'fecha_actualizacion')
+                ? formatearFecha(value?.toString())
+                : value || 'No configurado'
+              }
             </p>
             <Button
               size="sm"

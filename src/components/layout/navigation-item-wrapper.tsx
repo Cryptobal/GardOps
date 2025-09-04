@@ -73,6 +73,10 @@ export const NavigationItemWrapper = React.memo(function NavigationItemWrapper({
     // Caso directo: pathname coincide exactamente con href
     if (pathname === item.href) return true;
     
+    // Caso especial: páginas de detalle deben mantener el elemento padre activo
+    // Ejemplo: /clientes/123 debe mantener /clientes activo
+    if (pathname.startsWith(item.href + '/')) return true;
+    
     // Caso especial: pauta diaria redirige a pauta-diaria-v2 o legacy
     if (item.href === '/pauta-diaria' && (pathname.startsWith('/pauta-diaria-v2') || pathname.startsWith('/legacy/pauta-diaria'))) return true;
     

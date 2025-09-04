@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAddressAutocomplete, type AddressData } from '@/lib/useAddressAutocomplete';
+import { formatearFecha } from '@/lib/utils/date';
 
 import { DocumentManager } from '@/components/shared/document-manager';
 import PermisosGuardia from './components/PermisosGuardia';
@@ -376,6 +377,7 @@ export default function GuardiaDetallePage() {
     }
   };
 
+
   // Componente de campo editable
   const EditableField = ({ 
     label, 
@@ -503,6 +505,8 @@ export default function GuardiaDetallePage() {
                 ? bancos.find(b => b.id === value)?.nombre || 'No especificado'
                 : field === 'tipo_cuenta'
                 ? TIPOS_CUENTA.find(t => t.value === value)?.label || value || 'No especificado'
+                : (field === 'fecha_os10' || field === 'fecha_nacimiento' || field === 'fecha_ingreso' || field === 'fecha_finiquito')
+                ? formatearFecha(value?.toString())
                 : value || 'No configurado'
               }
             </p>

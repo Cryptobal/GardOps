@@ -467,6 +467,24 @@ export default function GuardiasPage() {
       ),
     },
     {
+      key: "fecha_ingreso",
+      label: "Fecha Contrato",
+      render: (guardia) => {
+        if (!guardia.fecha_ingreso) {
+          return <span className="text-muted-foreground text-sm">No configurado</span>;
+        }
+        const fecha = new Date(guardia.fecha_ingreso);
+        return (
+          <div className="text-sm">
+            <p className="font-medium">{fecha.toLocaleDateString('es-CL')}</p>
+            <p className="text-xs text-muted-foreground">
+              {Math.floor((Date.now() - fecha.getTime()) / (1000 * 60 * 60 * 24 * 365.25))} años
+            </p>
+          </div>
+        );
+      },
+    },
+    {
       key: "os10",
       label: "Estado OS10",
       render: (guardia) => {
@@ -835,6 +853,15 @@ export default function GuardiasPage() {
                           {guardia.instalacion_asignada || "Sin asignar"}
                         </span>
                       </div>
+                      
+                      {guardia.fecha_ingreso && (
+                        <div className="flex items-center space-x-1 pt-1">
+                          <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          <span className="text-xs text-muted-foreground">
+                            Contrato: {new Date(guardia.fecha_ingreso).toLocaleDateString('es-CL')}
+                          </span>
+                        </div>
+                      )}
                       
                       <div className="flex items-center justify-between pt-1">
                         <div className="flex-1 min-w-0">

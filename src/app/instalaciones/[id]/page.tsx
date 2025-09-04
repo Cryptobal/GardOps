@@ -15,6 +15,7 @@ import { Instalacion, Cliente, Comuna } from '@/lib/schemas/instalaciones';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAddressAutocomplete, type AddressData } from '@/lib/useAddressAutocomplete';
+import { formatearFecha } from '@/lib/utils/date';
 import TurnosInstalacion from './components/TurnosInstalacion';
 import EstructuraServicio from './components/EstructuraServicio';
 import MonitoreoInstalacion from './components/MonitoreoInstalacion';
@@ -250,6 +251,7 @@ export default function InstalacionDetallePage() {
     }
   };
 
+
   // Componente de campo editable
   const EditableField = ({ 
     label, 
@@ -373,6 +375,8 @@ export default function InstalacionDetallePage() {
                 ? clientes.find(c => c.id === value)?.nombre || 'Cliente no encontrado'
                 : field === 'valor_turno_extra'
                 ? `$${formatThousands(value)}`
+                : (field === 'fecha_creacion' || field === 'fecha_actualizacion')
+                ? formatearFecha(value?.toString())
                 : value || 'No configurado'
               }
             </p>
