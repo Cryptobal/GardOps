@@ -202,4 +202,4 @@ INSERT INTO as_turnos_series_dias (rol_servicio_id, posicion_en_ciclo, es_dia_tr
 ('rol-5x2-id', 7, FALSE, NULL, NULL, 'Domingo libre');
 */
 
-PRINT '✅ Estructura de series para roles de servicio creada exitosamente';
+-- ✅ Estructura de series para roles de servicio creada exitosamente
