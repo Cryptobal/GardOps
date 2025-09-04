@@ -204,13 +204,14 @@ export async function POST(request: NextRequest) {
           }
 
           // Agregar campos por defecto
-          insertFields.push('id', 'created_at', 'updated_at');
-          insertValues.push(`gen_random_uuid()`, 'NOW()', 'NOW()');
+          insertFields.push('created_at', 'updated_at');
+          insertValues.push('NOW()', 'NOW()');
 
           // Ejecutar inserción
           const insertQuery = `
             INSERT INTO guardias (${insertFields.join(', ')})
             VALUES (${insertValues.map((_, index) => `$${index + 1}`).join(', ')})
+            RETURNING id
           `;
 
           const insertResult = await query(insertQuery, insertValues);
