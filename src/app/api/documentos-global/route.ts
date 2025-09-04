@@ -140,6 +140,11 @@ export async function GET(request: NextRequest) {
       SELECT * FROM documentos_unidos
     `;
     
+    // Aplicar filtros en el CTE si es necesario
+    if (estado && estado !== 'todos') {
+      sql = sql.replace('SELECT * FROM documentos_unidos', `SELECT * FROM documentos_unidos WHERE estado = '${estado}'`);
+    }
+    
     let params: any[] = [tenantId]; // Agregar tenant_id como primer parámetro
     let paramIndex = 2; // Empezar desde 2 porque 1 ya está ocupado por tenant_id
     
@@ -156,11 +161,7 @@ export async function GET(request: NextRequest) {
       paramIndex++;
     }
     
-    if (estado && estado !== 'todos') {
-      sql += `${params.length > 0 ? ' AND' : ' WHERE'} estado = $${paramIndex}`;
-      params.push(estado);
-      paramIndex++;
-    }
+    // El filtro de estado se aplica en el CTE, no aquí
     
     if (entidadFilter) {
       sql += `${params.length > 0 ? ' AND' : ' WHERE'} entidad_id = $${paramIndex}`;

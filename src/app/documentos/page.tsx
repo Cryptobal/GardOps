@@ -214,44 +214,7 @@ export default function DocumentosGlobalesPage() {
     }
   };
 
-  // Cargar alertas de documentos
-  const cargarAlertas = async () => {
-    if (!allowedReportes) return;
-    try {
-      setCargandoAlertas(true);
-      console.log('🔔 Cargando alertas de documentos...');
-      
-      const timestamp = new Date().getTime();
-      const response = await fetch(`/api/alertas-documentos?_t=${timestamp}`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      });
-      
-      const data = await response.json();
-      console.log('📄 Respuesta alertas:', data);
-      
-      if (data.success) {
-        const alertasArray = data.data || [];
-        setAlertas(alertasArray);
-        console.log(`✅ ${alertasArray.length} alertas cargadas`);
-      } else {
-        console.error('❌ Error cargando alertas:', data.error);
-        toast.error('Error al cargar alertas');
-        setAlertas([]);
-      }
-    } catch (error) {
-      console.error('❌ Error de conexión:', error);
-      toast.error('Error de conexión al cargar alertas');
-      setAlertas([]);
-    } finally {
-      setCargandoAlertas(false);
-    }
-  };
+  // La pestaña de alertas usa los mismos datos de documentos, no necesita cargar alertas separadas
 
   // Filtrar documentos por búsqueda de texto
   const documentosFiltrados = useMemo(() => {
@@ -341,9 +304,8 @@ export default function DocumentosGlobalesPage() {
   useEffect(() => {
     if (pestanaActiva === 'documentos' && allowedDocumentos) {
       cargarDocumentos();
-    } else if (pestanaActiva === 'alertas' && allowedReportes) {
-      cargarAlertas();
     }
+    // La pestaña de alertas usa los mismos datos de documentos, no necesita cargar alertas separadas
   }, [allowedDocumentos, allowedReportes, pestanaActiva, filtros.modulo, filtros.tipo_documento, filtros.estado, filtros.entidad_filter, filtros.fecha_desde, filtros.fecha_hasta, refreshTrigger]);
 
   useEffect(() => {
