@@ -20,7 +20,9 @@ import {
   Clock,
   XCircle,
   Download,
-  Upload
+  Upload,
+  MoreVertical,
+  Power
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { calcularEstadoOS10, obtenerEstadisticasOS10 } from "../../lib/utils/os10-status";
@@ -41,6 +43,13 @@ import { Guardia } from "../../lib/schemas/guardias";
 // Importar el modal editable
 import GuardiaModal from "../../components/guardias/GuardiaModal";
 import { api } from '@/lib/api-client';
+import { useSimpleInactivation } from "@/components/ui/confirm-inactivation-modal";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 // Componente KPI Box optimizado para móviles
 const KPIBox = ({ 
@@ -112,6 +121,9 @@ export default function GuardiasPage() {
     closeAll 
   } = useEntityModal<Guardia>();
 
+  // Hook para inactivación
+  const { inactivateGuardia, ConfirmModal } = useSimpleInactivation();
+
   // Mock de operaciones CRUD para esta versión
   const createEntity = async (data: any) => {
     console.log("Crear guardia:", data);
@@ -126,6 +138,56 @@ export default function GuardiasPage() {
   const deleteEntity = async (id: string) => {
     console.log("Eliminar guardia:", id);
     showToast("Funcionalidad en desarrollo", "info");
+  };
+
+  // Función para inactivar guardia
+  const handleInactivateGuardia = async (guardia: Guardia, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation(); // Evitar que se active el onClick de la fila
+    }
+
+    try {
+      // Verificar si se puede inactivar
+      const checkResponse = await fetch(`/api/guardias/${guardia.id}/inactivar`);
+      const checkData = await checkResponse.json();
+
+      if (!checkData.success) {
+        console.error('Error verificando guardia:', checkData.error);
+        return;
+      }
+
+      const { can_inactivate, blockers = [] } = checkData.data;
+      const nombreCompleto = `${guardia.nombre} ${guardia.apellido_paterno || ''} ${guardia.apellido_materno || ''}`.trim();
+
+      await inactivateGuardia(
+        nombreCompleto,
+        async () => {
+          const response = await fetch(`/api/guardias/${guardia.id}/inactivar`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              motivo: 'Inactivación desde interfaz de usuario'
+            })
+          });
+
+          const data = await response.json();
+
+          if (!data.success) {
+            throw new Error(data.error || 'Error inactivando guardia');
+          }
+
+          console.log('✅ Guardia inactivado:', data.message);
+          
+          // Recargar la página para actualizar datos
+          window.location.reload();
+        },
+        can_inactivate ? [] : blockers
+      );
+    } catch (error) {
+      console.error('Error en inactivación:', error);
+    }
   };
 
 
@@ -413,6 +475,37 @@ export default function GuardiasPage() {
           >
             {guardia.estado || (guardia.activo === true ? 'activo' : 'inactivo')}
           </Badge>
+        </div>
+      ),
+    },
+    {
+      key: "acciones",
+      label: "Acciones",
+      render: (guardia) => (
+        <div className="flex items-center justify-center">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {(guardia.estado === 'activo' || guardia.activo === true) && (
+                <DropdownMenuItem
+                  onClick={(e) => handleInactivateGuardia(guardia, e)}
+                  className="text-orange-600 focus:text-orange-700"
+                >
+                  <Power className="h-4 w-4 mr-2" />
+                  Inactivar
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       ),
     },

@@ -16,12 +16,21 @@ import {
   Search,
   Filter,
   Download,
-  Upload
+  Upload,
+  MoreVertical,
+  Power
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import InstalacionModal from "@/components/instalaciones/InstalacionModal";
 import { api } from '@/lib/api-client';
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useSimpleInactivation } from "@/components/ui/confirm-inactivation-modal";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 // Hook personalizado para debounce
 function useDebounce<T>(value: T, delay: number): T {
@@ -132,6 +141,9 @@ export default function InstalacionesPage() {
   // Estados para el modal
   const [showModal, setShowModal] = useState(false);
   const [selectedInstalacion, setSelectedInstalacion] = useState<any>(null);
+
+  // Hook para inactivación
+  const { inactivateInstalacion, ConfirmModal } = useSimpleInactivation();
 
   // Estados para KPIs
   const [kpis, setKpis] = useState({
@@ -309,6 +321,56 @@ export default function InstalacionesPage() {
   const handleRowClick = useCallback((instalacion: any) => {
     router.push(`/instalaciones/${instalacion.id}`);
   }, [router]);
+
+  // Función para inactivar instalación
+  const handleInactivateInstalacion = useCallback(async (instalacion: any, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation(); // Evitar que se active el onClick de la fila
+    }
+
+    try {
+      // Verificar si se puede inactivar
+      const checkResponse = await fetch(`/api/instalaciones/${instalacion.id}/inactivar`);
+      const checkData = await checkResponse.json();
+
+      if (!checkData.success) {
+        console.error('Error verificando instalación:', checkData.error);
+        return;
+      }
+
+      const { can_inactivate, blockers = [] } = checkData.data;
+
+      await inactivateInstalacion(
+        instalacion.nombre,
+        async () => {
+          const response = await fetch(`/api/instalaciones/${instalacion.id}/inactivar`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              motivo: 'Inactivación desde interfaz de usuario'
+            })
+          });
+
+          const data = await response.json();
+
+          if (!data.success) {
+            throw new Error(data.error || 'Error inactivando instalación');
+          }
+
+          console.log('✅ Instalación inactivada:', data.message);
+          
+          // Recargar datos
+          await fetchInstalaciones();
+          await fetchKPIs();
+        },
+        can_inactivate ? [] : blockers
+      );
+    } catch (error) {
+      console.error('Error en inactivación:', error);
+    }
+  }, [inactivateInstalacion, fetchInstalaciones, fetchKPIs]);
 
   // Funciones para manejar el modal
   const openCreateModal = useCallback(() => {
@@ -543,6 +605,7 @@ export default function InstalacionesPage() {
                       <th className="text-left p-4">Comuna</th>
                       <th className="text-left p-4">Puestos / PPC</th>
                       <th className="text-left p-4">Estado</th>
+                      <th className="text-left p-4 w-16">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -618,6 +681,31 @@ export default function InstalacionesPage() {
                           }`}>
                             {instalacion.estado}
                           </span>
+                        </td>
+                        <td className="p-4">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              {instalacion.estado === 'Activo' && (
+                                <DropdownMenuItem
+                                  onClick={(e) => handleInactivateInstalacion(instalacion, e)}
+                                  className="text-orange-600 focus:text-orange-700"
+                                >
+                                  <Power className="h-4 w-4 mr-2" />
+                                  Inactivar
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </td>
                       </tr>
                     ))}
@@ -705,6 +793,9 @@ export default function InstalacionesPage() {
         onClose={closeModal}
         onSuccess={handleModalSuccess}
       />
+
+      {/* Modal de confirmación para inactivación */}
+      <ConfirmModal />
     </div>
   );
 } 

@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const documentId = searchParams.get('id');
   const modulo = searchParams.get('modulo');
+  const preview = searchParams.get('preview') === 'true';
   
   if (!documentId || !modulo) {
     return NextResponse.json({ 
@@ -122,14 +123,18 @@ export async function GET(request: NextRequest) {
         else if (extension === 'png') contentType = 'image/png';
         
         // Servir el archivo
-        return new NextResponse(buffer, {
-          headers: {
-            'Content-Type': contentType,
-            'Content-Disposition': `attachment; filename="${documento.nombre_original}"`,
-            'Content-Length': buffer.length.toString(),
-            'Cache-Control': 'no-cache',
-          },
-        });
+        const headers: Record<string, string> = {
+          'Content-Type': contentType,
+          'Content-Length': buffer.length.toString(),
+          'Cache-Control': 'no-cache',
+        };
+
+        // Si es para previsualización, no usar Content-Disposition attachment
+        if (!preview) {
+          headers['Content-Disposition'] = `attachment; filename="${documento.nombre_original}"`;
+        }
+
+        return new NextResponse(buffer, { headers });
         
       } catch (error) {
         console.error('❌ Error descargando desde R2:', error);

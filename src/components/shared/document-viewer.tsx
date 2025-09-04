@@ -102,7 +102,7 @@ export function DocumentViewer({
     setError(null);
     
     try {
-      const response = await fetch(`/api/download-document?id=${documentId}&modulo=${modulo}`);
+      const response = await fetch(`/api/download-document?id=${documentId}&modulo=${modulo}&preview=true`);
       
       if (!response.ok) {
         throw new Error('Error al cargar el documento');
