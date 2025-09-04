@@ -496,12 +496,7 @@ export default function InstalacionDetallePage() {
               <SelectContent>
                 {instalaciones.map((inst) => (
                   <SelectItem key={inst.id} value={inst.id}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{inst.nombre}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {inst.cliente_nombre} • {inst.estado}
-                      </span>
-                    </div>
+                    {inst.nombre}
                   </SelectItem>
                 ))}
               </SelectContent>
