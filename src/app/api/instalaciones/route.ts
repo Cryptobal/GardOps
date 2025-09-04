@@ -311,20 +311,37 @@ export async function PUT(request: NextRequest) {
     
     console.log('🔍 Datos recibidos en PUT:', body);
     
-    // Solo validar y procesar los campos que se enviaron explícitamente
-    const camposAValidar: any = { id: body.id };
+    // Validar solo el ID como requerido
+    if (!body.id) {
+      return NextResponse.json({ success: false, error: 'ID es requerido' }, { status: 400 });
+    }
     
-    // Solo agregar campos que están presentes en el body
-    Object.keys(body).forEach(key => {
-      if (key !== 'id' && body[key] !== undefined) {
-        camposAValidar[key] = body[key];
-      }
-    });
+    // Construir objeto solo con campos enviados, SIN usar Zod para evitar transformaciones
+    const validatedData: any = { id: body.id };
     
-    console.log('🔍 Campos a validar:', camposAValidar);
+    // Procesar cada campo individualmente sin transformaciones automáticas
+    if (body.nombre !== undefined) validatedData.nombre = body.nombre;
+    if (body.cliente_id !== undefined) validatedData.cliente_id = body.cliente_id;
+    if (body.direccion !== undefined) validatedData.direccion = body.direccion;
+    if (body.latitud !== undefined) {
+      const lat = typeof body.latitud === 'string' ? parseFloat(body.latitud) : body.latitud;
+      validatedData.latitud = isNaN(lat) ? null : lat;
+    }
+    if (body.longitud !== undefined) {
+      const lng = typeof body.longitud === 'string' ? parseFloat(body.longitud) : body.longitud;
+      validatedData.longitud = isNaN(lng) ? null : lng;
+    }
+    if (body.ciudad !== undefined) validatedData.ciudad = body.ciudad;
+    if (body.comuna !== undefined) validatedData.comuna = body.comuna;
+    if (body.telefono !== undefined) validatedData.telefono = body.telefono;
+    if (body.valor_turno_extra !== undefined) {
+      validatedData.valor_turno_extra = typeof body.valor_turno_extra === 'string' 
+        ? parseInt(body.valor_turno_extra) || 0 
+        : body.valor_turno_extra;
+    }
+    if (body.estado !== undefined) validatedData.estado = body.estado;
     
-    // Validar datos con Zod solo los campos enviados
-    const validatedData = actualizarInstalacionSchema.parse(camposAValidar);
+    console.log('🔍 Datos validados manualmente:', validatedData);
     
     // Obtener datos originales ANTES de la actualización
     const datosOriginales = await query(`
