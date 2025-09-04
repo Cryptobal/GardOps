@@ -419,22 +419,6 @@ export default function GuardiasPage() {
       ),
     },
     {
-      key: "tipo",
-      label: "Tipo",
-      render: (guardia) => (
-        <Badge 
-          variant={guardia.tipo_guardia === 'contratado' ? 'default' : 'secondary'}
-          className={`${
-            guardia.tipo_guardia === 'contratado' 
-              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
-              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-          }`}
-        >
-          {guardia.tipo_guardia === 'contratado' ? 'Contratado' : 'Esporádico'}
-        </Badge>
-      ),
-    },
-    {
       key: "contacto",
       label: "Contacto",
       render: (guardia) => (
@@ -467,18 +451,19 @@ export default function GuardiasPage() {
       ),
     },
     {
-      key: "fecha_ingreso",
-      label: "Fecha Contrato",
+      key: "fecha_nacimiento",
+      label: "Fecha Nacimiento",
       render: (guardia) => {
-        if (!guardia.fecha_ingreso) {
+        if (!guardia.fecha_nacimiento) {
           return <span className="text-muted-foreground text-sm">No configurado</span>;
         }
-        const fecha = new Date(guardia.fecha_ingreso);
+        const fecha = new Date(guardia.fecha_nacimiento);
+        const edad = Math.floor((Date.now() - fecha.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
         return (
           <div className="text-sm">
             <p className="font-medium">{fecha.toLocaleDateString('es-CL')}</p>
             <p className="text-xs text-muted-foreground">
-              {Math.floor((Date.now() - fecha.getTime()) / (1000 * 60 * 60 * 24 * 365.25))} años
+              {edad} años
             </p>
           </div>
         );
@@ -495,7 +480,7 @@ export default function GuardiasPage() {
       key: "estado",
       label: "Estado",
       render: (guardia) => (
-        <div className="flex items-center justify-center">
+        <div className="space-y-1">
           <Badge 
             variant={guardia.estado === 'activo' || guardia.activo === true ? 'success' : 'secondary'}
             className={`${
@@ -504,8 +489,20 @@ export default function GuardiasPage() {
                 : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
             }`}
           >
-            {guardia.estado || (guardia.activo === true ? 'activo' : 'inactivo')}
+            {guardia.estado === 'activo' || guardia.activo === true ? 'Activo' : 'Inactivo'}
           </Badge>
+          <div className="text-xs text-muted-foreground text-center">
+            <Badge 
+              variant={guardia.tipo_guardia === 'contratado' ? 'default' : 'secondary'}
+              className={`text-xs ${
+                guardia.tipo_guardia === 'contratado' 
+                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' 
+                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+              }`}
+            >
+              {guardia.tipo_guardia === 'contratado' ? 'Contratado' : 'Esporádico'}
+            </Badge>
+          </div>
         </div>
       ),
     },
