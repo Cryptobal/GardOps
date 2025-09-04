@@ -101,6 +101,12 @@ export default function HomePage() {
       
       if (result.success) {
         console.log('✅ KPIs cargados:', result.data);
+        console.log('🔍 KPIs OS10 específicos:', {
+          os10_por_vencer: result.data.os10_por_vencer,
+          os10_sin_fecha: result.data.os10_sin_fecha,
+          os10_vencidos: result.data.os10_vencidos,
+          os10_vigentes: result.data.os10_vigentes
+        });
         setKpis(result.data);
         setLastUpdate(new Date());
       } else {
@@ -327,6 +333,12 @@ export default function HomePage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="px-3 pb-3">
+          {console.log('🔍 Renderizando KPIs OS10 con valores:', {
+            os10_por_vencer: kpis.os10_por_vencer,
+            os10_sin_fecha: kpis.os10_sin_fecha,
+            os10_vencidos: kpis.os10_vencidos,
+            os10_vigentes: kpis.os10_vigentes
+          })}
           <div className="grid grid-cols-2 gap-2 w-full">
             <div className="text-center p-2 bg-yellow-50/50 dark:bg-yellow-950/50 rounded-lg w-full">
               <ShieldAlert className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mx-auto mb-1" />
