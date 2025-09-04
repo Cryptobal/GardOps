@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 import { useFlag } from "@/lib/flags.context";
 import React, { useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 
 interface NavigationItemWrapperProps {
   item: NavigationItem;
@@ -28,6 +29,8 @@ export const NavigationItemWrapper = React.memo(function NavigationItemWrapper({
   onToggleExpanded
 }: NavigationItemWrapperProps) {
   // TODOS LOS HOOKS DEBEN IR AL INICIO, ANTES DE CUALQUIER LÓGICA CONDICIONAL
+  
+  const searchParams = useSearchParams();
   
   // Resolver permiso; si viene vacío, no llamar API y permitir por defecto
   const perm = (item.permission || '').trim();
@@ -89,6 +92,9 @@ export const NavigationItemWrapper = React.memo(function NavigationItemWrapper({
     
     // Caso especial: pauta diaria redirige a pauta-diaria-v2 o legacy
     if (item.href === '/pauta-diaria' && (pathname.startsWith('/pauta-diaria-v2') || pathname.startsWith('/legacy/pauta-diaria'))) return true;
+    
+    // Caso especial: control de asistencias redirige a pauta-diaria-v2 con tab=monitoreo
+    if (item.href === '/control-asistencias' && pathname.startsWith('/pauta-diaria-v2') && searchParams.get('tab') === 'monitoreo') return true;
     
     // Caso especial: turnos extras está dentro de pauta-diaria
     if (item.href === '/pauta-diaria/turnos-extras' && pathname.startsWith('/pauta-diaria/turnos-extras')) return true;

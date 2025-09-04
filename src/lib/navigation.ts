@@ -68,6 +68,12 @@ export const navigationItems: NavigationItem[] = [
     permission: "pautas.view"
   },
   {
+    name: "Control de Asistencias",
+    href: "/control-asistencias",
+    icon: Activity,
+    permission: "pautas.view"
+  },
+  {
     name: "Central de Monitoreo",
     href: "/central-monitoreo",
     icon: Phone,

@@ -379,14 +379,14 @@ export default function HomePage() {
         </CardHeader>
         <CardContent className="px-3 pb-3">
           <div className="grid grid-cols-2 gap-2 w-full">
-            <Link href="/pauta-diaria-v2" className="w-full">
+            <Link href="/control-asistencias" className="w-full">
               <Button className="w-full h-12 flex flex-col items-center justify-center gap-1">
                 <Activity className="w-4 h-4" />
-                <span className="text-xs leading-tight">Monitoreo Tiempo Real</span>
+                <span className="text-xs leading-tight">Control de Asistencias</span>
               </Button>
             </Link>
             
-            <Link href="/pauta-diaria-v2?tab=pauta" className="w-full">
+            <Link href="/pauta-diaria" className="w-full">
               <Button variant="outline" className="w-full h-12 flex flex-col items-center justify-center gap-1">
                 <Users className="w-4 h-4" />
                 <span className="text-xs leading-tight">Gestionar Pauta</span>
