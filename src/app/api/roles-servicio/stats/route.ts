@@ -4,7 +4,18 @@ import { sql } from '@vercel/postgres';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenantId') || '1';
+    let tenantId = searchParams.get('tenantId');
+
+    // Si no viene tenantId, inferirlo desde el usuario autenticado (igual que en la API principal)
+    if (!tenantId) {
+      const email = request.headers.get('x-user-email');
+      if (email) {
+        const t = await sql`SELECT tenant_id::text AS tid FROM usuarios WHERE lower(email)=lower(${email}) LIMIT 1`;
+        tenantId = t.rows?.[0]?.tid || '1';
+      } else {
+        tenantId = '1';
+      }
+    }
 
     // Consulta directa para obtener estadísticas de roles
     const rolesQuery = `
@@ -16,8 +27,10 @@ export async function GET(request: NextRequest) {
       WHERE (tenant_id::text = $1 OR (tenant_id IS NULL AND $1 = '1'))
     `;
     
+    console.log('🔍 Stats API - tenantId:', tenantId);
     const rolesResult = await sql.query(rolesQuery, [tenantId]);
     const rolesStats = rolesResult.rows[0];
+    console.log('🔍 Stats API - rolesStats:', rolesStats);
 
     // Consulta para obtener estadísticas de estructuras (si la tabla existe)
     let estructurasStats = {

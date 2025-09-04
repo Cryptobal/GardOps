@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
       horas_turno
     });
 
-    // Verificar que el nombre no esté duplicado
+    // Verificar duplicados por nombre completo
     const checkDuplicate = await sql.query(`
       SELECT 1 FROM as_turnos_roles_servicio 
       WHERE nombre = $1 AND (tenant_id::text = $2 OR (tenant_id IS NULL AND $2 = '1'))
@@ -144,6 +144,27 @@ export async function POST(request: NextRequest) {
     if (checkDuplicate.rows.length > 0) {
       return NextResponse.json(
         { success: false, error: 'Ya existe un rol de servicio con esa configuración de turno' },
+        { status: 400 }
+      );
+    }
+
+    // Verificación adicional: evitar duplicados por parámetros específicos
+    const checkDuplicateParams = await sql.query(`
+      SELECT nombre FROM as_turnos_roles_servicio 
+      WHERE dias_trabajo = $1 
+        AND dias_descanso = $2 
+        AND hora_inicio = $3 
+        AND hora_termino = $4
+        AND (tenant_id::text = $5 OR (tenant_id IS NULL AND $5 = '1'))
+    `, [dias_trabajo, dias_descanso, hora_inicio, hora_termino, finalTenantId]);
+
+    if (checkDuplicateParams.rows.length > 0) {
+      const rolExistente = checkDuplicateParams.rows[0].nombre;
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `Ya existe un rol con los mismos parámetros: "${rolExistente}". Cada combinación de días de trabajo, descanso y horario debe ser única.` 
+        },
         { status: 400 }
       );
     }
