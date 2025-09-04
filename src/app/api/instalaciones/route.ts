@@ -568,6 +568,7 @@ async function crearInstalacionDB(data: any) {
 // Función para actualizar instalación en la base de datos
 async function actualizarInstalacionDB(id: string, data: any) {
   console.log('🔧 Actualizando instalación con datos:', data);
+  console.log('🔧 ID de instalación:', id);
 
   // Construir la consulta SQL dinámicamente basada en los campos proporcionados
   const updates: string[] = [];
@@ -661,6 +662,7 @@ async function actualizarInstalacionDB(id: string, data: any) {
   }
 
   console.log('✅ Instalación actualizada exitosamente:', result.rows[0]);
+  console.log('✅ Campos actualizados en la base de datos:', Object.keys(data));
   return result.rows[0];
 }
 

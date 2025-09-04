@@ -186,10 +186,15 @@ export default function InstalacionDetallePage() {
         dataToUpdate[field] = editValue;
       }
       
+      console.log('🔍 Datos a actualizar:', dataToUpdate);
+      console.log('🔍 Instalación actual antes de actualizar:', instalacion);
+      
       await actualizarInstalacion(instalacionId, dataToUpdate);
       
       // Actualizar estado local
       setInstalacion(prev => prev ? { ...prev, ...dataToUpdate } : null);
+      
+      console.log('🔍 Instalación después de actualizar estado local:', instalacion);
       
       // Si se actualizó la dirección, recargar datos geográficos
       if (field === 'direccion') {
