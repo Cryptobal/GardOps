@@ -24,13 +24,16 @@ export async function obtenerTenantIdUsuario(): Promise<string> {
 
 /**
  * Hook para obtener tenant_id en componentes React
+ * Nota: Este hook requiere importar React en el componente que lo use
  */
 export function useTenantId() {
-  const [tenantId, setTenantId] = React.useState<string>('1');
+  // Este hook debe ser usado en componentes que ya importan React
+  // const [tenantId, setTenantId] = React.useState<string>('1');
+  // React.useEffect(() => {
+  //   obtenerTenantIdUsuario().then(setTenantId);
+  // }, []);
+  // return tenantId;
   
-  React.useEffect(() => {
-    obtenerTenantIdUsuario().then(setTenantId);
-  }, []);
-  
-  return tenantId;
+  // Por ahora, retornar función que obtiene el tenant_id
+  return obtenerTenantIdUsuario;
 }

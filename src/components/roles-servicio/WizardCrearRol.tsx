@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { obtenerTenantIdUsuario } from '@/lib/utils/obtener-tenant-usuario';
+// Removido import de obtenerTenantIdUsuario - se obtendrá en el backend
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -58,7 +58,7 @@ export default function WizardCrearRol({
   const [duracionCiclo, setDuracionCiclo] = useState(7);
   const [diasConfig, setDiasConfig] = useState<DiaConfig[]>([]);
   const [nomenclatura, setNomenclatura] = useState('');
-  const [tenantIdUsuario, setTenantIdUsuario] = useState('1');
+  // Removido tenantIdUsuario - se obtendrá en el backend
 
   // Inicializar días cuando cambia la duración del ciclo
   useEffect(() => {
@@ -76,12 +76,7 @@ export default function WizardCrearRol({
     setDiasConfig(nuevaConfig);
   }, [duracionCiclo]);
 
-  // Obtener tenant_id del usuario autenticado
-  useEffect(() => {
-    if (isOpen) {
-      obtenerTenantIdUsuario().then(setTenantIdUsuario);
-    }
-  }, [isOpen]);
+  // Removido useEffect para obtener tenant_id - se obtendrá en el backend
 
   // Calcular nomenclatura cuando cambian los días
   useEffect(() => {
@@ -229,16 +224,20 @@ export default function WizardCrearRol({
         hora_inicio: diasConfig.find(d => d.esTrabajo)?.horaInicio || '08:00',
         hora_termino: diasConfig.find(d => d.esTrabajo)?.horaTermino || '20:00',
         estado: 'Activo',
-        tenantId: tenantIdUsuario,
+        // tenantId se obtendrá automáticamente en el backend
         tiene_horarios_variables: true,
         series_dias: series
       };
 
+      console.log('🚀 Enviando datos del rol:', rolData);
       await onSave(rolData);
+      console.log('✅ Rol guardado exitosamente');
       
       // NO cerrar el modal, ir al paso 4
+      console.log('🔄 Cambiando a paso 4...');
       setPaso(4);
       setMostrarPasoNocturno(true);
+      console.log('✅ Paso 4 activado');
       
       // Mostrar toast de éxito pero SIN cerrar
       toast({
@@ -283,7 +282,7 @@ export default function WizardCrearRol({
         hora_inicio: horaInicioOpuesto,
         hora_termino: horaTerminoOpuesto,
         estado: 'Activo',
-        tenantId: tenantIdUsuario,
+        // tenantId se obtendrá automáticamente en el backend
         tiene_horarios_variables: false, // Usar horarios fijos para el patrón opuesto
         series_dias: []
       };
@@ -583,7 +582,10 @@ export default function WizardCrearRol({
           )}
 
           {/* PASO 4: Crear Patrón Nocturno/Diurno */}
-          {paso === 4 && mostrarPasoNocturno && (
+          {(() => {
+            if (paso === 4 && mostrarPasoNocturno) {
+              console.log('🎯 Renderizando Paso 4 - paso:', paso, 'mostrarPasoNocturno:', mostrarPasoNocturno);
+              return (
             <div className="space-y-6">
               <div className="text-center">
                 <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -687,7 +689,10 @@ export default function WizardCrearRol({
                 </Button>
               </div>
             </div>
-          )}
+              );
+            }
+            return null;
+          })()}
         </div>
       </DialogContent>
     </Dialog>

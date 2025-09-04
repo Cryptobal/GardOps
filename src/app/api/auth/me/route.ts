@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
+import { getCurrentUserServer } from '@/lib/auth';
 
 /**
  * GET /api/auth/me
@@ -7,8 +8,15 @@ import { sql } from '@vercel/postgres';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Obtener email del header (configurado por middleware de autenticación)
-    const email = request.headers.get('x-user-email');
+    // Usar el mismo patrón de autenticación que otras APIs
+    const h = request.headers;
+    const fromJwt = getCurrentUserServer(request as any)?.email || null;
+    const fromHeader = h.get('x-user-email') || null;
+    const isDev = process.env.NODE_ENV !== 'production';
+    const dev = isDev ? process.env.NEXT_PUBLIC_DEV_USER_EMAIL : undefined;
+    
+    // PRIORIZAR el header x-user-email sobre JWT cuando JWT tiene user@example.com
+    const email = (fromJwt === 'user@example.com' ? fromHeader : fromJwt) || fromHeader || dev || null;
     
     if (!email) {
       return NextResponse.json(
