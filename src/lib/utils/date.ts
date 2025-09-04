@@ -20,7 +20,7 @@ export function formatearFecha(fecha: string | Date | null | undefined): string 
       return 'No configurado';
     }
     
-    return fechaObj.toLocaleDateString('es-CL', {
+    return fechaObj.toLocaleDateString('es-ES', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
@@ -47,7 +47,7 @@ export function formatearFechaHora(fecha: string | Date | null | undefined): str
       return 'No configurado';
     }
     
-    return fechaObj.toLocaleDateString('es-CL', {
+    return fechaObj.toLocaleDateString('es-ES', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
