@@ -11,21 +11,23 @@ export async function getRolesServicio(params?: { activo?: boolean; tenantId?: s
     }
 
     const url = `/api/roles-servicio${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    console.log('🔍 GET roles-servicio - URL:', url);
     
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        // Agregar el header manualmente para asegurar que funcione
-        'x-user-email': 'carlos.irigoyen@gard.cl',
       },
     });
+
+    console.log('🔍 GET roles-servicio - Response status:', response.status);
 
     if (!response.ok) {
       throw new Error(`Error obteniendo roles de servicio: ${response.statusText}`);
     }
 
     const result: ApiResponse<RolServicio[]> = await response.json();
+    console.log('🔍 GET roles-servicio - Result:', result);
     
     if (!result.success) {
       throw new Error(result.error || 'Error obteniendo roles de servicio');

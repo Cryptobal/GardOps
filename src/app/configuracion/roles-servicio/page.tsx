@@ -102,10 +102,13 @@ export default function RolesServicioPage() {
   const cargarRoles = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Cargando roles de servicio...');
       const rolesData = await getRolesServicio();
+      console.log('✅ Roles cargados:', rolesData.length, 'roles');
+      console.log('📋 IDs de roles:', rolesData.map(r => ({ id: r.id, nombre: r.nombre })));
       setRoles(rolesData);
     } catch (err) {
-      console.error('Error cargando roles:', err);
+      console.error('❌ Error cargando roles:', err);
       error('No se pudieron cargar los roles de servicio', 'Error');
     } finally {
       setLoading(false);
@@ -139,7 +142,8 @@ export default function RolesServicioPage() {
         return;
       }
       
-      await crearRolServicio(nuevoRol as CrearRolServicioData);
+      const nuevoRolCreado = await crearRolServicio(nuevoRol as CrearRolServicioData);
+      console.log('✅ Rol creado exitosamente:', nuevoRolCreado);
       
       success('Rol de servicio creado correctamente', 'Éxito');
 
@@ -152,8 +156,10 @@ export default function RolesServicioPage() {
       });
       setFormularioAbierto(false);
 
+      console.log('🔄 Recargando roles después de crear...');
       await cargarRoles();
       await cargarStats();
+      console.log('✅ Recarga completada');
     } catch (err) {
       console.error('Error creando rol:', err);
       error('No se pudo crear el rol', 'Error');
