@@ -47,6 +47,7 @@ export async function GET(
 
     const instalacion = instalacionResult.rows[0];
     console.log('✅ Instalación encontrada:', instalacion.nombre);
+    console.log('🔍 Datos de instalación completos:', instalacion);
 
     // 2. Obtener información del cliente
     console.log('2. Consultando cliente...');

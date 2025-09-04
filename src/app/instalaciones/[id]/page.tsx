@@ -94,6 +94,10 @@ export default function InstalacionDetallePage() {
         roles: datosCompletos.roles.length
       });
       
+      console.log('🔍 Datos de instalación recibidos:', datosCompletos.instalacion);
+      console.log('🔍 Cliente ID en datos recibidos:', datosCompletos.instalacion.cliente_id);
+      console.log('🔍 Dirección en datos recibidos:', datosCompletos.instalacion.direccion);
+      
       setInstalacion(datosCompletos.instalacion);
       
       // Guardar datos precargados
@@ -193,6 +197,8 @@ export default function InstalacionDetallePage() {
       
       // En lugar de actualizar estado local, recargar desde el servidor
       console.log('🔄 Recargando instalación desde el servidor después de actualizar');
+      // Pequeño delay para asegurar que la DB se haya actualizado
+      await new Promise(resolve => setTimeout(resolve, 100));
       await cargarInstalacion();
       
       // Si se actualizó la dirección, recargar datos geográficos
