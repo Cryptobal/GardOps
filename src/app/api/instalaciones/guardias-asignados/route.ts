@@ -29,14 +29,13 @@ export async function GET(request: NextRequest) {
         i.latitud as instalacion_lat,
         i.longitud as instalacion_lng,
         rs.nombre as rol_nombre,
-        po.fecha_asignacion,
-        po.created_at as asignado_desde
+        po.creado_en as fecha_asignacion,
+        po.creado_en as asignado_desde
       FROM as_turnos_puestos_operativos po
       JOIN guardias g ON po.guardia_id = g.id
       JOIN instalaciones i ON po.instalacion_id = i.id
       LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-      WHERE po.es_ppc = false 
-        AND po.activo = true
+      WHERE po.es_ppc = false
         AND po.tenant_id = $1
         AND g.latitud IS NOT NULL 
         AND g.longitud IS NOT NULL
