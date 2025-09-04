@@ -25,12 +25,7 @@ import InstalacionModal from "@/components/instalaciones/InstalacionModal";
 import { api } from '@/lib/api-client';
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useSimpleInactivation } from "@/components/ui/confirm-inactivation-modal";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
+import { ActionDropdown } from "@/components/ui/action-dropdown";
 
 // Hook personalizado para debounce
 function useDebounce<T>(value: T, delay: number): T {
@@ -294,7 +289,7 @@ export default function InstalacionesPage() {
     if (!allowed) return;
     fetchInstalaciones();
     fetchKPIs();
-  }, [allowed, fetchInstalaciones, fetchKPIs]);
+  }, [allowed]);
 
   // Log para debuggear KPIs
   useEffect(() => {
@@ -371,6 +366,39 @@ export default function InstalacionesPage() {
       console.error('Error en inactivación:', error);
     }
   }, [inactivateInstalacion, fetchInstalaciones, fetchKPIs]);
+
+  // Función para activar instalación
+  const handleActivateInstalacion = useCallback(async (instalacion: any, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    try {
+      const response = await fetch(`/api/instalaciones/${instalacion.id}/activar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          motivo: 'Activación desde interfaz de usuario'
+        })
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Error activando instalación');
+      }
+
+      console.log('✅ Instalación activada:', data.message);
+      
+      // Recargar datos
+      await fetchInstalaciones();
+      await fetchKPIs();
+    } catch (error) {
+      console.error('Error en activación:', error);
+    }
+  }, [fetchInstalaciones, fetchKPIs]);
 
   // Funciones para manejar el modal
   const openCreateModal = useCallback(() => {
@@ -683,29 +711,12 @@ export default function InstalacionesPage() {
                           </span>
                         </td>
                         <td className="p-4">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                              {instalacion.estado === 'Activo' && (
-                                <DropdownMenuItem
-                                  onClick={(e) => handleInactivateInstalacion(instalacion, e)}
-                                  className="text-orange-600 focus:text-orange-700"
-                                >
-                                  <Power className="h-4 w-4 mr-2" />
-                                  Inactivar
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <ActionDropdown
+                            isActive={instalacion.estado === 'Activo'}
+                            onInactivate={(e) => handleInactivateInstalacion(instalacion, e)}
+                            onActivate={(e) => handleActivateInstalacion(instalacion, e)}
+                            entityType="instalacion"
+                          />
                         </td>
                       </tr>
                     ))}

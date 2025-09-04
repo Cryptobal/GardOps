@@ -18,7 +18,9 @@ import {
   AlertTriangle,
   Download,
   Upload,
-  FileText
+  FileText,
+  MoreVertical,
+  Power
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { api } from '@/lib/api-client';
@@ -29,6 +31,8 @@ import { DataTable, Column } from "../../components/ui/data-table";
 
 // Importar tipos y esquemas
 import { Cliente } from "../../lib/schemas/clientes";
+import { useClienteInactivation } from "@/components/ui/cliente-inactivation-modal";
+import { ActionDropdown } from "@/components/ui/action-dropdown";
 
 // Componente KPI Box
 const KPIBox = ({ 
@@ -80,6 +84,101 @@ export default function ClientesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("Activo");
+
+  // Hook para inactivación de clientes
+  const { openModal, ClienteInactivationModal } = useClienteInactivation();
+
+  // Función para inactivar cliente
+  const handleInactivateCliente = async (cliente: Cliente, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    try {
+      // Verificar si se puede inactivar
+      const checkResponse = await fetch(`/api/clientes/${cliente.id}/inactivar`);
+      const checkData = await checkResponse.json();
+
+      if (!checkData.success) {
+        console.error('Error verificando cliente:', checkData.error);
+        return;
+      }
+
+      const { 
+        can_inactivate_normal, 
+        can_inactivate_cascada, 
+        blockers = [], 
+        warnings = [],
+        instalaciones_activas = 0
+      } = checkData.data;
+
+      openModal({
+        clienteNombre: cliente.nombre,
+        canInactivateNormal: can_inactivate_normal,
+        canInactivateCascada: can_inactivate_cascada,
+        blockers,
+        warnings,
+        instalacionesActivas: instalaciones_activas,
+        onConfirm: async (cascada: boolean) => {
+          const response = await fetch(`/api/clientes/${cliente.id}/inactivar`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              motivo: 'Inactivación desde interfaz de usuario',
+              cascada
+            })
+          });
+
+          const data = await response.json();
+
+          if (!data.success) {
+            throw new Error(data.error || 'Error inactivando cliente');
+          }
+
+          console.log('✅ Cliente inactivado:', data.message);
+          
+          // Recargar datos
+          window.location.reload();
+        }
+      });
+    } catch (error) {
+      console.error('Error en inactivación:', error);
+    }
+  };
+
+  // Función para activar cliente
+  const handleActivateCliente = async (cliente: Cliente, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    try {
+      const response = await fetch(`/api/clientes/${cliente.id}/activar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          motivo: 'Activación desde interfaz de usuario'
+        })
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Error activando cliente');
+      }
+
+      console.log('✅ Cliente activado:', data.message);
+      
+      // Recargar datos
+      window.location.reload();
+    } catch (error) {
+      console.error('Error en activación:', error);
+    }
+  };
 
   // Función para exportar clientes a Excel
   const exportarExcel = async () => {
@@ -200,7 +299,7 @@ export default function ClientesPage() {
     };
 
     fetchClientes();
-  }, [allowed, isAuthenticated, user]);
+  }, [allowed, isAuthenticated]);
 
   // Filtrar clientes
   const filteredClientes = useMemo(() => {
@@ -305,6 +404,20 @@ export default function ClientesPage() {
         <Badge variant={cliente.estado === "Activo" ? "success" : "inactive"}>
           {cliente.estado || "Activo"}
         </Badge>
+      )
+    },
+    {
+      key: "acciones",
+      label: "Acciones",
+      render: (cliente) => (
+        <div className="flex items-center justify-center">
+          <ActionDropdown
+            isActive={cliente.estado === 'Activo' || !cliente.estado}
+            onInactivate={(e) => handleInactivateCliente(cliente, e)}
+            onActivate={(e) => handleActivateCliente(cliente, e)}
+            entityType="cliente"
+          />
+        </div>
       )
     }
   ];
@@ -539,6 +652,9 @@ export default function ClientesPage() {
           className="h-full"
         />
       </div>
+
+      {/* Modal de confirmación para inactivación de clientes */}
+      <ClienteInactivationModal />
     </motion.div>
   );
 }

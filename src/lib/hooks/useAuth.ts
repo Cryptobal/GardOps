@@ -113,10 +113,8 @@ export function useAuth() {
 
     checkAuth();
 
-    // Escuchar cambios en cookies (opcional, para desarrollo)
-    const interval = setInterval(checkAuth, 5000); // Verificar cada 5 segundos
-
-    return () => clearInterval(interval);
+    // Solo verificar una vez al montar el componente
+    // Removemos el interval que causaba re-renders infinitos
   }, []);
 
   const logout = () => {

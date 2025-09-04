@@ -97,14 +97,19 @@ export async function POST(
         WHERE id = ${instalacionId}
       `;
 
-      // 4. Inactivar todas las pautas mensuales de esta instalación
-      const pautasResult = await sql`
-        UPDATE pautas_mensuales 
-        SET activo = false, updated_at = NOW()
-        WHERE instalacion_id = ${instalacionId} 
-          AND activo = true
-        RETURNING COUNT(*) as pautas_inactivadas
-      `;
+      // 4. Inactivar todas las pautas mensuales de esta instalación (si la columna activo existe)
+      let pautasInactivadas = 0;
+      try {
+        const pautasResult = await sql`
+          UPDATE pautas_mensuales 
+          SET activo = false
+          WHERE instalacion_id = ${instalacionId}
+          RETURNING COUNT(*) as pautas_inactivadas
+        `;
+        pautasInactivadas = pautasResult.rows[0]?.pautas_inactivadas || 0;
+      } catch (pautaError) {
+        console.log('⚠️ Campo activo no existe en pautas_mensuales, continuando...');
+      }
 
       // 5. Registrar en log de auditoría (si existe la tabla)
       try {
@@ -143,7 +148,7 @@ export async function POST(
           nombre: instalacion.nombre,
           estado_anterior: 'Activo',
           estado_nuevo: 'Inactivo',
-          pautas_afectadas: pautasResult.rows[0]?.pautas_inactivadas || 0,
+          pautas_afectadas: pautasInactivadas,
           fecha_inactivacion: new Date().toISOString()
         }
       });

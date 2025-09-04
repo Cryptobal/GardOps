@@ -44,12 +44,7 @@ import { Guardia } from "../../lib/schemas/guardias";
 import GuardiaModal from "../../components/guardias/GuardiaModal";
 import { api } from '@/lib/api-client';
 import { useSimpleInactivation } from "@/components/ui/confirm-inactivation-modal";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
+import { ActionDropdown } from "@/components/ui/action-dropdown";
 
 // Componente KPI Box optimizado para móviles
 const KPIBox = ({ 
@@ -190,6 +185,38 @@ export default function GuardiasPage() {
     }
   };
 
+  // Función para activar guardia
+  const handleActivateGuardia = async (guardia: Guardia, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    try {
+      const response = await fetch(`/api/guardias/${guardia.id}/activar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          motivo: 'Activación desde interfaz de usuario'
+        })
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Error activando guardia');
+      }
+
+      console.log('✅ Guardia activado:', data.message);
+      
+      // Recargar la página para actualizar datos
+      window.location.reload();
+    } catch (error) {
+      console.error('Error en activación:', error);
+    }
+  };
+
 
 
   const showToast = (message: string, type: string = "info") => {
@@ -302,19 +329,12 @@ export default function GuardiasPage() {
     const fetchGuardias = async () => {
       if (!allowed || !isAuthenticated) return; // no cargar si no tiene permiso o no está autenticado
       console.log("🔍 GuardiasPage: Iniciando carga de guardias...");
-      console.log("🔍 GuardiasPage: Usuario autenticado:", user?.email);
       try {
         setLoading(true);
-        console.log("🔍 GuardiasPage: Llamando a /api/guardias...");
         const result = await api.guardias.getAll() as any;
-        console.log("🔍 GuardiasPage: Respuesta recibida:", result);
         
         // La API devuelve directamente {items: [...]}
         if (result.items) {
-          console.log("🔍 GuardiasPage: Datos recibidos:", result);
-          console.log("🔍 GuardiasPage: Items array:", result.items);
-          console.log("🔍 GuardiasPage: Cantidad de guardias:", result.items?.length || 0);
-          
           const guardiasData = result.items || [];
           setGuardias(guardiasData);
           
@@ -327,14 +347,6 @@ export default function GuardiasPage() {
           const estadisticasOS10 = obtenerEstadisticasOS10(guardiasData);
 
           setKpis({ 
-            total, 
-            activos, 
-            inactivos, 
-            os10PorVencer: estadisticasOS10.por_vencer,
-            os10Vencidos: estadisticasOS10.vencidos
-          });
-          
-          console.log("🔍 GuardiasPage: KPIs calculados:", { 
             total, 
             activos, 
             inactivos, 
@@ -354,7 +366,7 @@ export default function GuardiasPage() {
     };
 
     fetchGuardias();
-  }, [allowed, isAuthenticated, user]);
+  }, [allowed, isAuthenticated]);
 
   // Filtrar guardias (con dependencias explícitas)
   const filteredGuardias = useMemo(() => {
@@ -483,29 +495,12 @@ export default function GuardiasPage() {
       label: "Acciones",
       render: (guardia) => (
         <div className="flex items-center justify-center">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              {(guardia.estado === 'activo' || guardia.activo === true) && (
-                <DropdownMenuItem
-                  onClick={(e) => handleInactivateGuardia(guardia, e)}
-                  className="text-orange-600 focus:text-orange-700"
-                >
-                  <Power className="h-4 w-4 mr-2" />
-                  Inactivar
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <ActionDropdown
+            isActive={guardia.estado === 'activo' || guardia.activo === true}
+            onInactivate={(e) => handleInactivateGuardia(guardia, e)}
+            onActivate={(e) => handleActivateGuardia(guardia, e)}
+            entityType="guardia"
+          />
         </div>
       ),
     },
@@ -909,6 +904,9 @@ export default function GuardiasPage() {
         guardias={guardias}
         tipo={os10ModalTipo}
       />
+
+      {/* Modal de confirmación para inactivación */}
+      <ConfirmModal />
 
       {/* Toast placeholder */}
       {/* ToastContainer se implementará en la Parte 2 */}
