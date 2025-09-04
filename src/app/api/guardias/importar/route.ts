@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
             'Fecha Ingreso': 'fecha_ingreso',
             'Fecha Finiquito': 'fecha_finiquito',
             // Campos bancarios
-            'Banco': 'banco',
+            'Banco': 'banco_id',
             'Tipo de Cuenta': 'tipo_cuenta',
             'Número de Cuenta': 'numero_cuenta'
           };
@@ -204,6 +204,26 @@ export async function POST(request: NextRequest) {
                 } else {
                   console.log(`⚠️ Días vacaciones inválidos en fila ${rowNumber}: ${value}`);
                   continue; // Saltar este campo si es inválido
+                }
+              } else if (excelField === 'Banco') {
+                // Buscar banco por nombre y obtener su UUID
+                const bancoNombre = value.toString().trim();
+                try {
+                  const bancoResult = await query(
+                    'SELECT id FROM bancos WHERE LOWER(nombre) = LOWER($1)',
+                    [bancoNombre]
+                  );
+                  
+                  if (bancoResult.rows.length > 0) {
+                    value = bancoResult.rows[0].id;
+                    console.log(`✅ Banco encontrado: ${bancoNombre} -> ${value}`);
+                  } else {
+                    console.log(`⚠️ Banco no encontrado en fila ${rowNumber}: ${bancoNombre}`);
+                    continue; // Saltar este campo si el banco no existe
+                  }
+                } catch (error) {
+                  console.log(`⚠️ Error buscando banco en fila ${rowNumber}: ${bancoNombre}`, error);
+                  continue; // Saltar este campo si hay error
                 }
               } else if (['Descuento AFP', 'Monto Pactado UF', 'Altura (cm)', 'Peso (kg)', 'Talla Zapato'].includes(excelField)) {
                 const numValue = parseFloat(value);
@@ -281,7 +301,7 @@ export async function POST(request: NextRequest) {
           'Altura (cm)': 'altura_cm',
           'Peso (kg)': 'peso_kg',
           // Campos bancarios
-          'Banco': 'banco',
+          'Banco': 'banco_id',
           'Tipo de Cuenta': 'tipo_cuenta',
           'Número de Cuenta': 'numero_cuenta'
           // NOTA: Instalación Asignada y Rol Actual no se pueden importar directamente
@@ -309,6 +329,26 @@ export async function POST(request: NextRequest) {
               } else if (excelField === 'Fecha OS10') {
                 if (value && !isNaN(Date.parse(value))) {
                   value = new Date(value).toISOString().split('T')[0];
+                }
+              } else if (excelField === 'Banco') {
+                // Buscar banco por nombre y obtener su UUID
+                const bancoNombre = value.toString().trim();
+                try {
+                  const bancoResult = await query(
+                    'SELECT id FROM bancos WHERE LOWER(nombre) = LOWER($1)',
+                    [bancoNombre]
+                  );
+                  
+                  if (bancoResult.rows.length > 0) {
+                    value = bancoResult.rows[0].id;
+                    console.log(`✅ Banco encontrado para actualización: ${bancoNombre} -> ${value}`);
+                  } else {
+                    console.log(`⚠️ Banco no encontrado en fila ${rowNumber}: ${bancoNombre}`);
+                    continue; // Saltar este campo si el banco no existe
+                  }
+                } catch (error) {
+                  console.log(`⚠️ Error buscando banco en fila ${rowNumber}: ${bancoNombre}`, error);
+                  continue; // Saltar este campo si hay error
                 }
               } else if (['Descuento AFP', 'Monto Pactado UF', 'Altura (cm)', 'Peso (kg)', 'Talla Zapato'].includes(excelField)) {
                 const numValue = parseFloat(value);
