@@ -220,12 +220,12 @@ export async function POST(request: NextRequest) {
 
           // Agregar campos por defecto
           insertFields.push('tenant_id', 'created_at', 'updated_at');
-          insertValues.push(tenantId, 'NOW()', 'NOW()');
+          insertValues.push(tenantId);
 
           // Ejecutar inserción
           const insertQuery = `
             INSERT INTO guardias (${insertFields.join(', ')})
-            VALUES (${insertValues.map((_, index) => `$${index + 1}`).join(', ')})
+            VALUES (${insertValues.map((_, index) => `$${index + 1}`).join(', ')}, NOW(), NOW())
             RETURNING id
           `;
 
