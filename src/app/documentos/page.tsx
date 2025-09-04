@@ -344,10 +344,13 @@ export default function DocumentosGlobalesPage() {
 
   // Obtener estadísticas de alertas
   const getAlertasStats = () => {
-    const vencidos = alertas.filter(a => a.dias_restantes < 0).length;
-    const hoy = alertas.filter(a => a.dias_restantes === 0).length;
-    const proximos = alertas.filter(a => a.dias_restantes > 0 && a.dias_restantes <= 30).length;
-    return { vencidos, hoy, proximos, total: alertas.length };
+    // Usar los stats de la API principal en lugar de las alertas
+    return { 
+      vencidos: stats.vencidos, 
+      hoy: 0, // Por ahora 0, se puede calcular después
+      proximos: stats.por_vencer, 
+      total: stats.por_vencer + stats.vencidos 
+    };
   };
 
   // Obtener color del estado
@@ -1080,7 +1083,7 @@ export default function DocumentosGlobalesPage() {
               <Card className="bg-card/50 border-border/50">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center justify-between">
-                    <span>Alertas de Documentos ({alertasFiltradas_computed.length})</span>
+                    <span>Alertas de Documentos ({documentos.filter(doc => doc.estado === 'por_vencer' || doc.estado === 'vencido').length})</span>
                     {cargandoAlertas && (
                       <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
                     )}
@@ -1096,46 +1099,53 @@ export default function DocumentosGlobalesPage() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {alertasFiltradas_computed.map((alerta) => {
-                        const ModuloIcon = getModuloIcon(alerta.modulo || '');
+                      {documentos.filter(doc => doc.estado === 'por_vencer' || doc.estado === 'vencido').map((documento) => {
+                        const ModuloIcon = getModuloIcon(documento.modulo);
+                        const diasRestantes = documento.fecha_vencimiento 
+                          ? Math.ceil((new Date(documento.fecha_vencimiento).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                          : 0;
+                        
                         return (
-                          <Card key={alerta.id} className="bg-card/30 border-border/30">
+                          <Card key={documento.id} className="bg-card/30 border-border/30">
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1 space-y-2">
                                   <div className="flex items-center gap-2">
                                     <ModuloIcon className="h-4 w-4 text-muted-foreground" />
                                     <span className="text-sm text-muted-foreground capitalize">
-                                      {alerta.modulo?.replace('_', ' ')}
+                                      {documento.modulo}
                                     </span>
-                                    <Badge className={getAlertaColor(alerta.dias_restantes)}>
-                                      {alerta.dias_restantes < 0 
-                                        ? `Vencido hace ${Math.abs(alerta.dias_restantes)} días`
-                                        : alerta.dias_restantes === 0 
+                                    <Badge className={getAlertaColor(diasRestantes)}>
+                                      {diasRestantes < 0 
+                                        ? `Vencido hace ${Math.abs(diasRestantes)} días`
+                                        : diasRestantes === 0 
                                         ? 'Vence hoy'
-                                        : `${alerta.dias_restantes} días restantes`
+                                        : `${diasRestantes} días restantes`
                                       }
                                     </Badge>
                                   </div>
                                   
                                   <div>
                                     <p className="font-medium text-white">
-                                      {alerta.documento_nombre || 'Documento sin nombre'}
+                                      {documento.nombre}
                                     </p>
                                     <p className="text-sm text-muted-foreground">
-                                      {alerta.entidad_nombre}
+                                      {documento.entidad_nombre}
                                     </p>
                                   </div>
 
                                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                    <span>{alerta.tipo_documento_nombre}</span>
-                                    {alerta.fecha_vencimiento && (
-                                      <span>Vence: {formatearFecha(alerta.fecha_vencimiento)}</span>
+                                    <span>{documento.tipo_documento_nombre || 'Sin tipo'}</span>
+                                    {documento.fecha_vencimiento && (
+                                      <span>Vence: {formatearFecha(documento.fecha_vencimiento)}</span>
                                     )}
                                   </div>
 
                                   <p className="text-sm text-orange-300">
-                                    {alerta.mensaje}
+                                    {documento.estado === 'vencido' 
+                                      ? 'Documento vencido - requiere atención inmediata'
+                                      : 'Documento próximo a vencer - revisar prontamente'
+                                    }
                                   </p>
                                 </div>
 
@@ -1143,28 +1153,20 @@ export default function DocumentosGlobalesPage() {
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    onClick={() => {
-                                      // Crear un documento temporal para el visualizador
-                                      const docTemp = {
-                                        id: alerta.documento_id,
-                                        nombre: alerta.documento_nombre || '',
-                                        modulo: alerta.modulo as any,
-                                        entidad_nombre: alerta.entidad_nombre || '',
-                                        entidad_id: alerta.entidad_id || '',
-                                        fecha_vencimiento: alerta.fecha_vencimiento,
-                                        tipo_documento_nombre: alerta.tipo_documento_nombre,
-                                        url: '',
-                                        tamaño: 0,
-                                        created_at: '',
-                                        estado: 'vigente' as any
-                                      };
-                                      setDocumentoParaEditar(docTemp);
-                                      setNuevaFechaVencimiento(alerta.fecha_vencimiento || '');
-                                    }}
+                                    onClick={() => abrirEditorFecha(documento)}
                                     title="Editar fecha de vencimiento"
                                     className="h-8 w-8 p-0 hover:bg-orange-600/20"
                                   >
                                     <CalendarDays className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => abrirVisualizador(documento)}
+                                    title="Ver documento"
+                                    className="h-8 w-8 p-0 hover:bg-blue-600/20"
+                                  >
+                                    <Eye className="h-4 w-4" />
                                   </Button>
                                 </div>
                               </div>

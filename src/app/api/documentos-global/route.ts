@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
           CASE 
             WHEN d.fecha_vencimiento IS NULL THEN 'sin_vencimiento'
             WHEN d.fecha_vencimiento < CURRENT_DATE THEN 'vencido'
-            WHEN d.fecha_vencimiento <= CURRENT_DATE + INTERVAL '30 days' THEN 'por_vencer'
+            WHEN d.fecha_vencimiento <= CURRENT_DATE + COALESCE(td.dias_antes_alarma, 30) * INTERVAL '1 day' THEN 'por_vencer'
             ELSE 'vigente'
           END as estado
         FROM documentos d
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
           CASE 
             WHEN d.fecha_vencimiento IS NULL THEN 'sin_vencimiento'
             WHEN d.fecha_vencimiento < CURRENT_DATE THEN 'vencido'
-            WHEN d.fecha_vencimiento <= CURRENT_DATE + INTERVAL '30 days' THEN 'por_vencer'
+            WHEN d.fecha_vencimiento <= CURRENT_DATE + COALESCE(td.dias_antes_alarma, 30) * INTERVAL '1 day' THEN 'por_vencer'
             ELSE 'vigente'
           END as estado
         FROM documentos d
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
           CASE 
             WHEN d.fecha_vencimiento IS NULL THEN 'sin_vencimiento'
             WHEN d.fecha_vencimiento < CURRENT_DATE THEN 'vencido'
-            WHEN d.fecha_vencimiento <= CURRENT_DATE + INTERVAL '30 days' THEN 'por_vencer'
+            WHEN d.fecha_vencimiento <= CURRENT_DATE + COALESCE(td.dias_antes_alarma, 30) * INTERVAL '1 day' THEN 'por_vencer'
             ELSE 'vigente'
           END as estado
         FROM documentos d
@@ -200,10 +200,11 @@ export async function GET(request: NextRequest) {
           CASE 
             WHEN d.fecha_vencimiento IS NULL THEN 'sin_vencimiento'
             WHEN d.fecha_vencimiento < CURRENT_DATE THEN 'vencido'
-            WHEN d.fecha_vencimiento <= CURRENT_DATE + INTERVAL '30 days' THEN 'por_vencer'
+            WHEN d.fecha_vencimiento <= CURRENT_DATE + COALESCE(td.dias_antes_alarma, 30) * INTERVAL '1 day' THEN 'por_vencer'
             ELSE 'vigente'
           END as estado
         FROM documentos d
+        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id
         WHERE d.cliente_id IS NOT NULL AND d.tenant_id = $1
         
         UNION ALL
@@ -213,10 +214,11 @@ export async function GET(request: NextRequest) {
           CASE 
             WHEN d.fecha_vencimiento IS NULL THEN 'sin_vencimiento'
             WHEN d.fecha_vencimiento < CURRENT_DATE THEN 'vencido'
-            WHEN d.fecha_vencimiento <= CURRENT_DATE + INTERVAL '30 days' THEN 'por_vencer'
+            WHEN d.fecha_vencimiento <= CURRENT_DATE + COALESCE(td.dias_antes_alarma, 30) * INTERVAL '1 day' THEN 'por_vencer'
             ELSE 'vigente'
           END as estado
         FROM documentos d
+        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id
         WHERE d.instalacion_id IS NOT NULL AND d.tenant_id = $1
         
         UNION ALL
@@ -226,10 +228,11 @@ export async function GET(request: NextRequest) {
           CASE 
             WHEN d.fecha_vencimiento IS NULL THEN 'sin_vencimiento'
             WHEN d.fecha_vencimiento < CURRENT_DATE THEN 'vencido'
-            WHEN d.fecha_vencimiento <= CURRENT_DATE + INTERVAL '30 days' THEN 'por_vencer'
+            WHEN d.fecha_vencimiento <= CURRENT_DATE + COALESCE(td.dias_antes_alarma, 30) * INTERVAL '1 day' THEN 'por_vencer'
             ELSE 'vigente'
           END as estado
         FROM documentos d
+        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id
         WHERE d.guardia_id IS NOT NULL AND d.tenant_id = $1
       )
       SELECT 
