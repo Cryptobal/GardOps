@@ -10,5 +10,8 @@ export default async function Page() {
   noStore() // Evita caché en esta request
   const on = await isFlagEnabled('ado_v2')
   console.log('[/pauta-diaria] Flag ado_v2:', on)
-  redirect(on ? '/pauta-diaria-v2' : '/legacy/pauta-diaria')
+  
+  // TEMPORAL: Forzar siempre la nueva versión para testing
+  console.log('🔄 Redirigiendo a pauta-diaria-v2 (forzado)')
+  redirect('/pauta-diaria-v2')
 }

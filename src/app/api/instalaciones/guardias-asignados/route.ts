@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       FROM as_turnos_puestos_operativos po
       JOIN guardias g ON po.guardia_id = g.id
       JOIN instalaciones i ON po.instalacion_id = i.id
-      JOIN as_turnos_roles_servicio rs ON po.rol_servicio_id = rs.id
+      LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       WHERE po.es_ppc = false 
         AND po.activo = true
         AND po.tenant_id = $1
