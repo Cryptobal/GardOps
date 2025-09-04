@@ -97,22 +97,45 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
   const [incluirLibres, setIncluirLibres] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
+  // 🔍 DEBUG: Log de renderizado
+  console.log('🔄 [MonitoreoTiempoReal] RENDERIZANDO:', {
+    fecha,
+    activeTab,
+    isMounted,
+    loading,
+    error,
+    dataLength: data?.turnos?.length || 0
+  });
+
   // Funciones de navegación de fecha
   const go = useCallback((delta: number) => {
+    console.log('🔄 [MonitoreoTiempoReal.go] NAVEGANDO:', {
+      delta,
+      fecha,
+      activeTab,
+      incluirLibres
+    });
     const params = new URLSearchParams();
     if (incluirLibres) params.set('incluirLibres', 'true');
     if (activeTab) params.set('tab', activeTab);
     
     const newUrl = `/pauta-diaria-v2?fecha=${addDays(fecha, delta)}${params.toString() ? '&' + params.toString() : ''}`;
+    console.log('🔄 [MonitoreoTiempoReal.go] NAVEGANDO A URL:', newUrl);
     router.push(newUrl);
   }, [fecha, incluirLibres, activeTab, router]);
 
   const goToDate = useCallback((newFecha: string) => {
+    console.log('🔄 [MonitoreoTiempoReal.goToDate] NAVEGANDO:', {
+      newFecha,
+      activeTab,
+      incluirLibres
+    });
     const params = new URLSearchParams();
     if (incluirLibres) params.set('incluirLibres', 'true');
     if (activeTab) params.set('tab', activeTab);
     
     const newUrl = `/pauta-diaria-v2?fecha=${newFecha}${params.toString() ? '&' + params.toString() : ''}`;
+    console.log('🔄 [MonitoreoTiempoReal.goToDate] NAVEGANDO A URL:', newUrl);
     router.push(newUrl);
   }, [incluirLibres, activeTab, router]);
 
@@ -169,6 +192,11 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
 
   // Cargar datos iniciales y cuando cambie la fecha
   useEffect(() => {
+    console.log('🔍 [MonitoreoTiempoReal useEffect] EJECUTANDO con dependencias:', {
+      fecha,
+      incluirLibres,
+      isMounted
+    });
     if (isMounted) {
       cargarDatos();
     }
