@@ -110,6 +110,9 @@ export default function GuardiaDetallePage() {
   const [guardia, setGuardia] = useState<Guardia | null>(null);
   const [datosBancarios, setDatosBancarios] = useState<DatosBancarios | null>(null);
   const [bancos, setBancos] = useState<Banco[]>([]);
+  const [afps, setAfps] = useState<{codigo: string, nombre: string}[]>([]);
+  const [isapres, setIsapres] = useState<{codigo: string, nombre: string}[]>([]);
+  const [tramosAsignacion, setTramosAsignacion] = useState<{codigo: string, nombre: string, descripcion: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('informacion');
   const [geocodingData, setGeocodingData] = useState<GeocodingResult | null>(null);
@@ -135,6 +138,7 @@ export default function GuardiaDetallePage() {
   useEffect(() => {
     cargarGuardia();
     cargarBancos();
+    cargarDatosReferencia();
   }, [guardiaId]);
 
   const cargarBancos = async () => {
@@ -146,6 +150,33 @@ export default function GuardiaDetallePage() {
       }
     } catch (error) {
       console.error('Error cargando bancos:', error);
+    }
+  };
+
+  const cargarDatosReferencia = async () => {
+    try {
+      // Cargar AFPs
+      const afpsResponse = await fetch('/api/afps');
+      if (afpsResponse.ok) {
+        const afpsData = await afpsResponse.json();
+        setAfps(afpsData.afps || []);
+      }
+
+      // Cargar ISAPREs
+      const isapresResponse = await fetch('/api/isapres');
+      if (isapresResponse.ok) {
+        const isapresData = await isapresResponse.json();
+        setIsapres(isapresData.isapres || []);
+      }
+
+      // Cargar tramos de asignación
+      const tramosResponse = await fetch('/api/tramos-asignacion');
+      if (tramosResponse.ok) {
+        const tramosData = await tramosResponse.json();
+        setTramosAsignacion(tramosData.tramos || []);
+      }
+    } catch (error) {
+      console.error('Error cargando datos de referencia:', error);
     }
   };
 
@@ -1028,9 +1059,10 @@ export default function GuardiaDetallePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <EditableField
                     label="AFP"
-                    value={formatText(guardia.afp) || ''}
+                    value={guardia.afp || ''}
                     field="afp"
-                    placeholder="AFP"
+                    options={afps.map(afp => ({ value: afp.codigo, label: afp.nombre }))}
+                    placeholder="Seleccionar AFP"
                   />
                   <EditableField
                     label="Descuento AFP"
@@ -1041,9 +1073,10 @@ export default function GuardiaDetallePage() {
                   />
                   <EditableField
                     label="Previsión Salud"
-                    value={formatText(guardia.prevision_salud) || ''}
+                    value={guardia.prevision_salud || ''}
                     field="prevision_salud"
-                    placeholder="Previsión de salud"
+                    options={isapres.map(isapre => ({ value: isapre.codigo, label: isapre.nombre }))}
+                    placeholder="Seleccionar previsión"
                   />
                   <EditableField
                     label="Cotiza Sobre 7"
@@ -1083,11 +1116,11 @@ export default function GuardiaDetallePage() {
                     label="Tramo Asignación"
                     value={guardia.tramo_asignacion || ''}
                     field="tramo_asignacion"
-                    options={[
-                      { value: 'A', label: 'A' },
-                      { value: 'B', label: 'B' },
-                      { value: 'C', label: 'C' }
-                    ]}
+                    options={tramosAsignacion.map(tramo => ({ 
+                      value: tramo.codigo, 
+                      label: `${tramo.nombre} - ${tramo.descripcion}` 
+                    }))}
+                    placeholder="Seleccionar tramo"
                   />
                 </div>
               </CardContent>
