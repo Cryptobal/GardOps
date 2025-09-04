@@ -143,8 +143,10 @@ export async function PUT(
         await sql.query(`
           INSERT INTO as_turnos_series_dias (
             rol_servicio_id, posicion_en_ciclo, es_dia_trabajo,
-            hora_inicio, hora_termino, observaciones
-          ) VALUES ($1, $2, $3, $4, $5, $6)
+            hora_inicio, hora_termino, observaciones, tenant_id
+          ) VALUES ($1, $2, $3, $4, $5, $6, (
+            SELECT tenant_id FROM as_turnos_roles_servicio WHERE id = $1
+          ))
         `, [
           rolId,
           dia.posicion_en_ciclo,

@@ -256,15 +256,16 @@ export async function POST(request: NextRequest) {
         await sql.query(`
           INSERT INTO as_turnos_series_dias (
             rol_servicio_id, posicion_en_ciclo, es_dia_trabajo,
-            hora_inicio, hora_termino, observaciones
-          ) VALUES ($1, $2, $3, $4, $5, $6)
+            hora_inicio, hora_termino, observaciones, tenant_id
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7)
         `, [
           nuevoRol.id,
           dia.posicion_en_ciclo,
           dia.es_dia_trabajo,
           dia.hora_inicio || null,
           dia.hora_termino || null,
-          dia.observaciones || null
+          dia.observaciones || null,
+          finalTenantId === '1' ? null : finalTenantId
         ]);
       }
     }

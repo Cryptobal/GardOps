@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { obtenerTenantIdUsuario } from '@/lib/utils/obtener-tenant-usuario';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -27,7 +28,6 @@ interface WizardCrearRolProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (rolData: any) => Promise<void>;
-  tenantId?: string;
 }
 
 interface DiaConfig {
@@ -45,8 +45,7 @@ const CICLOS_COMUNES = [4, 7, 8, 14];
 export default function WizardCrearRol({
   isOpen,
   onClose,
-  onSave,
-  tenantId
+  onSave
 }: WizardCrearRolProps) {
   const { toast } = useToast();
   
@@ -59,6 +58,7 @@ export default function WizardCrearRol({
   const [duracionCiclo, setDuracionCiclo] = useState(7);
   const [diasConfig, setDiasConfig] = useState<DiaConfig[]>([]);
   const [nomenclatura, setNomenclatura] = useState('');
+  const [tenantIdUsuario, setTenantIdUsuario] = useState('1');
 
   // Inicializar días cuando cambia la duración del ciclo
   useEffect(() => {
@@ -75,6 +75,13 @@ export default function WizardCrearRol({
     }
     setDiasConfig(nuevaConfig);
   }, [duracionCiclo]);
+
+  // Obtener tenant_id del usuario autenticado
+  useEffect(() => {
+    if (isOpen) {
+      obtenerTenantIdUsuario().then(setTenantIdUsuario);
+    }
+  }, [isOpen]);
 
   // Calcular nomenclatura cuando cambian los días
   useEffect(() => {
@@ -222,22 +229,22 @@ export default function WizardCrearRol({
         hora_inicio: diasConfig.find(d => d.esTrabajo)?.horaInicio || '08:00',
         hora_termino: diasConfig.find(d => d.esTrabajo)?.horaTermino || '20:00',
         estado: 'Activo',
-        tenantId: tenantId || '1',
+        tenantId: tenantIdUsuario,
         tiene_horarios_variables: true,
         series_dias: series
       };
 
       await onSave(rolData);
       
-      // Mostrar toast de éxito
+      // NO cerrar el modal, ir al paso 4
+      setPaso(4);
+      setMostrarPasoNocturno(true);
+      
+      // Mostrar toast de éxito pero SIN cerrar
       toast({
         title: "Rol creado exitosamente",
         description: `Rol "${nomenclatura}" creado correctamente`,
       });
-      
-      // Ir al paso 4 para preguntar por el patrón nocturno/diurno
-      setPaso(4);
-      setMostrarPasoNocturno(true);
     } catch (error) {
       console.error('Error guardando rol:', error);
     } finally {
@@ -276,7 +283,7 @@ export default function WizardCrearRol({
         hora_inicio: horaInicioOpuesto,
         hora_termino: horaTerminoOpuesto,
         estado: 'Activo',
-        tenantId: tenantId || '1',
+        tenantId: tenantIdUsuario,
         tiene_horarios_variables: false, // Usar horarios fijos para el patrón opuesto
         series_dias: []
       };

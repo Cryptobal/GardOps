@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS as_turnos_series_dias (
   hora_termino TIME,
   horas_turno DECIMAL(4,2) DEFAULT 0,
   observaciones TEXT,
+  tenant_id UUID, -- Heredado del rol de servicio
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
   

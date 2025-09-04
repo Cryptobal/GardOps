@@ -772,7 +772,6 @@ export default function RolesServicioPage() {
         isOpen={showWizardCrear}
         onClose={() => setShowWizardCrear(false)}
         onSave={handleCrearRolWizard}
-        tenantId="1" // TODO: Obtener del contexto de usuario
       />
     </div>
   );
