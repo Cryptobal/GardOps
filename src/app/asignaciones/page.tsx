@@ -275,11 +275,11 @@ export default function Asignaciones() {
 
       {/* Lista de guardias - Grid responsive */}
       {guards.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <h3 className="text-lg font-semibold">Guardias Cercanos ({guards.length})</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-full">
             {guards.sort((a,b)=>a.distancia-b.distancia).map(g=>(
-              <Card key={g.id} className="p-4">
+              <Card key={g.id} className="p-4 w-full max-w-sm mx-auto">
                 <div className="space-y-3">
                   {/* Información principal */}
                   <div className="flex justify-between items-start">
