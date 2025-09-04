@@ -28,7 +28,7 @@ export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fe
     if (tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
-  }, [searchParams.tab, activeTab]);
+  }, [searchParams.tab]);
 
   useEffect(() => {
     let isMounted = true;
