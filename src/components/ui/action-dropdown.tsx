@@ -21,12 +21,12 @@ export function ActionDropdown({
   const [isOpen, setIsOpen] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
-  const handleAction = (action: () => void, event?: React.MouseEvent) => {
+  const handleAction = async (action: () => void | Promise<void>, event?: React.MouseEvent) => {
     if (event) {
       event.stopPropagation();
     }
     setIsOpen(false);
-    action();
+    await action();
   };
 
   // Cerrar dropdown al hacer click fuera
@@ -64,7 +64,7 @@ export function ActionDropdown({
         <div className="absolute right-0 top-full mt-1 z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
           {isActive ? (
             <button
-              onClick={(e) => handleAction(() => onInactivate(e), e)}
+              onClick={async (e) => await handleAction(() => onInactivate(), e)}
               className="w-full flex items-center rounded-sm px-2 py-1.5 text-sm text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950 transition-colors"
             >
               <Power className="h-4 w-4 mr-2" />
@@ -72,7 +72,7 @@ export function ActionDropdown({
             </button>
           ) : (
             <button
-              onClick={(e) => handleAction(() => onActivate(e), e)}
+              onClick={async (e) => await handleAction(() => onActivate(), e)}
               className="w-full flex items-center rounded-sm px-2 py-1.5 text-sm text-green-600 hover:bg-green-50 dark:hover:bg-green-950 transition-colors"
             >
               <Power className="h-4 w-4 mr-2" />
