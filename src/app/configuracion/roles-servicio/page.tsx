@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Save, X, Download, Upload, FileText, Eye, EyeOff, AlertCircle, ChevronDown, ChevronUp, Moon } from 'lucide-react';
+import { Plus, Edit, Save, X, Download, Eye, EyeOff, AlertCircle, ChevronDown, ChevronUp, Moon } from 'lucide-react';
 import { 
   getRolesServicio, 
   crearRolServicio, 
@@ -46,9 +46,6 @@ export default function RolesServicioPage() {
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [infoRol, setInfoRol] = useState<{rol: RolServicio, verificacion: any} | null>(null);
   const [formularioAbierto, setFormularioAbierto] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const [importing, setImporting] = useState(false);
   
   const [nuevoRol, setNuevoRol] = useState({
     dias_trabajo: 4,
@@ -299,93 +296,38 @@ export default function RolesServicioPage() {
     }
   };
 
-  const exportarRoles = async () => {
-    try {
-      const response = await fetch('/api/roles-servicio/exportar');
-      if (!response.ok) {
-        throw new Error('Error al exportar roles');
-      }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `roles_servicio_${new Date().toISOString().split('T')[0]}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      success('Roles exportados exitosamente', 'Éxito');
-    } catch (err) {
-      console.error('Error exportando roles:', err);
-      error('Error al exportar roles', 'Error');
-    }
-  };
+  const exportarRoles = () => {
+    const rolesFiltrados = roles.filter(rol => {
+      if (filtroEstado === 'activos') return rol.estado === 'Activo';
+      if (filtroEstado === 'inactivos') return rol.estado === 'Inactivo';
+      return true;
+    });
 
-  const descargarTemplate = async () => {
-    try {
-      const response = await fetch('/api/roles-servicio/template');
-      if (!response.ok) {
-        throw new Error('Error al descargar template');
-      }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'template_roles_servicio.xlsx';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      success('Template descargado exitosamente', 'Éxito');
-    } catch (err) {
-      console.error('Error descargando template:', err);
-      error('Error al descargar template', 'Error');
-    }
-  };
+    const csvContent = [
+      ['ID', 'Nombre', 'Descripción', 'Días Trabajo', 'Días Descanso', 'Horas Turno', 'Hora Inicio', 'Hora Término', 'Estado', 'Creado'],
+      ...rolesFiltrados.map(rol => [
+        rol.id,
+        rol.nombre,
+        rol.nombre || '',
+        rol.dias_trabajo,
+        rol.dias_descanso,
+        rol.horas_turno,
+        rol.hora_inicio,
+        rol.hora_termino,
+        rol.estado,
+        new Date(rol.created_at).toLocaleDateString('es-CL')
+      ])
+    ].map(row => row.join(',')).join('\n');
 
-  const handleImportFile = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setImportFile(file);
-    }
-  };
-
-  const importarRoles = async () => {
-    if (!importFile) {
-      error('Por favor selecciona un archivo', 'Error');
-      return;
-    }
-
-    try {
-      setImporting(true);
-      const formData = new FormData();
-      formData.append('file', importFile);
-
-      const response = await fetch('/api/roles-servicio/importar', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        success(result.message, 'Éxito');
-        setShowImportModal(false);
-        setImportFile(null);
-        cargarRoles(); // Recargar la lista
-      } else {
-        error(result.error || 'Error al importar roles', 'Error');
-      }
-    } catch (err) {
-      console.error('Error importando roles:', err);
-      error('Error al importar roles', 'Error');
-    } finally {
-      setImporting(false);
-    }
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `roles_servicio_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Extraer patrones únicos para el filtro
@@ -415,14 +357,6 @@ export default function RolesServicioPage() {
         <div className="flex gap-2">
           <Button onClick={cargarRoles} variant="outline" disabled={loading}>
             {loading ? 'Cargando...' : 'Recargar'}
-          </Button>
-          <Button onClick={descargarTemplate} variant="outline">
-            <FileText className="w-4 h-4 mr-2" />
-            Template
-          </Button>
-          <Button onClick={() => setShowImportModal(true)} variant="outline">
-            <Upload className="w-4 h-4 mr-2" />
-            Importar
           </Button>
           <Button onClick={exportarRoles} variant="outline">
             <Download className="w-4 h-4 mr-2" />
@@ -868,72 +802,6 @@ export default function RolesServicioPage() {
               className="bg-blue-600 hover:bg-blue-700"
             >
               Cerrar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Modal de Importación */}
-      <AlertDialog open={showImportModal} onOpenChange={setShowImportModal}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5 text-blue-500" />
-              Importar Roles de Servicio
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Selecciona un archivo Excel con los roles de servicio a importar.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="import-file" className="text-sm font-medium">
-                Archivo Excel (.xlsx)
-              </Label>
-              <Input
-                id="import-file"
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={handleImportFile}
-                className="mt-1"
-              />
-              {importFile && (
-                <p className="text-sm text-green-600 mt-1">
-                  ✓ {importFile.name} seleccionado
-                </p>
-              )}
-            </div>
-            
-            <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-              <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2 text-sm">
-                📋 Formato requerido:
-              </h4>
-              <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
-                <li>• Nombre: Nombre del rol</li>
-                <li>• Días Trabajo: Número de días trabajados</li>
-                <li>• Días Descanso: Número de días de descanso</li>
-                <li>• Horas Turno: Horas por turno</li>
-                <li>• Hora Inicio: Formato HH:MM (ej: 08:00)</li>
-                <li>• Hora Termino: Formato HH:MM (ej: 20:00)</li>
-                <li>• Estado: Activo o Inactivo</li>
-              </ul>
-            </div>
-          </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setShowImportModal(false);
-              setImportFile(null);
-            }}>
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={importarRoles}
-              disabled={!importFile || importing}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {importing ? 'Importando...' : 'Importar'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

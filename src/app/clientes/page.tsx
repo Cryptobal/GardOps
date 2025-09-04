@@ -84,6 +84,7 @@ export default function ClientesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("Activo");
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<string>("all");
 
   // Hook para inactivación de clientes
   const { openModal, ClienteInactivationModal } = useClienteInactivation();
@@ -301,6 +302,15 @@ export default function ClientesPage() {
     fetchClientes();
   }, [allowed, isAuthenticated]);
 
+  // Obtener clientes activos únicos para el selector
+  const clientesActivos = useMemo(() => {
+    return clientes
+      .filter(cliente => cliente.estado === "Activo")
+      .map(cliente => cliente.nombre)
+      .filter((nombre, index, array) => array.indexOf(nombre) === index)
+      .sort();
+  }, [clientes]);
+
   // Filtrar clientes
   const filteredClientes = useMemo(() => {
     let filtered = [...clientes];
@@ -322,8 +332,15 @@ export default function ClientesPage() {
       );
     }
 
+    // Filtro por cliente seleccionado
+    if (clienteSeleccionado !== "all") {
+      filtered = filtered.filter(cliente => 
+        cliente.nombre === clienteSeleccionado
+      );
+    }
+
     return filtered;
-  }, [clientes, searchTerm, statusFilter]);
+  }, [clientes, searchTerm, statusFilter, clienteSeleccionado]);
 
   // Calcular KPIs
   const kpis = useMemo(() => {
@@ -603,37 +620,58 @@ export default function ClientesPage() {
       {/* Filtros */}
       <Card>
         <CardContent className="p-4 md:p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Buscar por nombre, RUT o representante..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full"
-              />
+          <div className="flex flex-col gap-4">
+            {/* Primera fila: Búsqueda y botones de estado */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <Input
+                  placeholder="Buscar por nombre, RUT o representante..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant={statusFilter === "Todos" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setStatusFilter("Todos")}
+                >
+                  Todos
+                </Button>
+                <Button
+                  variant={statusFilter === "Activo" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setStatusFilter("Activo")}
+                >
+                  Activos
+                </Button>
+                <Button
+                  variant={statusFilter === "Inactivo" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setStatusFilter("Inactivo")}
+                >
+                  Inactivos
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant={statusFilter === "Todos" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("Todos")}
-              >
-                Todos
-              </Button>
-              <Button
-                variant={statusFilter === "Activo" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("Activo")}
-              >
-                Activos
-              </Button>
-              <Button
-                variant={statusFilter === "Inactivo" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("Inactivo")}
-              >
-                Inactivos
-              </Button>
+            
+            {/* Segunda fila: Selector de cliente activo */}
+            <div className="flex justify-end">
+              <div className="w-full sm:w-64">
+                <select
+                  value={clienteSeleccionado}
+                  onChange={(e) => setClienteSeleccionado(e.target.value)}
+                  className="px-3 py-2 border rounded-md bg-background text-sm w-full"
+                >
+                  <option value="all">Todos los clientes activos</option>
+                  {clientesActivos.map((cliente) => (
+                    <option key={cliente} value={cliente}>
+                      {cliente}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         </CardContent>

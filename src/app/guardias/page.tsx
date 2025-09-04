@@ -102,6 +102,7 @@ export default function GuardiasPage() {
   const [tipoFilter, setTipoFilter] = useState<string>("all");
   const [instalacionFilter, setInstalacionFilter] = useState<string>("all");
   const [os10Filter, setOs10Filter] = useState<string>("all");
+  const [guardiaSeleccionado, setGuardiaSeleccionado] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [os10ModalOpen, setOs10ModalOpen] = useState(false);
   const [os10ModalTipo, setOs10ModalTipo] = useState<'por_vencer' | 'vencido' | 'sin_fecha' | null>(null);
@@ -369,6 +370,15 @@ export default function GuardiasPage() {
     fetchGuardias();
   }, [allowed, isAuthenticated]);
 
+  // Obtener guardias activos únicos para el selector
+  const guardiasActivos = useMemo(() => {
+    return guardias
+      .filter(guardia => (guardia.estado === 'Activo' || guardia.activo === true))
+      .map(guardia => guardia.nombre_completo || guardia.nombre)
+      .filter((nombre, index, array) => array.indexOf(nombre) === index && nombre)
+      .sort();
+  }, [guardias]);
+
   // Filtrar guardias (con dependencias explícitas)
   const filteredGuardias = useMemo(() => {
     return guardias.filter((guardia: any) => {
@@ -380,8 +390,8 @@ export default function GuardiasPage() {
         guardia.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesStatus = statusFilter === "all" || 
-        (statusFilter === "activo" && (guardia.estado === 'activo' || guardia.activo === true)) ||
-        (statusFilter === "inactivo" && (guardia.estado === 'inactivo' || guardia.activo === false));
+        (statusFilter === "activo" && (guardia.estado === 'Activo' || guardia.activo === true)) ||
+        (statusFilter === "inactivo" && (guardia.estado === 'Inactivo' || guardia.activo === false));
 
       const matchesTipo = tipoFilter === "all" || 
         (tipoFilter === "contratado" && guardia.tipo_guardia === 'contratado') ||
@@ -397,9 +407,12 @@ export default function GuardiasPage() {
         (os10Filter === "vencido" && estadoOS10.estado === 'vencido') ||
         (os10Filter === "sin_fecha" && estadoOS10.estado === 'sin_fecha');
 
-      return matchesSearch && matchesStatus && matchesTipo && matchesInstalacion && matchesOS10;
+      const matchesGuardiaSeleccionado = guardiaSeleccionado === "all" || 
+        (guardia.nombre_completo || guardia.nombre) === guardiaSeleccionado;
+
+      return matchesSearch && matchesStatus && matchesTipo && matchesInstalacion && matchesOS10 && matchesGuardiaSeleccionado;
     });
-  }, [guardias, searchTerm, statusFilter, tipoFilter, instalacionFilter, os10Filter]);
+  }, [guardias, searchTerm, statusFilter, tipoFilter, instalacionFilter, os10Filter, guardiaSeleccionado]);
 
   // Columnas de la tabla
   const columns: Column<any>[] = [
@@ -628,7 +641,7 @@ export default function GuardiasPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nombre, apellido o RUT..."
+              placeholder="Buscar guardias..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 w-full"
@@ -772,12 +785,31 @@ export default function GuardiasPage() {
                   setTipoFilter("all");
                   setInstalacionFilter("all");
                   setOs10Filter("all");
+                  setGuardiaSeleccionado("all");
                   setSearchTerm("");
                 }}
                 className="text-xs h-10 px-3"
               >
                 Limpiar Filtros
               </Button>
+            </div>
+            
+            {/* Segunda fila: Selector de guardia activo */}
+            <div className="flex justify-end mt-3">
+              <div className="w-full sm:w-64">
+                <select
+                  value={guardiaSeleccionado}
+                  onChange={(e) => setGuardiaSeleccionado(e.target.value)}
+                  className="px-3 py-2 border rounded-md bg-background text-sm w-full"
+                >
+                  <option value="all">Todos los guardias activos</option>
+                  {guardiasActivos.map((guardia) => (
+                    <option key={guardia} value={guardia}>
+                      {guardia}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </motion.div>
         )}

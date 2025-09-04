@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useAddressAutocomplete, type AddressData } from '@/lib/useAddressAutocomplete';
 import { formatearFecha } from '@/lib/utils/date';
-import { QuickNavigation } from '@/components/ui/quick-navigation-simple';
 import TurnosInstalacion from './components/TurnosInstalacion';
 import EstructuraServicio from './components/EstructuraServicio';
 import MonitoreoInstalacion from './components/MonitoreoInstalacion';
@@ -70,7 +69,7 @@ export default function InstalacionDetallePage() {
     cargarInstalacion();
     cargarClientes();
     cargarInstalaciones();
-  }, [instalacionId, cargarInstalaciones]);
+  }, [instalacionId]);
 
   const cargarClientes = async () => {
     try {
@@ -83,7 +82,7 @@ export default function InstalacionDetallePage() {
     }
   };
 
-  const cargarInstalaciones = useCallback(async () => {
+  const cargarInstalaciones = async () => {
     try {
       const response = await fetch('/api/instalaciones?simple=true');
       const data = await response.json();
@@ -93,11 +92,7 @@ export default function InstalacionDetallePage() {
     } catch (error) {
       console.error('Error cargando instalaciones:', error);
     }
-  }, []);
-
-  const handleNavigateToInstalacion = useCallback((id: string) => {
-    router.push(`/instalaciones/${id}`);
-  }, [router]);
+  };
 
   const cargarInstalacion = async () => {
     try {
@@ -471,33 +466,17 @@ export default function InstalacionDetallePage() {
               Volver
             </Button>
           </Link>
-          
-          {/* Navegación rápida entre instalaciones */}
-          <div className="min-w-[200px] max-w-[300px] flex-1">
-            <QuickNavigation
-              currentId={instalacionId}
-              items={instalaciones.map(inst => ({
-                id: inst.id,
-                name: inst.nombre,
-                rut: inst.cliente_nombre,
-                status: inst.estado
-              }))}
-              onNavigate={handleNavigateToInstalacion}
-              placeholder="Cambiar instalación..."
-            />
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">
+              {instalacion.nombre}
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-600 truncate">
+              Cliente: {(() => { 
+                console.log('🔍 cliente_nombre:', instalacion.cliente_nombre, typeof instalacion.cliente_nombre); 
+                return instalacion.cliente_nombre?.toString().trim(); 
+              })()}
+            </p>
           </div>
-        </div>
-        
-        <div className="flex-1 min-w-0">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">
-            {instalacion.nombre}
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-600 truncate">
-            Cliente: {(() => { 
-              console.log('🔍 cliente_nombre:', instalacion.cliente_nombre, typeof instalacion.cliente_nombre); 
-              return instalacion.cliente_nombre?.toString().trim(); 
-            })()}
-          </p>
         </div>
         
         {/* Selector de instalaciones */}
