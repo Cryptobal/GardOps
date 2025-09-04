@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Save, X, Download, Eye, EyeOff, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Edit, Save, X, Download, Eye, EyeOff, AlertCircle, ChevronDown, ChevronUp, Moon } from 'lucide-react';
 import { 
   getRolesServicio, 
   crearRolServicio, 
@@ -20,7 +20,7 @@ import {
 } from '@/lib/api/roles-servicio';
 import { RolServicio, CrearRolServicioData } from '@/lib/schemas/roles-servicio';
 import { calcularNomenclaturaRol } from '@/lib/utils/calcularNomenclaturaRol';
-import { ordenarRolesPorPatron, extraerPatronesUnicos, filtrarRolesPorPatron, extraerPatronTurno } from '@/lib/utils/ordenarRolesPorPatron';
+import { ordenarRolesPorPatron, extraerPatronesUnicos, filtrarRolesPorPatron, extraerPatronTurno, tieneParNoche, crearDatosTurnoNoche } from '@/lib/utils/ordenarRolesPorPatron';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -147,6 +147,28 @@ export default function RolesServicioPage() {
       
       success('Rol de servicio creado correctamente', 'Éxito');
 
+      // Preguntar si quiere crear el turno de noche
+      const info = extraerPatronTurno(nuevoRolCreado.nombre);
+      const esTurnoDia = info.esDia;
+      
+      if (esTurnoDia) {
+        const crearNoche = confirm(
+          `¿Quieres crear también el turno de noche para el patrón ${info.patron}?\n\n` +
+          `Esto creará automáticamente el turno de noche con horario de 12 horas después.`
+        );
+        
+        if (crearNoche) {
+          try {
+            const datosNoche = crearDatosTurnoNoche(nuevoRolCreado);
+            await crearRolServicio(datosNoche as CrearRolServicioData);
+            success('Turno de noche creado automáticamente', 'Éxito');
+          } catch (err) {
+            console.error('Error creando turno de noche automático:', err);
+            // No mostrar error, solo log
+          }
+        }
+      }
+
       // Limpiar formulario y cerrar
       setNuevoRol({
         dias_trabajo: 4,
@@ -254,6 +276,22 @@ export default function RolesServicioPage() {
     } finally {
       setShowConfirmDialog(false);
       setRolParaConfirmar(null);
+    }
+  };
+
+  const crearTurnoNoche = async (rolDia: RolServicio) => {
+    try {
+      const datosNoche = crearDatosTurnoNoche(rolDia);
+      console.log('🌙 Creando turno de noche:', datosNoche);
+      
+      await crearRolServicio(datosNoche as CrearRolServicioData);
+      success('Turno de noche creado correctamente', 'Éxito');
+      
+      await cargarRoles();
+      await cargarStats();
+    } catch (err) {
+      console.error('Error creando turno de noche:', err);
+      error('No se pudo crear el turno de noche', 'Error');
     }
   };
 
@@ -632,6 +670,17 @@ export default function RolesServicioPage() {
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
+                            {!tieneParNoche(rol, roles) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => crearTurnoNoche(rol)}
+                                title="Crear turno de noche"
+                                className="text-blue-600 hover:text-blue-700"
+                              >
+                                <Moon className="w-4 h-4" />
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="destructive"

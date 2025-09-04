@@ -213,3 +213,65 @@ export function filtrarRolesPorPatron(roles: RolServicio[], patronFiltro: string
     return info.patron === patronFiltro;
   });
 }
+
+/**
+ * Detecta si un rol tiene su par de noche
+ */
+export function tieneParNoche(rol: any, todosLosRoles: any[]): boolean {
+  const info = extraerPatronTurno(rol.nombre);
+  
+  // Si es turno de noche, siempre tiene par (el de día)
+  if (!info.esDia) {
+    return true;
+  }
+  
+  // Si es turno de día, buscar si existe el de noche
+  const parNoche = todosLosRoles.find(otroRol => {
+    if (otroRol.id === rol.id) return false; // No comparar consigo mismo
+    
+    const otroInfo = extraerPatronTurno(otroRol.nombre);
+    
+    // Mismo patrón y tipo noche
+    return otroInfo.patron === info.patron && !otroInfo.esDia;
+  });
+  
+  return !!parNoche;
+}
+
+/**
+ * Crea los datos para el turno de noche basado en un turno de día
+ */
+export function crearDatosTurnoNoche(rolDia: any): any {
+  const info = extraerPatronTurno(rolDia.nombre);
+  
+  // Calcular horario de noche (12 horas después)
+  const horaInicio = rolDia.hora_inicio;
+  const horaTermino = rolDia.hora_termino;
+  
+  // Convertir a minutos para facilitar cálculos
+  const [horaInicioH, minInicioH] = horaInicio.split(':').map(Number);
+  const [horaTerminoH, minTerminoH] = horaTermino.split(':').map(Number);
+  
+  const minutosInicio = horaInicioH * 60 + minInicioH;
+  const minutosTermino = horaTerminoH * 60 + minTerminoH;
+  
+  // Calcular turno de noche (12 horas después)
+  let minutosInicioNoche = minutosInicio + (12 * 60); // +12 horas
+  let minutosTerminoNoche = minutosTermino + (12 * 60);
+  
+  // Ajustar si pasa de medianoche
+  if (minutosInicioNoche >= 24 * 60) minutosInicioNoche -= 24 * 60;
+  if (minutosTerminoNoche >= 24 * 60) minutosTerminoNoche -= 24 * 60;
+  
+  // Convertir de vuelta a formato HH:MM
+  const horaInicioNoche = `${Math.floor(minutosInicioNoche / 60).toString().padStart(2, '0')}:${(minutosInicioNoche % 60).toString().padStart(2, '0')}`;
+  const horaTerminoNoche = `${Math.floor(minutosTerminoNoche / 60).toString().padStart(2, '0')}:${(minutosTerminoNoche % 60).toString().padStart(2, '0')}`;
+  
+  return {
+    dias_trabajo: rolDia.dias_trabajo,
+    dias_descanso: rolDia.dias_descanso,
+    hora_inicio: horaInicioNoche,
+    hora_termino: horaTerminoNoche,
+    estado: 'Activo'
+  };
+}
