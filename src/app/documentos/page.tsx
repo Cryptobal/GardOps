@@ -88,6 +88,7 @@ export default function DocumentosGlobalesPage() {
 
   // Estados principales
   const [pestanaActiva, setPestanaActiva] = useState<'documentos' | 'alertas' | 'kpis'>('documentos');
+  const [vistaActiva, setVistaActiva] = useState<'grilla' | 'lista'>('grilla');
   const [documentos, setDocumentos] = useState<DocumentoGlobal[]>([]);
   const [stats, setStats] = useState<DocumentosStats>({
     total: 0,
@@ -403,6 +404,24 @@ export default function DocumentosGlobalesPage() {
   };
 
   // Funciones para el visualizador y editor
+  const detectarTipoDocumento = (nombreArchivo: string): string => {
+    const extension = nombreArchivo.split('.').pop()?.toLowerCase();
+    const extensionMap: { [key: string]: string } = {
+      'pdf': 'application/pdf',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'bmp': 'image/bmp',
+      'webp': 'image/webp',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'xls': 'application/vnd.ms-excel',
+      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    };
+    return extensionMap[extension || ''] || 'application/octet-stream';
+  };
+
   const abrirVisualizador = (documento: DocumentoGlobal) => {
     setDocumentoParaVer(documento);
   };
@@ -1543,7 +1562,7 @@ export default function DocumentosGlobalesPage() {
           onClose={cerrarVisualizador}
           documentId={documentoParaVer.id}
           documentName={documentoParaVer.nombre}
-          documentType="application/octet-stream"
+          documentType={detectarTipoDocumento(documentoParaVer.nombre)}
           modulo={documentoParaVer.modulo}
         />
       )}
