@@ -195,11 +195,11 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     if (f.ppc !== 'all') params.set('ppc', f.ppc === true ? 'true' : 'false');
     if (f.q) params.set('q', f.q);
     if (mostrarLibres) params.set('incluirLibres', 'true');
-    if (activeTab) params.set('tab', activeTab);
     
-    const newUrl = `/pauta-diaria-v2?fecha=${addDays(fechaStr, delta)}${params.toString() ? '&' + params.toString() : ''}`;
+    // ✅ NAVEGAR A LA NUEVA PÁGINA SEPARADA
+    const newUrl = `/pauta-diaria?fecha=${addDays(fechaStr, delta)}${params.toString() ? '&' + params.toString() : ''}`;
     router.push(newUrl);
-  }, [f.instalacion, f.estado, f.ppc, f.q, mostrarLibres, fechaStr, router, activeTab]);
+  }, [f.instalacion, f.estado, f.ppc, f.q, mostrarLibres, fechaStr, router]);
 
   const goTo = useCallback((dateYmd: string) => {
     const params = new URLSearchParams();
@@ -208,10 +208,11 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     if (f.ppc !== 'all') params.set('ppc', f.ppc === true ? 'true' : 'false');
     if (f.q) params.set('q', f.q);
     if (mostrarLibres) params.set('incluirLibres', 'true');
-    if (activeTab) params.set('tab', activeTab);
-    const newUrl = `/pauta-diaria-v2?fecha=${dateYmd}${params.toString() ? '&' + params.toString() : ''}`;
+    
+    // ✅ NAVEGAR A LA NUEVA PÁGINA SEPARADA
+    const newUrl = `/pauta-diaria?fecha=${dateYmd}${params.toString() ? '&' + params.toString() : ''}`;
     router.push(newUrl);
-  }, [f.instalacion, f.estado, f.ppc, f.q, mostrarLibres, router, activeTab]);
+  }, [f.instalacion, f.estado, f.ppc, f.q, mostrarLibres, router]);
   
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

@@ -117,10 +117,9 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
     });
     const params = new URLSearchParams();
     if (incluirLibres) params.set('incluirLibres', 'true');
-    // ✅ SIEMPRE preservar 'monitoreo' como tab activo
-    params.set('tab', 'monitoreo');
     
-    const newUrl = `/pauta-diaria-v2?fecha=${addDays(fecha, delta)}${params.toString() ? '&' + params.toString() : ''}`;
+    // ✅ NAVEGAR A LA NUEVA PÁGINA SEPARADA
+    const newUrl = `/control-asistencias?fecha=${addDays(fecha, delta)}${params.toString() ? '&' + params.toString() : ''}`;
     console.log('🔄 [MonitoreoTiempoReal.go] NAVEGANDO A URL:', newUrl);
     router.push(newUrl);
   }, [fecha, incluirLibres, router]);
@@ -133,10 +132,9 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
     });
     const params = new URLSearchParams();
     if (incluirLibres) params.set('incluirLibres', 'true');
-    // ✅ SIEMPRE preservar 'monitoreo' como tab activo
-    params.set('tab', 'monitoreo');
     
-    const newUrl = `/pauta-diaria-v2?fecha=${newFecha}${params.toString() ? '&' + params.toString() : ''}`;
+    // ✅ NAVEGAR A LA NUEVA PÁGINA SEPARADA
+    const newUrl = `/control-asistencias?fecha=${newFecha}${params.toString() ? '&' + params.toString() : ''}`;
     console.log('🔄 [MonitoreoTiempoReal.goToDate] NAVEGANDO A URL:', newUrl);
     router.push(newUrl);
   }, [incluirLibres, router]);
