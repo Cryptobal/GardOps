@@ -186,13 +186,13 @@ export default function Asignaciones() {
   return(
     <Fragment>
       {/* Tabs de navegación */}
-      <div className="flex space-x-1 mb-4 bg-gray-100 p-1 rounded-lg">
+      <div className="flex space-x-1 mb-4 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
         <button
           onClick={() => setTabActiva('buscar')}
           className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
             tabActiva === 'buscar'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
           }`}
         >
           <Search className="w-4 h-4" />
@@ -202,8 +202,8 @@ export default function Asignaciones() {
           onClick={() => setTabActiva('asignados')}
           className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
             tabActiva === 'asignados'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
           }`}
         >
           <Users className="w-4 h-4" />
@@ -214,7 +214,7 @@ export default function Asignaciones() {
       {tabActiva === 'buscar' ? (
         <div>
           {/* KPIs */}
-          <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <Stat title="Guardias" value={guards.length} icon={<BadgeCheck className="w-4 h-4" />} />
             <Stat title="Instalación" value={instSelected?1:0} icon={<MapPin className="w-4 h-4" />} />
             <Stat title="Resultados" value={guards.length} icon="🎯" />
@@ -222,11 +222,11 @@ export default function Asignaciones() {
           </section>
 
       {/* Configuración */}
-      <Card className="mb-4">
+      <Card className="mb-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         <CardContent className="p-4 space-y-4">
           {/* Instalación */}
           <div>
-            <label className="text-sm font-medium mb-2 block">Instalación</label>
+            <label className="text-sm font-medium mb-2 block text-gray-700 dark:text-gray-300">Instalación</label>
             <Select onValueChange={(value) => {
               const found = instalaciones.find(i => i.id === value);
               if (found) setInstSelected(found);
@@ -246,7 +246,7 @@ export default function Asignaciones() {
 
           {/* Radio */}
           <div>
-            <label className="text-sm font-medium mb-2 block">Radio de búsqueda</label>
+            <label className="text-sm font-medium mb-2 block text-gray-700 dark:text-gray-300">Radio de búsqueda</label>
             <Select value={String(radio)} onValueChange={v=>setRadio(Number(v))}>
               <SelectTrigger className="w-full">
                 <span>{radio} km</span>

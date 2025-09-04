@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
     // Verificar autenticación
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const user = await auth();
+    if (!user || !user.tenant_id) {
       return NextResponse.json(
         { success: false, error: 'No autorizado' },
         { status: 401 }
@@ -38,12 +37,13 @@ export async function GET(request: NextRequest) {
       JOIN as_turnos_roles_servicio rs ON po.rol_servicio_id = rs.id
       WHERE po.es_ppc = false 
         AND po.activo = true
+        AND po.tenant_id = $1
         AND g.latitud IS NOT NULL 
         AND g.longitud IS NOT NULL
         AND i.latitud IS NOT NULL 
         AND i.longitud IS NOT NULL
       ORDER BY i.nombre, g.apellido_paterno, g.nombre
-    `);
+    `, [user.tenant_id]);
 
     // Calcular distancias usando fórmula de Haversine
     const guardiasConDistancia = result.rows.map((row: any) => {
