@@ -61,7 +61,8 @@ export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fe
       if (!isMounted) return;
       
       try {
-        setLoading(true);
+        // ❌ PROBLEMA: setLoading(true) causa re-render que ejecuta useEffect de nuevo
+        // setLoading(true); // REMOVIDO para evitar bucle infinito
         setError(null);
         
         console.log('🔍 Cargando datos de pauta diaria...');

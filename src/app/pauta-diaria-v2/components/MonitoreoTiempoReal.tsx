@@ -117,12 +117,13 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
     });
     const params = new URLSearchParams();
     if (incluirLibres) params.set('incluirLibres', 'true');
-    if (activeTab) params.set('tab', activeTab);
+    // ✅ SIEMPRE preservar 'monitoreo' como tab activo
+    params.set('tab', 'monitoreo');
     
     const newUrl = `/pauta-diaria-v2?fecha=${addDays(fecha, delta)}${params.toString() ? '&' + params.toString() : ''}`;
     console.log('🔄 [MonitoreoTiempoReal.go] NAVEGANDO A URL:', newUrl);
     router.push(newUrl);
-  }, [fecha, incluirLibres, activeTab, router]);
+  }, [fecha, incluirLibres, router]);
 
   const goToDate = useCallback((newFecha: string) => {
     console.log('🔄 [MonitoreoTiempoReal.goToDate] NAVEGANDO:', {
@@ -132,12 +133,13 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
     });
     const params = new URLSearchParams();
     if (incluirLibres) params.set('incluirLibres', 'true');
-    if (activeTab) params.set('tab', activeTab);
+    // ✅ SIEMPRE preservar 'monitoreo' como tab activo
+    params.set('tab', 'monitoreo');
     
     const newUrl = `/pauta-diaria-v2?fecha=${newFecha}${params.toString() ? '&' + params.toString() : ''}`;
     console.log('🔄 [MonitoreoTiempoReal.goToDate] NAVEGANDO A URL:', newUrl);
     router.push(newUrl);
-  }, [incluirLibres, activeTab, router]);
+  }, [incluirLibres, router]);
 
   // Evitar error de hidratación
   useEffect(() => {
