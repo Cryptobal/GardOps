@@ -36,6 +36,13 @@ export async function PUT(
     const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
     
     console.log('✅ API Guardias - Actualizando con datos:', body);
+    console.log('🔍 Campos de ubicación recibidos:', {
+      latitud: body.latitud,
+      longitud: body.longitud,
+      ciudad: body.ciudad,
+      comuna: body.comuna,
+      region: body.region
+    });
 
     // Obtener datos anteriores para el log
     const oldDataResult = await query(`
@@ -67,6 +74,48 @@ export async function PUT(
     // Convertir estado a booleano para la base de datos
     const activo = body.estado === 'activo';
 
+    // Preparar parámetros para el query
+    const queryParams = [
+      body.nombre,
+      apellidoPaterno,
+      apellidoMaterno,
+      body.rut,
+      body.email,
+      body.telefono,
+      body.direccion,
+      body.latitud || null,
+      body.longitud || null,
+      body.ciudad || null,
+      body.comuna || null,
+      body.region || null,
+      body.fecha_os10 || null,
+      body.banco_id || null,
+      body.tipo_cuenta || null,
+      body.numero_cuenta || null,
+      body.tipo_guardia || 'contratado',
+      activo,
+      body.sexo || null,
+      body.nacionalidad || null,
+      body.fecha_nacimiento || null,
+      body.afp || null,
+      body.descuento_afp || null,
+      body.prevision_salud || null,
+      body.cotiza_sobre_7 || null,
+      body.monto_pactado_uf || null,
+      body.es_pensionado || null,
+      body.asignacion_familiar || null,
+      body.tramo_asignacion || null,
+      body.talla_camisa || null,
+      body.talla_pantalon || null,
+      body.talla_zapato || null,
+      body.altura_cm || null,
+      body.peso_kg || null,
+      guardiaId,
+      tenantId
+    ];
+    
+    console.log('🔍 Parámetros del query:', queryParams);
+    
     // Query para actualizar el guardia
     const result = await query(`
       UPDATE guardias 
@@ -108,44 +157,7 @@ export async function PUT(
         updated_at = NOW()
       WHERE id = $35 AND tenant_id = $36
       RETURNING *
-    `, [
-      body.nombre,
-      apellidoPaterno,
-      apellidoMaterno,
-      body.rut,
-      body.email,
-      body.telefono,
-      body.direccion,
-      body.latitud || null,
-      body.longitud || null,
-      body.ciudad || null,
-      body.comuna || null,
-      body.region || null,
-      body.fecha_os10 || null,
-      body.banco_id || null,
-      body.tipo_cuenta || null,
-      body.numero_cuenta || null,
-      body.tipo_guardia || 'contratado',
-      activo,
-      body.sexo || null,
-      body.nacionalidad || null,
-      body.fecha_nacimiento || null,
-      body.afp || null,
-      body.descuento_afp || null,
-      body.prevision_salud || null,
-      body.cotiza_sobre_7 || null,
-      body.monto_pactado_uf || null,
-      body.es_pensionado || null,
-      body.asignacion_familiar || null,
-      body.tramo_asignacion || null,
-      body.talla_camisa || null,
-      body.talla_pantalon || null,
-      body.talla_zapato || null,
-      body.altura_cm || null,
-      body.peso_kg || null,
-      guardiaId,
-      tenantId
-    ]);
+    `, queryParams);
 
     if (result.rows.length === 0) {
       return NextResponse.json(

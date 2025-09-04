@@ -39,7 +39,11 @@ export async function GET(request: NextRequest) {
         'Talla Pantalón': '42',
         'Talla Zapato': '42',
         'Altura (cm)': '175',
-        'Peso (kg)': '70'
+        'Peso (kg)': '70',
+        // Campos bancarios
+        'Banco': 'Banco de Chile',
+        'Tipo de Cuenta': 'CCT',
+        'Número de Cuenta': '1234567890'
       }
     ];
 
@@ -80,7 +84,11 @@ export async function GET(request: NextRequest) {
       { width: 20 }, // Talla Pantalón
       { width: 15 }, // Talla Zapato
       { width: 15 }, // Altura
-      { width: 15 }  // Peso
+      { width: 15 }, // Peso
+      // Campos bancarios
+      { width: 25 }, // Banco
+      { width: 15 }, // Tipo de Cuenta
+      { width: 20 }  // Número de Cuenta
     ];
     worksheet['!cols'] = columnWidths;
 

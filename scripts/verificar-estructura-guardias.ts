@@ -1,35 +1,37 @@
-import { config } from 'dotenv';
-import path from 'path';
-
-// Cargar variables de entorno
-config({ path: path.join(__dirname, '../.env.local') });
-
+import 'dotenv/config';
 import { query } from '../src/lib/database';
 
 async function verificarEstructuraGuardias() {
   try {
-    console.log('🔍 Verificando estructura de guardias...\n');
+    console.log('🔍 Verificando estructura de la tabla guardias...');
     
-    const estructura = await query(`
-      SELECT column_name, data_type, is_nullable
+    // Obtener información de las columnas
+    const result = await query(`
+      SELECT column_name, data_type, is_nullable, column_default
       FROM information_schema.columns 
       WHERE table_name = 'guardias' 
       ORDER BY ordinal_position
     `);
     
-    console.log('Estructura de guardias:');
-    estructura.rows.forEach((row: any) => {
-      console.log(`  • ${row.column_name}: ${row.data_type} (nullable: ${row.is_nullable})`);
+    console.log('📋 Columnas de la tabla guardias:');
+    result.rows.forEach((row: any) => {
+      console.log(`  - ${row.column_name}: ${row.data_type} (nullable: ${row.is_nullable})`);
     });
     
-    // Verificar datos existentes
-    const datos = await query('SELECT * FROM guardias LIMIT 3');
-    console.log('\n📋 Datos de ejemplo:');
-    console.log(datos.rows);
+    // Verificar si existen los campos que estamos intentando actualizar
+    const camposProblematicos = ['latitud', 'longitud', 'region'];
+    
+    console.log('\n🔍 Verificando campos problemáticos:');
+    for (const campo of camposProblematicos) {
+      const existe = result.rows.some((row: any) => row.column_name === campo);
+      console.log(`  - ${campo}: ${existe ? '✅ Existe' : '❌ No existe'}`);
+    }
     
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error('❌ Error verificando estructura:', error);
+  } finally {
+    process.exit(0);
   }
 }
 
-verificarEstructuraGuardias(); 
+verificarEstructuraGuardias();

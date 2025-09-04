@@ -142,7 +142,11 @@ export async function POST(request: NextRequest) {
             'PIN': 'pin',
             'Dias Vac. Pendientes': 'dias_vacaciones_pendientes',
             'Fecha Ingreso': 'fecha_ingreso',
-            'Fecha Finiquito': 'fecha_finiquito'
+            'Fecha Finiquito': 'fecha_finiquito',
+            // Campos bancarios
+            'Banco': 'banco',
+            'Tipo de Cuenta': 'tipo_cuenta',
+            'Número de Cuenta': 'numero_cuenta'
           };
 
           // Procesar campos opcionales
@@ -275,7 +279,11 @@ export async function POST(request: NextRequest) {
           'Talla Pantalón': 'talla_pantalon',
           'Talla Zapato': 'talla_zapato',
           'Altura (cm)': 'altura_cm',
-          'Peso (kg)': 'peso_kg'
+          'Peso (kg)': 'peso_kg',
+          // Campos bancarios
+          'Banco': 'banco',
+          'Tipo de Cuenta': 'tipo_cuenta',
+          'Número de Cuenta': 'numero_cuenta'
           // NOTA: Instalación Asignada y Rol Actual no se pueden importar directamente
           // porque requieren lógica de negocio adicional para asignar a puestos operativos
         };
