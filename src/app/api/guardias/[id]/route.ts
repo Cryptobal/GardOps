@@ -32,7 +32,7 @@ export async function PUT(
     const body = await request.json();
     
     // Usar el tenant_id correcto de Gard
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337';
     const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
     
     console.log('✅ API Guardias - Actualizando con datos:', body);
@@ -251,7 +251,7 @@ export async function GET(
     const guardiaId = params.id;
     
     // Usar el tenant_id correcto de Gard
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337';
     const usuario = 'admin@test.com';
 
     // Obtener guardia con vacaciones actualizadas automáticamente

@@ -97,7 +97,6 @@ export async function getGuardiaConVacacionesActualizadas(guardiaId: string): Pr
         comuna,
         region,
         activo,
-        estado,
         tipo_guardia,
         fecha_ingreso,
         dias_vacaciones_pendientes,
