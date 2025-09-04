@@ -35,6 +35,7 @@ import {
   PowerOff,
   Settings
 } from 'lucide-react';
+import { ordenarRolesPorPatron } from '@/lib/utils/ordenarRolesPorPatron';
 
 interface EstructuraBono {
   id?: string;
@@ -571,7 +572,7 @@ export default function EstructuraServicio({ instalacionId, rolesPrecargados = [
       </div>
 
       <div className="space-y-4">
-        {roles.map((rol) => {
+        {ordenarRolesPorPatron(roles).map((rol) => {
           const estructurasRol = obtenerEstructurasRol(rol.id);
           const estructurasInactivasRol = obtenerEstructurasInactivasRol(rol.id);
           const sueldoBase = obtenerSueldoBase(rol.id);

@@ -26,6 +26,7 @@ import {
   RolServicio, 
   CrearTurnoInstalacionData 
 } from '@/lib/schemas/instalaciones';
+import { ordenarRolesPorPatron } from '@/lib/utils/ordenarRolesPorPatron';
 import AsignarGuardiaDropdown from './AsignarGuardiaDropdown';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 import InfoTurnos from './InfoTurnos';
@@ -593,7 +594,7 @@ export default function TurnosInstalacion({
                 placeholder="Seleccionar rol"
               >
                 <SelectContent>
-                  {Array.isArray(rolesServicio) ? rolesServicio.map((rol) => (
+                  {Array.isArray(rolesServicio) ? ordenarRolesPorPatron(rolesServicio).map((rol) => (
                     <SelectItem key={rol.id} value={rol.id}>
                       {rol.nombre}
                     </SelectItem>

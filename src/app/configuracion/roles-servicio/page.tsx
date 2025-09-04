@@ -20,6 +20,7 @@ import {
 } from '@/lib/api/roles-servicio';
 import { RolServicio, CrearRolServicioData } from '@/lib/schemas/roles-servicio';
 import { calcularNomenclaturaRol } from '@/lib/utils/calcularNomenclaturaRol';
+import { ordenarRolesPorPatron } from '@/lib/utils/ordenarRolesPorPatron';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -281,11 +282,13 @@ export default function RolesServicioPage() {
     document.body.removeChild(link);
   };
 
-  const rolesFiltrados = roles.filter(rol => {
-    if (filtroEstado === 'activos') return rol.estado === 'Activo';
-    if (filtroEstado === 'inactivos') return rol.estado === 'Inactivo';
-    return true;
-  });
+  const rolesFiltrados = ordenarRolesPorPatron(
+    roles.filter(rol => {
+      if (filtroEstado === 'activos') return rol.estado === 'Activo';
+      if (filtroEstado === 'inactivos') return rol.estado === 'Inactivo';
+      return true;
+    })
+  );
 
   return (
     <div className="container mx-auto p-6 space-y-6">

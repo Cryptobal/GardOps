@@ -30,6 +30,7 @@ import {
   calcularTotalEstructura,
   formatearMoneda
 } from '@/lib/schemas/estructuras-sueldo';
+import { ordenarRolesPorPatron } from '@/lib/utils/ordenarRolesPorPatron';
 
 interface RolServicio {
   id: string;
@@ -178,7 +179,7 @@ export default function EstructuraServicioNueva({ instalacionId, rolesPrecargado
         </Alert>
       ) : (
         <div className="space-y-4">
-          {roles.map((rol) => {
+          {ordenarRolesPorPatron(roles).map((rol) => {
             const estructura = obtenerEstructuraRol(rol.id);
             const isExpanded = expandedRoles.has(rol.id);
             const isEditing = editando === rol.id;
