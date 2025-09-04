@@ -172,7 +172,8 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     if (f.q) params.set('q', f.q);
     if (incluirLibres) params.set('incluirLibres', 'true');
     
-    const newUrl = `/pauta-diaria-v2?fecha=${fechaStr}${params.toString() ? '&' + params.toString() : ''}`;
+    // ✅ NAVEGAR A LA NUEVA PÁGINA SEPARADA
+    const newUrl = `/pauta-diaria?fecha=${fechaStr}${params.toString() ? '&' + params.toString() : ''}`;
     router.replace(newUrl, { scroll: false });
   }, [f.instalacion, f.estado, f.ppc, f.q, incluirLibres, fechaStr]);
 

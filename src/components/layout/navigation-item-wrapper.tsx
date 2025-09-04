@@ -90,11 +90,11 @@ export const NavigationItemWrapper = React.memo(function NavigationItemWrapper({
     // Ejemplo: /clientes/123 debe mantener /clientes activo
     if (pathname.startsWith(item.href + '/')) return true;
     
-    // Caso especial: pauta diaria redirige a pauta-diaria-v2 o legacy
-    if (item.href === '/pauta-diaria' && (pathname.startsWith('/pauta-diaria-v2') || pathname.startsWith('/legacy/pauta-diaria'))) return true;
+    // Caso especial: pauta diaria - solo activo en /pauta-diaria
+    if (item.href === '/pauta-diaria' && pathname.startsWith('/pauta-diaria')) return true;
     
-    // Caso especial: control de asistencias redirige a pauta-diaria-v2 con tab=monitoreo
-    if (item.href === '/control-asistencias' && pathname.startsWith('/pauta-diaria-v2') && searchParams.get('tab') === 'monitoreo') return true;
+    // Caso especial: control de asistencias - solo activo en /control-asistencias
+    if (item.href === '/control-asistencias' && pathname.startsWith('/control-asistencias')) return true;
     
     // Caso especial: turnos extras está dentro de pauta-diaria
     if (item.href === '/pauta-diaria/turnos-extras' && pathname.startsWith('/pauta-diaria/turnos-extras')) return true;

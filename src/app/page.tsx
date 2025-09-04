@@ -438,7 +438,7 @@ export default function HomePage() {
               )}
             </div>
             <div className="mt-3 w-full">
-              <Link href="/pauta-diaria-v2" className="w-full">
+              <Link href="/pauta-diaria" className="w-full">
                 <Button size="sm" variant="destructive" className="text-xs w-full">
                   Ver Detalles
                 </Button>
