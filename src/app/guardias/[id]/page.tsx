@@ -257,6 +257,7 @@ export default function GuardiaDetallePage() {
         
         if (selectedAddress) {
           // Si hay datos de Google Maps, usar las nuevas coordenadas
+          console.log('🔍 handleSave - usando selectedAddress:', selectedAddress);
           dataToUpdate.latitud = selectedAddress.latitud;
           dataToUpdate.longitud = selectedAddress.longitud;
           dataToUpdate.ciudad = selectedAddress.componentes.ciudad;
@@ -264,6 +265,7 @@ export default function GuardiaDetallePage() {
           dataToUpdate.region = selectedAddress.componentes.region;
         } else {
           // Si no hay datos de Google Maps, mantener las coordenadas existentes
+          console.log('🔍 handleSave - usando datos existentes del guardia');
           dataToUpdate.latitud = guardia.latitud;
           dataToUpdate.longitud = guardia.longitud;
           dataToUpdate.ciudad = guardia.ciudad;
@@ -273,6 +275,8 @@ export default function GuardiaDetallePage() {
       } else {
         dataToUpdate[field] = editValue;
       }
+      
+      console.log('🔍 handleSave - datos a enviar al servidor:', dataToUpdate);
       
       // Determinar si es un campo del guardia o de datos bancarios
       const isBancoField = ['banco', 'tipo_cuenta', 'numero_cuenta'].includes(field);
@@ -338,7 +342,10 @@ export default function GuardiaDetallePage() {
   };
 
   const handleAddressSelect = async (placeId: string) => {
+    console.log('🔍 handleAddressSelect - placeId:', placeId);
     const addressData = await selectAddress(placeId);
+    console.log('🔍 handleAddressSelect - addressData recibido:', addressData);
+    
     if (addressData) {
       setSelectedAddress(addressData);
       
@@ -355,10 +362,16 @@ export default function GuardiaDetallePage() {
       };
       
       const direccionCalle = limpiarDireccion(addressData.direccionCompleta);
+      console.log('🔍 handleAddressSelect - dirección limpia:', direccionCalle);
       setEditValue(direccionCalle);
       
       // Actualizar temporalmente los campos de comuna y ciudad en la UI
       if (guardia) {
+        console.log('🔍 handleAddressSelect - actualizando guardia con:', {
+          comuna: addressData.componentes.comuna,
+          ciudad: addressData.componentes.ciudad,
+          region: addressData.componentes.region
+        });
         setGuardia({
           ...guardia,
           comuna: addressData.componentes.comuna,
@@ -368,14 +381,16 @@ export default function GuardiaDetallePage() {
       }
       
       // Actualizar también geocodingData para mostrar inmediatamente los campos
-      setGeocodingData({
+      const newGeocodingData = {
         latitud: addressData.latitud,
         longitud: addressData.longitud,
         comuna: addressData.componentes.comuna,
         ciudad: addressData.componentes.ciudad,
         region: addressData.componentes.region,
         direccionCompleta: addressData.direccionCompleta
-      });
+      };
+      console.log('🔍 handleAddressSelect - actualizando geocodingData con:', newGeocodingData);
+      setGeocodingData(newGeocodingData);
     }
   };
 

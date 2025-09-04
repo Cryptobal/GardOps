@@ -180,7 +180,9 @@ export const useAddressAutocomplete = () => {
 
       placesService.current!.getDetails(request, (place, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+          console.log('🔍 selectAddress - place recibido:', place);
           const addressData = parseAddressComponents(place);
+          console.log('🔍 selectAddress - addressData parseado:', addressData);
           setSelectedAddress(addressData);
           setSuggestions([]);
           resolve(addressData);
