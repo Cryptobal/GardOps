@@ -417,7 +417,10 @@ export default function DocumentosGlobalesPage() {
       'doc': 'application/msword',
       'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'xls': 'application/vnd.ms-excel',
-      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'txt': 'text/plain',
+      'rtf': 'application/rtf',
+      'csv': 'text/csv'
     };
     return extensionMap[extension || ''] || 'application/octet-stream';
   };
