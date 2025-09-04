@@ -42,6 +42,19 @@ export const useAddressAutocomplete = () => {
   useEffect(() => {
     const initializeGoogleMaps = async () => {
       try {
+        // Suprimir advertencias de deprecación de Google Maps
+        const originalWarn = console.warn;
+        console.warn = (...args) => {
+          const message = args.join(' ');
+          // Suprimir advertencias específicas de deprecación de Google Maps
+          if (message.includes('AutocompleteService is not available to new customers') ||
+              message.includes('PlacesService is not available to new customers') ||
+              message.includes('Marker is deprecated')) {
+            return;
+          }
+          originalWarn.apply(console, args);
+        };
+
         // Verificar que la API key esté disponible
         if (!GOOGLE_MAPS_CONFIG.API_KEY) {
           console.error('Google Maps API key no está configurada');
@@ -71,9 +84,16 @@ export const useAddressAutocomplete = () => {
 
         setIsLoaded(true);
         console.log('✅ Google Maps API cargada correctamente');
+        
+        // Restaurar console.warn después de un tiempo
+        setTimeout(() => {
+          console.warn = originalWarn;
+        }, 5000);
       } catch (error) {
         console.error('❌ Error al cargar Google Maps API:', error);
         setIsLoaded(false);
+        // Restaurar console.warn en caso de error
+        console.warn = originalWarn;
       }
     };
 
@@ -97,7 +117,7 @@ export const useAddressAutocomplete = () => {
         language: 'es', // Forzar idioma español
       };
 
-      autocompleteService.current.getPlacePredictions(
+              autocompleteService.current.getPlacePredictions(
         request,
         (predictions, status) => {
           if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
@@ -110,7 +130,10 @@ export const useAddressAutocomplete = () => {
             
             setSuggestions(formattedSuggestions);
           } else {
-            console.warn('Google Maps Autocomplete status:', status);
+            // Solo mostrar warnings para errores reales, no para deprecaciones
+            if (status !== google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+              console.warn('Google Maps Autocomplete status:', status);
+            }
             setSuggestions([]);
             
             // Si es un error de autorización, desactivar Google Maps completamente

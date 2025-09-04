@@ -119,6 +119,18 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
 
     // Agregar nuevos marcadores
     markers.forEach((markerData, index) => {
+      // Validar y convertir coordenadas
+      const lat = Number(markerData.position.lat);
+      const lng = Number(markerData.position.lng);
+      
+      // Verificar que las coordenadas sean válidas
+      if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
+        console.warn(`Coordenadas inválidas para marcador ${index + 1}:`, markerData.position);
+        return;
+      }
+      
+      const validPosition = { lat, lng };
+      
       // Configurar color del marcador
       let iconUrl = '';
       if (markerData.color) {
@@ -126,7 +138,7 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
       }
 
       const marker = new google.maps.Marker({
-        position: markerData.position,
+        position: validPosition,
         map: mapInstanceRef.current,
         title: markerData.title || `Ubicación ${index + 1}`,
         animation: google.maps.Animation.DROP,
@@ -154,8 +166,16 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
     // Ajustar vista si hay múltiples marcadores
     if (markers.length > 1) {
       const bounds = new google.maps.LatLngBounds();
-      markers.forEach(marker => bounds.extend(marker.position));
-      mapInstanceRef.current.fitBounds(bounds);
+      markers.forEach(markerData => {
+        const lat = Number(markerData.position.lat);
+        const lng = Number(markerData.position.lng);
+        if (!isNaN(lat) && !isNaN(lng) && isFinite(lat) && isFinite(lng)) {
+          bounds.extend({ lat, lng });
+        }
+      });
+      if (!bounds.isEmpty()) {
+        mapInstanceRef.current.fitBounds(bounds);
+      }
     }
   }, [markers, isLoaded]);
 
