@@ -191,10 +191,9 @@ export default function InstalacionDetallePage() {
       
       await actualizarInstalacion(instalacionId, dataToUpdate);
       
-      // Actualizar estado local
-      setInstalacion(prev => prev ? { ...prev, ...dataToUpdate } : null);
-      
-      console.log('🔍 Instalación después de actualizar estado local:', instalacion);
+      // En lugar de actualizar estado local, recargar desde el servidor
+      console.log('🔄 Recargando instalación desde el servidor después de actualizar');
+      await cargarInstalacion();
       
       // Si se actualizó la dirección, recargar datos geográficos
       if (field === 'direccion') {
