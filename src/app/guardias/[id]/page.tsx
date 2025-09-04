@@ -1086,7 +1086,15 @@ export default function GuardiaDetallePage() {
                     label="AFP"
                     value={guardia.afp || ''}
                     field="afp"
-                    options={afps.map(afp => ({ value: afp.codigo, label: afp.nombre }))}
+                    options={afps.length > 0 ? afps.map(afp => ({ value: afp.codigo, label: afp.nombre })) : [
+                      { value: 'capital', label: 'AFP Capital' },
+                      { value: 'cuprum', label: 'AFP Cuprum' },
+                      { value: 'habitat', label: 'AFP Habitat' },
+                      { value: 'modelo', label: 'AFP Modelo' },
+                      { value: 'planvital', label: 'AFP PlanVital' },
+                      { value: 'provida', label: 'AFP ProVida' },
+                      { value: 'uno', label: 'AFP UNO' }
+                    ]}
                     placeholder="Seleccionar AFP"
                   />
                   <EditableField
@@ -1100,7 +1108,15 @@ export default function GuardiaDetallePage() {
                     label="Previsión Salud"
                     value={guardia.prevision_salud || ''}
                     field="prevision_salud"
-                    options={isapres.map(isapre => ({ value: isapre.codigo, label: isapre.nombre }))}
+                    options={isapres.length > 0 ? isapres.map(isapre => ({ value: isapre.codigo, label: isapre.nombre })) : [
+                      { value: 'fonasa', label: 'FONASA' },
+                      { value: 'banmedica', label: 'Banmédica' },
+                      { value: 'consalud', label: 'Consalud' },
+                      { value: 'colmena', label: 'Colmena Golden Cross' },
+                      { value: 'cruz_blanca', label: 'Cruz Blanca' },
+                      { value: 'nueva_masvida', label: 'Nueva Masvida' },
+                      { value: 'vida_tres', label: 'Vida Tres' }
+                    ]}
                     placeholder="Seleccionar previsión"
                   />
                   <EditableField
