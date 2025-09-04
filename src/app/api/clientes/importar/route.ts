@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import * as XLSX from 'xlsx';
+import { getCurrentUserServer } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
     console.log('🚀 Importando clientes desde Excel...');
     
-    // Tenant ID para Gard
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    // Obtener tenant_id del usuario autenticado
+    const currentUser = getCurrentUserServer(request);
+    if (!currentUser?.tenant_id) {
+      return NextResponse.json(
+        { error: 'Usuario no autenticado o sin tenant_id' },
+        { status: 401 }
+      );
+    }
+    const tenantId = currentUser.tenant_id;
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
