@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
         FROM instalaciones i
         WHERE i.latitud IS NOT NULL 
           AND i.longitud IS NOT NULL
-          AND i.estado = 'activo'
+          AND i.estado = 'Activo'
         ORDER BY i.nombre
       `);
       
