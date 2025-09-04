@@ -1159,7 +1159,7 @@ export default function DocumentosGlobalesPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {alertasFiltradas_computed.length === 0 ? (
+                  {documentosAlertasFiltrados.length === 0 ? (
                     <div className="text-center py-8">
                       <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <p className="text-muted-foreground">
