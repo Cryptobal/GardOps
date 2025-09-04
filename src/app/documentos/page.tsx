@@ -298,6 +298,46 @@ export default function DocumentosGlobalesPage() {
     return filtered.sort((a, b) => a.dias_restantes - b.dias_restantes);
   }, [alertas, filtrosAlertas]);
 
+  // Filtrar documentos para la pestaña de alertas
+  const documentosAlertasFiltrados = useMemo(() => {
+    let filtered = documentos.filter(doc => doc.estado === 'por_vencer' || doc.estado === 'vencido');
+    
+    // Filtro por módulo
+    if (filtrosAlertas.modulo !== 'todos') {
+      filtered = filtered.filter(doc => doc.modulo === filtrosAlertas.modulo);
+    }
+    
+    // Filtro por estado
+    if (filtrosAlertas.estado !== 'todos') {
+      if (filtrosAlertas.estado === 'vencidos') {
+        filtered = filtered.filter(doc => doc.estado === 'vencido');
+      } else if (filtrosAlertas.estado === 'vence_hoy') {
+        filtered = filtered.filter(doc => {
+          if (!doc.fecha_vencimiento) return false;
+          const hoy = new Date();
+          hoy.setHours(0, 0, 0, 0);
+          const fechaVencimiento = new Date(doc.fecha_vencimiento);
+          fechaVencimiento.setHours(0, 0, 0, 0);
+          return fechaVencimiento.getTime() === hoy.getTime();
+        });
+      } else if (filtrosAlertas.estado === 'proximos') {
+        filtered = filtered.filter(doc => doc.estado === 'por_vencer');
+      }
+    }
+    
+    // Filtro por búsqueda
+    if (filtrosAlertas.search) {
+      const searchLower = filtrosAlertas.search.toLowerCase();
+      filtered = filtered.filter(doc => 
+        doc.nombre.toLowerCase().includes(searchLower) ||
+        doc.entidad_nombre.toLowerCase().includes(searchLower) ||
+        (doc.tipo_documento_nombre || '').toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return filtered;
+  }, [documentos, filtrosAlertas]);
+
   useEffect(() => {
     if (pestanaActiva === 'documentos' && allowedDocumentos) {
       cargarDocumentos();
@@ -344,12 +384,34 @@ export default function DocumentosGlobalesPage() {
 
   // Obtener estadísticas de alertas
   const getAlertasStats = () => {
-    // Usar los stats de la API principal en lugar de las alertas
+    // Calcular estadísticas basadas en los documentos reales
+    const documentosConVencimiento = documentos.filter(doc => doc.fecha_vencimiento);
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    
+    const vencidos = documentosConVencimiento.filter(doc => {
+      const fechaVencimiento = new Date(doc.fecha_vencimiento!);
+      fechaVencimiento.setHours(0, 0, 0, 0);
+      return fechaVencimiento < hoy;
+    }).length;
+    
+    const venceHoy = documentosConVencimiento.filter(doc => {
+      const fechaVencimiento = new Date(doc.fecha_vencimiento!);
+      fechaVencimiento.setHours(0, 0, 0, 0);
+      return fechaVencimiento.getTime() === hoy.getTime();
+    }).length;
+    
+    const proximos = documentosConVencimiento.filter(doc => {
+      const fechaVencimiento = new Date(doc.fecha_vencimiento!);
+      fechaVencimiento.setHours(0, 0, 0, 0);
+      return fechaVencimiento > hoy;
+    }).length;
+    
     return { 
-      vencidos: stats.vencidos, 
-      hoy: 0, // Por ahora 0, se puede calcular después
-      proximos: stats.por_vencer, 
-      total: stats.por_vencer + stats.vencidos 
+      vencidos, 
+      hoy: venceHoy,
+      proximos, 
+      total: vencidos + venceHoy + proximos 
     };
   };
 
@@ -516,7 +578,12 @@ export default function DocumentosGlobalesPage() {
               transition={{ delay: 0.1 }}
               className="grid grid-cols-3 md:grid-cols-5 gap-4 md:gap-6"
             >
-          <Card className="bg-card/50 border-border/50">
+          <Card 
+            className="bg-card/50 border-border/50 cursor-pointer hover:bg-card/70 transition-colors"
+            onClick={() => {
+              setFiltros(prev => ({ ...prev, estado: 'todos' }));
+            }}
+          >
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -528,7 +595,12 @@ export default function DocumentosGlobalesPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-card/50 border-border/50">
+          <Card 
+            className="bg-card/50 border-border/50 cursor-pointer hover:bg-card/70 transition-colors"
+            onClick={() => {
+              setFiltros(prev => ({ ...prev, estado: 'vigente' }));
+            }}
+          >
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -540,7 +612,12 @@ export default function DocumentosGlobalesPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-card/50 border-border/50">
+          <Card 
+            className="bg-card/50 border-border/50 cursor-pointer hover:bg-card/70 transition-colors"
+            onClick={() => {
+              setFiltros(prev => ({ ...prev, estado: 'por_vencer' }));
+            }}
+          >
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -552,7 +629,12 @@ export default function DocumentosGlobalesPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-card/50 border-border/50 md:col-span-1 col-span-3 md:col-start-4">
+          <Card 
+            className="bg-card/50 border-border/50 md:col-span-1 col-span-3 md:col-start-4 cursor-pointer hover:bg-card/70 transition-colors"
+            onClick={() => {
+              setFiltros(prev => ({ ...prev, estado: 'vencido' }));
+            }}
+          >
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -564,7 +646,12 @@ export default function DocumentosGlobalesPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-card/50 border-border/50 md:col-span-1 col-span-3">
+          <Card 
+            className="bg-card/50 border-border/50 md:col-span-1 col-span-3 cursor-pointer hover:bg-card/70 transition-colors"
+            onClick={() => {
+              setFiltros(prev => ({ ...prev, estado: 'sin_vencimiento' }));
+            }}
+          >
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -953,7 +1040,12 @@ export default function DocumentosGlobalesPage() {
                 const alertasStats = getAlertasStats();
                 return (
                   <>
-                    <Card className="bg-card/50 border-border/50">
+                    <Card 
+                      className="bg-card/50 border-border/50 cursor-pointer hover:bg-card/70 transition-colors"
+                      onClick={() => {
+                        setFiltrosAlertas(prev => ({ ...prev, estado: 'todos' }));
+                      }}
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div>
@@ -965,7 +1057,12 @@ export default function DocumentosGlobalesPage() {
                       </CardContent>
                     </Card>
 
-                    <Card className="bg-card/50 border-border/50">
+                    <Card 
+                      className="bg-card/50 border-border/50 cursor-pointer hover:bg-card/70 transition-colors"
+                      onClick={() => {
+                        setFiltrosAlertas(prev => ({ ...prev, estado: 'vencidos' }));
+                      }}
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div>
@@ -977,7 +1074,12 @@ export default function DocumentosGlobalesPage() {
                       </CardContent>
                     </Card>
 
-                    <Card className="bg-card/50 border-border/50">
+                    <Card 
+                      className="bg-card/50 border-border/50 cursor-pointer hover:bg-card/70 transition-colors"
+                      onClick={() => {
+                        setFiltrosAlertas(prev => ({ ...prev, estado: 'vence_hoy' }));
+                      }}
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div>
@@ -989,7 +1091,12 @@ export default function DocumentosGlobalesPage() {
                       </CardContent>
                     </Card>
 
-                    <Card className="bg-card/50 border-border/50">
+                    <Card 
+                      className="bg-card/50 border-border/50 cursor-pointer hover:bg-card/70 transition-colors"
+                      onClick={() => {
+                        setFiltrosAlertas(prev => ({ ...prev, estado: 'proximos' }));
+                      }}
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div>
@@ -1083,7 +1190,7 @@ export default function DocumentosGlobalesPage() {
               <Card className="bg-card/50 border-border/50">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center justify-between">
-                    <span>Alertas de Documentos ({documentos.filter(doc => doc.estado === 'por_vencer' || doc.estado === 'vencido').length})</span>
+                    <span>Alertas de Documentos ({documentosAlertasFiltrados.length})</span>
                     {cargandoAlertas && (
                       <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
                     )}
@@ -1099,7 +1206,7 @@ export default function DocumentosGlobalesPage() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {documentos.filter(doc => doc.estado === 'por_vencer' || doc.estado === 'vencido').map((documento) => {
+                      {documentosAlertasFiltrados.map((documento) => {
                         const ModuloIcon = getModuloIcon(documento.modulo);
                         const diasRestantes = documento.fecha_vencimiento 
                           ? Math.ceil((new Date(documento.fecha_vencimiento).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
