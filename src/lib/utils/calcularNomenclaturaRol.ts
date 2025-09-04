@@ -41,11 +41,8 @@ export function calcularNomenclaturaRol(
   const esTurnoDia = horaInicioNumero >= 6 && horaInicioNumero < 18;
   const tipoTurno = esTurnoDia ? 'D' : 'N';
 
-  // Calcular el ciclo total (días trabajo + días descanso)
-  const cicloTotal = diasTrabajo + diasDescanso;
-
-  // Formatear la nomenclatura
-  const nomenclatura = `${tipoTurno} ${diasTrabajo}x${diasDescanso}x${cicloTotal} ${horaInicio} ${horaTermino}`;
+  // Formatear la nomenclatura con horas de turno
+  const nomenclatura = `${tipoTurno} ${diasTrabajo}x${diasDescanso}x${Math.round(horasTurno)} ${horaInicio} ${horaTermino}`;
 
   return nomenclatura;
 }

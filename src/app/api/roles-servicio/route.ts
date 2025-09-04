@@ -89,8 +89,20 @@ export async function POST(request: NextRequest) {
       hora_inicio, 
       hora_termino, 
       estado = 'Activo', 
-      tenantId = '1' 
+      tenantId 
     } = body;
+
+    // Si no viene tenantId, inferirlo desde el usuario autenticado (multi-tenant estricto)
+    let finalTenantId = tenantId;
+    if (!finalTenantId) {
+      const email = request.headers.get('x-user-email');
+      if (email) {
+        const t = await sql`SELECT tenant_id::text AS tid FROM usuarios WHERE lower(email)=lower(${email}) LIMIT 1`;
+        finalTenantId = t.rows?.[0]?.tid || '1';
+      } else {
+        finalTenantId = '1';
+      }
+    }
 
     // Validar campos requeridos
     if (!dias_trabajo || !dias_descanso || !hora_inicio || !hora_termino) {
@@ -111,11 +123,23 @@ export async function POST(request: NextRequest) {
       hora_termino
     );
 
+    console.log('🔍 POST roles-servicio - Datos recibidos:', {
+      dias_trabajo,
+      dias_descanso,
+      hora_inicio,
+      hora_termino,
+      estado,
+      tenantId,
+      finalTenantId,
+      nombre,
+      horas_turno
+    });
+
     // Verificar que el nombre no esté duplicado
     const checkDuplicate = await sql.query(`
       SELECT 1 FROM as_turnos_roles_servicio 
       WHERE nombre = $1 AND (tenant_id::text = $2 OR (tenant_id IS NULL AND $2 = '1'))
-    `, [nombre, tenantId]);
+    `, [nombre, finalTenantId]);
 
     if (checkDuplicate.rows.length > 0) {
       return NextResponse.json(
@@ -142,7 +166,7 @@ export async function POST(request: NextRequest) {
       hora_inicio,
       hora_termino,
       estado,
-      tenantId === '1' ? null : tenantId
+      finalTenantId === '1' ? null : finalTenantId
     ]);
 
     return NextResponse.json({
