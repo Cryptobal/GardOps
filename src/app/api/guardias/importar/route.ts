@@ -231,10 +231,32 @@ export async function POST(request: NextRequest) {
               
               console.log(`🗺️ Geocodificando dirección para nuevo guardia: ${direccionCompleta}`);
               
-              // Nota: La geocodificación se hará en background después de la importación
-              // para evitar ralentizar el proceso de importación
+              // Intentar geocodificar inmediatamente
+              const geocodingResult = await geocodificarDireccion(direccionCompleta);
+              
+              if (geocodingResult) {
+                // Actualizar el guardia con las coordenadas
+                await query(
+                  `UPDATE guardias 
+                   SET latitud = $1, longitud = $2, comuna = $3, ciudad = $4, region = $5, direccion_completa = $6
+                   WHERE id = $7`,
+                  [
+                    geocodingResult.latitud,
+                    geocodingResult.longitud,
+                    geocodingResult.comuna,
+                    geocodingResult.ciudad,
+                    geocodingResult.region,
+                    geocodingResult.direccionCompleta,
+                    nuevoGuardiaId
+                  ]
+                );
+                
+                console.log(`✅ Coordenadas actualizadas para guardia ${nuevoGuardiaId}: ${geocodingResult.latitud}, ${geocodingResult.longitud}`);
+              } else {
+                console.log(`⚠️ No se pudo obtener coordenadas para dirección: ${direccionCompleta}`);
+              }
             } catch (error) {
-              console.warn(`⚠️ No se pudo geocodificar dirección para guardia en fila ${rowNumber}:`, error);
+              console.warn(`⚠️ Error geocodificando dirección para guardia en fila ${rowNumber}:`, error);
             }
           }
 
