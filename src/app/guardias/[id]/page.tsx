@@ -1105,7 +1105,10 @@ export default function GuardiaDetallePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <EditableField
                     label="Monto Anticipo"
-                    value={guardia.monto_anticipo?.toString() || ''}
+                    value={guardia.monto_anticipo ? guardia.monto_anticipo.toLocaleString('es-CL', { 
+                      minimumFractionDigits: 0, 
+                      maximumFractionDigits: 0 
+                    }) : ''}
                     field="monto_anticipo"
                     type="number"
                     placeholder="0"
