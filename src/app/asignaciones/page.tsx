@@ -232,12 +232,7 @@ export default function Asignaciones() {
               if (found) setInstSelected(found);
             }}>
               <SelectTrigger className="w-full">
-                <SelectItem value="">Seleccionar instalación...</SelectItem>
-                {instalaciones.map(i => (
-                  <SelectItem key={i.id} value={i.id}>
-                    {i.nombre}
-                  </SelectItem>
-                ))}
+                <span>{instSelected ? instSelected.nombre : "Seleccionar instalación..."}</span>
               </SelectTrigger>
               <SelectContent>
                 {instalaciones.map(i => (
@@ -252,9 +247,9 @@ export default function Asignaciones() {
           {/* Radio */}
           <div>
             <label className="text-sm font-medium mb-2 block">Radio de búsqueda</label>
-            <Select defaultValue={String(radio)} onValueChange={v=>setRadio(Number(v))}>
+            <Select value={String(radio)} onValueChange={v=>setRadio(Number(v))}>
               <SelectTrigger className="w-full">
-                <SelectItem value="">{radio} km</SelectItem>
+                <span>{radio} km</span>
               </SelectTrigger>
               <SelectContent>
                 {radios.map(r=><SelectItem key={r} value={String(r)}>{r} km</SelectItem>)}
