@@ -305,11 +305,18 @@ export default function RolesServicioPage() {
     )
   );
 
+  // Debug: Log de filtros
+  console.log('🔍 Filtros activos:', { filtroEstado, filtroPatron });
+  console.log('🔍 Total roles:', roles.length, 'Roles filtrados:', rolesFiltrados.length);
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Roles de Servicio</h1>
         <div className="flex gap-2">
+          <Button onClick={cargarRoles} variant="outline" disabled={loading}>
+            {loading ? 'Cargando...' : 'Recargar'}
+          </Button>
           <Button onClick={exportarRoles} variant="outline">
             <Download className="w-4 h-4 mr-2" />
             Exportar
