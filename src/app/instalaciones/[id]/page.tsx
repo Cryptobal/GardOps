@@ -39,8 +39,6 @@ export default function InstalacionDetallePage() {
   const [geocodingData, setGeocodingData] = useState<GeocodingResult | null>(null);
   const [mapLoading, setMapLoading] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [pendingEstado, setPendingEstado] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Estados para edición inline
@@ -428,37 +426,6 @@ export default function InstalacionDetallePage() {
     }
   };
 
-  const handleToggleEstado = () => {
-    if (!instalacion) return;
-    const nuevoEstado = instalacion.estado === 'Activo' ? 'Inactivo' : 'Activo';
-    setPendingEstado(nuevoEstado);
-    setShowConfirmModal(true);
-  };
-
-  const confirmarCambioEstado = async () => {
-    if (!instalacion || !pendingEstado) return;
-    
-    try {
-      const response = await fetch(`/api/instalaciones/${instalacion.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: pendingEstado })
-      });
-      
-      if (!response.ok) throw new Error('Error al cambiar estado');
-      
-      setInstalacion({ ...instalacion, estado: pendingEstado as "Activo" | "Inactivo" });
-      setShowConfirmModal(false);
-      setPendingEstado(null);
-      
-      console.log(`Instalación ${pendingEstado === 'Activo' ? 'activada' : 'inactivada'} correctamente`);
-    } catch (e) {
-      console.error('Error al cambiar estado:', e);
-    } finally {
-      setShowConfirmModal(false);
-      setPendingEstado(null);
-    }
-  };
 
   if (loading) {
     return (
@@ -546,35 +513,6 @@ export default function InstalacionDetallePage() {
               : 'bg-red-100 text-red-800'
           }`}>
             {instalacion.estado === 'Activo' ? 'Activa' : 'Inactiva'}
-            <button
-              onClick={handleToggleEstado}
-              className="ml-2 focus:outline-none"
-              title={instalacion.estado === 'Activo' ? 'Inactivar instalación' : 'Activar instalación'}
-              style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              <span style={{
-                display: 'inline-block',
-                width: 20,
-                height: 12,
-                borderRadius: 6,
-                background: instalacion.estado === 'Activo' ? '#22c55e' : '#d1d5db',
-                position: 'relative',
-                verticalAlign: 'middle',
-                transition: 'background 0.2s'
-              }}>
-                <span style={{
-                  display: 'inline-block',
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  background: '#fff',
-                  position: 'absolute',
-                  left: instalacion.estado === 'Activo' ? 8 : 2,
-                  top: 1,
-                  transition: 'left 0.2s'
-                }} />
-              </span>
-            </button>
           </span>
         </div>
       </div>
@@ -884,40 +822,6 @@ export default function InstalacionDetallePage() {
 
       </Tabs>
 
-      {/* Modal de confirmación optimizado para móviles */}
-      {showConfirmModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
-            <div className="text-center">
-              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
-                {pendingEstado === 'Activo' ? 'Activar Instalación' : 'Inactivar Instalación'}
-              </h3>
-              <p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">
-                ¿Estás seguro de que quieres {pendingEstado === 'Activo' ? 'activar' : 'inactivar'} la instalación {instalacion?.nombre}?
-              </p>
-              <div className="flex gap-2 sm:gap-3 justify-center">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowConfirmModal(false)}
-                  className="px-3 sm:px-4 text-xs sm:text-sm"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={confirmarCambioEstado}
-                  className={`px-3 sm:px-4 text-xs sm:text-sm ${
-                    pendingEstado === 'Activo' 
-                      ? 'bg-green-600 hover:bg-green-700' 
-                      : 'bg-red-600 hover:bg-red-700'
-                  }`}
-                >
-                  {pendingEstado === 'Activo' ? 'Activar' : 'Inactivar'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 } 
