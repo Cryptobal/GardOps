@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Save, X, Download, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Save, X, Download, Eye, EyeOff, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { 
   getRolesServicio, 
   crearRolServicio, 
@@ -45,6 +45,7 @@ export default function RolesServicioPage() {
   const [rolParaConfirmar, setRolParaConfirmar] = useState<RolServicio | null>(null);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [infoRol, setInfoRol] = useState<{rol: RolServicio, verificacion: any} | null>(null);
+  const [formularioAbierto, setFormularioAbierto] = useState(false);
   
   const [nuevoRol, setNuevoRol] = useState({
     dias_trabajo: 4,
@@ -142,13 +143,14 @@ export default function RolesServicioPage() {
       
       success('Rol de servicio creado correctamente', 'Éxito');
 
-      // Limpiar formulario
+      // Limpiar formulario y cerrar
       setNuevoRol({
         dias_trabajo: 4,
         dias_descanso: 4,
         hora_inicio: '08:00',
         hora_termino: '20:00'
       });
+      setFormularioAbierto(false);
 
       await cargarRoles();
       await cargarStats();
@@ -317,7 +319,7 @@ export default function RolesServicioPage() {
               <CardTitle className="text-sm font-medium">Total Roles</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
+              <div className="text-2xl font-bold">{stats.total_roles || 0}</div>
             </CardContent>
           </Card>
           <Card>
@@ -325,7 +327,7 @@ export default function RolesServicioPage() {
               <CardTitle className="text-sm font-medium">Activos</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.activos}</div>
+              <div className="text-2xl font-bold text-green-600">{stats.roles_activos || 0}</div>
             </CardContent>
           </Card>
           <Card>
@@ -333,7 +335,7 @@ export default function RolesServicioPage() {
               <CardTitle className="text-sm font-medium">Inactivos</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">{stats.inactivos}</div>
+              <div className="text-2xl font-bold text-red-600">{stats.roles_inactivos || 0}</div>
             </CardContent>
           </Card>
           <Card>
@@ -341,113 +343,128 @@ export default function RolesServicioPage() {
               <CardTitle className="text-sm font-medium">Con Guardias</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{stats.conGuardias}</div>
+              <div className="text-2xl font-bold text-blue-600">{stats.roles_con_estructura || 0}</div>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Formulario de Creación */}
+      {/* Formulario de Creación Minimalista */}
       <Card>
-        <CardHeader>
-          <CardTitle>Crear Nuevo Rol de Servicio</CardTitle>
+        <CardHeader 
+          className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+          onClick={() => setFormularioAbierto(!formularioAbierto)}
+        >
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              Crear Nuevo Rol de Servicio
+            </CardTitle>
+            {formularioAbierto ? (
+              <ChevronUp className="w-5 h-5" />
+            ) : (
+              <ChevronDown className="w-5 h-5" />
+            )}
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="dias_trabajo">Días de Trabajo</Label>
-              <Input
-                id="dias_trabajo"
-                type="number"
-                min="1"
-                value={nuevoRol.dias_trabajo}
-                onChange={(e) => setNuevoRol({...nuevoRol, dias_trabajo: parseInt(e.target.value) || 0})}
-                placeholder="4"
-              />
+        
+        {formularioAbierto && (
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="dias_trabajo" className="text-xs">Días Trabajo</Label>
+                <Input
+                  id="dias_trabajo"
+                  type="number"
+                  min="1"
+                  value={nuevoRol.dias_trabajo}
+                  onChange={(e) => setNuevoRol({...nuevoRol, dias_trabajo: parseInt(e.target.value) || 0})}
+                  className="h-8"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="dias_descanso" className="text-xs">Días Descanso</Label>
+                <Input
+                  id="dias_descanso"
+                  type="number"
+                  min="1"
+                  value={nuevoRol.dias_descanso}
+                  onChange={(e) => setNuevoRol({...nuevoRol, dias_descanso: parseInt(e.target.value) || 0})}
+                  className="h-8"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="hora_inicio" className="text-xs">Hora Inicio</Label>
+                <Input
+                  id="hora_inicio"
+                  type="time"
+                  value={nuevoRol.hora_inicio}
+                  onChange={(e) => setNuevoRol({...nuevoRol, hora_inicio: e.target.value})}
+                  className="h-8"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="hora_termino" className="text-xs">Hora Término</Label>
+                <Input
+                  id="hora_termino"
+                  type="time"
+                  value={nuevoRol.hora_termino}
+                  onChange={(e) => setNuevoRol({...nuevoRol, hora_termino: e.target.value})}
+                  className="h-8"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="dias_descanso">Días de Descanso</Label>
-              <Input
-                id="dias_descanso"
-                type="number"
-                min="1"
-                value={nuevoRol.dias_descanso}
-                onChange={(e) => setNuevoRol({...nuevoRol, dias_descanso: parseInt(e.target.value) || 0})}
-                placeholder="4"
-              />
+            
+            {/* Nombre Calculado Compacto */}
+            <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-950/20 rounded border">
+              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Nombre Calculado:</div>
+              <div className="text-sm font-mono text-blue-600 dark:text-blue-400">
+                {nombreCalculado}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="hora_inicio">Hora de Inicio</Label>
-              <Input
-                id="hora_inicio"
-                type="time"
-                value={nuevoRol.hora_inicio}
-                onChange={(e) => setNuevoRol({...nuevoRol, hora_inicio: e.target.value})}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="hora_termino">Hora de Término</Label>
-              <Input
-                id="hora_termino"
-                type="time"
-                value={nuevoRol.hora_termino}
-                onChange={(e) => setNuevoRol({...nuevoRol, hora_termino: e.target.value})}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="nombre">Nombre Calculado</Label>
-              <Input
-                id="nombre"
-                value={nombreCalculado}
-                disabled
-                placeholder="Se calcula automáticamente"
-              />
-            </div>
-          </div>
-          
-          {/* Nombre Calculado */}
-          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-            <Label className="text-sm font-medium">Nombre Calculado:</Label>
-            <div className="text-lg font-mono text-blue-600 dark:text-blue-400">
-              {nombreCalculado}
-            </div>
-          </div>
 
-          <div className="mt-4">
-            <Button onClick={handleCrearRol} disabled={creando}>
-              {creando ? 'Creando...' : 'Crear Rol'}
-            </Button>
-          </div>
-        </CardContent>
+            <div className="mt-3 flex justify-end">
+              <Button onClick={handleCrearRol} disabled={creando} size="sm">
+                {creando ? 'Creando...' : 'Crear Rol'}
+              </Button>
+            </div>
+          </CardContent>
+        )}
       </Card>
 
-      {/* Filtros */}
-      <div className="space-y-4">
+      {/* Filtros en una línea */}
+      <div className="flex gap-2 flex-wrap items-center">
         {/* Filtros de Estado */}
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <Button
             variant={filtroEstado === 'todos' ? 'default' : 'outline'}
             onClick={() => setFiltroEstado('todos')}
+            size="sm"
           >
             Todos ({roles.length})
           </Button>
           <Button
             variant={filtroEstado === 'activos' ? 'default' : 'outline'}
             onClick={() => setFiltroEstado('activos')}
+            size="sm"
           >
             Activos ({roles.filter(r => r.estado === 'Activo').length})
           </Button>
           <Button
             variant={filtroEstado === 'inactivos' ? 'default' : 'outline'}
             onClick={() => setFiltroEstado('inactivos')}
+            size="sm"
           >
             Inactivos ({roles.filter(r => r.estado === 'Inactivo').length})
           </Button>
         </div>
 
+        {/* Separador */}
+        <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-2"></div>
+
         {/* Filtros de Patrón */}
         {patronesDisponibles.length > 0 && (
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-1 flex-wrap">
             <Button
               variant={filtroPatron === 'todos' ? 'default' : 'outline'}
               onClick={() => setFiltroPatron('todos')}
