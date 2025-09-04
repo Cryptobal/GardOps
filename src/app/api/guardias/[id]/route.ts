@@ -443,7 +443,10 @@ export async function GET(
       dias_vacaciones_formateados: formatearDiasVacaciones(guardia.dias_vacaciones_pendientes)
     };
 
-    return NextResponse.json(guardiaFormateado);
+    return NextResponse.json({
+      guardia: guardiaFormateado,
+      success: true
+    });
 
   } catch (error) {
     console.error('❌ Error obteniendo guardia:', error);

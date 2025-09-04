@@ -154,18 +154,27 @@ export default function GuardiaDetallePage() {
       if (!response.ok) {
         throw new Error('Error al cargar guardia');
       }
-      const guardiaData = await response.json();
-      setGuardia(guardiaData);
+      const responseData = await response.json();
+      console.log('🔍 cargarGuardia - respuesta del servidor:', responseData);
       
-      // Cargar datos bancarios
-      const datosBancariosResponse = await fetch(`/api/guardias/${guardiaId}/banco`);
-      if (datosBancariosResponse.ok) {
-        const datosBancariosData = await datosBancariosResponse.json();
-        setDatosBancarios(datosBancariosData);
-      }
-      
-      if (guardiaData.direccion) {
-        await cargarDatosGeograficos(guardiaData.direccion);
+      // El API ahora devuelve { guardia: {...}, success: true } consistentemente
+      if (responseData && responseData.guardia) {
+        console.log('🔍 cargarGuardia - usando responseData.guardia');
+        setGuardia(responseData.guardia);
+        
+        // Cargar datos bancarios
+        const datosBancariosResponse = await fetch(`/api/guardias/${guardiaId}/banco`);
+        if (datosBancariosResponse.ok) {
+          const datosBancariosData = await datosBancariosResponse.json();
+          setDatosBancarios(datosBancariosData);
+        }
+        
+        if (responseData.guardia.direccion) {
+          await cargarDatosGeograficos(responseData.guardia.direccion);
+        }
+      } else {
+        console.error('🔍 cargarGuardia - estructura de respuesta incorrecta:', responseData);
+        throw new Error('Respuesta del servidor con estructura incorrecta');
       }
     } catch (error) {
       console.error('Error cargando guardia:', error);
