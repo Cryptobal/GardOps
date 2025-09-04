@@ -1,6 +1,6 @@
 'use client';
 
-import { redirect } from 'next/navigation'
+import { redirect, useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { isFlagEnabled } from '@/lib/flags'
 import VersionBanner from '@/components/VersionBanner'
 import ClientTable from '@/app/pauta-diaria-v2/ClientTable'
@@ -13,13 +13,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Building2, Activity } from 'lucide-react';
 
 export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fecha?: string; incluirLibres?: string; tab?: string } }) {
-  // Inicializar activeTab desde searchParams, por defecto 'pauta' si no hay tab
-  const [activeTab, setActiveTab] = useState(searchParams.tab || 'pauta');
+  // Router y parámetros reactivos de la URL
+  const router = useRouter();
+  const pathname = usePathname();
+  const sp = useSearchParams();
+  const activeTab = sp.get('tab') || 'pauta';
   const [rows, setRows] = useState<PautaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const fecha = searchParams.fecha || new Date().toISOString().slice(0, 10);
+  const fecha = sp.get('fecha') || new Date().toISOString().slice(0, 10);
   const [incluirLibres, setIncluirLibres] = useState(searchParams.incluirLibres === 'true');
 
   // 🔍 DEBUG: Log de renderizado
@@ -33,20 +36,7 @@ export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fe
     rowsLength: rows.length
   });
 
-  // Sincronizar activeTab con searchParams
-  useEffect(() => {
-    const tabFromUrl = searchParams.tab || 'pauta';
-    console.log('🔍 [useEffect activeTab] EJECUTANDO:', {
-      tabFromUrl,
-      activeTab,
-      searchParamsTab: searchParams.tab,
-      willUpdate: tabFromUrl !== activeTab
-    });
-    if (tabFromUrl !== activeTab) {
-      console.log('🔄 [useEffect activeTab] ACTUALIZANDO activeTab de', activeTab, 'a', tabFromUrl);
-      setActiveTab(tabFromUrl);
-    }
-  }, [searchParams.tab]);
+  // Ya no sincronizamos por estado: el tab activo se deriva de la URL vía useSearchParams
 
   useEffect(() => {
     let isMounted = true;
@@ -182,15 +172,13 @@ export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fe
           fecha,
           incluirLibres
         });
-        setActiveTab(value);
-        // Actualizar URL con el tab activo
-        const params = new URLSearchParams();
+        const params = new URLSearchParams(sp.toString());
         if (fecha) params.set('fecha', fecha);
         if (incluirLibres) params.set('incluirLibres', 'true');
         params.set('tab', value);
-        const newUrl = `/pauta-diaria-v2?${params.toString()}`;
+        const newUrl = `${pathname}?${params.toString()}`;
         console.log('🔄 [Tabs onValueChange] ACTUALIZANDO URL a:', newUrl);
-        window.history.replaceState({}, '', newUrl);
+        router.replace(newUrl);
       }} className="w-full">
         <TabsList className="grid w-full grid-cols-2 h-10">
           <TabsTrigger value="monitoreo" className="flex items-center gap-1 text-xs">
