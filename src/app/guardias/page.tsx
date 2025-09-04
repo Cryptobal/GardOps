@@ -452,7 +452,7 @@ export default function GuardiasPage() {
     },
     {
       key: "fecha_nacimiento",
-      label: "Fecha Nacimiento",
+      label: "Edad",
       render: (guardia) => {
         if (!guardia.fecha_nacimiento) {
           return <span className="text-muted-foreground text-sm">No configurado</span>;
@@ -461,10 +461,7 @@ export default function GuardiasPage() {
         const edad = Math.floor((Date.now() - fecha.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
         return (
           <div className="text-sm">
-            <p className="font-medium">{fecha.toLocaleDateString('es-CL')}</p>
-            <p className="text-xs text-muted-foreground">
-              {edad} años
-            </p>
+            <p className="font-medium">{edad} años</p>
           </div>
         );
       },
