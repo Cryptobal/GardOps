@@ -157,7 +157,9 @@ export function useConfirmModal() {
   const resolveRef = React.useRef<((value: boolean) => void) | null>(null);
 
   const confirm = React.useCallback((options: ConfirmModalProps): Promise<boolean> => {
+    console.log('🔍 useConfirmModal: confirm llamado con:', options);
     return new Promise((resolve) => {
+      console.log('🔍 useConfirmModal: configurando modal y abriendo');
       setConfig(options);
       setIsOpen(true);
       resolveRef.current = resolve;
@@ -177,6 +179,7 @@ export function useConfirmModal() {
   }, []);
 
   const ConfirmModal = React.useCallback(() => {
+    console.log('🔍 useConfirmModal: ConfirmModal renderizando, isOpen:', isOpen, 'config:', config);
     if (!config) return null;
 
     const typeStyles = {

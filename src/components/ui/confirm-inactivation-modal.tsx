@@ -22,6 +22,7 @@ export function useConfirmInactivation() {
     blockers = [],
     warnings = []
   }: ConfirmInactivationOptions) => {
+    console.log('🔍 confirmInactivation llamado con:', { type, entityName, blockers, warnings });
     const hasBlockers = blockers.length > 0;
     const hasWarnings = warnings.length > 0;
 
@@ -66,6 +67,7 @@ export function useConfirmInactivation() {
 
     message += `\n\n✅ Esta acción se puede revertir en el futuro.`;
 
+    console.log('🔍 confirmInactivation: llamando a confirm con:', { type: "danger", title: config.title, message, confirmText: config.title, cancelText: "Cancelar" });
     return confirm({
       type: "danger",
       title: config.title,
@@ -87,6 +89,7 @@ export function useSimpleInactivation() {
   const { confirmInactivation, ConfirmModal } = useConfirmInactivation();
 
   const inactivateInstalacion = (name: string, onConfirm: () => Promise<void>, blockers?: string[]) => {
+    console.log('🔍 useSimpleInactivation: inactivateInstalacion llamado con:', name);
     return confirmInactivation({
       type: 'instalacion',
       entityName: name,
@@ -96,6 +99,7 @@ export function useSimpleInactivation() {
   };
 
   const inactivateGuardia = (name: string, onConfirm: () => Promise<void>, blockers?: string[]) => {
+    console.log('🔍 useSimpleInactivation: inactivateGuardia llamado con:', name);
     return confirmInactivation({
       type: 'guardia', 
       entityName: name,
