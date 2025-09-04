@@ -82,11 +82,16 @@ export function Modal({
 
   React.useEffect(() => {
     if (isOpen) {
+      console.log('🔍 Modal: Abriendo modal, canClose será true en 300ms');
       document.body.style.overflow = "hidden";
-      // Pequeño delay para evitar que el click inicial cierre el modal
-      const timer = setTimeout(() => setCanClose(true), 100);
+      // Delay más largo para evitar que el click inicial cierre el modal
+      const timer = setTimeout(() => {
+        setCanClose(true);
+        console.log('🔍 Modal: Ahora se puede cerrar el modal');
+      }, 300);
       return () => clearTimeout(timer);
     } else {
+      console.log('🔍 Modal: Cerrando modal');
       document.body.style.overflow = "unset";
       setCanClose(false);
     }
@@ -119,7 +124,12 @@ export function Modal({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={canClose ? onClose : undefined}
+        onClick={canClose ? () => {
+          console.log('🔍 Modal: Backdrop clickeado, cerrando modal');
+          onClose();
+        } : () => {
+          console.log('🔍 Modal: Backdrop clickeado pero canClose es false, ignorando');
+        }}
       />
 
       {/* Modal */}
@@ -155,6 +165,7 @@ export interface ConfirmModalProps {
   confirmText?: string;
   cancelText?: string;
   type?: "danger" | "warning" | "info";
+  onConfirm?: () => Promise<void>;
 }
 
 export function useConfirmModal() {
@@ -173,12 +184,14 @@ export function useConfirmModal() {
   }, []);
 
   const handleConfirm = React.useCallback(() => {
+    console.log('🔍 useConfirmModal: handleConfirm ejecutado');
     resolveRef.current?.(true);
     setIsOpen(false);
     setConfig(null);
   }, []);
 
   const handleCancel = React.useCallback(() => {
+    console.log('🔍 useConfirmModal: handleCancel ejecutado');
     resolveRef.current?.(false);
     setIsOpen(false);
     setConfig(null);

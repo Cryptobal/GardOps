@@ -68,14 +68,25 @@ export function useConfirmInactivation() {
     message += `\n\n✅ Esta acción se puede revertir en el futuro.`;
 
     console.log('🔍 confirmInactivation: llamando a confirm con:', { type: "danger", title: config.title, message, confirmText: config.title, cancelText: "Cancelar" });
-    return confirm({
+    
+    // Esperar la confirmación del usuario
+    const confirmed = await confirm({
       type: "danger",
       title: config.title,
       message,
       confirmText: config.title,
-      cancelText: "Cancelar",
-      onConfirm
+      cancelText: "Cancelar"
     });
+
+    // Si el usuario confirmó, ejecutar la acción
+    if (confirmed) {
+      console.log('🔍 confirmInactivation: Usuario confirmó, ejecutando onConfirm');
+      await onConfirm();
+    } else {
+      console.log('🔍 confirmInactivation: Usuario canceló');
+    }
+
+    return confirmed;
   };
 
   return {
