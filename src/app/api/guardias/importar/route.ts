@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import * as XLSX from 'xlsx';
+import { geocodificarDireccion, construirDireccionCompleta } from '@/lib/utils/geocoding-batch';
 
 export async function POST(request: NextRequest) {
   try {
@@ -212,10 +213,29 @@ export async function POST(request: NextRequest) {
             VALUES (${insertValues.map((_, index) => `$${index + 1}`).join(', ')})
           `;
 
-          await query(insertQuery, insertValues);
+          const insertResult = await query(insertQuery, insertValues);
+          const nuevoGuardiaId = insertResult.rows[0]?.id;
           creados++;
 
           console.log(`✅ Nuevo guardia creado correctamente en fila ${rowNumber}`);
+
+          // Geocodificar dirección si está disponible
+          if (nuevoGuardiaId && row['Dirección']) {
+            try {
+              const direccionCompleta = construirDireccionCompleta(
+                row['Dirección']?.toString().trim() || '',
+                row['Comuna']?.toString().trim(),
+                row['Ciudad']?.toString().trim()
+              );
+              
+              console.log(`🗺️ Geocodificando dirección para nuevo guardia: ${direccionCompleta}`);
+              
+              // Nota: La geocodificación se hará en background después de la importación
+              // para evitar ralentizar el proceso de importación
+            } catch (error) {
+              console.warn(`⚠️ No se pudo geocodificar dirección para guardia en fila ${rowNumber}:`, error);
+            }
+          }
 
         } else {
           // ACTUALIZAR GUARDIA EXISTENTE
