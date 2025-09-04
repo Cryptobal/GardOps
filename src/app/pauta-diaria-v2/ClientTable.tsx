@@ -96,7 +96,7 @@ const renderEstado = (estadoUI: string, isFalta: boolean) => {
   );
 };
 
-export default function ClientTable({ rows: rawRows, fecha, incluirLibres = false, onRecargarDatos }: PautaDiariaV2Props) {
+export default function ClientTable({ rows: rawRows, fecha, incluirLibres = false, onRecargarDatos, activeTab = 'pauta' }: PautaDiariaV2Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -195,10 +195,11 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     if (f.ppc !== 'all') params.set('ppc', f.ppc === true ? 'true' : 'false');
     if (f.q) params.set('q', f.q);
     if (mostrarLibres) params.set('incluirLibres', 'true');
+    if (activeTab) params.set('tab', activeTab);
     
     const newUrl = `/pauta-diaria-v2?fecha=${addDays(fechaStr, delta)}${params.toString() ? '&' + params.toString() : ''}`;
     router.push(newUrl);
-  }, [f.instalacion, f.estado, f.ppc, f.q, mostrarLibres, fechaStr, router]);
+  }, [f.instalacion, f.estado, f.ppc, f.q, mostrarLibres, fechaStr, router, activeTab]);
 
   const goTo = useCallback((dateYmd: string) => {
     const params = new URLSearchParams();
@@ -207,9 +208,10 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     if (f.ppc !== 'all') params.set('ppc', f.ppc === true ? 'true' : 'false');
     if (f.q) params.set('q', f.q);
     if (mostrarLibres) params.set('incluirLibres', 'true');
+    if (activeTab) params.set('tab', activeTab);
     const newUrl = `/pauta-diaria-v2?fecha=${dateYmd}${params.toString() ? '&' + params.toString() : ''}`;
     router.push(newUrl);
-  }, [f.instalacion, f.estado, f.ppc, f.q, mostrarLibres, router]);
+  }, [f.instalacion, f.estado, f.ppc, f.q, mostrarLibres, router, activeTab]);
   
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -1258,7 +1260,12 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                         type="date"
                         className="w-auto text-xs"
                         value={fechaStr}
-                        onChange={(e)=>router.push(`/pauta-diaria-v2?fecha=${e.target.value}`)}
+                        onChange={(e) => {
+                          const params = new URLSearchParams();
+                          if (activeTab) params.set('tab', activeTab);
+                          const newUrl = `/pauta-diaria-v2?fecha=${e.target.value}${params.toString() ? '&' + params.toString() : ''}`;
+                          router.push(newUrl);
+                        }}
                       />
                       <Button
                         aria-label="Abrir calendario"
@@ -1274,7 +1281,10 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                       size="sm" 
                       onClick={() => {
                         const hoy = toYmd(new Date());
-                        router.push(`/pauta-diaria-v2?fecha=${hoy}`);
+                        const params = new URLSearchParams();
+                        if (activeTab) params.set('tab', activeTab);
+                        const newUrl = `/pauta-diaria-v2?fecha=${hoy}${params.toString() ? '&' + params.toString() : ''}`;
+                        router.push(newUrl);
                       }}
                     >
                       Hoy

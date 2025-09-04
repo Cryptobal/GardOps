@@ -37,4 +37,5 @@ export interface PautaDiariaV2Props {
   fecha: string;
   incluirLibres?: boolean;
   onRecargarDatos?: (nuevoIncluirLibres?: boolean) => Promise<void>;
+  activeTab?: string;
 }

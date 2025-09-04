@@ -12,14 +12,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Building2, Activity } from 'lucide-react';
 
-export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fecha?: string; incluirLibres?: string } }) {
-  const [activeTab, setActiveTab] = useState('monitoreo');
+export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fecha?: string; incluirLibres?: string; tab?: string } }) {
+  const [activeTab, setActiveTab] = useState(searchParams.tab || 'monitoreo');
   const [rows, setRows] = useState<PautaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   const fecha = searchParams.fecha || new Date().toISOString().slice(0, 10);
   const [incluirLibres, setIncluirLibres] = useState(searchParams.incluirLibres === 'true');
+
+  // Sincronizar activeTab con searchParams
+  useEffect(() => {
+    if (searchParams.tab && searchParams.tab !== activeTab) {
+      setActiveTab(searchParams.tab);
+    }
+  }, [searchParams.tab, activeTab]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -128,7 +135,15 @@ export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fe
       </div>
 
       {/* Tabs Mobile First */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={(value) => {
+        setActiveTab(value);
+        // Actualizar URL con el tab activo
+        const params = new URLSearchParams();
+        if (fecha) params.set('fecha', fecha);
+        if (incluirLibres) params.set('incluirLibres', 'true');
+        params.set('tab', value);
+        window.history.replaceState({}, '', `/pauta-diaria-v2?${params.toString()}`);
+      }} className="w-full">
         <TabsList className="grid w-full grid-cols-2 h-10">
           <TabsTrigger value="monitoreo" className="flex items-center gap-1 text-xs">
             <Activity className="w-3 h-3" />
@@ -175,6 +190,7 @@ export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fe
                   fecha={fecha} 
                   incluirLibres={incluirLibres} 
                   onRecargarDatos={recargarDatos}
+                  activeTab={activeTab}
                 />
               </Suspense>
             </CardContent>
