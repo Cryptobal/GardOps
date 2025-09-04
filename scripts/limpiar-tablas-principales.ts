@@ -17,12 +17,12 @@ async function limpiarTablas() {
         'guardias' as tabla, COUNT(*) as registros FROM guardias
     `);
     
-    estadoActual.rows.forEach(row => {
+    estadoActual.rows.forEach((row: any) => {
       console.log(`  ${row.tabla}: ${row.registros} registros`);
     });
     
     // Confirmar limpieza
-    const totalRegistros = estadoActual.rows.reduce((sum, row) => sum + parseInt(row.registros), 0);
+    const totalRegistros = estadoActual.rows.reduce((sum: number, row: any) => sum + parseInt(row.registros), 0);
     
     if (totalRegistros === 0) {
       console.log('\n✅ Las tablas ya están vacías. No hay nada que limpiar.');
@@ -33,6 +33,15 @@ async function limpiarTablas() {
     console.log('🗑️  Iniciando limpieza...');
     
     // Eliminar en orden correcto (respetando foreign keys)
+    console.log('  - Eliminando logs de guardias...');
+    await query('DELETE FROM logs_guardias');
+    
+    console.log('  - Eliminando logs de instalaciones...');
+    await query('DELETE FROM logs_instalaciones');
+    
+    console.log('  - Eliminando logs de clientes...');
+    await query('DELETE FROM logs_clientes');
+    
     console.log('  - Eliminando guardias...');
     await query('DELETE FROM guardias');
     
@@ -55,7 +64,7 @@ async function limpiarTablas() {
         'guardias' as tabla, COUNT(*) as registros FROM guardias
     `);
     
-    estadoFinal.rows.forEach(row => {
+    estadoFinal.rows.forEach((row: any) => {
       console.log(`  ${row.tabla}: ${row.registros} registros`);
     });
     
