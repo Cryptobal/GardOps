@@ -180,6 +180,54 @@ export default function HomePage() {
         }) : '--:--:--'}
       </p>
 
+      {/* KPIs de OS10 - Estado de Certificaciones */}
+      <Card className="w-full">
+        <CardHeader className="pb-2 px-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            Estado OS10 - Certificaciones
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-3 pb-3">
+          {console.log('🔍 Renderizando KPIs OS10 con valores:', {
+            os10_por_vencer: kpis.os10_por_vencer,
+            os10_sin_fecha: kpis.os10_sin_fecha,
+            os10_vencidos: kpis.os10_vencidos,
+            os10_vigentes: kpis.os10_vigentes
+          })}
+          <div className="grid grid-cols-2 gap-2 w-full">
+            <div className="text-center p-2 bg-yellow-50/50 dark:bg-yellow-950/50 rounded-lg w-full">
+              <ShieldAlert className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mx-auto mb-1" />
+              <p className="text-xs font-medium text-yellow-700 dark:text-yellow-300 leading-tight">Por Vencer</p>
+              <p className="text-sm font-bold text-yellow-800 dark:text-yellow-200 leading-tight">{kpis.os10_por_vencer}</p>
+            </div>
+            
+            <div className="text-center p-2 bg-gray-50/50 dark:bg-gray-950/50 rounded-lg w-full">
+              <HelpCircle className="w-4 h-4 text-gray-600 dark:text-gray-400 mx-auto mb-1" />
+              <p className="text-xs font-medium text-gray-700 dark:text-gray-300 leading-tight">Sin Fecha</p>
+              <p className="text-sm font-bold text-gray-800 dark:text-gray-200 leading-tight">{kpis.os10_sin_fecha}</p>
+            </div>
+            
+            <div className="text-center p-2 bg-red-50/50 dark:bg-red-950/50 rounded-lg w-full">
+              <ShieldX className="w-4 h-4 text-red-600 dark:text-red-400 mx-auto mb-1" />
+              <p className="text-xs font-medium text-red-700 dark:text-red-300 leading-tight">Vencidos</p>
+              <p className="text-sm font-bold text-red-800 dark:text-red-200 leading-tight">{kpis.os10_vencidos}</p>
+            </div>
+            
+            <div className="text-center p-2 bg-green-50/50 dark:bg-green-950/50 rounded-lg w-full">
+              <Shield className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto mb-1" />
+              <p className="text-xs font-medium text-green-700 dark:text-green-300 leading-tight">Vigentes</p>
+              <p className="text-sm font-bold text-green-800 dark:text-green-200 leading-tight">{kpis.os10_vigentes}</p>
+            </div>
+          </div>
+          
+          <div className="text-center p-2 bg-muted/50 rounded-lg w-full mt-2">
+            <p className="text-xs font-medium text-muted-foreground leading-tight">Total Guardias Activos</p>
+            <p className="text-lg font-bold leading-tight">{kpis.os10_por_vencer + kpis.os10_sin_fecha + kpis.os10_vencidos + kpis.os10_vigentes}</p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* KPIs Detallados - Mobile First */}
       <div className="grid grid-cols-1 gap-3 w-full">
         {/* Estado de Turnos - Mobile First */}
@@ -320,54 +368,6 @@ export default function HomePage() {
           <div className="text-center p-2 bg-muted/50 rounded-lg w-full">
             <p className="text-xs font-medium text-muted-foreground leading-tight">Total Llamados del Día</p>
             <p className="text-lg font-bold leading-tight">{kpis.monitoreo_total}</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* KPIs de OS10 - Estado de Certificaciones */}
-      <Card className="w-full">
-        <CardHeader className="pb-2 px-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            Estado OS10 - Certificaciones
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-3 pb-3">
-          {console.log('🔍 Renderizando KPIs OS10 con valores:', {
-            os10_por_vencer: kpis.os10_por_vencer,
-            os10_sin_fecha: kpis.os10_sin_fecha,
-            os10_vencidos: kpis.os10_vencidos,
-            os10_vigentes: kpis.os10_vigentes
-          })}
-          <div className="grid grid-cols-2 gap-2 w-full">
-            <div className="text-center p-2 bg-yellow-50/50 dark:bg-yellow-950/50 rounded-lg w-full">
-              <ShieldAlert className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mx-auto mb-1" />
-              <p className="text-xs font-medium text-yellow-700 dark:text-yellow-300 leading-tight">Por Vencer</p>
-              <p className="text-sm font-bold text-yellow-800 dark:text-yellow-200 leading-tight">{kpis.os10_por_vencer}</p>
-            </div>
-            
-            <div className="text-center p-2 bg-gray-50/50 dark:bg-gray-950/50 rounded-lg w-full">
-              <HelpCircle className="w-4 h-4 text-gray-600 dark:text-gray-400 mx-auto mb-1" />
-              <p className="text-xs font-medium text-gray-700 dark:text-gray-300 leading-tight">Sin Fecha</p>
-              <p className="text-sm font-bold text-gray-800 dark:text-gray-200 leading-tight">{kpis.os10_sin_fecha}</p>
-            </div>
-            
-            <div className="text-center p-2 bg-red-50/50 dark:bg-red-950/50 rounded-lg w-full">
-              <ShieldX className="w-4 h-4 text-red-600 dark:text-red-400 mx-auto mb-1" />
-              <p className="text-xs font-medium text-red-700 dark:text-red-300 leading-tight">Vencidos</p>
-              <p className="text-sm font-bold text-red-800 dark:text-red-200 leading-tight">{kpis.os10_vencidos}</p>
-            </div>
-            
-            <div className="text-center p-2 bg-green-50/50 dark:bg-green-950/50 rounded-lg w-full">
-              <Shield className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto mb-1" />
-              <p className="text-xs font-medium text-green-700 dark:text-green-300 leading-tight">Vigentes</p>
-              <p className="text-sm font-bold text-green-800 dark:text-green-200 leading-tight">{kpis.os10_vigentes}</p>
-            </div>
-          </div>
-          
-          <div className="text-center p-2 bg-muted/50 rounded-lg w-full mt-2">
-            <p className="text-xs font-medium text-muted-foreground leading-tight">Total Guardias Activos</p>
-            <p className="text-lg font-bold leading-tight">{kpis.os10_por_vencer + kpis.os10_sin_fecha + kpis.os10_vencidos + kpis.os10_vigentes}</p>
           </div>
         </CardContent>
       </Card>
