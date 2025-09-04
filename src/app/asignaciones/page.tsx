@@ -16,10 +16,11 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectItem, SelectContent } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Table, TableHead, TableRow, TableCell, TableHeader, TableBody } from '@/components/ui/table';
-import { BadgeCheck, MapPin, Loader2, Phone, MessageCircle } from 'lucide-react';
+import { BadgeCheck, MapPin, Loader2, Phone, MessageCircle, Users, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import PPCModal from '@/components/asignaciones/PPCModal';
+import GuardiasAsignadosTab from '@/components/asignaciones/GuardiasAsignadosTab';
 
 /* --- Helpers -------------------------------------------------------------- */
 type Inst = { id: string; nombre: string; lat: number; lng: number; };
@@ -38,6 +39,7 @@ export default function Asignaciones() {
   const [asignando,setAsignando]=useState<string|null>(null); // ID del guardia siendo asignado
   const [ppcModalOpen,setPpcModalOpen]=useState(false);
   const [guardiaSeleccionado,setGuardiaSeleccionado]=useState<Guard|null>(null);
+  const [tabActiva,setTabActiva]=useState<'buscar'|'asignados'>('buscar');
 
   /* Cargar instalaciones para el autocomplete */
   useEffect(()=>{ fetch('/api/instalaciones?withCoords=true').then(r=>r.json()).then(setInstalaciones); },[]);
@@ -105,11 +107,49 @@ export default function Asignaciones() {
           .map(g => {
             const lat = parseFloat(g.lat.toString());
             const lng = parseFloat(g.lng.toString());
-            return new google.maps.Marker({
+            
+            const marker = new google.maps.Marker({
               position:{lat,lng},
               map,
-              icon:'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+              icon:'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
+              title: g.nombre
             });
+
+            // Crear info window para el marcador
+            const infoWindow = new google.maps.InfoWindow({
+              content: `
+                <div style="padding: 12px; min-width: 200px; font-family: system-ui;">
+                  <h3 style="margin: 0 0 8px 0; font-weight: 600; color: #1f2937;">${g.nombre}</h3>
+                  <p style="margin: 0 0 4px 0; color: #6b7280; font-size: 14px;">📍 ${g.comuna}</p>
+                  <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px;">📏 ${g.distancia.toFixed(1)} km</p>
+                  ${g.telefono ? `
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                      <a href="tel:${g.telefono}" style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; background: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500;">
+                        📞 Llamar
+                      </a>
+                      <a href="https://wa.me/56${g.telefono.replace(/\D/g, '')}" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; background: #25d366; color: white; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 500;">
+                        💬 WhatsApp
+                      </a>
+                    </div>
+                  ` : '<p style="margin: 0; color: #9ca3af; font-size: 12px;">Sin teléfono</p>'}
+                </div>
+              `
+            });
+
+            // Agregar evento click al marcador
+            marker.addListener('click', () => {
+              // Cerrar otros info windows
+              (map as any).__infoWindows?.forEach((iw: google.maps.InfoWindow) => iw.close());
+              
+              // Abrir info window del marcador clickeado
+              infoWindow.open(map, marker);
+              
+              // Guardar referencia para poder cerrarlo después
+              if (!(map as any).__infoWindows) (map as any).__infoWindows = [];
+              (map as any).__infoWindows.push(infoWindow);
+            });
+
+            return marker;
           });
         (map as any).__markers.push(...gMarkers);
       })
@@ -145,99 +185,148 @@ export default function Asignaciones() {
 
   return(
     <Fragment>
-      {/* KPIs */}
-      <section className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Stat title="Total Guardias" value={guards.length} icon={<BadgeCheck className="w-4 h-4" />} />
-        <Stat title="Instalación Seleccionada" value={instSelected?1:0} icon={<MapPin className="w-4 h-4" />} />
-        <Stat title="Resultados" value={guards.length} icon="🎯" />
-        <Stat title="Dist. Promedio" value={guards.length?`${(guards.reduce((t,g)=>t+g.distancia,0)/guards.length).toFixed(1)} km`:'N/A'} icon="📏" />
-      </section>
+      {/* Tabs de navegación */}
+      <div className="flex space-x-1 mb-4 bg-gray-100 p-1 rounded-lg">
+        <button
+          onClick={() => setTabActiva('buscar')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+            tabActiva === 'buscar'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <Search className="w-4 h-4" />
+          Buscar Guardias
+        </button>
+        <button
+          onClick={() => setTabActiva('asignados')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+            tabActiva === 'asignados'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          Guardias Asignados
+        </button>
+      </div>
+
+      {tabActiva === 'buscar' ? (
+        <div>
+          {/* KPIs */}
+          <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+            <Stat title="Guardias" value={guards.length} icon={<BadgeCheck className="w-4 h-4" />} />
+            <Stat title="Instalación" value={instSelected?1:0} icon={<MapPin className="w-4 h-4" />} />
+            <Stat title="Resultados" value={guards.length} icon="🎯" />
+            <Stat title="Dist. Prom." value={guards.length?`${(guards.reduce((t,g)=>t+g.distancia,0)/guards.length).toFixed(1)} km`:'N/A'} icon="📏" />
+          </section>
 
       {/* Configuración */}
-      <Card className="mb-6">
-        <CardContent className="flex flex-col md:flex-row gap-4 p-6">
+      <Card className="mb-4">
+        <CardContent className="p-4 space-y-4">
           {/* Instalación */}
-          <div className="flex-1">
-            <label className="text-sm">Instalación</label>
-            <Input placeholder="Buscar instalación..." list="insts" onChange={e=>{
-              const found=instalaciones.find(i=>i.nombre===e.target.value); if(found) setInstSelected(found);
-            }}/>
-            <datalist id="insts">
-              {instalaciones.map(i=><option key={i.id} value={i.nombre}/>)}
-            </datalist>
+          <div>
+            <label className="text-sm font-medium mb-2 block">Instalación</label>
+            <Select onValueChange={(value) => {
+              const found = instalaciones.find(i => i.id === value);
+              if (found) setInstSelected(found);
+            }}>
+              <SelectTrigger className="w-full">
+                <SelectItem value="">Seleccionar instalación...</SelectItem>
+                {instalaciones.map(i => (
+                  <SelectItem key={i.id} value={i.id}>
+                    {i.nombre}
+                  </SelectItem>
+                ))}
+              </SelectTrigger>
+              <SelectContent>
+                {instalaciones.map(i => (
+                  <SelectItem key={i.id} value={i.id}>
+                    {i.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Radio */}
-          <div className="w-40">
-            <label className="text-sm">Radio (km)</label>
+          <div>
+            <label className="text-sm font-medium mb-2 block">Radio de búsqueda</label>
             <Select defaultValue={String(radio)} onValueChange={v=>setRadio(Number(v))}>
-              <SelectTrigger>{radio} km</SelectTrigger>
-              <SelectContent>{radios.map(r=><SelectItem key={r} value={String(r)}>{r} km</SelectItem>)}</SelectContent>
+              <SelectTrigger className="w-full">
+                <SelectItem value="">{radio} km</SelectItem>
+              </SelectTrigger>
+              <SelectContent>
+                {radios.map(r=><SelectItem key={r} value={String(r)}>{r} km</SelectItem>)}
+              </SelectContent>
             </Select>
           </div>
         </CardContent>
       </Card>
 
       {/* Mapa */}
-      <div id="map" className="w-full h-96 rounded-2xl mb-6 shadow-lg"/>
+      <div id="map" className="w-full h-64 sm:h-80 lg:h-96 rounded-lg mb-4 shadow-lg"/>
 
-      {/* Tabla resultados */}
-      {guards.length>0 && (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Guardia</TableHead>
-              <TableHead>Teléfono</TableHead>
-              <TableHead>Comuna</TableHead>
-              <TableHead>Distancia (km)</TableHead>
-              <TableHead>Contacto</TableHead>
-              <TableHead>Asignar</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {guards.sort((a,b)=>a.distancia-b.distancia).map(g=>(
-              <TableRow key={g.id}>
-                <TableCell className="font-medium">{g.nombre}</TableCell>
-                <TableCell>{g.telefono || 'Sin teléfono'}</TableCell>
-                <TableCell>{g.comuna}</TableCell>
-                <TableCell>{g.distancia.toFixed(1)}</TableCell>
-                <TableCell>
-                  <div className="flex gap-1">
-                    {g.telefono && (
-                      <>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => window.open(`tel:${g.telefono}`, '_self')}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Phone className="w-3 h-3" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => window.open(`https://wa.me/56${g.telefono.replace(/\D/g, '')}`, '_blank')}
-                          className="h-8 w-8 p-0"
-                        >
-                          <MessageCircle className="w-3 h-3" />
-                        </Button>
-                      </>
-                    )}
+      {/* Lista de guardias - Mobile First */}
+      {guards.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold">Guardias Cercanos ({guards.length})</h3>
+          {guards.sort((a,b)=>a.distancia-b.distancia).map(g=>(
+            <Card key={g.id} className="p-4">
+              <div className="space-y-3">
+                {/* Información principal */}
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-base">{g.nombre}</h4>
+                    <p className="text-sm text-gray-600">{g.comuna}</p>
+                    <p className="text-sm text-gray-500">📏 {g.distancia.toFixed(1)} km</p>
                   </div>
-                </TableCell>
-                <TableCell>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">{g.telefono || 'Sin teléfono'}</p>
+                  </div>
+                </div>
+
+                {/* Botones de acción */}
+                <div className="flex gap-2 flex-wrap">
+                  {g.telefono && (
+                    <>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => window.open(`tel:${g.telefono}`, '_self')}
+                        className="flex-1 sm:flex-none"
+                      >
+                        <Phone className="w-4 h-4 mr-2" />
+                        Llamar
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => window.open(`https://wa.me/56${g.telefono.replace(/\D/g, '')}`, '_blank')}
+                        className="flex-1 sm:flex-none"
+                      >
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        WhatsApp
+                      </Button>
+                    </>
+                  )}
                   <Button 
                     size="sm" 
                     variant="secondary" 
                     onClick={() => handleAsignar(g)}
+                    className="flex-1 sm:flex-none"
                   >
                     Asignar
                   </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+        </div>
+      ) : (
+        <GuardiasAsignadosTab />
       )}
 
       {(() => { console.log('Optimización de Asignaciones v2 cargada correctamente'); return null; })()}
@@ -263,9 +352,9 @@ export default function Asignaciones() {
 function Stat({title,value,icon}:{title:string;value:any;icon:any}) {
   return(
     <Card className="text-center">
-      <CardContent className="p-4 flex flex-col gap-2 items-center">
-        {typeof icon==='string'?<span>{icon}</span>:icon}
-        <span className="text-2xl font-semibold">{value}</span>
+      <CardContent className="p-3 flex flex-col gap-1 items-center">
+        {typeof icon==='string'?<span className="text-lg">{icon}</span>:icon}
+        <span className="text-lg lg:text-xl font-semibold">{value}</span>
         <span className="text-xs opacity-70">{title}</span>
       </CardContent>
     </Card>
