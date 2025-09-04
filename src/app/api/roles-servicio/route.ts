@@ -11,13 +11,15 @@ export async function GET(request: NextRequest) {
     // Si no viene tenantId, inferirlo desde el usuario autenticado (multi-tenant estricto)
     if (!tenantId) {
       const email = request.headers.get('x-user-email');
+      console.log('🔍 GET roles-servicio - Email del header:', email);
       if (email) {
         const t = await sql`SELECT tenant_id::text AS tid FROM usuarios WHERE lower(email)=lower(${email}) LIMIT 1`;
+        console.log('🔍 GET roles-servicio - Resultado query usuario:', t.rows);
         tenantId = t.rows?.[0]?.tid || null;
       }
     }
 
-    console.log('🔍 GET roles-servicio - Parámetros:', { activo, tenantId });
+    console.log('🔍 GET roles-servicio - Parámetros finales:', { activo, tenantId });
 
     let query = `
       SELECT 
@@ -45,8 +47,9 @@ export async function GET(request: NextRequest) {
       params.push(tenantId);
       paramIndex++;
     } else {
-      // Sin tenant => no devolver nada
-      query += ` AND 1=0`;
+      // TEMPORAL: Sin tenant => devolver todos los roles (para debugging)
+      console.log('⚠️ GET roles-servicio - Sin tenantId, devolviendo todos los roles');
+      // query += ` AND 1=0`; // Comentado temporalmente
     }
 
     if (activo !== null) {
