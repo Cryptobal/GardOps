@@ -550,6 +550,41 @@ export default function DocumentosGlobalesPage() {
           </Button>
         )}
       </div>
+
+      {/* Botones de cambio de vista */}
+      {(pestanaActiva === 'documentos' || pestanaActiva === 'alertas') && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button
+              variant={vistaActiva === 'grilla' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setVistaActiva('grilla')}
+              className="h-9 px-3"
+            >
+              <div className="grid grid-cols-2 gap-0.5 h-4 w-4">
+                <div className="bg-current rounded-sm"></div>
+                <div className="bg-current rounded-sm"></div>
+                <div className="bg-current rounded-sm"></div>
+                <div className="bg-current rounded-sm"></div>
+              </div>
+              <span className="ml-2 hidden sm:inline">Vista Grilla</span>
+            </Button>
+            <Button
+              variant={vistaActiva === 'lista' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setVistaActiva('lista')}
+              className="h-9 px-3"
+            >
+              <div className="flex flex-col gap-0.5 h-4 w-4">
+                <div className="bg-current rounded-sm w-full"></div>
+                <div className="bg-current rounded-sm w-full"></div>
+                <div className="bg-current rounded-sm w-full"></div>
+              </div>
+              <span className="ml-2 hidden sm:inline">Vista Lista</span>
+            </Button>
+          </div>
+        </div>
+      )}
         </motion.div>
 
         {/* Contenido según pestaña activa */}
