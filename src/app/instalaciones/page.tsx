@@ -131,6 +131,7 @@ export default function InstalacionesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("activo");
+  const [clienteFilter, setClienteFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   
   // Estados para el modal
@@ -296,6 +297,15 @@ export default function InstalacionesPage() {
     console.log('🎯 KPIs actuales:', kpis);
   }, [kpis]);
 
+  // Obtener lista de clientes únicos para el filtro
+  const clientesUnicos = useMemo(() => {
+    const clientes = instalaciones
+      .map(inst => inst.cliente_nombre)
+      .filter((nombre, index, array) => array.indexOf(nombre) === index && nombre)
+      .sort();
+    return clientes;
+  }, [instalaciones]);
+
   // Filtrar instalaciones con memoización
   const filteredInstalaciones = useMemo(() => {
     return instalaciones.filter((instalacion: any) => {
@@ -309,9 +319,12 @@ export default function InstalacionesPage() {
         (statusFilter === "activo" && instalacion.estado === 'Activo') ||
         (statusFilter === "inactivo" && instalacion.estado === 'Inactivo');
 
-      return matchesSearch && matchesStatus;
+      const matchesCliente = clienteFilter === "all" || 
+        instalacion.cliente_nombre === clienteFilter;
+
+      return matchesSearch && matchesStatus && matchesCliente;
     });
-  }, [instalaciones, debouncedSearchTerm, statusFilter]);
+  }, [instalaciones, debouncedSearchTerm, statusFilter, clienteFilter]);
 
   const handleRowClick = useCallback((instalacion: any) => {
     router.push(`/instalaciones/${instalacion.id}`);
@@ -600,6 +613,19 @@ export default function InstalacionesPage() {
                 <option value="all">Todas las instalaciones</option>
                 <option value="inactivo">Instalaciones Inactivas</option>
               </select>
+              
+              <select
+                value={clienteFilter}
+                onChange={(e) => setClienteFilter(e.target.value)}
+                className="px-3 py-2 border rounded-md bg-background text-sm w-full sm:w-48"
+              >
+                <option value="all">Todos los clientes</option>
+                {clientesUnicos.map((cliente) => (
+                  <option key={cliente} value={cliente}>
+                    {cliente}
+                  </option>
+                ))}
+              </select>
             </div>
           </motion.div>
         )}
@@ -619,7 +645,7 @@ export default function InstalacionesPage() {
                 No se encontraron instalaciones
               </h3>
               <p className="text-sm text-muted-foreground">
-                {searchTerm || statusFilter !== "all" 
+                {searchTerm || statusFilter !== "all" || clienteFilter !== "all"
                   ? "Intenta ajustar los filtros de búsqueda" 
                   : "No hay instalaciones registradas"}
               </p>
