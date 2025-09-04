@@ -273,24 +273,34 @@ export default function Asignaciones() {
         </CardContent>
       </Card>
 
-      {/* Lista de guardias - Mobile First */}
+      {/* Lista de guardias - Grid responsive */}
       {guards.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-lg font-semibold">Guardias Cercanos ({guards.length})</h3>
-          {guards.sort((a,b)=>a.distancia-b.distancia).map(g=>(
-            <Card key={g.id} className="p-4">
-              <div className="space-y-3">
-                {/* Información principal */}
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-base">{g.nombre}</h4>
-                    <p className="text-sm text-gray-600">{g.comuna}</p>
-                    <p className="text-sm text-gray-500">📏 {g.distancia.toFixed(1)} km</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {guards.sort((a,b)=>a.distancia-b.distancia).map(g=>(
+              <Card key={g.id} className="p-4">
+                <div className="space-y-3">
+                  {/* Información principal */}
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-base">
+                        <a 
+                          href={`/guardias/${g.id}`} 
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {g.nombre}
+                        </a>
+                      </h4>
+                      <p className="text-sm text-gray-600">{g.comuna}</p>
+                      <p className="text-sm text-gray-500">📏 {g.distancia.toFixed(1)} km</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">{g.telefono || 'Sin teléfono'}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">{g.telefono || 'Sin teléfono'}</p>
-                  </div>
-                </div>
 
                 {/* Botones de acción */}
                 <div className="flex gap-2 flex-wrap">
@@ -328,6 +338,7 @@ export default function Asignaciones() {
               </div>
             </Card>
           ))}
+          </div>
         </div>
       )}
         </div>
