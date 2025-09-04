@@ -96,6 +96,7 @@ export async function GET(req: NextRequest) {
               g.updated_at,
               -- Campos adicionales importantes
               g.fecha_ingreso,
+              g.fecha_nacimiento,
               g.monto_anticipo,
               g.pin,
               g.dias_vacaciones_pendientes,
