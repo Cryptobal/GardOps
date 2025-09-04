@@ -304,18 +304,29 @@ export default function GuardiaDetallePage() {
         });
         
         if (response.ok) {
-          const updatedGuardia = await response.json();
-          console.log('🔍 handleSave - respuesta del servidor:', updatedGuardia);
+          const responseData = await response.json();
+          console.log('🔍 handleSave - respuesta del servidor:', responseData);
           
-          // Verificar estructura de la respuesta
-          if (updatedGuardia && updatedGuardia.guardia) {
-            console.log('🔍 handleSave - usando updatedGuardia.guardia');
-            setGuardia(updatedGuardia.guardia);
-          } else if (updatedGuardia) {
-            console.log('🔍 handleSave - usando updatedGuardia directamente');
-            setGuardia(updatedGuardia);
+          // El API devuelve { guardia: {...}, success: true }
+          if (responseData && responseData.guardia) {
+            console.log('🔍 handleSave - usando responseData.guardia');
+            setGuardia(responseData.guardia);
+            
+            // Si se actualizó la dirección y hay selectedAddress, actualizar geocodingData
+            if (field === 'direccion' && selectedAddress) {
+              console.log('🔍 handleSave - actualizando geocodingData con datos guardados');
+              setGeocodingData({
+                latitud: responseData.guardia.latitud,
+                longitud: responseData.guardia.longitud,
+                comuna: responseData.guardia.comuna,
+                ciudad: responseData.guardia.ciudad,
+                region: responseData.guardia.region,
+                direccionCompleta: responseData.guardia.direccion
+              });
+            }
           } else {
-            console.error('🔍 handleSave - respuesta vacía del servidor');
+            console.error('🔍 handleSave - estructura de respuesta incorrecta:', responseData);
+            throw new Error('Respuesta del servidor con estructura incorrecta');
           }
           
           // Si se actualizó la dirección, recargar datos geográficos solo si no hay selectedAddress
