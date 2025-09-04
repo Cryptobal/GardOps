@@ -6,7 +6,7 @@ export interface OS10Status {
   icon: 'check' | 'alert' | 'x' | 'help';
 }
 
-export function calcularEstadoOS10(fechaOS10: string | null): OS10Status {
+export function calcularEstadoOS10(fechaOS10: string | null, diasAlerta: number = 30): OS10Status {
   // Si no hay fecha, retornar sin fecha
   if (!fechaOS10) {
     return {
@@ -35,8 +35,8 @@ export function calcularEstadoOS10(fechaOS10: string | null): OS10Status {
       color: 'red',
       icon: 'x'
     };
-  } else if (diasRestantes <= 30) {
-    // Por vencer (menos de 30 días)
+  } else if (diasRestantes <= diasAlerta) {
+    // Por vencer (menos de X días configurable)
     return {
       estado: 'por_vencer',
       dias_restantes: diasRestantes,
@@ -56,7 +56,7 @@ export function calcularEstadoOS10(fechaOS10: string | null): OS10Status {
   }
 }
 
-export function obtenerEstadisticasOS10(guardias: any[]): {
+export function obtenerEstadisticasOS10(guardias: any[], diasAlerta: number = 30): {
   total: number;
   vigentes: number;
   por_vencer: number;
@@ -72,7 +72,7 @@ export function obtenerEstadisticasOS10(guardias: any[]): {
   };
 
   guardias.forEach(guardia => {
-    const estado = calcularEstadoOS10(guardia.fecha_os10);
+    const estado = calcularEstadoOS10(guardia.fecha_os10, diasAlerta);
     switch (estado.estado) {
       case 'vigente':
         estadisticas.vigentes++;
@@ -90,6 +90,23 @@ export function obtenerEstadisticasOS10(guardias: any[]): {
   });
 
   return estadisticas;
+}
+
+// Función para obtener KPIs específicos de OS10
+export function obtenerKPIsOS10(guardias: any[], diasAlerta: number = 30): {
+  os10_por_vencer: number;
+  os10_sin_fecha: number;
+  os10_vencidos: number;
+  os10_vigentes: number;
+} {
+  const estadisticas = obtenerEstadisticasOS10(guardias, diasAlerta);
+  
+  return {
+    os10_por_vencer: estadisticas.por_vencer,
+    os10_sin_fecha: estadisticas.sin_fecha,
+    os10_vencidos: estadisticas.vencidos,
+    os10_vigentes: estadisticas.vigentes
+  };
 }
 
 

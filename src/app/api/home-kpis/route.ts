@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/database';
+import { obtenerKPIsOS10 } from '@/lib/utils/os10-status';
 
 export async function GET(request: NextRequest) {
   try {
@@ -109,6 +110,42 @@ export async function GET(request: NextRequest) {
       monitoreo_total: 0,
       monitoreo_no_realizados: 0
     };
+
+    // Obtener KPIs de OS10
+    try {
+      const { rows: guardiasOS10 } = await pool.query(`
+        SELECT 
+          id,
+          nombre,
+          apellido_paterno,
+          apellido_materno,
+          fecha_os10,
+          activo
+        FROM public.guardias 
+        WHERE activo = true
+        ORDER BY nombre, apellido_paterno, apellido_materno
+      `);
+
+      console.log(`📊 Total guardias activos para OS10: ${guardiasOS10.length}`);
+
+      // Calcular KPIs de OS10 con 30 días de alerta por defecto
+      const kpisOS10 = obtenerKPIsOS10(guardiasOS10, 30);
+      
+      // Agregar KPIs de OS10 al objeto principal
+      kpis.os10_por_vencer = kpisOS10.os10_por_vencer;
+      kpis.os10_sin_fecha = kpisOS10.os10_sin_fecha;
+      kpis.os10_vencidos = kpisOS10.os10_vencidos;
+      kpis.os10_vigentes = kpisOS10.os10_vigentes;
+
+      console.log('📈 KPIs OS10 agregados:', kpisOS10);
+    } catch (os10Error) {
+      console.error('❌ Error obteniendo KPIs de OS10:', os10Error);
+      // Continuar sin los KPIs de OS10 si hay error
+      kpis.os10_por_vencer = 0;
+      kpis.os10_sin_fecha = 0;
+      kpis.os10_vencidos = 0;
+      kpis.os10_vigentes = 0;
+    }
 
     console.log(`✅ KPIs de página de inicio obtenidos:`, kpis);
 
