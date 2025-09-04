@@ -49,6 +49,7 @@ export default function InstalacionDetallePage() {
   const [saving, setSaving] = useState(false);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<AddressData | null>(null);
+  const [instalaciones, setInstalaciones] = useState<any[]>([]);
 
   // Hook para autocompletado de direcciones
   const {
@@ -69,14 +70,29 @@ export default function InstalacionDetallePage() {
   useEffect(() => {
     cargarInstalacion();
     cargarClientes();
+    cargarInstalaciones();
   }, [instalacionId]);
 
   const cargarClientes = async () => {
     try {
       const clientesData = await obtenerClientes();
-      setClientes(clientesData || []);
+      // Filtrar solo clientes activos
+      const clientesActivos = (clientesData || []).filter(cliente => cliente.estado === 'Activo');
+      setClientes(clientesActivos);
     } catch (error) {
       console.error('Error cargando clientes:', error);
+    }
+  };
+
+  const cargarInstalaciones = async () => {
+    try {
+      const response = await fetch('/api/instalaciones?simple=true');
+      const data = await response.json();
+      if (data.success) {
+        setInstalaciones(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error cargando instalaciones:', error);
     }
   };
 
@@ -495,7 +511,35 @@ export default function InstalacionDetallePage() {
             </p>
           </div>
         </div>
+        
+        {/* Selector de instalaciones */}
         <div className="flex items-center gap-2 sm:gap-3">
+          <div className="min-w-0 flex-1 sm:flex-none">
+            <Select
+              value={instalacionId}
+              onValueChange={(value) => {
+                if (value !== instalacionId) {
+                  router.push(`/instalaciones/${value}`);
+                }
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-64 text-xs sm:text-sm">
+                <SelectValue placeholder="Seleccionar instalación" />
+              </SelectTrigger>
+              <SelectContent>
+                {instalaciones.map((inst) => (
+                  <SelectItem key={inst.id} value={inst.id}>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{inst.nombre}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {inst.cliente_nombre} • {inst.estado}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <span className={`inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium ${
             instalacion.estado === 'Activo' 
               ? 'bg-green-100 text-green-800' 
@@ -532,7 +576,6 @@ export default function InstalacionDetallePage() {
               </span>
             </button>
           </span>
-
         </div>
       </div>
 
