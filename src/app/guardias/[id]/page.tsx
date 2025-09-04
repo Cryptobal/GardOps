@@ -307,8 +307,8 @@ export default function GuardiaDetallePage() {
           const updatedGuardia = await response.json();
           setGuardia(updatedGuardia);
           
-          // Si se actualizó la dirección, recargar datos geográficos
-          if (field === 'direccion') {
+          // Si se actualizó la dirección, recargar datos geográficos solo si no hay selectedAddress
+          if (field === 'direccion' && !selectedAddress) {
             await cargarDatosGeograficos(dataToUpdate[field]);
           }
         } else {

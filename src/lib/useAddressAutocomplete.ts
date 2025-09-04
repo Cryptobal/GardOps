@@ -115,6 +115,7 @@ export const useAddressAutocomplete = () => {
         componentRestrictions: { country: 'cl' }, // Limitar a Chile
         types: ['address'],
         language: 'es', // Forzar idioma español
+        region: 'cl', // Forzar región Chile
       };
 
               autocompleteService.current.getPlacePredictions(
