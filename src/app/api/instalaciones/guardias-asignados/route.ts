@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
-import { auth } from '@/lib/auth';
+import { getCurrentUserServer } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
     // Verificar autenticación
-    const user = await auth();
+    const user = getCurrentUserServer(request);
     if (!user || !user.tenant_id) {
       return NextResponse.json(
         { success: false, error: 'No autorizado' },
