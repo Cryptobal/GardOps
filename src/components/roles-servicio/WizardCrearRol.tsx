@@ -54,6 +54,11 @@ export default function WizardCrearRol({
   const [loading, setLoading] = useState(false);
   const [mostrarPasoNocturno, setMostrarPasoNocturno] = useState(false);
   
+  // Debug: Log cuando cambien los estados
+  useEffect(() => {
+    console.log('🔍 DEBUG - Estado del wizard:', { paso, mostrarPasoNocturno, loading });
+  }, [paso, mostrarPasoNocturno, loading]);
+  
   // Estados de configuración
   const [duracionCiclo, setDuracionCiclo] = useState(7);
   const [diasConfig, setDiasConfig] = useState<DiaConfig[]>([]);
@@ -230,20 +235,32 @@ export default function WizardCrearRol({
       };
 
       console.log('🚀 Enviando datos del rol:', rolData);
-      await onSave(rolData);
-      console.log('✅ Rol guardado exitosamente');
       
-      // NO cerrar el modal, ir al paso 4
-      console.log('🔄 Cambiando a paso 4...');
-      setPaso(4);
-      setMostrarPasoNocturno(true);
-      console.log('✅ Paso 4 activado');
-      
-      // Mostrar toast de éxito pero SIN cerrar
-      toast({
-        title: "Rol creado exitosamente",
-        description: `Rol "${nomenclatura}" creado correctamente`,
-      });
+      try {
+        await onSave(rolData);
+        console.log('✅ Rol guardado exitosamente');
+        
+        // Mostrar toast de éxito
+        toast({
+          title: "Rol creado exitosamente",
+          description: `Rol "${nomenclatura}" creado correctamente`,
+        });
+        
+        // NO cerrar el modal, ir al paso 4
+        console.log('🔄 Cambiando a paso 4...');
+        setPaso(4);
+        setMostrarPasoNocturno(true);
+        console.log('✅ Paso 4 activado - paso:', 4, 'mostrarPasoNocturno:', true);
+        
+      } catch (saveError) {
+        console.error('❌ Error en onSave:', saveError);
+        toast({
+          title: "Error al crear rol",
+          description: "Hubo un problema al guardar el rol. Inténtalo de nuevo.",
+          variant: "destructive"
+        });
+        return; // Salir si hay error
+      }
     } catch (error) {
       console.error('Error guardando rol:', error);
     } finally {
@@ -337,6 +354,10 @@ export default function WizardCrearRol({
           
           {/* Indicador de pasos */}
           <div className="flex justify-center gap-2 mt-4">
+            {/* DEBUG: Mostrar pasos disponibles */}
+            <div className="text-xs text-gray-500 mb-2 w-full text-center">
+              DEBUG: Pasos disponibles: {[1, 2, 3, ...(mostrarPasoNocturno ? [4] : [])].join(', ')} | Paso actual: {paso}
+            </div>
             {[1, 2, 3, ...(mostrarPasoNocturno ? [4] : [])].map((num) => (
               <div
                 key={num}
@@ -582,11 +603,13 @@ export default function WizardCrearRol({
           )}
 
           {/* PASO 4: Crear Patrón Nocturno/Diurno */}
-          {(() => {
-            if (paso === 4 && mostrarPasoNocturno) {
-              console.log('🎯 Renderizando Paso 4 - paso:', paso, 'mostrarPasoNocturno:', mostrarPasoNocturno);
-              return (
+          {paso === 4 && mostrarPasoNocturno && (
             <div className="space-y-6">
+              {/* DEBUG: Mostrar que estamos en paso 4 */}
+              <div className="bg-red-100 border border-red-300 rounded-lg p-4 text-center">
+                <div className="text-red-800 font-bold">🎯 DEBUG: ESTAMOS EN PASO 4</div>
+                <div className="text-red-600 text-sm">paso: {paso}, mostrarPasoNocturno: {mostrarPasoNocturno.toString()}</div>
+              </div>
               <div className="text-center">
                 <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Moon className="h-8 w-8 text-purple-600" />
@@ -689,10 +712,7 @@ export default function WizardCrearRol({
                 </Button>
               </div>
             </div>
-              );
-            }
-            return null;
-          })()}
+          )}
         </div>
       </DialogContent>
     </Dialog>
