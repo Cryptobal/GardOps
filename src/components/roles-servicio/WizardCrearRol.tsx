@@ -17,7 +17,9 @@ import {
   ArrowLeft, 
   ArrowRight, 
   CheckCircle,
-  X
+  X,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -227,53 +229,15 @@ export default function WizardCrearRol({
 
       await onSave(rolData);
       
-      // Después de crear exitosamente, preguntar por el patrón opuesto
-      const primerHora = parseInt(diasConfig.find(d => d.esTrabajo)?.horaInicio.split(':')[0] || '8');
-      const esDiurno = primerHora >= 6 && primerHora < 18;
-      
-      // Calcular nomenclatura del patrón opuesto
-      const horariosOpuestos = diasConfig.map(dia => {
-        if (dia.esTrabajo) {
-          if (esDiurno) {
-            // Crear versión nocturna (12 horas después)
-            return {
-              ...dia,
-              horaInicio: '20:00',
-              horaTermino: '08:00',
-              horas: 12
-            };
-          } else {
-            // Crear versión diurna
-            return {
-              ...dia,
-              horaInicio: '08:00',
-              horaTermino: '20:00',
-              horas: 12
-            };
-          }
-        }
-        return dia;
+      // Mostrar toast de éxito
+      toast({
+        title: "Rol creado exitosamente",
+        description: `Rol "${nomenclatura}" creado correctamente`,
       });
-
-      const diasTrabajoOpuesto = horariosOpuestos.filter(d => d.esTrabajo);
-      const promedioHorasOpuesto = diasTrabajoOpuesto.length > 0 
-        ? Math.round((diasTrabajoOpuesto.reduce((sum, d) => sum + d.horas, 0) / diasTrabajoOpuesto.length) * 10) / 10
-        : 0;
       
-      const tipoTurnoOpuesto = esDiurno ? 'N' : 'D';
-      const rangoHorariosOpuesto = esDiurno ? '20:00 08:00' : '08:00 20:00';
-      const nomenclaturaOpuesta = `${tipoTurnoOpuesto} ${diasTrabajo}x${diasDescanso}x${promedioHorasOpuesto} ${rangoHorariosOpuesto}`;
-
-      // Verificar si el patrón opuesto ya existe
-      const opuestoExiste = await validarDuplicado(nomenclaturaOpuesta);
-      
-      if (!opuestoExiste) {
-        setMostrarPasoNocturno(true);
-        setPaso(4); // Ir al paso 4 (pregunta nocturno/diurno)
-        return;
-      } else {
-        handleCerrar();
-      }
+      // Ir al paso 4 para preguntar por el patrón nocturno/diurno
+      setPaso(4);
+      setMostrarPasoNocturno(true);
     } catch (error) {
       console.error('Error guardando rol:', error);
     } finally {
@@ -285,52 +249,36 @@ export default function WizardCrearRol({
     try {
       setLoading(true);
       
-      const primerHora = parseInt(diasConfig.find(d => d.esTrabajo)?.horaInicio.split(':')[0] || '8');
-      const esDiurno = primerHora >= 6 && primerHora < 18;
       const diasTrabajo = diasConfig.filter(d => d.esTrabajo).length;
       const diasDescanso = duracionCiclo - diasTrabajo;
       
-      // Crear horarios opuestos
-      const horariosOpuestos = diasConfig.map(dia => {
-        if (dia.esTrabajo) {
-          if (esDiurno) {
-            return {
-              ...dia,
-              horaInicio: '20:00',
-              horaTermino: '08:00',
-              horas: 12
-            };
-          } else {
-            return {
-              ...dia,
-              horaInicio: '08:00',
-              horaTermino: '20:00',
-              horas: 12
-            };
-          }
-        }
-        return dia;
-      });
-
-      // Crear series para la API
-      const seriesOpuestas = horariosOpuestos.map(dia => ({
+      // Determinar si el rol actual es diurno o nocturno
+      const primerHora = parseInt(diasConfig.find(d => d.esTrabajo)?.horaInicio.split(':')[0] || '8');
+      const esDiurno = primerHora >= 6 && primerHora < 18;
+      
+      // Crear horarios opuestos (simples: 20:00-08:00 para nocturno, 08:00-20:00 para diurno)
+      const horaInicioOpuesto = esDiurno ? '20:00' : '08:00';
+      const horaTerminoOpuesto = esDiurno ? '08:00' : '20:00';
+      
+      // Crear series opuestas
+      const seriesOpuestas = diasConfig.map(dia => ({
         posicion_en_ciclo: dia.posicion,
         es_dia_trabajo: dia.esTrabajo,
-        hora_inicio: dia.esTrabajo ? dia.horaInicio : undefined,
-        hora_termino: dia.esTrabajo ? dia.horaTermino : undefined,
-        horas_turno: dia.esTrabajo ? dia.horas : 0,
+        hora_inicio: dia.esTrabajo ? horaInicioOpuesto : undefined,
+        hora_termino: dia.esTrabajo ? horaTerminoOpuesto : undefined,
+        horas_turno: dia.esTrabajo ? 12 : 0,
         observaciones: `${dia.nombre}${dia.esTrabajo ? ` (${esDiurno ? 'nocturno' : 'diurno'})` : ' (libre)'}`
       }));
 
       const rolDataOpuesto = {
         dias_trabajo: diasTrabajo,
         dias_descanso: diasDescanso,
-        hora_inicio: horariosOpuestos.find(d => d.esTrabajo)?.horaInicio || '20:00',
-        hora_termino: horariosOpuestos.find(d => d.esTrabajo)?.horaTermino || '08:00',
+        hora_inicio: horaInicioOpuesto,
+        hora_termino: horaTerminoOpuesto,
         estado: 'Activo',
         tenantId: tenantId || '1',
-        tiene_horarios_variables: true,
-        series_dias: seriesOpuestas
+        tiene_horarios_variables: false, // Usar horarios fijos para el patrón opuesto
+        series_dias: []
       };
 
       await onSave(rolDataOpuesto);
@@ -635,10 +583,20 @@ export default function WizardCrearRol({
                   <Moon className="h-8 w-8 text-purple-600" />
                 </div>
                 <h3 className="text-2xl font-semibold mb-2">
-                  🌙 ¿Crear también el patrón nocturno?
+                  {(() => {
+                    const primerHora = parseInt(diasConfig.find(d => d.esTrabajo)?.horaInicio.split(':')[0] || '8');
+                    const esDiurno = primerHora >= 6 && primerHora < 18;
+                    return esDiurno ? '🌙 ¿Crear también el patrón nocturno?' : '☀️ ¿Crear también el patrón diurno?';
+                  })()}
                 </h3>
                 <p className="text-gray-600 mb-6">
-                  Acabas de crear un patrón diurno. ¿Quieres crear automáticamente el mismo patrón pero nocturno?
+                  {(() => {
+                    const primerHora = parseInt(diasConfig.find(d => d.esTrabajo)?.horaInicio.split(':')[0] || '8');
+                    const esDiurno = primerHora >= 6 && primerHora < 18;
+                    return esDiurno 
+                      ? 'Acabas de crear un patrón diurno. ¿Quieres crear automáticamente el mismo patrón pero nocturno?'
+                      : 'Acabas de crear un patrón nocturno. ¿Quieres crear automáticamente el mismo patrón pero diurno?';
+                  })()}
                 </p>
               </div>
 
@@ -649,30 +607,48 @@ export default function WizardCrearRol({
                       Se creará automáticamente:
                     </div>
                     <div className="text-sm text-purple-600 mb-4">
-                      Mismo patrón de días, pero con horarios nocturnos (20:00 - 08:00)
+                      {(() => {
+                        const primerHora = parseInt(diasConfig.find(d => d.esTrabajo)?.horaInicio.split(':')[0] || '8');
+                        const esDiurno = primerHora >= 6 && primerHora < 18;
+                        return esDiurno 
+                          ? 'Mismo patrón de días, pero con horarios nocturnos (20:00 - 08:00)'
+                          : 'Mismo patrón de días, pero con horarios diurnos (08:00 - 20:00)';
+                      })()}
                     </div>
                     
-                    {/* Vista previa del patrón nocturno */}
+                    {/* Vista previa del patrón opuesto */}
                     <div className="grid grid-cols-4 gap-2 max-w-md mx-auto mb-4">
-                      {diasConfig.slice(0, Math.min(8, duracionCiclo)).map((dia, index) => (
-                        <div
-                          key={index}
-                          className={`p-2 rounded-lg text-xs ${
-                            dia.esTrabajo
-                              ? 'bg-purple-200 text-purple-800'
-                              : 'bg-gray-100 text-gray-600'
-                          }`}
-                        >
-                          <div className="font-medium">{dia.nombre}</div>
-                          {dia.esTrabajo && (
-                            <div className="text-xs mt-1">20:00-08:00</div>
-                          )}
-                        </div>
-                      ))}
+                      {diasConfig.slice(0, Math.min(8, duracionCiclo)).map((dia, index) => {
+                        const primerHora = parseInt(diasConfig.find(d => d.esTrabajo)?.horaInicio.split(':')[0] || '8');
+                        const esDiurno = primerHora >= 6 && primerHora < 18;
+                        const horarioOpuesto = esDiurno ? '20:00-08:00' : '08:00-20:00';
+                        
+                        return (
+                          <div
+                            key={index}
+                            className={`p-2 rounded-lg text-xs ${
+                              dia.esTrabajo
+                                ? 'bg-purple-200 text-purple-800'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}
+                          >
+                            <div className="font-medium">{dia.nombre}</div>
+                            {dia.esTrabajo && (
+                              <div className="text-xs mt-1">{horarioOpuesto}</div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
 
                     <div className="text-sm text-purple-600 font-mono">
-                      "N {diasTrabajo}x{diasDescanso}x12 20:00 08:00"
+                      {(() => {
+                        const primerHora = parseInt(diasConfig.find(d => d.esTrabajo)?.horaInicio.split(':')[0] || '8');
+                        const esDiurno = primerHora >= 6 && primerHora < 18;
+                        return esDiurno 
+                          ? `"N ${diasTrabajo}x${diasDescanso}x12 20:00 08:00"`
+                          : `"D ${diasTrabajo}x${diasDescanso}x12 08:00 20:00"`;
+                      })()}
                     </div>
                   </div>
                 </CardContent>
@@ -684,14 +660,23 @@ export default function WizardCrearRol({
                   onClick={handleCerrar}
                   className="px-6"
                 >
-                  No, solo el diurno
+                  {(() => {
+                    const primerHora = parseInt(diasConfig.find(d => d.esTrabajo)?.horaInicio.split(':')[0] || '8');
+                    const esDiurno = primerHora >= 6 && primerHora < 18;
+                    return esDiurno ? 'No, solo el diurno' : 'No, solo el nocturno';
+                  })()}
                 </Button>
                 <Button 
                   onClick={handleCrearPatronOpuesto}
                   disabled={loading}
                   className="bg-purple-600 hover:bg-purple-700 px-6"
                 >
-                  {loading ? 'Creando...' : '🌙 Sí, crear nocturno'}
+                  {(() => {
+                    const primerHora = parseInt(diasConfig.find(d => d.esTrabajo)?.horaInicio.split(':')[0] || '8');
+                    const esDiurno = primerHora >= 6 && primerHora < 18;
+                    if (loading) return 'Creando...';
+                    return esDiurno ? '🌙 Sí, crear nocturno' : '☀️ Sí, crear diurno';
+                  })()}
                 </Button>
               </div>
             </div>
