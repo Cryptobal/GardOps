@@ -10,66 +10,64 @@ export interface GeocodingResult {
 }
 
 /**
- * Geocodifica una dirección usando Google Maps API
+ * Geocodifica una dirección usando Google Maps Geocoding API REST
  * @param direccion - Dirección a geocodificar
  * @returns Resultado de geocodificación o null si falla
  */
 export async function geocodificarDireccion(direccion: string): Promise<GeocodingResult | null> {
   try {
-    // Verificar que Google Maps esté disponible
-    if (typeof google === 'undefined' || !google.maps || !google.maps.Geocoder) {
-      console.error('Google Maps no está disponible');
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    
+    if (!apiKey) {
+      console.error('Google Maps API key no está configurada');
       return null;
     }
 
-    const geocoder = new google.maps.Geocoder();
+    const encodedAddress = encodeURIComponent(direccion);
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&region=CL&key=${apiKey}`;
     
-    return new Promise((resolve, reject) => {
-      geocoder.geocode({ 
-        address: direccion,
-        region: 'CL' // Chile
-      }, (results, status) => {
-        if (status === 'OK' && results && results[0]) {
-          const result = results[0];
-          const location = result.geometry.location;
-          
-          // Extraer componentes de dirección
-          const componentes = {
-            comuna: '',
-            ciudad: '',
-            region: '',
-            direccionCompleta: result.formatted_address
-          };
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.status === 'OK' && data.results && data.results.length > 0) {
+      const result = data.results[0];
+      const location = result.geometry.location;
+      
+      // Extraer componentes de dirección
+      const componentes = {
+        comuna: '',
+        ciudad: '',
+        region: '',
+        direccionCompleta: result.formatted_address
+      };
 
-          if (result.address_components) {
-            result.address_components.forEach((component) => {
-              const types = component.types;
-              const name = component.long_name;
+      if (result.address_components) {
+        result.address_components.forEach((component: any) => {
+          const types = component.types;
+          const name = component.long_name;
 
-              if (types.includes('locality')) {
-                componentes.ciudad = name;
-              } else if (types.includes('administrative_area_level_2')) {
-                componentes.comuna = name;
-              } else if (types.includes('administrative_area_level_1')) {
-                componentes.region = name;
-              }
-            });
+          if (types.includes('locality')) {
+            componentes.ciudad = name;
+          } else if (types.includes('administrative_area_level_2')) {
+            componentes.comuna = name;
+          } else if (types.includes('administrative_area_level_1')) {
+            componentes.region = name;
           }
+        });
+      }
 
-          resolve({
-            latitud: location.lat(),
-            longitud: location.lng(),
-            direccionCompleta: componentes.direccionCompleta,
-            comuna: componentes.comuna,
-            ciudad: componentes.ciudad,
-            region: componentes.region
-          });
-        } else {
-          console.warn(`Geocodificación falló para "${direccion}": ${status}`);
-          resolve(null);
-        }
-      });
-    });
+      return {
+        latitud: location.lat,
+        longitud: location.lng,
+        direccionCompleta: componentes.direccionCompleta,
+        comuna: componentes.comuna,
+        ciudad: componentes.ciudad,
+        region: componentes.region
+      };
+    } else {
+      console.warn(`Geocodificación falló para "${direccion}": ${data.status}`);
+      return null;
+    }
   } catch (error) {
     console.error(`Error geocodificando "${direccion}":`, error);
     return null;
