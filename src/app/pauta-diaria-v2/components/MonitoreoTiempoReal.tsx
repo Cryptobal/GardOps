@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,9 +20,20 @@ import {
   Activity,
   ChevronDown,
   XCircle,
-  Eye
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  Calendar
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { toYmd, toDisplay } from '@/lib/date';
+
+// Helper para agregar días a una fecha
+const addDays = (d: string, delta: number) => {
+  const t = new Date(d + 'T00:00:00'); 
+  t.setDate(t.getDate() + delta);
+  return t.toISOString().slice(0,10);
+};
 
 interface Turno {
   pauta_id: string;
@@ -67,17 +79,42 @@ interface MonitoreoData {
   turnos: Turno[];
 }
 
-export function MonitoreoTiempoReal() {
+interface MonitoreoTiempoRealProps {
+  fecha: string;
+  activeTab?: string;
+}
+
+export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: MonitoreoTiempoRealProps) {
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [data, setData] = useState<MonitoreoData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false); // Desactivado por defecto
   const [vistaTurnos, setVistaTurnos] = useState<'instalaciones' | 'todos' | 'dia_noche'>('dia_noche');
   const [modoVista, setModoVista] = useState<'lista' | 'grid'>('grid'); // Grid por defecto
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [incluirLibres, setIncluirLibres] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+
+  // Funciones de navegación de fecha
+  const go = useCallback((delta: number) => {
+    const params = new URLSearchParams();
+    if (incluirLibres) params.set('incluirLibres', 'true');
+    if (activeTab) params.set('tab', activeTab);
+    
+    const newUrl = `/pauta-diaria-v2?fecha=${addDays(fecha, delta)}${params.toString() ? '&' + params.toString() : ''}`;
+    router.push(newUrl);
+  }, [fecha, incluirLibres, activeTab, router]);
+
+  const goToDate = useCallback((newFecha: string) => {
+    const params = new URLSearchParams();
+    if (incluirLibres) params.set('incluirLibres', 'true');
+    if (activeTab) params.set('tab', activeTab);
+    
+    const newUrl = `/pauta-diaria-v2?fecha=${newFecha}${params.toString() ? '&' + params.toString() : ''}`;
+    router.push(newUrl);
+  }, [incluirLibres, activeTab, router]);
 
   // Evitar error de hidratación
   useEffect(() => {
@@ -284,16 +321,38 @@ export function MonitoreoTiempoReal() {
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {/* Fecha del día */}
-            <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-950/50 rounded-lg border border-blue-200 dark:border-blue-800">
-              <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                {new Date(fecha).toLocaleDateString('es-CL', { 
-                  weekday: 'short', 
-                  month: 'short', 
-                  day: 'numeric' 
-                })}
-              </span>
+            {/* Controles de navegación de fecha */}
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="sm" onClick={() => go(-1)}>
+                <ChevronLeft className="h-3 w-3" />
+              </Button>
+              <div className="flex items-stretch gap-1">
+                <Input
+                  ref={inputRef}
+                  type="date"
+                  className="w-auto text-xs"
+                  value={fecha}
+                  onChange={(e) => goToDate(e.target.value)}
+                />
+                <Button
+                  aria-label="Abrir calendario"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => inputRef.current?.showPicker?.()}
+                >
+                  <Calendar className="h-3 w-3" />
+                </Button>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => goToDate(toYmd(new Date()))}
+              >
+                Hoy
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => go(1)}>
+                <ChevronRight className="h-3 w-3" />
+              </Button>
             </div>
 
             {/* Botón Ver Libres */}

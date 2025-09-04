@@ -169,7 +169,7 @@ export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fe
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
               }>
-                <MonitoreoTiempoReal />
+                <MonitoreoTiempoReal fecha={fecha} activeTab={activeTab} />
               </Suspense>
             </CardContent>
           </Card>
