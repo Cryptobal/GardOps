@@ -628,7 +628,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     });
   }, [rows, f.instalacion, f.estado, f.ppc, f.q, mostrarLibres]);
 
-  if (!rows?.length) return <p className="text-sm opacity-70">Sin datos para {toDisplay(fechaStr)}.</p>;
+  // No retornar temprano cuando no hay datos, para mantener los controles de navegación
 
   // Componente de panel inline para una fila
   const RowPanel = ({ row }: { row: PautaRow }) => {
@@ -1384,7 +1384,8 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((r:PautaRow) => {
+                  {filtered.length > 0 ? (
+                    filtered.map((r:PautaRow) => {
                     const isExpanded = expandedRowId === r.pauta_id;
                     const esDuplicado = r.guardia_trabajo_id && (guardiasDuplicados.get(`${r.fecha}-${r.guardia_trabajo_id}`) || 0) > 1;
                     const isLoading = savingId === r.pauta_id;
@@ -1508,16 +1509,41 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                         {isExpanded && <RowPanel row={r} />}
                       </React.Fragment>
                     );
-                  })}
+                  })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                          <Calendar className="h-8 w-8 opacity-50" />
+                          <p className="text-sm">Sin datos para {toDisplay(fechaStr)}</p>
+                          <p className="text-xs">Usa los controles de navegación para cambiar de fecha</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-3">
-            {filtered.map((r:PautaRow) => (
-              <MobileRowCard key={r.pauta_id} row={r} />
-            ))}
+            {filtered.length > 0 ? (
+              filtered.map((r:PautaRow) => (
+                <MobileRowCard key={r.pauta_id} row={r} />
+              ))
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                    <Calendar className="h-12 w-12 opacity-50" />
+                    <div>
+                      <p className="text-sm font-medium">Sin datos para {toDisplay(fechaStr)}</p>
+                      <p className="text-xs mt-1">Usa los controles de navegación para cambiar de fecha</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
