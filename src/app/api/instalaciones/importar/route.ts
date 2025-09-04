@@ -80,11 +80,13 @@ export async function POST(request: NextRequest) {
           };
 
           // Verificar campos obligatorios
+          let hasRequiredFieldErrors = false;
           for (const [excelField, dbField] of Object.entries(requiredFields)) {
             if (!row[excelField] || !row[excelField].toString().trim()) {
               erroresDetalle.push(`Fila ${rowNumber}: Campo obligatorio '${excelField}' está vacío`);
               errores++;
-              continue;
+              hasRequiredFieldErrors = true;
+              break; // Salir del bucle si hay un campo obligatorio faltante
             }
             insertFields.push(dbField);
             insertValues.push(row[excelField].toString().trim());
@@ -92,7 +94,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Si faltan campos obligatorios, continuar con la siguiente fila
-          if (errores > 0) continue;
+          if (hasRequiredFieldErrors) continue;
 
           // Buscar cliente por nombre o RUT si se proporciona
           let clienteId = null;
