@@ -237,38 +237,40 @@ export default function Asignaciones() {
 
       {/* Configuración */}
       <Card className="mb-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <CardContent className="p-4 space-y-4">
-          {/* Instalación */}
-          <div>
-            <label className="text-sm font-medium mb-2 block text-gray-700 dark:text-gray-300">Instalación</label>
-            <Select onValueChange={(value) => {
-              const found = instalaciones.find(i => i.id === value);
-              if (found) setInstSelected(found);
-            }}>
-              <SelectTrigger className="w-full">
-                <span>{instSelected ? instSelected.nombre : "Seleccionar instalación..."}</span>
-              </SelectTrigger>
-              <SelectContent>
-                {instalaciones.map(i => (
-                  <SelectItem key={i.id} value={i.id}>
-                    {i.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Instalación */}
+            <div>
+              <label className="text-sm font-medium mb-2 block text-gray-700 dark:text-gray-300">Instalación</label>
+              <Select onValueChange={(value) => {
+                const found = instalaciones.find(i => i.id === value);
+                if (found) setInstSelected(found);
+              }}>
+                <SelectTrigger className="w-full">
+                  <span>{instSelected ? instSelected.nombre : "Seleccionar instalación..."}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  {instalaciones.map(i => (
+                    <SelectItem key={i.id} value={i.id}>
+                      {i.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Radio */}
-          <div>
-            <label className="text-sm font-medium mb-2 block text-gray-700 dark:text-gray-300">Radio de búsqueda</label>
-            <Select value={String(radio)} onValueChange={v=>setRadio(Number(v))}>
-              <SelectTrigger className="w-full">
-                <span>{radio} km</span>
-              </SelectTrigger>
-              <SelectContent>
-                {radios.map(r=><SelectItem key={r} value={String(r)}>{r} km</SelectItem>)}
-              </SelectContent>
-            </Select>
+            {/* Radio */}
+            <div>
+              <label className="text-sm font-medium mb-2 block text-gray-700 dark:text-gray-300">Radio de búsqueda</label>
+              <Select value={String(radio)} onValueChange={v=>setRadio(Number(v))}>
+                <SelectTrigger className="w-full">
+                  <span>{radio} km</span>
+                </SelectTrigger>
+                <SelectContent>
+                  {radios.map(r=><SelectItem key={r} value={String(r)}>{r} km</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
