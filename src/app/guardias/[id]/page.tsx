@@ -305,14 +305,27 @@ export default function GuardiaDetallePage() {
         
         if (response.ok) {
           const updatedGuardia = await response.json();
-          setGuardia(updatedGuardia);
+          console.log('🔍 handleSave - respuesta del servidor:', updatedGuardia);
+          
+          // Verificar estructura de la respuesta
+          if (updatedGuardia && updatedGuardia.guardia) {
+            console.log('🔍 handleSave - usando updatedGuardia.guardia');
+            setGuardia(updatedGuardia.guardia);
+          } else if (updatedGuardia) {
+            console.log('🔍 handleSave - usando updatedGuardia directamente');
+            setGuardia(updatedGuardia);
+          } else {
+            console.error('🔍 handleSave - respuesta vacía del servidor');
+          }
           
           // Si se actualizó la dirección, recargar datos geográficos solo si no hay selectedAddress
           if (field === 'direccion' && !selectedAddress) {
             await cargarDatosGeograficos(dataToUpdate[field]);
           }
         } else {
-          throw new Error('Error actualizando guardia');
+          const errorText = await response.text();
+          console.error('🔍 handleSave - error del servidor:', response.status, errorText);
+          throw new Error(`Error actualizando guardia: ${response.status} - ${errorText}`);
         }
       }
       
@@ -324,7 +337,7 @@ export default function GuardiaDetallePage() {
       toast.success("Campo actualizado correctamente");
       
     } catch (error) {
-      console.error('Error guardando campo:', error);
+      console.error('🔍 handleSave - error completo:', error);
       toast.error("No se pudo actualizar el campo");
     } finally {
       setSaving(false);
