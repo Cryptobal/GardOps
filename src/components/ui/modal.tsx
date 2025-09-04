@@ -78,11 +78,17 @@ export function Modal({
   size = "md",
   showCloseButton = true,
 }: ModalProps) {
+  const [canClose, setCanClose] = React.useState(false);
+
   React.useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
+      // Pequeño delay para evitar que el click inicial cierre el modal
+      const timer = setTimeout(() => setCanClose(true), 100);
+      return () => clearTimeout(timer);
     } else {
       document.body.style.overflow = "unset";
+      setCanClose(false);
     }
 
     return () => {
@@ -113,7 +119,7 @@ export function Modal({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={canClose ? onClose : undefined}
       />
 
       {/* Modal */}
