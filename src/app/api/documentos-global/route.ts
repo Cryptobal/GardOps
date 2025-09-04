@@ -140,8 +140,8 @@ export async function GET(request: NextRequest) {
       SELECT * FROM documentos_unidos
     `;
     
-    let params: any[] = [];
-    let paramIndex = 1;
+    let params: any[] = [tenantId]; // Agregar tenant_id como primer parámetro
+    let paramIndex = 2; // Empezar desde 2 porque 1 ya está ocupado por tenant_id
     
     // Aplicar filtros solo si se especifican
     if (modulo && modulo !== 'todos') {
