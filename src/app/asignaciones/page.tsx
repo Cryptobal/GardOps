@@ -85,11 +85,7 @@ export default function Asignaciones() {
   /* Función para asignar guardia */
   const handleAsignar = async (guardia: Guard) => {
     if (!instSelected) {
-      toast({
-        title: "Error",
-        description: "Selecciona una instalación primero",
-        variant: "destructive"
-      });
+      toast.error("Selecciona una instalación primero", "Error");
       return;
     }
 
@@ -112,28 +108,17 @@ export default function Asignaciones() {
       const data = await response.json();
 
       if (data.success) {
-        toast({
-          title: "✅ Asignación exitosa",
-          description: `${guardia.nombre} asignado a ${instSelected.nombre}`,
-        });
+        toast.success(`${guardia.nombre} asignado a ${instSelected.nombre}`, "✅ Asignación exitosa");
         
         // Actualizar la lista de guardias removiendo el asignado
         setGuards(prev => prev.filter(g => g.id !== guardia.id));
         
       } else {
-        toast({
-          title: "Error en asignación",
-          description: data.error || "No se pudo completar la asignación",
-          variant: "destructive"
-        });
+        toast.error(data.error || "No se pudo completar la asignación", "Error en asignación");
       }
     } catch (error) {
       console.error('Error asignando guardia:', error);
-      toast({
-        title: "Error",
-        description: "Error de conexión al asignar guardia",
-        variant: "destructive"
-      });
+      toast.error("Error de conexión al asignar guardia", "Error");
     } finally {
       setAsignando(null);
     }
