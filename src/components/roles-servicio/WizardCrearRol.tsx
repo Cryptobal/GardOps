@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-// Removido import de obtenerTenantIdUsuario - se obtendrá en el backend
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -182,14 +181,22 @@ export default function WizardCrearRol({
 
   const validarDuplicado = async (nomenclaturaAValidar: string): Promise<boolean> => {
     try {
+      console.log('🔍 Validando duplicado para:', nomenclaturaAValidar);
       const response = await fetch('/api/roles-servicio');
+      if (!response.ok) {
+        console.error('❌ Error en respuesta de validación:', response.status);
+        return false;
+      }
       const data = await response.json();
+      console.log('🔍 Datos de validación:', data);
       if (data.success && data.data) {
-        return data.data.some((rol: any) => rol.nombre === nomenclaturaAValidar);
+        const existe = data.data.some((rol: any) => rol.nombre === nomenclaturaAValidar);
+        console.log('🔍 ¿Existe duplicado?', existe);
+        return existe;
       }
       return false;
     } catch (error) {
-      console.error('Error validando duplicados:', error);
+      console.error('❌ Error validando duplicado:', error);
       return false;
     }
   };

@@ -75,6 +75,10 @@ export async function getRolServicioById(id: string, tenantId?: string): Promise
 
 export async function crearRolServicio(data: CrearRolServicioData): Promise<RolServicio> {
   try {
+    console.log('🔍 crearRolServicio - Datos recibidos:', data);
+    console.log('🔍 crearRolServicio - Tipo de data:', typeof data);
+    console.log('🔍 crearRolServicio - series_dias:', data.series_dias);
+    
     const response = await fetch('/api/roles-servicio', {
       method: 'POST',
       headers: {
