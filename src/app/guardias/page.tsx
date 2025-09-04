@@ -36,6 +36,7 @@ import { DataTable, Column } from "../../components/ui/data-table";
 import { useEntityModal } from "../../hooks/useEntityModal";
 import { useCrudOperations } from "../../hooks/useCrudOperations";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { ImportSummaryModal } from '@/components/guardias/ImportSummaryModal';
 
 // Importar tipos y esquemas
 import { Guardia } from "../../lib/schemas/guardias";
@@ -105,6 +106,10 @@ export default function GuardiasPage() {
   const [os10ModalOpen, setOs10ModalOpen] = useState(false);
   const [os10ModalTipo, setOs10ModalTipo] = useState<'por_vencer' | 'vencido' | 'sin_fecha' | null>(null);
   const [showOS10Stats, setShowOS10Stats] = useState(false);
+  
+  // Estados para modal de resumen de importación
+  const [showImportSummary, setShowImportSummary] = useState(false);
+  const [importResult, setImportResult] = useState<any>(null);
 
   // Hooks para modales y operaciones CRUD
   const { 
@@ -299,16 +304,9 @@ export default function GuardiasPage() {
 
       const result = await response.json();
       
-      const mensaje = result.creados > 0 && result.actualizados > 0 
-        ? `✅ Importación completada: ${result.creados} guardias creados, ${result.actualizados} actualizados`
-        : result.creados > 0 
-        ? `✅ Importación completada: ${result.creados} guardias creados`
-        : `✅ Importación completada: ${result.actualizados} guardias actualizados`;
-      
-      showToast(mensaje, "success");
-      
-      // Recargar la lista de guardias
-      window.location.reload();
+      // Mostrar modal de resumen
+      setImportResult(result);
+      setShowImportSummary(true);
     } catch (error) {
       console.error('Error importando Excel:', error);
       showToast(`❌ Error: ${error instanceof Error ? error.message : 'Error al importar'}`, "error");
@@ -910,6 +908,18 @@ export default function GuardiasPage() {
 
       {/* Modal de confirmación para inactivación */}
       <ConfirmModal />
+
+      {/* Modal de resumen de importación */}
+      <ImportSummaryModal
+        isOpen={showImportSummary}
+        onClose={() => {
+          setShowImportSummary(false);
+          setImportResult(null);
+          // Recargar la página para ver los cambios
+          window.location.reload();
+        }}
+        result={importResult}
+      />
 
       {/* Toast placeholder */}
       {/* ToastContainer se implementará en la Parte 2 */}
