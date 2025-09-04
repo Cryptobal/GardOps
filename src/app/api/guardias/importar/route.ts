@@ -225,6 +225,22 @@ export async function POST(request: NextRequest) {
                   console.log(`⚠️ Error buscando banco en fila ${rowNumber}: ${bancoNombre}`, error);
                   continue; // Saltar este campo si hay error
                 }
+              } else if (excelField === 'Tipo de Cuenta') {
+                // Convertir tipo de cuenta a valores válidos de la base de datos
+                const tipoCuentaRaw = value.toString().trim().toLowerCase();
+                if (['cct', 'cuenta corriente'].includes(tipoCuentaRaw)) {
+                  value = 'CCT';
+                } else if (['cte', 'cuenta vista'].includes(tipoCuentaRaw)) {
+                  value = 'CTE';
+                } else if (['cta', 'cuenta de ahorro'].includes(tipoCuentaRaw)) {
+                  value = 'CTA';
+                } else if (['rut', 'cuenta rut'].includes(tipoCuentaRaw)) {
+                  value = 'RUT';
+                } else {
+                  console.log(`⚠️ Tipo de cuenta inválido en fila ${rowNumber}: ${value}. Usando CTE por defecto.`);
+                  value = 'CTE'; // Valor por defecto
+                }
+                console.log(`✅ Tipo de cuenta convertido: ${value.toString().trim()} -> ${value}`);
               } else if (['Descuento AFP', 'Monto Pactado UF', 'Altura (cm)', 'Peso (kg)', 'Talla Zapato'].includes(excelField)) {
                 const numValue = parseFloat(value);
                 if (!isNaN(numValue)) {
@@ -350,6 +366,22 @@ export async function POST(request: NextRequest) {
                   console.log(`⚠️ Error buscando banco en fila ${rowNumber}: ${bancoNombre}`, error);
                   continue; // Saltar este campo si hay error
                 }
+              } else if (excelField === 'Tipo de Cuenta') {
+                // Convertir tipo de cuenta a valores válidos de la base de datos
+                const tipoCuentaRaw = value.toString().trim().toLowerCase();
+                if (['cct', 'cuenta corriente'].includes(tipoCuentaRaw)) {
+                  value = 'CCT';
+                } else if (['cte', 'cuenta vista'].includes(tipoCuentaRaw)) {
+                  value = 'CTE';
+                } else if (['cta', 'cuenta de ahorro'].includes(tipoCuentaRaw)) {
+                  value = 'CTA';
+                } else if (['rut', 'cuenta rut'].includes(tipoCuentaRaw)) {
+                  value = 'RUT';
+                } else {
+                  console.log(`⚠️ Tipo de cuenta inválido en fila ${rowNumber}: ${value}. Usando CTE por defecto.`);
+                  value = 'CTE'; // Valor por defecto
+                }
+                console.log(`✅ Tipo de cuenta convertido para actualización: ${value.toString().trim()} -> ${value}`);
               } else if (['Descuento AFP', 'Monto Pactado UF', 'Altura (cm)', 'Peso (kg)', 'Talla Zapato'].includes(excelField)) {
                 const numValue = parseFloat(value);
                 if (!isNaN(numValue)) {
