@@ -309,8 +309,22 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     
-    // Validar datos con Zod
-    const validatedData = actualizarInstalacionSchema.parse(body);
+    console.log('🔍 Datos recibidos en PUT:', body);
+    
+    // Solo validar y procesar los campos que se enviaron explícitamente
+    const camposAValidar: any = { id: body.id };
+    
+    // Solo agregar campos que están presentes en el body
+    Object.keys(body).forEach(key => {
+      if (key !== 'id' && body[key] !== undefined) {
+        camposAValidar[key] = body[key];
+      }
+    });
+    
+    console.log('🔍 Campos a validar:', camposAValidar);
+    
+    // Validar datos con Zod solo los campos enviados
+    const validatedData = actualizarInstalacionSchema.parse(camposAValidar);
     
     // Obtener datos originales ANTES de la actualización
     const datosOriginales = await query(`
