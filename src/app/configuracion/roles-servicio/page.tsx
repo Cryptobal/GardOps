@@ -147,27 +147,28 @@ export default function RolesServicioPage() {
       
       success('Rol de servicio creado correctamente', 'Éxito');
 
+      // Temporalmente deshabilitado para debugging
       // Preguntar si quiere crear el turno de noche
-      const info = extraerPatronTurno(nuevoRolCreado.nombre);
-      const esTurnoDia = info.esDia;
-      
-      if (esTurnoDia) {
-        const crearNoche = confirm(
-          `¿Quieres crear también el turno de noche para el patrón ${info.patron}?\n\n` +
-          `Esto creará automáticamente el turno de noche con horario de 12 horas después.`
-        );
-        
-        if (crearNoche) {
-          try {
-            const datosNoche = crearDatosTurnoNoche(nuevoRolCreado);
-            await crearRolServicio(datosNoche as CrearRolServicioData);
-            success('Turno de noche creado automáticamente', 'Éxito');
-          } catch (err) {
-            console.error('Error creando turno de noche automático:', err);
-            // No mostrar error, solo log
-          }
-        }
-      }
+      // const info = extraerPatronTurno(nuevoRolCreado.nombre);
+      // const esTurnoDia = info.esDia;
+      // 
+      // if (esTurnoDia) {
+      //   const crearNoche = confirm(
+      //     `¿Quieres crear también el turno de noche para el patrón ${info.patron}?\n\n` +
+      //     `Esto creará automáticamente el turno de noche con horario de 12 horas después.`
+      //   );
+      //   
+      //   if (crearNoche) {
+      //     try {
+      //       const datosNoche = crearDatosTurnoNoche(nuevoRolCreado);
+      //       await crearRolServicio(datosNoche as CrearRolServicioData);
+      //       success('Turno de noche creado automáticamente', 'Éxito');
+      //     } catch (err) {
+      //       console.error('Error creando turno de noche automático:', err);
+      //       // No mostrar error, solo log
+      //     }
+      //   }
+      // }
 
       // Limpiar formulario y cerrar
       setNuevoRol({
@@ -332,16 +333,18 @@ export default function RolesServicioPage() {
   // Extraer patrones únicos para el filtro
   const patronesDisponibles = extraerPatronesUnicos(roles);
   
-  const rolesFiltrados = ordenarRolesPorPatron(
-    filtrarRolesPorPatron(
-      roles.filter(rol => {
-        if (filtroEstado === 'activos') return rol.estado === 'Activo';
-        if (filtroEstado === 'inactivos') return rol.estado === 'Inactivo';
-        return true;
-      }),
-      filtroPatron
-    )
+  // Temporalmente deshabilitar ordenamiento para debugging
+  const rolesFiltrados = filtrarRolesPorPatron(
+    roles.filter(rol => {
+      if (filtroEstado === 'activos') return rol.estado === 'Activo';
+      if (filtroEstado === 'inactivos') return rol.estado === 'Inactivo';
+      return true;
+    }),
+    filtroPatron
   );
+  
+  // TODO: Rehabilitar ordenamiento cuando se resuelva el problema
+  // const rolesFiltrados = ordenarRolesPorPatron(filtrarRolesPorPatron(...));
 
   // Debug: Log de filtros
   console.log('🔍 Filtros activos:', { filtroEstado, filtroPatron });
@@ -670,7 +673,8 @@ export default function RolesServicioPage() {
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
-                            {!tieneParNoche(rol, roles) && (
+                            {/* Temporalmente deshabilitado para debugging */}
+                            {/* {!tieneParNoche(rol, roles) && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -680,7 +684,7 @@ export default function RolesServicioPage() {
                               >
                                 <Moon className="w-4 h-4" />
                               </Button>
-                            )}
+                            )} */}
                             <Button
                               size="sm"
                               variant="destructive"
