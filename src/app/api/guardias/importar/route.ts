@@ -124,7 +124,13 @@ export async function POST(request: NextRequest) {
             'Talla Pantalón': 'talla_pantalon',
             'Talla Zapato': 'talla_zapato',
             'Altura (cm)': 'altura_cm',
-            'Peso (kg)': 'peso_kg'
+            'Peso (kg)': 'peso_kg',
+            // Nuevos campos
+            'Monto Anticipo': 'monto_anticipo',
+            'PIN': 'pin',
+            'Dias Vac. Pendientes': 'dias_vacaciones_pendientes',
+            'Fecha Ingreso': 'fecha_ingreso',
+            'Fecha Finiquito': 'fecha_finiquito'
           };
 
           // Procesar campos opcionales
@@ -148,6 +154,40 @@ export async function POST(request: NextRequest) {
               } else if (excelField === 'Fecha OS10') {
                 if (value && !isNaN(Date.parse(value))) {
                   value = new Date(value).toISOString().split('T')[0];
+                }
+              } else if (excelField === 'Fecha Ingreso') {
+                if (value && !isNaN(Date.parse(value))) {
+                  value = new Date(value).toISOString().split('T')[0];
+                }
+              } else if (excelField === 'Fecha Finiquito') {
+                if (value && !isNaN(Date.parse(value))) {
+                  value = new Date(value).toISOString().split('T')[0];
+                }
+              } else if (excelField === 'Monto Anticipo') {
+                // Convertir a entero sin decimales
+                const numValue = parseInt(value.toString().replace(/[^\d]/g, ''));
+                if (!isNaN(numValue) && numValue >= 0 && numValue <= 999999) {
+                  value = numValue;
+                } else {
+                  console.log(`⚠️ Monto anticipo inválido en fila ${rowNumber}: ${value}`);
+                  continue; // Saltar este campo si es inválido
+                }
+              } else if (excelField === 'PIN') {
+                // Validar que sea de 4 dígitos
+                const pinStr = value.toString().trim();
+                if (pinStr.length === 4 && /^[0-9]{4}$/.test(pinStr)) {
+                  value = pinStr;
+                } else {
+                  console.log(`⚠️ PIN inválido en fila ${rowNumber}: ${value} (debe ser 4 dígitos)`);
+                  continue; // Saltar este campo si es inválido
+                }
+              } else if (excelField === 'Dias Vac. Pendientes') {
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue) && numValue >= 0) {
+                  value = numValue;
+                } else {
+                  console.log(`⚠️ Días vacaciones inválidos en fila ${rowNumber}: ${value}`);
+                  continue; // Saltar este campo si es inválido
                 }
               } else if (['Descuento AFP', 'Monto Pactado UF', 'Altura (cm)', 'Peso (kg)', 'Talla Zapato'].includes(excelField)) {
                 const numValue = parseFloat(value);

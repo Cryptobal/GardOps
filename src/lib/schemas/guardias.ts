@@ -25,6 +25,12 @@ export interface Guardia {
   cliente_nombre?: string;
   nombre_completo?: string;
   fecha_os10?: string | null;
+  // Nuevos campos agregados
+  monto_anticipo?: number | null;
+  pin?: string | null;
+  dias_vacaciones_pendientes?: number | null;
+  fecha_ingreso?: string | null;
+  fecha_finiquito?: string | null;
   rol_actual_detalle?: {
     nombre: string;
     turno: string;
@@ -55,6 +61,11 @@ export interface CrearGuardiaData {
   tipo_contrato: "Indefinido" | "Plazo Fijo" | "Por Obra";
   sueldo_base: number;
   instalacion_id?: string;
+  // Nuevos campos
+  monto_anticipo?: number | null;
+  pin?: string | null;
+  dias_vacaciones_pendientes?: number | null;
+  fecha_finiquito?: string | null;
 }
 
 export interface ActualizarGuardiaData {
@@ -77,6 +88,11 @@ export interface ActualizarGuardiaData {
   tipo_contrato?: "Indefinido" | "Plazo Fijo" | "Por Obra";
   sueldo_base?: number;
   instalacion_id?: string;
+  // Nuevos campos
+  monto_anticipo?: number | null;
+  pin?: string | null;
+  dias_vacaciones_pendientes?: number | null;
+  fecha_finiquito?: string | null;
 }
 
 // Schemas de Zod para validación
@@ -99,6 +115,11 @@ export const crearGuardiaSchema = z.object({
   tipo_contrato: z.enum(['Indefinido', 'Plazo Fijo', 'Por Obra']).default('Indefinido'),
   sueldo_base: z.coerce.number().min(0, 'El sueldo debe ser mayor o igual a 0'),
   instalacion_id: z.string().uuid('ID de instalación inválido').optional(),
+  // Nuevos campos
+  monto_anticipo: z.coerce.number().min(0, 'El monto anticipo debe ser mayor o igual a 0').max(999999, 'El monto anticipo no puede exceder 999,999').nullable().optional(),
+  pin: z.string().regex(/^[0-9]{4}$/, 'El PIN debe ser de 4 dígitos').nullable().optional(),
+  dias_vacaciones_pendientes: z.coerce.number().min(0, 'Los días de vacaciones no pueden ser negativos').nullable().optional(),
+  fecha_finiquito: z.string().nullable().optional(),
 });
 
 export const actualizarGuardiaSchema = z.object({
@@ -121,4 +142,9 @@ export const actualizarGuardiaSchema = z.object({
   tipo_contrato: z.enum(['Indefinido', 'Plazo Fijo', 'Por Obra']).optional(),
   sueldo_base: z.coerce.number().min(0, 'El sueldo debe ser mayor o igual a 0').optional(),
   instalacion_id: z.string().uuid('ID de instalación inválido').optional(),
+  // Nuevos campos
+  monto_anticipo: z.coerce.number().min(0, 'El monto anticipo debe ser mayor o igual a 0').max(999999, 'El monto anticipo no puede exceder 999,999').nullable().optional(),
+  pin: z.string().regex(/^[0-9]{4}$/, 'El PIN debe ser de 4 dígitos').nullable().optional(),
+  dias_vacaciones_pendientes: z.coerce.number().min(0, 'Los días de vacaciones no pueden ser negativos').nullable().optional(),
+  fecha_finiquito: z.string().nullable().optional(),
 }); 
