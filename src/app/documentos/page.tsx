@@ -86,10 +86,10 @@ export default function DocumentosGlobalesPage() {
   const { allowed: allowedReportes, loading: permLoadingReportes } = useCan('reportes.view');
   const router = useRouter();
 
-  // Estados principales
-  const [pestanaActiva, setPestanaActiva] = useState<'documentos' | 'alertas' | 'kpis'>('documentos');
-  const [vistaActiva, setVistaActiva] = useState<'grilla' | 'lista'>('grilla');
-  const [documentos, setDocumentos] = useState<DocumentoGlobal[]>([]);
+      // Estados principales
+    const [pestanaActiva, setPestanaActiva] = useState<'documentos' | 'alertas' | 'kpis'>('documentos');
+    const [vistaActiva, setVistaActiva] = useState<'grilla' | 'lista'>('grilla');
+    const [documentos, setDocumentos] = useState<DocumentoGlobal[]>([]);
   const [stats, setStats] = useState<DocumentosStats>({
     total: 0,
     vigentes: 0,
@@ -404,27 +404,6 @@ export default function DocumentosGlobalesPage() {
   };
 
   // Funciones para el visualizador y editor
-  const detectarTipoDocumento = (nombreArchivo: string): string => {
-    const extension = nombreArchivo.split('.').pop()?.toLowerCase();
-    const extensionMap: { [key: string]: string } = {
-      'pdf': 'application/pdf',
-      'jpg': 'image/jpeg',
-      'jpeg': 'image/jpeg',
-      'png': 'image/png',
-      'gif': 'image/gif',
-      'bmp': 'image/bmp',
-      'webp': 'image/webp',
-      'doc': 'application/msword',
-      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'xls': 'application/vnd.ms-excel',
-      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'txt': 'text/plain',
-      'rtf': 'application/rtf',
-      'csv': 'text/csv'
-    };
-    return extensionMap[extension || ''] || 'application/octet-stream';
-  };
-
   const abrirVisualizador = (documento: DocumentoGlobal) => {
     setDocumentoParaVer(documento);
   };
@@ -550,41 +529,6 @@ export default function DocumentosGlobalesPage() {
           </Button>
         )}
       </div>
-
-      {/* Botones de cambio de vista */}
-      {(pestanaActiva === 'documentos' || pestanaActiva === 'alertas') && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button
-              variant={vistaActiva === 'grilla' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setVistaActiva('grilla')}
-              className="h-9 px-3"
-            >
-              <div className="grid grid-cols-2 gap-0.5 h-4 w-4">
-                <div className="bg-current rounded-sm"></div>
-                <div className="bg-current rounded-sm"></div>
-                <div className="bg-current rounded-sm"></div>
-                <div className="bg-current rounded-sm"></div>
-              </div>
-              <span className="ml-2 hidden sm:inline">Vista Grilla</span>
-            </Button>
-            <Button
-              variant={vistaActiva === 'lista' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setVistaActiva('lista')}
-              className="h-9 px-3"
-            >
-              <div className="flex flex-col gap-0.5 h-4 w-4">
-                <div className="bg-current rounded-sm w-full"></div>
-                <div className="bg-current rounded-sm w-full"></div>
-                <div className="bg-current rounded-sm w-full"></div>
-              </div>
-              <span className="ml-2 hidden sm:inline">Vista Lista</span>
-            </Button>
-          </div>
-        </div>
-      )}
         </motion.div>
 
         {/* Contenido según pestaña activa */}
@@ -825,17 +769,49 @@ export default function DocumentosGlobalesPage() {
         >
           <Card className="bg-card/50 border-border/50">
         <CardHeader>
-              <CardTitle className="text-white flex items-center justify-between">
-                <span>Documentos ({documentosFiltrados.length})</span>
-                {cargando && (
-                  <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
-                )}
-          </CardTitle>
+                              <CardTitle className="text-white flex items-center justify-between">
+                  <span>Documentos ({documentosFiltrados.length})</span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant={vistaActiva === 'grilla' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setVistaActiva('grilla')}
+                        className="h-9 px-3"
+                      >
+                        <div className="grid grid-cols-2 gap-0.5 h-4 w-4">
+                          <div className="bg-current rounded-sm"></div>
+                          <div className="bg-current rounded-sm"></div>
+                          <div className="bg-current rounded-sm"></div>
+                          <div className="bg-current rounded-sm"></div>
+                        </div>
+                        <span className="ml-2 hidden sm:inline">Grilla</span>
+                      </Button>
+                      <Button
+                        variant={vistaActiva === 'lista' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setVistaActiva('lista')}
+                        className="h-9 px-3"
+                      >
+                        <div className="flex flex-col gap-0.5 h-4 w-4">
+                          <div className="bg-current rounded-sm w-full"></div>
+                          <div className="bg-current rounded-sm w-full"></div>
+                          <div className="bg-current rounded-sm w-full"></div>
+                        </div>
+                        <span className="ml-2 hidden sm:inline">Lista</span>
+                      </Button>
+                    </div>
+                    {cargando && (
+                      <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                </CardTitle>
         </CardHeader>
             <CardContent>
-              {/* Vista de escritorio - Tabla */}
-              <div className="hidden md:block overflow-x-auto">
-                <Table>
+              {/* Vista de Lista */}
+              {vistaActiva === 'lista' && (
+                <div className="overflow-x-auto">
+                  <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Documento</TableHead>
@@ -935,10 +911,114 @@ export default function DocumentosGlobalesPage() {
                     )}
                   </TableBody>
                 </Table>
-          </div>
+                </div>
+              )}
 
-          {/* Vista móvil - Cards 2x2 */}
-          <div className="md:hidden">
+              {/* Vista de Grilla */}
+              {vistaActiva === 'grilla' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {documentosFiltrados.length === 0 ? (
+                    <div className="col-span-full text-center py-8">
+                      <div className="flex flex-col items-center gap-2">
+                        <FileText className="h-8 w-8 text-muted-foreground" />
+                        <p className="text-muted-foreground">
+                          {cargando ? 'Cargando documentos...' : 'No se encontraron documentos'}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    documentosFiltrados.map((documento) => {
+                      const ModuloIcon = getModuloIcon(documento.modulo);
+                      return (
+                        <Card key={documento.id} className="bg-card/30 border-border/30 hover:bg-card/50 transition-colors">
+                          <CardContent className="p-4">
+                            <div className="space-y-3">
+                              {/* Header del documento */}
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                    <p className="text-sm font-medium text-white truncate">
+                                      {documento.nombre}
+                                    </p>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {documento.tipo_documento_nombre || 'Sin tipo'}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Información del módulo y entidad */}
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <ModuloIcon className="h-3 w-3 text-muted-foreground" />
+                                  <span className="text-xs capitalize text-muted-foreground">
+                                    {documento.modulo}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-white truncate">
+                                  {documento.entidad_nombre}
+                                </p>
+                              </div>
+
+                              {/* Estado y vencimiento */}
+                              <div className="space-y-1">
+                                <Badge className={`text-xs ${getEstadoColor(documento.estado)}`}>
+                                  {documento.estado.replace('_', ' ')}
+                                </Badge>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatearFecha(documento.fecha_vencimiento)}
+                                </p>
+                              </div>
+
+                              {/* Tamaño */}
+                              <p className="text-xs text-muted-foreground">
+                                {formatearTamano(documento.tamaño)}
+                              </p>
+
+                              {/* Acciones */}
+                              <div className="flex items-center justify-between pt-2">
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => abrirVisualizador(documento)}
+                                    title="Ver documento"
+                                    className="h-7 w-7 p-0 hover:bg-blue-600/20"
+                                  >
+                                    <Eye className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => abrirEditorFecha(documento)}
+                                    title="Editar fecha"
+                                    className="h-7 w-7 p-0 hover:bg-orange-600/20"
+                                  >
+                                    <CalendarDays className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => window.open(documento.url, '_blank')}
+                                  title="Descargar"
+                                  className="h-7 w-7 p-0 hover:bg-green-600/20"
+                                >
+                                  <Download className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+
+              {/* Vista móvil - Cards 2x2 */}
+              <div className="md:hidden">
             {documentosFiltrados.length === 0 ? (
               <div className="text-center py-8">
                 <div className="flex flex-col items-center gap-2">
@@ -1600,7 +1680,7 @@ export default function DocumentosGlobalesPage() {
           onClose={cerrarVisualizador}
           documentId={documentoParaVer.id}
           documentName={documentoParaVer.nombre}
-          documentType={detectarTipoDocumento(documentoParaVer.nombre)}
+          documentType="application/octet-stream"
           modulo={documentoParaVer.modulo}
         />
       )}
