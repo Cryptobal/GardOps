@@ -129,7 +129,7 @@ async function mostrarEstadisticas() {
 
     if (sinCoordenadas.rows.length > 0) {
       console.log(`⚠️ GUARDIAS SIN COORDENADAS (primeros 10):`);
-      sinCoordenadas.rows.forEach((guardia, index) => {
+      sinCoordenadas.rows.forEach((guardia: any, index: number) => {
         const direccionCompleta = construirDireccionCompleta(guardia.direccion, guardia.comuna, guardia.ciudad);
         console.log(`   ${index + 1}. ${guardia.nombre} ${guardia.apellido_paterno}: ${direccionCompleta}`);
       });

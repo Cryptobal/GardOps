@@ -302,6 +302,7 @@ export async function GET(
       longitud: guardia.longitud,
       ciudad: guardia.ciudad || '',
       comuna: guardia.comuna || '',
+      region: guardia.region || '',
       estado: guardia.activo ? 'activo' : 'inactivo',
       tipo_guardia: guardia.tipo_guardia || 'contratado',
       banco: guardia.banco,

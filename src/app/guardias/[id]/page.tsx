@@ -32,6 +32,9 @@ interface Guardia {
   direccion: string;
   latitud?: number;
   longitud?: number;
+  ciudad?: string;
+  comuna?: string;
+  region?: string;
   estado: string;
   tipo_guardia?: 'contratado' | 'esporadico';
   fecha_os10?: string;
@@ -157,6 +160,22 @@ export default function GuardiaDetallePage() {
       setMapLoading(true);
       setMapError(null);
       
+      // Si el guardia ya tiene coordenadas, usarlas directamente
+      if (guardia?.latitud && guardia?.longitud) {
+        console.log('Usando coordenadas existentes del guardia:', guardia.latitud, guardia.longitud);
+        setGeocodingData({
+          latitud: guardia.latitud,
+          longitud: guardia.longitud,
+          comuna: guardia.comuna || '',
+          ciudad: guardia.ciudad || '',
+          region: guardia.region || '',
+          direccionCompleta: direccion
+        });
+        setMapLoading(false);
+        return;
+      }
+
+      // Solo si no hay coordenadas, intentar geocodificar
       const mapsLoaded = await cargarGoogleMaps();
       if (!mapsLoaded) {
         setMapError('No se pudo cargar Google Maps');
