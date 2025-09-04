@@ -148,6 +148,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Crear la tabla sueldo_estructuras_roles si no existe (para evitar error del trigger)
+    try {
+      await sql.query(`
+        CREATE TABLE IF NOT EXISTS sueldo_estructuras_roles (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          rol_servicio_id UUID NOT NULL REFERENCES as_turnos_roles_servicio(id) ON DELETE CASCADE,
+          sueldo_base DECIMAL(10,2) DEFAULT 680000,
+          bono_asistencia DECIMAL(10,2) DEFAULT 0,
+          bono_responsabilidad DECIMAL(10,2) DEFAULT 0,
+          bono_noche DECIMAL(10,2) DEFAULT 0,
+          bono_feriado DECIMAL(10,2) DEFAULT 0,
+          bono_riesgo DECIMAL(10,2) DEFAULT 0,
+          activo BOOLEAN DEFAULT true,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          tenant_id UUID
+        )
+      `);
+      console.log('✅ Tabla sueldo_estructuras_roles creada/verificada');
+    } catch (tableError) {
+      console.log('⚠️ Error creando tabla sueldo_estructuras_roles:', tableError);
+      // Continuar de todas formas
+    }
+
     // Insertar nuevo rol
     const insertQuery = `
       INSERT INTO as_turnos_roles_servicio (
