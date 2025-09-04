@@ -123,6 +123,8 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
 
   // Cargar datos
   const cargarDatos = useCallback(async () => {
+    if (!isMounted) return;
+    
     try {
       setLoading(true);
       setError(null);
@@ -155,7 +157,7 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
     } finally {
       setLoading(false);
     }
-  }, [fecha, incluirLibres]);
+  }, [fecha, incluirLibres, isMounted]);
 
   // Auto-refresh con intervalo más frecuente para tiempo real
   useEffect(() => {
@@ -165,10 +167,12 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
     return () => clearInterval(interval);
   }, [autoRefresh, cargarDatos]);
 
-  // Cargar datos iniciales
+  // Cargar datos iniciales y cuando cambie la fecha
   useEffect(() => {
-    cargarDatos();
-  }, [cargarDatos]);
+    if (isMounted) {
+      cargarDatos();
+    }
+  }, [fecha, incluirLibres, isMounted]);
 
   // Escuchar cambios en otras pestañas usando localStorage
   useEffect(() => {

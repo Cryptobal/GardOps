@@ -29,7 +29,11 @@ export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fe
   }, [searchParams.tab, activeTab]);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const loadData = async () => {
+      if (!isMounted) return;
+      
       try {
         setLoading(true);
         setError(null);
@@ -47,22 +51,30 @@ export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fe
         
         const result = await response.json();
         
-        if (result.success) {
+        if (result.success && isMounted) {
           setRows(result.data);
           console.log(`✅ Datos cargados: ${result.data.length} registros`);
-        } else {
+        } else if (!result.success) {
           throw new Error(result.error || 'Error desconocido');
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-        setError(errorMessage);
-        console.error('Error cargando datos:', err);
+        if (isMounted) {
+          const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+          setError(errorMessage);
+          console.error('Error cargando datos:', err);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     loadData();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [fecha, incluirLibres]);
 
   // Función para recargar datos sin cambiar URL
