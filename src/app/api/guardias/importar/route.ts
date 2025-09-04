@@ -6,6 +6,9 @@ import { geocodificarDireccion, construirDireccionCompleta } from '@/lib/utils/g
 export async function POST(request: NextRequest) {
   try {
     console.log('🚀 Importando guardias desde Excel...');
+    
+    // Tenant ID para Gard
+    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -204,8 +207,8 @@ export async function POST(request: NextRequest) {
           }
 
           // Agregar campos por defecto
-          insertFields.push('created_at', 'updated_at');
-          insertValues.push('NOW()', 'NOW()');
+          insertFields.push('tenant_id', 'created_at', 'updated_at');
+          insertValues.push(tenantId, 'NOW()', 'NOW()');
 
           // Ejecutar inserción
           const insertQuery = `
