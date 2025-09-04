@@ -461,7 +461,12 @@ export function DocumentManager({
   }, []);
 
   const formatearFechaCompleta = React.useCallback((fecha: string) => {
-    return new Date(fecha).toLocaleDateString('es-ES', {
+    if (!fecha) return '';
+    
+    const fechaObj = new Date(fecha);
+    if (isNaN(fechaObj.getTime())) return '';
+    
+    return fechaObj.toLocaleDateString('es-ES', {
       weekday: 'short',
       day: '2-digit',
       month: 'short',

@@ -8,8 +8,28 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const modulo = searchParams.get('modulo');
     
+    // Obtener tenant_id del usuario actual (por ahora usar 'Gard')
+    let tenantId: string;
+    try {
+      const tenantResult = await query(`
+        SELECT id FROM tenants WHERE nombre = 'Gard' LIMIT 1
+      `);
+      
+      if (tenantResult.rows.length === 0) {
+        throw new Error('Tenant "Gard" no encontrado');
+      }
+      
+      tenantId = tenantResult.rows[0].id;
+    } catch (error) {
+      console.error('❌ Error obteniendo tenant_id:', error);
+      return NextResponse.json(
+        { success: false, error: 'Error interno del servidor' },
+        { status: 500 }
+      );
+    }
+    
     let sql = `
-      SELECT 
+      SELECT DISTINCT ON (modulo, nombre)
         id,
         modulo,
         nombre,
@@ -17,16 +37,17 @@ export async function GET(request: NextRequest) {
         dias_antes_alarma,
         creado_en
       FROM documentos_tipos 
+      WHERE tenant_id = $1
     `;
     
-    const params: string[] = [];
+    const params: string[] = [tenantId];
     
     if (modulo) {
-      sql += ` WHERE modulo = $1`;
+      sql += ` AND modulo = $2`;
       params.push(modulo);
     }
     
-    sql += ` ORDER BY modulo, nombre`;
+    sql += ` ORDER BY modulo, nombre, creado_en DESC`;
     
     const result = await query(sql, params);
     
@@ -62,11 +83,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar si ya existe un tipo con el mismo nombre en el módulo
+    // Obtener tenant_id del usuario actual (por ahora usar 'Gard')
+    let tenantId: string;
+    try {
+      const tenantResult = await query(`
+        SELECT id FROM tenants WHERE nombre = 'Gard' LIMIT 1
+      `);
+      
+      if (tenantResult.rows.length === 0) {
+        throw new Error('Tenant "Gard" no encontrado');
+      }
+      
+      tenantId = tenantResult.rows[0].id;
+    } catch (error) {
+      console.error('❌ Error obteniendo tenant_id:', error);
+      return NextResponse.json(
+        { success: false, error: 'Error interno del servidor' },
+        { status: 500 }
+      );
+    }
+
+    // Verificar si ya existe un tipo con el mismo nombre en el módulo para este tenant
     const existeResult = await query(`
       SELECT id FROM documentos_tipos 
-      WHERE modulo = $1 AND nombre = $2
-    `, [modulo, nombre]);
+      WHERE modulo = $1 AND nombre = $2 AND tenant_id = $3
+    `, [modulo, nombre, tenantId]);
     
     if (existeResult.rows.length > 0) {
       return NextResponse.json(
@@ -82,14 +123,16 @@ export async function POST(request: NextRequest) {
         nombre,
         requiere_vencimiento,
         dias_antes_alarma,
-        creado_en
+        creado_en,
+        tenant_id
       ) VALUES (
         gen_random_uuid(),
         $1,
         $2,
         $3,
         $4,
-        NOW()
+        NOW(),
+        $5
       )
       RETURNING 
         id,
@@ -98,7 +141,7 @@ export async function POST(request: NextRequest) {
         requiere_vencimiento,
         dias_antes_alarma,
         creado_en
-    `, [modulo, nombre, requiere_vencimiento, dias_antes_alarma]);
+    `, [modulo, nombre, requiere_vencimiento, dias_antes_alarma, tenantId]);
     
     console.log('✅ Tipo de documento creado:', result.rows[0]);
     

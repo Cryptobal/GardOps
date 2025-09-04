@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
             ELSE 'vigente'
           END as estado
         FROM documentos d
-        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id AND td.tenant_id = $1
+        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id
         LEFT JOIN clientes c ON d.cliente_id = c.id
         WHERE d.cliente_id IS NOT NULL AND d.tenant_id = $1
         
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
             ELSE 'vigente'
           END as estado
         FROM documentos d
-        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id AND td.tenant_id = $1
+        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id
         LEFT JOIN instalaciones i ON d.instalacion_id = i.id
         WHERE d.instalacion_id IS NOT NULL AND d.tenant_id = $1
         
@@ -133,50 +133,49 @@ export async function GET(request: NextRequest) {
             ELSE 'vigente'
           END as estado
         FROM documentos d
-        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id AND td.tenant_id = $1
+        LEFT JOIN documentos_tipos td ON d.tipo_documento_id = td.id
         LEFT JOIN guardias g ON d.guardia_id = g.id
         WHERE d.guardia_id IS NOT NULL AND d.tenant_id = $1
       )
       SELECT * FROM documentos_unidos
-      WHERE 1=1
     `;
     
     let params: any[] = [];
     let paramIndex = 1;
     
-    // Aplicar filtros
+    // Aplicar filtros solo si se especifican
     if (modulo && modulo !== 'todos') {
-      sql += ` AND modulo = $${paramIndex}`;
+      sql += ` WHERE modulo = $${paramIndex}`;
       params.push(modulo);
       paramIndex++;
     }
     
     if (tipoDocumento && tipoDocumento !== 'todos') {
-      sql += ` AND tipo_documento_id = $${paramIndex}`;
+      sql += `${params.length > 0 ? ' AND' : ' WHERE'} tipo_documento_id = $${paramIndex}`;
       params.push(tipoDocumento);
       paramIndex++;
     }
     
     if (estado && estado !== 'todos') {
-      sql += ` AND estado = $${paramIndex}`;
+      sql += `${params.length > 0 ? ' AND' : ' WHERE'} estado = $${paramIndex}`;
       params.push(estado);
       paramIndex++;
     }
     
     if (entidadFilter) {
-      sql += ` AND entidad_id = $${paramIndex}`;
+      sql += `${params.length > 0 ? ' AND' : ' WHERE'} entidad_id = $${paramIndex}`;
       params.push(entidadFilter);
       paramIndex++;
     }
     
     if (fechaDesde) {
-      sql += ` AND fecha_vencimiento >= $${paramIndex}`;
+      sql += `${params.length > 0 ? ' AND' : ' WHERE'} fecha_vencimiento >= $${paramIndex}`;
       params.push(fechaDesde);
       paramIndex++;
     }
     
     if (fechaHasta) {
-      sql += ` AND fecha_vencimiento <= $${paramIndex}`;
+      sql += `${params.length > 0 ? ' AND' : ' WHERE'} fecha_vencimiento <= $${paramIndex}`;
       params.push(fechaHasta);
       paramIndex++;
     }
@@ -186,6 +185,7 @@ export async function GET(request: NextRequest) {
     // Agregar paginación
     sql += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     params.push(limit, offset);
+    paramIndex += 2;
 
     console.log('🔍 Query documentos globales:', { sql, params, filtros: { modulo, tipoDocumento, estado, entidadFilter, fechaDesde, fechaHasta } });
 
