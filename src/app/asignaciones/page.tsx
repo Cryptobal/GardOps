@@ -214,7 +214,7 @@ export default function Asignaciones() {
       {tabActiva === 'buscar' ? (
         <div>
           {/* KPIs */}
-          <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             <Stat title="Guardias" value={guards.length} icon={<BadgeCheck className="w-4 h-4" />} />
             <Stat title="Instalación" value={instSelected?1:0} icon={<MapPin className="w-4 h-4" />} />
             <Stat title="Resultados" value={guards.length} icon="🎯" />
