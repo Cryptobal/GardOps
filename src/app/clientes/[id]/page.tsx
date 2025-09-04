@@ -61,6 +61,8 @@ export default function ClienteDetallePage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('informacion');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [clientesActivos, setClientesActivos] = useState<Cliente[]>([]);
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<string>("");
   const [geocodingData, setGeocodingData] = useState<GeocodingResult | null>(null);
   const [mapLoading, setMapLoading] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
@@ -102,6 +104,7 @@ export default function ClienteDetallePage() {
       }
       
       setCliente(clienteData);
+      setClienteSeleccionado(clienteData.id); // Establecer el cliente actual como seleccionado
       
       // Cargar datos de geocodificación si hay dirección
       if (clienteData.direccion) {
@@ -114,9 +117,36 @@ export default function ClienteDetallePage() {
     }
   }, [clienteId]);
 
+  // Función para cargar todos los clientes activos
+  const cargarClientesActivos = useCallback(async () => {
+    try {
+      const response = await fetch('/api/clientes');
+      if (!response.ok) {
+        throw new Error('Error al cargar clientes');
+      }
+      const responseData = await response.json();
+      
+      if (responseData.success && responseData.data) {
+        const clientesActivos = responseData.data.filter((c: Cliente) => c.estado === "Activo");
+        setClientesActivos(clientesActivos);
+        console.log('✅ Clientes activos cargados:', clientesActivos.length);
+      }
+    } catch (error) {
+      console.error('❌ Error cargando clientes activos:', error);
+    }
+  }, []);
+
+  // Función para manejar el cambio de cliente seleccionado
+  const handleClienteChange = (clienteId: string) => {
+    if (clienteId && clienteId !== cliente?.id) {
+      router.push(`/clientes/${clienteId}`);
+    }
+  };
+
   useEffect(() => {
     cargarCliente();
-  }, [cargarCliente]);
+    cargarClientesActivos();
+  }, [cargarCliente, cargarClientesActivos]);
 
   const cargarDatosGeograficos = async (direccion: string) => {
     try {
@@ -590,6 +620,28 @@ export default function ClienteDetallePage() {
         message="No se puede inactivar el cliente porque tiene instalaciones activas. Primero debe inactivar todas las instalaciones asociadas."
         details={errorDetails}
       />
+
+      {/* Selector de Clientes Activos */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex justify-end">
+            <div className="w-full sm:w-80">
+              <Select value={clienteSeleccionado} onValueChange={handleClienteChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar cliente activo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clientesActivos.map((clienteActivo) => (
+                    <SelectItem key={clienteActivo.id} value={clienteActivo.id}>
+                      {clienteActivo.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">

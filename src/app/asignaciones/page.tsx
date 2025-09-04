@@ -16,8 +16,9 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectItem, SelectContent } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Table, TableHead, TableRow, TableCell, TableHeader, TableBody } from '@/components/ui/table';
-import { BadgeCheck, MapPin } from 'lucide-react';
+import { BadgeCheck, MapPin, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useToast } from '@/hooks/use-toast';
 
 /* --- Helpers -------------------------------------------------------------- */
 type Inst = { id: string; nombre: string; lat: number; lng: number; };
@@ -27,11 +28,13 @@ const radios = [5,10,15,20,25,30,40,50];
 
 /* --- Main Component ------------------------------------------------------- */
 export default function Asignaciones() {
+  const { toast } = useToast();
   const [instalaciones,setInstalaciones]=useState<Inst[]>([]);
   const [instSelected,setInstSelected]=useState<Inst|null>(null);
   const [radio,setRadio]=useState<number>(Number(localStorage.getItem('radioKm')||10));
   const [guards,setGuards]=useState<Guard[]>([]);
   const [map,setMap]=useState<google.maps.Map|null>(null);
+  const [asignando,setAsignando]=useState<string|null>(null); // ID del guardia siendo asignado
 
   /* Cargar instalaciones para el autocomplete */
   useEffect(()=>{ fetch('/api/instalaciones?withCoords=true').then(r=>r.json()).then(setInstalaciones); },[]);
@@ -78,6 +81,63 @@ export default function Asignaciones() {
 
   /* Persistir radio en localStorage */
   useEffect(()=>{ localStorage.setItem('radioKm',String(radio)); },[radio]);
+
+  /* Función para asignar guardia */
+  const handleAsignar = async (guardia: Guard) => {
+    if (!instSelected) {
+      toast({
+        title: "Error",
+        description: "Selecciona una instalación primero",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setAsignando(guardia.id);
+    
+    try {
+      const response = await fetch('/api/asignaciones/crear', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          guardia_id: guardia.id,
+          instalacion_id: instSelected.id,
+          fecha: new Date().toISOString().split('T')[0],
+          motivo: `Asignación optimizada - Radio ${radio}km, Distancia: ${guardia.distancia.toFixed(1)}km`
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "✅ Asignación exitosa",
+          description: `${guardia.nombre} asignado a ${instSelected.nombre}`,
+        });
+        
+        // Actualizar la lista de guardias removiendo el asignado
+        setGuards(prev => prev.filter(g => g.id !== guardia.id));
+        
+      } else {
+        toast({
+          title: "Error en asignación",
+          description: data.error || "No se pudo completar la asignación",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error asignando guardia:', error);
+      toast({
+        title: "Error",
+        description: "Error de conexión al asignar guardia",
+        variant: "destructive"
+      });
+    } finally {
+      setAsignando(null);
+    }
+  };
 
   return(
     <Fragment>
@@ -134,7 +194,23 @@ export default function Asignaciones() {
                 <TableCell>{g.nombre}</TableCell>
                 <TableCell>{g.comuna}</TableCell>
                 <TableCell>{g.distancia.toFixed(1)}</TableCell>
-                <TableCell><Button size="sm" variant="secondary" onClick={()=>console.log(`Asignar ${g.nombre} a ${instSelected?.nombre}`)}>Asignar</Button></TableCell>
+                <TableCell>
+                  <Button 
+                    size="sm" 
+                    variant="secondary" 
+                    onClick={() => handleAsignar(g)}
+                    disabled={asignando === g.id}
+                  >
+                    {asignando === g.id ? (
+                      <>
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        Asignando...
+                      </>
+                    ) : (
+                      'Asignar'
+                    )}
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
