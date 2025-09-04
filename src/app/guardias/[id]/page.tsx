@@ -979,6 +979,20 @@ export default function GuardiaDetallePage() {
                     placeholder="PIN"
                     readOnly={true}
                   />
+                  <EditableField
+                    label="Fecha de Ingreso"
+                    value={guardia.fecha_ingreso || ''}
+                    field="fecha_ingreso"
+                    type="date"
+                    placeholder="Fecha de ingreso"
+                  />
+                  <EditableField
+                    label="Fecha de Finiquito"
+                    value={guardia.fecha_finiquito || ''}
+                    field="fecha_finiquito"
+                    type="date"
+                    placeholder="Fecha de finiquito"
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -1182,52 +1196,6 @@ export default function GuardiaDetallePage() {
               </CardContent>
             </Card>
 
-            {/* Sección 5: Información de Postulación */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Calendar className="h-4 w-4" />
-                  Información de Postulación
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <EditableField
-                    label="Fecha de Postulación"
-                    value={guardia.fecha_postulacion || ''}
-                    field="fecha_postulacion"
-                    type="datetime-local"
-                    placeholder="Fecha de postulación"
-                    readOnly={true}
-                  />
-                  <EditableField
-                    label="Estado de Postulación"
-                    value={formatText(guardia.estado_postulacion) || ''}
-                    field="estado_postulacion"
-                    options={[
-                      { value: 'pendiente', label: 'Pendiente' },
-                      { value: 'revisando', label: 'Revisando' },
-                      { value: 'aprobada', label: 'Aprobada' },
-                      { value: 'rechazada', label: 'Rechazada' }
-                    ]}
-                  />
-                  <EditableField
-                    label="IP de Postulación"
-                    value={guardia.ip_postulacion || ''}
-                    field="ip_postulacion"
-                    placeholder="IP de postulación"
-                    readOnly={true}
-                  />
-                  <EditableField
-                    label="User Agent"
-                    value={guardia.user_agent_postulacion || ''}
-                    field="user_agent_postulacion"
-                    placeholder="User agent"
-                    readOnly={true}
-                  />
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Sección 6: Datos Bancarios */}
             <Card>
