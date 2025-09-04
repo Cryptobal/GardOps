@@ -20,7 +20,7 @@ import {
 } from '@/lib/api/roles-servicio';
 import { RolServicio, CrearRolServicioData } from '@/lib/schemas/roles-servicio';
 import { calcularNomenclaturaRol } from '@/lib/utils/calcularNomenclaturaRol';
-import { ordenarRolesPorPatron } from '@/lib/utils/ordenarRolesPorPatron';
+import { ordenarRolesPorPatron, extraerPatronesUnicos, filtrarRolesPorPatron, extraerPatronTurno } from '@/lib/utils/ordenarRolesPorPatron';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +39,7 @@ export default function RolesServicioPage() {
   const [editando, setEditando] = useState<string | null>(null);
   const [creando, setCreando] = useState(false);
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'activos' | 'inactivos'>('todos');
+  const [filtroPatron, setFiltroPatron] = useState<string>('todos');
   const [stats, setStats] = useState<any>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [rolParaConfirmar, setRolParaConfirmar] = useState<RolServicio | null>(null);
@@ -282,12 +283,18 @@ export default function RolesServicioPage() {
     document.body.removeChild(link);
   };
 
+  // Extraer patrones únicos para el filtro
+  const patronesDisponibles = extraerPatronesUnicos(roles);
+  
   const rolesFiltrados = ordenarRolesPorPatron(
-    roles.filter(rol => {
-      if (filtroEstado === 'activos') return rol.estado === 'Activo';
-      if (filtroEstado === 'inactivos') return rol.estado === 'Inactivo';
-      return true;
-    })
+    filtrarRolesPorPatron(
+      roles.filter(rol => {
+        if (filtroEstado === 'activos') return rol.estado === 'Activo';
+        if (filtroEstado === 'inactivos') return rol.estado === 'Inactivo';
+        return true;
+      }),
+      filtroPatron
+    )
   );
 
   return (
@@ -415,25 +422,58 @@ export default function RolesServicioPage() {
       </Card>
 
       {/* Filtros */}
-      <div className="flex gap-2">
-        <Button
-          variant={filtroEstado === 'todos' ? 'default' : 'outline'}
-          onClick={() => setFiltroEstado('todos')}
-        >
-          Todos ({roles.length})
-        </Button>
-        <Button
-          variant={filtroEstado === 'activos' ? 'default' : 'outline'}
-          onClick={() => setFiltroEstado('activos')}
-        >
-          Activos ({roles.filter(r => r.estado === 'Activo').length})
-        </Button>
-        <Button
-          variant={filtroEstado === 'inactivos' ? 'default' : 'outline'}
-          onClick={() => setFiltroEstado('inactivos')}
-        >
-          Inactivos ({roles.filter(r => r.estado === 'Inactivo').length})
-        </Button>
+      <div className="space-y-4">
+        {/* Filtros de Estado */}
+        <div className="flex gap-2">
+          <Button
+            variant={filtroEstado === 'todos' ? 'default' : 'outline'}
+            onClick={() => setFiltroEstado('todos')}
+          >
+            Todos ({roles.length})
+          </Button>
+          <Button
+            variant={filtroEstado === 'activos' ? 'default' : 'outline'}
+            onClick={() => setFiltroEstado('activos')}
+          >
+            Activos ({roles.filter(r => r.estado === 'Activo').length})
+          </Button>
+          <Button
+            variant={filtroEstado === 'inactivos' ? 'default' : 'outline'}
+            onClick={() => setFiltroEstado('inactivos')}
+          >
+            Inactivos ({roles.filter(r => r.estado === 'Inactivo').length})
+          </Button>
+        </div>
+
+        {/* Filtros de Patrón */}
+        {patronesDisponibles.length > 0 && (
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant={filtroPatron === 'todos' ? 'default' : 'outline'}
+              onClick={() => setFiltroPatron('todos')}
+              size="sm"
+            >
+              Todos los Patrones
+            </Button>
+            {patronesDisponibles.map(patron => {
+              const count = roles.filter(rol => {
+                const info = extraerPatronTurno(rol.nombre);
+                return info.patron === patron;
+              }).length;
+              
+              return (
+                <Button
+                  key={patron}
+                  variant={filtroPatron === patron ? 'default' : 'outline'}
+                  onClick={() => setFiltroPatron(patron)}
+                  size="sm"
+                >
+                  {patron} ({count})
+                </Button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Tabla de Roles */}

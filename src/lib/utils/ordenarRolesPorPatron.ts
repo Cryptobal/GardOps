@@ -41,7 +41,7 @@ export function ordenarRolesPorPatron(roles: RolServicio[]): RolServicio[] {
  * @param nombreRol - Nombre del rol (ej: "D 4x4x12 08:00 20:00")
  * @returns Objeto con información del patrón
  */
-function extraerPatronTurno(nombreRol: string): {
+export function extraerPatronTurno(nombreRol: string): {
   patron: string;
   esDia: boolean;
   horaInicio: string;
@@ -156,5 +156,60 @@ export function agruparRolesPorPatron(roles: RolServicio[]): Array<{
     const prioB = prioridades[b.patron] || 999;
     
     return prioA - prioB;
+  });
+}
+
+/**
+ * Extrae todos los patrones únicos de una lista de roles
+ * @param roles - Array de roles de servicio
+ * @returns Array de patrones únicos ordenados por prioridad
+ */
+export function extraerPatronesUnicos(roles: RolServicio[]): string[] {
+  const patrones = new Set<string>();
+  
+  for (const rol of roles) {
+    const info = extraerPatronTurno(rol.nombre);
+    if (info.patron && info.patron !== rol.nombre) { // Excluir fallbacks
+      patrones.add(info.patron);
+    }
+  }
+  
+  // Ordenar por prioridad
+  const patronesArray = Array.from(patrones);
+  return patronesArray.sort((a, b) => {
+    const prioridades: Record<string, number> = {
+      '4x4': 1,
+      '5x2': 2,
+      '2x5': 3,
+      '6x2': 4,
+      '7x7': 5
+    };
+    
+    const prioA = prioridades[a] || 999;
+    const prioB = prioridades[b] || 999;
+    
+    if (prioA !== prioB) {
+      return prioA - prioB;
+    }
+    
+    // Si tienen misma prioridad, orden alfabético
+    return a.localeCompare(b);
+  });
+}
+
+/**
+ * Filtra roles por patrón específico
+ * @param roles - Array de roles de servicio
+ * @param patronFiltro - Patrón a filtrar (ej: "4x4", "5x2")
+ * @returns Array de roles que coinciden con el patrón
+ */
+export function filtrarRolesPorPatron(roles: RolServicio[], patronFiltro: string): RolServicio[] {
+  if (!patronFiltro || patronFiltro === 'todos') {
+    return roles;
+  }
+  
+  return roles.filter(rol => {
+    const info = extraerPatronTurno(rol.nombre);
+    return info.patron === patronFiltro;
   });
 }
