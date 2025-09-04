@@ -33,11 +33,14 @@ interface InstalacionConGuardias {
   puntuacion_optimizacion: number;
 }
 
-export default function GuardiasAsignadosTab() {
+interface GuardiasAsignadosTabProps {
+  map: google.maps.Map | null;
+}
+
+export default function GuardiasAsignadosTab({ map }: GuardiasAsignadosTabProps) {
   const { toast } = useToast();
   const [instalaciones, setInstalaciones] = useState<InstalacionConGuardias[]>([]);
   const [loading, setLoading] = useState(true);
-  const [map, setMap] = useState<google.maps.Map | null>(null);
   const [instalacionSeleccionada, setInstalacionSeleccionada] = useState<InstalacionConGuardias | null>(null);
 
   useEffect(() => {
@@ -63,20 +66,6 @@ export default function GuardiasAsignadosTab() {
       toast.error('Error de conexión al cargar datos', 'Error');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const inicializarMapa = () => {
-    if (typeof window !== 'undefined' && window.google && window.google.maps) {
-      const mapElement = document.getElementById('map-asignados');
-      if (mapElement && !map) {
-        const mapInstance = new google.maps.Map(mapElement, {
-          zoom: 10,
-          center: { lat: -33.45, lng: -70.66 },
-          styles: []
-        });
-        setMap(mapInstance);
-      }
     }
   };
 
@@ -224,24 +213,6 @@ export default function GuardiasAsignadosTab() {
         </CardContent>
       </Card>
 
-      {/* Mapa */}
-      {instalacionSeleccionada && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="w-5 h-5" />
-              {instalacionSeleccionada.instalacion_nombre}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div 
-              id="map-asignados" 
-              className="w-full h-64 sm:h-80 lg:h-96 rounded-lg"
-              ref={inicializarMapa}
-            />
-          </CardContent>
-        </Card>
-      )}
 
       {/* Lista de guardias de la instalación seleccionada */}
       {instalacionSeleccionada && (

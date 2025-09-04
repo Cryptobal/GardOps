@@ -22,16 +22,40 @@ export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fe
   const fecha = searchParams.fecha || new Date().toISOString().slice(0, 10);
   const [incluirLibres, setIncluirLibres] = useState(searchParams.incluirLibres === 'true');
 
+  // 🔍 DEBUG: Log de renderizado
+  console.log('🔄 [PautaDiariaV2Page] RENDERIZANDO:', {
+    searchParams,
+    activeTab,
+    fecha,
+    incluirLibres,
+    loading,
+    error,
+    rowsLength: rows.length
+  });
+
   // Sincronizar activeTab con searchParams
   useEffect(() => {
     const tabFromUrl = searchParams.tab || 'pauta';
+    console.log('🔍 [useEffect activeTab] EJECUTANDO:', {
+      tabFromUrl,
+      activeTab,
+      searchParamsTab: searchParams.tab,
+      willUpdate: tabFromUrl !== activeTab
+    });
     if (tabFromUrl !== activeTab) {
+      console.log('🔄 [useEffect activeTab] ACTUALIZANDO activeTab de', activeTab, 'a', tabFromUrl);
       setActiveTab(tabFromUrl);
     }
   }, [searchParams.tab]);
 
   useEffect(() => {
     let isMounted = true;
+    
+    console.log('🔍 [useEffect loadData] EJECUTANDO con dependencias:', {
+      fecha,
+      incluirLibres,
+      isMounted
+    });
     
     const loadData = async () => {
       if (!isMounted) return;
@@ -75,6 +99,7 @@ export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fe
     loadData();
     
     return () => {
+      console.log('🧹 [useEffect loadData] CLEANUP');
       isMounted = false;
     };
   }, [fecha, incluirLibres]);
@@ -150,13 +175,21 @@ export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fe
 
       {/* Tabs Mobile First */}
       <Tabs value={activeTab} onValueChange={(value) => {
+        console.log('🔄 [Tabs onValueChange] CAMBIANDO TAB:', {
+          from: activeTab,
+          to: value,
+          fecha,
+          incluirLibres
+        });
         setActiveTab(value);
         // Actualizar URL con el tab activo
         const params = new URLSearchParams();
         if (fecha) params.set('fecha', fecha);
         if (incluirLibres) params.set('incluirLibres', 'true');
         params.set('tab', value);
-        window.history.replaceState({}, '', `/pauta-diaria-v2?${params.toString()}`);
+        const newUrl = `/pauta-diaria-v2?${params.toString()}`;
+        console.log('🔄 [Tabs onValueChange] ACTUALIZANDO URL a:', newUrl);
+        window.history.replaceState({}, '', newUrl);
       }} className="w-full">
         <TabsList className="grid w-full grid-cols-2 h-10">
           <TabsTrigger value="monitoreo" className="flex items-center gap-1 text-xs">

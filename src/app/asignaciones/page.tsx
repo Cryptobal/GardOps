@@ -64,9 +64,20 @@ export default function Asignaciones() {
     initMap();
   },[]);
 
+  /* Limpiar mapa cuando se cambia a pestaña de guardias asignados */
+  useEffect(() => {
+    if (tabActiva === 'asignados' && map) {
+      // Limpiar marcadores existentes
+      (map as any).__markers?.forEach((m: google.maps.Marker) => m.setMap(null));
+      (map as any).__infoWindows?.forEach((iw: google.maps.InfoWindow) => iw.close());
+      (map as any).__markers = [];
+      (map as any).__infoWindows = [];
+    }
+  }, [tabActiva, map]);
+
   /* Cada vez que cambian instalación o radio → actualiza guards + markers */
   useEffect(()=>{
-    if(!map||!instSelected) return;
+    if(!map||!instSelected||tabActiva!=='buscar') return;
     
     // Validar coordenadas de la instalación
     const instLat = parseFloat(instSelected.lat.toString());
@@ -211,10 +222,13 @@ export default function Asignaciones() {
         </button>
       </div>
 
+      {/* Mapa - Siempre visible */}
+      <div id="map" className="w-full h-64 sm:h-80 lg:h-96 rounded-lg mb-4 shadow-lg"/>
+
       {tabActiva === 'buscar' ? (
         <div>
           {/* KPIs */}
-          <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <Stat title="Guardias" value={guards.length} icon={<BadgeCheck className="w-4 h-4" />} />
             <Stat title="Instalación" value={instSelected?1:0} icon={<MapPin className="w-4 h-4" />} />
             <Stat title="Resultados" value={guards.length} icon="🎯" />
@@ -258,9 +272,6 @@ export default function Asignaciones() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Mapa */}
-      <div id="map" className="w-full h-64 sm:h-80 lg:h-96 rounded-lg mb-4 shadow-lg"/>
 
       {/* Lista de guardias - Mobile First */}
       {guards.length > 0 && (
@@ -321,7 +332,7 @@ export default function Asignaciones() {
       )}
         </div>
       ) : (
-        <GuardiasAsignadosTab />
+        <GuardiasAsignadosTab map={map} />
       )}
 
       {(() => { console.log('Optimización de Asignaciones v2 cargada correctamente'); return null; })()}
