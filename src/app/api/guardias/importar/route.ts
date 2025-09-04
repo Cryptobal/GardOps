@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
             'Fecha Ingreso': 'fecha_ingreso',
             'Fecha Finiquito': 'fecha_finiquito',
             // Campos bancarios
-            'Banco': 'banco_id',
+            'Banco': 'banco',
             'Tipo de Cuenta': 'tipo_cuenta',
             'Número de Cuenta': 'numero_cuenta'
           };
@@ -445,7 +445,7 @@ export async function POST(request: NextRequest) {
           'Fecha Ingreso': 'fecha_ingreso',
           'Fecha Finiquito': 'fecha_finiquito',
           // Campos bancarios
-          'Banco': 'banco_id',
+          'Banco': 'banco',
           'Tipo de Cuenta': 'tipo_cuenta',
           'Número de Cuenta': 'numero_cuenta'
           // NOTA: Instalación Asignada y Rol Actual no se pueden importar directamente
