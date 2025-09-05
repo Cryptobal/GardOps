@@ -43,7 +43,7 @@ export default function WizardSeriesTurnos({
   // Estados súper simples
   const [paso, setPaso] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [duracion, setDuracion] = useState(7);
+  const [duracion, setDuracion] = useState(8);
   const [dias, setDias] = useState<DiaSimple[]>([]);
 
   // Debug
@@ -65,9 +65,23 @@ export default function WizardSeriesTurnos({
   }, [duracion]);
 
   const toggleTrabajo = (dia: number) => {
-    setDias(prev => prev.map(d => 
-      d.dia === dia ? { ...d, trabaja: !d.trabaja } : d
-    ));
+    const diaActual = dias.find(d => d.dia === dia);
+    
+    if (!diaActual) return;
+    
+    // Si está marcando como trabajo, marcar secuencialmente desde el día 1
+    if (!diaActual.trabaja) {
+      setDias(prev => prev.map(d => ({
+        ...d,
+        trabaja: d.dia <= dia
+      })));
+    } else {
+      // Si está desmarcando, desmarcar desde este día hacia adelante
+      setDias(prev => prev.map(d => ({
+        ...d,
+        trabaja: d.dia < dia
+      })));
+    }
   };
 
   const actualizarHorario = (dia: number, campo: 'inicio' | 'fin', valor: string) => {
@@ -225,7 +239,7 @@ export default function WizardSeriesTurnos({
               <h3 className="text-2xl font-semibold">¿De cuántos días es la serie?</h3>
               
               <div className="flex gap-3 justify-center">
-                {[4, 7, 8, 14].map(d => (
+                {[7, 8, 14].map(d => (
                   <Button
                     key={d}
                     variant={duracion === d ? "default" : "outline"}
@@ -244,7 +258,7 @@ export default function WizardSeriesTurnos({
                   min="3"
                   max="30"
                   value={duracion}
-                  onChange={(e) => setDuracion(parseInt(e.target.value) || 7)}
+                  onChange={(e) => setDuracion(parseInt(e.target.value) || 8)}
                   className="w-20 text-center"
                 />
               </div>
@@ -259,8 +273,9 @@ export default function WizardSeriesTurnos({
           {paso === 2 && (
             <div className="space-y-6">
               <div className="text-center">
-                <h3 className="text-2xl font-semibold">¿Qué días se trabaja?</h3>
-                <p className="text-gray-600">Serie de {duracion} días</p>
+                <h3 className="text-2xl font-semibold">¿Cuántos días se trabaja?</h3>
+                <p className="text-gray-600">Haz clic en el último día de trabajo. Se marcarán automáticamente desde el día 1.</p>
+                <p className="text-sm text-blue-600">Ejemplo: Si haces clic en DÍA 4, se marcarán días 1, 2, 3 y 4 como trabajo</p>
               </div>
               
               <div className="grid grid-cols-4 md:grid-cols-7 gap-3 max-w-4xl mx-auto">
@@ -318,29 +333,37 @@ export default function WizardSeriesTurnos({
                       ⚡ Aplicar el mismo horario a todos los días:
                     </div>
                     <div className="flex items-center gap-2">
-                      <Input
-                        type="time"
+                      <select 
                         defaultValue="08:00"
-                        className="w-32"
+                        className="w-32 px-3 py-2 border border-gray-300 rounded-md"
                         id="inicio-todos"
-                      />
+                      >
+                        {Array.from({length: 24}, (_, i) => {
+                          const hora = i.toString().padStart(2, '0') + ':00';
+                          return <option key={hora} value={hora}>{hora}</option>;
+                        })}
+                      </select>
                       <span>a</span>
-                      <Input
-                        type="time"
+                      <select 
                         defaultValue="20:00"
-                        className="w-32"
+                        className="w-32 px-3 py-2 border border-gray-300 rounded-md"
                         id="fin-todos"
-                      />
+                      >
+                        {Array.from({length: 24}, (_, i) => {
+                          const hora = i.toString().padStart(2, '0') + ':00';
+                          return <option key={hora} value={hora}>{hora}</option>;
+                        })}
+                      </select>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          const inicioInput = document.getElementById('inicio-todos') as HTMLInputElement;
-                          const finInput = document.getElementById('fin-todos') as HTMLInputElement;
-                          aplicarATodos(inicioInput.value, finInput.value);
+                          const inicioSelect = document.getElementById('inicio-todos') as HTMLSelectElement;
+                          const finSelect = document.getElementById('fin-todos') as HTMLSelectElement;
+                          aplicarATodos(inicioSelect.value, finSelect.value);
                         }}
                       >
-                        Aplicar
+                        ⚡ Aplicar a Todos
                       </Button>
                     </div>
                   </div>
@@ -356,19 +379,27 @@ export default function WizardSeriesTurnos({
                           {dia.nombre}
                         </div>
                         <div className="flex items-center gap-2">
-                          <Input
-                            type="time"
+                          <select
                             value={dia.inicio}
                             onChange={(e) => actualizarHorario(dia.dia, 'inicio', e.target.value)}
-                            className="w-32"
-                          />
+                            className="w-32 px-3 py-2 border border-gray-300 rounded-md"
+                          >
+                            {Array.from({length: 24}, (_, i) => {
+                              const hora = i.toString().padStart(2, '0') + ':00';
+                              return <option key={hora} value={hora}>{hora}</option>;
+                            })}
+                          </select>
                           <span>a</span>
-                          <Input
-                            type="time"
+                          <select
                             value={dia.fin}
                             onChange={(e) => actualizarHorario(dia.dia, 'fin', e.target.value)}
-                            className="w-32"
-                          />
+                            className="w-32 px-3 py-2 border border-gray-300 rounded-md"
+                          >
+                            {Array.from({length: 24}, (_, i) => {
+                              const hora = i.toString().padStart(2, '0') + ':00';
+                              return <option key={hora} value={hora}>{hora}</option>;
+                            })}
+                          </select>
                         </div>
                       </div>
                     </CardContent>
