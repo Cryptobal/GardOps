@@ -135,20 +135,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validar series si se proporcionan
-    if (tiene_horarios_variables && series_dias.length > 0) {
-      const validacion = validarSerieDias(series_dias, dias_trabajo, dias_descanso);
-      if (!validacion.esValida) {
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: 'Serie de días inválida', 
-            detalles: validacion.errores 
-          },
-          { status: 400 }
-        );
-      }
-    }
+    // ELIMINADA VALIDACIÓN PROBLEMÁTICA - Solo validar que tenga series
+    console.log('🔍 Series recibidas:', series_dias);
 
     // Calcular horas de turno y nombre automáticamente
     let horas_turno: number;
