@@ -95,7 +95,15 @@ export default function WizardSeriesTurnosV2({ isOpen, onClose, onSave }: Wizard
     }, 0);
     const promedioHoras = Math.round(totalHoras / diasTrabajo);
     
-    return `${tipo} ${diasTrabajo}x${diasDescanso}x${promedioHoras} 08:00 20:00`;
+    // Verificar si hay horarios variables
+    const horariosVariables = dias.filter(d => d.trabaja).some(d => 
+      d.inicio !== primerDiaTrabajo?.inicio || d.fin !== primerDiaTrabajo?.fin
+    );
+    
+    const horarios = horariosVariables ? 'VAR' : `${primerDiaTrabajo?.inicio} ${primerDiaTrabajo?.fin}`;
+    const sufijo = horariosVariables ? '*' : '';
+    
+    return `${tipo} ${diasTrabajo}x${diasDescanso}x${promedioHoras} ${horarios}${sufijo}`;
   }, [dias, duracion]);
 
   // Crear rol
