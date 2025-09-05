@@ -327,22 +327,22 @@ export default function WizardSeriesTurnos({
             <div className="space-y-6">
               <div className="text-center">
                 <h3 className="text-2xl font-semibold">¿Qué horario cada día?</h3>
-                <p className="text-gray-600">Configura los horarios de trabajo</p>
+                <p className="text-gray-400">Configura los horarios de trabajo</p>
               </div>
 
-              {/* Botón para aplicar a todos - Mobile First */}
-              <Card className="bg-yellow-50 border-yellow-200 mx-auto">
+              {/* Botón para aplicar a todos - Dark Mode Optimized */}
+              <Card className="bg-blue-900/20 border-blue-700/30 mx-auto">
                 <CardContent className="p-4">
                   <div className="space-y-3">
-                    <div className="text-sm font-medium text-yellow-800 text-center">
+                    <div className="text-sm font-medium text-blue-300 text-center">
                       ⚡ Aplicar el mismo horario a todos los días
                     </div>
                     <div className="flex flex-col sm:flex-row items-center gap-3">
                       <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <span className="text-sm">De:</span>
+                        <span className="text-sm text-gray-300">De:</span>
                         <select 
                           defaultValue="08:00"
-                          className="flex-1 sm:w-20 px-2 py-2 border border-gray-300 rounded-md text-sm"
+                          className="flex-1 sm:w-20 px-2 py-2 bg-gray-800 border border-gray-600 rounded-md text-sm text-white"
                           id="inicio-todos"
                         >
                           {Array.from({length: 24}, (_, i) => {
@@ -350,10 +350,10 @@ export default function WizardSeriesTurnos({
                             return <option key={hora} value={hora}>{hora}</option>;
                           })}
                         </select>
-                        <span className="text-sm">a:</span>
+                        <span className="text-sm text-gray-300">a:</span>
                         <select 
                           defaultValue="20:00"
-                          className="flex-1 sm:w-20 px-2 py-2 border border-gray-300 rounded-md text-sm"
+                          className="flex-1 sm:w-20 px-2 py-2 bg-gray-800 border border-gray-600 rounded-md text-sm text-white"
                           id="fin-todos"
                         >
                           {Array.from({length: 24}, (_, i) => {
@@ -370,7 +370,7 @@ export default function WizardSeriesTurnos({
                           const finSelect = document.getElementById('fin-todos') as HTMLSelectElement;
                           aplicarATodos(inicioSelect.value, finSelect.value);
                         }}
-                        className="w-full sm:w-auto"
+                        className="w-full sm:w-auto border-blue-500 text-blue-300 hover:bg-blue-800/20"
                       >
                         ⚡ Aplicar
                       </Button>
@@ -384,26 +384,26 @@ export default function WizardSeriesTurnos({
                   <Card key={dia.dia} className="p-3">
                     <CardContent className="p-0">
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                        <div className="w-full sm:w-16 text-center sm:text-left font-medium text-blue-700">
+                        <div className="w-full sm:w-16 text-center sm:text-left font-medium text-blue-400">
                           {dia.nombre}
                         </div>
                         <div className="flex items-center gap-2 w-full sm:w-auto">
-                          <span className="text-sm text-gray-600">De:</span>
+                          <span className="text-sm text-gray-300">De:</span>
                           <select
                             value={dia.inicio}
                             onChange={(e) => actualizarHorario(dia.dia, 'inicio', e.target.value)}
-                            className="flex-1 sm:w-20 px-2 py-2 border border-gray-300 rounded-md text-sm"
+                            className="flex-1 sm:w-20 px-2 py-2 bg-gray-800 border border-gray-600 rounded-md text-sm text-white"
                           >
                             {Array.from({length: 24}, (_, i) => {
                               const hora = i.toString().padStart(2, '0') + ':00';
                               return <option key={hora} value={hora}>{hora}</option>;
                             })}
                           </select>
-                          <span className="text-sm text-gray-600">a:</span>
+                          <span className="text-sm text-gray-300">a:</span>
                           <select
                             value={dia.fin}
                             onChange={(e) => actualizarHorario(dia.dia, 'fin', e.target.value)}
-                            className="flex-1 sm:w-20 px-2 py-2 border border-gray-300 rounded-md text-sm"
+                            className="flex-1 sm:w-20 px-2 py-2 bg-gray-800 border border-gray-600 rounded-md text-sm text-white"
                           >
                             {Array.from({length: 24}, (_, i) => {
                               const hora = i.toString().padStart(2, '0') + ':00';
@@ -418,9 +418,9 @@ export default function WizardSeriesTurnos({
               </div>
               
               <div className="text-center">
-                <div className="bg-blue-50 rounded-lg p-4 max-w-md mx-auto">
-                  <h4 className="font-medium text-blue-800 mb-2">Nomenclatura:</h4>
-                  <div className="text-lg font-mono text-blue-600">
+                <div className="bg-blue-900/30 border border-blue-700/50 rounded-lg p-4 max-w-md mx-auto">
+                  <h4 className="font-medium text-blue-300 mb-2">Nomenclatura:</h4>
+                  <div className="text-lg font-mono text-blue-400">
                     "{calcularNomenclatura()}"
                   </div>
                 </div>
