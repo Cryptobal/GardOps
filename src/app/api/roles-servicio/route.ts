@@ -139,18 +139,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validar campos requeridos - Si tiene horarios variables, no necesita campos tradicionales
-    if (!tiene_horarios_variables && (!dias_trabajo || !dias_descanso || !hora_inicio || !hora_termino)) {
+    // LÓGICA SIMPLIFICADA - Si es tipo 'series', siempre es horarios variables
+    let esRolSeries = (tipo === 'series' || tiene_horarios_variables);
+    
+    console.log('🔍 Tipo de rol detectado:', { tipo, esRolSeries, tiene_horarios_variables });
+    
+    // Si NO es rol de series, validar campos tradicionales
+    if (!esRolSeries && (!dias_trabajo || !dias_descanso || !hora_inicio || !hora_termino)) {
       return NextResponse.json(
         { success: false, error: 'Todos los campos de turno son requeridos para roles tradicionales' },
         { status: 400 }
       );
     }
     
-    // Si tiene horarios variables, debe tener series_dias
-    if (tiene_horarios_variables && (!series_dias || series_dias.length === 0)) {
+    // Si ES rol de series, validar que tenga dias_serie o series_dias
+    if (esRolSeries && (!dias_serie || dias_serie.length === 0) && (!series_dias || series_dias.length === 0)) {
       return NextResponse.json(
-        { success: false, error: 'Series de días son requeridas para roles con horarios variables' },
+        { success: false, error: 'Se requieren días de serie para roles con horarios variables' },
         { status: 400 }
       );
     }
@@ -191,7 +196,7 @@ export async function POST(request: NextRequest) {
     let esHorariosVariables = tiene_horarios_variables;
     
     // Determinar si usar horarios variables
-    if (tipo === 'series' || (tiene_horarios_variables && series_dias.length > 0)) {
+    if (esRolSeries) {
       esHorariosVariables = true;
       
       // Para horarios variables, calcular desde las series
@@ -215,16 +220,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('🔍 POST roles-servicio - Datos recibidos:', {
-      dias_trabajo,
-      dias_descanso,
-      hora_inicio,
-      hora_termino,
-      estado,
-      tenantId,
-      finalTenantId,
-      nombre,
-      horas_turno
+    console.log('🔍 POST roles-servicio - Datos procesados:', {
+      nombreCalculado,
+      calculated_dias_trabajo,
+      calculated_dias_descanso,
+      horas_turno,
+      esHorariosVariables,
+      series_dias: series_dias.length,
+      tipo,
+      esRolSeries
     });
 
     // Verificar duplicados por nombre completo
