@@ -39,6 +39,7 @@ export default function WizardSeriesTurnosV2({ isOpen, onClose, onSave }: Wizard
   // Inicializar días cuando cambia duración O cuando se abre el modal
   React.useEffect(() => {
     if (isOpen) {
+      console.log('🔄 Modal abierto - inicializando días para duración:', duracion);
       const nuevosDias: DiaSimple[] = [];
       for (let i = 1; i <= duracion; i++) {
         nuevosDias.push({
@@ -53,6 +54,17 @@ export default function WizardSeriesTurnosV2({ isOpen, onClose, onSave }: Wizard
       console.log('🔍 Días inicializados:', nuevosDias.length);
     }
   }, [duracion, isOpen]);
+
+  // Reset completo cuando se abre el modal
+  React.useEffect(() => {
+    if (isOpen) {
+      console.log('🔄 Modal abierto - reset completo');
+      setPaso(1);
+      setLoading(false);
+      setHoraInicioTodos('08:00');
+      setHoraFinTodos('20:00');
+    }
+  }, [isOpen]);
 
   // Toggle trabajo secuencial
   const toggleTrabajo = useCallback((dia: number) => {
@@ -162,11 +174,13 @@ export default function WizardSeriesTurnosV2({ isOpen, onClose, onSave }: Wizard
 
   // Cerrar wizard
   const handleCerrar = useCallback(() => {
+    console.log('🔄 Cerrando wizard - reseteando estados');
     setPaso(1);
     setDuracion(8);
     setDias([]);
     setHoraInicioTodos('08:00');
     setHoraFinTodos('20:00');
+    setLoading(false);
     onClose();
   }, [onClose]);
 
@@ -338,17 +352,18 @@ export default function WizardSeriesTurnosV2({ isOpen, onClose, onSave }: Wizard
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          console.log('🔧 Click botón aplicar');
-                          setDias(prevDias => {
-                            console.log('🔧 Aplicando horarios:', { horaInicioTodos, horaFinTodos });
-                            return prevDias.map(d => 
-                              d.trabaja ? { ...d, inicio: horaInicioTodos, fin: horaFinTodos } : d
-                            );
-                          });
-                          toast({
-                            title: "Horarios aplicados",
-                            description: `Horario ${horaInicioTodos}-${horaFinTodos} aplicado`,
-                          });
+                          console.log('🔧 Click botón aplicar - inicio');
+                          try {
+                            setDias(prevDias => {
+                              console.log('🔧 setDias ejecutándose');
+                              return prevDias.map(d => 
+                                d.trabaja ? { ...d, inicio: horaInicioTodos, fin: horaFinTodos } : d
+                              );
+                            });
+                            console.log('🔧 setDias completado');
+                          } catch (error) {
+                            console.error('❌ Error en setDias:', error);
+                          }
                         }}
                         className="w-full sm:w-auto border-blue-500 text-blue-300 hover:bg-blue-800/20"
                       >
