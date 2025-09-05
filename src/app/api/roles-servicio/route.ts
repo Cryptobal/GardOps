@@ -9,6 +9,19 @@ import {
 } from '@/lib/utils/roles-servicio-series';
 import { SerieDia } from '@/lib/schemas/roles-servicio';
 
+// Función simple para calcular horas
+function calcularHorasSimple(inicio: string, fin: string): number {
+  const inicioDate = new Date(`2000-01-01 ${inicio}`);
+  const finDate = new Date(`2000-01-01 ${fin}`);
+  
+  if (finDate <= inicioDate) {
+    finDate.setDate(finDate.getDate() + 1);
+  }
+  
+  const diferencia = finDate.getTime() - inicioDate.getTime();
+  return Math.round(diferencia / (1000 * 60 * 60));
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -97,6 +110,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { 
+      nombre,
+      descripcion,
+      activo = true,
       dias_trabajo, 
       dias_descanso, 
       hora_inicio, 
@@ -104,7 +120,11 @@ export async function POST(request: NextRequest) {
       estado = 'Activo', 
       tenantId,
       tiene_horarios_variables = false,
-      series_dias = []
+      series_dias = [],
+      // Nuevos campos para wizard simple
+      tipo,
+      duracion_ciclo,
+      dias_serie = []
     } = body;
 
     // Si no viene tenantId, inferirlo desde el usuario autenticado (multi-tenant estricto)
@@ -135,16 +155,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // LÓGICA PARA WIZARD SIMPLE
+    console.log('🔍 Datos recibidos:', { tipo, duracion_ciclo, dias_serie: dias_serie.length });
+    
+    // Si es del wizard simple, convertir formato
+    if (tipo === 'series' && dias_serie.length > 0) {
+      console.log('🔄 Procesando datos del wizard simple...');
+      
+      // Convertir dias_serie a series_dias
+      const series_convertidas = dias_serie.map((dia: any) => ({
+        posicion_en_ciclo: dia.posicion,
+        es_dia_trabajo: dia.trabaja,
+        hora_inicio: dia.hora_inicio,
+        hora_termino: dia.hora_termino,
+        horas_turno: dia.trabaja ? calcularHorasSimple(dia.hora_inicio, dia.hora_termino) : 0,
+        observaciones: null
+      }));
+      
+      // Actualizar variables
+      series_dias.length = 0;
+      series_dias.push(...series_convertidas);
+      // tiene_horarios_variables ya se maneja abajo
+      
+      console.log('✅ Series convertidas:', series_dias.length);
+    }
+    
     // ELIMINADA VALIDACIÓN PROBLEMÁTICA - Solo validar que tenga series
-    console.log('🔍 Series recibidas:', series_dias);
+    console.log('🔍 Series finales:', series_dias.length);
 
     // Calcular horas de turno y nombre automáticamente
     let horas_turno: number;
-    let nombre: string;
-    let calculated_dias_trabajo: number = dias_trabajo;
-    let calculated_dias_descanso: number = dias_descanso;
+    let nombreCalculado: string = nombre || '';
+    let calculated_dias_trabajo: number = dias_trabajo || 0;
+    let calculated_dias_descanso: number = dias_descanso || 0;
+    let esHorariosVariables = tiene_horarios_variables;
     
-    if (tiene_horarios_variables && series_dias.length > 0) {
+    // Determinar si usar horarios variables
+    if (tipo === 'series' || (tiene_horarios_variables && series_dias.length > 0)) {
+      esHorariosVariables = true;
+      
       // Para horarios variables, calcular desde las series
       const diasTrabajo = series_dias.filter((dia: any) => dia.es_dia_trabajo);
       const totalHoras = diasTrabajo.reduce((sum: number, dia: any) => sum + (dia.horas_turno || 0), 0);
@@ -152,14 +201,18 @@ export async function POST(request: NextRequest) {
       
       // Calcular días de trabajo y descanso desde las series
       calculated_dias_trabajo = diasTrabajo.length;
-      calculated_dias_descanso = (body.duracion_ciclo_dias || 7) - calculated_dias_trabajo;
+      calculated_dias_descanso = (duracion_ciclo || body.duracion_ciclo_dias || 7) - calculated_dias_trabajo;
       
-      // Usar nomenclatura con series
-      nombre = calcularNomenclaturaConSeries(calculated_dias_trabajo, calculated_dias_descanso, series_dias);
+      // Usar nombre proporcionado o calcular
+      if (!nombreCalculado) {
+        nombreCalculado = calcularNomenclaturaConSeries(calculated_dias_trabajo, calculated_dias_descanso, series_dias);
+      }
     } else {
       // Para horarios tradicionales
-      horas_turno = calcularHorasTurno(hora_inicio, hora_termino);
-      nombre = calcularNomenclaturaRol(dias_trabajo, dias_descanso, hora_inicio, hora_termino);
+      horas_turno = calcularHorasTurno(hora_inicio || '08:00', hora_termino || '20:00');
+      if (!nombreCalculado) {
+        nombreCalculado = calcularNomenclaturaRol(calculated_dias_trabajo, calculated_dias_descanso, hora_inicio || '08:00', hora_termino || '20:00');
+      }
     }
 
     console.log('🔍 POST roles-servicio - Datos recibidos:', {
@@ -178,7 +231,7 @@ export async function POST(request: NextRequest) {
     const checkDuplicate = await sql.query(`
       SELECT 1 FROM as_turnos_roles_servicio 
       WHERE nombre = $1 AND (tenant_id::text = $2 OR (tenant_id IS NULL AND $2 = '1'))
-    `, [nombre, finalTenantId]);
+    `, [nombreCalculado, finalTenantId]);
 
     if (checkDuplicate.rows.length > 0) {
       return NextResponse.json(
@@ -188,7 +241,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificación adicional: evitar duplicados por parámetros específicos (solo para roles tradicionales)
-    if (!tiene_horarios_variables) {
+    if (!esHorariosVariables) {
       const checkDuplicateParams = await sql.query(`
         SELECT nombre FROM as_turnos_roles_servicio 
         WHERE dias_trabajo = $1 
@@ -246,23 +299,23 @@ export async function POST(request: NextRequest) {
     `;
     
     const result = await sql.query(insertQuery, [
-      nombre,
+      nombreCalculado,
       calculated_dias_trabajo,
       calculated_dias_descanso,
       horas_turno,
-      tiene_horarios_variables ? '00:00' : (hora_inicio || '08:00'),
-      tiene_horarios_variables ? '00:00' : (hora_termino || '20:00'),
+      esHorariosVariables ? '00:00' : (hora_inicio || '08:00'),
+      esHorariosVariables ? '00:00' : (hora_termino || '20:00'),
       estado,
       finalTenantId === '1' ? null : finalTenantId,
-      tiene_horarios_variables,
-      body.duracion_ciclo_dias || (calculated_dias_trabajo + calculated_dias_descanso), // duracion_ciclo_dias
+      esHorariosVariables,
+      duracion_ciclo || body.duracion_ciclo_dias || (calculated_dias_trabajo + calculated_dias_descanso), // duracion_ciclo_dias
       horas_turno // horas_turno_promedio (se actualizará con trigger si hay series)
     ]);
 
     const nuevoRol = result.rows[0];
 
     // Si tiene series, insertarlas
-    if (tiene_horarios_variables && series_dias.length > 0) {
+    if (esHorariosVariables && series_dias.length > 0) {
       for (const dia of series_dias) {
         await sql.query(`
           INSERT INTO as_turnos_series_dias (
