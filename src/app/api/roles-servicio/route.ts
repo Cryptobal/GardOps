@@ -131,13 +131,17 @@ export async function POST(request: NextRequest) {
     let finalTenantId = tenantId;
     if (!finalTenantId) {
       const email = request.headers.get('x-user-email');
+      console.log('🔍 POST roles-servicio - Email del header:', email);
       if (email) {
         const t = await sql`SELECT tenant_id::text AS tid FROM usuarios WHERE lower(email)=lower(${email}) LIMIT 1`;
-        finalTenantId = t.rows?.[0]?.tid || '1';
+        console.log('🔍 POST roles-servicio - Resultado query usuario:', t.rows);
+        finalTenantId = t.rows?.[0]?.tid || null;
       } else {
-        finalTenantId = '1';
+        finalTenantId = null;
       }
     }
+    
+    console.log('🔍 POST roles-servicio - finalTenantId:', finalTenantId);
 
     // LÓGICA SIMPLIFICADA - Si es tipo 'series', siempre es horarios variables
     let esRolSeries = (tipo === 'series' || tiene_horarios_variables);
@@ -234,7 +238,7 @@ export async function POST(request: NextRequest) {
     // Verificar duplicados por nombre completo
     const checkDuplicate = await sql.query(`
       SELECT 1 FROM as_turnos_roles_servicio 
-      WHERE nombre = $1 AND (tenant_id::text = $2 OR (tenant_id IS NULL AND $2 = '1'))
+      WHERE nombre = $1 AND (tenant_id = $2 OR (tenant_id IS NULL AND $2 IS NULL))
     `, [nombreCalculado, finalTenantId]);
 
     if (checkDuplicate.rows.length > 0) {
@@ -252,7 +256,7 @@ export async function POST(request: NextRequest) {
           AND dias_descanso = $2 
           AND hora_inicio = $3 
           AND hora_termino = $4
-          AND (tenant_id::text = $5 OR (tenant_id IS NULL AND $5 = '1'))
+          AND (tenant_id = $5 OR (tenant_id IS NULL AND $5 IS NULL))
       `, [dias_trabajo, dias_descanso, hora_inicio, hora_termino, finalTenantId]);
       
       if (checkDuplicateParams.rows.length > 0) {

@@ -190,32 +190,30 @@ export default function WizardSeriesTurnos({
 
   // Función para aplicar horario a todos los días de trabajo
   const aplicarATodos = () => {
-    try {
-      console.log('🔧 APLICANDO A TODOS...');
-      
-      const inicio = inicioTodosRef.current?.value || '08:00';
-      const fin = finTodosRef.current?.value || '20:00';
-      
-      console.log('📅 Valores:', { inicio, fin });
-      
-      setDias(prev => prev.map(d => 
+    console.log('🔧 APLICANDO A TODOS...');
+    
+    const inicio = inicioTodosRef.current?.value || '08:00';
+    const fin = finTodosRef.current?.value || '20:00';
+    
+    console.log('📅 Valores:', { inicio, fin });
+    console.log('📅 setDias function:', typeof setDias);
+    
+    // Actualizar días de trabajo
+    setDias(prev => {
+      console.log('📅 Días anteriores:', prev);
+      const nuevosDias = prev.map(d => 
         d.trabaja ? { ...d, inicio, fin } : d
-      ));
-      
-      toast({
-        title: "Horarios aplicados",
-        description: `Horario ${inicio}-${fin} aplicado a todos los días de trabajo`,
-      });
-      
-      console.log('✅ APLICADO EXITOSAMENTE');
-    } catch (error) {
-      console.error('❌ ERROR en aplicarATodos:', error);
-      toast({
-        title: "Error",
-        description: "Error al aplicar horarios",
-        variant: "destructive"
-      });
-    }
+      );
+      console.log('📅 Días nuevos:', nuevosDias);
+      return nuevosDias;
+    });
+    
+    toast({
+      title: "Horarios aplicados",
+      description: `Horario ${inicio}-${fin} aplicado a todos los días de trabajo`,
+    });
+    
+    console.log('✅ APLICADO EXITOSAMENTE');
   };
 
   const handleCerrar = () => {
