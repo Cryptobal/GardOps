@@ -203,7 +203,7 @@ export default function WizardSeriesTurnos({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleCerrar}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-lg mx-auto max-h-[90vh] overflow-y-auto p-4">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Calendar className="h-6 w-6" />
@@ -238,13 +238,13 @@ export default function WizardSeriesTurnos({
             <div className="space-y-6 text-center">
               <h3 className="text-2xl font-semibold">¿De cuántos días es la serie?</h3>
               
-              <div className="flex gap-3 justify-center">
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 {[7, 8, 14].map(d => (
                   <Button
                     key={d}
                     variant={duracion === d ? "default" : "outline"}
                     onClick={() => setDuracion(d)}
-                    className="px-6 py-3"
+                    className="w-full sm:w-auto px-6 py-3"
                   >
                     {d} días
                   </Button>
@@ -278,7 +278,7 @@ export default function WizardSeriesTurnos({
                 <p className="text-sm text-blue-600">Ejemplo: Si haces clic en DÍA 4, se marcarán días 1, 2, 3 y 4 como trabajo</p>
               </div>
               
-              <div className="grid grid-cols-4 md:grid-cols-7 gap-3 max-w-4xl mx-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mx-auto">
                 {dias.map((dia) => (
                   <div
                     key={dia.dia}
@@ -303,13 +303,18 @@ export default function WizardSeriesTurnos({
                 {diasTrabajo} días de trabajo, {duracion - diasTrabajo} de descanso
               </div>
               
-              <div className="flex justify-center gap-4">
-                <Button variant="outline" onClick={() => setPaso(1)}>
+              <div className="flex flex-col sm:flex-row justify-center gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setPaso(1)}
+                  className="w-full sm:w-auto"
+                >
                   Anterior
                 </Button>
                 <Button 
                   onClick={() => setPaso(3)} 
                   disabled={diasTrabajo === 0}
+                  className="w-full sm:w-auto"
                 >
                   Siguiente
                 </Button>
@@ -325,35 +330,38 @@ export default function WizardSeriesTurnos({
                 <p className="text-gray-600">Configura los horarios de trabajo</p>
               </div>
 
-              {/* Botón para aplicar a todos */}
-              <Card className="bg-yellow-50 border-yellow-200 max-w-2xl mx-auto">
+              {/* Botón para aplicar a todos - Mobile First */}
+              <Card className="bg-yellow-50 border-yellow-200 mx-auto">
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="text-sm font-medium text-yellow-800">
-                      ⚡ Aplicar el mismo horario a todos los días:
+                  <div className="space-y-3">
+                    <div className="text-sm font-medium text-yellow-800 text-center">
+                      ⚡ Aplicar el mismo horario a todos los días
                     </div>
-                    <div className="flex items-center gap-2">
-                      <select 
-                        defaultValue="08:00"
-                        className="w-32 px-3 py-2 border border-gray-300 rounded-md"
-                        id="inicio-todos"
-                      >
-                        {Array.from({length: 24}, (_, i) => {
-                          const hora = i.toString().padStart(2, '0') + ':00';
-                          return <option key={hora} value={hora}>{hora}</option>;
-                        })}
-                      </select>
-                      <span>a</span>
-                      <select 
-                        defaultValue="20:00"
-                        className="w-32 px-3 py-2 border border-gray-300 rounded-md"
-                        id="fin-todos"
-                      >
-                        {Array.from({length: 24}, (_, i) => {
-                          const hora = i.toString().padStart(2, '0') + ':00';
-                          return <option key={hora} value={hora}>{hora}</option>;
-                        })}
-                      </select>
+                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <span className="text-sm">De:</span>
+                        <select 
+                          defaultValue="08:00"
+                          className="flex-1 sm:w-20 px-2 py-2 border border-gray-300 rounded-md text-sm"
+                          id="inicio-todos"
+                        >
+                          {Array.from({length: 24}, (_, i) => {
+                            const hora = i.toString().padStart(2, '0') + ':00';
+                            return <option key={hora} value={hora}>{hora}</option>;
+                          })}
+                        </select>
+                        <span className="text-sm">a:</span>
+                        <select 
+                          defaultValue="20:00"
+                          className="flex-1 sm:w-20 px-2 py-2 border border-gray-300 rounded-md text-sm"
+                          id="fin-todos"
+                        >
+                          {Array.from({length: 24}, (_, i) => {
+                            const hora = i.toString().padStart(2, '0') + ':00';
+                            return <option key={hora} value={hora}>{hora}</option>;
+                          })}
+                        </select>
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -362,38 +370,40 @@ export default function WizardSeriesTurnos({
                           const finSelect = document.getElementById('fin-todos') as HTMLSelectElement;
                           aplicarATodos(inicioSelect.value, finSelect.value);
                         }}
+                        className="w-full sm:w-auto"
                       >
-                        ⚡ Aplicar a Todos
+                        ⚡ Aplicar
                       </Button>
                     </div>
                   </div>
                 </CardContent>
               </Card>
               
-              <div className="space-y-3 max-w-2xl mx-auto">
+              <div className="space-y-3 mx-auto">
                 {dias.filter(d => d.trabaja).map((dia) => (
-                  <Card key={dia.dia} className="p-4">
+                  <Card key={dia.dia} className="p-3">
                     <CardContent className="p-0">
-                      <div className="flex items-center gap-4">
-                        <div className="w-16 text-center font-medium">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        <div className="w-full sm:w-16 text-center sm:text-left font-medium text-blue-700">
                           {dia.nombre}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          <span className="text-sm text-gray-600">De:</span>
                           <select
                             value={dia.inicio}
                             onChange={(e) => actualizarHorario(dia.dia, 'inicio', e.target.value)}
-                            className="w-32 px-3 py-2 border border-gray-300 rounded-md"
+                            className="flex-1 sm:w-20 px-2 py-2 border border-gray-300 rounded-md text-sm"
                           >
                             {Array.from({length: 24}, (_, i) => {
                               const hora = i.toString().padStart(2, '0') + ':00';
                               return <option key={hora} value={hora}>{hora}</option>;
                             })}
                           </select>
-                          <span>a</span>
+                          <span className="text-sm text-gray-600">a:</span>
                           <select
                             value={dia.fin}
                             onChange={(e) => actualizarHorario(dia.dia, 'fin', e.target.value)}
-                            className="w-32 px-3 py-2 border border-gray-300 rounded-md"
+                            className="flex-1 sm:w-20 px-2 py-2 border border-gray-300 rounded-md text-sm"
                           >
                             {Array.from({length: 24}, (_, i) => {
                               const hora = i.toString().padStart(2, '0') + ':00';
@@ -416,14 +426,18 @@ export default function WizardSeriesTurnos({
                 </div>
               </div>
               
-              <div className="flex justify-center gap-4">
-                <Button variant="outline" onClick={() => setPaso(2)}>
+              <div className="flex flex-col sm:flex-row justify-center gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setPaso(2)}
+                  className="w-full sm:w-auto"
+                >
                   Anterior
                 </Button>
                 <Button 
                   onClick={handleCrearRol} 
                   disabled={loading}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
                 >
                   {loading ? 'Creando...' : 'Crear Rol'}
                 </Button>
