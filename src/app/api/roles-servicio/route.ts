@@ -198,13 +198,21 @@ export async function POST(request: NextRequest) {
     let calculated_dias_trabajo: number = dias_trabajo || 0;
     let calculated_dias_descanso: number = dias_descanso || 0;
     let esHorariosVariables = tiene_horarios_variables;
+    let primerHorario: any = null;
     
     // Determinar si usar horarios variables
     if (esRolSeries) {
-      esHorariosVariables = true;
-      
-      // Para horarios variables, calcular desde las series
+      // Verificar si todos los días de trabajo tienen el mismo horario
       const diasTrabajo = series_dias.filter((dia: any) => dia.es_dia_trabajo);
+      primerHorario = diasTrabajo[0];
+      const todosMismoHorario = diasTrabajo.every((dia: any) => 
+        dia.hora_inicio === primerHorario?.hora_inicio && 
+        dia.hora_termino === primerHorario?.hora_termino
+      );
+      
+      esHorariosVariables = !todosMismoHorario;
+      
+      // Calcular horas desde las series
       const totalHoras = diasTrabajo.reduce((sum: number, dia: any) => sum + (dia.horas_turno || 0), 0);
       horas_turno = diasTrabajo.length > 0 ? Math.round(totalHoras / diasTrabajo.length) : 0;
       
@@ -311,8 +319,8 @@ export async function POST(request: NextRequest) {
       calculated_dias_trabajo,
       calculated_dias_descanso,
       horas_turno,
-      esHorariosVariables ? '00:00' : (hora_inicio || '08:00'),
-      esHorariosVariables ? '00:00' : (hora_termino || '20:00'),
+      esHorariosVariables ? '00:00' : (primerHorario?.hora_inicio || hora_inicio || '08:00'),
+      esHorariosVariables ? '00:00' : (primerHorario?.hora_termino || hora_termino || '20:00'),
       estado,
       finalTenantId,
       esHorariosVariables,

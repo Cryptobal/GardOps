@@ -22,7 +22,7 @@ import { RolServicio, CrearRolServicioData } from '@/lib/schemas/roles-servicio'
 import { calcularNomenclaturaRol } from '@/lib/utils/calcularNomenclaturaRol';
 import { ordenarRolesPorPatron, extraerPatronesUnicos, filtrarRolesPorPatron, extraerPatronTurno, tieneParNoche, crearDatosTurnoNoche } from '@/lib/utils/ordenarRolesPorPatron';
 import { analizarTodosLosRoles, crearDatosReplicacion } from '@/lib/utils/detectar-similes-roles';
-import WizardSeriesTurnos from '@/components/roles-servicio/WizardSeriesTurnos';
+import WizardSeriesTurnosV2 from '@/components/roles-servicio/WizardSeriesTurnosV2';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -801,7 +801,7 @@ export default function RolesServicioPage() {
       </AlertDialog>
 
       {/* Wizard para crear rol */}
-      <WizardSeriesTurnos
+      <WizardSeriesTurnosV2
         isOpen={showWizardCrear}
         onClose={() => setShowWizardCrear(false)}
         onSave={handleCrearRolWizard}
