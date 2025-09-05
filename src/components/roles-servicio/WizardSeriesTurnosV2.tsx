@@ -153,12 +153,19 @@ export default function WizardSeriesTurnosV2({ isOpen, onClose, onSave }: Wizard
       
       await onSave(rolData);
       
-      toast({
-        title: "¡Rol creado exitosamente!",
-        description: `"${nomenclatura}" creado correctamente`,
-      });
+      // NO usar toast aquí - puede causar problemas
       
-      handleCerrar();
+      // Forzar reset completo antes de cerrar
+      console.log('🔄 Reset forzado después de crear rol');
+      setPaso(1);
+      setDuracion(8);
+      setDias([]);
+      setHoraInicioTodos('08:00');
+      setHoraFinTodos('20:00');
+      setLoading(false);
+      
+      // Cerrar modal
+      onClose();
       
     } catch (error) {
       console.error('❌ ERROR:', error);
@@ -352,18 +359,11 @@ export default function WizardSeriesTurnosV2({ isOpen, onClose, onSave }: Wizard
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          console.log('🔧 Click botón aplicar - inicio');
-                          try {
-                            setDias(prevDias => {
-                              console.log('🔧 setDias ejecutándose');
-                              return prevDias.map(d => 
-                                d.trabaja ? { ...d, inicio: horaInicioTodos, fin: horaFinTodos } : d
-                              );
-                            });
-                            console.log('🔧 setDias completado');
-                          } catch (error) {
-                            console.error('❌ Error en setDias:', error);
-                          }
+                          const inicio = horaInicioTodos;
+                          const fin = horaFinTodos;
+                          setDias(dias.map(d => 
+                            d.trabaja ? { ...d, inicio: inicio, fin: fin } : d
+                          ));
                         }}
                         className="w-full sm:w-auto border-blue-500 text-blue-300 hover:bg-blue-800/20"
                       >

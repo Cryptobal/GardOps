@@ -80,10 +80,15 @@ export function crearDatosReplicacion(rolOriginal: RolServicio): any {
   const esOriginalDiurno = info.tipo === 'D';
   const tipoOpuesto = esOriginalDiurno ? 'N' : 'D';
   
-  // Horarios estándar para el símil
+  // Extraer horarios originales del rol
+  const horariosOriginales = info.horarios.split(' ');
+  const horaInicioOriginal = horariosOriginales[0];
+  const horaFinOriginal = horariosOriginales[1];
+  
+  // Calcular horarios opuestos (invertir el turno)
   const horariosOpuestos = esOriginalDiurno 
-    ? { inicio: '20:00', fin: '08:00' }
-    : { inicio: '08:00', fin: '20:00' };
+    ? { inicio: horaFinOriginal, fin: horaInicioOriginal } // 19:00 → 07:00
+    : { inicio: horaFinOriginal, fin: horaInicioOriginal }; // 07:00 → 19:00
 
   // Extraer patrón de días trabajo/descanso
   const patronPartes = info.patron.split('x');
