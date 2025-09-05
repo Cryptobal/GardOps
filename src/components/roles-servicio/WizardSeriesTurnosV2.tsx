@@ -36,20 +36,23 @@ export default function WizardSeriesTurnosV2({ isOpen, onClose, onSave }: Wizard
   const [duracion, setDuracion] = useState(8);
   const [dias, setDias] = useState<DiaSimple[]>([]);
 
-  // Inicializar días cuando cambia duración
+  // Inicializar días cuando cambia duración O cuando se abre el modal
   React.useEffect(() => {
-    const nuevosDias: DiaSimple[] = [];
-    for (let i = 1; i <= duracion; i++) {
-      nuevosDias.push({
-        dia: i,
-        nombre: `DÍA ${i}`,
-        trabaja: false,
-        inicio: '08:00',
-        fin: '20:00'
-      });
+    if (isOpen) {
+      const nuevosDias: DiaSimple[] = [];
+      for (let i = 1; i <= duracion; i++) {
+        nuevosDias.push({
+          dia: i,
+          nombre: `DÍA ${i}`,
+          trabaja: false,
+          inicio: '08:00',
+          fin: '20:00'
+        });
+      }
+      setDias(nuevosDias);
+      console.log('🔍 Días inicializados:', nuevosDias.length);
     }
-    setDias(nuevosDias);
-  }, [duracion]);
+  }, [duracion, isOpen]);
 
   // Toggle trabajo secuencial
   const toggleTrabajo = useCallback((dia: number) => {
@@ -70,21 +73,22 @@ export default function WizardSeriesTurnosV2({ isOpen, onClose, onSave }: Wizard
   const [horaInicioTodos, setHoraInicioTodos] = useState('08:00');
   const [horaFinTodos, setHoraFinTodos] = useState('20:00');
 
-  // Aplicar a todos - FUNCIÓN SÚPER SIMPLE
-  const aplicarATodos = () => {
+  // Aplicar a todos - FUNCIÓN ESTABLE
+  const aplicarATodos = React.useCallback(() => {
     console.log('🔧 Aplicando horarios:', { horaInicioTodos, horaFinTodos });
     
-    const nuevosHorarios = dias.map(d => 
-      d.trabaja ? { ...d, inicio: horaInicioTodos, fin: horaFinTodos } : d
-    );
-    
-    setDias(nuevosHorarios);
+    setDias(prevDias => {
+      const nuevosHorarios = prevDias.map(d => 
+        d.trabaja ? { ...d, inicio: horaInicioTodos, fin: horaFinTodos } : d
+      );
+      return nuevosHorarios;
+    });
     
     toast({
       title: "Horarios aplicados",
       description: `Horario ${horaInicioTodos}-${horaFinTodos} aplicado a todos los días de trabajo`,
     });
-  };
+  }, [horaInicioTodos, horaFinTodos, toast]);
 
   // Calcular nomenclatura
   const calcularNomenclatura = useCallback(() => {
@@ -168,6 +172,8 @@ export default function WizardSeriesTurnosV2({ isOpen, onClose, onSave }: Wizard
     setPaso(1);
     setDuracion(8);
     setDias([]);
+    setHoraInicioTodos('08:00');
+    setHoraFinTodos('20:00');
     onClose();
   }, [onClose]);
 
