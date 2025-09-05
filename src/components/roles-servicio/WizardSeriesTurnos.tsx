@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -45,6 +45,10 @@ export default function WizardSeriesTurnos({
   const [loading, setLoading] = useState(false);
   const [duracion, setDuracion] = useState(8);
   const [dias, setDias] = useState<DiaSimple[]>([]);
+  
+  // Refs para los selectores
+  const inicioTodosRef = useRef<HTMLSelectElement>(null);
+  const finTodosRef = useRef<HTMLSelectElement>(null);
 
   // Debug
   console.log('🔍 WIZARD SERIES - Estado:', { paso, duracion, dias: dias.length });
@@ -179,15 +183,33 @@ export default function WizardSeriesTurnos({
   };
 
   // Función para aplicar horario a todos los días de trabajo
-  const aplicarATodos = (inicio: string, fin: string) => {
-    setDias(prev => prev.map(d => 
-      d.trabaja ? { ...d, inicio, fin } : d
-    ));
-    
-    toast({
-      title: "Horarios aplicados",
-      description: `Horario ${inicio}-${fin} aplicado a todos los días de trabajo`,
-    });
+  const aplicarATodos = () => {
+    try {
+      console.log('🔧 APLICANDO A TODOS...');
+      
+      const inicio = inicioTodosRef.current?.value || '08:00';
+      const fin = finTodosRef.current?.value || '20:00';
+      
+      console.log('📅 Valores:', { inicio, fin });
+      
+      setDias(prev => prev.map(d => 
+        d.trabaja ? { ...d, inicio, fin } : d
+      ));
+      
+      toast({
+        title: "Horarios aplicados",
+        description: `Horario ${inicio}-${fin} aplicado a todos los días de trabajo`,
+      });
+      
+      console.log('✅ APLICADO EXITOSAMENTE');
+    } catch (error) {
+      console.error('❌ ERROR en aplicarATodos:', error);
+      toast({
+        title: "Error",
+        description: "Error al aplicar horarios",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCerrar = () => {
@@ -341,9 +363,9 @@ export default function WizardSeriesTurnos({
                       <div className="flex items-center gap-2 w-full sm:w-auto">
                         <span className="text-sm text-gray-300">De:</span>
                         <select 
+                          ref={inicioTodosRef}
                           defaultValue="08:00"
                           className="flex-1 sm:w-20 px-2 py-2 bg-gray-800 border border-gray-600 rounded-md text-sm text-white"
-                          id="inicio-todos"
                         >
                           {Array.from({length: 24}, (_, i) => {
                             const hora = i.toString().padStart(2, '0') + ':00';
@@ -352,9 +374,9 @@ export default function WizardSeriesTurnos({
                         </select>
                         <span className="text-sm text-gray-300">a:</span>
                         <select 
+                          ref={finTodosRef}
                           defaultValue="20:00"
                           className="flex-1 sm:w-20 px-2 py-2 bg-gray-800 border border-gray-600 rounded-md text-sm text-white"
-                          id="fin-todos"
                         >
                           {Array.from({length: 24}, (_, i) => {
                             const hora = i.toString().padStart(2, '0') + ':00';
@@ -365,11 +387,7 @@ export default function WizardSeriesTurnos({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          const inicioSelect = document.getElementById('inicio-todos') as HTMLSelectElement;
-                          const finSelect = document.getElementById('fin-todos') as HTMLSelectElement;
-                          aplicarATodos(inicioSelect.value, finSelect.value);
-                        }}
+                        onClick={aplicarATodos}
                         className="w-full sm:w-auto border-blue-500 text-blue-300 hover:bg-blue-800/20"
                       >
                         ⚡ Aplicar
