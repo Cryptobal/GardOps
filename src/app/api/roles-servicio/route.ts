@@ -244,41 +244,21 @@ export async function POST(request: NextRequest) {
       esRolSeries
     });
 
-    // Verificar duplicados por nombre completo
+    // Verificar duplicados por nombre completo (solo para el mismo tenant)
     const checkDuplicate = await sql.query(`
-      SELECT 1 FROM as_turnos_roles_servicio 
-      WHERE nombre = $1 AND (tenant_id = $2 OR (tenant_id IS NULL AND $2 IS NULL))
+      SELECT nombre FROM as_turnos_roles_servicio 
+      WHERE nombre = $1 AND tenant_id = $2
     `, [nombreCalculado, finalTenantId]);
 
     if (checkDuplicate.rows.length > 0) {
+      console.log('⚠️ Rol duplicado encontrado:', checkDuplicate.rows[0]);
       return NextResponse.json(
-        { success: false, error: 'Ya existe un rol de servicio con esa configuración de turno' },
+        { success: false, error: `Ya existe un rol "${nombreCalculado}" en tu cuenta` },
         { status: 400 }
       );
     }
 
-    // Verificación adicional: evitar duplicados por parámetros específicos (solo para roles tradicionales)
-    if (!esHorariosVariables) {
-      const checkDuplicateParams = await sql.query(`
-        SELECT nombre FROM as_turnos_roles_servicio 
-        WHERE dias_trabajo = $1 
-          AND dias_descanso = $2 
-          AND hora_inicio = $3 
-          AND hora_termino = $4
-          AND (tenant_id = $5 OR (tenant_id IS NULL AND $5 IS NULL))
-      `, [dias_trabajo, dias_descanso, hora_inicio, hora_termino, finalTenantId]);
-      
-      if (checkDuplicateParams.rows.length > 0) {
-        const rolExistente = checkDuplicateParams.rows[0].nombre;
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: `Ya existe un rol con los mismos parámetros: "${rolExistente}". Cada combinación de días de trabajo, descanso y horario debe ser única.` 
-          },
-          { status: 400 }
-        );
-      }
-    }
+    // Verificación de parámetros eliminada - solo verificar por nombre exacto
 
     // Crear la tabla sueldo_estructuras_roles si no existe (para evitar error del trigger)
     try {

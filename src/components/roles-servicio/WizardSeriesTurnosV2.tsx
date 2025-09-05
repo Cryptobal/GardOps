@@ -73,22 +73,7 @@ export default function WizardSeriesTurnosV2({ isOpen, onClose, onSave }: Wizard
   const [horaInicioTodos, setHoraInicioTodos] = useState('08:00');
   const [horaFinTodos, setHoraFinTodos] = useState('20:00');
 
-  // Aplicar a todos - FUNCIÓN ESTABLE
-  const aplicarATodos = React.useCallback(() => {
-    console.log('🔧 Aplicando horarios:', { horaInicioTodos, horaFinTodos });
-    
-    setDias(prevDias => {
-      const nuevosHorarios = prevDias.map(d => 
-        d.trabaja ? { ...d, inicio: horaInicioTodos, fin: horaFinTodos } : d
-      );
-      return nuevosHorarios;
-    });
-    
-    toast({
-      title: "Horarios aplicados",
-      description: `Horario ${horaInicioTodos}-${horaFinTodos} aplicado a todos los días de trabajo`,
-    });
-  }, [horaInicioTodos, horaFinTodos, toast]);
+  // Función eliminada - ahora está inline en el botón
 
   // Calcular nomenclatura
   const calcularNomenclatura = useCallback(() => {
@@ -344,7 +329,19 @@ export default function WizardSeriesTurnosV2({ isOpen, onClose, onSave }: Wizard
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={aplicarATodos}
+                        onClick={() => {
+                          console.log('🔧 Click botón aplicar');
+                          setDias(prevDias => {
+                            console.log('🔧 Aplicando horarios:', { horaInicioTodos, horaFinTodos });
+                            return prevDias.map(d => 
+                              d.trabaja ? { ...d, inicio: horaInicioTodos, fin: horaFinTodos } : d
+                            );
+                          });
+                          toast({
+                            title: "Horarios aplicados",
+                            description: `Horario ${horaInicioTodos}-${horaFinTodos} aplicado`,
+                          });
+                        }}
                         className="w-full sm:w-auto border-blue-500 text-blue-300 hover:bg-blue-800/20"
                       >
                         ⚡ Aplicar
