@@ -66,17 +66,25 @@ export default function WizardSeriesTurnosV2({ isOpen, onClose, onSave }: Wizard
     ));
   }, []);
 
-  // Aplicar a todos - FUNCIÓN SIMPLE
-  const aplicarATodos = useCallback((inicio: string, fin: string) => {
-    console.log('🔧 Aplicando horarios:', { inicio, fin });
-    setDias(prev => prev.map(d => 
-      d.trabaja ? { ...d, inicio, fin } : d
-    ));
+  // Estados para aplicar a todos
+  const [horaInicioTodos, setHoraInicioTodos] = useState('08:00');
+  const [horaFinTodos, setHoraFinTodos] = useState('20:00');
+
+  // Aplicar a todos - FUNCIÓN SÚPER SIMPLE
+  const aplicarATodos = () => {
+    console.log('🔧 Aplicando horarios:', { horaInicioTodos, horaFinTodos });
+    
+    const nuevosHorarios = dias.map(d => 
+      d.trabaja ? { ...d, inicio: horaInicioTodos, fin: horaFinTodos } : d
+    );
+    
+    setDias(nuevosHorarios);
+    
     toast({
       title: "Horarios aplicados",
-      description: `Horario ${inicio}-${fin} aplicado a todos los días de trabajo`,
+      description: `Horario ${horaInicioTodos}-${horaFinTodos} aplicado a todos los días de trabajo`,
     });
-  }, [toast]);
+  };
 
   // Calcular nomenclatura
   const calcularNomenclatura = useCallback(() => {
@@ -303,7 +311,38 @@ export default function WizardSeriesTurnosV2({ isOpen, onClose, onSave }: Wizard
                       ⚡ Aplicar el mismo horario a todos los días
                     </div>
                     <div className="flex flex-col sm:flex-row items-center gap-3">
-                      <AplicarTodos onAplicar={aplicarATodos} />
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <span className="text-sm text-gray-300">De:</span>
+                        <select 
+                          value={horaInicioTodos}
+                          onChange={(e) => setHoraInicioTodos(e.target.value)}
+                          className="flex-1 sm:w-20 px-2 py-2 bg-gray-800 border border-gray-600 rounded-md text-sm text-white"
+                        >
+                          {Array.from({length: 24}, (_, i) => {
+                            const hora = i.toString().padStart(2, '0') + ':00';
+                            return <option key={hora} value={hora}>{hora}</option>;
+                          })}
+                        </select>
+                        <span className="text-sm text-gray-300">a:</span>
+                        <select 
+                          value={horaFinTodos}
+                          onChange={(e) => setHoraFinTodos(e.target.value)}
+                          className="flex-1 sm:w-20 px-2 py-2 bg-gray-800 border border-gray-600 rounded-md text-sm text-white"
+                        >
+                          {Array.from({length: 24}, (_, i) => {
+                            const hora = i.toString().padStart(2, '0') + ':00';
+                            return <option key={hora} value={hora}>{hora}</option>;
+                          })}
+                        </select>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={aplicarATodos}
+                        className="w-full sm:w-auto border-blue-500 text-blue-300 hover:bg-blue-800/20"
+                      >
+                        ⚡ Aplicar
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -377,52 +416,5 @@ export default function WizardSeriesTurnosV2({ isOpen, onClose, onSave }: Wizard
         </div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-// Componente separado para aplicar a todos
-function AplicarTodos({ onAplicar }: { onAplicar: (inicio: string, fin: string) => void }) {
-  const [inicio, setInicio] = useState('08:00');
-  const [fin, setFin] = useState('20:00');
-
-  const handleAplicar = () => {
-    onAplicar(inicio, fin);
-  };
-
-  return (
-    <>
-      <div className="flex items-center gap-2 w-full sm:w-auto">
-        <span className="text-sm text-gray-300">De:</span>
-        <select 
-          value={inicio}
-          onChange={(e) => setInicio(e.target.value)}
-          className="flex-1 sm:w-20 px-2 py-2 bg-gray-800 border border-gray-600 rounded-md text-sm text-white"
-        >
-          {Array.from({length: 24}, (_, i) => {
-            const hora = i.toString().padStart(2, '0') + ':00';
-            return <option key={hora} value={hora}>{hora}</option>;
-          })}
-        </select>
-        <span className="text-sm text-gray-300">a:</span>
-        <select 
-          value={fin}
-          onChange={(e) => setFin(e.target.value)}
-          className="flex-1 sm:w-20 px-2 py-2 bg-gray-800 border border-gray-600 rounded-md text-sm text-white"
-        >
-          {Array.from({length: 24}, (_, i) => {
-            const hora = i.toString().padStart(2, '0') + ':00';
-            return <option key={hora} value={hora}>{hora}</option>;
-          })}
-        </select>
-      </div>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleAplicar}
-        className="w-full sm:w-auto border-blue-500 text-blue-300 hover:bg-blue-800/20"
-      >
-        ⚡ Aplicar
-      </Button>
-    </>
   );
 }

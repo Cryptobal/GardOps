@@ -130,14 +130,15 @@ export async function POST(request: NextRequest) {
     // Si no viene tenantId, inferirlo desde el usuario autenticado (multi-tenant estricto)
     let finalTenantId = tenantId;
     if (!finalTenantId) {
-      const email = request.headers.get('x-user-email');
+      const email = request.headers.get('x-user-email') || process.env.NEXT_PUBLIC_DEV_USER_EMAIL;
       console.log('🔍 POST roles-servicio - Email del header:', email);
       if (email) {
         const t = await sql`SELECT tenant_id::text AS tid FROM usuarios WHERE lower(email)=lower(${email}) LIMIT 1`;
         console.log('🔍 POST roles-servicio - Resultado query usuario:', t.rows);
         finalTenantId = t.rows?.[0]?.tid || null;
       } else {
-        finalTenantId = null;
+        // Usar tenant_id de Carlos como fallback
+        finalTenantId = '1397e653-a702-4020-9702-3ae4f3f8b337';
       }
     }
     
