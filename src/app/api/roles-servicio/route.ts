@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
       
       // Calcular días de trabajo y descanso desde las series
       calculated_dias_trabajo = diasTrabajo.length;
-      calculated_dias_descanso = (duracion_ciclo || body.duracion_ciclo_dias || 7) - calculated_dias_trabajo;
+      calculated_dias_descanso = (duracion_ciclo || 7) - calculated_dias_trabajo;
       
       // Usar nombre proporcionado o calcular
       if (!nombreCalculado) {
@@ -310,9 +310,9 @@ export async function POST(request: NextRequest) {
       esHorariosVariables ? '00:00' : (hora_inicio || '08:00'),
       esHorariosVariables ? '00:00' : (hora_termino || '20:00'),
       estado,
-      finalTenantId === '1' ? null : finalTenantId,
+      finalTenantId,
       esHorariosVariables,
-      duracion_ciclo || body.duracion_ciclo_dias || (calculated_dias_trabajo + calculated_dias_descanso), // duracion_ciclo_dias
+      duracion_ciclo || (calculated_dias_trabajo + calculated_dias_descanso), // duracion_ciclo_dias
       horas_turno // horas_turno_promedio (se actualizará con trigger si hay series)
     ]);
 
@@ -333,7 +333,7 @@ export async function POST(request: NextRequest) {
           dia.hora_inicio || null,
           dia.hora_termino || null,
           dia.observaciones || null,
-          finalTenantId === '1' ? null : finalTenantId
+          finalTenantId
         ]);
       }
     }

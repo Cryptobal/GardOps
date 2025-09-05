@@ -160,6 +160,12 @@ export default function WizardSeriesTurnos({
       
       console.log('🚀 Enviando datos:', rolData);
       
+      console.log('🚀 Llamando onSave con:', rolData);
+      
+      if (typeof onSave !== 'function') {
+        throw new Error('onSave no es una función');
+      }
+      
       await onSave(rolData);
       
       toast({
