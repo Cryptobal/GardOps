@@ -45,7 +45,6 @@ export default function WizardSeriesTurnos({
   const [loading, setLoading] = useState(false);
   const [duracion, setDuracion] = useState(7);
   const [dias, setDias] = useState<DiaSimple[]>([]);
-  const [rolCreado, setRolCreado] = useState<any>(null);
 
   // Debug
   console.log('🔍 WIZARD SERIES - Estado:', { paso, duracion, dias: dias.length });
@@ -145,16 +144,13 @@ export default function WizardSeriesTurnos({
       
       await onSave(rolData);
       
-      setRolCreado(rolData);
-      
       toast({
-        title: "¡Rol creado!",
-        description: `"${nomenclatura}" creado exitosamente`,
+        title: "¡Rol creado exitosamente!",
+        description: `"${nomenclatura}" creado correctamente`,
       });
       
-      // IR AL PASO 4
-      console.log('🔄 YENDO AL PASO 4...');
-      setPaso(4);
+      // Cerrar wizard después de crear
+      handleCerrar();
       
     } catch (error) {
       console.error('❌ ERROR:', error);
@@ -168,69 +164,22 @@ export default function WizardSeriesTurnos({
     }
   };
 
-  const handleCrearComplementario = async () => {
-    try {
-      setLoading(true);
-      console.log('🌙 CREANDO COMPLEMENTARIO...');
-      
-      if (!rolCreado) return;
-      
-      const diasTrabajo = dias.filter(d => d.trabaja);
-      const diasDescanso = duracion - diasTrabajo.length;
-      
-      // Determinar tipo opuesto
-      const primerDia = diasTrabajo[0];
-      const hora = parseInt(primerDia.inicio.split(':')[0]);
-      const esDiurno = hora >= 6 && hora < 18;
-      
-      const tipoOpuesto = esDiurno ? 'N' : 'D';
-      const inicioOpuesto = esDiurno ? '20:00' : '08:00';
-      const finOpuesto = esDiurno ? '08:00' : '20:00';
-      
-      const nomenclaturaOpuesta = `${tipoOpuesto} ${diasTrabajo.length}x${diasDescanso}x12 ${inicioOpuesto} ${finOpuesto}`;
-      
-      const rolOpuesto = {
-        nombre: nomenclaturaOpuesta,
-        descripcion: `Rol complementario ${nomenclaturaOpuesta}`,
-        activo: true,
-        tipo: 'series',
-        duracion_ciclo: duracion,
-        dias_serie: dias.map(d => ({
-          posicion: d.dia,
-          trabaja: d.trabaja,
-          hora_inicio: d.trabaja ? inicioOpuesto : null,
-          hora_termino: d.trabaja ? finOpuesto : null
-        }))
-      };
-      
-      console.log('🚀 Creando opuesto:', rolOpuesto);
-      
-      await onSave(rolOpuesto);
-      
-      toast({
-        title: "¡Complementario creado!",
-        description: `"${nomenclaturaOpuesta}" creado exitosamente`,
-      });
-      
-      handleCerrar();
-      
-    } catch (error) {
-      console.error('❌ ERROR COMPLEMENTARIO:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo crear el rol complementario",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
+  // Función para aplicar horario a todos los días de trabajo
+  const aplicarATodos = (inicio: string, fin: string) => {
+    setDias(prev => prev.map(d => 
+      d.trabaja ? { ...d, inicio, fin } : d
+    ));
+    
+    toast({
+      title: "Horarios aplicados",
+      description: `Horario ${inicio}-${fin} aplicado a todos los días de trabajo`,
+    });
   };
 
   const handleCerrar = () => {
     setPaso(1);
     setDuracion(7);
     setDias([]);
-    setRolCreado(null);
     onClose();
   };
 
@@ -250,9 +199,9 @@ export default function WizardSeriesTurnos({
           {/* Indicador simple */}
           <div className="flex justify-center gap-2 mt-4">
             <div className="text-xs text-blue-600 mb-2 w-full text-center">
-              🔍 DEBUG: Paso {paso} de 4 | Días trabajo: {diasTrabajo}
+              🔍 Paso {paso} de 3 | Días trabajo: {diasTrabajo}
             </div>
-            {[1, 2, 3, 4].map((num) => (
+            {[1, 2, 3].map((num) => (
               <div
                 key={num}
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
@@ -358,7 +307,45 @@ export default function WizardSeriesTurnos({
             <div className="space-y-6">
               <div className="text-center">
                 <h3 className="text-2xl font-semibold">¿Qué horario cada día?</h3>
+                <p className="text-gray-600">Configura los horarios de trabajo</p>
               </div>
+
+              {/* Botón para aplicar a todos */}
+              <Card className="bg-yellow-50 border-yellow-200 max-w-2xl mx-auto">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="text-sm font-medium text-yellow-800">
+                      ⚡ Aplicar el mismo horario a todos los días:
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="time"
+                        defaultValue="08:00"
+                        className="w-32"
+                        id="inicio-todos"
+                      />
+                      <span>a</span>
+                      <Input
+                        type="time"
+                        defaultValue="20:00"
+                        className="w-32"
+                        id="fin-todos"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const inicioInput = document.getElementById('inicio-todos') as HTMLInputElement;
+                          const finInput = document.getElementById('fin-todos') as HTMLInputElement;
+                          aplicarATodos(inicioInput.value, finInput.value);
+                        }}
+                      >
+                        Aplicar
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
               
               <div className="space-y-3 max-w-2xl mx-auto">
                 {dias.filter(d => d.trabaja).map((dia) => (
@@ -408,80 +395,6 @@ export default function WizardSeriesTurnos({
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   {loading ? 'Creando...' : 'Crear Rol'}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* PASO 4: ¡EL PASO QUE QUERÍAS! */}
-          {paso === 4 && (
-            <div className="space-y-6">
-              {/* Banner de confirmación */}
-              <div className="bg-green-100 border border-green-300 rounded-lg p-4 text-center">
-                <div className="text-green-800 font-bold text-xl">🎉 ¡ROL CREADO EXITOSAMENTE!</div>
-                <div className="text-green-600">Paso 4 de 4 - ¿Crear rol complementario?</div>
-              </div>
-              
-              <div className="text-center">
-                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  {(() => {
-                    const primerDia = dias.find(d => d.trabaja);
-                    const hora = primerDia ? parseInt(primerDia.inicio.split(':')[0]) : 8;
-                    const esDiurno = hora >= 6 && hora < 18;
-                    return esDiurno ? <Moon className="h-8 w-8 text-purple-600" /> : <Sun className="h-8 w-8 text-purple-600" />;
-                  })()}
-                </div>
-                
-                <h3 className="text-2xl font-semibold mb-2">¿Crear rol complementario?</h3>
-                <p className="text-gray-600 mb-4">
-                  {(() => {
-                    const primerDia = dias.find(d => d.trabaja);
-                    const hora = primerDia ? parseInt(primerDia.inicio.split(':')[0]) : 8;
-                    const esDiurno = hora >= 6 && hora < 18;
-                    return esDiurno 
-                      ? '¿Quieres crear también el turno nocturno (20:00-08:00)?'
-                      : '¿Quieres crear también el turno diurno (08:00-20:00)?';
-                  })()}
-                </p>
-              </div>
-
-              <Card className="max-w-md mx-auto">
-                <CardContent className="p-6 text-center">
-                  <h4 className="font-medium text-purple-800 mb-4">Vista previa:</h4>
-                  <div className="text-sm text-purple-600 font-mono">
-                    {(() => {
-                      const primerDia = dias.find(d => d.trabaja);
-                      const hora = primerDia ? parseInt(primerDia.inicio.split(':')[0]) : 8;
-                      const esDiurno = hora >= 6 && hora < 18;
-                      const diasTrabajo = dias.filter(d => d.trabaja).length;
-                      const diasDescanso = duracion - diasTrabajo;
-                      const tipo = esDiurno ? 'N' : 'D';
-                      const horarios = esDiurno ? '20:00 08:00' : '08:00 20:00';
-                      return `"${tipo} ${diasTrabajo}x${diasDescanso}x12 ${horarios}"`;
-                    })()}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="flex justify-center gap-4">
-                <Button 
-                  variant="outline" 
-                  onClick={handleCerrar}
-                >
-                  No, gracias
-                </Button>
-                <Button 
-                  onClick={handleCrearComplementario}
-                  disabled={loading}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  {(() => {
-                    const primerDia = dias.find(d => d.trabaja);
-                    const hora = primerDia ? parseInt(primerDia.inicio.split(':')[0]) : 8;
-                    const esDiurno = hora >= 6 && hora < 18;
-                    if (loading) return 'Creando...';
-                    return esDiurno ? '🌙 Sí, crear nocturno' : '☀️ Sí, crear diurno';
-                  })()}
                 </Button>
               </div>
             </div>

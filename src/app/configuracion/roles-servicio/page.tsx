@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Save, X, Download, Eye, EyeOff, AlertCircle, ChevronDown, ChevronUp, Moon, Calendar } from 'lucide-react';
+import { Plus, Edit, Save, X, Download, Eye, EyeOff, AlertCircle, ChevronDown, ChevronUp, Moon, Sun, Calendar } from 'lucide-react';
 import { 
   getRolesServicio, 
   crearRolServicio, 
@@ -21,6 +21,7 @@ import {
 import { RolServicio, CrearRolServicioData } from '@/lib/schemas/roles-servicio';
 import { calcularNomenclaturaRol } from '@/lib/utils/calcularNomenclaturaRol';
 import { ordenarRolesPorPatron, extraerPatronesUnicos, filtrarRolesPorPatron, extraerPatronTurno, tieneParNoche, crearDatosTurnoNoche } from '@/lib/utils/ordenarRolesPorPatron';
+import { analizarTodosLosRoles, crearDatosReplicacion } from '@/lib/utils/detectar-similes-roles';
 import WizardSeriesTurnos from '@/components/roles-servicio/WizardSeriesTurnos';
 import {
   AlertDialog,
@@ -204,6 +205,26 @@ export default function RolesServicioPage() {
     } catch (err: any) {
       error(err.message || 'Error al crear rol de servicio');
       throw err; // Re-throw para que el wizard maneje el error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReplicarRol = async (rol: RolServicio, tipoSimil: 'diurno' | 'nocturno') => {
+    try {
+      setLoading(true);
+      console.log(`🔄 Replicando rol ${rol.nombre} a ${tipoSimil}...`);
+      
+      const datosReplicacion = crearDatosReplicacion(rol);
+      
+      await crearRolServicio(datosReplicacion);
+      
+      success(`Rol ${tipoSimil} creado exitosamente`, 'Replicación Completada');
+      
+      cargarRoles();
+      cargarStats();
+    } catch (err: any) {
+      error(err.message || `Error al crear rol ${tipoSimil}`, 'Error de Replicación');
     } finally {
       setLoading(false);
     }
@@ -633,18 +654,30 @@ export default function RolesServicioPage() {
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
-                            {/* Temporalmente deshabilitado para debugging */}
-                            {/* {!tieneParNoche(rol, roles) && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => crearTurnoNoche(rol)}
-                                title="Crear turno de noche"
-                                className="text-blue-600 hover:text-blue-700"
-                              >
-                                <Moon className="w-4 h-4" />
-                              </Button>
-                            )} */}
+                            {/* Botón de replicación inteligente */}
+                            {(() => {
+                              const analisis = analizarTodosLosRoles(roles);
+                              const rolAnalizado = analisis.find(r => r.rol.id === rol.id);
+                              
+                              if (rolAnalizado && !rolAnalizado.tieneSimil && rolAnalizado.tipoSimil) {
+                                return (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleReplicarRol(rol, rolAnalizado.tipoSimil!)}
+                                    title={`Crear turno ${rolAnalizado.tipoSimil}`}
+                                    className="text-purple-600 hover:text-purple-700"
+                                  >
+                                    {rolAnalizado.tipoSimil === 'nocturno' ? (
+                                      <Moon className="w-4 h-4" />
+                                    ) : (
+                                      <Sun className="w-4 h-4" />
+                                    )}
+                                  </Button>
+                                );
+                              }
+                              return null;
+                            })()}
                             <Button
                               size="sm"
                               variant="destructive"
