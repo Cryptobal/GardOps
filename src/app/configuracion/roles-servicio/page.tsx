@@ -39,6 +39,7 @@ import {
 export default function RolesServicioPage() {
   const { success, error } = useToast();
   const [roles, setRoles] = useState<RolServicio[]>([]);
+  const [seriesPorRol, setSeriesPorRol] = useState<Map<string, any[]>>(new Map());
   const [loading, setLoading] = useState(true);
   // Edición eliminada - roles no se pueden editar
   const [creando, setCreando] = useState(false);
@@ -98,14 +99,45 @@ export default function RolesServicioPage() {
       console.log('🔄 Cargando roles de servicio...');
       const rolesData = await getRolesServicio();
       console.log('✅ Roles cargados:', rolesData.length, 'roles');
-      console.log('📋 IDs de roles:', rolesData.map(r => ({ id: r.id, nombre: r.nombre })));
-      setRoles(rolesData);
+      
+      const rolesOrdenados = ordenarRolesPorPatron(rolesData);
+      setRoles(rolesOrdenados);
+      
+      // Cargar series de días para roles con horarios variables
+      await cargarSeriesDias(rolesOrdenados);
+      
     } catch (err) {
       console.error('❌ Error cargando roles:', err);
       error('No se pudieron cargar los roles de servicio', 'Error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const cargarSeriesDias = async (roles: RolServicio[]) => {
+    const nuevasSeriesPorRol = new Map<string, any[]>();
+    
+    for (const rol of roles) {
+      if (rol.tiene_horarios_variables) {
+        try {
+          console.log(`🔄 Cargando series para rol ${rol.nombre}...`);
+          const response = await fetch(`/api/roles-servicio/${rol.id}/series`);
+          
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.data.series_dias) {
+              nuevasSeriesPorRol.set(rol.id, result.data.series_dias);
+              console.log(`✅ Series cargadas para ${rol.nombre}:`, result.data.series_dias.length);
+            }
+          }
+        } catch (error) {
+          console.error(`Error cargando series para rol ${rol.id}:`, error);
+        }
+      }
+    }
+    
+    setSeriesPorRol(nuevasSeriesPorRol);
+    console.log('✅ Series cargadas para', nuevasSeriesPorRol.size, 'roles');
   };
 
   const cargarStats = async () => {
@@ -505,18 +537,36 @@ export default function RolesServicioPage() {
                     <TableCell>
                         <div className="text-sm">
                           {(() => {
-                            const infoJornada = obtenerInfoJornada(rol);
+                            // Obtener series específicas de este rol
+                            const seriesDelRol = seriesPorRol.get(rol.id) || [];
+                            const infoJornada = obtenerInfoJornada(rol, seriesDelRol);
                             
                             if (infoJornada.resumenHorario.esVariable) {
+                              // Generar contenido específico con horarios reales
+                              const contenidoEspecifico = seriesDelRol.length > 0 ? 
+                                seriesDelRol
+                                  .filter(s => s.es_dia_trabajo)
+                                  .map(s => {
+                                    const nombreDia = s.posicion_en_ciclo === 1 ? 'Lunes' :
+                                                     s.posicion_en_ciclo === 2 ? 'Martes' :
+                                                     s.posicion_en_ciclo === 3 ? 'Miércoles' :
+                                                     s.posicion_en_ciclo === 4 ? 'Jueves' :
+                                                     s.posicion_en_ciclo === 5 ? 'Viernes' :
+                                                     s.posicion_en_ciclo === 6 ? 'Sábado' :
+                                                     s.posicion_en_ciclo === 7 ? 'Domingo' :
+                                                     `Día ${s.posicion_en_ciclo}`;
+                                    return `${nombreDia}: ${s.hora_inicio?.slice(0,5)} - ${s.hora_termino?.slice(0,5)}`;
+                                  }) :
+                                [
+                                  'Este rol tiene horarios personalizados',
+                                  'Cada día del ciclo puede ser diferente',
+                                  `Promedio: ${rol.horas_turno}h por día de trabajo`
+                                ];
+                              
                               return (
                                 <TooltipSimple
                                   titulo="Horarios Variables"
-                                  contenido={[
-                                    'Este rol tiene horarios personalizados por día',
-                                    'Cada día del ciclo puede tener horarios diferentes',
-                                    'Configurado individualmente en el wizard',
-                                    `Promedio: ${rol.horas_turno}h por día de trabajo`
-                                  ]}
+                                  contenido={contenidoEspecifico}
                                   esVariable={true}
                                 >
                                   <span className="flex items-center gap-1">
@@ -540,7 +590,8 @@ export default function RolesServicioPage() {
                     {/* Nueva columna: Horas Semanales */}
                     <TableCell>
                       {(() => {
-                        const infoJornada = obtenerInfoJornada(rol);
+                        const seriesDelRol = seriesPorRol.get(rol.id) || [];
+                        const infoJornada = obtenerInfoJornada(rol, seriesDelRol);
                         return (
                           <div className="text-sm">
                             <div className="font-medium">{infoJornada.horasSemanales}h</div>
@@ -557,7 +608,8 @@ export default function RolesServicioPage() {
                     {/* Nueva columna: Tipo de Jornada */}
                     <TableCell>
                       {(() => {
-                        const infoJornada = obtenerInfoJornada(rol);
+                        const seriesDelRol = seriesPorRol.get(rol.id) || [];
+                        const infoJornada = obtenerInfoJornada(rol, seriesDelRol);
                         return (
                           <Badge 
                             variant={
