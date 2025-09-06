@@ -305,6 +305,12 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
 
   // Función para abrir modal de selección de guardias
   const openGuardiaModal = useCallback((row: PautaRow) => {
+    console.log('🔍 openGuardiaModal llamado con:', {
+      pauta_id: row.pauta_id,
+      instalacion_nombre: row.instalacion_nombre,
+      rol_nombre: row.rol_nombre,
+      guardia_trabajo_id: row.guardia_trabajo_id
+    });
     setCurrentRowForModal(row);
     setShowGuardiaModal(true);
     // Cargar guardias disponibles
@@ -319,6 +325,10 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
 
   // Función para manejar selección de guardia desde el modal
   const handleGuardiaSelected = useCallback((guardiaId: string) => {
+    console.log('🔍 handleGuardiaSelected llamado con:', {
+      guardiaId,
+      currentRowForModal: currentRowForModal?.pauta_id
+    });
     if (currentRowForModal) {
       setRowPanelData(prev => ({
         ...prev,
@@ -1724,18 +1734,26 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
 
         {/* Modal de selección de guardias */}
         {currentRowForModal && (
-          <GuardiaSearchModal
-            isOpen={showGuardiaModal}
-            onClose={closeGuardiaModal}
-            onSelectGuardia={handleGuardiaSelected}
-            guardias={currentRowForModal ? (rowPanelData[currentRowForModal.pauta_id]?.guardias || []) : []}
-            loading={currentRowForModal ? (rowPanelData[currentRowForModal.pauta_id]?.loadingGuardias || false) : false}
-            title="Seleccionar Guardia"
-            mode="pauta-diaria"
-            fecha={toDisplay(fecha)}
-            rolNombre={currentRowForModal.rol_nombre}
-            instalacionNombrePauta={currentRowForModal.instalacion_nombre}
-          />
+          <>
+            {console.log('🔍 Renderizando GuardiaSearchModal:', {
+              isOpen: showGuardiaModal,
+              currentRowForModal: currentRowForModal.pauta_id,
+              guardias: rowPanelData[currentRowForModal.pauta_id]?.guardias?.length || 0,
+              loading: rowPanelData[currentRowForModal.pauta_id]?.loadingGuardias || false
+            })}
+            <GuardiaSearchModal
+              isOpen={showGuardiaModal}
+              onClose={closeGuardiaModal}
+              onSelectGuardia={handleGuardiaSelected}
+              guardias={currentRowForModal ? (rowPanelData[currentRowForModal.pauta_id]?.guardias || []) : []}
+              loading={currentRowForModal ? (rowPanelData[currentRowForModal.pauta_id]?.loadingGuardias || false) : false}
+              title="Seleccionar Guardia"
+              mode="pauta-diaria"
+              fecha={toDisplay(fecha)}
+              rolNombre={currentRowForModal.rol_nombre}
+              instalacionNombrePauta={currentRowForModal.instalacion_nombre}
+            />
+          </>
         )}
       </>
     </TooltipProvider>
