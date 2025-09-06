@@ -68,7 +68,7 @@ export function useSystemConfig() {
   }, []);
 
   // Funciones de formateo usando la configuración
-  const formatTime = (date: Date | string, includeSeconds = false): string => {
+  const formatTime = (date: Date | string, includeSeconds = false, applyTimezone = false): string => {
     const dateObj = date instanceof Date ? date : new Date(date);
     
     if (isNaN(dateObj.getTime())) {
@@ -79,9 +79,13 @@ export function useSystemConfig() {
       hour: '2-digit',
       minute: '2-digit',
       ...(includeSeconds && { second: '2-digit' }),
-      hour12: config.formato_hora === '12h',
-      timeZone: config.zona_horaria
+      hour12: config.formato_hora === '12h'
     };
+
+    // Solo aplicar zona horaria si se solicita explícitamente
+    if (applyTimezone) {
+      options.timeZone = config.zona_horaria;
+    }
 
     return dateObj.toLocaleTimeString(config.idioma, options);
   };

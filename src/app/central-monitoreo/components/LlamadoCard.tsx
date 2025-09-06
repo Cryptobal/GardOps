@@ -117,7 +117,7 @@ export function LlamadoCard({ llamado, onRegistrar, onWhatsApp, onObservacionesU
   
   const formatearHora = (fecha: string) => {
     // La fecha viene de la base de datos como '2025-09-06 19:00:00'
-    // Extraer solo la hora para evitar problemas de zona horaria
+    // NO aplicar conversión de zona horaria ya que la BD ya devuelve la hora correcta
     const fechaObj = new Date(fecha);
     
     // Si la fecha es inválida, intentar parsear manualmente
@@ -126,10 +126,10 @@ export function LlamadoCard({ llamado, onRegistrar, onWhatsApp, onObservacionesU
       const [anio, mes, dia] = fechaPart.split('-');
       const [hora, minuto] = horaPart.split(':');
       const fechaCorrecta = new Date(parseInt(anio), parseInt(mes) - 1, parseInt(dia), parseInt(hora), parseInt(minuto));
-      return formatTime(fechaCorrecta);
+      return formatTime(fechaCorrecta, false, false); // NO aplicar zona horaria
     }
     
-    return formatTime(fechaObj);
+    return formatTime(fechaObj, false, false); // NO aplicar zona horaria
   };
   
   const generarMensajeWhatsApp = () => {
