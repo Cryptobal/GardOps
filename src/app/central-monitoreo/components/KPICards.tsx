@@ -8,6 +8,7 @@ interface KPICardsProps {
   urgentes: number;
   actuales: number;
   proximos: number;
+  no_realizados: number;
   completados: number;
   total: number;
   filtroActivo: string;
@@ -18,6 +19,7 @@ export function KPICards({
   urgentes, 
   actuales, 
   proximos, 
+  no_realizados,
   completados, 
   total, 
   filtroActivo,
@@ -55,9 +57,9 @@ export function KPICards({
       description: 'Exitosos'
     },
     {
-      tipo: 'urgentes',
+      tipo: 'no_realizados',
       label: '🔴 No Realizados',
-      value: urgentes,
+      value: no_realizados,
       icon: AlertCircle,
       color: 'text-red-600',
       bgColor: 'bg-red-100 dark:bg-red-900/20',

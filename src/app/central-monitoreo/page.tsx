@@ -73,6 +73,7 @@ export default function CentralMonitoreoPage() {
     total: 0,
     actuales: 0,
     proximos: 0,
+    no_realizados: 0,
     urgentes: 0,
     completados: 0
   });
@@ -112,6 +113,7 @@ export default function CentralMonitoreoPage() {
           total: dataKPIs.data.kpis.total || 0,
           actuales: dataKPIs.data.kpis.actuales || 0,
           proximos: dataKPIs.data.kpis.proximos || 0,
+          no_realizados: dataKPIs.data.kpis.no_realizados || 0,
           urgentes: dataKPIs.data.kpis.urgentes || 0,
           completados: dataKPIs.data.kpis.exitosos || 0
         });

@@ -12,28 +12,40 @@ export async function GET(request: NextRequest) {
     const tz = searchParams.get('tz') || 'America/Santiago';
     const fechaActual = new Date().toISOString().split('T')[0];
 
-    // Obtener KPIs del día desde la vista automática con lógica corregida
+    // Obtener KPIs con lógica corregida (sin conversiones de zona horaria)
     const result = await sql.query(`
       SELECT 
-        COUNT(*) as total_llamados,
-        -- Actuales: solo si es el día actual y en la hora actual
+        -- Total: solo llamados del día seleccionado
+        COUNT(CASE WHEN DATE(programado_para) = $1 THEN 1 END) as total_llamados,
+        
+        -- Actuales: solo si es el día actual Y en la hora actual
         COUNT(CASE 
-          WHEN DATE(((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}')) = $1
-           AND date_trunc('hour', ((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}')) = date_trunc('hour', (now() AT TIME ZONE '${tz}'))
+          WHEN DATE(programado_para) = CURRENT_DATE
+           AND date_trunc('hour', programado_para) = date_trunc('hour', now())
           THEN 1 
         END) as actuales,
-        -- Próximos: futuros del día actual + todos los de días futuros
+        
+        -- Próximos: futuros del día seleccionado
         COUNT(CASE 
-          WHEN (DATE(((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}')) = $1 AND ((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}') > (now() AT TIME ZONE '${tz}'))
-           OR DATE(((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}')) > $1
+          WHEN DATE(programado_para) = $1 
+           AND programado_para > now()
           THEN 1 
         END) as proximos,
-        -- Urgentes: solo del día actual que ya pasaron >30 min
+        
+        -- No Realizados: llamados pasados sin completar (incluyendo días anteriores)
         COUNT(CASE 
-          WHEN DATE(((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}')) = $1
-           AND ((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}') < (now() AT TIME ZONE '${tz}') - interval '30 minutes'
+          WHEN programado_para < now()
+           AND (estado_llamado IS NULL OR estado_llamado = 'pendiente')
+          THEN 1 
+        END) as no_realizados,
+        
+        -- Urgentes: pasados >30 min sin completar
+        COUNT(CASE 
+          WHEN programado_para < now() - interval '30 minutes'
+           AND (estado_llamado IS NULL OR estado_llamado = 'pendiente')
           THEN 1 
         END) as urgentes,
+        
         COUNT(CASE WHEN estado_llamado = 'exitoso' THEN 1 END) as exitosos,
         COUNT(CASE WHEN estado_llamado = 'no_contesta' THEN 1 END) as no_contesta,
         COUNT(CASE WHEN estado_llamado = 'ocupado' THEN 1 END) as ocupado,
@@ -44,7 +56,6 @@ export async function GET(request: NextRequest) {
           (COUNT(CASE WHEN estado_llamado = 'exitoso' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0)), 2
         ) as tasa_exito
       FROM central_v_llamados_automaticos
-      WHERE DATE(((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}')) = $1
     `, [fecha]);
 
     const kpis = result.rows[0];
@@ -90,6 +101,7 @@ export async function GET(request: NextRequest) {
           total: parseInt(kpis.total_llamados) || 0,
           actuales: parseInt(kpis.actuales) || 0,
           proximos: parseInt(kpis.proximos) || 0,
+          no_realizados: parseInt(kpis.no_realizados) || 0,
           urgentes: parseInt(kpis.urgentes) || 0,
           exitosos: parseInt(kpis.exitosos) || 0,
           no_contesta: parseInt(kpis.no_contesta) || 0,
