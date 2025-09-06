@@ -446,8 +446,13 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   }
 
   async function onCubrirPPC(row: PautaRow) {
+    console.log('🔄 onCubrirPPC ejecutado:', row.pauta_id);
     const panelData = rowPanelData[row.pauta_id];
-    if (!panelData?.guardiaReemplazo) return;
+    if (!panelData?.guardiaReemplazo) {
+      console.log('❌ No hay guardiaReemplazo:', panelData);
+      return;
+    }
+    console.log('✅ Guardia para asignar:', panelData.guardiaReemplazo);
 
     // Validar que el guardia de cobertura no esté asignado a otro turno
     try {
@@ -893,12 +898,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                     <Button 
                       size="sm"
                       onClick={() => {
-                        console.log('🖱️ CONFIRMAR PPC CLICKED - Estado actual:', {
-                          row,
-                          panelData,
-                          guardiaReemplazo: panelData.guardiaReemplazo,
-                          rowPanelData: rowPanelData[row.pauta_id]
-                        });
+                        console.log('🖱️ CONFIRMAR PPC CLICKED:', row.pauta_id, panelData.guardiaReemplazo);
                         onCubrirPPC(row);
                       }}
                       disabled={isLoading || !panelData.guardiaReemplazo}
