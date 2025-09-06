@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Satellite, Clock, MessageSquare, Phone, Save, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { getCurrentUser } from '@/lib/auth-client';
+import { useSystemConfig } from '@/hooks/useSystemConfig';
 
 interface MonitoreoConfig {
   habilitado: boolean;
@@ -27,6 +28,7 @@ interface MonitoreoInstalacionProps {
 }
 
 export default function MonitoreoInstalacion({ instalacionId, instalacionNombre }: MonitoreoInstalacionProps) {
+  const { formatTimeRange } = useSystemConfig();
   const [config, setConfig] = useState<MonitoreoConfig>({
     habilitado: false,
     intervalo_minutos: 60,

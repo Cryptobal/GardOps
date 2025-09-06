@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { useSystemConfig } from '@/hooks/useSystemConfig';
 import {
   Dialog,
   DialogContent,
@@ -54,6 +55,7 @@ interface LlamadoCardProps {
 }
 
 export function LlamadoCard({ llamado, onRegistrar, onWhatsApp, onObservacionesUpdate }: LlamadoCardProps) {
+  const { formatTime } = useSystemConfig();
   const [showEditModal, setShowEditModal] = React.useState(false);
   const [observaciones, setObservaciones] = React.useState(llamado.observaciones || '');
   const [isUpdating, setIsUpdating] = React.useState(false);
@@ -114,10 +116,7 @@ export function LlamadoCard({ llamado, onRegistrar, onWhatsApp, onObservacionesU
   };
   
   const formatearHora = (fecha: string) => {
-    return new Date(fecha).toLocaleTimeString('es-CL', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatTime(new Date(fecha));
   };
   
   const generarMensajeWhatsApp = () => {

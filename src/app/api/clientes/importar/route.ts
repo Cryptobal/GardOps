@@ -27,56 +27,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validar tipo de archivo
-    if (!file.name.match(/\.(xlsx|xls)$/i)) {
-      return NextResponse.json(
-        { error: 'Solo se permiten archivos Excel (.xlsx, .xls)' },
-        { status: 400 }
-      );
-    }
-
     // Leer archivo Excel
     const buffer = Buffer.from(await file.arrayBuffer());
     const workbook = XLSX.read(buffer, { type: 'buffer' });
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
     const excelData = XLSX.utils.sheet_to_json(worksheet);
 
-    if (excelData.length === 0) {
-      return NextResponse.json(
-        { error: 'El archivo Excel no contiene datos' },
-        { status: 400 }
-      );
-    }
+    console.log(`📊 Procesando ${excelData.length} filas del archivo Excel`);
 
-    console.log(`📊 Procesando ${excelData.length} filas del Excel...`);
-
-    let actualizados = 0;
     let creados = 0;
+    let actualizados = 0;
     let errores = 0;
     const erroresDetalle: string[] = [];
 
     // Procesar cada fila del Excel
     for (let i = 0; i < excelData.length; i++) {
+      const rowNumber = i + 2; // +2 porque Excel empieza en 1 y la primera fila son headers
       const row = excelData[i] as any;
-      const rowNumber = i + 2; // +2 porque Excel empieza en 1 y tenemos header
-
+      
       try {
-        const clienteId = row['ID']?.toString().trim();
-        let isNewCliente = false;
-
-        // Si no hay ID o está vacío, es un cliente nuevo
-        if (!clienteId) {
-          isNewCliente = true;
-        } else {
-          // Verificar si el cliente existe
-          const clienteExists = await query(
-            'SELECT id FROM clientes WHERE id = $1',
-            [clienteId]
-          );
-          isNewCliente = clienteExists.rows.length === 0;
+        console.log(`🔍 Procesando fila ${rowNumber}...`);
+        
+        // Verificar si ya existe el cliente por RUT
+        let clienteId = null;
+        if (row['RUT Empresa']) {
+          const existingClientQuery = `
+            SELECT id FROM clientes 
+            WHERE rut = $1 AND tenant_id = $2
+          `;
+          const existingClient = await query(existingClientQuery, [row['RUT Empresa'].toString().trim(), tenantId]);
+          if (existingClient.rows.length > 0) {
+            clienteId = existingClient.rows[0].id;
+          }
         }
 
-        if (isNewCliente) {
+        if (!clienteId) {
           // CREAR NUEVO CLIENTE
           console.log(`🆕 Creando nuevo cliente en fila ${rowNumber}...`);
           
@@ -88,7 +74,7 @@ export async function POST(request: NextRequest) {
           const requiredFields = {
             'Nombre': 'nombre',
             'RUT Empresa': 'rut'
-          };
+          };  
 
           // Verificar campos obligatorios
           let hasRequiredFieldErrors = false;
