@@ -114,16 +114,26 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   });
   
   if (rawRows && rawRows.length > 0) {
-    console.log('📊 DATOS DE FILAS RECIBIDAS:', rawRows.map(row => ({
-      pauta_id: row.pauta_id,
-      puesto_nombre: row.puesto_nombre,
-      instalacion_nombre: row.instalacion_nombre,
-      es_ppc: row.es_ppc,
-      estado_ui: row.estado_ui,
-      hora_inicio: row.hora_inicio,
-      guardia_trabajo_nombre: row.guardia_trabajo_nombre,
-      isPpcPlan: row.es_ppc === true && (row.estado_ui === 'plan' || row.estado_ui === 'ppc_libre')
-    })));
+    try {
+      console.log('🔍 INTENTANDO MAPEAR DATOS...');
+      const mappedData = rawRows.map((row, index) => {
+        console.log(`🔍 Procesando fila ${index}:`, row);
+        return {
+          pauta_id: row.pauta_id,
+          puesto_nombre: row.puesto_nombre,
+          instalacion_nombre: row.instalacion_nombre,
+          es_ppc: row.es_ppc,
+          estado_ui: row.estado_ui,
+          hora_inicio: row.hora_inicio,
+          guardia_trabajo_nombre: row.guardia_trabajo_nombre,
+          isPpcPlan: row.es_ppc === true && (row.estado_ui === 'plan' || row.estado_ui === 'ppc_libre')
+        };
+      });
+      console.log('📊 DATOS DE FILAS RECIBIDAS:', mappedData);
+    } catch (error) {
+      console.error('❌ ERROR AL MAPEAR DATOS:', error);
+      console.log('📊 RAW ROWS SIN MAPEAR:', rawRows);
+    }
   } else {
     console.log('❌ NO HAY DATOS DE FILAS:', { rawRows, length: rawRows?.length });
   }
