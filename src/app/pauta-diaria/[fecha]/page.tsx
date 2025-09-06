@@ -786,11 +786,21 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                       <SearchableCombobox
                         value={guardiasOptions.find(g => g.value === puestoEnEdicion?.guardia_original?.id)?.value}
                         onValueChange={(value) => {
+                          console.log('🔄 SearchableCombobox onValueChange:', {
+                            value,
+                            puestoEnEdicion,
+                            guardiaLabel: guardiasOptions.find(g => g.value === value)?.label
+                          });
+                          
                           if (puestoEnEdicion) {
-                            setPuestoEnEdicion({
+                            const updatedPuesto = {
                               ...puestoEnEdicion,
                               guardia_original: value ? { id: value, nombre: guardiasOptions.find(g => g.value === value)?.label || '' } : null
-                            });
+                            };
+                            console.log('✅ Actualizando puestoEnEdicion:', updatedPuesto);
+                            setPuestoEnEdicion(updatedPuesto);
+                          } else {
+                            console.error('❌ ERROR: puestoEnEdicion es null en onValueChange');
                           }
                         }}
                         onSearchChange={setSearchTerm}
@@ -816,9 +826,22 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                       <Button 
                         size="sm" 
                         onClick={() => {
+                          console.log('🖱️ CONFIRMAR CLICKED - Estado actual:', {
+                            puestoEnEdicion,
+                            guardiaId: puestoEnEdicion?.guardia_original?.id,
+                            observaciones
+                          });
+                          
+                          if (!puestoEnEdicion) {
+                            console.error('❌ ERROR: puestoEnEdicion es null');
+                            return;
+                          }
+                          
                           if (puestoEnEdicion?.guardia_original?.id) {
+                            console.log('✅ Asignando PPC con guardia:', puestoEnEdicion.guardia_original.id);
                             actualizarAsistencia(puestoEnEdicion, 'asignar_ppc', puestoEnEdicion.guardia_original.id, undefined, observaciones);
                           } else {
+                            console.log('⚠️ Marcando sin cobertura');
                             actualizarAsistencia(puestoEnEdicion, 'sin_cobertura', undefined, undefined, observaciones);
                           }
                           setOpenPopovers(prev => ({ ...prev, cobertura: null }));
