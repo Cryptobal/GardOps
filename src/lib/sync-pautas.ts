@@ -35,11 +35,11 @@ export async function sincronizarPautasPostAsignacion(
       console.log(`🔍 [SYNC] Registro existente:`, existeRegistro.rows);
       
       if (existeRegistro.rows.length > 0) {
-        // Actualizar registro existente
+        // Actualizar registro existente - usar 'libre' que es válido en la constraint
         const result = await query(`
           UPDATE as_turnos_pauta_mensual 
           SET guardia_id = NULL,
-              estado = 'ppc',
+              estado = 'libre',
               estado_ui = 'ppc',
               updated_at = NOW()
           WHERE puesto_id = $1 AND anio = $2 AND mes = $3 AND dia = $4
@@ -48,11 +48,11 @@ export async function sincronizarPautasPostAsignacion(
         
         console.log(`✅ [SYNC] Registro actualizado:`, result.rows);
       } else {
-        // Crear nuevo registro como PPC
+        // Crear nuevo registro como PPC - usar 'libre' que es válido en la constraint
         const result = await query(`
           INSERT INTO as_turnos_pauta_mensual (
             puesto_id, guardia_id, anio, mes, dia, estado, estado_ui, created_at, updated_at
-          ) VALUES ($1, NULL, $2, $3, $4, 'ppc', 'ppc', NOW(), NOW())
+          ) VALUES ($1, NULL, $2, $3, $4, 'libre', 'ppc', NOW(), NOW())
           RETURNING *
         `, [puestoId, anio, mes, dia]);
         
