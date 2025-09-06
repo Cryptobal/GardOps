@@ -31,8 +31,19 @@ export function calcularHorasSemanales(rol: RolServicio, seriesDias?: any[]): Ca
     horas_turno: rol.horas_turno,
     dias_trabajo: rol.dias_trabajo,
     dias_descanso: rol.dias_descanso,
+    duracion_ciclo_dias: rol.duracion_ciclo_dias,
     seriesDias: seriesDias?.length || 0
   });
+  
+  if (seriesDias && seriesDias.length > 0) {
+    console.log('🔍 Series detalle:', seriesDias.map(s => ({
+      posicion: s.posicion_en_ciclo,
+      trabaja: s.es_dia_trabajo,
+      horas: s.horas_turno,
+      inicio: s.hora_inicio,
+      fin: s.hora_termino
+    })));
+  }
   
   // Si tiene horarios variables, calcular desde las series
   if (rol.tiene_horarios_variables && seriesDias && seriesDias.length > 0) {
