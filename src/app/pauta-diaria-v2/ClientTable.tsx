@@ -458,8 +458,15 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
 
     // Validar que el guardia de cobertura no esté asignado a otro turno
     try {
+      console.log('🔍 Validando guardia:', {
+        guardia_id: panelData.guardiaReemplazo,
+        fecha: row.fecha,
+        pauta_id: row.pauta_id
+      });
       validarGuardiaDisponible(panelData.guardiaReemplazo, row.fecha, row.pauta_id);
+      console.log('✅ Validación exitosa');
     } catch (error: any) {
+      console.log('❌ Error en validación:', error.message);
       addToast({
         title: "❌ Error de validación",
         description: error.message,
