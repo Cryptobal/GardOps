@@ -373,8 +373,6 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       r.pauta_id !== pautaIdExcluir &&
       (r.guardia_trabajo_id === guardiaId || 
        r.guardia_titular_id === guardiaId ||
-       r.cobertura_guardia_nombre || 
-       r.reemplazo_guardia_nombre ||
        r.meta?.cobertura_guardia_id === guardiaId)
     );
     
