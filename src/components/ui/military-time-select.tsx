@@ -53,12 +53,15 @@ export function MilitaryTimeSelect({
     if (!timeValue) return placeholder;
     
     try {
-      const [hour, minute] = timeValue.split(':').map(Number);
+      // Limpiar segundos si existen (19:00:00 -> 19:00)
+      const cleanTime = timeValue.includes(':') ? timeValue.split(':').slice(0, 2).join(':') : timeValue;
+      
+      const [hour, minute] = cleanTime.split(':').map(Number);
       const dummyDate = new Date();
       dummyDate.setHours(hour, minute, 0, 0);
       
       return config.formato_hora === '24h' 
-        ? timeValue 
+        ? cleanTime 
         : formatTime(dummyDate);
     } catch {
       return timeValue;
