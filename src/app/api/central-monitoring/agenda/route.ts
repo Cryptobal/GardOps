@@ -51,14 +51,14 @@ export async function GET(request: NextRequest) {
         es_urgente,
         es_actual,
         es_proximo,
-        -- Calcular minutos de atraso
+        -- Calcular minutos de atraso (sin conversión de zona horaria)
         CASE 
-          WHEN (programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}' < (now() AT TIME ZONE '${tz}') THEN 
-            EXTRACT(EPOCH FROM ((now() AT TIME ZONE '${tz}') - ((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}'))) / 60
+          WHEN programado_para < now() THEN 
+            EXTRACT(EPOCH FROM (now() - programado_para)) / 60
           ELSE 0
         END as minutos_atraso
       FROM central_v_llamados_automaticos
-      WHERE DATE(((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}')) = $1
+      WHERE DATE(programado_para) = $1
     `;
 
     const params: any[] = [fecha];
