@@ -805,51 +805,33 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                     <div className="space-y-2">
                       <Label className="text-sm">Guardia de reemplazo</Label>
                       
-                      {/* Input de búsqueda */}
-                      <Input
-                        type="text"
-                        placeholder="🔍 Buscar guardia por nombre..."
-                        value={panelData.filtroGuardias || ''}
-                        onChange={(e) => updatePanelData({ filtroGuardias: e.target.value })}
-                        className="mb-2"
-                      />
-                      
-                      <Select 
-                        value={panelData.guardiaReemplazo || ''} 
-                        onValueChange={(value) => updatePanelData({ guardiaReemplazo: value })}
-                        disabled={panelData.loadingGuardias || guardiasFiltradas.length === 0}
+                      {/* Botón para abrir modal de selección */}
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={() => openGuardiaModal(row)}
+                        disabled={panelData.loadingGuardias}
                       >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Selecciona guardia" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {panelData.loadingGuardias ? (
-                            <SelectItem value="loading" disabled>Cargando guardias disponibles...</SelectItem>
-                          ) : guardiasFiltradas.length === 0 ? (
-                            <SelectItem value="empty" disabled>
-                              {panelData.filtroGuardias ? 'No se encontraron guardias con ese filtro' : 'No hay guardias disponibles'}
-                            </SelectItem>
-                          ) : (
-                            guardiasFiltradas.map((g: Guardia) => (
-                              <SelectItem 
-                                key={g.id} 
-                                value={g.id}
-                                disabled={g.id === row.guardia_trabajo_id}
-                              >
-                                {g.nombre_completo}
-                                {g.id === row.guardia_trabajo_id && (
-                                  <span className="ml-2 text-xs text-muted-foreground">(Titular actual)</span>
-                                )}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
+                        <Users className="w-4 h-4 mr-2" />
+                        {panelData.guardiaReemplazo ? (
+                          <span>
+                            {panelData.guardias?.find(g => g.id === panelData.guardiaReemplazo)?.nombre_completo || 'Guardia seleccionado'}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">Seleccionar guardia</span>
+                        )}
+                      </Button>
                       
-                      {guardiasFiltradas.length > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {guardiasFiltradas.length} guardia{guardiasFiltradas.length !== 1 ? 's' : ''} disponible{guardiasFiltradas.length !== 1 ? 's' : ''}
-                        </p>
+                      {panelData.guardiaReemplazo && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => updatePanelData({ guardiaReemplazo: '' })}
+                          className="w-full text-red-600 hover:text-red-700"
+                        >
+                          <X className="w-3 h-3 mr-1" />
+                          Limpiar selección
+                        </Button>
                       )}
                     </div>
                   )}
@@ -1181,17 +1163,35 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                   {panelData.tipoCobertura==='con_cobertura' && (
                     <div className="space-y-2">
                       <Label className="text-sm">Guardia de reemplazo</Label>
-                      <Input placeholder="🔍 Buscar guardia…" value={panelData.filtroGuardias||''} onChange={(e)=>updatePanelData({ filtroGuardias: e.target.value })}/>
-                      <Select value={panelData.guardiaReemplazo || ''} onValueChange={(v)=>updatePanelData({ guardiaReemplazo: v })} disabled={panelData.loadingGuardias || guardiasFiltradas.length===0}>
-                        <SelectTrigger className="w-full"><SelectValue placeholder="Selecciona guardia"/></SelectTrigger>
-                        <SelectContent>
-                          {panelData.loadingGuardias ? <SelectItem value="loading" disabled>Cargando…</SelectItem> : (
-                            guardiasFiltradas.length===0 ? <SelectItem value="empty" disabled>Sin resultados</SelectItem> : (
-                              guardiasFiltradas.map((g: Guardia)=>(<SelectItem key={g.id} value={g.id}>{g.nombre_completo}</SelectItem>))
-                            )
-                          )}
-                        </SelectContent>
-                      </Select>
+                      
+                      {/* Botón para abrir modal de selección */}
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={() => openGuardiaModal(row)}
+                        disabled={panelData.loadingGuardias}
+                      >
+                        <Users className="w-4 h-4 mr-2" />
+                        {panelData.guardiaReemplazo ? (
+                          <span>
+                            {panelData.guardias?.find(g => g.id === panelData.guardiaReemplazo)?.nombre_completo || 'Guardia seleccionado'}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">Seleccionar guardia</span>
+                        )}
+                      </Button>
+                      
+                      {panelData.guardiaReemplazo && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => updatePanelData({ guardiaReemplazo: '' })}
+                          className="w-full text-red-600 hover:text-red-700"
+                        >
+                          <X className="w-3 h-3 mr-1" />
+                          Limpiar selección
+                        </Button>
+                      )}
                     </div>
                   )}
                   <div className="flex gap-2 justify-end">
