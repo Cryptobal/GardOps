@@ -65,6 +65,7 @@ export async function GET(request: NextRequest) {
           (COUNT(CASE WHEN estado_llamado = 'exitoso' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0)), 2
         ) as tasa_exito
       FROM central_v_llamados_automaticos
+      WHERE DATE(programado_para) <= $1
     `, [fecha]);
 
     const kpis = result.rows[0];
