@@ -565,7 +565,8 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     const canUndoResult = [
       'asistido', 'asistio',           // Estados de asistencia
       'reemplazo', 'turno_extra', 'te', // Estados de reemplazo/turno extra
-      'sin_cobertura', 'inasistencia'   // Estados de falta/sin cobertura
+      'sin_cobertura', 'inasistencia',  // Estados de falta/sin cobertura
+      'extra'                          // Estado de PPC cubierto (cobertura extra)
     ].includes(r.estado_ui);
     
     // Para PPC sin cobertura, siempre permitir deshacer
