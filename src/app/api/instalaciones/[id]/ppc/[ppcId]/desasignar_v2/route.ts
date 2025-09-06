@@ -60,12 +60,21 @@ export async function POST(
 
     // NUEVA FUNCIONALIDAD: Sincronizar pautas después de la desasignación
     console.log(`🔄 [SYNC] Iniciando sincronización de pautas después de desasignación...`);
+    console.log(`🔍 [SYNC] Datos para sincronización:`, {
+      ppcId,
+      guardiaId: null,
+      instalacionId,
+      rolId: puestoData.rol_id
+    });
+    
     const syncResult = await sincronizarPautasPostAsignacion(
       ppcId,
       null, // guardia_id = null para desasignación
       instalacionId,
       puestoData.rol_id
     );
+
+    console.log(`🔍 [SYNC] Resultado de sincronización:`, syncResult);
 
     if (!syncResult.success) {
       console.error(`❌ [SYNC] Error en sincronización:`, syncResult.error);

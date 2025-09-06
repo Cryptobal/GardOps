@@ -23,14 +23,41 @@ export async function sincronizarPautasPostAsignacion(
     if (guardiaId === null) {
       // DESASIGNACIÓN: Eliminar o marcar como PPC en as_turnos_pauta_mensual
       console.log(`🗑️ [SYNC] Desasignando guardia - marcando como PPC`);
-      await query(`
-        UPDATE as_turnos_pauta_mensual 
-        SET guardia_id = NULL,
-            estado = 'ppc',
-            estado_ui = 'ppc',
-            updated_at = NOW()
+      console.log(`🔍 [SYNC] Parámetros de desasignación:`, { puestoId, anio, mes, dia });
+      
+      // Primero verificar si existe el registro
+      const existeRegistro = await query(`
+        SELECT id, guardia_id, estado, estado_ui
+        FROM as_turnos_pauta_mensual 
         WHERE puesto_id = $1 AND anio = $2 AND mes = $3 AND dia = $4
       `, [puestoId, anio, mes, dia]);
+      
+      console.log(`🔍 [SYNC] Registro existente:`, existeRegistro.rows);
+      
+      if (existeRegistro.rows.length > 0) {
+        // Actualizar registro existente
+        const result = await query(`
+          UPDATE as_turnos_pauta_mensual 
+          SET guardia_id = NULL,
+              estado = 'ppc',
+              estado_ui = 'ppc',
+              updated_at = NOW()
+          WHERE puesto_id = $1 AND anio = $2 AND mes = $3 AND dia = $4
+          RETURNING *
+        `, [puestoId, anio, mes, dia]);
+        
+        console.log(`✅ [SYNC] Registro actualizado:`, result.rows);
+      } else {
+        // Crear nuevo registro como PPC
+        const result = await query(`
+          INSERT INTO as_turnos_pauta_mensual (
+            puesto_id, guardia_id, anio, mes, dia, estado, estado_ui, created_at, updated_at
+          ) VALUES ($1, NULL, $2, $3, $4, 'ppc', 'ppc', NOW(), NOW())
+          RETURNING *
+        `, [puestoId, anio, mes, dia]);
+        
+        console.log(`✅ [SYNC] Nuevo registro PPC creado:`, result.rows);
+      }
       
       console.log(`✅ [SYNC] Pauta mensual actualizada - guardia desasignado`);
     } else {
