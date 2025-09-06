@@ -39,7 +39,7 @@ export default function RolesServicioPage() {
   const { success, error } = useToast();
   const [roles, setRoles] = useState<RolServicio[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editando, setEditando] = useState<string | null>(null);
+  // Edición eliminada - roles no se pueden editar
   const [creando, setCreando] = useState(false);
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'activos' | 'inactivos'>('todos');
   const [filtroPatron, setFiltroPatron] = useState<string>('todos');
@@ -58,17 +58,17 @@ export default function RolesServicioPage() {
     hora_termino: '20:00'
   });
 
-  const [editData, setEditData] = useState<CrearRolServicioData>({
-    dias_trabajo: 4,
-    dias_descanso: 4,
-    hora_inicio: '08:00',
-    hora_termino: '20:00',
-    estado: 'Activo'
-  });
+  // Estados de edición eliminados
+  // const [editData, setEditData] = useState<CrearRolServicioData>({
+  //   dias_trabajo: 4,
+  //   dias_descanso: 4,
+  //   hora_inicio: '08:00',
+  //   hora_termino: '20:00',
+  //   estado: 'Activo'
+  // });
 
   // Calcular nombre automáticamente
   const [nombreCalculado, setNombreCalculado] = useState('');
-  const [nombreCalculadoEdit, setNombreCalculadoEdit] = useState('');
 
   useEffect(() => {
     cargarRoles();
@@ -89,19 +89,7 @@ export default function RolesServicioPage() {
     }
   }, [nuevoRol]);
 
-  useEffect(() => {
-    try {
-      const nombre = calcularNomenclaturaRol(
-        editData.dias_trabajo,
-        editData.dias_descanso,
-        editData.hora_inicio,
-        editData.hora_termino
-      );
-      setNombreCalculadoEdit(nombre);
-    } catch (err) {
-      setNombreCalculadoEdit('Error en cálculo');
-    }
-  }, [editData]);
+  // useEffect de edición eliminado
 
   const cargarRoles = async () => {
     try {
@@ -231,65 +219,11 @@ export default function RolesServicioPage() {
     }
   };
 
-  const handleEditar = async (rol: RolServicio) => {
-    try {
-      // Verificar si el rol tiene pautas asociadas
-      const verificacionPautas = await verificarPautasRol(rol.id);
-      
-      if (verificacionPautas.tiene_pautas) {
-        // Mostrar modal informativo en lugar de error
-        setInfoRol({ rol, verificacion: verificacionPautas });
-        setShowInfoDialog(true);
-        return;
-      }
+  // Función eliminada
 
-      setEditData({
-        dias_trabajo: rol.dias_trabajo,
-        dias_descanso: rol.dias_descanso,
-        hora_inicio: rol.hora_inicio,
-        hora_termino: rol.hora_termino,
-        estado: rol.estado
-      });
-      setEditando(rol.id);
-    } catch (err) {
-      console.error('Error verificando pautas del rol:', err);
-      error('Error al verificar si el rol puede ser editado', 'Error');
-    }
-  };
+  // Función eliminada
 
-  const handleGuardarEdicion = async () => {
-    if (!editando) return;
-
-    try {
-      // Verificar si ya existe un rol con el mismo nombre (excluyendo el actual)
-      const nombreCalculado = calcularNomenclaturaRol(
-        editData.dias_trabajo,
-        editData.dias_descanso,
-        editData.hora_inicio,
-        editData.hora_termino
-      );
-      
-      const rolExistente = roles.find(rol => 
-        rol.nombre === nombreCalculado && rol.id !== editando
-      );
-      if (rolExistente) {
-        error(`Ya existe un rol de servicio con el nombre: ${nombreCalculado}`, 'Error');
-        return;
-      }
-
-      await actualizarRolServicio(editando, editData);
-      success('Rol de servicio actualizado correctamente', 'Éxito');
-      setEditando(null);
-      await cargarRoles();
-    } catch (err) {
-      console.error('Error actualizando rol:', err);
-      error(err instanceof Error ? err.message : 'No se pudo actualizar el rol', 'Error');
-    }
-  };
-
-  const handleCancelarEdicion = () => {
-    setEditando(null);
-  };
+  // Función eliminada
 
   const handleActivarInactivar = async (rol: RolServicio) => {
     setRolParaConfirmar(rol);
@@ -555,81 +489,33 @@ export default function RolesServicioPage() {
                 {rolesFiltrados.map((rol) => (
                   <TableRow key={rol.id}>
                     <TableCell>
-                      {editando === rol.id ? (
-                        <div className="space-y-2">
-                          <div className="text-sm font-medium text-blue-600">Nombre Calculado:</div>
-                          <div className="text-sm font-mono">{nombreCalculadoEdit}</div>
-                        </div>
-                      ) : (
-                        <div className="font-medium">{rol.nombre}</div>
-                      )}
+                      <div className="font-medium">{rol.nombre}</div>
                     </TableCell>
                     <TableCell>
-                      {editando === rol.id ? (
-                        <div className="text-sm text-muted-foreground">
-                          {nombreCalculadoEdit || 'Sin nombre'}
-                        </div>
-                      ) : (
-                        <div className="text-sm text-muted-foreground">
-                          {rol.nombre || 'Sin nombre'}
-                        </div>
-                      )}
+                      <div className="text-sm text-muted-foreground">
+                        {rol.nombre || 'Sin descripción'}
+                      </div>
                     </TableCell>
                     <TableCell>
-                      {editando === rol.id ? (
-                        <div className="space-y-2">
-                          <Input
-                            type="number"
-                            min="1"
-                            value={editData.dias_trabajo}
-                            onChange={(e) => setEditData({...editData, dias_trabajo: parseInt(e.target.value) || 0})}
-                            className="w-16"
-                          />
-                          <span className="text-sm">x</span>
-                          <Input
-                            type="number"
-                            min="1"
-                            value={editData.dias_descanso}
-                            onChange={(e) => setEditData({...editData, dias_descanso: parseInt(e.target.value) || 0})}
-                            className="w-16"
-                          />
-                        </div>
-                      ) : (
-                        <div className="text-sm">
-                          {rol.dias_trabajo}x{rol.dias_descanso}x{rol.horas_turno}
-                        </div>
-                      )}
+                      <div className="text-sm">
+                        {rol.dias_trabajo}x{rol.dias_descanso}x{rol.horas_turno}
+                      </div>
                     </TableCell>
                     <TableCell>
-                      {editando === rol.id ? (
-                        <div className="space-y-2">
-                          <Input
-                            type="time"
-                            value={editData.hora_inicio}
-                            onChange={(e) => setEditData({...editData, hora_inicio: e.target.value})}
-                            className="w-24"
-                          />
-                          <span className="text-sm">-</span>
-                          <Input
-                            type="time"
-                            value={editData.hora_termino}
-                            onChange={(e) => setEditData({...editData, hora_termino: e.target.value})}
-                            className="w-24"
-                          />
-                        </div>
-                      ) : (
-                        <div className="text-sm">
-                          {(() => {
-                            const infoJornada = obtenerInfoJornada(rol);
-                            return (
-                              <span title={infoJornada.resumenHorario.horarios.map(h => `${h.dia}: ${h.inicio}-${h.fin}`).join(', ')}>
-                                {infoJornada.resumenHorario.texto}
-                                {infoJornada.resumenHorario.esVariable && <span className="text-blue-500 ml-1">*</span>}
-                              </span>
-                            );
-                          })()}
-                        </div>
-                      )}
+                      <div className="text-sm">
+                        {(() => {
+                          const infoJornada = obtenerInfoJornada(rol);
+                          return (
+                            <span 
+                              title={infoJornada.resumenHorario.horarios.map(h => `${h.dia}: ${h.inicio}-${h.fin}`).join('\n')}
+                              className="cursor-help"
+                            >
+                              {infoJornada.resumenHorario.texto}
+                              {infoJornada.resumenHorario.esVariable && <span className="text-blue-500 ml-1">*</span>}
+                            </span>
+                          );
+                        })()}
+                      </div>
                     </TableCell>
                     
                     {/* Nueva columna: Horas Semanales */}
@@ -679,33 +565,8 @@ export default function RolesServicioPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        {editando === rol.id ? (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="default"
-                              onClick={handleGuardarEdicion}
-                            >
-                              <Save className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={handleCancelarEdicion}
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditar(rol)}
-                              title="Editar rol"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
+                        {/* Botón de editar eliminado - roles no se pueden editar una vez creados */}
+                        <div></div>
                             {/* Botón de replicación inteligente */}
                             {(() => {
                               const analisis = analizarTodosLosRoles(roles);
@@ -738,8 +599,6 @@ export default function RolesServicioPage() {
                             >
                               {rol.estado === 'Activo' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </Button>
-                          </>
-                        )}
                       </div>
                     </TableCell>
                   </TableRow>

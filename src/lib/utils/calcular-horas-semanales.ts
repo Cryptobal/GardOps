@@ -85,12 +85,12 @@ export function generarResumenHorario(rol: RolServicio, seriesDias?: any[]): Res
     };
   }
   
-  // Si tiene horarios variables pero no hay series, mostrar placeholder
+  // Si tiene horarios variables pero no hay series, mostrar placeholder con asterisco
   if (!seriesDias || seriesDias.length === 0) {
     return {
-      texto: 'Horarios variables',
+      texto: 'Horarios variables *',
       esVariable: true,
-      horarios: []
+      horarios: [{ dia: 'Variable', inicio: 'Ver', fin: 'detalle' }]
     };
   }
   
