@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Save, X, Download, Eye, EyeOff, AlertCircle, ChevronDown, ChevronUp, Moon, Sun, Calendar } from 'lucide-react';
+import { Plus, Edit, Save, X, Download, Eye, EyeOff, AlertCircle, ChevronDown, ChevronUp, Moon, Sun, Calendar, Clock } from 'lucide-react';
 import { 
   getRolesServicio, 
   crearRolServicio, 
@@ -24,6 +24,7 @@ import { ordenarRolesPorPatron, extraerPatronesUnicos, filtrarRolesPorPatron, ex
 import { analizarTodosLosRoles, crearDatosReplicacion } from '@/lib/utils/detectar-similes-roles';
 import { obtenerInfoJornada } from '@/lib/utils/calcular-horas-semanales';
 import WizardSeriesTurnosV2 from '@/components/roles-servicio/WizardSeriesTurnosV2';
+import { TooltipHorarios } from '@/components/ui/tooltip-horarios';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -506,13 +507,20 @@ export default function RolesServicioPage() {
                         {(() => {
                           const infoJornada = obtenerInfoJornada(rol);
                           return (
-                            <span 
-                              title={infoJornada.resumenHorario.horarios.map(h => `${h.dia}: ${h.inicio}-${h.fin}`).join('\n')}
-                              className="cursor-help"
+                            <TooltipHorarios 
+                              horarios={infoJornada.resumenHorario.horarios}
+                              esVariable={infoJornada.resumenHorario.esVariable}
                             >
-                              {infoJornada.resumenHorario.texto}
-                              {infoJornada.resumenHorario.esVariable && <span className="text-blue-500 ml-1">*</span>}
-                            </span>
+                              <span className="flex items-center gap-1">
+                                {infoJornada.resumenHorario.texto}
+                                {infoJornada.resumenHorario.esVariable && (
+                                  <span className="text-blue-500 text-xs">*</span>
+                                )}
+                                {infoJornada.resumenHorario.esVariable && (
+                                  <Clock className="h-3 w-3 text-blue-400 ml-1" />
+                                )}
+                              </span>
+                            </TooltipHorarios>
                           );
                         })()}
                       </div>
