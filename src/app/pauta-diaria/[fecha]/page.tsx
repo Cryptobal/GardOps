@@ -817,9 +817,9 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                         size="sm" 
                         onClick={() => {
                           if (puestoEnEdicion?.guardia_original?.id) {
-                            actualizarAsistencia(puesto, 'asignar_ppc', puestoEnEdicion.guardia_original.id, undefined, observaciones);
+                            actualizarAsistencia(puestoEnEdicion, 'asignar_ppc', puestoEnEdicion.guardia_original.id, undefined, observaciones);
                           } else {
-                            actualizarAsistencia(puesto, 'sin_cobertura', undefined, undefined, observaciones);
+                            actualizarAsistencia(puestoEnEdicion, 'sin_cobertura', undefined, undefined, observaciones);
                           }
                           setOpenPopovers(prev => ({ ...prev, cobertura: null }));
                           setPuestoEnEdicion(null);
