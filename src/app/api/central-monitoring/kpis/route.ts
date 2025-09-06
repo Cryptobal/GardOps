@@ -12,36 +12,45 @@ export async function GET(request: NextRequest) {
     const tz = searchParams.get('tz') || 'America/Santiago';
     const fechaActual = new Date().toISOString().split('T')[0];
 
-    // Obtener KPIs con lógica corregida (sin conversiones de zona horaria)
+    // Obtener zona horaria desde configuración de sistema
+    const configResult = await sql`
+      SELECT zona_horaria FROM configuracion_sistema 
+      WHERE tenant_id IS NULL 
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `;
+    const timezone = configResult.rows[0]?.zona_horaria || 'America/Santiago';
+
+    // Obtener KPIs con zona horaria correcta
     const result = await sql.query(`
       SELECT 
         -- Total: solo llamados del día seleccionado
-        COUNT(CASE WHEN DATE(programado_para) = $1 THEN 1 END) as total_llamados,
+        COUNT(CASE WHEN DATE(programado_para AT TIME ZONE '${timezone}') = $1 THEN 1 END) as total_llamados,
         
-        -- Actuales: solo si es el día actual Y en la hora actual
+        -- Actuales: solo si es el día actual Y en la hora actual (en zona local)
         COUNT(CASE 
-          WHEN DATE(programado_para) = CURRENT_DATE
-           AND date_trunc('hour', programado_para) = date_trunc('hour', now())
+          WHEN DATE(programado_para AT TIME ZONE '${timezone}') = DATE(now() AT TIME ZONE '${timezone}')
+           AND date_trunc('hour', programado_para AT TIME ZONE '${timezone}') = date_trunc('hour', now() AT TIME ZONE '${timezone}')
           THEN 1 
         END) as actuales,
         
-        -- Próximos: futuros del día seleccionado
+        -- Próximos: futuros del día seleccionado (en zona local)
         COUNT(CASE 
-          WHEN DATE(programado_para) = $1 
-           AND programado_para > now()
+          WHEN DATE(programado_para AT TIME ZONE '${timezone}') = $1 
+           AND (programado_para AT TIME ZONE '${timezone}') > (now() AT TIME ZONE '${timezone}')
           THEN 1 
         END) as proximos,
         
-        -- No Realizados: llamados que ya pasaron su hora programada Y siguen pendientes
+        -- No Realizados: llamados que ya pasaron su hora programada Y siguen pendientes (en zona local)
         COUNT(CASE 
-          WHEN programado_para < now()
+          WHEN (programado_para AT TIME ZONE '${timezone}') < (now() AT TIME ZONE '${timezone}')
            AND (estado_llamado IS NULL OR estado_llamado = 'pendiente')
           THEN 1 
         END) as no_realizados,
         
-        -- Urgentes: pasados >30 min sin completar
+        -- Urgentes: pasados >30 min sin completar (en zona local)
         COUNT(CASE 
-          WHEN programado_para < now() - interval '30 minutes'
+          WHEN (programado_para AT TIME ZONE '${timezone}') < ((now() AT TIME ZONE '${timezone}') - interval '30 minutes')
            AND (estado_llamado IS NULL OR estado_llamado = 'pendiente')
           THEN 1 
         END) as urgentes,
