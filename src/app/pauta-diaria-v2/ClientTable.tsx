@@ -253,6 +253,12 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
 
   // Función para cargar guardias disponibles
   const loadGuardias = useCallback(async (row: PautaRow, excluirGuardiaId?: string) => {
+    console.log('🔄 loadGuardias INICIADO:', {
+      rowId: row.pauta_id,
+      fecha,
+      instalacion_id: row.instalacion_id,
+      excluirGuardiaId
+    });
     const fechaNorm = toYmd(fecha);
     const url = new URL('/api/guardias/disponibles', location.origin);
     url.searchParams.set('fecha', fechaNorm);
@@ -690,13 +696,26 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     }, [panelData.guardias, panelData.filtroGuardias]);
 
     const updatePanelData = (updates: Partial<typeof panelData>) => {
-      setRowPanelData(prev => ({
-        ...prev,
-        [row.pauta_id]: {
-          ...prev[row.pauta_id],
-          ...updates
-        }
-      }));
+      console.log('🔄 updatePanelData DESKTOP llamado:', {
+        rowId: row.pauta_id,
+        updates,
+        prevData: rowPanelData[row.pauta_id]
+      });
+      
+      setRowPanelData(prev => {
+        const newData = {
+          ...prev,
+          [row.pauta_id]: {
+            ...prev[row.pauta_id],
+            ...updates
+          }
+        };
+        console.log('✅ updatePanelData DESKTOP completado:', {
+          rowId: row.pauta_id,
+          newRowData: newData[row.pauta_id]
+        });
+        return newData;
+      });
     };
 
     // No usar useEffect para cargar guardias, se hace directamente en onClick para evitar loops
@@ -980,6 +999,13 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                         className="flex-1"
                         disabled={isLoading} 
                         onClick={() => {
+                          console.log('🖱️ BOTÓN CUBRIR CLICKED:', {
+                            row,
+                            rowPanelData: rowPanelData[row.pauta_id],
+                            expandedRowId,
+                            isLoading
+                          });
+                          
                           updatePanelData({ 
                             type: 'cubrir_ppc',
                             guardias: undefined,
@@ -987,8 +1013,14 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                             guardiaReemplazo: '',
                             filtroGuardias: ''
                           });
+                          
+                          console.log('✅ updatePanelData llamado para cubrir_ppc');
+                          
                           // Cargar guardias para PPC
-                          setTimeout(() => loadGuardias(row), 0);
+                          setTimeout(() => {
+                            console.log('⏰ setTimeout ejecutado, llamando loadGuardias');
+                            loadGuardias(row);
+                          }, 0);
                         }}
                       >
                         👥 Cubrir
@@ -1034,7 +1066,22 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     const esPPC = row.es_ppc || !row.guardia_trabajo_id;
 
     const panelData = rowPanelData[row.pauta_id] || {};
-    const updatePanelData = (updates: any) => setRowPanelData(prev => ({ ...prev, [row.pauta_id]: { ...prev[row.pauta_id], ...updates } }));
+    const updatePanelData = (updates: any) => {
+      console.log('🔄 updatePanelData MÓVIL llamado:', {
+        rowId: row.pauta_id,
+        updates,
+        prevData: rowPanelData[row.pauta_id]
+      });
+      
+      setRowPanelData(prev => {
+        const newData = { ...prev, [row.pauta_id]: { ...prev[row.pauta_id], ...updates } };
+        console.log('✅ updatePanelData MÓVIL completado:', {
+          rowId: row.pauta_id,
+          newRowData: newData[row.pauta_id]
+        });
+        return newData;
+      });
+    };
 
     // Filtrado de guardias en móvil
     const guardiasFiltradas = useMemo(() => {
