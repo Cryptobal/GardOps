@@ -998,6 +998,16 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   const MobileRowCard: React.FC<{ row: PautaRow }> = ({ row }) => {
     const isExpanded = expandedRowId === row.pauta_id;
     const isLoading = savingId === row.pauta_id;
+    
+    // DEBUG: Verificar estado de savingId
+    if (row.es_ppc && isLoading) {
+      console.log('🚨 PPC BLOQUEADO POR savingId:', {
+        pauta_id: row.pauta_id,
+        savingId,
+        isLoading,
+        isPPC: row.es_ppc
+      });
+    }
     const esDuplicado = row.guardia_trabajo_id && (guardiasDuplicados.get(`${row.fecha}-${row.guardia_trabajo_id}`) || 0) > 1;
     const esPPC = row.es_ppc || !row.guardia_trabajo_id;
 
@@ -1179,7 +1189,15 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                   </div>
                   <div className="flex gap-2 justify-end">
                     <Button variant="outline" size="sm" onClick={()=>toggleRowPanel(row)} disabled={isLoading}>Cancelar</Button>
-                    <Button size="sm" onClick={()=>{console.log('📱 MOBILE CONFIRMAR:', panelData.guardiaReemplazo); onCubrirPPC(row);}} disabled={isLoading}>{isLoading?'Guardando…':'Confirmar'}</Button>
+                    <Button size="sm" onClick={()=>{
+                      console.log('📱 MOBILE CONFIRMAR:', panelData.guardiaReemplazo);
+                      console.log('🚨 Estado antes de confirmar:', { savingId, isLoading, pauta_id: row.pauta_id });
+                      if (isLoading) {
+                        console.log('🚨 FORZANDO LIMPIEZA DE savingId');
+                        setSavingId(null);
+                      }
+                      onCubrirPPC(row);
+                    }} disabled={isLoading}>{isLoading?'Guardando…':'Confirmar'}</Button>
                   </div>
                 </>
               )}
