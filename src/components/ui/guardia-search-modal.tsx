@@ -30,6 +30,11 @@ interface GuardiaSearchModalProps {
   title?: string;
   instalacionId?: string;
   instalacionNombre?: string;
+  // Props específicas para Pauta Diaria
+  mode?: 'instalaciones' | 'pauta-diaria';
+  fecha?: string;
+  rolNombre?: string;
+  instalacionNombrePauta?: string;
 }
 
 const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
@@ -41,7 +46,12 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
   className,
   title = "Buscar Guardia",
   instalacionId,
-  instalacionNombre
+  instalacionNombre,
+  // Props específicas para Pauta Diaria
+  mode = 'instalaciones',
+  fecha,
+  rolNombre,
+  instalacionNombrePauta
 }) => {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [showWarning, setShowWarning] = React.useState(false);
@@ -84,15 +94,23 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
 
   // Manejar selección de guardia
   const handleSelectGuardia = (guardia: Guardia) => {
-    if (guardia.instalacion_actual_id && guardia.instalacion_actual_id !== instalacionId) {
-      // Guardia ya asignado a otra instalación
-      setGuardiaConAdvertencia(guardia);
-      setShowWarning(true);
-    } else {
-      // Guardia disponible o ya asignado a esta instalación
+    if (mode === 'pauta-diaria') {
+      // En Pauta Diaria, no validamos instalaciones, solo seleccionamos
       onSelectGuardia(guardia.id);
       setSearchTerm("");
       onClose();
+    } else {
+      // En instalaciones, validamos si ya está asignado a otra instalación
+      if (guardia.instalacion_actual_id && guardia.instalacion_actual_id !== instalacionId) {
+        // Guardia ya asignado a otra instalación
+        setGuardiaConAdvertencia(guardia);
+        setShowWarning(true);
+      } else {
+        // Guardia disponible o ya asignado a esta instalación
+        onSelectGuardia(guardia.id);
+        setSearchTerm("");
+        onClose();
+      }
     }
   };
 
@@ -131,6 +149,17 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
         </CardHeader>
         
         <CardContent className="space-y-4">
+          {/* Información contextual para Pauta Diaria */}
+          {mode === 'pauta-diaria' && (
+            <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-md border border-blue-200 dark:border-blue-800">
+              <div className="text-sm text-blue-800 dark:text-blue-200">
+                <p><strong>Instalación:</strong> {instalacionNombrePauta}</p>
+                {rolNombre && <p><strong>Rol:</strong> {rolNombre}</p>}
+                {fecha && <p><strong>Fecha:</strong> {fecha}</p>}
+              </div>
+            </div>
+          )}
+
           {/* Campo de búsqueda */}
           <div className="relative">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -170,13 +199,7 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
             ) : (
               <div className="p-2 space-y-1">
                 {filteredGuardias.map((guardia) => {
-                  const estaAsignado = guardia.instalacion_actual_id && guardia.instalacion_actual_id !== instalacionId;
-                  console.log('🔍 Debug modal:', {
-                    nombre: guardia.nombre_completo,
-                    instalacion_actual_id: guardia.instalacion_actual_id,
-                    instalacionId,
-                    estaAsignado
-                  });
+                  const estaAsignado = mode === 'instalaciones' && guardia.instalacion_actual_id && guardia.instalacion_actual_id !== instalacionId;
                   
                   return (
                     <div

@@ -18,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useToast } from '@/hooks/use-toast';
 import { PautaRow, PautaDiariaV2Props } from './types';
 import { toYmd, toDisplay } from '@/lib/date';
+import { GuardiaSearchModal } from '@/components/ui/guardia-search-modal';
 import * as api from './apiAdapter';
 
 type Filtros = {
@@ -134,6 +135,10 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       filtroGuardias?: string;
     }
   }>({});
+  
+  // Estado para el modal de selección de guardias
+  const [showGuardiaModal, setShowGuardiaModal] = useState(false);
+  const [currentRowForModal, setCurrentRowForModal] = useState<PautaRow | null>(null);
   
   const [f, setF] = useState<Filtros>(() => ({ 
     ppc: 'all',
@@ -297,6 +302,34 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       }));
     }
   }, [fecha, addToast]);
+
+  // Función para abrir modal de selección de guardias
+  const openGuardiaModal = useCallback((row: PautaRow) => {
+    setCurrentRowForModal(row);
+    setShowGuardiaModal(true);
+    // Cargar guardias disponibles
+    loadGuardias(row);
+  }, [loadGuardias]);
+
+  // Función para cerrar modal de selección de guardias
+  const closeGuardiaModal = useCallback(() => {
+    setShowGuardiaModal(false);
+    setCurrentRowForModal(null);
+  }, []);
+
+  // Función para manejar selección de guardia desde el modal
+  const handleGuardiaSelected = useCallback((guardiaId: string) => {
+    if (currentRowForModal) {
+      setRowPanelData(prev => ({
+        ...prev,
+        [currentRowForModal.pauta_id]: {
+          ...prev[currentRowForModal.pauta_id],
+          guardiaReemplazo: guardiaId
+        }
+      }));
+      closeGuardiaModal();
+    }
+  }, [currentRowForModal, closeGuardiaModal]);
 
   // Función para expandir/colapsar panel con tipo de acción
   const toggleRowPanel = useCallback((row: PautaRow, actionType?: 'no_asistio' | 'cubrir_ppc') => {
@@ -851,47 +884,33 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                   <div className="space-y-2">
                     <Label className="text-sm">Guardia para cubrir turno</Label>
                     
-                    {/* Input de búsqueda */}
-                    <Input
-                      type="text"
-                      placeholder="🔍 Buscar guardia por nombre..."
-                      value={panelData.filtroGuardias || ''}
-                      onChange={(e) => updatePanelData({ filtroGuardias: e.target.value })}
-                      className="mb-2"
-                    />
-                    
-                    <Select 
-                      value={panelData.guardiaReemplazo || ''} 
-                      onValueChange={(value) => {
-                        console.log('🔄 PPC SELECT CHANGED:', value);
-                        updatePanelData({ guardiaReemplazo: value });
-                      }}
-                      disabled={panelData.loadingGuardias || guardiasFiltradas.length === 0}
+                    {/* Botón para abrir modal de selección */}
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => openGuardiaModal(row)}
+                      disabled={panelData.loadingGuardias}
                     >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecciona guardia" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {panelData.loadingGuardias ? (
-                          <SelectItem value="loading" disabled>Cargando guardias disponibles...</SelectItem>
-                        ) : guardiasFiltradas.length === 0 ? (
-                          <SelectItem value="empty" disabled>
-                            {panelData.filtroGuardias ? 'No se encontraron guardias con ese filtro' : 'No hay guardias disponibles'}
-                          </SelectItem>
-                        ) : (
-                          guardiasFiltradas.map((g: Guardia) => (
-                            <SelectItem key={g.id} value={g.id}>
-                              {g.nombre_completo}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                      <Users className="w-4 h-4 mr-2" />
+                      {panelData.guardiaReemplazo ? (
+                        <span>
+                          {panelData.guardias?.find(g => g.id === panelData.guardiaReemplazo)?.nombre_completo || 'Guardia seleccionado'}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">Seleccionar guardia</span>
+                      )}
+                    </Button>
                     
-                    {guardiasFiltradas.length > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {guardiasFiltradas.length} guardia{guardiasFiltradas.length !== 1 ? 's' : ''} disponible{guardiasFiltradas.length !== 1 ? 's' : ''}
-                      </p>
+                    {panelData.guardiaReemplazo && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => updatePanelData({ guardiaReemplazo: '' })}
+                        className="w-full text-red-600 hover:text-red-700"
+                      >
+                        <X className="w-3 h-3 mr-1" />
+                        Limpiar selección
+                      </Button>
                     )}
                   </div>
 
@@ -1188,17 +1207,35 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                 <>
                   <div className="space-y-2">
                     <Label className="text-sm">Guardia para cubrir</Label>
-                    <Input placeholder="🔍 Buscar guardia…" value={panelData.filtroGuardias||''} onChange={(e)=>updatePanelData({ filtroGuardias: e.target.value })}/>
-                    <Select value={panelData.guardiaReemplazo || ''} onValueChange={(v)=>updatePanelData({ guardiaReemplazo: v })} disabled={panelData.loadingGuardias || guardiasFiltradas.length===0}>
-                      <SelectTrigger className="w-full"><SelectValue placeholder="Selecciona guardia"/></SelectTrigger>
-                      <SelectContent>
-                        {panelData.loadingGuardias ? <SelectItem value="loading" disabled>Cargando…</SelectItem> : (
-                          guardiasFiltradas.length===0 ? <SelectItem value="empty" disabled>Sin resultados</SelectItem> : (
-                            guardiasFiltradas.map((g: Guardia)=>(<SelectItem key={g.id} value={g.id}>{g.nombre_completo}</SelectItem>))
-                          )
-                        )}
-                      </SelectContent>
-                    </Select>
+                    
+                    {/* Botón para abrir modal de selección */}
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => openGuardiaModal(row)}
+                      disabled={panelData.loadingGuardias}
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      {panelData.guardiaReemplazo ? (
+                        <span>
+                          {panelData.guardias?.find(g => g.id === panelData.guardiaReemplazo)?.nombre_completo || 'Guardia seleccionado'}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">Seleccionar guardia</span>
+                      )}
+                    </Button>
+                    
+                    {panelData.guardiaReemplazo && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => updatePanelData({ guardiaReemplazo: '' })}
+                        className="w-full text-red-600 hover:text-red-700"
+                      >
+                        <X className="w-3 h-3 mr-1" />
+                        Limpiar selección
+                      </Button>
+                    )}
                   </div>
                   <div className="flex gap-2 justify-end">
                     <Button variant="outline" size="sm" onClick={()=>toggleRowPanel(row)} disabled={isLoading}>Cancelar</Button>
@@ -1683,6 +1720,22 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
               </Dialog>
             </div>
           </div>
+        )}
+
+        {/* Modal de selección de guardias */}
+        {currentRowForModal && (
+          <GuardiaSearchModal
+            isOpen={showGuardiaModal}
+            onClose={closeGuardiaModal}
+            onSelectGuardia={handleGuardiaSelected}
+            guardias={currentRowForModal ? (rowPanelData[currentRowForModal.pauta_id]?.guardias || []) : []}
+            loading={currentRowForModal ? (rowPanelData[currentRowForModal.pauta_id]?.loadingGuardias || false) : false}
+            title="Seleccionar Guardia"
+            mode="pauta-diaria"
+            fecha={toDisplay(fecha)}
+            rolNombre={currentRowForModal.rol_nombre}
+            instalacionNombrePauta={currentRowForModal.instalacion_nombre}
+          />
         )}
       </>
     </TooltipProvider>
