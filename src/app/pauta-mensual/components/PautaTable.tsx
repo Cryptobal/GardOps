@@ -576,16 +576,18 @@ export default function PautaTable({
   const cargarGuardias = async () => {
     try {
       setCargandoGuardias(true);
+      console.log('🔄 Cargando guardias desde /api/guardias...');
       const response = await fetch('/api/guardias');
       if (response.ok) {
         const data = await response.json();
-        setGuardiasDisponibles(data);
+        console.log('✅ Guardias cargados:', { data, isArray: Array.isArray(data), length: data?.length });
+        setGuardiasDisponibles(Array.isArray(data) ? data : []);
       } else {
-        console.error('Error cargando guardias:', response.statusText);
+        console.error('❌ Error cargando guardias:', response.statusText);
         setGuardiasDisponibles([]);
       }
     } catch (error) {
-      console.error('Error cargando guardias:', error);
+      console.error('❌ Error cargando guardias:', error);
       setGuardiasDisponibles([]);
     } finally {
       setCargandoGuardias(false);
@@ -957,17 +959,27 @@ export default function PautaTable({
 
       {/* Modal de asignación de guardia a PPC */}
       {asignacionModal.isOpen && asignacionModal.ppcData && (
-        <GuardiaSearchModal
-          isOpen={asignacionModal.isOpen}
-          onClose={closeAsignacionModal}
-          onSelectGuardia={handleGuardiaSeleccionado}
-          guardias={guardiasDisponibles}
-          loading={cargandoGuardias}
-          mode="pauta-mensual"
-          instalacionNombrePauta={asignacionModal.ppcData.nombre_puesto}
-          rolNombre={asignacionModal.ppcData.rol_nombre}
-          fecha={`${anio || new Date().getFullYear()}-${(mes || new Date().getMonth() + 1).toString().padStart(2, '0')}`}
-        />
+        <>
+          {console.log('🔍 RENDERIZANDO MODAL con props:', {
+            isOpen: asignacionModal.isOpen,
+            guardias: guardiasDisponibles,
+            guardiasIsArray: Array.isArray(guardiasDisponibles),
+            guardiasLength: guardiasDisponibles?.length,
+            loading: cargandoGuardias,
+            mode: 'pauta-mensual'
+          })}
+          <GuardiaSearchModal
+            isOpen={asignacionModal.isOpen}
+            onClose={closeAsignacionModal}
+            onSelectGuardia={handleGuardiaSeleccionado}
+            guardias={guardiasDisponibles}
+            loading={cargandoGuardias}
+            mode="pauta-mensual"
+            instalacionNombrePauta={asignacionModal.ppcData.nombre_puesto}
+            rolNombre={asignacionModal.ppcData.rol_nombre}
+            fecha={`${anio || new Date().getFullYear()}-${(mes || new Date().getMonth() + 1).toString().padStart(2, '0')}`}
+          />
+        </>
       )}
     </div>
   );
