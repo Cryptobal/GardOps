@@ -580,8 +580,18 @@ export default function PautaTable({
       const response = await fetch('/api/guardias');
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Guardias cargados:', { data, isArray: Array.isArray(data), length: data?.length });
-        setGuardiasDisponibles(Array.isArray(data) ? data : []);
+        console.log('✅ Guardias cargados:', { 
+          data, 
+          isArray: Array.isArray(data), 
+          length: data?.length,
+          hasItems: data?.items,
+          itemsLength: data?.items?.length
+        });
+        
+        // La API devuelve {items: [...]}, no un array directo
+        const guardias = data?.items || [];
+        console.log('📋 Guardias procesados:', { guardias, length: guardias.length });
+        setGuardiasDisponibles(guardias);
       } else {
         console.error('❌ Error cargando guardias:', response.statusText);
         setGuardiasDisponibles([]);
