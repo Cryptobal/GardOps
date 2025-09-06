@@ -99,7 +99,7 @@ const renderEstado = (estadoUI: string, isFalta: boolean) => {
 export default function ClientTable({ rows: rawRows, fecha, incluirLibres = false, onRecargarDatos, activeTab = 'pauta' }: PautaDiariaV2Props) {
   
   // FORCE DEPLOYMENT - DEBUG PPC
-  console.log('🚀 PAUTA DIARIA V2 - FORCE DEPLOYMENT:', new Date().toISOString());
+  console.log('🚀🚀🚀 PAUTA DIARIA V2 LOADED 🚀🚀🚀');
   
   if (rawRows && rawRows.length > 0) {
     const ppcs = rawRows.filter(row => row.es_ppc === true);
@@ -898,7 +898,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                         console.log('🖱️ CONFIRMAR CLICKED:', panelData.guardiaReemplazo);
                         onCubrirPPC(row);
                       }}
-                      disabled={isLoading || !panelData.guardiaReemplazo}
+                      disabled={isLoading}
                     >
                       {isLoading ? 'Guardando...' : 'Confirmar'}
                     </Button>
