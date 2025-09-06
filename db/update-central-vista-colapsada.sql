@@ -47,8 +47,8 @@ slots_cruce_dia2 AS (
   SELECT icp.*, gs.slot_inicio
   FROM instalaciones_con_plan icp
   CROSS JOIN LATERAL generate_series(
-    ((icp.fecha + 1)::timestamp),
-    (((icp.fecha + 1)::date + icp.ventana_fin::time)::timestamp),
+    (icp.fecha::timestamp),
+    (icp.fecha::timestamp + icp.ventana_fin::time),
     make_interval(mins => icp.intervalo_minutos)
   ) AS gs(slot_inicio)
   WHERE icp.ventana_inicio >= icp.ventana_fin
