@@ -850,7 +850,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
             )}
 
             {/* Botón Eliminar cobertura para PPC - aparece si tiene cobertura O está en estado sin_cobertura */}
-            {((puesto.cobertura_real && (puesto.estado === 'trabajado' || puesto.estado === 'reemplazo')) || puesto.estado === 'sin_cobertura') && (
+            {((puesto.cobertura_real && (puesto.estado === 'trabajado' || puesto.estado === 'reemplazo' || puesto.estado === 'extra')) || puesto.estado === 'sin_cobertura') && (
               <Button 
                 size="sm" 
                 variant="outline" 

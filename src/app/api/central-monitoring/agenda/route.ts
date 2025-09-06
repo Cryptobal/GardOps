@@ -15,6 +15,8 @@ export async function GET(request: NextRequest) {
     const instalacionFilter = searchParams.get('instalacion');
     const guardiaFilter = searchParams.get('guardia');
 
+    console.log(`🔍 [CENTRAL-MONITORING] Consultando llamados para fecha: ${fecha}, timezone: ${tz}`);
+
     // Obtener llamados desde la vista automática
     let query = `
       SELECT 
@@ -66,7 +68,26 @@ export async function GET(request: NextRequest) {
 
     query += ` ORDER BY programado_para ASC`;
 
+    console.log(`📊 [CENTRAL-MONITORING] Query final: ${query.substring(0, 200)}...`);
+    console.log(`📊 [CENTRAL-MONITORING] Parámetros: ${JSON.stringify(params)}`);
+
     const result = await sql.query(query, params);
+    
+    console.log(`✅ [CENTRAL-MONITORING] Llamados encontrados: ${result.rows.length}`);
+    if (result.rows.length > 0) {
+      console.log(`🔍 [CENTRAL-MONITORING] Primer llamado:`, {
+        instalacion: result.rows[0].instalacion_nombre,
+        programado_para: result.rows[0].programado_para,
+        es_actual: result.rows[0].es_actual,
+        es_proximo: result.rows[0].es_proximo,
+        es_urgente: result.rows[0].es_urgente
+      });
+    } else {
+      console.log(`⚠️ [CENTRAL-MONITORING] No se encontraron llamados. Posibles causas:`);
+      console.log(`   - No hay configuración en central_config_instalacion`);
+      console.log(`   - No hay turnos con estado 'planificado' para la fecha`);
+      console.log(`   - La vista central_v_llamados_automaticos está vacía`);
+    }
 
     return NextResponse.json({
       success: true,

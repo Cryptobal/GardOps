@@ -199,6 +199,114 @@ export async function PUT(req: NextRequest) {
         console.log(`✅ Inasistencia marcada para puesto ${turno.puesto_id}, día ${turno.dia}`);
         break;
 
+      case 'reemplazo':
+        // Asignar reemplazo
+        if (!guardiaId) {
+          return new Response('guardiaId es requerido para reemplazo', { status: 400 });
+        }
+        
+        console.log(`🔄 Asignando reemplazo: Guardia ${guardiaId} para puesto ${turno.puesto_id}`);
+        
+        await query(`
+          UPDATE as_turnos_pauta_mensual
+          SET 
+            estado = 'reemplazo',
+            estado_ui = 'reemplazo',
+            meta = COALESCE(meta, '{}'::jsonb) || jsonb_build_object(
+              'reemplazo_guardia_id', $5,
+              'marcado_por', 'ui:pauta-diaria',
+              'marcado_ts', NOW()::text,
+              'action', 'reemplazo',
+              'observaciones', $6
+            ),
+            updated_at = NOW()
+          WHERE puesto_id = $1 
+            AND anio = $2 
+            AND mes = $3 
+            AND dia = $4
+        `, [turno.puesto_id, turno.anio, turno.mes, turno.dia, guardiaId, observaciones || '']);
+        
+        console.log(`✅ Reemplazo asignado para puesto ${turno.puesto_id}, día ${turno.dia}`);
+        break;
+
+      case 'asignar_ppc':
+        // Asignar guardia a PPC
+        if (!guardiaId) {
+          return new Response('guardiaId es requerido para asignar PPC', { status: 400 });
+        }
+        
+        console.log(`🔄 Asignando PPC: Guardia ${guardiaId} para puesto ${turno.puesto_id}`);
+        
+        await query(`
+          UPDATE as_turnos_pauta_mensual
+          SET 
+            estado = 'extra',
+            estado_ui = 'extra',
+            meta = COALESCE(meta, '{}'::jsonb) || jsonb_build_object(
+              'cobertura_guardia_id', $5,
+              'marcado_por', 'ui:pauta-diaria',
+              'marcado_ts', NOW()::text,
+              'action', 'ppc_cobertura',
+              'observaciones', $6
+            ),
+            updated_at = NOW()
+          WHERE puesto_id = $1 
+            AND anio = $2 
+            AND mes = $3 
+            AND dia = $4
+        `, [turno.puesto_id, turno.anio, turno.mes, turno.dia, guardiaId, observaciones || '']);
+        
+        console.log(`✅ PPC asignado para puesto ${turno.puesto_id}, día ${turno.dia}`);
+        break;
+
+      case 'sin_cobertura':
+        // Marcar como sin cobertura
+        console.log(`🔄 Marcando sin cobertura para puesto ${turno.puesto_id}`);
+        
+        await query(`
+          UPDATE as_turnos_pauta_mensual
+          SET 
+            estado = 'sin_cobertura',
+            estado_ui = 'sin_cobertura',
+            meta = COALESCE(meta, '{}'::jsonb) || jsonb_build_object(
+              'marcado_por', 'ui:pauta-diaria',
+              'marcado_ts', NOW()::text,
+              'action', 'sin_cobertura',
+              'observaciones', $5
+            ),
+            updated_at = NOW()
+          WHERE puesto_id = $1 
+            AND anio = $2 
+            AND mes = $3 
+            AND dia = $4
+        `, [turno.puesto_id, turno.anio, turno.mes, turno.dia, observaciones || '']);
+        
+        console.log(`✅ Marcado sin cobertura para puesto ${turno.puesto_id}, día ${turno.dia}`);
+        break;
+
+      case 'agregar_observaciones':
+        // Agregar o actualizar observaciones
+        console.log(`🔄 Actualizando observaciones para puesto ${turno.puesto_id}`);
+        
+        await query(`
+          UPDATE as_turnos_pauta_mensual
+          SET 
+            meta = COALESCE(meta, '{}'::jsonb) || jsonb_build_object(
+              'observaciones', $5,
+              'marcado_por', 'ui:pauta-diaria',
+              'marcado_ts', NOW()::text,
+              'action', 'observaciones'
+            ),
+            updated_at = NOW()
+          WHERE puesto_id = $1 
+            AND anio = $2 
+            AND mes = $3 
+            AND dia = $4
+        `, [turno.puesto_id, turno.anio, turno.mes, turno.dia, observaciones || '']);
+        
+        console.log(`✅ Observaciones actualizadas para puesto ${turno.puesto_id}, día ${turno.dia}`);
+        break;
+
       default:
         return new Response(`Acción no válida: ${accion}`, { status: 400 });
     }
