@@ -30,8 +30,8 @@ interface GuardiaSearchModalProps {
   title?: string;
   instalacionId?: string;
   instalacionNombre?: string;
-  // Props específicas para Pauta Diaria
-  mode?: 'instalaciones' | 'pauta-diaria';
+  // Props específicas para Pauta Diaria y Pauta Mensual
+  mode?: 'instalaciones' | 'pauta-diaria' | 'pauta-mensual';
   fecha?: string;
   rolNombre?: string;
   instalacionNombrePauta?: string;
@@ -94,8 +94,8 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
 
   // Manejar selección de guardia
   const handleSelectGuardia = (guardia: Guardia) => {
-    if (mode === 'pauta-diaria') {
-      // En Pauta Diaria, no validamos instalaciones, solo seleccionamos
+    if (mode === 'pauta-diaria' || mode === 'pauta-mensual') {
+      // En Pauta Diaria y Pauta Mensual, no validamos instalaciones, solo seleccionamos
       onSelectGuardia(guardia.id);
       setSearchTerm("");
       onClose();
@@ -149,13 +149,13 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
         </CardHeader>
         
         <CardContent className="space-y-4">
-          {/* Información contextual para Pauta Diaria */}
-          {mode === 'pauta-diaria' && (
+          {/* Información contextual para Pauta Diaria y Pauta Mensual */}
+          {(mode === 'pauta-diaria' || mode === 'pauta-mensual') && (
             <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-md border border-blue-200 dark:border-blue-800">
               <div className="text-sm text-blue-800 dark:text-blue-200">
                 <p><strong>Instalación:</strong> {instalacionNombrePauta}</p>
                 {rolNombre && <p><strong>Rol:</strong> {rolNombre}</p>}
-                {fecha && <p><strong>Fecha:</strong> {fecha}</p>}
+                {fecha && <p><strong>{mode === 'pauta-mensual' ? 'Período:' : 'Fecha:'}</strong> {fecha}</p>}
               </div>
             </div>
           )}

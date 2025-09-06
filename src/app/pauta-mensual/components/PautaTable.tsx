@@ -4,9 +4,11 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
 import { Button } from "../../../components/ui/button";
-import { Trash2, Info, Calendar, Users, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trash2, Info, Calendar, Users, ExternalLink, ChevronLeft, ChevronRight, UserPlus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../../components/ui/dialog";
 import ConfirmDeleteModal from "../../../components/ui/confirm-delete-modal";
+import { GuardiaSearchModal } from "../../../components/ui/guardia-search-modal";
+import { useToast } from "../../../components/ui/toast";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -491,6 +493,17 @@ export default function PautaTable({
     guardiaIndex: null
   });
 
+  // Estado para el modal de asignación de guardia a PPC
+  const [asignacionModal, setAsignacionModal] = useState<{
+    isOpen: boolean;
+    ppcData: PautaGuardia | null;
+  }>({
+    isOpen: false,
+    ppcData: null
+  });
+
+  const { toast } = useToast();
+
   const { width } = useWindowSize();
 
   // Obtener el año y mes actual para los feriados
@@ -553,6 +566,57 @@ export default function PautaTable({
       diaSeleccionado: dayNumber,
       diaSemanaSeleccionado: diaInfo?.diaSemana || ''
     });
+  };
+
+  // Funciones para manejar asignación de guardia a PPC
+  const openAsignacionModal = (ppcData: PautaGuardia) => {
+    console.log('🎯 Abriendo modal de asignación para PPC:', ppcData);
+    setAsignacionModal({
+      isOpen: true,
+      ppcData
+    });
+  };
+
+  const closeAsignacionModal = () => {
+    setAsignacionModal({
+      isOpen: false,
+      ppcData: null
+    });
+  };
+
+  const handleGuardiaSeleccionado = async (guardiaId: string) => {
+    if (!asignacionModal.ppcData) return;
+
+    try {
+      console.log('🔄 Asignando guardia:', guardiaId, 'a PPC:', asignacionModal.ppcData.id);
+      
+      const response = await fetch('/api/ppc/asignar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          guardia_id: guardiaId,
+          puesto_operativo_id: asignacionModal.ppcData.id
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al asignar guardia');
+      }
+      
+      toast.success('Guardia asignado correctamente', 'Éxito');
+      closeAsignacionModal();
+      
+      // Recargar la página para mostrar los cambios
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('Error asignando guardia:', error);
+      toast.error('No se pudo asignar el guardia', 'Error');
+    }
   };
 
   const autocompletarPauta = (diaInicio: number) => {
@@ -789,9 +853,20 @@ export default function PautaTable({
                           <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight">
                             <span className="font-medium">{guardia.nombre_puesto}</span>
                             {guardia.es_ppc && (
-                              <span className="ml-2 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-xs font-medium">
-                                PPC
-                              </span>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-xs font-medium">
+                                  PPC
+                                </span>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => openAsignacionModal(guardia)}
+                                  className="h-5 px-2 text-xs"
+                                >
+                                  <UserPlus className="h-3 w-3 mr-1" />
+                                  Asignar
+                                </Button>
+                              </div>
                             )}
                           </div>
                           {/* Rol de servicio */}
@@ -851,6 +926,19 @@ export default function PautaTable({
         title="Eliminar Turnos Asignados"
         message={`¿Estás seguro de que quieres eliminar todos los turnos asignados de ${deleteModal.guardiaIndex !== null ? pautaDataOrdenada[deleteModal.guardiaIndex]?.nombre : ''}? Esta acción limpiará la programación pero mantendrá al guardia en la lista.`}
       />
+
+      {/* Modal de asignación de guardia a PPC */}
+      {asignacionModal.isOpen && asignacionModal.ppcData && (
+        <GuardiaSearchModal
+          isOpen={asignacionModal.isOpen}
+          onClose={closeAsignacionModal}
+          onSelectGuardia={handleGuardiaSeleccionado}
+          mode="pauta-mensual"
+          instalacionNombrePauta={asignacionModal.ppcData.nombre_puesto}
+          rolNombre={asignacionModal.ppcData.rol_nombre}
+          fecha={`${anio || new Date().getFullYear()}-${(mes || new Date().getMonth() + 1).toString().padStart(2, '0')}`}
+        />
+      )}
     </div>
   );
 } 
