@@ -106,6 +106,13 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   });
 
   // 🔍 DEBUG: Mostrar datos de todas las filas para identificar PPCs
+  console.log('📊 DEBUG RAW ROWS:', {
+    rawRows,
+    type: typeof rawRows,
+    isArray: Array.isArray(rawRows),
+    length: rawRows?.length
+  });
+  
   if (rawRows && rawRows.length > 0) {
     console.log('📊 DATOS DE FILAS RECIBIDAS:', rawRows.map(row => ({
       pauta_id: row.pauta_id,
@@ -117,6 +124,8 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       guardia_trabajo_nombre: row.guardia_trabajo_nombre,
       isPpcPlan: row.es_ppc === true && (row.estado_ui === 'plan' || row.estado_ui === 'ppc_libre')
     })));
+  } else {
+    console.log('❌ NO HAY DATOS DE FILAS:', { rawRows, length: rawRows?.length });
   }
   
   const router = useRouter();
