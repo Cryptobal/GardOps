@@ -63,9 +63,10 @@ export function LlamadoCard({ llamado, onRegistrar, onWhatsApp, onObservacionesU
   const ahora = new Date();
   const programadoPara = new Date(llamado.programado_para);
   const minutosDiff = Math.floor((ahora.getTime() - programadoPara.getTime()) / 60000);
-  // Usar campos calculados de la vista automática si están disponibles
-  const esUrgente = llamado.es_urgente || (llamado.estado === 'pendiente' && minutosDiff > 15);
-  const esActual = llamado.es_actual || Math.abs(minutosDiff) <= 30;
+  
+  // Lógica corregida: solo urgente si ya pasó la hora Y tiene atraso
+  const esUrgente = llamado.estado === 'pendiente' && minutosDiff > 15; // Solo si ya pasó +15 min
+  const esActual = Math.abs(minutosDiff) <= 30;
   const esCompletado = llamado.estado !== 'pendiente';
   
   const getEstadoBadge = () => {
@@ -108,7 +109,7 @@ export function LlamadoCard({ llamado, onRegistrar, onWhatsApp, onObservacionesU
       <Badge className={`${config.color} text-white flex items-center gap-1`}>
         {config.icon}
         {config.label}
-        {esUrgente && llamado.estado === 'pendiente' && (
+        {esUrgente && llamado.estado === 'pendiente' && minutosDiff > 0 && (
           <span className="ml-1 text-xs">({minutosDiff} min atrasado)</span>
         )}
       </Badge>
