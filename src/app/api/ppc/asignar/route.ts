@@ -114,9 +114,23 @@ export async function POST(request: NextRequest) {
 
       console.log(`✅ [ASIGNACIÓN] Guardia ${guardia_id} asignado al puesto ${puesto_operativo_id}`);
 
-      // TEMPORALMENTE DESHABILITADO: Sincronización de pautas
-      console.log(`⚠️ [SYNC] Sincronización temporalmente deshabilitada para evitar errores`);
-      console.log(`📝 [SYNC] Asignación completada sin sincronización de pautas`);
+      // REHABILITADO: Sincronización de pautas CORREGIDA
+      console.log(`🔄 [SYNC] Iniciando sincronización de pautas...`);
+      const syncResult = await sincronizarPautasPostAsignacion(
+        puesto_operativo_id,
+        guardia_id,
+        puesto.instalacion_id,
+        puesto.rol_id
+      );
+
+      if (!syncResult.success) {
+        console.error(`❌ [SYNC] Error en sincronización:`, syncResult.error);
+        // NO fallar la asignación principal por error de sincronización
+        // Solo loggear el error para debugging
+        console.warn(`⚠️ [SYNC] Asignación completada pero sincronización falló: ${syncResult.error}`);
+      } else {
+        console.log(`✅ [SYNC] Pautas sincronizadas exitosamente - visible en Pauta Diaria`);
+      }
 
       // Confirmar transacción
       await query('COMMIT');

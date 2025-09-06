@@ -10,7 +10,7 @@ export async function sincronizarPautasPostAsignacion(
   instalacionId: string,
   rolId: string
 ) {
-  console.log(`🔄 [SYNC] Iniciando sincronización SIMPLE para puesto ${puestoId}, guardia ${guardiaId}`);
+  console.log(`🔄 [SYNC] Iniciando sincronización CORREGIDA para puesto ${puestoId}, guardia ${guardiaId}`);
   
   try {
     const fechaActual = new Date();
@@ -20,9 +20,9 @@ export async function sincronizarPautasPostAsignacion(
 
     console.log(`📅 [SYNC] Sincronizando para fecha: ${anio}-${mes}-${dia}`);
 
-    // VERSIÓN SIMPLE: Solo actualizar el día actual en pauta diaria
+    // CORRECCIÓN: Actualizar as_turnos_pauta_mensual (que es lo que lee Pauta Diaria)
     await query(`
-      INSERT INTO as_turnos_pauta_diaria (
+      INSERT INTO as_turnos_pauta_mensual (
         puesto_id, guardia_id, anio, mes, dia, estado, estado_ui, created_at, updated_at
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
       ON CONFLICT (puesto_id, anio, mes, dia)
@@ -33,7 +33,7 @@ export async function sincronizarPautasPostAsignacion(
         updated_at = NOW()
     `, [puestoId, guardiaId, anio, mes, dia, 'planificado', 'plan']);
 
-    console.log(`✅ [SYNC] Sincronización SIMPLE completada exitosamente`);
+    console.log(`✅ [SYNC] Pauta mensual actualizada - ahora visible en Pauta Diaria`);
     return { success: true };
 
   } catch (error) {
