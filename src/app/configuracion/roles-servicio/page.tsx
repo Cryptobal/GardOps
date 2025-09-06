@@ -24,7 +24,7 @@ import { ordenarRolesPorPatron, extraerPatronesUnicos, filtrarRolesPorPatron, ex
 import { analizarTodosLosRoles, crearDatosReplicacion } from '@/lib/utils/detectar-similes-roles';
 import { obtenerInfoJornada } from '@/lib/utils/calcular-horas-semanales';
 import WizardSeriesTurnosV2 from '@/components/roles-servicio/WizardSeriesTurnosV2';
-import { TooltipHorarios } from '@/components/ui/tooltip-horarios';
+import { TooltipSimple } from '@/components/ui/tooltip-simple';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -503,27 +503,38 @@ export default function RolesServicioPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm">
-                        {(() => {
-                          const infoJornada = obtenerInfoJornada(rol);
-                          return (
-                            <TooltipHorarios 
-                              horarios={infoJornada.resumenHorario.horarios}
-                              esVariable={infoJornada.resumenHorario.esVariable}
-                            >
-                              <span className="flex items-center gap-1">
+                        <div className="text-sm">
+                          {(() => {
+                            const infoJornada = obtenerInfoJornada(rol);
+                            
+                            if (infoJornada.resumenHorario.esVariable) {
+                              return (
+                                <TooltipSimple
+                                  titulo="Horarios Variables"
+                                  contenido={[
+                                    'Este rol tiene horarios personalizados por día',
+                                    'Cada día del ciclo puede tener horarios diferentes',
+                                    'Configurado individualmente en el wizard',
+                                    `Promedio: ${rol.horas_turno}h por día de trabajo`
+                                  ]}
+                                  esVariable={true}
+                                >
+                                  <span className="flex items-center gap-1">
+                                    {infoJornada.resumenHorario.texto}
+                                    <span className="text-blue-500 text-xs">*</span>
+                                    <Clock className="h-3 w-3 text-blue-400 ml-1" />
+                                  </span>
+                                </TooltipSimple>
+                              );
+                            }
+                            
+                            return (
+                              <span>
                                 {infoJornada.resumenHorario.texto}
-                                {infoJornada.resumenHorario.esVariable && (
-                                  <span className="text-blue-500 text-xs">*</span>
-                                )}
-                                {infoJornada.resumenHorario.esVariable && (
-                                  <Clock className="h-3 w-3 text-blue-400 ml-1" />
-                                )}
                               </span>
-                            </TooltipHorarios>
-                          );
-                        })()}
-                      </div>
+                            );
+                          })()}
+                        </div>
                     </TableCell>
                     
                     {/* Nueva columna: Horas Semanales */}

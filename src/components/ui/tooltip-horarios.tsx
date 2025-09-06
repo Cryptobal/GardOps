@@ -69,10 +69,14 @@ export function TooltipHorarios({ children, horarios, esVariable }: TooltipHorar
                            horario.dia === 'V' ? 'Viernes' :
                            horario.dia === 'S' ? 'Sábado' :
                            horario.dia === 'D' ? 'Domingo' :
+                           horario.dia === 'L-J' ? 'Lunes a Jueves' :
+                           horario.dia === 'ℹ️' ? 'Información' :
                            `Día ${horario.dia}`}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
-                          Día {index + 1} del ciclo
+                          {horario.dia === 'L-J' || horario.dia === 'V' || horario.dia === 'ℹ️' ? 
+                            'Configuración personalizada' : 
+                            `Día ${index + 1} del ciclo`}
                         </div>
                       </div>
                     </div>
