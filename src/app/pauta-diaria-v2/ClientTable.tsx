@@ -97,6 +97,14 @@ const renderEstado = (estadoUI: string, isFalta: boolean) => {
 };
 
 export default function ClientTable({ rows: rawRows, fecha, incluirLibres = false, onRecargarDatos, activeTab = 'pauta' }: PautaDiariaV2Props) {
+  
+  // 🔍 DEBUG: Confirmar que el nuevo código se está ejecutando
+  console.log('🚀 ClientTable V2 CARGADO - Debugging activo:', {
+    fecha,
+    rowsLength: rawRows?.length || 0,
+    timestamp: new Date().toISOString()
+  });
+  
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
