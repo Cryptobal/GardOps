@@ -53,7 +53,9 @@ export function calcularHorasSemanales(rol: RolServicio, seriesDias?: any[]): Ca
     // Calcular horas por semana basado en el ciclo
     const duracionCicloRaw = rol.duracion_ciclo_dias;
     const duracionCicloCalculada = Number(rol.dias_trabajo) + Number(rol.dias_descanso);
-    const duracionCiclo = Number(duracionCicloRaw) || duracionCicloCalculada || 7;
+    
+    // USAR SIEMPRE EL CALCULADO - el valor en BD puede estar mal
+    const duracionCiclo = duracionCicloCalculada || 7;
     
     console.log('🔍 Debug duración ciclo:', { 
       duracion_ciclo_dias: duracionCicloRaw,
