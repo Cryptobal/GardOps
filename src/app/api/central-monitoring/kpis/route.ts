@@ -32,11 +32,10 @@ export async function GET(request: NextRequest) {
           THEN 1 
         END) as proximos,
         
-        -- No Realizados: llamados que ya pasaron su hora Y siguen pendientes
+        -- No Realizados: llamados que ya pasaron su hora programada Y siguen pendientes
         COUNT(CASE 
           WHEN programado_para < now()
            AND (estado_llamado IS NULL OR estado_llamado = 'pendiente')
-           AND DATE(programado_para) < CURRENT_DATE  -- Solo días anteriores
           THEN 1 
         END) as no_realizados,
         
