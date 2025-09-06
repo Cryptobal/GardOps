@@ -57,8 +57,29 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
   const [showWarning, setShowWarning] = React.useState(false);
   const [guardiaConAdvertencia, setGuardiaConAdvertencia] = React.useState<Guardia | null>(null);
 
-  // Filtrar guardias - asegurar que guardias sea un array
-  const guardiasArray = Array.isArray(guardias) ? guardias : [];
+  // DEBUGGING: Log del estado de guardias
+  console.log('🔍 GuardiaSearchModal - Estado de guardias:', {
+    guardias,
+    isArray: Array.isArray(guardias),
+    type: typeof guardias,
+    length: guardias?.length,
+    keys: guardias ? Object.keys(guardias) : 'N/A'
+  });
+
+  // Filtrar guardias - asegurar que guardias sea un array con validación robusta
+  const guardiasArray = (() => {
+    if (Array.isArray(guardias)) {
+      console.log('✅ Guardias es un array válido:', guardias.length);
+      return guardias;
+    }
+    if (guardias && typeof guardias === 'object' && guardias.data && Array.isArray(guardias.data)) {
+      console.log('✅ Guardias tiene estructura {data: []}:', guardias.data.length);
+      return guardias.data;
+    }
+    console.log('⚠️ Guardias no es un array, usando array vacío');
+    return [];
+  })();
+  
   const filteredGuardias = guardiasArray.filter(guardia => {
     if (!searchTerm.trim()) return true;
     

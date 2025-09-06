@@ -415,12 +415,22 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    const result = await query(sql, params);
-    
-    return NextResponse.json({
-      success: true,
-      log: result.rows[0]
-    });
+    try {
+      const result = await query(sql, params);
+      
+      return NextResponse.json({
+        success: true,
+        log: result.rows[0]
+      });
+    } catch (logError) {
+      // Si falla el logging, no fallar la operación principal
+      console.warn('⚠️ Error registrando log (no crítico):', logError);
+      return NextResponse.json({
+        success: true,
+        warning: 'Log no registrado debido a error de base de datos',
+        log: null
+      });
+    }
 
   } catch (error) {
     console.error('Error registrando log:', error);
