@@ -4,7 +4,7 @@ import { sql } from '@vercel/postgres';
 
 export async function GET(request: NextRequest) {
   // Permitir acceso temporal sin autenticación estricta (tanto en desarrollo como producción)
-  console.log('🔍 Central Monitoring KPIs: Acceso temporal permitido');
+  console.log('🔍 Central Monitoring KPIs: Acceso temporal permitido - FIXED VERSION');
   
   try {
     const { searchParams } = new URL(request.url);
