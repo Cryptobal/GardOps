@@ -471,11 +471,19 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     try {
       setSavingId(row.pauta_id);
       // Usar marcarTurnoExtra para PPC - pasar row completo para nueva API
-      await api.marcarTurnoExtra(
+      console.log('🔍 Llamando marcarTurnoExtra con:', {
+        pauta_id: row.pauta_id,
+        guardia_id: panelData.guardiaReemplazo,
+        row: row
+      });
+      
+      const result = await api.marcarTurnoExtra(
         row.pauta_id,
         panelData.guardiaReemplazo,
         row // Pasar la fila completa con fecha, instalacion_id, rol_id, puesto_id
       );
+      
+      console.log('✅ Resultado de marcarTurnoExtra:', result);
       addToast({
         title: "✅ Éxito",
         description: "Turno PPC cubierto",
