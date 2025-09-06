@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MilitaryTimeSelect } from '@/components/ui/military-time-select';
 import { Satellite, Clock, MessageSquare, Phone, Save, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { getCurrentUser } from '@/lib/auth-client';
@@ -239,16 +240,16 @@ export default function MonitoreoInstalacion({ instalacionId, instalacionNombre 
             <div className="space-y-2">
               <Label className="text-sm">Ventana de Monitoreo</Label>
               <div className="grid grid-cols-2 gap-2">
-                <Input
-                  type="time"
+                <MilitaryTimeSelect
                   value={config.ventana_inicio}
-                  onChange={(e) => setConfig(prev => ({ ...prev, ventana_inicio: e.target.value }))}
+                  onValueChange={(value) => setConfig(prev => ({ ...prev, ventana_inicio: value }))}
+                  placeholder="Hora inicio"
                   className="h-8 text-sm"
                 />
-                <Input
-                  type="time"
+                <MilitaryTimeSelect
                   value={config.ventana_fin}
-                  onChange={(e) => setConfig(prev => ({ ...prev, ventana_fin: e.target.value }))}
+                  onValueChange={(value) => setConfig(prev => ({ ...prev, ventana_fin: value }))}
+                  placeholder="Hora fin"
                   className="h-8 text-sm"
                 />
               </div>

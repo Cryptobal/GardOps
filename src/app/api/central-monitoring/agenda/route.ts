@@ -11,7 +11,15 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const fecha = searchParams.get('fecha') || new Date().toISOString().split('T')[0];
-    const tz = searchParams.get('tz') || 'America/Santiago';
+    
+    // Obtener zona horaria desde configuración de sistema
+    const configResult = await sql`
+      SELECT zona_horaria FROM configuracion_sistema 
+      WHERE tenant_id IS NULL 
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `;
+    const tz = configResult.rows[0]?.zona_horaria || searchParams.get('tz') || 'America/Santiago';
     const instalacionFilter = searchParams.get('instalacion');
     const guardiaFilter = searchParams.get('guardia');
 
