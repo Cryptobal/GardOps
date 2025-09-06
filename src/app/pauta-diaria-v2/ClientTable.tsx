@@ -98,12 +98,14 @@ const renderEstado = (estadoUI: string, isFalta: boolean) => {
 
 export default function ClientTable({ rows: rawRows, fecha, incluirLibres = false, onRecargarDatos, activeTab = 'pauta' }: PautaDiariaV2Props) {
   
-  // DEBUG: Ver datos de filas y identificar PPCs
+  // FORCE DEPLOYMENT - DEBUG PPC
+  console.log('🚀 PAUTA DIARIA V2 - FORCE DEPLOYMENT:', new Date().toISOString());
+  
   if (rawRows && rawRows.length > 0) {
     const ppcs = rawRows.filter(row => row.es_ppc === true);
     console.log('🎯 PPCs encontrados:', ppcs.length);
     ppcs.forEach(ppc => {
-      console.log(`PPC: ${ppc.instalacion_nombre} - ${ppc.puesto_nombre} - Estado: ${ppc.estado_ui} - isPpcPlan: ${ppc.es_ppc === true && (ppc.estado_ui === 'plan' || ppc.estado_ui === 'ppc_libre')}`);
+      console.log(`PPC: ${ppc.instalacion_nombre} - ${ppc.puesto_nombre} - Estado: ${ppc.estado_ui}`);
     });
   }
   
@@ -848,13 +850,8 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                     <Select 
                       value={panelData.guardiaReemplazo || ''} 
                       onValueChange={(value) => {
-                        console.log('🔄 Select onValueChange - PPC:', {
-                          value,
-                          previousValue: panelData.guardiaReemplazo,
-                          rowId: row.pauta_id
-                        });
+                        console.log('🔄 PPC SELECT CHANGED:', value);
                         updatePanelData({ guardiaReemplazo: value });
-                        console.log('✅ updatePanelData llamado con:', { guardiaReemplazo: value });
                       }}
                       disabled={panelData.loadingGuardias || guardiasFiltradas.length === 0}
                     >
@@ -898,7 +895,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                     <Button 
                       size="sm"
                       onClick={() => {
-                        console.log('🖱️ CONFIRMAR PPC CLICKED:', row.pauta_id, panelData.guardiaReemplazo);
+                        console.log('🖱️ CONFIRMAR CLICKED:', panelData.guardiaReemplazo);
                         onCubrirPPC(row);
                       }}
                       disabled={isLoading || !panelData.guardiaReemplazo}
