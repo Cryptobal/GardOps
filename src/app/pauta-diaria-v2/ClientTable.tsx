@@ -98,44 +98,13 @@ const renderEstado = (estadoUI: string, isFalta: boolean) => {
 
 export default function ClientTable({ rows: rawRows, fecha, incluirLibres = false, onRecargarDatos, activeTab = 'pauta' }: PautaDiariaV2Props) {
   
-  // 🔍 DEBUG: Confirmar que el nuevo código se está ejecutando
-  console.log('🚀 ClientTable V2 CARGADO - Debugging activo:', {
-    fecha,
-    rowsLength: rawRows?.length || 0,
-    timestamp: new Date().toISOString()
-  });
-
-  // 🔍 DEBUG: Mostrar datos de todas las filas para identificar PPCs
-  console.log('📊 DEBUG RAW ROWS:', {
-    rawRows,
-    type: typeof rawRows,
-    isArray: Array.isArray(rawRows),
-    length: rawRows?.length
-  });
-  
+  // DEBUG: Ver datos de filas y identificar PPCs
   if (rawRows && rawRows.length > 0) {
-    try {
-      console.log('🔍 INTENTANDO MAPEAR DATOS...');
-      const mappedData = rawRows.map((row, index) => {
-        console.log(`🔍 Procesando fila ${index}:`, row);
-        return {
-          pauta_id: row.pauta_id,
-          puesto_nombre: row.puesto_nombre,
-          instalacion_nombre: row.instalacion_nombre,
-          es_ppc: row.es_ppc,
-          estado_ui: row.estado_ui,
-          hora_inicio: row.hora_inicio,
-          guardia_trabajo_nombre: row.guardia_trabajo_nombre,
-          isPpcPlan: row.es_ppc === true && (row.estado_ui === 'plan' || row.estado_ui === 'ppc_libre')
-        };
-      });
-      console.log('📊 DATOS DE FILAS RECIBIDAS:', mappedData);
-    } catch (error) {
-      console.error('❌ ERROR AL MAPEAR DATOS:', error);
-      console.log('📊 RAW ROWS SIN MAPEAR:', rawRows);
-    }
-  } else {
-    console.log('❌ NO HAY DATOS DE FILAS:', { rawRows, length: rawRows?.length });
+    const ppcs = rawRows.filter(row => row.es_ppc === true);
+    console.log('🎯 PPCs encontrados:', ppcs.length);
+    ppcs.forEach(ppc => {
+      console.log(`PPC: ${ppc.instalacion_nombre} - ${ppc.puesto_nombre} - Estado: ${ppc.estado_ui} - isPpcPlan: ${ppc.es_ppc === true && (ppc.estado_ui === 'plan' || ppc.estado_ui === 'ppc_libre')}`);
+    });
   }
   
   const router = useRouter();
@@ -272,12 +241,6 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
 
   // Función para cargar guardias disponibles
   const loadGuardias = useCallback(async (row: PautaRow, excluirGuardiaId?: string) => {
-    console.log('🔄 loadGuardias INICIADO:', {
-      rowId: row.pauta_id,
-      fecha,
-      instalacion_id: row.instalacion_id,
-      excluirGuardiaId
-    });
     const fechaNorm = toYmd(fecha);
     const url = new URL('/api/guardias/disponibles', location.origin);
     url.searchParams.set('fecha', fechaNorm);
@@ -483,30 +446,13 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   }
 
   async function onCubrirPPC(row: PautaRow) {
-    console.log('🔄 onCubrirPPC INICIADO:', {
-      row,
-      rowPanelData: rowPanelData[row.pauta_id],
-      allRowPanelData: rowPanelData
-    });
-    
     const panelData = rowPanelData[row.pauta_id];
-    
-    if (!panelData?.guardiaReemplazo) {
-      console.error('❌ ERROR: No hay guardiaReemplazo seleccionado:', {
-        panelData,
-        guardiaReemplazo: panelData?.guardiaReemplazo
-      });
-      return;
-    }
-
-    console.log('✅ Guardia seleccionado:', panelData.guardiaReemplazo);
+    if (!panelData?.guardiaReemplazo) return;
 
     // Validar que el guardia de cobertura no esté asignado a otro turno
     try {
       validarGuardiaDisponible(panelData.guardiaReemplazo, row.fecha, row.pauta_id);
-      console.log('✅ Validación de disponibilidad pasó');
     } catch (error: any) {
-      console.error('❌ Error de validación:', error);
       addToast({
         title: "❌ Error de validación",
         description: error.message,
@@ -715,26 +661,13 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     }, [panelData.guardias, panelData.filtroGuardias]);
 
     const updatePanelData = (updates: Partial<typeof panelData>) => {
-      console.log('🔄 updatePanelData DESKTOP llamado:', {
-        rowId: row.pauta_id,
-        updates,
-        prevData: rowPanelData[row.pauta_id]
-      });
-      
-      setRowPanelData(prev => {
-        const newData = {
-          ...prev,
-          [row.pauta_id]: {
-            ...prev[row.pauta_id],
-            ...updates
-          }
-        };
-        console.log('✅ updatePanelData DESKTOP completado:', {
-          rowId: row.pauta_id,
-          newRowData: newData[row.pauta_id]
-        });
-        return newData;
-      });
+      setRowPanelData(prev => ({
+        ...prev,
+        [row.pauta_id]: {
+          ...prev[row.pauta_id],
+          ...updates
+        }
+      }));
     };
 
     // No usar useEffect para cargar guardias, se hace directamente en onClick para evitar loops
@@ -1018,13 +951,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                         className="flex-1"
                         disabled={isLoading} 
                         onClick={() => {
-                          console.log('🖱️ BOTÓN CUBRIR CLICKED:', {
-                            row,
-                            rowPanelData: rowPanelData[row.pauta_id],
-                            expandedRowId,
-                            isLoading
-                          });
-                          
+                          console.log('🖱️ CUBRIR CLICKED - PPC ID:', row.pauta_id);
                           updatePanelData({ 
                             type: 'cubrir_ppc',
                             guardias: undefined,
@@ -1032,14 +959,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                             guardiaReemplazo: '',
                             filtroGuardias: ''
                           });
-                          
-                          console.log('✅ updatePanelData llamado para cubrir_ppc');
-                          
-                          // Cargar guardias para PPC
-                          setTimeout(() => {
-                            console.log('⏰ setTimeout ejecutado, llamando loadGuardias');
-                            loadGuardias(row);
-                          }, 0);
+                          setTimeout(() => loadGuardias(row), 0);
                         }}
                       >
                         👥 Cubrir
@@ -1086,20 +1006,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
 
     const panelData = rowPanelData[row.pauta_id] || {};
     const updatePanelData = (updates: any) => {
-      console.log('🔄 updatePanelData MÓVIL llamado:', {
-        rowId: row.pauta_id,
-        updates,
-        prevData: rowPanelData[row.pauta_id]
-      });
-      
-      setRowPanelData(prev => {
-        const newData = { ...prev, [row.pauta_id]: { ...prev[row.pauta_id], ...updates } };
-        console.log('✅ updatePanelData MÓVIL completado:', {
-          rowId: row.pauta_id,
-          newRowData: newData[row.pauta_id]
-        });
-        return newData;
-      });
+      setRowPanelData(prev => ({ ...prev, [row.pauta_id]: { ...prev[row.pauta_id], ...updates } }));
     };
 
     // Filtrado de guardias en móvil
