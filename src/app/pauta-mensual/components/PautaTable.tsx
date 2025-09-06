@@ -502,6 +502,10 @@ export default function PautaTable({
     ppcData: null
   });
 
+  // Estado para los guardias disponibles
+  const [guardiasDisponibles, setGuardiasDisponibles] = useState<any[]>([]);
+  const [cargandoGuardias, setCargandoGuardias] = useState(false);
+
   const { toast } = useToast();
 
   const { width } = useWindowSize();
@@ -568,9 +572,33 @@ export default function PautaTable({
     });
   };
 
+  // Función para cargar guardias disponibles
+  const cargarGuardias = async () => {
+    try {
+      setCargandoGuardias(true);
+      const response = await fetch('/api/guardias');
+      if (response.ok) {
+        const data = await response.json();
+        setGuardiasDisponibles(data);
+      } else {
+        console.error('Error cargando guardias:', response.statusText);
+        setGuardiasDisponibles([]);
+      }
+    } catch (error) {
+      console.error('Error cargando guardias:', error);
+      setGuardiasDisponibles([]);
+    } finally {
+      setCargandoGuardias(false);
+    }
+  };
+
   // Funciones para manejar asignación de guardia a PPC
-  const openAsignacionModal = (ppcData: PautaGuardia) => {
+  const openAsignacionModal = async (ppcData: PautaGuardia) => {
     console.log('🎯 Abriendo modal de asignación para PPC:', ppcData);
+    
+    // Cargar guardias antes de abrir el modal
+    await cargarGuardias();
+    
     setAsignacionModal({
       isOpen: true,
       ppcData
@@ -933,6 +961,8 @@ export default function PautaTable({
           isOpen={asignacionModal.isOpen}
           onClose={closeAsignacionModal}
           onSelectGuardia={handleGuardiaSeleccionado}
+          guardias={guardiasDisponibles}
+          loading={cargandoGuardias}
           mode="pauta-mensual"
           instalacionNombrePauta={asignacionModal.ppcData.nombre_puesto}
           rolNombre={asignacionModal.ppcData.rol_nombre}
