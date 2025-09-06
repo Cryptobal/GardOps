@@ -57,8 +57,9 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
   const [showWarning, setShowWarning] = React.useState(false);
   const [guardiaConAdvertencia, setGuardiaConAdvertencia] = React.useState<Guardia | null>(null);
 
-  // Filtrar guardias
-  const filteredGuardias = guardias.filter(guardia => {
+  // Filtrar guardias - asegurar que guardias sea un array
+  const guardiasArray = Array.isArray(guardias) ? guardias : [];
+  const filteredGuardias = guardiasArray.filter(guardia => {
     if (!searchTerm.trim()) return true;
     
     const filtro = searchTerm.toLowerCase().trim();
