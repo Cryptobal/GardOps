@@ -51,7 +51,17 @@ export function calcularHorasSemanales(rol: RolServicio, seriesDias?: any[]): Ca
     const totalHorasCiclo = diasTrabajo.reduce((sum, dia) => sum + (Number(dia.horas_turno) || 0), 0);
     
     // Calcular horas por semana basado en el ciclo
-    const duracionCiclo = Number(rol.duracion_ciclo_dias) || 7;
+    const duracionCicloRaw = rol.duracion_ciclo_dias;
+    const duracionCicloCalculada = Number(rol.dias_trabajo) + Number(rol.dias_descanso);
+    const duracionCiclo = Number(duracionCicloRaw) || duracionCicloCalculada || 7;
+    
+    console.log('🔍 Debug duración ciclo:', { 
+      duracion_ciclo_dias: duracionCicloRaw,
+      dias_trabajo: rol.dias_trabajo,
+      dias_descanso: rol.dias_descanso,
+      calculada: duracionCicloCalculada,
+      final: duracionCiclo
+    });
     
     // Para ciclos de 7 días, las horas del ciclo SON las horas semanales
     if (duracionCiclo === 7) {
