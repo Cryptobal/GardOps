@@ -12,6 +12,7 @@ interface TooltipHorariosProps {
 
 export function TooltipHorarios({ children, horarios, esVariable }: TooltipHorariosProps) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
   if (!esVariable || horarios.length === 0) {
     return <>{children}</>;
@@ -20,15 +21,35 @@ export function TooltipHorarios({ children, horarios, esVariable }: TooltipHorar
   return (
     <div className="relative inline-block">
       <div
-        onMouseEnter={() => setShowTooltip(true)}
-        onMouseLeave={() => setShowTooltip(false)}
+        onMouseEnter={() => {
+          if (timeoutId) clearTimeout(timeoutId);
+          setShowTooltip(true);
+        }}
+        onMouseLeave={() => {
+          const id = setTimeout(() => setShowTooltip(false), 300);
+          setTimeoutId(id);
+        }}
         className="cursor-help"
       >
         {children}
       </div>
       
       {showTooltip && (
-        <div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-3 animate-in fade-in-0 zoom-in-95 duration-200">
+        <>
+          {/* Área invisible para conectar trigger con tooltip */}
+          <div className="absolute z-40 bottom-0 left-1/2 transform -translate-x-1/2 w-full h-6"></div>
+          
+          <div 
+            className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-3 animate-in fade-in-0 zoom-in-95 duration-200"
+            onMouseEnter={() => {
+              if (timeoutId) clearTimeout(timeoutId);
+              setShowTooltip(true);
+            }}
+            onMouseLeave={() => {
+              const id = setTimeout(() => setShowTooltip(false), 150);
+              setTimeoutId(id);
+            }}
+          >
           <Card className="shadow-2xl border-blue-300 bg-gradient-to-br from-blue-50 to-white dark:from-gray-800 dark:to-gray-900 min-w-72 max-w-80">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-4">
@@ -94,7 +115,8 @@ export function TooltipHorarios({ children, horarios, esVariable }: TooltipHorar
               </div>
             </CardContent>
           </Card>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );
