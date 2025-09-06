@@ -436,13 +436,30 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   }
 
   async function onCubrirPPC(row: PautaRow) {
+    console.log('🔄 onCubrirPPC INICIADO:', {
+      row,
+      rowPanelData: rowPanelData[row.pauta_id],
+      allRowPanelData: rowPanelData
+    });
+    
     const panelData = rowPanelData[row.pauta_id];
-    if (!panelData?.guardiaReemplazo) return;
+    
+    if (!panelData?.guardiaReemplazo) {
+      console.error('❌ ERROR: No hay guardiaReemplazo seleccionado:', {
+        panelData,
+        guardiaReemplazo: panelData?.guardiaReemplazo
+      });
+      return;
+    }
+
+    console.log('✅ Guardia seleccionado:', panelData.guardiaReemplazo);
 
     // Validar que el guardia de cobertura no esté asignado a otro turno
     try {
       validarGuardiaDisponible(panelData.guardiaReemplazo, row.fecha, row.pauta_id);
+      console.log('✅ Validación de disponibilidad pasó');
     } catch (error: any) {
+      console.error('❌ Error de validación:', error);
       addToast({
         title: "❌ Error de validación",
         description: error.message,
@@ -832,7 +849,15 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                     
                     <Select 
                       value={panelData.guardiaReemplazo || ''} 
-                      onValueChange={(value) => updatePanelData({ guardiaReemplazo: value })}
+                      onValueChange={(value) => {
+                        console.log('🔄 Select onValueChange - PPC:', {
+                          value,
+                          previousValue: panelData.guardiaReemplazo,
+                          rowId: row.pauta_id
+                        });
+                        updatePanelData({ guardiaReemplazo: value });
+                        console.log('✅ updatePanelData llamado con:', { guardiaReemplazo: value });
+                      }}
                       disabled={panelData.loadingGuardias || guardiasFiltradas.length === 0}
                     >
                       <SelectTrigger className="w-full">
@@ -874,7 +899,15 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                     </Button>
                     <Button 
                       size="sm"
-                      onClick={() => onCubrirPPC(row)}
+                      onClick={() => {
+                        console.log('🖱️ CONFIRMAR PPC CLICKED - Estado actual:', {
+                          row,
+                          panelData,
+                          guardiaReemplazo: panelData.guardiaReemplazo,
+                          rowPanelData: rowPanelData[row.pauta_id]
+                        });
+                        onCubrirPPC(row);
+                      }}
                       disabled={isLoading || !panelData.guardiaReemplazo}
                     >
                       {isLoading ? 'Guardando...' : 'Confirmar'}
