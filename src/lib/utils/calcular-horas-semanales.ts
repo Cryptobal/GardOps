@@ -25,19 +25,44 @@ export interface ResumenHorario {
 export function calcularHorasSemanales(rol: RolServicio, seriesDias?: any[]): CalculoHorasSemanales {
   let horasSemanales = 0;
   
+  console.log('🔍 Calculando horas para rol:', { 
+    nombre: rol.nombre, 
+    tiene_horarios_variables: rol.tiene_horarios_variables,
+    horas_turno: rol.horas_turno,
+    dias_trabajo: rol.dias_trabajo,
+    dias_descanso: rol.dias_descanso,
+    seriesDias: seriesDias?.length || 0
+  });
+  
   // Si tiene horarios variables, calcular desde las series
   if (rol.tiene_horarios_variables && seriesDias && seriesDias.length > 0) {
     const diasTrabajo = seriesDias.filter(dia => dia.es_dia_trabajo);
-    const totalHorasCiclo = diasTrabajo.reduce((sum, dia) => sum + (dia.horas_turno || 0), 0);
+    const totalHorasCiclo = diasTrabajo.reduce((sum, dia) => sum + (Number(dia.horas_turno) || 0), 0);
     
     // Calcular horas por semana basado en el ciclo
-    const duracionCiclo = rol.duracion_ciclo_dias || 7;
+    const duracionCiclo = Number(rol.duracion_ciclo_dias) || 7;
     horasSemanales = Math.round((totalHorasCiclo * 7) / duracionCiclo);
+    
+    console.log('🔍 Cálculo desde series:', { totalHorasCiclo, duracionCiclo, horasSemanales });
   } else {
     // Para horarios fijos, usar cálculo tradicional
-    const horasPorDia = rol.horas_turno || 0;
-    const diasPorSemana = Math.round((rol.dias_trabajo * 7) / (rol.dias_trabajo + rol.dias_descanso));
-    horasSemanales = Math.round(horasPorDia * diasPorSemana);
+    const horasPorDia = Number(rol.horas_turno) || 0;
+    const diasTrabajo = Number(rol.dias_trabajo) || 0;
+    const diasDescanso = Number(rol.dias_descanso) || 0;
+    const totalDias = diasTrabajo + diasDescanso;
+    
+    if (totalDias > 0) {
+      const diasPorSemana = (diasTrabajo * 7) / totalDias;
+      horasSemanales = Math.round(horasPorDia * diasPorSemana);
+    }
+    
+    console.log('🔍 Cálculo tradicional:', { horasPorDia, diasTrabajo, diasDescanso, horasSemanales });
+  }
+  
+  // Validar que no sea NaN
+  if (isNaN(horasSemanales) || horasSemanales <= 0) {
+    console.warn('⚠️ Horas semanales inválidas, usando fallback');
+    horasSemanales = Number(rol.horas_turno) || 0;
   }
   
   // Determinar tipo de jornada según normativa chilena
