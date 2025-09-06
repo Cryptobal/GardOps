@@ -6,7 +6,7 @@ import { query } from '@/lib/database';
  */
 export async function sincronizarPautasPostAsignacion(
   puestoId: string,
-  guardiaId: string,
+  guardiaId: string | null,
   instalacionId: string,
   rolId: string
 ) {
@@ -20,20 +20,37 @@ export async function sincronizarPautasPostAsignacion(
 
     console.log(`📅 [SYNC] Sincronizando para fecha: ${anio}-${mes}-${dia}`);
 
-    // CORRECCIÓN: Actualizar as_turnos_pauta_mensual (que es lo que lee Pauta Diaria)
-    await query(`
-      INSERT INTO as_turnos_pauta_mensual (
-        puesto_id, guardia_id, anio, mes, dia, estado, estado_ui, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-      ON CONFLICT (puesto_id, anio, mes, dia)
-      DO UPDATE SET
-        guardia_id = EXCLUDED.guardia_id,
-        estado = EXCLUDED.estado,
-        estado_ui = EXCLUDED.estado_ui,
-        updated_at = NOW()
-    `, [puestoId, guardiaId, anio, mes, dia, 'planificado', 'plan']);
+    if (guardiaId === null) {
+      // DESASIGNACIÓN: Eliminar o marcar como PPC en as_turnos_pauta_mensual
+      console.log(`🗑️ [SYNC] Desasignando guardia - marcando como PPC`);
+      await query(`
+        UPDATE as_turnos_pauta_mensual 
+        SET guardia_id = NULL,
+            estado = 'ppc',
+            estado_ui = 'ppc',
+            updated_at = NOW()
+        WHERE puesto_id = $1 AND anio = $2 AND mes = $3 AND dia = $4
+      `, [puestoId, anio, mes, dia]);
+      
+      console.log(`✅ [SYNC] Pauta mensual actualizada - guardia desasignado`);
+    } else {
+      // ASIGNACIÓN: Actualizar as_turnos_pauta_mensual (que es lo que lee Pauta Diaria)
+      console.log(`👤 [SYNC] Asignando guardia ${guardiaId}`);
+      await query(`
+        INSERT INTO as_turnos_pauta_mensual (
+          puesto_id, guardia_id, anio, mes, dia, estado, estado_ui, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+        ON CONFLICT (puesto_id, anio, mes, dia)
+        DO UPDATE SET
+          guardia_id = EXCLUDED.guardia_id,
+          estado = EXCLUDED.estado,
+          estado_ui = EXCLUDED.estado_ui,
+          updated_at = NOW()
+      `, [puestoId, guardiaId, anio, mes, dia, 'planificado', 'plan']);
+      
+      console.log(`✅ [SYNC] Pauta mensual actualizada - guardia asignado`);
+    }
 
-    console.log(`✅ [SYNC] Pauta mensual actualizada - ahora visible en Pauta Diaria`);
     return { success: true };
 
   } catch (error) {

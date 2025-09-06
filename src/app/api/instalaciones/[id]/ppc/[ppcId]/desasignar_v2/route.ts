@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
+import { sincronizarPautasPostAsignacion } from '@/lib/sync-pautas';
 
 export async function POST(
   request: NextRequest,
@@ -56,6 +57,23 @@ export async function POST(
     `, [ppcId]);
 
     console.log(`✅ Guardia ${guardiaId} desasignado del puesto ${ppcId} correctamente`);
+
+    // NUEVA FUNCIONALIDAD: Sincronizar pautas después de la desasignación
+    console.log(`🔄 [SYNC] Iniciando sincronización de pautas después de desasignación...`);
+    const syncResult = await sincronizarPautasPostAsignacion(
+      ppcId,
+      null, // guardia_id = null para desasignación
+      instalacionId,
+      puestoData.rol_id
+    );
+
+    if (!syncResult.success) {
+      console.error(`❌ [SYNC] Error en sincronización:`, syncResult.error);
+      // NO fallar la desasignación principal por error de sincronización
+      console.warn(`⚠️ [SYNC] Desasignación completada pero sincronización falló: ${syncResult.error}`);
+    } else {
+      console.log(`✅ [SYNC] Pautas sincronizadas exitosamente - visible en Pauta Diaria`);
+    }
 
     return NextResponse.json({
       success: true,
