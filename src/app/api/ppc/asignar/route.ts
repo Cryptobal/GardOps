@@ -82,26 +82,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Si tiene asignación activa y se confirma la reasignación, liberar el puesto actual
-    if (asignacionExistente.rows.length > 0 && confirmar_reasignacion) {
-      const asignacionActual = asignacionExistente.rows[0];
-      console.log(`🔄 Liberando asignación actual del guardia ${guardia_id} en puesto ${asignacionActual.id}`);
-      
+    // Ejecutar reasignación con transacción para garantizar consistencia
+    await query('BEGIN');
+    
+    try {
+      // Si tiene asignación activa y se confirma la reasignación, liberar el puesto actual
+      if (asignacionExistente.rows.length > 0 && confirmar_reasignacion) {
+        const asignacionActual = asignacionExistente.rows[0];
+        console.log(`🔄 [REASIGNACIÓN] Liberando asignación actual del guardia ${guardia_id} en puesto ${asignacionActual.id}`);
+        
+        await query(`
+          UPDATE as_turnos_puestos_operativos 
+          SET es_ppc = true,
+              guardia_id = NULL,
+              actualizado_en = NOW()
+          WHERE id = $1
+        `, [asignacionActual.id]);
+        
+        console.log(`✅ [REASIGNACIÓN] Puesto anterior ${asignacionActual.id} liberado correctamente`);
+      }
+
+      // Asignar el guardia al nuevo puesto
       await query(`
         UPDATE as_turnos_puestos_operativos 
-        SET es_ppc = true,
-            guardia_id = NULL
-        WHERE id = $1
-      `, [asignacionActual.id]);
-    }
+        SET es_ppc = false,
+            guardia_id = $1,
+            actualizado_en = NOW()
+        WHERE id = $2
+      `, [guardia_id, puesto_operativo_id]);
 
-    // Asignar el guardia al nuevo puesto
-    await query(`
-      UPDATE as_turnos_puestos_operativos 
-      SET es_ppc = false,
-          guardia_id = $1
-      WHERE id = $2
-    `, [guardia_id, puesto_operativo_id]);
+      console.log(`✅ [ASIGNACIÓN] Guardia ${guardia_id} asignado al puesto ${puesto_operativo_id}`);
+
+      // Confirmar transacción
+      await query('COMMIT');
+      console.log(`✅ [TRANSACCIÓN] Reasignación completada exitosamente`);
+      
+    } catch (transactionError) {
+      // Revertir cambios en caso de error
+      await query('ROLLBACK');
+      console.error(`❌ [TRANSACCIÓN] Error en reasignación, cambios revertidos:`, transactionError);
+      throw transactionError;
+    }
 
     console.log(`✅ Guardia ${guardia_id} asignado al puesto ${puesto_operativo_id}`);
 

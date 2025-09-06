@@ -105,8 +105,8 @@ export const navigationItems: NavigationItem[] = [
   },
   
   {
-    name: "Asignaciones",
-    href: "/asignaciones",
+    name: "Buscador GGSS",
+    href: "/buscador-ggss",
     icon: Target,
     permission: "asignaciones.view"
   },

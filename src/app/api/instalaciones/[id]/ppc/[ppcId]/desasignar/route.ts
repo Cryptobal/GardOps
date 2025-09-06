@@ -32,38 +32,42 @@ export async function POST(
 
     const ppc = ppcCheck.rows[0];
 
-    // Terminar la asignación activa del guardia
-    if (ppc.guardia_id) {
-      await query(`
+    // Ejecutar desasignación con transacción para garantizar consistencia
+    await query('BEGIN');
+    
+    try {
+      console.log(`🔄 [DESASIGNACIÓN] Iniciando desasignación del guardia ${ppc.guardia_id} del puesto ${ppcId}`);
+
+      // Marcar puesto como PPC nuevamente
+      const result = await query(`
         UPDATE as_turnos_puestos_operativos 
         SET 
           es_ppc = true,
           guardia_id = NULL,
-          actualizado_en = CURRENT_DATE,
-          observaciones = CONCAT(COALESCE(observaciones, ''), ' - Desasignado desde PPC: ', now())
-        WHERE guardia_id = $1 
-          AND id = $2 
-          AND es_ppc = false
-      `, [ppc.guardia_id, ppcId]);
+          actualizado_en = NOW(),
+          observaciones = CONCAT(COALESCE(observaciones, ''), ' - Desasignado: ', NOW())
+        WHERE id = $1
+        RETURNING *
+      `, [ppcId]);
+
+      console.log(`✅ [DESASIGNACIÓN] Puesto ${ppcId} convertido a PPC exitosamente`);
+
+      // Confirmar transacción
+      await query('COMMIT');
+      console.log(`✅ [TRANSACCIÓN] Desasignación completada exitosamente`);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Guardia desasignado correctamente',
+        ppc: result.rows[0]
+      });
+      
+    } catch (transactionError) {
+      // Revertir cambios en caso de error
+      await query('ROLLBACK');
+      console.error(`❌ [TRANSACCIÓN] Error en desasignación, cambios revertidos:`, transactionError);
+      throw transactionError;
     }
-
-    // Marcar puesto como PPC nuevamente
-    const result = await query(`
-      UPDATE as_turnos_puestos_operativos 
-      SET 
-        es_ppc = true,
-        guardia_id = NULL,
-        actualizado_en = CURRENT_DATE,
-        observaciones = CONCAT(COALESCE(observaciones, ''), ' - Desasignado: ', now())
-      WHERE id = $1
-      RETURNING *
-    `, [ppcId]);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Guardia desasignado correctamente',
-      ppc: result.rows[0]
-    });
 
   } catch (error) {
     console.error('Error desasignando guardia:', error);
