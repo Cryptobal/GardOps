@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/database";
+import { sincronizarPautasPostAsignacion, revertirSincronizacionPautas } from "@/lib/sync-pautas";
 
 export async function POST(request: NextRequest) {
   try {
@@ -112,6 +113,24 @@ export async function POST(request: NextRequest) {
       `, [guardia_id, puesto_operativo_id]);
 
       console.log(`✅ [ASIGNACIÓN] Guardia ${guardia_id} asignado al puesto ${puesto_operativo_id}`);
+
+      // NUEVA FUNCIONALIDAD: Sincronizar pautas después de la asignación
+      console.log(`🔄 [SYNC] Iniciando sincronización de pautas...`);
+      const syncResult = await sincronizarPautasPostAsignacion(
+        puesto_operativo_id,
+        guardia_id,
+        puesto.instalacion_id,
+        puesto.rol_id
+      );
+
+      if (!syncResult.success) {
+        console.error(`❌ [SYNC] Error en sincronización:`, syncResult.error);
+        // NO fallar la asignación principal por error de sincronización
+        // Solo loggear el error para debugging
+        console.warn(`⚠️ [SYNC] Asignación completada pero sincronización falló: ${syncResult.error}`);
+      } else {
+        console.log(`✅ [SYNC] Pautas sincronizadas exitosamente`);
+      }
 
       // Confirmar transacción
       await query('COMMIT');
