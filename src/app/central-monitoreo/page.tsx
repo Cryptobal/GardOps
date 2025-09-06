@@ -180,13 +180,33 @@ export default function CentralMonitoreoPage() {
   const llamadosFiltrados = useMemo(() => {
     let filtrados = [...llamados];
     
-    // Usar flags calculados en backend para evitar desalineaciones de TZ
+    // Filtros con lógica corregida usando fecha/hora local
+    const ahora = new Date();
+    const ahoraString = ahora.toISOString().slice(0, 19); // "2025-09-06T18:00:00"
+    
     if (filtroEstado === 'urgentes') {
       filtrados = filtrados.filter(l => l.estado === 'pendiente' && l.es_urgente);
     } else if (filtroEstado === 'actuales') {
-      filtrados = filtrados.filter(l => l.es_actual);
+      // Actuales: hora actual del día actual
+      const horaActual = ahora.getHours();
+      filtrados = filtrados.filter(l => {
+        const programadoPara = new Date(l.programado_para);
+        const esHoy = programadoPara.toDateString() === ahora.toDateString();
+        const esHoraActual = programadoPara.getHours() === horaActual;
+        return esHoy && esHoraActual;
+      });
     } else if (filtroEstado === 'proximos') {
-      filtrados = filtrados.filter(l => l.es_proximo);
+      // Próximos: futuros del día seleccionado
+      filtrados = filtrados.filter(l => {
+        const programadoPara = new Date(l.programado_para);
+        return programadoPara > ahora;
+      });
+    } else if (filtroEstado === 'no_realizados') {
+      // No realizados: que ya pasaron y están pendientes
+      filtrados = filtrados.filter(l => {
+        const programadoPara = new Date(l.programado_para);
+        return programadoPara < ahora && l.estado === 'pendiente';
+      });
     } else if (filtroEstado === 'completados') {
       filtrados = filtrados.filter(l => l.estado !== 'pendiente');
     }
