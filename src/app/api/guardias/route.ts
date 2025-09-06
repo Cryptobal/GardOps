@@ -70,7 +70,12 @@ export async function GET(req: NextRequest) {
       
       sql += ` ORDER BY nombre`;
       const { rows } = await client.query(sql, params);
-      return NextResponse.json({ items: rows });
+      // Normalizar estructura para que siempre tenga nombre_completo
+      const normalizedRows = rows.map(row => ({
+        ...row,
+        nombre_completo: row.nombre || `${row.nombre_solo || ''} ${row.apellido_paterno || ''} ${row.apellido_materno || ''}`.trim()
+      }));
+      return NextResponse.json({ items: normalizedRows });
     } catch (err) {
       console.log('[guardias] Tabla rrhh_guardias no disponible, probando tabla guardias');
       
@@ -130,7 +135,12 @@ export async function GET(req: NextRequest) {
         
         sql += ` ORDER BY nombre`;
         const { rows } = await client.query(sql, params);
-        return NextResponse.json({ items: rows });
+        // Normalizar estructura para que siempre tenga nombre_completo
+        const normalizedRows = rows.map(row => ({
+          ...row,
+          nombre_completo: row.nombre || `${row.nombre_solo || ''} ${row.apellido_paterno || ''} ${row.apellido_materno || ''}`.trim()
+        }));
+        return NextResponse.json({ items: normalizedRows });
       } catch (err2) {
         console.log('[guardias] Tabla guardias no disponible, usando vista de pauta diaria');
         
@@ -154,7 +164,12 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ items: [] });
           }
           
-          return NextResponse.json({ items: rows });
+          // Normalizar estructura para que siempre tenga nombre_completo
+          const normalizedRows = rows.map(row => ({
+            ...row,
+            nombre_completo: row.nombre || `${row.nombre_solo || ''} ${row.apellido_paterno || ''} ${row.apellido_materno || ''}`.trim()
+          }));
+          return NextResponse.json({ items: normalizedRows });
         } catch (viewErr) {
           console.error('[guardias] Error con vista pauta diaria:', viewErr);
           return NextResponse.json({ items: [] });
