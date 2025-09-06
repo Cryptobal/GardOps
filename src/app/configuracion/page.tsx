@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { FileText, Clock, DollarSign, MapPin, Lock, User, ClipboardList } from "lucide-react";
+import { FileText, Clock, DollarSign, MapPin, Lock, User, ClipboardList, Settings } from "lucide-react";
 import Link from "next/link";
 import { useCan } from "@/lib/permissions";
 
@@ -18,6 +18,26 @@ export default function ConfiguracionPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Sistema */}
+        <Link href="/configuracion/sistema">
+          <Card className="card-elegant hover:shadow-lg transition-all duration-200 cursor-pointer group h-full">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Settings className="h-5 w-5 text-cyan-500 flex-shrink-0" />
+                ⚙️ Sistema
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Configuración global: zona horaria, formato de fecha, moneda y localización
+              </p>
+              <div className="mt-4 flex items-center text-cyan-500 text-sm font-medium group-hover:underline">
+                Configurar sistema →
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
         {/* Mi Perfil */}
         <Link href="/perfil">
           <Card className="card-elegant hover:shadow-lg transition-all duration-200 cursor-pointer group h-full">
