@@ -22,6 +22,7 @@ import { RolServicio, CrearRolServicioData } from '@/lib/schemas/roles-servicio'
 import { calcularNomenclaturaRol } from '@/lib/utils/calcularNomenclaturaRol';
 import { ordenarRolesPorPatron, extraerPatronesUnicos, filtrarRolesPorPatron, extraerPatronTurno, tieneParNoche, crearDatosTurnoNoche } from '@/lib/utils/ordenarRolesPorPatron';
 import { analizarTodosLosRoles, crearDatosReplicacion } from '@/lib/utils/detectar-similes-roles';
+import { obtenerInfoJornada } from '@/lib/utils/calcular-horas-semanales';
 import WizardSeriesTurnosV2 from '@/components/roles-servicio/WizardSeriesTurnosV2';
 import {
   AlertDialog,
@@ -544,6 +545,8 @@ export default function RolesServicioPage() {
                   <TableHead>Descripción</TableHead>
                   <TableHead>Turno</TableHead>
                   <TableHead>Horario</TableHead>
+                  <TableHead>Horas/Sem</TableHead>
+                  <TableHead>Jornada</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
@@ -616,10 +619,59 @@ export default function RolesServicioPage() {
                         </div>
                       ) : (
                         <div className="text-sm">
-                          {rol.hora_inicio} - {rol.hora_termino}
+                          {(() => {
+                            const infoJornada = obtenerInfoJornada(rol);
+                            return (
+                              <span title={infoJornada.resumenHorario.horarios.map(h => `${h.dia}: ${h.inicio}-${h.fin}`).join(', ')}>
+                                {infoJornada.resumenHorario.texto}
+                                {infoJornada.resumenHorario.esVariable && <span className="text-blue-500 ml-1">*</span>}
+                              </span>
+                            );
+                          })()}
                         </div>
                       )}
                     </TableCell>
+                    
+                    {/* Nueva columna: Horas Semanales */}
+                    <TableCell>
+                      {(() => {
+                        const infoJornada = obtenerInfoJornada(rol);
+                        return (
+                          <div className="text-sm">
+                            <div className="font-medium">{infoJornada.horasSemanales}h</div>
+                            {infoJornada.requiereColacion && (
+                              <div className="text-xs text-gray-500">
+                                ({infoJornada.horasConColacion}h + colación)
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </TableCell>
+                    
+                    {/* Nueva columna: Tipo de Jornada */}
+                    <TableCell>
+                      {(() => {
+                        const infoJornada = obtenerInfoJornada(rol);
+                        return (
+                          <Badge 
+                            variant={
+                              infoJornada.colorIndicador === 'green' ? 'default' :
+                              infoJornada.colorIndicador === 'orange' ? 'secondary' : 'destructive'
+                            }
+                            title={infoJornada.descripcion}
+                            className={
+                              infoJornada.colorIndicador === 'green' ? 'bg-green-100 text-green-800' :
+                              infoJornada.colorIndicador === 'orange' ? 'bg-orange-100 text-orange-800' : 
+                              'bg-red-100 text-red-800'
+                            }
+                          >
+                            {infoJornada.tipoJornada}
+                          </Badge>
+                        );
+                      })()}
+                    </TableCell>
+                    
                     <TableCell>
                       <Badge variant={rol.estado === 'Activo' ? 'default' : 'secondary'}>
                         {rol.estado}
