@@ -1179,7 +1179,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                   </div>
                   <div className="flex gap-2 justify-end">
                     <Button variant="outline" size="sm" onClick={()=>toggleRowPanel(row)} disabled={isLoading}>Cancelar</Button>
-                    <Button size="sm" onClick={()=>onCubrirPPC(row)} disabled={isLoading || !panelData.guardiaReemplazo}>{isLoading?'Guardando…':'Confirmar'}</Button>
+                    <Button size="sm" onClick={()=>{console.log('📱 MOBILE CONFIRMAR:', panelData.guardiaReemplazo); onCubrirPPC(row);}} disabled={isLoading}>{isLoading?'Guardando…':'Confirmar'}</Button>
                   </div>
                 </>
               )}
