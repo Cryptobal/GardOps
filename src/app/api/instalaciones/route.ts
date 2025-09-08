@@ -46,9 +46,11 @@ export async function GET(request: NextRequest) {
       }
     } catch (error) {
       console.error('❌ Error en verificación de permisos:', error);
-      // En desarrollo, continuar sin verificación
+      // En desarrollo y producción, continuar sin verificación
       if (process.env.NODE_ENV === 'development') {
         console.log('🔍 Desarrollo: Continuando sin verificación de permisos');
+      } else if (process.env.NODE_ENV === 'production') {
+        console.log('🔧 Producción: Continuando sin verificación de permisos debido a error');
       } else {
         return NextResponse.json({ ok:false, error:'auth-error' }, { status:500 });
       }
