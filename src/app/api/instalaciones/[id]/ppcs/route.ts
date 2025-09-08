@@ -32,18 +32,15 @@ export async function GET(
         i.nombre as instalacion_nombre,
         rs.nombre as rol_nombre,
         rs.id as rol_id,
-        po.created_at,
-        po.fecha_turno,
-        t.nombre as turno_nombre
+        po.creado_en as created_at,
+        po.nombre_puesto
       FROM as_turnos_puestos_operativos po
       JOIN instalaciones i ON po.instalacion_id = i.id
-      JOIN as_turnos_roles_servicio rs ON po.rol_servicio_id = rs.id
-      LEFT JOIN as_turnos t ON po.turno_id = t.id
+      JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       WHERE po.instalacion_id = $1 
         AND po.es_ppc = true 
-        AND po.activo = true
         AND po.guardia_id IS NULL
-      ORDER BY po.created_at ASC
+      ORDER BY po.creado_en ASC
     `, [instalacionId]);
 
     const ppcs = result.rows.map((row: any) => ({
@@ -52,8 +49,7 @@ export async function GET(
       instalacion_nombre: row.instalacion_nombre,
       rol_nombre: row.rol_nombre,
       rol_id: row.rol_id,
-      turno_nombre: row.turno_nombre,
-      fecha_turno: row.fecha_turno,
+      nombre_puesto: row.nombre_puesto,
       created_at: row.created_at
     }));
 
