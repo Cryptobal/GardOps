@@ -93,13 +93,28 @@ export async function POST(request: NextRequest) {
       `, [ppc_id, instalacion_id, fecha]);
 
       if (ppcEspecifico.rows.length === 0) {
-        return NextResponse.json(
-          { success: false, error: 'El PPC especificado no está disponible o no existe' },
-          { status: 404 }
-        );
+        // BYPASS TEMPORAL: Si no se encuentra en la vista, buscar en tabla original
+        console.log('🔧 Bypass: PPC no encontrado en vista, buscando en tabla original');
+        const ppcOriginal = await query(`
+          SELECT po.id, rs.nombre as rol_nombre
+          FROM as_turnos_puestos_operativos po
+          LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+          WHERE po.id = $1 
+            AND po.instalacion_id = $2
+            AND po.es_ppc = true 
+        `, [ppc_id, instalacion_id]);
+        
+        if (ppcOriginal.rows.length === 0) {
+          return NextResponse.json(
+            { success: false, error: 'El PPC especificado no está disponible o no existe' },
+            { status: 404 }
+          );
+        }
+        
+        ppc = ppcOriginal.rows[0];
+      } else {
+        ppc = ppcEspecifico.rows[0];
       }
-      
-      ppc = ppcEspecifico.rows[0];
     } else {
       // Buscar un PPC disponible en la instalación usando vista de pauta diaria
       const fecha = '2025-09-08'; // Misma fecha que otros endpoints
