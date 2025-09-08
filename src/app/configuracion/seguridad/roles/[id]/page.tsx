@@ -99,6 +99,15 @@ export default function RolDetallePage() {
 
   const hasAccess = canRead || isPlatformAdmin;
   const canEdit = canWrite || isPlatformAdmin;
+  
+  // Filtrar módulos según el rol del usuario
+  const modulosVisibles = MODULOS.filter(modulo => {
+    // Solo Platform Admin puede ver el módulo Tenants
+    if (modulo.key === 'tenants') {
+      return isPlatformAdmin;
+    }
+    return true;
+  });
 
   // Cargar datos del rol y permisos
   useEffect(() => {
@@ -329,7 +338,7 @@ export default function RolDetallePage() {
 
     // Marcar todos los módulos con el nivel seleccionado
     const nuevosCambios: Record<string, string> = {};
-    MODULOS.forEach((modulo) => {
+    modulosVisibles.forEach((modulo) => {
       nuevosCambios[modulo.key] = nivel;
     });
 
@@ -567,7 +576,7 @@ export default function RolDetallePage() {
                 </tr>
               </thead>
               <tbody>
-                {MODULOS.map(modulo => {
+                {modulosVisibles.map(modulo => {
                   const nivelActual = calcularNivelModulo(modulo.key);
                   
                   return (

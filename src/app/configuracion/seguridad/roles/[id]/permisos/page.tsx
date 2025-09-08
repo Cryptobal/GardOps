@@ -159,6 +159,17 @@ export default function PermisosRolPage() {
 
   const hasAccess = canRead || isPlatformAdmin;
   const canEdit = canWrite || isPlatformAdmin;
+  
+  // Filtrar módulos según el rol del usuario
+  const modulosPermisosVisibles = Object.fromEntries(
+    Object.entries(MODULOS_PERMISOS).filter(([modulo]) => {
+      // Solo Platform Admin puede ver el módulo Tenants
+      if (modulo === 'Tenants') {
+        return isPlatformAdmin;
+      }
+      return true;
+    })
+  );
 
   // Cargar datos del rol y permisos
   useEffect(() => {
@@ -402,7 +413,7 @@ export default function PermisosRolPage() {
   const selectAllModulo = (modulo: string) => {
     if (!canEdit) return;
     
-    const moduloPermisos = MODULOS_PERMISOS[modulo as keyof typeof MODULOS_PERMISOS];
+    const moduloPermisos = modulosPermisosVisibles[modulo as keyof typeof modulosPermisosVisibles];
     if (!moduloPermisos) return;
 
     const newAsignados = new Set(permisosAsignados);
@@ -420,7 +431,7 @@ export default function PermisosRolPage() {
   const clearAllModulo = (modulo: string) => {
     if (!canEdit) return;
     
-    const moduloPermisos = MODULOS_PERMISOS[modulo as keyof typeof MODULOS_PERMISOS];
+    const moduloPermisos = modulosPermisosVisibles[modulo as keyof typeof modulosPermisosVisibles];
     if (!moduloPermisos) return;
 
     const newAsignados = new Set(permisosAsignados);
@@ -652,7 +663,7 @@ export default function PermisosRolPage() {
 
         {/* Grid de módulos */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Object.entries(MODULOS_PERMISOS).map(([modulo, config]) => {
+          {Object.entries(modulosPermisosVisibles).sort(([a], [b]) => a.localeCompare(b)).map(([modulo, config]) => {
             const nivelActual = calcularNivelesDesdePermisos(modulo);
             
             return (
