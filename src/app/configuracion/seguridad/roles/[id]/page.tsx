@@ -182,6 +182,7 @@ export default function RolDetallePage() {
     
     // BYPASS PARA PLATFORM ADMIN - EXCEPTO TENANTS
     if (isPlatformAdmin && modulo !== 'tenants') {
+      console.log(`🚀 BYPASS Platform Admin para ${modulo}: admin`);
       return 'admin';
     }
     
@@ -202,6 +203,7 @@ export default function RolDetallePage() {
     const hasWildcard = prefixes.some(prefix => 
       permisosDelModulo.includes(`${prefix}.*`)
     );
+    console.log(`🔍 DEBUG ${modulo}: permisos=[${permisosDelModulo.join(',')}], wildcard=${hasWildcard}`);
     if (hasWildcard) return 'admin';
     
     // 2. ADMIN: Si tiene 4+ permisos del módulo
