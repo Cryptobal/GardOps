@@ -27,54 +27,41 @@ export async function GET(
     // USAR LA MISMA FUENTE QUE EL MÓDULO PPC - Vista de pauta diaria
     const fecha = '2025-09-08'; // Misma fecha que el módulo PPC
     
-    // Primero buscar todos los PPCs para debug
-    const debugQuery = await query(`
+    // USAR EXACTAMENTE LA MISMA CONSULTA QUE /api/ppc PERO FILTRAR POR INSTALACIÓN
+    const allPPCs = await query(`
       SELECT 
-        pd.puesto_id as ppc_id,
-        pd.instalacion_id,
-        pd.instalacion_nombre,
-        pd.rol_nombre,
-        pd.rol_id,
-        pd.fecha as created_at,
-        pd.puesto_nombre as nombre_puesto
+        pd.*,
+        CASE 
+          WHEN pd.meta->>'cobertura_guardia_id' IS NOT NULL THEN
+            CONCAT(g.apellido_paterno, ' ', g.apellido_materno, ', ', g.nombre)
+          ELSE NULL
+        END AS cobertura_guardia_nombre,
+        g.telefono AS cobertura_guardia_telefono,
+        gt.telefono AS guardia_titular_telefono,
+        gw.telefono AS guardia_trabajo_telefono,
+        pd.meta->>'estado_semaforo' AS estado_semaforo,
+        pd.meta->>'comentarios' AS comentarios
       FROM as_turnos_v_pauta_diaria_dedup_fixed pd
-      WHERE pd.fecha = $1
-        AND pd.es_ppc = true 
-        AND pd.estado_ui = 'plan'
-      ORDER BY pd.puesto_id ASC
+      LEFT JOIN guardias g ON g.id::text = pd.meta->>'cobertura_guardia_id'
+      LEFT JOIN guardias gt ON gt.id::text = pd.guardia_titular_id::text
+      LEFT JOIN guardias gw ON gw.id::text = pd.guardia_trabajo_id::text
+      WHERE pd.fecha = $1 AND pd.es_ppc = true AND pd.estado_ui = 'plan'
+      ORDER BY pd.es_ppc DESC, pd.instalacion_nombre NULLS LAST, pd.puesto_id, pd.pauta_id DESC
     `, [fecha]);
     
-    console.log(`🔍 Debug - PPCs totales encontrados: ${debugQuery.rows.length}`);
-    console.log(`🔍 Debug - Instalación buscada: ${instalacionId}`);
-    debugQuery.rows.forEach(row => {
-      console.log(`🔍 Debug - PPC: ${row.instalacion_id} = ${row.instalacion_nombre}`);
-    });
+    console.log(`🔍 Total PPCs encontrados: ${allPPCs.rows.length}`);
     
-    const result = await query(`
-      SELECT 
-        pd.puesto_id as ppc_id,
-        pd.instalacion_id,
-        pd.instalacion_nombre,
-        pd.rol_nombre,
-        pd.rol_id,
-        pd.fecha as created_at,
-        pd.puesto_nombre as nombre_puesto
-      FROM as_turnos_v_pauta_diaria_dedup_fixed pd
-      WHERE pd.fecha = $1
-        AND pd.es_ppc = true 
-        AND pd.estado_ui = 'plan'
-        AND pd.instalacion_id = $2
-      ORDER BY pd.puesto_id ASC
-    `, [fecha, instalacionId]);
+    // Filtrar por instalación en JavaScript
+    const result = { rows: allPPCs.rows.filter(row => row.instalacion_id === instalacionId) };
 
     const ppcs = result.rows.map((row: any) => ({
-      id: row.ppc_id,
+      id: row.puesto_id,
       instalacion_id: row.instalacion_id,
       instalacion_nombre: row.instalacion_nombre,
       rol_nombre: row.rol_nombre,
       rol_id: row.rol_id,
-      nombre_puesto: row.nombre_puesto,
-      created_at: row.created_at
+      nombre_puesto: row.puesto_nombre,
+      created_at: row.fecha
     }));
 
     console.log(`✅ PPCs encontrados para instalación ${instalacionId}: ${ppcs.length}`);
