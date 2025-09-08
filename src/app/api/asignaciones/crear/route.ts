@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getCurrentUserServer } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    // Verificar autenticación
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    // Verificar autenticación usando el sistema personalizado
+    const currentUser = getCurrentUserServer(request);
+    if (!currentUser) {
       return NextResponse.json(
         { success: false, error: 'No autorizado' },
         { status: 401 }

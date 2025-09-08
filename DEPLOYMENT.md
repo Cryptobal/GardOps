@@ -18,9 +18,10 @@ NEXT_PUBLIC_BASE_URL=https://ops.gard.cl
 DATABASE_URL=postgresql://neondb_owner:password@ep-gentle-bush-ad6zia51-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
 ```
 
-#### **JWT**
+#### **JWT y NextAuth**
 ```bash
 JWT_SECRET=gardops-super-secret-jwt-key-change-in-production-2024
+NEXTAUTH_SECRET=gardops-super-secret-jwt-key-change-in-production-2024
 ```
 
 #### **Google Maps**

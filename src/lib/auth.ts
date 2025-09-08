@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export { authOptions } from './auth-config';
 
 export interface AuthenticatedUser {
   id: string;

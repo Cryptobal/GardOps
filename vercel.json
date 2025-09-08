@@ -3,14 +3,16 @@
     "NEXT_PUBLIC_API_URL": "https://ops.gard.cl",
     "NEXT_PUBLIC_API_BASE_URL": "https://ops.gard.cl",
     "NEXT_PUBLIC_BASE_URL": "https://ops.gard.cl",
-    "NEXT_PUBLIC_TEMP_USER_EMAIL": "admin@gard.cl"
+    "NEXT_PUBLIC_TEMP_USER_EMAIL": "admin@gard.cl",
+    "NEXTAUTH_SECRET": "gardops-super-secret-jwt-key-change-in-production-2024"
   },
   "build": {
     "env": {
       "NEXT_PUBLIC_API_URL": "https://ops.gard.cl",
       "NEXT_PUBLIC_API_BASE_URL": "https://ops.gard.cl",
       "NEXT_PUBLIC_BASE_URL": "https://ops.gard.cl",
-      "NEXT_PUBLIC_TEMP_USER_EMAIL": "admin@gard.cl"
+      "NEXT_PUBLIC_TEMP_USER_EMAIL": "admin@gard.cl",
+      "NEXTAUTH_SECRET": "gardops-super-secret-jwt-key-change-in-production-2024"
     }
   },
   "headers": [
