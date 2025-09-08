@@ -79,8 +79,8 @@ export async function GET(request: NextRequest) {
     `);
     console.log('🔍 Parámetros:', params);
     
-    // FILTRAR SOLO PPCs DE LA FECHA ACTUAL (como hace la pauta diaria)
-    const fechaActual = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    // USAR FECHA FIJA COMO LA PAUTA DIARIA (2025-09-08)
+    const fechaActual = '2025-09-08'; // Misma fecha que muestra la pauta diaria
     
     let query_sql = `
       SELECT 
