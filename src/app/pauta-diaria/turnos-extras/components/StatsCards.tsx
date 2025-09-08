@@ -57,36 +57,26 @@ export default function StatsCards({ estadisticas, onCardClick }: StatsCardsProp
   };
 
   return (
-    <div className="space-y-6">
-      {/* Estadísticas Principales */}
-      <div className={`grid gap-3 sm:gap-4 ${
-        isMobile 
-          ? 'grid-cols-2' // En móvil: 2 columnas para mayor legibilidad
-          : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-5' // En desktop: responsive
-      }`}>
+    <div className="space-y-4">
+      {/* Estadísticas Principales - Mobile First */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
         {/* Total Turnos */}
         <Card 
           className={`bg-gray-800/50 border-gray-700 hover:bg-gray-700/50 hover:border-gray-600 transition-all duration-200 ${onCardClick ? 'cursor-pointer hover:scale-105' : ''}`}
           onClick={() => handleCardClick('total')}
           title={onCardClick ? "Hacer clic para mostrar todos los turnos" : undefined}
         >
-          <CardHeader className="pb-2">
-            <CardTitle className={`font-medium flex items-center gap-2 text-gray-100 ${
-              isMobile ? 'text-xs' : 'text-sm'
-            }`}>
-              <Calendar className={`text-blue-400 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-              {isMobile ? 'Total' : 'Total Turnos'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`font-bold text-white ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-              {formatThousands(estadisticas.total)}
-            </div>
-            {!isMobile && (
-              <p className="text-sm text-gray-400 mt-1 font-medium">
+          <CardContent className="p-2 sm:p-3">
+            <div className="flex flex-col items-center text-center space-y-1">
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-blue-400" />
+              <p className="text-xs font-medium text-gray-100">Total</p>
+              <p className="text-sm sm:text-lg font-bold text-white">
+                {formatThousands(estadisticas.total)}
+              </p>
+              <p className="text-[10px] sm:text-xs text-gray-400 hidden sm:block">
                 {estadisticas.turnosEsteMes ? `Este mes` : 'Total registrados'}
               </p>
-            )}
+            </div>
           </CardContent>
         </Card>
 
@@ -96,28 +86,22 @@ export default function StatsCards({ estadisticas, onCardClick }: StatsCardsProp
           onClick={() => handleCardClick('noPagados')}
           title={onCardClick ? "Hacer clic para mostrar turnos no pagados" : undefined}
         >
-          <CardHeader className="pb-2">
-            <CardTitle className={`font-medium flex items-center gap-2 text-gray-100 ${
-              isMobile ? 'text-xs' : 'text-sm'
-            }`}>
-              <AlertTriangle className={`text-rose-400 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-              {isMobile ? 'No Pag.' : 'No Pagados'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`font-bold text-rose-200 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-              {formatThousands(estadisticas.noPagados)}
-            </div>
-            {!isMobile && (
-              <div className="flex flex-col gap-1 mt-2">
-                <Badge variant="outline" className="text-sm border-rose-400/50 text-rose-300 font-medium">
-                  {porcentajeNoPagados}% de los turnos
+          <CardContent className="p-2 sm:p-3">
+            <div className="flex flex-col items-center text-center space-y-1">
+              <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 text-rose-400" />
+              <p className="text-xs font-medium text-gray-100">No Pag.</p>
+              <p className="text-sm sm:text-lg font-bold text-rose-200">
+                {formatThousands(estadisticas.noPagados)}
+              </p>
+              <div className="hidden sm:flex flex-col gap-1">
+                <Badge variant="outline" className="text-xs border-rose-400/50 text-rose-300 font-medium">
+                  {porcentajeNoPagados}%
                 </Badge>
-                <span className="text-sm text-gray-400 font-medium">
+                <span className="text-xs text-gray-400 font-medium">
                   {formatCurrency(estadisticas.montoNoPagado)}
                 </span>
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
 
@@ -127,28 +111,22 @@ export default function StatsCards({ estadisticas, onCardClick }: StatsCardsProp
           onClick={() => handleCardClick('pendientes')}
           title={onCardClick ? "Hacer clic para mostrar turnos pendientes" : undefined}
         >
-          <CardHeader className="pb-2">
-            <CardTitle className={`font-medium flex items-center gap-2 text-amber-200 ${
-              isMobile ? 'text-xs' : 'text-sm'
-            }`}>
-              <Clock className={`text-amber-300 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-              {isMobile ? 'Pend.' : 'Pendientes'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`font-bold text-amber-100 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-              {formatThousands(estadisticas.pendientes)}
-            </div>
-            {!isMobile && (
-              <div className="flex flex-col gap-1 mt-2">
-                <Badge variant="outline" className="text-sm border-amber-300/50 text-amber-200 font-medium">
-                  {porcentajePendientes}% de los turnos
+          <CardContent className="p-2 sm:p-3">
+            <div className="flex flex-col items-center text-center space-y-1">
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-amber-300" />
+              <p className="text-xs font-medium text-gray-100">Pend.</p>
+              <p className="text-sm sm:text-lg font-bold text-amber-100">
+                {formatThousands(estadisticas.pendientes)}
+              </p>
+              <div className="hidden sm:flex flex-col gap-1">
+                <Badge variant="outline" className="text-xs border-amber-300/50 text-amber-200 font-medium">
+                  {porcentajePendientes}%
                 </Badge>
-                <span className="text-sm text-gray-400 font-medium">
+                <span className="text-xs text-gray-400 font-medium">
                   {formatCurrency(estadisticas.montoPendiente)}
                 </span>
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
 
@@ -158,28 +136,22 @@ export default function StatsCards({ estadisticas, onCardClick }: StatsCardsProp
           onClick={() => handleCardClick('pagados')}
           title={onCardClick ? "Hacer clic para mostrar turnos pagados" : undefined}
         >
-          <CardHeader className="pb-2">
-            <CardTitle className={`font-medium flex items-center gap-2 text-gray-100 ${
-              isMobile ? 'text-xs' : 'text-sm'
-            }`}>
-              <CheckCircle className={`text-emerald-400 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-              {isMobile ? 'Pag.' : 'Pagados'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`font-bold text-emerald-200 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-              {formatThousands(estadisticas.pagados)}
-            </div>
-            {!isMobile && (
-              <div className="flex flex-col gap-1 mt-2">
-                <Badge variant="outline" className="text-sm border-emerald-400/50 text-emerald-300 font-medium">
-                  {porcentajePagados}% de los turnos
+          <CardContent className="p-2 sm:p-3">
+            <div className="flex flex-col items-center text-center space-y-1">
+              <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-400" />
+              <p className="text-xs font-medium text-gray-100">Pag.</p>
+              <p className="text-sm sm:text-lg font-bold text-emerald-200">
+                {formatThousands(estadisticas.pagados)}
+              </p>
+              <div className="hidden sm:flex flex-col gap-1">
+                <Badge variant="outline" className="text-xs border-emerald-400/50 text-emerald-300 font-medium">
+                  {porcentajePagados}%
                 </Badge>
-                <span className="text-sm text-gray-400 font-medium">
+                <span className="text-xs text-gray-400 font-medium">
                   {formatCurrency(estadisticas.montoPagado)}
                 </span>
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
 
@@ -189,31 +161,27 @@ export default function StatsCards({ estadisticas, onCardClick }: StatsCardsProp
           onClick={() => handleCardClick('montoTotal')}
           title={onCardClick ? "Hacer clic para mostrar todos los turnos" : undefined}
         >
-          <CardHeader className="pb-2">
-            <CardTitle className={`font-medium flex items-center gap-2 text-gray-100 ${
-              isMobile ? 'text-xs' : 'text-sm'
-            }`}>
-              <DollarSign className={`text-yellow-400 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-              {isMobile ? 'Total $' : 'Monto Total'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`font-bold text-white ${isMobile ? 'text-base' : 'text-2xl'}`}>
-              {formatCurrency(estadisticas.montoTotal)}
-            </div>
-            <div className="flex flex-col gap-1 mt-2">
-              <Badge variant="outline" className={`border-gray-600 text-gray-300 font-medium ${isMobile ? 'text-[10px]' : 'text-sm'}`}>
-                {formatCurrency(estadisticas.promedioPorTurno || 0)} promedio
-              </Badge>
-              {estadisticas.montoEsteMes ? (
-                <span className={`text-gray-400 font-medium ${isMobile ? 'text-[11px]' : 'text-sm'}`}>
-                  {formatCurrency(estadisticas.montoEsteMes)} este mes
-                </span>
-              ) : (
-                <span className={`text-gray-400 font-medium ${isMobile ? 'text-[11px]' : 'text-sm'}`}>
-                  Total acumulado
-                </span>
-              )}
+          <CardContent className="p-2 sm:p-3">
+            <div className="flex flex-col items-center text-center space-y-1">
+              <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400" />
+              <p className="text-xs font-medium text-gray-100">Total $</p>
+              <p className="text-sm sm:text-lg font-bold text-white">
+                {formatCurrency(estadisticas.montoTotal)}
+              </p>
+              <div className="hidden sm:flex flex-col gap-1">
+                <Badge variant="outline" className="text-xs border-gray-600 text-gray-300 font-medium">
+                  {formatCurrency(estadisticas.promedioPorTurno || 0)} promedio
+                </Badge>
+                {estadisticas.montoEsteMes ? (
+                  <span className="text-xs text-gray-400 font-medium">
+                    {formatCurrency(estadisticas.montoEsteMes)} este mes
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-400 font-medium">
+                    Total acumulado
+                  </span>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
