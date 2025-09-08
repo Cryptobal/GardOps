@@ -29,6 +29,7 @@ export function KPICards({
     {
       tipo: 'actuales',
       label: '🟡 Actuales',
+      labelShort: 'Act',
       value: actuales,
       icon: Clock,
       color: 'text-yellow-600',
@@ -39,6 +40,7 @@ export function KPICards({
     {
       tipo: 'proximos',
       label: '🔵 Próximos',
+      labelShort: 'Prx',
       value: proximos,
       icon: Activity,
       color: 'text-blue-600',
@@ -49,6 +51,7 @@ export function KPICards({
     {
       tipo: 'completados',
       label: '🟢 Completados',
+      labelShort: 'Com',
       value: completados,
       icon: CheckCircle,
       color: 'text-green-600',
@@ -59,6 +62,7 @@ export function KPICards({
     {
       tipo: 'no_realizados',
       label: '🔴 No Realizados',
+      labelShort: 'NoR',
       value: no_realizados,
       icon: AlertCircle,
       color: 'text-red-600',
@@ -69,6 +73,7 @@ export function KPICards({
     {
       tipo: 'todos',
       label: '📊 Total',
+      labelShort: 'Tot',
       value: total,
       icon: BarChart3,
       color: 'text-purple-600',
@@ -79,7 +84,7 @@ export function KPICards({
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+    <div className="grid grid-cols-5 sm:grid-cols-2 md:grid-cols-5 gap-2 sm:gap-4">
       {kpis.map((kpi, index) => {
         const isActive = filtroActivo === kpi.tipo;
         return (
@@ -88,20 +93,21 @@ export function KPICards({
             className={`${isActive ? kpi.activeBgColor : kpi.bgColor} border-0 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md`}
             onClick={() => onKPIClick(kpi.tipo)}
           >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    {kpi.label}
+            <CardContent className="p-2 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-center sm:text-left">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
+                    <span className="sm:hidden">{kpi.labelShort}</span>
+                    <span className="hidden sm:inline">{kpi.label}</span>
                   </p>
-                  <p className={`text-2xl font-bold ${kpi.color}`}>
+                  <p className={`text-lg sm:text-2xl font-bold ${kpi.color}`}>
                     {kpi.value.toLocaleString('es-CL')}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 mt-1 hidden sm:block">
                     {kpi.description}
                   </p>
                 </div>
-                <kpi.icon className={`h-8 w-8 ${kpi.color} opacity-50`} />
+                <kpi.icon className={`h-4 w-4 sm:h-8 sm:w-8 ${kpi.color} opacity-50 hidden sm:block`} />
               </div>
             </CardContent>
           </Card>

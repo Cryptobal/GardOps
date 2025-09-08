@@ -298,15 +298,15 @@ export default function CentralMonitoreoPage() {
 
   return (
     <div className="container mx-auto p-4 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4">
+      {/* Header Mobile-First */}
+      <div className="flex flex-col gap-2 sm:gap-4">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">📞 Central de Monitoreo</h1>
-            <p className="text-gray-600">Monitoreo de guardias en tiempo real</p>
+            <h1 className="text-xl sm:text-3xl font-bold">📞 Central</h1>
+            <p className="text-gray-600 text-sm sm:block hidden">Monitoreo de guardias en tiempo real</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" className="hidden sm:flex">
               <Download className="h-4 w-4 mr-2" />
               Exportar
             </Button>
