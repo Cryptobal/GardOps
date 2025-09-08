@@ -351,16 +351,24 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
     <div className="space-y-4">
       {/* Header con controles - Mobile First */}
       <div className="space-y-2">
-        {/* Controles de navegación de fecha */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-1">
-          <Button variant="outline" size="sm" onClick={() => go(-1)} className="flex-shrink-0">
-            <ChevronLeft className="h-3 w-3" />
-          </Button>
-          <div className="flex items-stretch gap-1">
+        {/* Controles de navegación de fecha - Mobile First */}
+        <div className="flex items-center justify-between gap-2">
+          {/* Navegación de fecha */}
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" onClick={() => go(-1)} className="h-8 w-8 p-0">
+              <ChevronLeft className="h-3 w-3" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => go(1)} className="h-8 w-8 p-0">
+              <ChevronRight className="h-3 w-3" />
+            </Button>
+          </div>
+          
+          {/* Selector de fecha compacto */}
+          <div className="flex items-center gap-1">
             <Input
               ref={inputRef}
               type="date"
-              className="w-auto text-xs min-w-[120px]"
+              className="w-auto text-xs h-8 px-2"
               value={fecha}
               onChange={(e) => goToDate(e.target.value)}
             />
@@ -369,21 +377,20 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
               variant="outline"
               size="sm"
               onClick={() => inputRef.current?.showPicker?.()}
-              className="flex-shrink-0"
+              className="h-8 w-8 p-0"
             >
               <Calendar className="h-3 w-3" />
             </Button>
           </div>
+          
+          {/* Botón Hoy */}
           <Button 
             variant="outline" 
             size="sm" 
             onClick={() => goToDate(toYmd(new Date()))}
-            className="flex-shrink-0"
+            className="h-8 px-2 text-xs"
           >
             Hoy
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => go(1)} className="flex-shrink-0">
-            <ChevronRight className="h-3 w-3" />
           </Button>
         </div>
 
