@@ -43,7 +43,11 @@ const MODULO_PREFIXES: Record<string, string[]> = {
   'central-monitoring': ['central_monitoring', 'central-monitoring'],
   'configuracion': ['configuracion', 'config'],
   'auditoria': ['auditoria'],
-  'rbac': ['rbac']
+  'rbac': ['rbac'],
+  'ppc': ['ppc'],
+  'payroll': ['payroll'],
+  'turnos': ['turnos', 'turnos_extras'],
+  'asignaciones': ['asignaciones']
 };
 
 // Módulos del sistema
@@ -66,8 +70,12 @@ const MODULOS = [
   { key: 'central-monitoring', nombre: 'Central de Monitoreo' },
   { key: 'configuracion', nombre: 'Configuración' },
   { key: 'auditoria', nombre: 'Auditoría' },
-  { key: 'rbac', nombre: 'RBAC' }
-];
+  { key: 'rbac', nombre: 'RBAC' },
+  { key: 'ppc', nombre: 'PPC' },
+  { key: 'payroll', nombre: 'Payroll' },
+  { key: 'turnos', nombre: 'Turnos' },
+  { key: 'asignaciones', nombre: 'Asignaciones' }
+].sort((a, b) => a.nombre.localeCompare(b.nombre));
 
 // Niveles de acceso
 const NIVELES = [
