@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { guardia_id, instalacion_id, fecha, motivo } = await request.json();
+    const { guardia_id, instalacion_id, fecha, motivo, ppc_id } = await request.json();
 
     // Validaciones básicas
     if (!guardia_id || !instalacion_id || !fecha) {
@@ -77,27 +77,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Buscar un PPC disponible en la instalación
-    const ppcDisponible = await query(`
-      SELECT po.id, rs.nombre as rol_nombre
-      FROM as_turnos_puestos_operativos po
-      JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-      WHERE po.instalacion_id = $1 
-        AND po.es_ppc = true 
-        AND po.activo = true
-        AND po.guardia_id IS NULL
-      ORDER BY po.creado_en ASC
-      LIMIT 1
-    `, [instalacion_id]);
+    let ppc;
+    
+    if (ppc_id) {
+      // Si se proporciona un ppc_id específico, usarlo
+      const ppcEspecifico = await query(`
+        SELECT po.id, rs.nombre as rol_nombre
+        FROM as_turnos_puestos_operativos po
+        JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+        WHERE po.id = $1 
+          AND po.instalacion_id = $2
+          AND po.es_ppc = true 
+          AND po.activo = true
+          AND po.guardia_id IS NULL
+      `, [ppc_id, instalacion_id]);
 
-    if (ppcDisponible.rows.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'No hay puestos disponibles en esta instalación' },
-        { status: 404 }
-      );
+      if (ppcEspecifico.rows.length === 0) {
+        return NextResponse.json(
+          { success: false, error: 'El PPC especificado no está disponible o no existe' },
+          { status: 404 }
+        );
+      }
+      
+      ppc = ppcEspecifico.rows[0];
+    } else {
+      // Buscar un PPC disponible en la instalación
+      const ppcDisponible = await query(`
+        SELECT po.id, rs.nombre as rol_nombre
+        FROM as_turnos_puestos_operativos po
+        JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+        WHERE po.instalacion_id = $1 
+          AND po.es_ppc = true 
+          AND po.activo = true
+          AND po.guardia_id IS NULL
+        ORDER BY po.creado_en ASC
+        LIMIT 1
+      `, [instalacion_id]);
+
+      if (ppcDisponible.rows.length === 0) {
+        return NextResponse.json(
+          { success: false, error: 'No hay puestos disponibles en esta instalación' },
+          { status: 404 }
+        );
+      }
+
+      ppc = ppcDisponible.rows[0];
     }
-
-    const ppc = ppcDisponible.rows[0];
 
     // Asignar el guardia al PPC
     await query(`
