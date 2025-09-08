@@ -498,7 +498,7 @@ export default function InstalacionesPage() {
       </div>
 
       {/* KPIs optimizados para móviles (mobile-first) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
+      <div className="grid grid-cols-4 sm:grid-cols-2 lg:grid-cols-4 gap-1 sm:gap-3 md:gap-4 lg:gap-6">
         <KPIBox
           title="Instalaciones Activas"
           value={kpis.instalaciones_activas}
@@ -539,12 +539,12 @@ export default function InstalacionesPage() {
             />
           </div>
           
-          {/* Botones de Excel */}
+          {/* Botones de Excel - Ocultos en móvil */}
           <Button 
             onClick={exportarExcel}
             variant="outline"
             size="sm"
-            className="flex items-center gap-1"
+            className="hidden sm:flex items-center gap-1"
           >
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Exportar Excel</span>
@@ -553,12 +553,12 @@ export default function InstalacionesPage() {
             onClick={descargarPlantilla}
             variant="outline"
             size="sm"
-            className="flex items-center gap-1"
+            className="hidden sm:flex items-center gap-1"
           >
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Plantilla</span>
           </Button>
-          <div className="relative">
+          <div className="relative hidden sm:block">
             <input
               type="file"
               accept=".xlsx,.xls"
