@@ -13,8 +13,7 @@ interface PPC {
   instalacion_nombre: string;
   rol_nombre: string;
   rol_id: string;
-  turno_nombre: string;
-  fecha_turno: string;
+  nombre_puesto: string;
   created_at: string;
 }
 
@@ -159,18 +158,14 @@ export default function PPCModal({
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <Badge variant="secondary">{ppc.rol_nombre}</Badge>
-                          {ppc.turno_nombre && (
-                            <Badge variant="outline">{ppc.turno_nombre}</Badge>
-                          )}
+                          <Badge variant="outline">{ppc.nombre_puesto}</Badge>
                         </div>
                         <p className="text-sm text-gray-600">
                           {ppc.instalacion_nombre}
                         </p>
-                        {ppc.fecha_turno && (
-                          <p className="text-xs text-gray-500">
-                            Fecha: {new Date(ppc.fecha_turno).toLocaleDateString('es-CL')}
-                          </p>
-                        )}
+                        <p className="text-xs text-gray-500">
+                          Creado: {new Date(ppc.created_at).toLocaleDateString('es-CL')}
+                        </p>
                       </div>
                       <Button
                         size="sm"
