@@ -24,24 +24,25 @@ export async function GET(
 
     console.log('🔍 Obteniendo PPCs para instalación:', instalacionId);
 
-    // Obtener PPCs disponibles para la instalación
+    // USAR LA MISMA FUENTE QUE EL MÓDULO PPC - Vista de pauta diaria
+    const fecha = '2025-09-08'; // Misma fecha que el módulo PPC
+    
     const result = await query(`
       SELECT 
-        po.id as ppc_id,
-        po.instalacion_id,
-        i.nombre as instalacion_nombre,
-        rs.nombre as rol_nombre,
-        rs.id as rol_id,
-        po.creado_en as created_at,
-        po.nombre_puesto
-      FROM as_turnos_puestos_operativos po
-      JOIN instalaciones i ON po.instalacion_id = i.id
-      JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-      WHERE po.instalacion_id = $1 
-        AND po.es_ppc = true 
-        AND po.guardia_id IS NULL
-      ORDER BY po.creado_en ASC
-    `, [instalacionId]);
+        pd.puesto_id as ppc_id,
+        pd.instalacion_id,
+        pd.instalacion_nombre,
+        pd.rol_nombre,
+        pd.rol_id,
+        pd.fecha as created_at,
+        pd.puesto_nombre as nombre_puesto
+      FROM as_turnos_v_pauta_diaria_dedup_fixed pd
+      WHERE pd.fecha = $1
+        AND pd.es_ppc = true 
+        AND pd.estado_ui = 'plan'
+        AND pd.instalacion_id = $2
+      ORDER BY pd.puesto_id ASC
+    `, [fecha, instalacionId]);
 
     const ppcs = result.rows.map((row: any) => ({
       id: row.ppc_id,
@@ -53,7 +54,7 @@ export async function GET(
       created_at: row.created_at
     }));
 
-    console.log(`✅ PPCs encontrados: ${ppcs.length}`);
+    console.log(`✅ PPCs encontrados para instalación ${instalacionId}: ${ppcs.length}`);
 
     return NextResponse.json({
       success: true,
