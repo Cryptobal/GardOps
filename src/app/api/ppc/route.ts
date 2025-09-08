@@ -90,25 +90,24 @@ export async function GET(request: NextRequest) {
     `);
     console.log('🔍 Test query resultado:', testQuery.rows[0]);
     
+    // Usar la misma vista que la pauta diaria para obtener PPCs
     const ppcs = await query(`
       SELECT 
-        po.id,
-        po.creado_en as created_at,
-        po.guardia_id as guardia_asignado_id,
-        rs.nombre as rol_nombre,
-        rs.hora_inicio,
-        rs.hora_termino,
-        i.nombre as instalacion_nombre,
-        i.id as instalacion_id,
-        g.nombre || ' ' || g.apellido_paterno as guardia_nombre,
-        g.rut as guardia_rut
-      FROM as_turnos_puestos_operativos po
-      LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-      LEFT JOIN instalaciones i ON po.instalacion_id = i.id
-      LEFT JOIN guardias g ON po.guardia_id = g.id
-      ${whereClause}
-      ORDER BY i.nombre, rs.nombre, po.creado_en DESC
-    `, params);
+        pd.puesto_id as id,
+        pd.fecha as created_at,
+        pd.guardia_trabajo_id as guardia_asignado_id,
+        pd.rol_nombre,
+        pd.hora_inicio,
+        pd.hora_fin as hora_termino,
+        pd.instalacion_nombre,
+        pd.instalacion_id,
+        pd.guardia_trabajo_nombre as guardia_nombre,
+        pd.guardia_trabajo_telefono as guardia_rut
+      FROM as_turnos_v_pauta_diaria_dedup_fixed pd
+      WHERE pd.es_ppc = true
+        AND pd.fecha = CURRENT_DATE
+      ORDER BY pd.instalacion_nombre, pd.rol_nombre, pd.puesto_id DESC
+    `);
     
     console.log('🔍 Resultado de la consulta:', ppcs.rows.length, 'filas');
 
