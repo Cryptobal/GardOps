@@ -180,6 +180,11 @@ export default function RolDetallePage() {
       return cambiosPendientes[modulo];
     }
     
+    // BYPASS PARA PLATFORM ADMIN - EXCEPTO TENANTS
+    if (isPlatformAdmin && modulo !== 'tenants') {
+      return 'admin';
+    }
+    
     const prefixes = MODULO_PREFIXES[modulo] || [modulo];
     const permisosClaves = Array.from(permisosAsignados).map(id => 
       permisosDisponibles.find(p => p.id === id)?.clave

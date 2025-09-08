@@ -244,6 +244,11 @@ export default function PermisosRolPage() {
 
   // Función para calcular nivel de acceso basado en permisos
   const calcularNivelesDesdePermisos = (modulo: string): string => {
+    // BYPASS PARA PLATFORM ADMIN - EXCEPTO TENANTS
+    if (isPlatformAdmin && modulo !== 'Tenants') {
+      return 'admin';
+    }
+    
     const prefixes = MODULO_PREFIXES[modulo] || [modulo];
 
     const permisosClaves = Array.from(permisosAsignados).map(id => 
