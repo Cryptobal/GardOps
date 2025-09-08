@@ -79,8 +79,9 @@ export async function GET(request: NextRequest) {
     `);
     console.log('🔍 Parámetros:', params);
     
-    // USAR EXACTAMENTE LA MISMA CONSULTA QUE LA PAUTA DIARIA V2
-    // Construir la consulta igual que en /api/pauta-diaria-v2/data/route.ts
+    // FILTRAR SOLO PPCs DE LA FECHA ACTUAL (como hace la pauta diaria)
+    const fechaActual = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    
     let query_sql = `
       SELECT 
         pd.*,
@@ -98,7 +99,8 @@ export async function GET(request: NextRequest) {
       LEFT JOIN guardias g ON g.id::text = pd.meta->>'cobertura_guardia_id'
       LEFT JOIN guardias gt ON gt.id::text = pd.guardia_titular_id::text
       LEFT JOIN guardias gw ON gw.id::text = pd.guardia_trabajo_id::text
-      WHERE pd.es_ppc = true
+      WHERE pd.es_ppc = true 
+        AND pd.fecha = '${fechaActual}'
     `;
 
     // Agregar filtros específicos de PPCs
@@ -128,6 +130,7 @@ export async function GET(request: NextRequest) {
 
     query_sql += ` ORDER BY pd.es_ppc DESC, pd.instalacion_nombre NULLS LAST, pd.puesto_id, pd.pauta_id DESC`;
 
+    console.log('🔍 Fecha actual para filtrar PPCs:', fechaActual);
     console.log('🔍 Consulta SQL final:', query_sql);
 
     const ppcs = await query(query_sql);
