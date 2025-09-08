@@ -663,11 +663,11 @@ export default function GuardiasPage() {
             <span className="sm:hidden">Nuevo</span>
           </Button>
 
-          {/* Botón Exportar Excel */}
+          {/* Botón Exportar Excel - Oculto en móvil */}
           <Button 
             onClick={exportarExcel} 
             variant="outline" 
-            className="flex items-center space-x-2 w-full sm:w-auto"
+            className="hidden sm:flex items-center space-x-2 w-full sm:w-auto"
             disabled={loading || guardias.length === 0}
           >
             <Download className="h-4 w-4" />
@@ -675,22 +675,22 @@ export default function GuardiasPage() {
             <span className="sm:hidden">Exportar</span>
           </Button>
 
-          {/* Botón Descargar Plantilla */}
+          {/* Botón Descargar Plantilla - Oculto en móvil */}
           <Button 
             onClick={descargarPlantilla} 
             variant="outline" 
-            className="flex items-center space-x-2 w-full sm:w-auto"
+            className="hidden sm:flex items-center space-x-2 w-full sm:w-auto"
           >
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Plantilla</span>
             <span className="sm:hidden">Plantilla</span>
           </Button>
 
-          {/* Botón Importar Excel */}
+          {/* Botón Importar Excel - Oculto en móvil */}
           <Button 
             onClick={() => document.getElementById('import-excel')?.click()} 
             variant="outline" 
-            className="flex items-center space-x-2 w-full sm:w-auto"
+            className="hidden sm:flex items-center space-x-2 w-full sm:w-auto"
           >
             <Upload className="h-4 w-4" />
             <span className="hidden sm:inline">Importar Excel</span>
