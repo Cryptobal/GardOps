@@ -10,7 +10,6 @@ type Row = {
   pauta_id: string;
   puesto_id: string;
   fecha: string;
-  anio: number; mes: number; dia: number;
   guardia_id: string | null;
   estado: string | null;
   meta: any | null;
@@ -55,9 +54,6 @@ export async function GET(req: NextRequest) {
       pauta_id, 
       puesto_id, 
       fecha, 
-      anio, 
-      mes, 
-      dia,
       guardia_trabajo_id as guardia_id, 
       estado_ui as estado, 
       meta,

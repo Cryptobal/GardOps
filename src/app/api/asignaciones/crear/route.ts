@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar si el guardia ya tiene asignación activa en esa fecha
+    // Verificar si el guardia ya tiene asignación activa
     const asignacionExistente = await query(`
       SELECT po.id, i.nombre as instalacion_nombre
       FROM as_turnos_puestos_operativos po
@@ -64,15 +64,14 @@ export async function POST(request: NextRequest) {
       WHERE po.guardia_id = $1 
         AND po.es_ppc = false 
         AND po.activo = true
-        AND po.fecha_asignacion::date = $2::date
-    `, [guardia_id, fecha]);
+    `, [guardia_id]);
 
     if (asignacionExistente.rows.length > 0) {
       const instalacionActual = asignacionExistente.rows[0].instalacion_nombre;
       return NextResponse.json(
         { 
           success: false, 
-          error: `El guardia ya tiene una asignación activa en ${instalacionActual} para esta fecha` 
+          error: `El guardia ya tiene una asignación activa en ${instalacionActual}` 
         },
         { status: 409 }
       );
@@ -82,12 +81,12 @@ export async function POST(request: NextRequest) {
     const ppcDisponible = await query(`
       SELECT po.id, rs.nombre as rol_nombre
       FROM as_turnos_puestos_operativos po
-      JOIN as_turnos_roles_servicio rs ON po.rol_servicio_id = rs.id
+      JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       WHERE po.instalacion_id = $1 
         AND po.es_ppc = true 
         AND po.activo = true
         AND po.guardia_id IS NULL
-      ORDER BY po.created_at ASC
+      ORDER BY po.creado_en ASC
       LIMIT 1
     `, [instalacion_id]);
 
@@ -106,11 +105,9 @@ export async function POST(request: NextRequest) {
       SET 
         guardia_id = $1,
         es_ppc = false,
-        fecha_asignacion = $2,
-        motivo_asignacion = $3,
-        updated_at = NOW()
-      WHERE id = $4
-    `, [guardia_id, fecha, motivo || 'Asignación desde módulo de optimización', ppc.id]);
+        actualizado_en = NOW()
+      WHERE id = $2
+    `, [guardia_id, ppc.id]);
 
     const guardia = guardiaResult.rows[0];
     const instalacion = instalacionResult.rows[0];
@@ -130,7 +127,7 @@ export async function POST(request: NextRequest) {
           nombre: instalacion.nombre
         },
         rol: ppc.rol_nombre,
-        fecha_asignacion: fecha
+        ppc_id: ppc.id
       }
     });
 
