@@ -3,19 +3,22 @@ import { query } from "@/lib/database";
 
 export async function GET() {
   try {
-    // Obtener instalaciones que tienen puestos operativos (PPC) activos
+    // USAR LA MISMA FUENTE QUE EL MÓDULO PPC - Vista de pauta diaria
+    const fecha = '2025-09-08'; // Misma fecha que el módulo PPC
+    
     const instalaciones = await query(`
       SELECT DISTINCT
-        i.id,
-        i.nombre as instalacion_nombre,
-        i.direccion,
-        i.ciudad,
-        i.comuna
-      FROM instalaciones i
-      INNER JOIN as_turnos_puestos_operativos po ON i.id = po.instalacion_id
-      WHERE po.es_ppc = true AND po.activo = true
-      ORDER BY i.nombre
-    `);
+        pd.instalacion_id as id,
+        pd.instalacion_nombre,
+        '' as direccion,
+        '' as ciudad,
+        '' as comuna
+      FROM as_turnos_v_pauta_diaria_dedup_fixed pd
+      WHERE pd.fecha = $1
+        AND pd.es_ppc = true 
+        AND pd.estado_ui = 'plan'
+      ORDER BY pd.instalacion_nombre
+    `, [fecha]);
 
     return NextResponse.json(instalaciones.rows);
   } catch (error) {
