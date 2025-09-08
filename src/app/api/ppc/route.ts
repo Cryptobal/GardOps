@@ -79,53 +79,76 @@ export async function GET(request: NextRequest) {
     `);
     console.log('🔍 Parámetros:', params);
     
-    // Consulta de prueba para ver si hay datos en la tabla
-    const testQuery = await query(`
-      SELECT COUNT(*) as total, 
-             COUNT(CASE WHEN es_ppc = true THEN 1 END) as ppc_count,
-             COUNT(CASE WHEN activo = true THEN 1 END) as activo_count,
-             COUNT(CASE WHEN es_ppc = true AND activo = true THEN 1 END) as ppc_activo_count
-      FROM as_turnos_puestos_operativos
-    `);
-    console.log('🔍 Test query resultado:', testQuery.rows[0]);
-    
-    // Usar la misma vista que la pauta diaria v2 para obtener PPCs
-    const ppcs = await query(`
+    // USAR EXACTAMENTE LA MISMA CONSULTA QUE LA PAUTA DIARIA V2
+    // Construir la consulta igual que en /api/pauta-diaria-v2/data/route.ts
+    let query_sql = `
       SELECT 
-        pd.puesto_id as id,
-        pd.fecha as created_at,
-        pd.guardia_trabajo_id as guardia_asignado_id,
-        pd.rol_nombre,
-        pd.hora_inicio,
-        pd.hora_fin as hora_termino,
-        pd.instalacion_nombre,
-        pd.instalacion_id,
-        pd.guardia_trabajo_nombre as guardia_nombre,
-        pd.guardia_trabajo_telefono as guardia_rut,
-        pd.estado_ui
+        pd.*,
+        CASE 
+          WHEN pd.meta->>'cobertura_guardia_id' IS NOT NULL THEN
+            CONCAT(g.apellido_paterno, ' ', g.apellido_materno, ', ', g.nombre)
+          ELSE NULL
+        END AS cobertura_guardia_nombre,
+        g.telefono AS cobertura_guardia_telefono,
+        gt.telefono AS guardia_titular_telefono,
+        gw.telefono AS guardia_trabajo_telefono,
+        pd.meta->>'estado_semaforo' AS estado_semaforo,
+        pd.meta->>'comentarios' AS comentarios
       FROM as_turnos_v_pauta_diaria_dedup_fixed pd
-      ${whereClause}
-      ORDER BY pd.fecha DESC, pd.instalacion_nombre, pd.rol_nombre, pd.puesto_id DESC
-      LIMIT 50
-    `, params);
+      LEFT JOIN guardias g ON g.id::text = pd.meta->>'cobertura_guardia_id'
+      LEFT JOIN guardias gt ON gt.id::text = pd.guardia_titular_id::text
+      LEFT JOIN guardias gw ON gw.id::text = pd.guardia_trabajo_id::text
+      WHERE pd.es_ppc = true
+    `;
+
+    // Agregar filtros específicos de PPCs
+    if (estado && estado !== 'all') {
+      if (estado === 'Pendiente') {
+        query_sql += ` AND pd.estado_ui = 'plan'`;
+      } else if (estado === 'Cubierto') {
+        query_sql += ` AND pd.guardia_trabajo_id IS NOT NULL`;
+      }
+    }
+
+    if (instalacion && instalacion !== 'all') {
+      query_sql += ` AND pd.instalacion_nombre = '${instalacion}'`;
+    }
+
+    if (rol && rol !== 'all') {
+      query_sql += ` AND pd.rol_nombre = '${rol}'`;
+    }
+
+    if (fechaDesde) {
+      query_sql += ` AND pd.fecha >= '${fechaDesde}'`;
+    }
+
+    if (fechaHasta) {
+      query_sql += ` AND pd.fecha <= '${fechaHasta}'`;
+    }
+
+    query_sql += ` ORDER BY pd.es_ppc DESC, pd.instalacion_nombre NULLS LAST, pd.puesto_id, pd.pauta_id DESC`;
+
+    console.log('🔍 Consulta SQL final:', query_sql);
+
+    const ppcs = await query(query_sql);
     
     console.log('🔍 Resultado de la consulta:', ppcs.rows.length, 'filas');
 
     const result = ppcs.rows.map((ppc: any) => {
       return {
-        id: ppc.id,
+        id: ppc.puesto_id,
         instalacion: ppc.instalacion_nombre,
         instalacion_id: ppc.instalacion_id,
         rol: ppc.rol_nombre,
-        jornada: ppc.rol_nombre?.includes('Noche') ? 'N' : 'D',
+        jornada: ppc.rol_nombre?.includes('Noche') || ppc.rol_nombre?.includes('N ') ? 'N' : 'D',
         rol_tipo: ppc.rol_nombre || '4x4',
-        horario: `${ppc.hora_inicio || '08:00'} - ${ppc.hora_termino || '20:00'}`,
-        estado: ppc.estado_ui === 'plan' ? 'Pendiente' : (ppc.guardia_asignado_id ? 'Cubierto' : 'Pendiente'),
-        creado: ppc.created_at,
-        guardia_asignado: ppc.guardia_asignado_id ? {
-          id: ppc.guardia_asignado_id,
-          nombre: ppc.guardia_nombre,
-          rut: ppc.guardia_rut
+        horario: `${ppc.hora_inicio || '08:00'} - ${ppc.hora_fin || '20:00'}`,
+        estado: ppc.estado_ui === 'plan' ? 'Pendiente' : (ppc.guardia_trabajo_id ? 'Cubierto' : 'Pendiente'),
+        creado: ppc.fecha,
+        guardia_asignado: ppc.guardia_trabajo_id ? {
+          id: ppc.guardia_trabajo_id,
+          nombre: ppc.guardia_trabajo_nombre,
+          rut: ppc.guardia_trabajo_telefono || ''
         } : null
       };
     });
