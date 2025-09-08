@@ -14,43 +14,42 @@ export async function GET(request: NextRequest) {
     const fechaDesde = searchParams.get('fechaDesde');
     const fechaHasta = searchParams.get('fechaHasta');
 
-    let whereConditions = ['po.es_ppc = true', 'po.activo = true']; // Siempre filtrar por PPC y puestos activos
+    let whereConditions = ['pd.es_ppc = true']; // Siempre filtrar por PPC
     let params: any[] = [];
     let paramIndex = 1;
 
+    // Filtrar por estado usando la lógica de la pauta diaria
     if (estado && estado !== 'all') {
       if (estado === 'Pendiente') {
-        whereConditions.push(`po.guardia_id IS NULL`);
+        // En la vista de pauta diaria, los PPCs pendientes tienen estado 'plan'
+        whereConditions.push(`pd.estado_ui = 'plan'`);
       } else if (estado === 'Cubierto') {
-        whereConditions.push(`po.guardia_id IS NOT NULL`);
+        // PPCs cubiertos tienen guardia asignado
+        whereConditions.push(`pd.guardia_trabajo_id IS NOT NULL`);
       }
-    } else {
-      // Si no se especifica estado, mostrar todos los PPCs activos
-      // No agregar filtro de estado
     }
 
     if (instalacion && instalacion !== 'all') {
-      whereConditions.push(`i.nombre = $${paramIndex}`);
+      whereConditions.push(`pd.instalacion_nombre = $${paramIndex}`);
       params.push(instalacion);
       paramIndex++;
     }
 
     if (rol && rol !== 'all') {
-      whereConditions.push(`rs.nombre = $${paramIndex}`);
+      whereConditions.push(`pd.rol_nombre = $${paramIndex}`);
       params.push(rol);
       paramIndex++;
     }
 
-    // Prioridad no existe en la tabla actual, se omite
-
+    // Filtrar por fecha usando la fecha de la pauta
     if (fechaDesde) {
-      whereConditions.push(`po.creado_en >= $${paramIndex}`);
+      whereConditions.push(`pd.fecha >= $${paramIndex}`);
       params.push(fechaDesde);
       paramIndex++;
     }
 
     if (fechaHasta) {
-      whereConditions.push(`po.creado_en <= $${paramIndex}`);
+      whereConditions.push(`pd.fecha <= $${paramIndex}`);
       params.push(fechaHasta);
       paramIndex++;
     }
@@ -102,12 +101,13 @@ export async function GET(request: NextRequest) {
         pd.instalacion_nombre,
         pd.instalacion_id,
         pd.guardia_trabajo_nombre as guardia_nombre,
-        pd.guardia_trabajo_telefono as guardia_rut
+        pd.guardia_trabajo_telefono as guardia_rut,
+        pd.estado_ui
       FROM as_turnos_v_pauta_diaria_unificada pd
-      WHERE pd.es_ppc = true
+      ${whereClause}
       ORDER BY pd.fecha DESC, pd.instalacion_nombre, pd.rol_nombre, pd.puesto_id DESC
       LIMIT 50
-    `);
+    `, params);
     
     console.log('🔍 Resultado de la consulta:', ppcs.rows.length, 'filas');
 
@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
         jornada: ppc.rol_nombre?.includes('Noche') ? 'N' : 'D',
         rol_tipo: ppc.rol_nombre || '4x4',
         horario: `${ppc.hora_inicio || '08:00'} - ${ppc.hora_termino || '20:00'}`,
-        estado: ppc.guardia_asignado_id ? 'Cubierto' : 'Pendiente',
+        estado: ppc.estado_ui === 'plan' ? 'Pendiente' : (ppc.guardia_asignado_id ? 'Cubierto' : 'Pendiente'),
         creado: ppc.created_at,
         guardia_asignado: ppc.guardia_asignado_id ? {
           id: ppc.guardia_asignado_id,
