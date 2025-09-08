@@ -455,40 +455,42 @@ export default function DocumentosGlobalesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-7xl space-y-8">
+    <div className="min-h-screen bg-background p-2 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-7xl space-y-3 sm:space-y-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-4"
+          className="space-y-2 sm:space-y-4"
         >
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
         <div>
-              <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-                <FileText className="h-8 w-8 text-blue-500" />
+              <h1 className="text-xl sm:text-3xl font-bold text-white flex items-center gap-2 sm:gap-3">
+                <FileText className="h-5 w-5 sm:h-8 sm:w-8 text-blue-500" />
                 Dashboard de Documentos
               </h1>
-              <p className="text-muted-foreground mt-2">
+              <p className="text-xs sm:text-base text-muted-foreground mt-1 sm:mt-2">
                 Gestión centralizada de documentos de clientes, instalaciones y guardias
           </p>
         </div>
         <div className="flex gap-2">
           <Button
             onClick={() => router.push('/documentos/plantillas')}
-            className="bg-green-600 hover:bg-green-700 text-white"
+            className="bg-green-600 hover:bg-green-700 text-white h-8 px-3 text-xs sm:text-sm"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            Plantillas
+            <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Plantillas</span>
+            <span className="sm:hidden">+</span>
           </Button>
           <Button
             onClick={() => setRefreshTrigger(prev => prev + 1)}
             variant="outline"
             size="sm"
             disabled={cargando}
+            className="h-8 px-2 sm:px-3"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${cargando ? 'animate-spin' : ''}`} />
-            Actualizar
+            <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 ${cargando ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Actualizar</span>
           </Button>
         </div>
       </div>
@@ -500,10 +502,11 @@ export default function DocumentosGlobalesPage() {
             variant={pestanaActiva === 'documentos' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setPestanaActiva('documentos')}
-            className={`flex items-center gap-2 ${pestanaActiva === 'documentos' ? 'bg-blue-600 text-white' : 'text-muted-foreground hover:text-white'}`}
+            className={`flex items-center gap-1 sm:gap-2 h-8 px-2 sm:px-3 text-xs sm:text-sm ${pestanaActiva === 'documentos' ? 'bg-blue-600 text-white' : 'text-muted-foreground hover:text-white'}`}
           >
-            <FileText className="h-4 w-4" />
-            Todos los Documentos
+            <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Todos los Documentos</span>
+            <span className="sm:hidden">Docs</span>
           </Button>
         )}
         {allowedReportes && (
@@ -511,10 +514,11 @@ export default function DocumentosGlobalesPage() {
             variant={pestanaActiva === 'alertas' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setPestanaActiva('alertas')}
-            className={`flex items-center gap-2 ${pestanaActiva === 'alertas' ? 'bg-orange-600 text-white' : 'text-muted-foreground hover:text-white'}`}
+            className={`flex items-center gap-1 sm:gap-2 h-8 px-2 sm:px-3 text-xs sm:text-sm ${pestanaActiva === 'alertas' ? 'bg-orange-600 text-white' : 'text-muted-foreground hover:text-white'}`}
           >
-            <AlertTriangle className="h-4 w-4" />
-            Alertas y Vencimientos
+            <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Alertas y Vencimientos</span>
+            <span className="sm:hidden">Alertas</span>
           </Button>
         )}
         {allowedDocumentos && (
@@ -522,10 +526,11 @@ export default function DocumentosGlobalesPage() {
             variant={pestanaActiva === 'kpis' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setPestanaActiva('kpis')}
-            className={`flex items-center gap-2 ${pestanaActiva === 'kpis' ? 'bg-purple-600 text-white' : 'text-muted-foreground hover:text-white'}`}
+            className={`flex items-center gap-1 sm:gap-2 h-8 px-2 sm:px-3 text-xs sm:text-sm ${pestanaActiva === 'kpis' ? 'bg-purple-600 text-white' : 'text-muted-foreground hover:text-white'}`}
           >
-            <BarChart3 className="h-4 w-4" />
-            KPIs y Estadísticas
+            <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">KPIs y Estadísticas</span>
+            <span className="sm:hidden">KPIs</span>
           </Button>
         )}
       </div>
@@ -534,12 +539,12 @@ export default function DocumentosGlobalesPage() {
         {/* Contenido según pestaña activa */}
         {pestanaActiva === 'documentos' && allowedDocumentos && (
           <>
-            {/* KPIs - Optimizado para móviles */}
+            {/* KPIs - Mobile First */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="grid grid-cols-3 md:grid-cols-5 gap-4 md:gap-6"
+              className="grid grid-cols-5 gap-2 sm:gap-4 md:gap-6"
             >
           <Card 
             className="bg-card/50 border-border/50 cursor-pointer hover:bg-card/70 transition-colors"
@@ -547,13 +552,11 @@ export default function DocumentosGlobalesPage() {
               setFiltros(prev => ({ ...prev, estado: 'todos' }));
             }}
           >
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs md:text-sm font-medium text-muted-foreground">Total</p>
-                  <p className="text-lg md:text-2xl font-bold text-white">{stats.total.toLocaleString()}</p>
-                </div>
-                <FileText className="h-6 w-6 md:h-8 md:w-8 text-blue-500" />
+            <CardContent className="p-2 sm:p-4 md:p-6">
+              <div className="flex flex-col items-center text-center space-y-1">
+                <FileText className="h-3 w-3 sm:h-6 sm:w-6 md:h-8 md:w-8 text-blue-500" />
+                <p className="text-xs font-medium text-muted-foreground">Total</p>
+                <p className="text-sm sm:text-lg md:text-2xl font-bold text-white">{stats.total.toLocaleString()}</p>
               </div>
             </CardContent>
           </Card>
@@ -564,13 +567,11 @@ export default function DocumentosGlobalesPage() {
               setFiltros(prev => ({ ...prev, estado: 'vigente' }));
             }}
           >
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs md:text-sm font-medium text-muted-foreground">Vigentes</p>
-                  <p className="text-lg md:text-2xl font-bold text-green-400">{stats.vigentes.toLocaleString()}</p>
-                </div>
-                <CheckCircle className="h-6 w-6 md:h-8 md:w-8 text-green-500" />
+            <CardContent className="p-2 sm:p-4 md:p-6">
+              <div className="flex flex-col items-center text-center space-y-1">
+                <CheckCircle className="h-3 w-3 sm:h-6 sm:w-6 md:h-8 md:w-8 text-green-500" />
+                <p className="text-xs font-medium text-muted-foreground">Vigentes</p>
+                <p className="text-sm sm:text-lg md:text-2xl font-bold text-green-400">{stats.vigentes.toLocaleString()}</p>
               </div>
             </CardContent>
           </Card>
@@ -581,47 +582,41 @@ export default function DocumentosGlobalesPage() {
               setFiltros(prev => ({ ...prev, estado: 'por_vencer' }));
             }}
           >
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs md:text-sm font-medium text-muted-foreground">Por Vencer</p>
-                  <p className="text-lg md:text-2xl font-bold text-yellow-400">{stats.por_vencer.toLocaleString()}</p>
-                </div>
-                <Clock className="h-6 w-6 md:h-8 md:w-8 text-yellow-500" />
+            <CardContent className="p-2 sm:p-4 md:p-6">
+              <div className="flex flex-col items-center text-center space-y-1">
+                <Clock className="h-3 w-3 sm:h-6 sm:w-6 md:h-8 md:w-8 text-yellow-500" />
+                <p className="text-xs font-medium text-muted-foreground">Por Vencer</p>
+                <p className="text-sm sm:text-lg md:text-2xl font-bold text-yellow-400">{stats.por_vencer.toLocaleString()}</p>
               </div>
             </CardContent>
           </Card>
 
           <Card 
-            className="bg-card/50 border-border/50 md:col-span-1 col-span-3 md:col-start-4 cursor-pointer hover:bg-card/70 transition-colors"
+            className="bg-card/50 border-border/50 cursor-pointer hover:bg-card/70 transition-colors"
             onClick={() => {
               setFiltros(prev => ({ ...prev, estado: 'vencido' }));
             }}
           >
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs md:text-sm font-medium text-muted-foreground">Vencidos</p>
-                  <p className="text-lg md:text-2xl font-bold text-red-400">{stats.vencidos.toLocaleString()}</p>
-                </div>
-                <AlertTriangle className="h-6 w-6 md:h-8 md:w-8 text-red-500" />
+            <CardContent className="p-2 sm:p-4 md:p-6">
+              <div className="flex flex-col items-center text-center space-y-1">
+                <AlertTriangle className="h-3 w-3 sm:h-6 sm:w-6 md:h-8 md:w-8 text-red-500" />
+                <p className="text-xs font-medium text-muted-foreground">Vencidos</p>
+                <p className="text-sm sm:text-lg md:text-2xl font-bold text-red-400">{stats.vencidos.toLocaleString()}</p>
               </div>
             </CardContent>
           </Card>
 
           <Card 
-            className="bg-card/50 border-border/50 md:col-span-1 col-span-3 cursor-pointer hover:bg-card/70 transition-colors"
+            className="bg-card/50 border-border/50 cursor-pointer hover:bg-card/70 transition-colors"
             onClick={() => {
               setFiltros(prev => ({ ...prev, estado: 'sin_vencimiento' }));
             }}
           >
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs md:text-sm font-medium text-muted-foreground">Sin Vencimiento</p>
-                  <p className="text-lg md:text-2xl font-bold text-slate-400">{stats.sin_vencimiento.toLocaleString()}</p>
-                </div>
-                <Calendar className="h-6 w-6 md:h-8 md:w-8 text-slate-500" />
+            <CardContent className="p-2 sm:p-4 md:p-6">
+              <div className="flex flex-col items-center text-center space-y-1">
+                <Calendar className="h-3 w-3 sm:h-6 sm:w-6 md:h-8 md:w-8 text-slate-500" />
+                <p className="text-xs font-medium text-muted-foreground">Sin Vencimiento</p>
+                <p className="text-sm sm:text-lg md:text-2xl font-bold text-slate-400">{stats.sin_vencimiento.toLocaleString()}</p>
               </div>
             </CardContent>
           </Card>
@@ -635,25 +630,25 @@ export default function DocumentosGlobalesPage() {
         >
           <Card className="bg-card/50 border-border/50">
             <CardHeader 
-              className="cursor-pointer"
+              className="cursor-pointer p-3 sm:p-6"
               onClick={() => setFiltrosAbiertos(!filtrosAbiertos)}
             >
-              <CardTitle className="text-white flex items-center justify-between">
+              <CardTitle className="text-white flex items-center justify-between text-sm sm:text-base">
                 <div className="flex items-center gap-2">
-                  <Filter className="h-5 w-5" />
+                  <Filter className="h-4 w-4 sm:h-5 sm:w-5" />
                   Filtros
                 </div>
                 {filtrosAbiertos ? (
-                  <ChevronUp className="h-5 w-5" />
+                  <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5" />
                 ) : (
-                  <ChevronDown className="h-5 w-5" />
+                  <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5" />
                 )}
               </CardTitle>
             </CardHeader>
             {filtrosAbiertos && (
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
                 {/* Primera fila de filtros */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground">Módulo</label>
                     <Select 
@@ -726,7 +721,7 @@ export default function DocumentosGlobalesPage() {
                 </div>
 
                 {/* Segunda fila de filtros */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground">Fecha Desde</label>
                     <Input
@@ -761,53 +756,53 @@ export default function DocumentosGlobalesPage() {
           </Card>
         </motion.div>
 
-        {/* Tabla de documentos - Optimizada para móviles */}
+        {/* Tabla de documentos - Mobile First */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
           <Card className="bg-card/50 border-border/50">
-        <CardHeader>
-                              <CardTitle className="text-white flex items-center justify-between">
+        <CardHeader className="p-3 sm:p-6">
+                              <CardTitle className="text-white flex items-center justify-between text-sm sm:text-base">
                   <span>Documentos ({documentosFiltrados.length})</span>
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2">
                       <Button
                         variant={vistaActiva === 'grilla' ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setVistaActiva('grilla')}
-                        className="h-9 px-3"
+                        className="h-8 px-2 sm:h-9 sm:px-3"
                       >
-                        <div className="grid grid-cols-2 gap-0.5 h-4 w-4">
+                        <div className="grid grid-cols-2 gap-0.5 h-3 w-3 sm:h-4 sm:w-4">
                           <div className="bg-current rounded-sm"></div>
                           <div className="bg-current rounded-sm"></div>
                           <div className="bg-current rounded-sm"></div>
                           <div className="bg-current rounded-sm"></div>
                         </div>
-                        <span className="ml-2 hidden sm:inline">Grilla</span>
+                        <span className="ml-1 sm:ml-2 hidden sm:inline text-xs sm:text-sm">Grilla</span>
                       </Button>
                       <Button
                         variant={vistaActiva === 'lista' ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setVistaActiva('lista')}
-                        className="h-9 px-3"
+                        className="h-8 px-2 sm:h-9 sm:px-3"
                       >
-                        <div className="flex flex-col gap-0.5 h-4 w-4">
+                        <div className="flex flex-col gap-0.5 h-3 w-3 sm:h-4 sm:w-4">
                           <div className="bg-current rounded-sm w-full"></div>
                           <div className="bg-current rounded-sm w-full"></div>
                           <div className="bg-current rounded-sm w-full"></div>
                         </div>
-                        <span className="ml-2 hidden sm:inline">Lista</span>
+                        <span className="ml-1 sm:ml-2 hidden sm:inline text-xs sm:text-sm">Lista</span>
                       </Button>
                     </div>
                     {cargando && (
-                      <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+                      <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-muted-foreground" />
                     )}
                   </div>
                 </CardTitle>
         </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               {/* Vista de Lista */}
               {vistaActiva === 'lista' && (
                 <div className="overflow-x-auto">
