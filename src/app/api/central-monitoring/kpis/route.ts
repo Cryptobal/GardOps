@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     `;
     const timezone = configResult.rows[0]?.zona_horaria || 'America/Santiago';
 
-    // Obtener KPIs con zona horaria correcta (sin conversión porque ya están en hora local)
+    // Obtener KPIs con lógica correcta para cada tipo
     const result = await sql.query(`
       SELECT 
         -- Total: solo llamados del día seleccionado
@@ -41,16 +41,18 @@ export async function GET(request: NextRequest) {
           THEN 1 
         END) as proximos,
         
-        -- No Realizados: llamados que ya pasaron su hora programada Y siguen pendientes (comparar con hora local Santiago)
+        -- No Realizados: SOLO del día seleccionado que ya pasaron Y siguen pendientes
         COUNT(CASE 
-          WHEN programado_para < (now() AT TIME ZONE '${timezone}')
+          WHEN DATE(programado_para) = $1
+           AND programado_para < (now() AT TIME ZONE '${timezone}')
            AND (estado_llamado IS NULL OR estado_llamado = 'pendiente')
           THEN 1 
         END) as no_realizados,
         
-        -- Urgentes: pasados >30 min sin completar (comparar con hora local Santiago)
+        -- Urgentes: pasados >30 min sin completar del día seleccionado
         COUNT(CASE 
-          WHEN programado_para < ((now() AT TIME ZONE '${timezone}') - interval '30 minutes')
+          WHEN DATE(programado_para) = $1
+           AND programado_para < ((now() AT TIME ZONE '${timezone}') - interval '30 minutes')
            AND (estado_llamado IS NULL OR estado_llamado = 'pendiente')
           THEN 1 
         END) as urgentes,
@@ -65,7 +67,6 @@ export async function GET(request: NextRequest) {
           (COUNT(CASE WHEN estado_llamado = 'exitoso' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0)), 2
         ) as tasa_exito
       FROM central_v_llamados_automaticos
-      WHERE DATE(programado_para) <= $1
     `, [fecha]);
 
     const kpis = result.rows[0];
