@@ -54,19 +54,19 @@ const KPIBox = ({
     transition={{ duration: 0.5 }}
   >
     <Card className="h-full">
-      <CardContent className="p-3 md:p-6 flex flex-col justify-between h-full">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="text-xs md:text-sm font-medium text-muted-foreground min-h-[1.5rem] flex items-center">{title}</p>
-            <p className="text-lg md:text-2xl font-bold">{value}</p>
+      <CardContent className="p-2 sm:p-3 md:p-6 flex flex-col justify-between h-full">
+        <div className="flex flex-col items-center text-center space-y-2">
+          <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-${color}-100 dark:bg-${color}-900/20 rounded-lg flex items-center justify-center`}>
+            <Icon className={`h-4 w-4 sm:h-5 sm:w-5 text-${color}-600 dark:text-${color}-400`} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-muted-foreground">{title}</p>
+            <p className="text-sm sm:text-lg md:text-2xl font-bold">{value}</p>
             {trend && (
-              <p className={`text-xs md:text-sm ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-xs sm:text-sm ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
                 {trend.isPositive ? '+' : ''}{trend.value}%
               </p>
             )}
-          </div>
-          <div className={`p-2 md:p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/20 flex-shrink-0 ml-3`}>
-            <Icon className={`h-4 w-4 md:h-6 md:w-6 text-${color}-600 dark:text-${color}-400`} />
           </div>
         </div>
       </CardContent>
@@ -532,12 +532,12 @@ export default function ClientesPage() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {/* Botones de Excel */}
+          {/* Botones de Excel - Ocultos en móvil */}
           <Button 
             onClick={exportarExcel}
             variant="outline"
             size="sm"
-            className="flex items-center gap-1"
+            className="hidden sm:flex items-center gap-1"
           >
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Exportar Excel</span>
@@ -546,12 +546,12 @@ export default function ClientesPage() {
             onClick={descargarPlantilla}
             variant="outline"
             size="sm"
-            className="flex items-center gap-1"
+            className="hidden sm:flex items-center gap-1"
           >
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Plantilla</span>
           </Button>
-          <div className="relative">
+          <div className="relative hidden sm:block">
             <input
               type="file"
               accept=".xlsx,.xls"
@@ -584,8 +584,8 @@ export default function ClientesPage() {
         </div>
       </div>
 
-      {/* KPIs mobile-first: 1 col en xs, 2 en sm+ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+      {/* KPIs mobile-first: 2 col en xs, 2 en sm+ */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 gap-2 sm:gap-4 md:gap-6">
         <KPIBox
           title="Clientes Activos"
           value={kpis.activos}
@@ -602,8 +602,8 @@ export default function ClientesPage() {
 
       {/* Filtros */}
       <Card>
-        <CardContent className="p-4 md:p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
+        <CardContent className="p-3 sm:p-4 md:p-6">
+          <div className="space-y-3 sm:space-y-0 sm:flex sm:flex-row sm:gap-4">
             <div className="flex-1">
               <Input
                 placeholder="Buscar por nombre, RUT o representante..."
@@ -612,11 +612,12 @@ export default function ClientesPage() {
                 className="w-full"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 justify-center sm:justify-start">
               <Button
                 variant={statusFilter === "Todos" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setStatusFilter("Todos")}
+                className="flex-1 sm:flex-none"
               >
                 Todos
               </Button>
@@ -624,6 +625,7 @@ export default function ClientesPage() {
                 variant={statusFilter === "Activo" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setStatusFilter("Activo")}
+                className="flex-1 sm:flex-none"
               >
                 Activos
               </Button>
@@ -631,6 +633,7 @@ export default function ClientesPage() {
                 variant={statusFilter === "Inactivo" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setStatusFilter("Inactivo")}
+                className="flex-1 sm:flex-none"
               >
                 Inactivos
               </Button>
