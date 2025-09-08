@@ -105,8 +105,8 @@ export async function GET(request: NextRequest) {
         pd.guardia_trabajo_telefono as guardia_rut
       FROM as_turnos_v_pauta_diaria_dedup_fixed pd
       WHERE pd.es_ppc = true
-        AND pd.fecha = CURRENT_DATE
-      ORDER BY pd.instalacion_nombre, pd.rol_nombre, pd.puesto_id DESC
+      ORDER BY pd.fecha DESC, pd.instalacion_nombre, pd.rol_nombre, pd.puesto_id DESC
+      LIMIT 50
     `);
     
     console.log('🔍 Resultado de la consulta:', ppcs.rows.length, 'filas');
