@@ -41,7 +41,7 @@ import {
 
 // Importar componentes genéricos
 import { DataTable, Column } from "../../components/ui/data-table";
-import AsignarGuardiaModal from "../instalaciones/[id]/components/AsignarGuardiaModal";
+import AsignarGuardiaDropdown from "../instalaciones/[id]/components/AsignarGuardiaDropdown";
 
 // Componente KPI Box mejorado - Mobile First
 const KPIBox = ({ 
@@ -185,15 +185,6 @@ export default function PPCPage() {
   // Resúmenes
   const [resumenInstalaciones, setResumenInstalaciones] = useState<any[]>([]);
   const [resumenRoles, setResumenRoles] = useState<any[]>([]);
-  
-  // Estado para modal de asignación
-  const [modalAsignacion, setModalAsignacion] = useState({
-    isOpen: false,
-    ppcId: '',
-    instalacionId: '',
-    instalacionNombre: '',
-    rolServicioNombre: ''
-  });
 
   // Cargar datos de PPCs
   useEffect(() => {
@@ -255,31 +246,9 @@ export default function PPCPage() {
     }
   };
 
-  // Función para abrir modal de asignación
-  const abrirModalAsignacion = (ppc: any) => {
-    setModalAsignacion({
-      isOpen: true,
-      ppcId: ppc.id,
-      instalacionId: ppc.instalacion_id,
-      instalacionNombre: ppc.instalacion,
-      rolServicioNombre: ppc.rol
-    });
-  };
-
-  const cerrarModalAsignacion = () => {
-    setModalAsignacion({
-      isOpen: false,
-      ppcId: '',
-      instalacionId: '',
-      instalacionNombre: '',
-      rolServicioNombre: ''
-    });
-  };
-
   const onAsignacionCompletada = () => {
     // Recargar PPCs después de asignación exitosa
     fetchPPCs();
-    cerrarModalAsignacion();
   };
 
   // Calcular resúmenes - Solo PPC activos (pendientes)
@@ -444,19 +413,14 @@ export default function PPCPage() {
       render: (ppc) => (
         <div className="flex flex-col gap-2">
           {ppc.estado === 'Pendiente' ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log("Asignar guardia para PPC:", ppc.id);
-                abrirModalAsignacion(ppc);
-              }}
+            <AsignarGuardiaDropdown
+              instalacionId={ppc.instalacion_id}
+              ppcId={ppc.id}
+              rolServicioNombre={ppc.rol}
+              instalacionNombre={ppc.instalacion}
+              onAsignacionCompletada={onAsignacionCompletada}
               className="text-xs"
-            >
-              Asignar Guardia
-            </Button>
+            />
           ) : (
             <Button
               size="sm"
@@ -721,19 +685,14 @@ export default function PPCPage() {
                     
                     <div className="pt-2">
                       {ppc.estado === 'Pendiente' ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
+                        <AsignarGuardiaDropdown
+                          instalacionId={ppc.instalacion_id}
+                          ppcId={ppc.id}
+                          rolServicioNombre={ppc.rol}
+                          instalacionNombre={ppc.instalacion}
+                          onAsignacionCompletada={onAsignacionCompletada}
                           className="w-full"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            console.log("Asignar guardia para PPC:", ppc.id);
-                            abrirModalAsignacion(ppc);
-                          }}
-                        >
-                          Asignar Guardia
-                        </Button>
+                        />
                       ) : (
                         <Button
                           size="sm"
@@ -752,17 +711,6 @@ export default function PPCPage() {
           />
         </CardContent>
       </Card>
-
-      {/* Modal de asignación de guardia */}
-      <AsignarGuardiaModal
-        isOpen={modalAsignacion.isOpen}
-        onClose={cerrarModalAsignacion}
-        instalacionId={modalAsignacion.instalacionId}
-        ppcId={modalAsignacion.ppcId}
-        rolServicioNombre={modalAsignacion.rolServicioNombre}
-        instalacionNombre={modalAsignacion.instalacionNombre}
-        onAsignacionCompletada={onAsignacionCompletada}
-      />
 
       {/* Mensaje de éxito */}
       {(() => {
