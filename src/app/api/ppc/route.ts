@@ -80,6 +80,16 @@ export async function GET(request: NextRequest) {
     `);
     console.log('🔍 Parámetros:', params);
     
+    // Consulta de prueba para ver si hay datos en la tabla
+    const testQuery = await query(`
+      SELECT COUNT(*) as total, 
+             COUNT(CASE WHEN es_ppc = true THEN 1 END) as ppc_count,
+             COUNT(CASE WHEN activo = true THEN 1 END) as activo_count,
+             COUNT(CASE WHEN es_ppc = true AND activo = true THEN 1 END) as ppc_activo_count
+      FROM as_turnos_puestos_operativos
+    `);
+    console.log('🔍 Test query resultado:', testQuery.rows[0]);
+    
     const ppcs = await query(`
       SELECT 
         po.id,
