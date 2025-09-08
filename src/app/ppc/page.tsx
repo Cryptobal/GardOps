@@ -414,6 +414,8 @@ export default function PPCPage() {
                 e.preventDefault();
                 e.stopPropagation();
                 console.log("Asignar guardia para PPC:", ppc.id);
+                // Redirigir al buscador GGSS que SÍ tiene funcionalidad de asignación
+                router.push(`/buscador-ggss`);
               }}
               className="text-xs"
             >
@@ -691,6 +693,8 @@ export default function PPCPage() {
                             e.preventDefault();
                             e.stopPropagation();
                             console.log("Asignar guardia para PPC:", ppc.id);
+                            // Redirigir al buscador GGSS que SÍ tiene funcionalidad de asignación
+                            router.push(`/buscador-ggss`);
                           }}
                         >
                           Asignar Guardia
