@@ -125,6 +125,7 @@ export default function PPCModal({
       let data;
       try {
         data = await response.json();
+        console.log('📋 Datos de respuesta parseados:', data);
       } catch (jsonError) {
         console.error('Error parsing JSON response:', jsonError);
         throw new Error(`Error del servidor (${response.status}): ${response.statusText}`);
@@ -138,8 +139,15 @@ export default function PPCModal({
         onAsignacionExitosa();
         onClose();
       } else {
-        const errorMessage = data?.error || `Error del servidor (${response.status}): ${response.statusText}`;
-        toast.error(errorMessage, "Error en asignación");
+        // Mejorar manejo de errores cuando data es undefined
+        if (!data) {
+          console.error('❌ Respuesta del servidor es undefined o null');
+          toast.error(`Error del servidor (${response.status}): Respuesta vacía`, "Error en asignación");
+        } else {
+          const errorMessage = data.error || `Error del servidor (${response.status}): ${response.statusText}`;
+          console.error('❌ Error en asignación:', { data, errorMessage });
+          toast.error(errorMessage, "Error en asignación");
+        }
       }
     } catch (error) {
       console.error('Error asignando PPC:', error);
