@@ -98,20 +98,20 @@ const KPIBox = React.memo(({
       transition={{ duration: 0.5 }}
     >
       <Card className="h-full">
-        <CardContent className="p-3 sm:p-4 md:p-6 flex flex-col justify-between h-full">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm font-medium text-muted-foreground min-h-[1.2rem] sm:min-h-[1.5rem] flex items-center leading-tight">{title}</p>
-              <p className="text-base sm:text-lg md:text-2xl font-bold truncate">{value}</p>
-              {trend && (
-                <p className={`text-xs sm:text-sm ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                  {trend.isPositive ? '+' : ''}{trend.value}%
-                </p>
-              )}
+        <CardContent className="p-2 sm:p-4 md:p-6 flex flex-col justify-between h-full">
+          <div className="flex flex-col space-y-2">
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground leading-tight">{title}</p>
+            <div className="flex items-center space-x-2">
+              <p className="text-base sm:text-lg md:text-2xl font-bold">{value}</p>
+              <div className={`p-1 sm:p-2 rounded-full ${colorClasses.bg} flex-shrink-0`}>
+                <Icon className={`h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 ${colorClasses.text}`} />
+              </div>
             </div>
-            <div className={`p-2 sm:p-2.5 md:p-3 rounded-full ${colorClasses.bg} flex-shrink-0 ml-2 sm:ml-3`}>
-              <Icon className={`h-3 w-3 sm:h-4 sm:w-4 md:h-6 md:w-6 ${colorClasses.text}`} />
-            </div>
+            {trend && (
+              <p className={`text-xs sm:text-sm ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                {trend.isPositive ? '+' : ''}{trend.value}%
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
