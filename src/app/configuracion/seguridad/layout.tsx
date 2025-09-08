@@ -58,7 +58,7 @@ export default function SeguridadLayout({
       title: "Tenants",
       icon: Users,
       href: "/configuracion/seguridad/tenants",
-      allowed: isPlatformAdmin || canTenantsRead,
+      allowed: isPlatformAdmin, // SOLO Platform Admin puede ver tenants
     }
   ];
 

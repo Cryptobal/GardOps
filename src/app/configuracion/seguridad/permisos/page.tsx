@@ -89,7 +89,7 @@ export default function PermisosPage() {
     );
   }
 
-  // Agrupar permisos por categoría
+  // Agrupar permisos por categoría y ordenar alfabéticamente
   const permisosPorCategoria = items.reduce((acc, permiso) => {
     const categoria = permiso.categoria || 'Sin Categoría';
     if (!acc[categoria]) {
@@ -99,8 +99,13 @@ export default function PermisosPage() {
     return acc;
   }, {} as Record<string, Permiso[]>);
 
-  // Ordenar categorías
+  // Ordenar categorías alfabéticamente
   const categoriasOrdenadas = Object.keys(permisosPorCategoria).sort();
+  
+  // Ordenar permisos dentro de cada categoría alfabéticamente por clave
+  Object.keys(permisosPorCategoria).forEach(categoria => {
+    permisosPorCategoria[categoria].sort((a, b) => a.clave.localeCompare(b.clave));
+  });
 
   // Funciones para manejar expansión/contracción
   const toggleCategory = (categoria: string) => {

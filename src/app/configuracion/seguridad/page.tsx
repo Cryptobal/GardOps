@@ -54,11 +54,11 @@ export default function SeguridadPage() {
     },
     {
       title: "🏢 Tenants",
-      description: "Administra Tenants de la plataforma (puede requerir Super Admin)",
+      description: "Administra Tenants de la plataforma (solo Platform Admin)",
       icon: Users,
       href: "/configuracion/seguridad/tenants",
       color: "bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/20",
-      allowed: isPlatformAdmin || canTenantsRead,
+      allowed: isPlatformAdmin, // SOLO Platform Admin puede ver tenants
     }
   ];
 
