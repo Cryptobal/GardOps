@@ -151,6 +151,7 @@ export default function PautaMensualPage() {
   });
 
   const [replicarModal, setReplicarModal] = useState<boolean>(false);
+  const [replicarExpanded, setReplicarExpanded] = useState<boolean>(false);
   const [instalacionesDisponibles, setInstalacionesDisponibles] = useState<Array<{
     id: string;
     nombre: string;
@@ -556,25 +557,59 @@ export default function PautaMensualPage() {
                   </div>
                 </div>
 
-                {/* Botón de Replicar Pautas */}
+                {/* Botón de Replicar Pautas - Contraíble */}
                 <div className="flex-shrink-0">
                   <Button
-                    onClick={() => {
-                      console.log('🖱️ Botón clickeado, loading:', loading);
-                      abrirModalReplicar();
-                    }}
-                    disabled={loading}
-                    className="bg-blue-600 hover:bg-blue-700 text-white w-full lg:w-auto"
+                    onClick={() => setReplicarExpanded(!replicarExpanded)}
+                    variant="outline"
+                    className="w-full lg:w-auto"
                     size="sm"
                   >
                     <Copy className="h-4 w-4 mr-2" />
                     Replicar Pautas
+                    {replicarExpanded ? (
+                      <ChevronUp className="h-4 w-4 ml-2" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 ml-2" />
+                    )}
                   </Button>
-                  <p className="text-xs text-muted-foreground mt-1 text-center lg:text-left">
-                    Replica del mes anterior manteniendo series
-                  </p>
                 </div>
               </div>
+
+              {/* Sección Expandible de Replicar Pautas */}
+              {replicarExpanded && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="border-t pt-4"
+                >
+                  <div className="bg-muted/30 rounded-lg p-4 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Copy className="h-4 w-4 text-blue-600" />
+                      <h4 className="text-sm font-medium">Replicar Pautas del Mes Anterior</h4>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground">
+                      Replica del mes anterior manteniendo series de turnos (4x4, 5x2, etc.) para continuar exactamente donde terminaron.
+                    </p>
+                    
+                    <Button
+                      onClick={() => {
+                        console.log('🖱️ Botón clickeado, loading:', loading);
+                        abrirModalReplicar();
+                      }}
+                      disabled={loading}
+                      className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto"
+                      size="sm"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      {loading ? 'Cargando...' : 'Iniciar Replicación'}
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
 
               {/* Segunda fila: Barra de Progreso */}
               <div className="border-t pt-4">
