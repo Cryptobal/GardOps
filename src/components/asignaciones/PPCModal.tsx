@@ -91,10 +91,11 @@ export default function PPCModal({
   };
 
   const handleAsignarPPC = async (ppc: PPC) => {
-    // TRY-CATCH MEGA ROBUSTO PARA MATAR CUALQUIER ERROR DE UNA VEZ
+    // VERSION NUEVA 2025-09-08-21:15 - CODIGO ACTUALIZADO
     try {
       setAsignando(ppc.id);
-      console.log('🚀 INICIANDO ASIGNACION ULTRA ROBUSTA');
+      console.log('🚀 VERSION NUEVA 2025-09-08-21:15 - ASIGNACION ULTRA ROBUSTA');
+      console.log('🔥 CODIGO ACTUALIZADO EJECUTANDOSE');
       console.log('🔍 Enviando asignación:', {
         guardia_id: guardia.id,
         instalacion_id: ppc.instalacion_id, // Usar la instalación del PPC, no del dropdown
@@ -121,13 +122,15 @@ export default function PPCModal({
 
       // MANEJO SUPER SIMPLE - SI ES 200, ES EXITOSO
       if (response.status === 200) {
-        console.log('🎉 RESPUESTA 200 - ASIGNACION EXITOSA');
+        console.log('🎉 RESPUESTA 200 - ASIGNACION EXITOSA - SALIENDO INMEDIATAMENTE');
         toast.success(
           `${guardia.nombre} asignado a ${ppc.rol_nombre} en ${ppc.instalacion_nombre}`, 
           '✅ Asignación exitosa'
         );
         onAsignacionExitosa();
         onClose();
+        setAsignando(null);
+        return; // SALIR INMEDIATAMENTE PARA EVITAR CODIGO VIEJO
       } else {
         console.log('❌ RESPUESTA NO 200:', response.status);
         toast.error(`Error del servidor (${response.status})`, "Error en asignación");
