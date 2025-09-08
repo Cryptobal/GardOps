@@ -513,122 +513,113 @@ export default function PautaMensualPage() {
         </CardContent>
       </Card>
 
-      {/* Selector de Período y Replicar Pautas - Combinados en una línea */}
+      {/* Sección de Período y Replicar Pautas - Completamente Colapsible */}
       {resumen && (
         <Card>
           <CardContent className="p-4 sm:p-6">
-            <div className="space-y-4">
-              {/* Primera fila: Selector de Período y Botón Replicar */}
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                {/* Selector de Período */}
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Calendar className="h-4 w-4 text-blue-600" />
-                    <h3 className="text-sm font-medium">Período: {(() => {
-                      const mesLabel = meses.find((m) => m.value === selectedMes)?.label || "Mes";
-                      return `${mesLabel} ${selectedAnio || new Date().getFullYear()}`;
-                    })()}</h3>
-                  </div>
-                  <div className="flex gap-2">
-                    <Select value={selectedMes} onValueChange={setSelectedMes}>
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {meses.map((mes) => (
-                          <SelectItem key={mes.value} value={mes.value}>
-                            {mes.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select value={selectedAnio} onValueChange={setSelectedAnio}>
-                      <SelectTrigger className="w-20">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {anios.map((anio) => (
-                          <SelectItem key={anio} value={anio.toString()}>
-                            {anio}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+            {/* Header con botón de colapsar */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-blue-600" />
+                <h3 className="text-sm font-medium">Período: {(() => {
+                  const mesLabel = meses.find((m) => m.value === selectedMes)?.label || "Mes";
+                  return `${mesLabel} ${selectedAnio || new Date().getFullYear()}`;
+                })()}</h3>
+              </div>
+              <Button
+                onClick={() => setReplicarExpanded(!replicarExpanded)}
+                disabled={loading}
+                variant="outline"
+                size="sm"
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Replicar Pautas
+                {replicarExpanded ? (
+                  <ChevronUp className="h-4 w-4 ml-2" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                )}
+              </Button>
+            </div>
+
+            {/* Contenido colapsible - Toda la sección */}
+            {replicarExpanded && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-4"
+              >
+                {/* Selectores de Período */}
+                <div className="flex gap-2">
+                  <Select value={selectedMes} onValueChange={setSelectedMes}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {meses.map((mes) => (
+                        <SelectItem key={mes.value} value={mes.value}>
+                          {mes.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={selectedAnio} onValueChange={setSelectedAnio}>
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {anios.map((anio) => (
+                        <SelectItem key={anio} value={anio.toString()}>
+                          {anio}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                {/* Botón de Replicar Pautas - Colapsible */}
-                <div className="flex-shrink-0">
+                {/* Botón de Replicar Pautas */}
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Replica del mes anterior manteniendo series
+                  </p>
                   <Button
-                    onClick={() => setReplicarExpanded(!replicarExpanded)}
+                    onClick={() => {
+                      console.log('🖱️ Botón replicar clickeado, loading:', loading);
+                      abrirModalReplicar();
+                    }}
                     disabled={loading}
-                    variant="outline"
-                    className="w-full lg:w-auto"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
                     size="sm"
                   >
                     <Copy className="h-4 w-4 mr-2" />
                     Replicar Pautas
-                    {replicarExpanded ? (
-                      <ChevronUp className="h-4 w-4 ml-2" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 ml-2" />
-                    )}
                   </Button>
                 </div>
-              </div>
 
-              {/* Sección Colapsible de Replicar Pautas */}
-              {replicarExpanded && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="border-t pt-4"
-                >
-                  <div className="space-y-4">
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Replica del mes anterior manteniendo series
-                      </p>
-                      <Button
-                        onClick={() => {
-                          console.log('🖱️ Botón replicar clickeado, loading:', loading);
-                          abrirModalReplicar();
-                        }}
-                        disabled={loading}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
-                        size="sm"
-                      >
-                        <Copy className="h-4 w-4 mr-2" />
-                        Replicar Pautas
-                      </Button>
+                {/* Barra de Progreso */}
+                <div className="border-t pt-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 space-y-2 sm:space-y-0">
+                    <span className="text-xs sm:text-sm font-medium">Progreso del mes</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">
+                      {resumen.instalaciones_con_pauta_count} de {resumen.total_instalaciones} instalaciones
+                    </span>
+                  </div>
+                  <Progress value={porcentajeProgreso} className="h-2 sm:h-3" />
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-3 sm:mt-4 text-xs sm:text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
+                      <span>Con pauta creada</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
+                      <span>Pendiente de crear</span>
                     </div>
                   </div>
-                </motion.div>
-              )}
-
-              {/* Segunda fila: Barra de Progreso */}
-              <div className="border-t pt-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 space-y-2 sm:space-y-0">
-                  <span className="text-xs sm:text-sm font-medium">Progreso del mes</span>
-                  <span className="text-xs sm:text-sm text-muted-foreground">
-                    {resumen.instalaciones_con_pauta_count} de {resumen.total_instalaciones} instalaciones
-                  </span>
                 </div>
-                <Progress value={porcentajeProgreso} className="h-2 sm:h-3" />
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-3 sm:mt-4 text-xs sm:text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
-                    <span>Con pauta creada</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
-                    <span>Pendiente de crear</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+              </motion.div>
+            )}
           </CardContent>
         </Card>
       )}
