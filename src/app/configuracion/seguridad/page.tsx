@@ -50,14 +50,6 @@ export default function SeguridadPage() {
       color: "bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/20",
       allowed: canPermisosRead,
     },
-    {
-      title: "🏢 Tenants",
-      description: "Administra Tenants de la plataforma (solo Platform Admin)",
-      icon: Users,
-      href: "/configuracion/seguridad/tenants",
-      color: "bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/20",
-      allowed: isPlatformAdmin, // SOLO Platform Admin puede ver tenants
-    }
   ];
 
   const filteredSections = sections.filter((s) => adminBypass ? true : s.allowed !== false);

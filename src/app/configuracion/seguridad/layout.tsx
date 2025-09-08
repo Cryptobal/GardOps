@@ -53,13 +53,6 @@ export default function SeguridadLayout({
       href: "/configuracion/seguridad/permisos",
       allowed: canPermisosRead,
     },
-    {
-      id: "tenants",
-      title: "Tenants",
-      icon: Users,
-      href: "/configuracion/seguridad/tenants",
-      allowed: isPlatformAdmin, // SOLO Platform Admin puede ver tenants
-    }
   ];
 
   const filteredSections = sections.filter((s) => adminBypass ? true : s.allowed !== false);

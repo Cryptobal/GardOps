@@ -1,12 +1,13 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { FileText, Clock, DollarSign, MapPin, Lock, User, ClipboardList, Settings } from "lucide-react";
+import { FileText, Clock, DollarSign, MapPin, Lock, User, ClipboardList, Settings, Building } from "lucide-react";
 import Link from "next/link";
 import { useCan } from "@/lib/permissions";
 
 export default function ConfiguracionPage() {
   const { allowed: canAdminRbac } = useCan('rbac.admin');
+  const { allowed: isPlatformAdmin } = useCan('rbac.platform_admin');
   
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -180,6 +181,29 @@ export default function ConfiguracionPage() {
             </CardContent>
           </Card>
         </Link>
+
+        {/* Gestión de Tenants (solo Platform Admin) */}
+        {isPlatformAdmin && (
+          <Link href="/configuracion/seguridad/tenants">
+            <Card className="card-elegant hover:shadow-lg transition-all duration-200 cursor-pointer group h-full border-orange-200 dark:border-orange-800">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Building className="h-5 w-5 text-orange-500 flex-shrink-0" />
+                  🏢 Gestión de Tenants
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  Administrar tenants de la plataforma, crear nuevas empresas y gestionar accesos globales
+                </p>
+                <div className="mt-4 flex items-center text-orange-500 text-sm font-medium group-hover:underline">
+                  Gestionar tenants →
+                </div>
+                <div className="mt-2 text-orange-400 text-xs">🔐 Solo Platform Admin</div>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
       </div>
     </div>
   );
