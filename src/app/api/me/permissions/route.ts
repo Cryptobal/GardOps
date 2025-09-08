@@ -36,7 +36,11 @@ export async function GET(req: Request) {
     let userId: string | null = null
     try {
       const userRow = await sql<{ id: string; rol: string }>`
-        select id::text as id, rol from public.usuarios where lower(email)=lower(${email}) limit 1
+        select u.id::text as id, r.nombre as rol 
+        from public.usuarios u
+        left join public.usuarios_roles ur on u.id = ur.usuario_id
+        left join public.roles r on ur.rol_id = r.id
+        where lower(u.email)=lower(${email}) limit 1
       `
       userId = userRow?.rows?.[0]?.id ?? null
       // Si el usuario en BD tiene rol admin, permitir también
