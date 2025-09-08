@@ -25,7 +25,7 @@ export default function SeguridadLayout({
       const token = m?.[1] ? decodeURIComponent(m[1]) : null;
       if (token) {
         const payload = JSON.parse(atob(token.split('.')[1] || '')) || {};
-        adminBypass = payload?.rol === 'admin';
+        adminBypass = payload?.rol === 'Platform Admin';
       }
     }
   } catch {}
