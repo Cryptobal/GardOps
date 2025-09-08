@@ -585,7 +585,7 @@ export default function TurnosInstalacion({
             <span className="text-xs uppercase text-muted-foreground font-medium">➕ Crear Nuevo Turno</span>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-4">
             <div>
               <label className="text-xs text-muted-foreground mb-2 block">Rol de Servicio</label>
               <SafeSelect
@@ -627,7 +627,7 @@ export default function TurnosInstalacion({
               </SafeSelect>
             </div>
 
-            <div className="flex items-end">
+            <div>
               <Button 
                 onClick={handleCrearTurno}
                 disabled={creando || !formData.rol_servicio_id}
@@ -663,7 +663,7 @@ export default function TurnosInstalacion({
                   className="p-4 cursor-pointer hover:bg-muted/70 transition-colors"
                   onClick={() => toggleTurnoExpanded(turno.id)}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <ChevronRight 
                         className={`w-4 h-4 transition-transform duration-200 ${
@@ -674,18 +674,20 @@ export default function TurnosInstalacion({
                         <h3 className="text-sm font-medium">{turno.rol_servicio.nombre}</h3>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-center">
-                        <div className="text-xs text-muted-foreground">Total</div>
-                        <div className="text-sm font-medium">{turno.cantidad_guardias}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-xs text-muted-foreground">Asignados</div>
-                        <div className="text-sm font-medium text-green-600">{ppcsAsignados}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-xs text-muted-foreground">Vacantes</div>
-                        <div className="text-sm font-medium text-red-600">{ppcsPendientes}</div>
+                    <div className="flex items-center justify-between sm:gap-3">
+                      <div className="flex items-center gap-4">
+                        <div className="text-center">
+                          <div className="text-xs text-muted-foreground">Total</div>
+                          <div className="text-sm font-medium">{turno.cantidad_guardias}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xs text-muted-foreground">Asignados</div>
+                          <div className="text-sm font-medium text-green-600">{ppcsAsignados}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xs text-muted-foreground">Vacantes</div>
+                          <div className="text-sm font-medium text-red-600">{ppcsPendientes}</div>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge 

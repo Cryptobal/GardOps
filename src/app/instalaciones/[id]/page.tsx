@@ -467,7 +467,7 @@ export default function InstalacionDetallePage() {
             </Button>
           </Link>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white truncate">
               {instalacion.nombre}
             </h1>
             <p className="text-xs sm:text-sm text-gray-600 truncate">
@@ -516,89 +516,81 @@ export default function InstalacionDetallePage() {
       <div className="mb-3 sm:mb-6">
         <Card className="border-0 shadow-sm bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
           <CardContent className="p-4 sm:p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-4 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 lg:gap-6">
               {/* Puestos Operativos */}
-              <div className="flex items-center space-x-3 sm:space-x-4">
-                <div className="flex-shrink-0">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                    <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                  <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Puestos Operativos</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Puestos Operativos</p>
+                  <p className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white">
                     {(() => {
                       const total = turnosPrecargados.reduce((total, turno) => total + turno.cantidad_guardias, 0);
                       console.log('🔍 Puestos operativos calculados:', total, 'de', turnosPrecargados.length, 'turnos');
                       return total;
                     })()}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
                     {turnosPrecargados.length} turnos • {ppcsPrecargados.filter((ppc: any) => ppc.estado === 'Pendiente').length} PPCs
                   </p>
                 </div>
               </div>
 
               {/* Guardias Asignados */}
-              <div className="flex items-center space-x-3 sm:space-x-4">
-                <div className="flex-shrink-0">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
-                    <Users className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
-                  </div>
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Guardias Asignados</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Guardias Asignados</p>
+                  <p className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white">
                     {(() => {
                       const asignados = guardiasPrecargados.filter((g: any) => g.tipo === 'asignado').length;
                       console.log('🔍 Guardias asignados calculados:', asignados, 'de', guardiasPrecargados.length, 'total');
                       return asignados;
                     })()}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
                     {guardiasPrecargados.filter((g: any) => g.tipo === 'asignado' && g.activo).length} activos
                   </p>
                 </div>
               </div>
 
               {/* PPCs */}
-              <div className="flex items-center space-x-3 sm:space-x-4">
-                <div className="flex-shrink-0">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
-                    <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 dark:text-orange-400" />
-                  </div>
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
+                  <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 dark:text-orange-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">PPCs</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">PPCs</p>
+                  <p className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white">
                     {(() => {
                       const pendientes = ppcsPrecargados.filter((ppc: any) => ppc.estado === 'Pendiente').length;
                       console.log('🔍 PPCs pendientes calculados:', pendientes, 'de', ppcsPrecargados.length, 'total');
                       return pendientes;
                     })()}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
                     {ppcsPrecargados.filter((ppc: any) => ppc.estado === 'Pendiente').length} pendientes
                   </p>
                 </div>
               </div>
 
               {/* Roles de Servicio */}
-              <div className="flex items-center space-x-3 sm:space-x-4">
-                <div className="flex-shrink-0">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-                    <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
-                  </div>
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
+                  <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Roles de Servicio</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Roles de Servicio</p>
+                  <p className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white">
                     {(() => {
                       console.log('🔍 Roles de servicio calculados:', turnosPrecargados.length, 'activos');
                       return turnosPrecargados.length;
                     })()}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
                     {turnosPrecargados.length} activos
                   </p>
                 </div>
