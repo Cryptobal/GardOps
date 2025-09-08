@@ -94,6 +94,14 @@ export default function PPCModal({
     setAsignando(ppc.id);
     
     try {
+      console.log('🔍 Enviando asignación:', {
+        guardia_id: guardia.id,
+        instalacion_id: instalacionId,
+        ppc_id: ppc.id,
+        fecha: new Date().toISOString().split('T')[0],
+        motivo: `Asignación optimizada - PPC: ${ppc.rol_nombre}, Distancia: ${guardia.distancia.toFixed(1)}km`
+      });
+      
       const response = await fetch('/api/asignaciones/crear', {
         method: 'POST',
         headers: {
@@ -108,9 +116,21 @@ export default function PPCModal({
         })
       });
 
-      const data = await response.json();
+      console.log('📡 Respuesta del servidor:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url
+      });
 
-      if (data.success) {
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.error('Error parsing JSON response:', jsonError);
+        throw new Error(`Error del servidor (${response.status}): ${response.statusText}`);
+      }
+
+      if (data && data.success) {
         toast.success(
           `${guardia.nombre} asignado a ${ppc.rol_nombre} en ${ppc.instalacion_nombre}`, 
           '✅ Asignación exitosa'
@@ -118,7 +138,8 @@ export default function PPCModal({
         onAsignacionExitosa();
         onClose();
       } else {
-        toast.error(data.error || "No se pudo completar la asignación", "Error en asignación");
+        const errorMessage = data?.error || `Error del servidor (${response.status}): ${response.statusText}`;
+        toast.error(errorMessage, "Error en asignación");
       }
     } catch (error) {
       console.error('Error asignando PPC:', error);
