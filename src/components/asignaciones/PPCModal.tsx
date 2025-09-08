@@ -71,7 +71,7 @@ export default function PPCModal({
           const response = await fetch(`/api/instalaciones/${instalacion.id}/ppcs`);
           const data = await response.json();
           
-          if (data.success && Array.isArray(data.data)) {
+          if (data && data.success && Array.isArray(data.data)) {
             todosLosPPCs = [...todosLosPPCs, ...data.data];
           }
         } catch (error) {

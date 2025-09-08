@@ -68,8 +68,11 @@ export default function SeguridadLayout({
 
   const activeSection = getActiveSection();
 
+  // Verificar si tiene algún permiso de seguridad
+  const hasAnySecurityPermission = canUsuarios || canRolesRead || canPermisosRead || isPlatformAdmin;
+  
   // Si estamos en la página principal, no mostrar tabs
-  if (!adminBypass && !isPlatformAdmin) {
+  if (!adminBypass && !hasAnySecurityPermission) {
     return (
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         <div className="rounded-xl border p-6 text-center text-muted-foreground">
