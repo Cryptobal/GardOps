@@ -130,7 +130,7 @@ export default function PPCModal({
         throw new Error(`Error del servidor (${response.status}): ${response.statusText}`);
       }
 
-      if (data && data.success) {
+      if (data && data.success === true) {
         toast.success(
           `${guardia.nombre} asignado a ${ppc.rol_nombre} en ${ppc.instalacion_nombre}`, 
           '✅ Asignación exitosa'

@@ -46,10 +46,8 @@ export const NavigationItemWrapper = React.memo(function NavigationItemWrapper({
         const token = m?.[1] ? decodeURIComponent(m[1]) : null;
         if (token) {
           const payload = JSON.parse(atob(token.split('.')[1] || '')) || {};
-          // SOLO permitir bypass para roles específicos de admin
-          return payload?.rol === 'Super Admin' || 
-                 payload?.rol === 'Platform Admin' || 
-                 payload?.rol === 'Tenant Admin';
+          // SOLO permitir bypass para Platform Admin (administrador global)
+          return payload?.rol === 'Platform Admin';
         }
       }
     } catch {}
