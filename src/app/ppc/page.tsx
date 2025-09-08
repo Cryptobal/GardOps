@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
@@ -26,7 +26,9 @@ import {
   Users,
   Target,
   Activity,
-  Zap 
+  Zap,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -40,7 +42,7 @@ import {
 // Importar componentes genéricos
 import { DataTable, Column } from "../../components/ui/data-table";
 
-// Componente KPI Box mejorado
+// Componente KPI Box mejorado - Mobile First
 const KPIBox = ({ 
   title, 
   value, 
@@ -64,19 +66,19 @@ const KPIBox = ({
     transition={{ duration: 0.5 }}
   >
     <Card className="h-full cursor-help hover:shadow-md transition-shadow">
-      <CardContent className="p-3 sm:p-4 flex flex-col justify-between h-full">
-        <div className="flex items-center justify-between">
+      <CardContent className="p-2 sm:p-4 flex flex-col justify-between h-full">
+        <div className="flex flex-col items-center text-center space-y-1">
+          <div className={`p-1 sm:p-2 rounded-full bg-${color}-100 dark:bg-${color}-900/20 flex-shrink-0`}>
+            <Icon className={`h-3 w-3 sm:h-5 sm:w-5 text-${color}-600 dark:text-${color}-400`} />
+          </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1">
-              {title}
-              {tooltip && <Info className="h-3 w-3" />}
-            </p>
-            <p className="text-xl sm:text-2xl font-bold mt-1">{value}</p>
+            <p className="text-xs font-medium text-muted-foreground">{title}</p>
+            <p className="text-sm sm:text-2xl font-bold">{value}</p>
             {subtitle && (
-              <p className="text-xs text-muted-foreground mt-1 truncate">{subtitle}</p>
+              <p className="text-xs text-muted-foreground hidden sm:block truncate">{subtitle}</p>
             )}
             {trend && (
-              <div className="flex items-center gap-1 mt-1">
+              <div className="flex items-center justify-center gap-1 mt-1 hidden sm:flex">
                 {trend.isPositive ? (
                   <TrendingUp className="h-3 w-3 text-green-600" />
                 ) : (
@@ -87,9 +89,6 @@ const KPIBox = ({
                 </span>
               </div>
             )}
-          </div>
-          <div className={`p-2 sm:p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/20 flex-shrink-0 ml-2 sm:ml-3`}>
-            <Icon className={`h-4 w-4 sm:h-5 sm:w-5 text-${color}-600 dark:text-${color}-400`} />
           </div>
         </div>
       </CardContent>
@@ -163,6 +162,7 @@ export default function PPCPage() {
   const [ppcs, setPpcs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [metricas, setMetricas] = useState<any>(null);
+  const [filtrosExpanded, setFiltrosExpanded] = useState(false);
 
   // Filtros mejorados - Solo PPC activos por defecto
   const [filtros, setFiltros] = useState({
@@ -439,20 +439,20 @@ export default function PPCPage() {
   const roles = Array.from(new Set(ppcs.map((p: any) => p.rol))).sort();
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
+    <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-6 space-y-3 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center space-x-3 sm:space-x-4 mb-4 sm:mb-6">
-        <div className="p-2 sm:p-3 rounded-full bg-blue-100 dark:bg-blue-900/20">
-          <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
+      <div className="flex items-center space-x-2 sm:space-x-4 mb-3 sm:mb-6">
+        <div className="p-1 sm:p-3 rounded-full bg-blue-100 dark:bg-blue-900/20">
+          <BarChart3 className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold truncate">PPC Activos</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Gestión de puestos por cubrir pendientes de asignación</p>
+          <h1 className="text-lg sm:text-3xl font-bold truncate">PPC Activos</h1>
+          <p className="text-xs sm:text-base text-muted-foreground">Gestión de puestos por cubrir pendientes de asignación</p>
         </div>
       </div>
 
-      {/* KPIs - Solo PPC activos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+      {/* KPIs - Solo PPC activos - Mobile First */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         <KPIBox
           title="PPC Activos"
           value={kpis.total_abiertos}
@@ -490,31 +490,48 @@ export default function PPCPage() {
         )}
       </div>
 
-      {/* Filtros mejorados */}
+      {/* Filtros mejorados - Colapsible */}
       <Card>
-        <CardContent className="p-4 sm:p-6">
+        <CardContent className="p-3 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 mb-4">
             <div className="flex items-center space-x-2">
-              <Filter className="h-5 w-5" />
-              <h3 className="text-lg font-semibold">Filtros</h3>
+              <Filter className="h-4 w-4 sm:h-5 sm:w-5" />
+              <h3 className="text-base sm:text-lg font-semibold">Filtros</h3>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
+              <span className="text-xs sm:text-sm text-muted-foreground">
                 {filteredPpcs.length} resultados
               </span>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={limpiarFiltros}
-                className="flex items-center gap-2"
+                className="flex items-center gap-1 h-8 px-2"
               >
-                <RotateCcw className="h-4 w-4" />
-                <span className="hidden sm:inline">Limpiar</span>
+                <RotateCcw className="h-3 w-3" />
+                <span className="hidden sm:inline text-xs">Limpiar</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setFiltrosExpanded(!filtrosExpanded)}
+                className="flex items-center gap-1 h-8 px-2"
+              >
+                <span className="text-xs">Filtros</span>
+                {filtrosExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
               </Button>
             </div>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <AnimatePresence>
+            {filtrosExpanded && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
+              >
             <div>
               <label className="block text-sm font-medium mb-2">Estado</label>
               <Select
@@ -588,7 +605,9 @@ export default function PPCPage() {
                 />
               </div>
             </div>
-          </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </CardContent>
       </Card>
 
