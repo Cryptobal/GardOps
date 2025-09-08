@@ -18,24 +18,24 @@ export default function ControlAsistenciasPage() {
   });
 
   return (
-    <div className="w-full max-w-full mx-auto p-3 space-y-3">
+    <div className="w-full max-w-full mx-auto p-2 sm:p-3 space-y-2 sm:space-y-3">
       {/* Header Mobile First */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold">Control de Asistencias</h1>
-          <p className="text-gray-600 text-xs">Monitoreo en tiempo real de asistencias</p>
+          <h1 className="text-lg sm:text-xl font-bold text-white">Control de Asistencias</h1>
+          <p className="text-gray-400 text-xs">Monitoreo en tiempo real de asistencias</p>
         </div>
       </div>
 
       {/* Control de Asistencias Content */}
       <Card className="w-full">
-        <CardHeader className="pb-2 px-3">
+        <CardHeader className="pb-2 px-2 sm:px-3">
           <CardTitle className="flex items-center gap-2 text-sm">
             <Activity className="w-4 h-4" />
             Control de Asistencias en Tiempo Real
           </CardTitle>
         </CardHeader>
-        <CardContent className="px-3 pb-3">
+        <CardContent className="px-2 sm:px-3 pb-2 sm:pb-3">
           <MonitoreoTiempoReal 
             fecha={fecha} 
             activeTab="monitoreo"

@@ -349,149 +349,145 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
 
   return (
     <div className="space-y-4">
-      {/* Header con controles */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {/* Controles de navegación de fecha */}
-            <div className="flex items-center gap-1">
-              <Button variant="outline" size="sm" onClick={() => go(-1)}>
-                <ChevronLeft className="h-3 w-3" />
-              </Button>
-              <div className="flex items-stretch gap-1">
-                <Input
-                  ref={inputRef}
-                  type="date"
-                  className="w-auto text-xs"
-                  value={fecha}
-                  onChange={(e) => goToDate(e.target.value)}
-                />
-                <Button
-                  aria-label="Abrir calendario"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => inputRef.current?.showPicker?.()}
-                >
-                  <Calendar className="h-3 w-3" />
-                </Button>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => goToDate(toYmd(new Date()))}
-              >
-                Hoy
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => go(1)}>
-                <ChevronRight className="h-3 w-3" />
-              </Button>
-            </div>
-
-            {/* Botón Ver Libres */}
+      {/* Header con controles - Mobile First */}
+      <div className="space-y-2">
+        {/* Controles de navegación de fecha */}
+        <div className="flex items-center gap-1 overflow-x-auto pb-1">
+          <Button variant="outline" size="sm" onClick={() => go(-1)} className="flex-shrink-0">
+            <ChevronLeft className="h-3 w-3" />
+          </Button>
+          <div className="flex items-stretch gap-1">
+            <Input
+              ref={inputRef}
+              type="date"
+              className="w-auto text-xs min-w-[120px]"
+              value={fecha}
+              onChange={(e) => goToDate(e.target.value)}
+            />
             <Button
-              onClick={() => setIncluirLibres(!incluirLibres)}
-              variant={incluirLibres ? "default" : "outline"}
+              aria-label="Abrir calendario"
+              variant="outline"
               size="sm"
-              className="h-8 px-3"
+              onClick={() => inputRef.current?.showPicker?.()}
+              className="flex-shrink-0"
             >
-              <Eye className="w-3 h-3 mr-1" />
-              <span className="text-xs">Ver Libres</span>
+              <Calendar className="h-3 w-3" />
             </Button>
-
-
-
-            {/* KPI Total */}
-            <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-950/50 rounded-lg border border-blue-200 dark:border-blue-800">
-              <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Total:</span>
-              <span className="text-sm font-bold text-blue-800 dark:text-blue-200">{data?.kpis.total_turnos || 0}</span>
-            </div>
           </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => goToDate(toYmd(new Date()))}
+            className="flex-shrink-0"
+          >
+            Hoy
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => go(1)} className="flex-shrink-0">
+            <ChevronRight className="h-3 w-3" />
+          </Button>
+        </div>
 
-          {/* Selector de modo vista */}
-          <div className="flex items-center gap-1">
-            <Button
-              onClick={() => setModoVista('lista')}
-              variant={modoVista === 'lista' ? "default" : "outline"}
-              size="sm"
-              className="h-8 w-8 p-0"
-              title="Vista Lista"
-            >
-              <List className="w-3 h-3" />
-            </Button>
-            <Button
-              onClick={() => setModoVista('grid')}
-              variant={modoVista === 'grid' ? "default" : "outline"}
-              size="sm"
-              className="h-8 w-8 p-0"
-              title="Vista Grid"
-            >
-              <Grid className="w-3 h-3" />
-            </Button>
+        {/* Botones y KPI Total */}
+        <div className="flex items-center justify-between gap-2">
+          <Button
+            onClick={() => setIncluirLibres(!incluirLibres)}
+            variant={incluirLibres ? "default" : "outline"}
+            size="sm"
+            className="h-8 px-3 flex-shrink-0"
+          >
+            <Eye className="w-3 h-3 mr-1" />
+            <span className="text-xs">Ver Libres</span>
+          </Button>
+
+          {/* KPI Total */}
+          <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-950/50 rounded-lg border border-blue-200 dark:border-blue-800">
+            <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Total:</span>
+            <span className="text-sm font-bold text-blue-800 dark:text-blue-200">{data?.kpis.total_turnos || 0}</span>
           </div>
         </div>
 
-
+        {/* Selector de modo vista */}
+        <div className="flex items-center gap-1">
+          <Button
+            onClick={() => setModoVista('lista')}
+            variant={modoVista === 'lista' ? "default" : "outline"}
+            size="sm"
+            className="h-8 w-8 p-0"
+            title="Vista Lista"
+          >
+            <List className="w-3 h-3" />
+          </Button>
+          <Button
+            onClick={() => setModoVista('grid')}
+            variant={modoVista === 'grid' ? "default" : "outline"}
+            size="sm"
+            className="h-8 w-8 p-0"
+            title="Vista Grid"
+          >
+            <Grid className="w-3 h-3" />
+          </Button>
+        </div>
       </div>
 
-      {/* KPIs optimizados en una sola línea */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        <Card className="border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/50 min-w-[120px] flex-shrink-0">
-          <CardContent className="p-3">
-            <div className="flex flex-col items-center text-center">
-              <Clock className="w-4 h-4 text-gray-600 dark:text-gray-400 mb-1" />
+      {/* KPIs optimizados para móvil - Grid responsive */}
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        <Card className="border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/50">
+          <CardContent className="p-2">
+            <div className="flex flex-col items-center text-center space-y-1">
+              <Clock className="w-3 h-3 text-gray-600 dark:text-gray-400" />
               <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Pendiente</p>
-              <p className="text-lg font-bold text-gray-800 dark:text-gray-200">{data.kpis.pendiente}</p>
+              <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{data.kpis.pendiente}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-yellow-200 dark:border-yellow-800 bg-yellow-50/50 dark:bg-yellow-950/50 min-w-[120px] flex-shrink-0">
-          <CardContent className="p-3">
-            <div className="flex flex-col items-center text-center">
-              <Clock className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mb-1" />
+        <Card className="border-yellow-200 dark:border-yellow-800 bg-yellow-50/50 dark:bg-yellow-950/50">
+          <CardContent className="p-2">
+            <div className="flex flex-col items-center text-center space-y-1">
+              <Clock className="w-3 h-3 text-yellow-600 dark:text-yellow-400" />
               <p className="text-xs font-medium text-yellow-700 dark:text-yellow-300">En Camino</p>
-              <p className="text-lg font-bold text-yellow-800 dark:text-yellow-200">{data.kpis.en_camino}</p>
+              <p className="text-sm font-bold text-yellow-800 dark:text-yellow-200">{data.kpis.en_camino}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/50 min-w-[120px] flex-shrink-0">
-          <CardContent className="p-3">
-            <div className="flex flex-col items-center text-center">
-              <Activity className="w-4 h-4 text-green-600 dark:text-green-400 mb-1" />
+        <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/50">
+          <CardContent className="p-2">
+            <div className="flex flex-col items-center text-center space-y-1">
+              <Activity className="w-3 h-3 text-green-600 dark:text-green-400" />
               <p className="text-xs font-medium text-green-700 dark:text-green-300">Llegó</p>
-              <p className="text-lg font-bold text-green-800 dark:text-green-200">{data.kpis.llego}</p>
+              <p className="text-sm font-bold text-green-800 dark:text-green-200">{data.kpis.llego}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/50 min-w-[120px] flex-shrink-0">
-          <CardContent className="p-3">
-            <div className="flex flex-col items-center text-center">
-              <Activity className="w-4 h-4 text-red-600 dark:text-red-400 mb-1" />
+        <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/50">
+          <CardContent className="p-2">
+            <div className="flex flex-col items-center text-center space-y-1">
+              <Activity className="w-3 h-3 text-red-600 dark:text-red-400" />
               <p className="text-xs font-medium text-red-700 dark:text-red-300">No Contesta</p>
-              <p className="text-lg font-bold text-red-800 dark:text-red-200">{data.kpis.no_contesta}</p>
+              <p className="text-sm font-bold text-red-800 dark:text-red-200">{data.kpis.no_contesta}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-red-600 dark:border-red-800 bg-red-100/50 dark:bg-red-950/50 min-w-[120px] flex-shrink-0">
-          <CardContent className="p-3">
-            <div className="flex flex-col items-center text-center">
-              <XCircle className="w-4 h-4 text-red-600 dark:text-red-400 mb-1" />
+        <Card className="border-red-600 dark:border-red-800 bg-red-100/50 dark:bg-red-950/50">
+          <CardContent className="p-2">
+            <div className="flex flex-col items-center text-center space-y-1">
+              <XCircle className="w-3 h-3 text-red-600 dark:text-red-400" />
               <p className="text-xs font-medium text-red-700 dark:text-red-300">No Irá</p>
-              <p className="text-lg font-bold text-red-800 dark:text-red-200">{data.kpis.no_ira}</p>
+              <p className="text-sm font-bold text-red-800 dark:text-red-200">{data.kpis.no_ira}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/50 min-w-[120px] flex-shrink-0">
-          <CardContent className="p-3">
-            <div className="flex flex-col items-center text-center">
-              <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400 mb-1" />
+        <Card className="border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/50">
+          <CardContent className="p-2">
+            <div className="flex flex-col items-center text-center space-y-1">
+              <Clock className="w-3 h-3 text-orange-600 dark:text-orange-400" />
               <p className="text-xs font-medium text-orange-700 dark:text-orange-300">Retrasado</p>
-              <p className="text-lg font-bold text-orange-800 dark:text-orange-200">{data.kpis.retrasado}</p>
+              <p className="text-sm font-bold text-orange-800 dark:text-orange-200">{data.kpis.retrasado}</p>
             </div>
           </CardContent>
         </Card>
