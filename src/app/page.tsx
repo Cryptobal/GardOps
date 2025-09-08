@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
-  RefreshCw, 
   Users, 
   CheckCircle, 
   Clock, 
@@ -78,8 +77,6 @@ export default function HomePage() {
     os10_vigentes: 0
   });
   const [loading, setLoading] = useState(true);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [isMounted, setIsMounted] = useState(false);
 
   // Evitar error de hidratación
@@ -108,7 +105,6 @@ export default function HomePage() {
           os10_vigentes: result.data.os10_vigentes
         });
         setKpis(result.data);
-        setLastUpdate(new Date());
       } else {
         throw new Error(result.error || 'Error desconocido');
       }
@@ -124,13 +120,6 @@ export default function HomePage() {
     cargarKPIs();
   }, []);
 
-  // Auto-refresh cada 30 segundos
-  useEffect(() => {
-    if (!autoRefresh) return;
-
-    const interval = setInterval(cargarKPIs, 30000); // 30 segundos
-    return () => clearInterval(interval);
-  }, [autoRefresh]);
 
   // Escuchar cambios en otras pestañas
   useEffect(() => {
@@ -147,38 +136,6 @@ export default function HomePage() {
 
   return (
     <div className="w-full max-w-full mx-auto p-3 space-y-3">
-      {/* Controles de actualización - Mobile First */}
-      <div className="flex items-center justify-center gap-2 w-full">
-        <Button 
-          onClick={cargarKPIs} 
-          variant="outline" 
-          size="sm"
-          disabled={loading}
-          className="h-8 px-3 text-xs flex-1 max-w-[120px]"
-        >
-          <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
-          Actualizar
-        </Button>
-        
-        <Button
-          onClick={() => setAutoRefresh(!autoRefresh)}
-          variant={autoRefresh ? "default" : "outline"}
-          size="sm"
-          className="h-8 px-3 text-xs flex-1 max-w-[120px]"
-        >
-          <Clock className="w-3 h-3 mr-1" />
-          {autoRefresh ? 'Auto ON' : 'Auto OFF'}
-        </Button>
-      </div>
-
-      {/* Indicador de última actualización - Mobile First */}
-      <p className="text-xs text-muted-foreground text-center w-full">
-        Última actualización: {isMounted ? lastUpdate.toLocaleTimeString('es-CL', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        }) : '--:--:--'}
-      </p>
 
       {/* KPIs de OS10 - Estado de Certificaciones */}
       <Card className="w-full">
