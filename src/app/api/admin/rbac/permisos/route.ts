@@ -92,26 +92,73 @@ export async function GET(req: NextRequest) {
 
     console.log('[admin/rbac/permisos][GET]', { email, userId, perms: ['rbac.permisos.read','rbac.platform_admin'] })
     
-    // Obtener permisos con categorías
-    const rows = await sql`
-      SELECT id, clave, descripcion, categoria
-      FROM public.permisos
-      ORDER BY categoria ASC, clave ASC
-    `;
+    // Verificar si es Platform Admin para filtrar permisos
+    const isPlatformAdmin = await userHasPerm(userId, 'rbac.platform_admin');
+    
+    // Obtener permisos con categorías (filtrar tenants si no es Platform Admin)
+    let permisosQuery;
+    if (isPlatformAdmin) {
+      // Platform Admin ve todos los permisos
+      permisosQuery = sql`
+        SELECT id, clave, descripcion, categoria
+        FROM public.permisos
+        ORDER BY categoria ASC, clave ASC
+      `;
+    } else {
+      // Otros roles NO ven permisos relacionados con tenants
+      permisosQuery = sql`
+        SELECT id, clave, descripcion, categoria
+        FROM public.permisos
+        WHERE clave NOT LIKE '%tenant%' 
+        AND clave NOT LIKE 'rbac.tenants.%'
+        AND clave != 'rbac.platform_admin'
+        ORDER BY categoria ASC, clave ASC
+      `;
+    }
+    
+    const rows = await permisosQuery;
 
-    // Contar categorías únicas
-    const categoriasCount = await sql`
-      SELECT COUNT(DISTINCT categoria) as total
-      FROM public.permisos
-      WHERE categoria IS NOT NULL
-    `;
+    // Contar categorías únicas (aplicar mismo filtro)
+    let categoriasQuery;
+    if (isPlatformAdmin) {
+      categoriasQuery = sql`
+        SELECT COUNT(DISTINCT categoria) as total
+        FROM public.permisos
+        WHERE categoria IS NOT NULL
+      `;
+    } else {
+      categoriasQuery = sql`
+        SELECT COUNT(DISTINCT categoria) as total
+        FROM public.permisos
+        WHERE categoria IS NOT NULL
+        AND clave NOT LIKE '%tenant%' 
+        AND clave NOT LIKE 'rbac.tenants.%'
+        AND clave != 'rbac.platform_admin'
+      `;
+    }
+    
+    const categoriasCount = await categoriasQuery;
 
-    // Contar permisos en uso (asignados a roles)
-    const permisosEnUso = await sql`
-      SELECT COUNT(DISTINCT p.id) as total
-      FROM public.permisos p
-      JOIN roles_permisos rp ON rp.permiso_id = p.id
-    `;
+    // Contar permisos en uso (asignados a roles, aplicar mismo filtro)
+    let permisosEnUsoQuery;
+    if (isPlatformAdmin) {
+      permisosEnUsoQuery = sql`
+        SELECT COUNT(DISTINCT p.id) as total
+        FROM public.permisos p
+        JOIN roles_permisos rp ON rp.permiso_id = p.id
+      `;
+    } else {
+      permisosEnUsoQuery = sql`
+        SELECT COUNT(DISTINCT p.id) as total
+        FROM public.permisos p
+        JOIN roles_permisos rp ON rp.permiso_id = p.id
+        WHERE p.clave NOT LIKE '%tenant%' 
+        AND p.clave NOT LIKE 'rbac.tenants.%'
+        AND p.clave != 'rbac.platform_admin'
+      `;
+    }
+    
+    const permisosEnUso = await permisosEnUsoQuery;
 
     return NextResponse.json({ 
       ok: true, 
