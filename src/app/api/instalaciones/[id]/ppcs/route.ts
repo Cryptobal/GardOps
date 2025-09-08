@@ -27,6 +27,29 @@ export async function GET(
     // USAR LA MISMA FUENTE QUE EL MÓDULO PPC - Vista de pauta diaria
     const fecha = '2025-09-08'; // Misma fecha que el módulo PPC
     
+    // Primero buscar todos los PPCs para debug
+    const debugQuery = await query(`
+      SELECT 
+        pd.puesto_id as ppc_id,
+        pd.instalacion_id,
+        pd.instalacion_nombre,
+        pd.rol_nombre,
+        pd.rol_id,
+        pd.fecha as created_at,
+        pd.puesto_nombre as nombre_puesto
+      FROM as_turnos_v_pauta_diaria_dedup_fixed pd
+      WHERE pd.fecha = $1
+        AND pd.es_ppc = true 
+        AND pd.estado_ui = 'plan'
+      ORDER BY pd.puesto_id ASC
+    `, [fecha]);
+    
+    console.log(`🔍 Debug - PPCs totales encontrados: ${debugQuery.rows.length}`);
+    console.log(`🔍 Debug - Instalación buscada: ${instalacionId}`);
+    debugQuery.rows.forEach(row => {
+      console.log(`🔍 Debug - PPC: ${row.instalacion_id} = ${row.instalacion_nombre}`);
+    });
+    
     const result = await query(`
       SELECT 
         pd.puesto_id as ppc_id,
