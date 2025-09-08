@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
     `);
     console.log('🔍 Test query resultado:', testQuery.rows[0]);
     
-    // Usar la vista de pauta diaria unificada para obtener PPCs
+    // Usar la misma vista que la pauta diaria v2 para obtener PPCs
     const ppcs = await query(`
       SELECT 
         pd.puesto_id as id,
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
         pd.guardia_trabajo_nombre as guardia_nombre,
         pd.guardia_trabajo_telefono as guardia_rut,
         pd.estado_ui
-      FROM as_turnos_v_pauta_diaria_unificada pd
+      FROM as_turnos_v_pauta_diaria_dedup_fixed pd
       ${whereClause}
       ORDER BY pd.fecha DESC, pd.instalacion_nombre, pd.rol_nombre, pd.puesto_id DESC
       LIMIT 50
