@@ -93,8 +93,8 @@ export async function GET(request: NextRequest) {
         g.nombre || ' ' || g.apellido_paterno as guardia_nombre,
         g.rut as guardia_rut
       FROM as_turnos_puestos_operativos po
-      INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-      INNER JOIN instalaciones i ON po.instalacion_id = i.id
+      LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+      LEFT JOIN instalaciones i ON po.instalacion_id = i.id
       LEFT JOIN guardias g ON po.guardia_id = g.id
       ${whereClause}
       ORDER BY i.nombre, rs.nombre, po.creado_en DESC
