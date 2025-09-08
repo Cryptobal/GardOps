@@ -24,6 +24,9 @@ export async function GET(request: NextRequest) {
       } else if (estado === 'Cubierto') {
         whereConditions.push(`po.guardia_id IS NOT NULL`);
       }
+    } else {
+      // Si no se especifica estado, mostrar todos los PPCs activos
+      // No agregar filtro de estado
     }
 
     if (instalacion && instalacion !== 'all') {
