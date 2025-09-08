@@ -14,16 +14,31 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar que el puesto operativo existe y está disponible como PPC
-    const puestoCheck = await query(`
+    // Primero intentar en la vista de pauta diaria (para PPCs del módulo PPC)
+    let puestoCheck = await query(`
       SELECT 
-        po.id,
-        po.instalacion_id,
-        po.rol_id,
-        po.es_ppc,
-        po.guardia_id
-      FROM as_turnos_puestos_operativos po
-      WHERE po.id = $1 AND po.es_ppc = true
+        id,
+        instalacion_id,
+        rol_id,
+        es_ppc,
+        guardia_id
+      FROM as_turnos_v_pauta_diaria_dedup_fixed
+      WHERE id = $1 AND es_ppc = true AND estado_ui = 'plan'
     `, [puesto_operativo_id]);
+
+    // Si no se encuentra en la vista, intentar en la tabla original
+    if (puestoCheck.rows.length === 0) {
+      puestoCheck = await query(`
+        SELECT 
+          po.id,
+          po.instalacion_id,
+          po.rol_id,
+          po.es_ppc,
+          po.guardia_id
+        FROM as_turnos_puestos_operativos po
+        WHERE po.id = $1 AND po.es_ppc = true
+      `, [puesto_operativo_id]);
+    }
 
     if (puestoCheck.rows.length === 0) {
       return NextResponse.json(
@@ -104,13 +119,39 @@ export async function POST(request: NextRequest) {
       }
 
       // Asignar el guardia al nuevo puesto
-      await query(`
-        UPDATE as_turnos_puestos_operativos 
-        SET es_ppc = false,
-            guardia_id = $1,
-            actualizado_en = NOW()
-        WHERE id = $2
-      `, [guardia_id, puesto_operativo_id]);
+      // Si el PPC viene de la vista, necesitamos encontrar el puesto original en la tabla
+      if (puestoCheck.rows.length > 0 && puestoCheck.rows[0].instalacion_id) {
+        // Buscar el puesto original en la tabla as_turnos_puestos_operativos
+        const puestoOriginal = await query(`
+          SELECT id FROM as_turnos_puestos_operativos 
+          WHERE instalacion_id = $1 AND rol_id = $2 AND es_ppc = true
+          LIMIT 1
+        `, [puesto.instalacion_id, puesto.rol_id]);
+        
+        if (puestoOriginal.rows.length > 0) {
+          const puestoId = puestoOriginal.rows[0].id;
+          await query(`
+            UPDATE as_turnos_puestos_operativos 
+            SET es_ppc = false,
+                guardia_id = $1,
+                actualizado_en = NOW()
+            WHERE id = $2
+          `, [guardia_id, puestoId]);
+          console.log(`✅ [ASIGNACIÓN] Guardia ${guardia_id} asignado al puesto original ${puestoId}`);
+        } else {
+          throw new Error('No se encontró el puesto original en la tabla');
+        }
+      } else {
+        // Fallback: usar el ID directamente
+        await query(`
+          UPDATE as_turnos_puestos_operativos 
+          SET es_ppc = false,
+              guardia_id = $1,
+              actualizado_en = NOW()
+          WHERE id = $2
+        `, [guardia_id, puesto_operativo_id]);
+        console.log(`✅ [ASIGNACIÓN] Guardia ${guardia_id} asignado al puesto ${puesto_operativo_id}`);
+      }
 
       console.log(`✅ [ASIGNACIÓN] Guardia ${guardia_id} asignado al puesto ${puesto_operativo_id}`);
 
