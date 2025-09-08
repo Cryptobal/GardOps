@@ -669,37 +669,44 @@ export default function GuardiaDetallePage() {
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4 sm:mb-6">
-        <div className="flex items-center gap-4">
+      {/* Header Mobile-First */}
+      <div className="space-y-4 mb-4 sm:mb-6">
+        {/* Botón Volver */}
+        <div className="flex justify-start">
           <Link href="/guardias">
             <Button variant="outline" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver
             </Button>
           </Link>
+        </div>
+        
+        {/* Información del Guardia */}
+        <div className="space-y-3">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white truncate">
               {guardia.nombre} {guardia.apellido_paterno} {guardia.apellido_materno}
             </h1>
-            <p className="text-gray-600">RUT: {guardia.rut}</p>
+            <p className="text-gray-400 text-sm sm:text-base">RUT: {guardia.rut}</p>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-            guardia.tipo_guardia === 'contratado' 
-              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
-              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-          }`}>
-            {guardia.tipo_guardia === 'contratado' ? 'Contratado' : 'Esporádico'}
-          </span>
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-            guardia.estado === 'activo' 
-              ? 'bg-green-100 text-green-800' 
-              : 'bg-red-100 text-red-800'
-          }`}>
-            {guardia.estado === 'activo' ? 'Activo' : 'Inactivo'}
-          </span>
-
+          
+          {/* Badges - Mobile First */}
+          <div className="flex flex-wrap gap-2">
+            <span className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
+              guardia.tipo_guardia === 'contratado' 
+                ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+            }`}>
+              {guardia.tipo_guardia === 'contratado' ? 'Contratado' : 'Esporádico'}
+            </span>
+            <span className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
+              guardia.estado === 'activo' 
+                ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+                : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+            }`}>
+              {guardia.estado === 'activo' ? 'Activo' : 'Inactivo'}
+            </span>
+          </div>
         </div>
       </div>
 
