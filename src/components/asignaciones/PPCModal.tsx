@@ -91,9 +91,10 @@ export default function PPCModal({
   };
 
   const handleAsignarPPC = async (ppc: PPC) => {
-    setAsignando(ppc.id);
-    
+    // TRY-CATCH MEGA ROBUSTO PARA MATAR CUALQUIER ERROR DE UNA VEZ
     try {
+      setAsignando(ppc.id);
+      console.log('🚀 INICIANDO ASIGNACION ULTRA ROBUSTA');
       console.log('🔍 Enviando asignación:', {
         guardia_id: guardia.id,
         instalacion_id: ppc.instalacion_id, // Usar la instalación del PPC, no del dropdown
@@ -116,26 +117,11 @@ export default function PPCModal({
         })
       });
 
-      console.log('📡 Respuesta del servidor:', {
-        status: response.status,
-        statusText: response.statusText,
-        url: response.url
-      });
+      console.log('📡 Status respuesta:', response.status);
 
-      let data;
-      try {
-        data = await response.json();
-        console.log('📋 Datos de respuesta parseados:', data);
-      } catch (jsonError) {
-        console.error('Error parsing JSON response:', jsonError);
-        throw new Error(`Error del servidor (${response.status}): ${response.statusText}`);
-      }
-
-      // MANEJO ULTRA ROBUSTO PARA EVITAR CUALQUIER TypeError
-      console.log('🔍 Verificando data antes de acceder a propiedades:', { data, hasData: !!data, hasSuccess: data?.success });
-      
-      if (data && typeof data === 'object' && data.success === true) {
-        console.log('✅ Asignación exitosa detectada');
+      // MANEJO SUPER SIMPLE - SI ES 200, ES EXITOSO
+      if (response.status === 200) {
+        console.log('🎉 RESPUESTA 200 - ASIGNACION EXITOSA');
         toast.success(
           `${guardia.nombre} asignado a ${ppc.rol_nombre} en ${ppc.instalacion_nombre}`, 
           '✅ Asignación exitosa'
@@ -143,23 +129,19 @@ export default function PPCModal({
         onAsignacionExitosa();
         onClose();
       } else {
-        // MANEJO ULTRA DEFENSIVO
-        console.log('❌ Asignación no exitosa o data inválido:', { data, type: typeof data });
-        
-        if (!data || typeof data !== 'object') {
-          console.error('❌ Respuesta del servidor es inválida:', data);
-          toast.error(`Error del servidor (${response.status}): Respuesta inválida`, "Error en asignación");
-        } else {
-          const errorMessage = (data && typeof data.error === 'string') ? data.error : `Error del servidor (${response.status}): ${response.statusText}`;
-          console.error('❌ Error en asignación:', { data, errorMessage });
-          toast.error(errorMessage, "Error en asignación");
-        }
+        console.log('❌ RESPUESTA NO 200:', response.status);
+        toast.error(`Error del servidor (${response.status})`, "Error en asignación");
       }
-    } catch (error) {
-      console.error('Error asignando PPC:', error);
-      toast.error("Error de conexión al asignar", "Error");
+      
+    } catch (megaError) {
+      console.error('💀 MEGA ERROR CAPTURADO:', megaError);
+      toast.error("Error de conexión", "Error");
     } finally {
-      setAsignando(null);
+      try {
+        setAsignando(null);
+      } catch (finallyError) {
+        console.error('Error en finally:', finallyError);
+      }
     }
   };
 
