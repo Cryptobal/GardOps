@@ -131,7 +131,11 @@ export default function PPCModal({
         throw new Error(`Error del servidor (${response.status}): ${response.statusText}`);
       }
 
-      if (data && data.success === true) {
+      // MANEJO ULTRA ROBUSTO PARA EVITAR CUALQUIER TypeError
+      console.log('🔍 Verificando data antes de acceder a propiedades:', { data, hasData: !!data, hasSuccess: data?.success });
+      
+      if (data && typeof data === 'object' && data.success === true) {
+        console.log('✅ Asignación exitosa detectada');
         toast.success(
           `${guardia.nombre} asignado a ${ppc.rol_nombre} en ${ppc.instalacion_nombre}`, 
           '✅ Asignación exitosa'
@@ -139,12 +143,14 @@ export default function PPCModal({
         onAsignacionExitosa();
         onClose();
       } else {
-        // Mejorar manejo de errores cuando data es undefined
-        if (!data) {
-          console.error('❌ Respuesta del servidor es undefined o null');
-          toast.error(`Error del servidor (${response.status}): Respuesta vacía`, "Error en asignación");
+        // MANEJO ULTRA DEFENSIVO
+        console.log('❌ Asignación no exitosa o data inválido:', { data, type: typeof data });
+        
+        if (!data || typeof data !== 'object') {
+          console.error('❌ Respuesta del servidor es inválida:', data);
+          toast.error(`Error del servidor (${response.status}): Respuesta inválida`, "Error en asignación");
         } else {
-          const errorMessage = data.error || `Error del servidor (${response.status}): ${response.statusText}`;
+          const errorMessage = (data && typeof data.error === 'string') ? data.error : `Error del servidor (${response.status}): ${response.statusText}`;
           console.error('❌ Error en asignación:', { data, errorMessage });
           toast.error(errorMessage, "Error en asignación");
         }
