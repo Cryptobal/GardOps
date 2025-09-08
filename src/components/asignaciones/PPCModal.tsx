@@ -96,7 +96,7 @@ export default function PPCModal({
     try {
       console.log('🔍 Enviando asignación:', {
         guardia_id: guardia.id,
-        instalacion_id: instalacionId,
+        instalacion_id: ppc.instalacion_id, // Usar la instalación del PPC, no del dropdown
         ppc_id: ppc.id,
         fecha: new Date().toISOString().split('T')[0],
         motivo: `Asignación optimizada - PPC: ${ppc.rol_nombre}, Distancia: ${guardia.distancia.toFixed(1)}km`
@@ -109,7 +109,7 @@ export default function PPCModal({
         },
         body: JSON.stringify({
           guardia_id: guardia.id,
-          instalacion_id: instalacionId,
+          instalacion_id: ppc.instalacion_id, // Usar la instalación del PPC, no del dropdown
           ppc_id: ppc.id,
           fecha: new Date().toISOString().split('T')[0],
           motivo: `Asignación optimizada - PPC: ${ppc.rol_nombre}, Distancia: ${guardia.distancia.toFixed(1)}km`
