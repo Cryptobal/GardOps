@@ -557,10 +557,11 @@ export default function PautaMensualPage() {
                   </div>
                 </div>
 
-                {/* Botón de Replicar Pautas - Contraíble */}
+                {/* Botón de Replicar Pautas - Colapsible */}
                 <div className="flex-shrink-0">
                   <Button
                     onClick={() => setReplicarExpanded(!replicarExpanded)}
+                    disabled={loading}
                     variant="outline"
                     className="w-full lg:w-auto"
                     size="sm"
@@ -576,7 +577,7 @@ export default function PautaMensualPage() {
                 </div>
               </div>
 
-              {/* Sección Expandible de Replicar Pautas */}
+              {/* Sección Colapsible de Replicar Pautas */}
               {replicarExpanded && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
@@ -585,28 +586,24 @@ export default function PautaMensualPage() {
                   transition={{ duration: 0.3 }}
                   className="border-t pt-4"
                 >
-                  <div className="bg-muted/30 rounded-lg p-4 space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Copy className="h-4 w-4 text-blue-600" />
-                      <h4 className="text-sm font-medium">Replicar Pautas del Mes Anterior</h4>
+                  <div className="space-y-4">
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Replica del mes anterior manteniendo series
+                      </p>
+                      <Button
+                        onClick={() => {
+                          console.log('🖱️ Botón replicar clickeado, loading:', loading);
+                          abrirModalReplicar();
+                        }}
+                        disabled={loading}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        size="sm"
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Replicar Pautas
+                      </Button>
                     </div>
-                    
-                    <p className="text-xs text-muted-foreground">
-                      Replica del mes anterior manteniendo series de turnos (4x4, 5x2, etc.) para continuar exactamente donde terminaron.
-                    </p>
-                    
-                    <Button
-                      onClick={() => {
-                        console.log('🖱️ Botón clickeado, loading:', loading);
-                        abrirModalReplicar();
-                      }}
-                      disabled={loading}
-                      className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto"
-                      size="sm"
-                    >
-                      <Copy className="h-4 w-4 mr-2" />
-                      {loading ? 'Cargando...' : 'Iniciar Replicación'}
-                    </Button>
                   </div>
                 </motion.div>
               )}
