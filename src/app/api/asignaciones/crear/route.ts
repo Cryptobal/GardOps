@@ -80,17 +80,17 @@ export async function POST(request: NextRequest) {
     let ppc;
     
     if (ppc_id) {
-      // Si se proporciona un ppc_id específico, usarlo
+      // Si se proporciona un ppc_id específico, usar vista de pauta diaria
+      const fecha = '2025-09-08'; // Misma fecha que otros endpoints
       const ppcEspecifico = await query(`
-        SELECT po.id, rs.nombre as rol_nombre
-        FROM as_turnos_puestos_operativos po
-        JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-        WHERE po.id = $1 
-          AND po.instalacion_id = $2
-          AND po.es_ppc = true 
-          AND po.activo = true
-          AND po.guardia_id IS NULL
-      `, [ppc_id, instalacion_id]);
+        SELECT pd.puesto_id as id, pd.rol_nombre
+        FROM as_turnos_v_pauta_diaria_dedup_fixed pd
+        WHERE pd.puesto_id = $1 
+          AND pd.instalacion_id = $2
+          AND pd.fecha = $3
+          AND pd.es_ppc = true 
+          AND pd.estado_ui = 'plan'
+      `, [ppc_id, instalacion_id, fecha]);
 
       if (ppcEspecifico.rows.length === 0) {
         return NextResponse.json(
@@ -101,18 +101,18 @@ export async function POST(request: NextRequest) {
       
       ppc = ppcEspecifico.rows[0];
     } else {
-      // Buscar un PPC disponible en la instalación
+      // Buscar un PPC disponible en la instalación usando vista de pauta diaria
+      const fecha = '2025-09-08'; // Misma fecha que otros endpoints
       const ppcDisponible = await query(`
-        SELECT po.id, rs.nombre as rol_nombre
-        FROM as_turnos_puestos_operativos po
-        JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-        WHERE po.instalacion_id = $1 
-          AND po.es_ppc = true 
-          AND po.activo = true
-          AND po.guardia_id IS NULL
-        ORDER BY po.creado_en ASC
+        SELECT pd.puesto_id as id, pd.rol_nombre
+        FROM as_turnos_v_pauta_diaria_dedup_fixed pd
+        WHERE pd.instalacion_id = $1 
+          AND pd.fecha = $2
+          AND pd.es_ppc = true 
+          AND pd.estado_ui = 'plan'
+        ORDER BY pd.puesto_id ASC
         LIMIT 1
-      `, [instalacion_id]);
+      `, [instalacion_id, fecha]);
 
       if (ppcDisponible.rows.length === 0) {
         return NextResponse.json(

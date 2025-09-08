@@ -61,7 +61,7 @@ export async function fetchCan(perm: string): Promise<boolean> {
 
   // Bypass para roles específicos de admin
   const userRole = await getUserRole();
-  if (userRole === 'Super Admin' || userRole === 'Platform Admin' || userRole === 'Tenant Admin') {
+  if (userRole === 'Platform Admin') {
     return true;
   }
 
@@ -149,7 +149,7 @@ export function useCan(perm?: string) {
       if (cancel || !mounted.current) return;
       
       // Bypass para roles específicos de admin
-      if (userRole === 'Super Admin' || userRole === 'Platform Admin' || userRole === 'Tenant Admin') {
+      if (userRole === 'Platform Admin') {
         setAllowed(true);
         setLoading(false);
         setCachedPermission(normalized, true);
