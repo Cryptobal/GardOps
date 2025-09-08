@@ -41,7 +41,8 @@ import {
 
 // Importar componentes genéricos
 import { DataTable, Column } from "../../components/ui/data-table";
-import AsignarGuardiaDropdown from "../instalaciones/[id]/components/AsignarGuardiaDropdown";
+import { GuardiaSearchModal } from "../../components/ui/guardia-search-modal";
+import { useToast } from "../../components/ui/toast";
 
 // Componente KPI Box mejorado - Mobile First
 const KPIBox = ({ 
@@ -185,6 +186,20 @@ export default function PPCPage() {
   // Resúmenes
   const [resumenInstalaciones, setResumenInstalaciones] = useState<any[]>([]);
   const [resumenRoles, setResumenRoles] = useState<any[]>([]);
+  
+  // Estado para modal de asignación de guardias
+  const [modalGuardias, setModalGuardias] = useState({
+    isOpen: false,
+    ppcId: '',
+    instalacionId: '',
+    instalacionNombre: '',
+    rolServicioNombre: ''
+  });
+  const [guardias, setGuardias] = useState<any[]>([]);
+  const [loadingGuardias, setLoadingGuardias] = useState(false);
+  const [asignando, setAsignando] = useState(false);
+  
+  const { toast } = useToast();
 
   // Cargar datos de PPCs
   useEffect(() => {
@@ -249,6 +264,87 @@ export default function PPCPage() {
   const onAsignacionCompletada = () => {
     // Recargar PPCs después de asignación exitosa
     fetchPPCs();
+  };
+
+  // Funciones para modal de guardias
+  const abrirModalGuardias = async (ppc: any) => {
+    setModalGuardias({
+      isOpen: true,
+      ppcId: ppc.id,
+      instalacionId: ppc.instalacion_id,
+      instalacionNombre: ppc.instalacion,
+      rolServicioNombre: ppc.rol
+    });
+    
+    // Cargar guardias disponibles
+    await cargarGuardias(ppc.instalacion_id);
+  };
+
+  const cerrarModalGuardias = () => {
+    setModalGuardias({
+      isOpen: false,
+      ppcId: '',
+      instalacionId: '',
+      instalacionNombre: '',
+      rolServicioNombre: ''
+    });
+    setGuardias([]);
+  };
+
+  const cargarGuardias = async (instalacionId: string) => {
+    try {
+      setLoadingGuardias(true);
+      const fecha = new Date().toISOString().split('T')[0];
+      const params = new URLSearchParams({
+        fecha,
+        instalacion_id: instalacionId
+      });
+      
+      const response = await fetch(`/api/guardias/disponibles?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Error al obtener guardias disponibles');
+      }
+      const guardiasData = await response.json();
+      const guardiasFinales = guardiasData.items || guardiasData.guardias || guardiasData;
+      console.log('🔍 Debug PPC - guardias cargados:', guardiasFinales.slice(0, 3));
+      setGuardias(guardiasFinales);
+    } catch (error) {
+      console.error('Error cargando guardias:', error);
+      toast.error('No se pudieron cargar los guardias', 'Error');
+    } finally {
+      setLoadingGuardias(false);
+    }
+  };
+
+  const handleAsignarGuardia = async (guardiaId: string) => {
+    try {
+      setAsignando(true);
+      
+      const response = await fetch('/api/ppc/asignar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          guardia_id: guardiaId,
+          puesto_operativo_id: modalGuardias.ppcId
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Error al asignar guardia');
+      }
+      
+      toast.success('Guardia asignado correctamente', 'Éxito');
+      onAsignacionCompletada();
+      cerrarModalGuardias();
+    } catch (error) {
+      console.error('Error asignando guardia:', error);
+      toast.error('No se pudo asignar el guardia', 'Error');
+    } finally {
+      setAsignando(false);
+    }
   };
 
   // Calcular resúmenes - Solo PPC activos (pendientes)
@@ -413,14 +509,24 @@ export default function PPCPage() {
       render: (ppc) => (
         <div className="flex flex-col gap-2">
           {ppc.estado === 'Pendiente' ? (
-            <AsignarGuardiaDropdown
-              instalacionId={ppc.instalacion_id}
-              ppcId={ppc.id}
-              rolServicioNombre={ppc.rol}
-              instalacionNombre={ppc.instalacion}
-              onAsignacionCompletada={onAsignacionCompletada}
-              className="text-xs"
-            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("Asignar guardia para PPC:", ppc.id);
+                abrirModalGuardias(ppc);
+              }}
+              className="text-xs text-blue-600 hover:text-blue-700 border-blue-200 hover:bg-blue-50"
+              disabled={asignando}
+            >
+              {asignando ? (
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+              ) : (
+                "Asignar Guardia"
+              )}
+            </Button>
           ) : (
             <Button
               size="sm"
@@ -685,14 +791,24 @@ export default function PPCPage() {
                     
                     <div className="pt-2">
                       {ppc.estado === 'Pendiente' ? (
-                        <AsignarGuardiaDropdown
-                          instalacionId={ppc.instalacion_id}
-                          ppcId={ppc.id}
-                          rolServicioNombre={ppc.rol}
-                          instalacionNombre={ppc.instalacion}
-                          onAsignacionCompletada={onAsignacionCompletada}
-                          className="w-full"
-                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full text-blue-600 hover:text-blue-700 border-blue-200 hover:bg-blue-50"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log("Asignar guardia para PPC:", ppc.id);
+                            abrirModalGuardias(ppc);
+                          }}
+                          disabled={asignando}
+                        >
+                          {asignando ? (
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                          ) : (
+                            "Asignar Guardia"
+                          )}
+                        </Button>
                       ) : (
                         <Button
                           size="sm"
@@ -711,6 +827,18 @@ export default function PPCPage() {
           />
         </CardContent>
       </Card>
+
+      {/* Modal de búsqueda de guardias */}
+      <GuardiaSearchModal
+        isOpen={modalGuardias.isOpen}
+        onClose={cerrarModalGuardias}
+        onSelectGuardia={handleAsignarGuardia}
+        guardias={guardias}
+        loading={loadingGuardias}
+        title={`Asignar Guardia - ${modalGuardias.rolServicioNombre}`}
+        instalacionId={modalGuardias.instalacionId}
+        instalacionNombre={modalGuardias.instalacionNombre}
+      />
 
       {/* Mensaje de éxito */}
       {(() => {
