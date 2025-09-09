@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/toast';
 import { Search, AlertTriangle, User, UserCheck } from 'lucide-react';
 import { asignarGuardiaPPC } from '@/lib/api/instalaciones';
 import ConfirmacionReasignacionModal from '@/components/ui/confirmacion-reasignacion-modal';
+import ModalFechaInicioAsignacion from '@/components/ui/modal-fecha-inicio-asignacion';
 
 interface AsignarGuardiaModalProps {
   isOpen: boolean;
@@ -41,6 +42,8 @@ export default function AsignarGuardiaModal({
   const [guardiaConAdvertencia, setGuardiaConAdvertencia] = useState<any>(null);
   const [showConfirmacionModal, setShowConfirmacionModal] = useState(false);
   const [asignacionActual, setAsignacionActual] = useState<any>(null);
+  const [showModalFechaInicio, setShowModalFechaInicio] = useState(false);
+  const [guardiaParaAsignar, setGuardiaParaAsignar] = useState<any>(null);
 
   // Función para filtrar guardias por nombre, apellido o RUT
   const guardiasFiltrados = guardias.filter(guardia => {
@@ -130,18 +133,31 @@ export default function AsignarGuardiaModal({
       return;
     }
 
+    // NUEVA LÓGICA: Solicitar fecha de inicio antes de asignar
+    const guardiaInfo = guardias.find(g => g.id === guardiaSeleccionado);
+    setGuardiaParaAsignar(guardiaInfo);
+    setShowModalFechaInicio(true);
+  };
+
+  // Nueva función para confirmar asignación con fecha
+  const handleConfirmarAsignacionConFecha = async (fechaInicio: string, observaciones?: string) => {
+    if (!guardiaParaAsignar) return;
+
     try {
       setLoading(true);
       
-      // Intentar asignar el guardia
+      // Asignar el guardia con fecha de inicio
       const response = await fetch('/api/ppc/asignar', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          guardia_id: guardiaSeleccionado,
-          puesto_operativo_id: ppcId
+          guardia_id: guardiaParaAsignar.id,
+          puesto_operativo_id: ppcId,
+          fecha_inicio: fechaInicio, // NUEVO: Fecha de inicio
+          motivo_inicio: 'asignacion_ppc',
+          observaciones
         }),
       });
 
@@ -330,6 +346,23 @@ export default function AsignarGuardiaModal({
           asignacionActual={asignacionActual}
           nuevaInstalacionNombre={instalacionNombre}
           nuevoRolServicioNombre={rolServicioNombre}
+        />
+      )}
+
+      {/* NUEVO: Modal para solicitar fecha de inicio de asignación */}
+      {showModalFechaInicio && guardiaParaAsignar && (
+        <ModalFechaInicioAsignacion
+          isOpen={showModalFechaInicio}
+          onClose={() => {
+            setShowModalFechaInicio(false);
+            setGuardiaParaAsignar(null);
+          }}
+          onConfirmar={handleConfirmarAsignacionConFecha}
+          guardiaNombre={guardiaParaAsignar.nombre_completo || 'Guardia'}
+          guardiaInstalacionActual={guardiaParaAsignar.instalacion_actual_nombre}
+          nuevaInstalacionNombre={instalacionNombre}
+          nuevoRolServicioNombre={rolServicioNombre}
+          esReasignacion={!!guardiaParaAsignar.instalacion_actual_id}
         />
       )}
     </>
