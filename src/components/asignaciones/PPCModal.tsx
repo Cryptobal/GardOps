@@ -74,7 +74,8 @@ export default function PPCModal({
         return;
       }
       
-      console.log(`✅ PPCs encontrados: ${ppcsData.length}`);
+      console.log(`✅ PPCs encontrados en buscador GGSS: ${ppcsData.length}`);
+      console.log(`🔍 Primeros 2 PPCs:`, ppcsData.slice(0, 2));
       setPpcs(ppcsData);
       
     } catch (error) {
