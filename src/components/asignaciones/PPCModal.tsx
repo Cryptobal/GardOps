@@ -217,32 +217,19 @@ export default function PPCModal({
   const handleTurnoExtraReemplazo = async (turno: TurnoAsignado) => {
     try {
       setAsignando(turno.id);
-      console.log('🟧 Turno extra reemplazo (usando endpoint turno-extra):', { pauta_id: turno.id, guardia_id: guardia.id });
+      console.log('🟧 Turno extra reemplazo (EXACTAMENTE como botón Cubrir):', { pauta_id: turno.id, guardia_id: guardia.id });
       
-      // Usar el endpoint que marca como "Turno Extra" morado
-      const response = await fetch('/api/pauta-diaria/turno-extra', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          guardia_id: guardia.id,
-          puesto_id: turno.puesto_id,
-          pauta_id: turno.id,
-          estado: 'reemplazo'
-        })
-      });
-
-      if (!response.ok) {
-        let errorMessage = 'Error al crear reemplazo';
-        try {
-          const data = await response.json();
-          errorMessage = data?.error || errorMessage;
-        } catch (jsonError) {
-          logger.error('Error parsing JSON response::', jsonError);
-        }
-        throw new Error(errorMessage);
+      // USAR EXACTAMENTE LA MISMA LÓGICA QUE EL BOTÓN "CUBRIR" EN PAUTA DIARIA
+      const result = await marcarTurnoExtra(
+        turno.id,
+        guardia.id,
+        turno // Pasar la fila completa igual que pauta diaria
+      );
+      
+      if (!result || result.error) {
+        throw new Error(result?.error || 'Error al crear turno extra');
       }
 
-      const result = await response.json();
       mostrarModalExito('turno_extra_reemplazo', null, turno);
       
     } catch (error) {
