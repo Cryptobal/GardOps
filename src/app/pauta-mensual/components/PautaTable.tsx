@@ -1,6 +1,7 @@
 "use client";
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
+import { mapearEstadoOperacionADisplay, mapearEstadoLegacyADisplay, crearTooltipEnriquecido } from '@/lib/estados-display';
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
@@ -261,108 +262,28 @@ const ModalAutocompletarPauta = ({
   );
 };
 
-// Función centralizada para obtener el display del estado - DISEÑO MINIMALISTA
-const getEstadoDisplay = (estado: string, cobertura: any = null, esPPC: boolean = false) => {
-  // Unificación TE: si hay cobertura (PPC cubierto o reemplazo), mostrar TE
-  if (cobertura) {
-    return {
-      icon: "TE",
-      text: "",
-      className: "bg-transparent border-0",
-      iconColor: "text-fuchsia-600 dark:text-fuchsia-400 text-xs font-extrabold",
-      tooltip: `TE: Cubierto por ${cobertura?.nombre || 'guardia'}`
-    };
+// Función centralizada para obtener el display del estado - LÓGICA ESTÁNDAR ACTUALIZADA
+const getEstadoDisplay = (
+  estado: string, 
+  cobertura: any = null, 
+  esPPC: boolean = false,
+  estado_operacion?: string,
+  plan_base?: string,
+  estado_rrhh?: string,
+  turno_extra_guardia_nombre?: string
+) => {
+  // PRIORIDAD 1: Si tenemos estado_operacion granular, usarlo
+  if (estado_operacion) {
+    return mapearEstadoOperacionADisplay(
+      estado_operacion, 
+      plan_base, 
+      estado_rrhh, 
+      turno_extra_guardia_nombre
+    );
   }
-
-  // Sin cobertura: conservar mapping minimal
-  // Normalizar el estado para comparación
-  const estadoNormalizado = estado?.toLowerCase() || '';
   
-  switch (estadoNormalizado) {
-    case "planificado":
-      return { 
-        icon: "●", 
-        text: "", 
-        className: "bg-transparent border-0",
-        iconColor: "text-blue-500 dark:text-blue-300 text-xl font-bold",
-        tooltip: "Turno Planificado"
-      };
-    case "a":
-    case "trabajado":
-      return { 
-        icon: "✓", 
-        text: "", 
-        className: "bg-transparent border-0",
-        iconColor: "text-green-600 dark:text-green-400 text-xl font-bold",
-        tooltip: "Asistió (Confirmado)"
-      };
-    case "i":
-      return { 
-        icon: "✗", 
-        text: "", 
-        className: "bg-transparent border-0",
-        iconColor: "text-red-600 dark:text-red-400 text-xl font-bold",
-        tooltip: "Sin Cobertura"
-      };
-    case "r":
-      // Con la unificación, solo entrará aquí si no hay 'cobertura' y se dejó r como dato heredado
-      return { 
-        icon: "TE", 
-        text: "", 
-        className: "bg-transparent border-0",
-        iconColor: "text-fuchsia-600 dark:text-fuchsia-400 text-xs font-extrabold",
-        tooltip: "TE"
-      };
-    case "s":
-      return { 
-        icon: "▲", 
-        text: "", 
-        className: "bg-transparent border-0",
-        iconColor: "text-red-600 dark:text-red-400 text-xl font-bold",
-        tooltip: "Sin Cobertura"
-      };
-    case "libre":
-    case "l":
-      return { 
-        icon: "○", 
-        text: "", 
-        className: "bg-transparent border-0",
-        iconColor: "text-gray-400 dark:text-gray-500 text-lg",
-        tooltip: "Libre"
-      };
-    case "p":
-      return { 
-        icon: "🏖", 
-        text: "", 
-        className: "bg-transparent border-0",
-        iconColor: "text-indigo-600 dark:text-indigo-400 text-xl",
-        tooltip: "Permiso"
-      };
-    case "v":
-      return { 
-        icon: "🌴", 
-        text: "", 
-        className: "bg-transparent border-0",
-        iconColor: "text-purple-600 dark:text-purple-400 text-xl",
-        tooltip: "Vacaciones"
-      };
-    case "m":
-      return { 
-        icon: "🏥", 
-        text: "", 
-        className: "bg-transparent border-0",
-        iconColor: "text-pink-600 dark:text-pink-400 text-xl",
-        tooltip: "Licencia Médica"
-      };
-    default:
-      return { 
-        icon: "·", 
-        text: "", 
-        className: "bg-transparent border-0",
-        iconColor: "text-gray-300 dark:text-gray-600 text-lg",
-        tooltip: "Sin asignar"
-      };
-  }
+  // PRIORIDAD 2: Compatibilidad con estados legacy
+  return mapearEstadoLegacyADisplay(estado, cobertura, esPPC);
 };
 
 // Componente para renderizar el estado del día
@@ -422,7 +343,20 @@ const DiaCell = ({
     }
   };
 
-  const tooltipText = `${guardiaNombre} - Día ${diaNumero} (${diaSemana || ''})${esFeriado ? ' - FERIADO' : ''}: ${tooltip}${isDiaGuardado ? ' - ✅ Guardado en BD' : ''}${esPPC ? ' - PPC' : ''}${!modoEdicion ? ' - Modo solo lectura' : ''}`;
+  // Usar tooltip enriquecido con información completa
+  const tooltipText = crearTooltipEnriquecido(
+    guardiaNombre,
+    diaNumero,
+    diaSemana,
+    undefined, // plan_base (se agregará cuando esté disponible)
+    undefined, // estado_rrhh (se agregará cuando esté disponible)
+    undefined, // estado_operacion (se agregará cuando esté disponible)
+    undefined, // turno_extra_guardia_nombre (se agregará cuando esté disponible)
+    esFeriado,
+    isDiaGuardado,
+    esPPC,
+    modoEdicion
+  );
 
   return (
     <TableCell 

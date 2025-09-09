@@ -7,6 +7,36 @@ import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 // Configuración para evitar errores de Dynamic Server Usage
 export const dynamic = 'force-dynamic';
 
+// Función para mapear estado_operacion a formato legacy del frontend
+function mapearEstadoOperacionALegacy(estado_operacion: string): string {
+  switch (estado_operacion) {
+    case 'libre':
+      return 'L';
+    case 'asistido':
+      return 'A';
+    case 'falta_no_cubierto':
+      return 'I';
+    case 'falta_cubierto_por_turno_extra':
+    case 'permiso_con_goce_cubierto_por_turno_extra':
+    case 'permiso_sin_goce_cubierto_por_turno_extra':
+    case 'licencia_cubierto_por_turno_extra':
+    case 'ppc_cubierto_por_turno_extra':
+      return 'R';
+    case 'ppc_no_cubierto':
+      return 'S';
+    case 'permiso_con_goce_no_cubierto':
+    case 'permiso_sin_goce_no_cubierto':
+      return 'P';
+    case 'licencia_no_cubierto':
+      return 'M';
+    case 'planificado': // legacy
+      return 'planificado';
+    default:
+      console.warn(`Estado operación desconocido: ${estado_operacion}`);
+      return '';
+  }
+}
+
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
   const timestamp = new Date().toISOString();
@@ -43,6 +73,14 @@ export async function GET(request: NextRequest) {
         pm.estado,
         pm.estado_ui,
         pm.meta,
+        -- NUEVOS CAMPOS ESTÁNDAR
+        pm.plan_base,
+        pm.estado_rrhh,
+        pm.estado_operacion,
+        pm.guardia_asignado_id,
+        pm.turno_extra_guardia_id,
+        pm.turno_extra_motivo,
+        pm.editado_manualmente,
         po.nombre_puesto,
         po.es_ppc,
         po.guardia_id as puesto_guardia_id,
@@ -52,7 +90,7 @@ export async function GET(request: NextRequest) {
         rs.nombre as rol_nombre,
         CONCAT(rs.dias_trabajo, 'x', rs.dias_descanso) as patron_turno,
         
-        -- Información de cobertura tomada desde meta
+        -- Información de cobertura tomada desde meta (legacy)
         (pm.meta->>'cobertura_guardia_id') as cobertura_guardia_id,
         rg.nombre as cobertura_nombre,
         rg.apellido_paterno as cobertura_apellido_paterno,
@@ -62,12 +100,18 @@ export async function GET(request: NextRequest) {
           WHEN (pm.meta->>'cobertura_guardia_id') IS NOT NULL AND po.es_ppc THEN 'ppc'
           WHEN (pm.meta->>'cobertura_guardia_id') IS NOT NULL THEN 'reemplazo'
           ELSE NULL
-        END as tipo_cobertura
+        END as tipo_cobertura,
+        
+        -- Información del guardia de turno extra
+        te_g.nombre as turno_extra_guardia_nombre,
+        te_g.apellido_paterno as turno_extra_guardia_apellido_paterno,
+        te_g.apellido_materno as turno_extra_guardia_apellido_materno
       FROM as_turnos_pauta_mensual pm
       INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
       LEFT JOIN guardias g ON (pm.guardia_id = g.id OR (pm.guardia_id IS NULL AND po.guardia_id = g.id))
       LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       LEFT JOIN guardias rg ON rg.id::text = (pm.meta->>'cobertura_guardia_id')
+      LEFT JOIN guardias te_g ON pm.turno_extra_guardia_id = te_g.id
       WHERE po.instalacion_id = $1 
         AND pm.anio = $2 
         AND pm.mes = $3
@@ -118,15 +162,22 @@ export async function GET(request: NextRequest) {
       
       console.log(`[${timestamp}] 🔍 Puesto ${puesto.puesto_id} (${puesto.nombre_puesto}): ${pautaPuesto.length} registros encontrados`);
       
-      // Crear array de días para este puesto
+      // Crear array de días para este puesto - LÓGICA ESTÁNDAR ACTUALIZADA
       const dias = diasDelMes.map(dia => {
         const pautaDia = pautaPuesto.find((p: any) => p.dia === dia);
+        
+        // PRIORIDAD 1: Usar estado_operacion granular si está disponible
+        if (pautaDia?.estado_operacion) {
+          return mapearEstadoOperacionALegacy(pautaDia.estado_operacion);
+        }
+        
+        // PRIORIDAD 2: Lógica legacy para compatibilidad
         const estadoUi = (pautaDia?.estado_ui || '').toLowerCase();
         const estadoDb = (pautaDia?.estado || '').toLowerCase();
         const hasCobertura = Boolean(pautaDia?.cobertura_guardia_id);
         const isTE = (pautaDia?.meta?.tipo === 'turno_extra') || hasCobertura || estadoUi === 'te';
         
-        // 1) Si es TE por meta/cobertura/estado_ui => siempre 'R'
+        // Si es TE por meta/cobertura/estado_ui => siempre 'R'
         if (isTE) return 'R';
 
         // 2) Preferir estado_ui cuando existe
