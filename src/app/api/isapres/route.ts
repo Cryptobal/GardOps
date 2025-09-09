@@ -20,9 +20,9 @@ export async function GET(request: NextRequest) {
     const result = await query(`
       SELECT 
         nombre,
-        activo
+        plan,
+        valor_uf
       FROM sueldo_isapre 
-      WHERE activo = true
       ORDER BY 
         CASE WHEN LOWER(nombre) = 'fonasa' THEN 0 ELSE 1 END,
         nombre ASC
@@ -31,7 +31,9 @@ export async function GET(request: NextRequest) {
     const isapres = result.rows.map(row => ({
       codigo: row.nombre.toLowerCase().replace(/\s+/g, '_'),
       nombre: row.nombre,
-      activo: row.activo
+      plan: row.plan,
+      valor_uf: row.valor_uf,
+      activo: true // Asumimos que todas las ISAPREs están activas
     }));
 
     devLogger.success(' ISAPREs obtenidas exitosamente:', isapres.length);

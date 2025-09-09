@@ -18,17 +18,18 @@ export async function GET(request: NextRequest) {
     
     const result = await query(`
       SELECT 
+        codigo,
         nombre,
-        activo
+        tasa
       FROM sueldo_afp 
-      WHERE activo = true
       ORDER BY nombre ASC
     `);
 
     const afps = result.rows.map(row => ({
-      codigo: row.nombre.toLowerCase().replace(/afp\s+/i, '').replace(/\s+/g, ''),
+      codigo: row.codigo || row.nombre.toLowerCase().replace(/afp\s+/i, '').replace(/\s+/g, ''),
       nombre: row.nombre,
-      activo: row.activo
+      tasa: row.tasa,
+      activo: true // Asumimos que todas las AFPs están activas
     }));
 
     console.log('✅ AFPs obtenidas exitosamente:', afps.length);
