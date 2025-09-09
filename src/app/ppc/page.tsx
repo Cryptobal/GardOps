@@ -43,6 +43,7 @@ import {
 import { DataTable, Column } from "../../components/ui/data-table";
 import { GuardiaSearchModal } from "../../components/ui/guardia-search-modal";
 import { useToast } from "../../components/ui/toast";
+import ModalExitoAsignacion from "../../components/ui/modal-exito-asignacion";
 
 // Componente KPI Box mejorado - Mobile First
 const KPIBox = ({ 
@@ -199,6 +200,13 @@ export default function PPCPage() {
   const [loadingGuardias, setLoadingGuardias] = useState(false);
   const [asignando, setAsignando] = useState(false);
   
+  // Estado para modal de éxito
+  const [modalExito, setModalExito] = useState({
+    isOpen: false,
+    guardiaInfo: { nombre: '', rut: '' },
+    ppcInfo: { instalacion: '', rol: '', horario: '' }
+  });
+  
   const { toast } = useToast();
 
   // Cargar datos de PPCs
@@ -291,6 +299,14 @@ export default function PPCPage() {
     setGuardias([]);
   };
 
+  const cerrarModalExito = () => {
+    setModalExito({
+      isOpen: false,
+      guardiaInfo: { nombre: '', rut: '' },
+      ppcInfo: { instalacion: '', rol: '', horario: '' }
+    });
+  };
+
   const cargarGuardias = async (instalacionId: string) => {
     try {
       setLoadingGuardias(true);
@@ -336,7 +352,26 @@ export default function PPCPage() {
         throw new Error(data.error || 'Error al asignar guardia');
       }
       
-      toast.success('Guardia asignado correctamente', 'Éxito');
+      // Encontrar información del guardia seleccionado
+      const guardiaSeleccionado = guardias.find(g => g.id === guardiaId);
+      
+      // Encontrar información del PPC para obtener el horario
+      const ppcActual = ppcs.find(p => p.id === modalGuardias.ppcId);
+      
+      // Mostrar modal de éxito con información detallada
+      setModalExito({
+        isOpen: true,
+        guardiaInfo: {
+          nombre: guardiaSeleccionado?.nombre_completo || 'Guardia',
+          rut: guardiaSeleccionado?.rut || ''
+        },
+        ppcInfo: {
+          instalacion: modalGuardias.instalacionNombre,
+          rol: modalGuardias.rolServicioNombre,
+          horario: ppcActual?.horario || '08:00 - 20:00'
+        }
+      });
+      
       onAsignacionCompletada();
       cerrarModalGuardias();
     } catch (error) {
@@ -838,6 +873,14 @@ export default function PPCPage() {
         title={`Asignar Guardia - ${modalGuardias.rolServicioNombre}`}
         instalacionId={modalGuardias.instalacionId}
         instalacionNombre={modalGuardias.instalacionNombre}
+      />
+
+      {/* Modal de éxito de asignación */}
+      <ModalExitoAsignacion
+        isOpen={modalExito.isOpen}
+        onClose={cerrarModalExito}
+        guardiaInfo={modalExito.guardiaInfo}
+        ppcInfo={modalExito.ppcInfo}
       />
 
       {/* Mensaje de éxito */}
