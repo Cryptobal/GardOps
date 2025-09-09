@@ -294,8 +294,12 @@ async function procesarTurnos(turnos: any[]) {
             dia,
             estado,
             // Establecer estado_ui correctamente según el estado (RESPETAR EDICIÓN MANUAL)
+            // Mapear estado a estado_ui válido según restricciones de BD
             estado === 'planificado' ? 'plan' : 
-            estado === 'libre' ? 'libre' : null,
+            estado === 'libre' ? 'sin_cobertura' : // 'libre' no es válido, usar 'sin_cobertura'
+            estado === 'trabajado' ? 'asistido' :
+            estado === 'inasistencia' ? 'inasistencia' :
+            estado === 'reemplazo' ? 'reemplazo' : null,
             observaciones || null,
             reemplazo_guardia_id || null,
             true, // Marcar como editado manualmente
