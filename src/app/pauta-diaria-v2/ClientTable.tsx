@@ -74,6 +74,7 @@ const renderEstado = (estadoUI: string, isFalta: boolean) => {
       case 'reemplazo':
       case 'te':
       case 'turno_extra':
+      case 'extra':  // ← AGREGAR MAPEO PARA 'extra'
         return 'turno_extra';
       case 'sin_cobertura':
       case 'inasistencia':
