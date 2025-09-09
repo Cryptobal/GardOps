@@ -342,12 +342,16 @@ export default function PPCPage() {
     }
   };
 
-  // Estado para modal de fecha de inicio
+  // Estado para modal de fecha de inicio - INCLUIR DATOS DEL PPC
   const [modalFechaInicio, setModalFechaInicio] = useState({
     isOpen: false,
     guardiaId: '',
     guardiaNombre: '',
-    guardiaInstalacionActual: ''
+    guardiaInstalacionActual: '',
+    // AGREGAR DATOS DEL PPC PARA QUE NO SE PIERDAN
+    ppcId: '',
+    instalacionNombre: '',
+    rolServicioNombre: ''
   });
 
   const handleAsignarGuardia = async (guardiaId: string) => {
@@ -365,7 +369,11 @@ export default function PPCPage() {
       isOpen: true,
       guardiaId: guardiaId,
       guardiaNombre: guardiaInfo?.nombre_completo || 'Guardia',
-      guardiaInstalacionActual: guardiaInfo?.instalacion_actual_nombre || ''
+      guardiaInstalacionActual: guardiaInfo?.instalacion_actual_nombre || '',
+      // COPIAR DATOS DEL PPC PARA QUE NO SE PIERDAN
+      ppcId: modalGuardias.ppcId,
+      instalacionNombre: modalGuardias.instalacionNombre,
+      rolServicioNombre: modalGuardias.rolServicioNombre
     });
     
     // NO cerrar modal de guardias todavía - mantener datos del PPC
@@ -378,10 +386,10 @@ export default function PPCPage() {
       
       console.log('🔍 Datos para asignación:', {
         guardia_id: modalFechaInicio.guardiaId,
-        puesto_operativo_id: modalGuardias.ppcId,
+        puesto_operativo_id: modalFechaInicio.ppcId, // USAR DATOS GUARDADOS
         fecha_inicio: fechaInicio,
-        instalacion: modalGuardias.instalacionNombre,
-        rol: modalGuardias.rolServicioNombre
+        instalacion: modalFechaInicio.instalacionNombre, // USAR DATOS GUARDADOS
+        rol: modalFechaInicio.rolServicioNombre // USAR DATOS GUARDADOS
       });
 
       const response = await fetch('/api/ppc/asignar', {
@@ -391,7 +399,7 @@ export default function PPCPage() {
         },
         body: JSON.stringify({
           guardia_id: modalFechaInicio.guardiaId,
-          puesto_operativo_id: modalGuardias.ppcId,
+          puesto_operativo_id: modalFechaInicio.ppcId, // USAR DATOS GUARDADOS EN MODAL DE FECHA
           fecha_inicio: fechaInicio, // NUEVO: Fecha de inicio
           motivo_inicio: 'asignacion_ppc',
           observaciones
@@ -431,7 +439,10 @@ export default function PPCPage() {
         isOpen: false,
         guardiaId: '',
         guardiaNombre: '',
-        guardiaInstalacionActual: ''
+        guardiaInstalacionActual: '',
+        ppcId: '',
+        instalacionNombre: '',
+        rolServicioNombre: ''
       });
       cerrarModalGuardias();
       
@@ -953,14 +964,17 @@ export default function PPCPage() {
             isOpen: false,
             guardiaId: '',
             guardiaNombre: '',
-            guardiaInstalacionActual: ''
+            guardiaInstalacionActual: '',
+            ppcId: '',
+            instalacionNombre: '',
+            rolServicioNombre: ''
           });
         }}
         onConfirmar={handleConfirmarAsignacionConFecha}
         guardiaNombre={modalFechaInicio.guardiaNombre}
         guardiaInstalacionActual={modalFechaInicio.guardiaInstalacionActual}
-        nuevaInstalacionNombre={modalGuardias.instalacionNombre}
-        nuevoRolServicioNombre={modalGuardias.rolServicioNombre}
+        nuevaInstalacionNombre={modalFechaInicio.instalacionNombre}
+        nuevoRolServicioNombre={modalFechaInicio.rolServicioNombre}
         esReasignacion={!!modalFechaInicio.guardiaInstalacionActual}
       />
 
