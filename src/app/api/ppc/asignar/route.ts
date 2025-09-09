@@ -6,6 +6,12 @@ export async function POST(request: NextRequest) {
   try {
     const { guardia_id, puesto_operativo_id, confirmar_reasignacion = false } = await request.json();
 
+    console.log('🔍 [PPC/ASIGNAR] Iniciando asignación:', {
+      guardia_id,
+      puesto_operativo_id,
+      confirmar_reasignacion
+    });
+
     if (!guardia_id || !puesto_operativo_id) {
       return NextResponse.json(
         { error: 'Faltan campos requeridos: guardia_id y puesto_operativo_id' },
@@ -15,6 +21,7 @@ export async function POST(request: NextRequest) {
 
     // Verificar que el puesto operativo existe y está disponible como PPC
     // Primero intentar en la vista de pauta diaria (para PPCs del módulo PPC)
+    console.log('🔍 [PPC/ASIGNAR] Buscando PPC en vista...');
     let puestoCheck = await query(`
       SELECT 
         pauta_id,
@@ -27,8 +34,14 @@ export async function POST(request: NextRequest) {
       WHERE pauta_id = $1 AND es_ppc = true AND estado_ui = 'plan'
     `, [puesto_operativo_id]);
 
+    console.log('🔍 [PPC/ASIGNAR] Resultado vista:', {
+      rows: puestoCheck.rows.length,
+      data: puestoCheck.rows[0] || null
+    });
+
     // Si no se encuentra en la vista, intentar en la tabla original
     if (puestoCheck.rows.length === 0) {
+      console.log('🔍 [PPC/ASIGNAR] No encontrado en vista, buscando en tabla...');
       puestoCheck = await query(`
         SELECT 
           po.id,
@@ -39,6 +52,11 @@ export async function POST(request: NextRequest) {
         FROM as_turnos_puestos_operativos po
         WHERE po.id = $1 AND po.es_ppc = true
       `, [puesto_operativo_id]);
+      
+      console.log('🔍 [PPC/ASIGNAR] Resultado tabla:', {
+        rows: puestoCheck.rows.length,
+        data: puestoCheck.rows[0] || null
+      });
     }
 
     if (puestoCheck.rows.length === 0) {
