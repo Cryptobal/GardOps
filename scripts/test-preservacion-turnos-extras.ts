@@ -1,4 +1,5 @@
 import { query } from '../src/lib/database';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 async function testPreservacionTurnosExtras() {
   try {
@@ -70,7 +71,7 @@ async function testPreservacionTurnosExtras() {
           turnoExistente.fecha,
           'reemplazo',
           turnoExistente.valor,
-          'accebf8a-bacc-41fa-9601-ed39cb320a52'
+          await getTenantId(request)
         ]);
         
         console.log('❌ Error: Se permitió insertar un duplicado');

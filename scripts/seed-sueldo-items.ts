@@ -1,4 +1,5 @@
 import { query } from '../src/lib/database';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 async function seedSueldoItems() {
   try {
@@ -109,7 +110,7 @@ async function seedSueldoItems() {
         item.tipo,
         item.descripcion,
         true,
-        'accebf8a-bacc-41fa-9601-ed39cb320a52' // tenant_id por defecto
+        await getTenantId(request) // tenant_id por defecto
       ]);
     }
 

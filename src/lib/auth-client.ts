@@ -1,3 +1,4 @@
+// Import removido para evitar conflicto con función local getTenantId
 'use client'
 
 // Funciones del cliente (frontend) separadas para evitar importar código de servidor en el bundle del navegador

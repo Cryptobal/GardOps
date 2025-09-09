@@ -3,6 +3,7 @@ import { getClient } from '@/lib/database';
 import { unstable_noStore as noStore } from 'next/cache';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
@@ -195,8 +196,8 @@ export async function POST(request: NextRequest) {
   noStore();
   logger.debug('🔍 API Guardias - Creando nuevo guardia');
   
-  // Por ahora usar un tenant_id fijo para testing
-  const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+  // Obtener tenant_id del usuario autenticado
+  const tenantId = await getTenantId(request);
   const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
   
   const client = await getClient();

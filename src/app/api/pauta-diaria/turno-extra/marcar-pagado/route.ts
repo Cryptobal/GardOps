@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import { logCRUD } from '@/lib/logging';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 export async function POST(request: NextRequest) {
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Por ahora usar un tenant_id fijo para testing
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const tenantId = await getTenantId(request);
     const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
 
     // Verificar que todos los turnos existan y no estén pagados

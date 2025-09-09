@@ -1,6 +1,7 @@
 import { query } from '@/lib/database';
 import { NextResponse } from 'next/server';
 import { logCRUD } from '@/lib/logging';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 export async function POST(req: Request) {
@@ -72,7 +73,7 @@ export async function POST(req: Request) {
         observaciones_pago,
         desacoplado_en: new Date()
       },
-      'accebf8a-bacc-41fa-9601-ed39cb320a52'
+      await getTenantId(request)
     );
 
     return NextResponse.json({
@@ -99,7 +100,7 @@ export async function POST(req: Request) {
         endpoint: '/api/pauta-diaria/turno-extra/preservar',
         method: 'POST'
       },
-      'accebf8a-bacc-41fa-9601-ed39cb320a52'
+      await getTenantId(request)
     );
     
     return NextResponse.json(

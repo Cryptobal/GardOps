@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 // Configuración para evitar errores de Dynamic Server Usage
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     
     // Por ahora usar un tenant_id fijo para testing
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const tenantId = await getTenantId(request);
 
     // Construir la consulta base
     let whereConditions = ['tenant_id = $1'];

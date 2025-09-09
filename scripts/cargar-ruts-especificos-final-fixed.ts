@@ -3,6 +3,7 @@
 import * as dotenv from 'dotenv';
 import { query } from '../src/lib/database';
 import { v4 as uuidv4 } from 'uuid';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 // Cargar variables de entorno
 dotenv.config({ path: '.env.local' });
@@ -149,7 +150,7 @@ async function cargarGuardia(guardia: any) {
   }
 
   const id = uuidv4();
-  const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+  const tenantId = await getTenantId(request);
   const coords = obtenerCoordenadas(guardia.direccion || '');
   
   // Generar email único

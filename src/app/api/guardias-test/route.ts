@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../lib/database';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 // GET /api/guardias-test - API de testing sin autenticación
@@ -8,7 +9,7 @@ export async function GET(request: NextRequest) {
   
   try {
     // Usar un tenant_id fijo para testing
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const tenantId = await getTenantId(request);
     
     devLogger.success(' API Guardias Test - Usando tenant:', tenantId);
 

@@ -2,6 +2,7 @@
 
 import { config } from 'dotenv';
 import path from 'path';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 // Cargar variables de entorno
 config({ path: path.join(__dirname, '../.env.local') });
@@ -79,14 +80,14 @@ async function createPagosTurnosExtrasTable() {
     await query(`
       INSERT INTO pagos_turnos_extras (tenant_id, guardia_id, fecha_pago, glosa, monto_total, estado, observaciones)
       VALUES 
-        ('accebf8a-bacc-41fa-9601-ed39cb320a52', 
+        (await getTenantId(request), 
          (SELECT id FROM guardias LIMIT 1), 
          CURRENT_DATE - INTERVAL '30 days', 
          'Turno extra nocturno - Instalación Norte', 
          45000, 
          'pagado', 
          'Pago por turno extra realizado'),
-        ('accebf8a-bacc-41fa-9601-ed39cb320a52', 
+        (await getTenantId(request), 
          (SELECT id FROM guardias LIMIT 1), 
          CURRENT_DATE - INTERVAL '15 days', 
          'Cobertura fin de semana', 

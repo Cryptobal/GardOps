@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import { logCRUD } from '@/lib/logging';
 import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 export async function GET(
@@ -65,7 +66,7 @@ export async function PATCH(
     const { banco_id, tipo_cuenta, numero_cuenta } = await request.json();
 
     // Por ahora usar un tenant_id fijo para testing
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const tenantId = await getTenantId(request);
     const usuario = 'admin@test.com';
 
     // Validar datos

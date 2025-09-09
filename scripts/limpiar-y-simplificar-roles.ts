@@ -1,5 +1,6 @@
 import { config } from 'dotenv';
 import * as path from 'path';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 // Cargar variables de entorno
 config({ path: path.join(__dirname, '../.env.local') });
@@ -46,9 +47,9 @@ async function limpiarYSimplificarRoles() {
     // Mantener solo estos roles:
     const rolesAMantener = [
       { nombre: 'Platform Admin', descripcion: 'Administrador global de toda la plataforma', tenant_id: null },
-      { nombre: 'Admin', descripcion: 'Administrador del tenant (acceso total a su organización)', tenant_id: 'accebf8a-bacc-41fa-9601-ed39cb320a52' },
-      { nombre: 'Supervisor', descripcion: 'Supervisor operativo (gestión de turnos y personal)', tenant_id: 'accebf8a-bacc-41fa-9601-ed39cb320a52' },
-      { nombre: 'Operador', descripcion: 'Operador básico (solo visualización)', tenant_id: 'accebf8a-bacc-41fa-9601-ed39cb320a52' }
+      { nombre: 'Admin', descripcion: 'Administrador del tenant (acceso total a su organización)', tenant_id: await getTenantId(request) },
+      { nombre: 'Supervisor', descripcion: 'Supervisor operativo (gestión de turnos y personal)', tenant_id: await getTenantId(request) },
+      { nombre: 'Operador', descripcion: 'Operador básico (solo visualización)', tenant_id: await getTenantId(request) }
     ];
 
     console.log('🎯 Roles a mantener:');
@@ -116,14 +117,14 @@ async function limpiarYSimplificarRoles() {
     const adminExists = await sql`
       SELECT id FROM roles 
       WHERE nombre = 'Admin' 
-      AND tenant_id = 'accebf8a-bacc-41fa-9601-ed39cb320a52'
+      AND tenant_id = await getTenantId(request)
       AND activo = true
     `;
 
     if (adminExists.rows.length === 0) {
       await sql`
         INSERT INTO roles (nombre, descripcion, tenant_id, activo)
-        VALUES ('Admin', 'Administrador del tenant (acceso total a su organización)', 'accebf8a-bacc-41fa-9601-ed39cb320a52', true)
+        VALUES ('Admin', 'Administrador del tenant (acceso total a su organización)', await getTenantId(request), true)
       `;
       console.log('✅ Rol Admin creado');
     }
@@ -132,14 +133,14 @@ async function limpiarYSimplificarRoles() {
     const supervisorExists = await sql`
       SELECT id FROM roles 
       WHERE nombre = 'Supervisor' 
-      AND tenant_id = 'accebf8a-bacc-41fa-9601-ed39cb320a52'
+      AND tenant_id = await getTenantId(request)
       AND activo = true
     `;
 
     if (supervisorExists.rows.length === 0) {
       await sql`
         INSERT INTO roles (nombre, descripcion, tenant_id, activo)
-        VALUES ('Supervisor', 'Supervisor operativo (gestión de turnos y personal)', 'accebf8a-bacc-41fa-9601-ed39cb320a52', true)
+        VALUES ('Supervisor', 'Supervisor operativo (gestión de turnos y personal)', await getTenantId(request), true)
       `;
       console.log('✅ Rol Supervisor creado');
     }
@@ -148,14 +149,14 @@ async function limpiarYSimplificarRoles() {
     const operadorExists = await sql`
       SELECT id FROM roles 
       WHERE nombre = 'Operador' 
-      AND tenant_id = 'accebf8a-bacc-41fa-9601-ed39cb320a52'
+      AND tenant_id = await getTenantId(request)
       AND activo = true
     `;
 
     if (operadorExists.rows.length === 0) {
       await sql`
         INSERT INTO roles (nombre, descripcion, tenant_id, activo)
-        VALUES ('Operador', 'Operador básico (solo visualización)', 'accebf8a-bacc-41fa-9601-ed39cb320a52', true)
+        VALUES ('Operador', 'Operador básico (solo visualización)', await getTenantId(request), true)
       `;
       console.log('✅ Rol Operador creado');
     }

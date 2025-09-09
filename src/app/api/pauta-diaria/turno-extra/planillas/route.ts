@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import { getCurrentUserServer } from '@/lib/auth';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 // Configuración para evitar errores de Dynamic Server Usage
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
     logger.debug('🧩 UUIDs:', uuidIds.length, '| PM IDs:', pmIds.length);
 
     // 1) Materializar TE para los PM seleccionados que aún no existen
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const tenantId = await getTenantId(request);
     const materializedIds: string[] = [];
 
     if (pmIds.length > 0) {

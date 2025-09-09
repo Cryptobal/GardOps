@@ -1,5 +1,6 @@
 import { query } from '@/lib/database';
 import dayjs from 'dayjs';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 export async function registrarPermiso({ guardiaId, tipo, desde, hasta, observaciones }: {
@@ -18,7 +19,7 @@ export async function registrarPermiso({ guardiaId, tipo, desde, hasta, observac
       SELECT $1, generate_series($2::date, $3::date, '1 day'::interval)::date, $4, $5, $6, $7, $8
       ON CONFLICT (guardia_id, dia) 
       DO UPDATE SET tipo = $4, observacion = $5
-    `, [guardiaId, desde, hasta, tipo, observaciones || null, 'accebf8a-bacc-41fa-9601-ed39cb320a52', 'fe761cd0-320f-404a-aa26-2e81093ee12e', '64bef7f7-7d41-4ce6-a8bd-f26ed0482825']);
+    `, [guardiaId, desde, hasta, tipo, observaciones || null, await getTenantId(request), 'fe761cd0-320f-404a-aa26-2e81093ee12e', '64bef7f7-7d41-4ce6-a8bd-f26ed0482825']);
 
     const diasActualizados = dayjs(hasta).diff(dayjs(desde), 'day') + 1;
     logger.debug(`✅ Permiso ${tipo} registrado en ${diasActualizados} días`);

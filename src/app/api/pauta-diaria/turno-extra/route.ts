@@ -1,6 +1,7 @@
 import { query } from '@/lib/database';
 import { NextResponse } from 'next/server';
 import { logCRUD } from '@/lib/logging';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 export async function POST(req: Request) {
@@ -8,7 +9,7 @@ export async function POST(req: Request) {
     const { guardia_id, puesto_id, pauta_id, estado } = await req.json();
 
     // Por ahora usar un tenant_id fijo para testing
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const tenantId = await getTenantId(request);
     const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
 
     // Validar parámetros requeridos
@@ -199,7 +200,7 @@ export async function POST(req: Request) {
         endpoint: '/api/pauta-diaria/turno-extra',
         method: 'POST'
       },
-      'accebf8a-bacc-41fa-9601-ed39cb320a52'
+      await getTenantId(request)
     );
     
     return NextResponse.json(

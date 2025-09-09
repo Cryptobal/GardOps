@@ -1,5 +1,6 @@
 import { config } from 'dotenv';
 import * as path from 'path';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 // Cargar variables de entorno
 config({ path: path.join(__dirname, '../.env.local') });
@@ -39,7 +40,7 @@ async function corregirAsignacionAdmin() {
     
     const rolAdminCorrecto = rolesAdmin.rows.find((r: any) => 
       r.activo && 
-      r.tenant_id === 'accebf8a-bacc-41fa-9601-ed39cb320a52' &&
+      r.tenant_id === await getTenantId(request) &&
       r.descripcion.includes('acceso total')
     );
 

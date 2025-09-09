@@ -1,4 +1,5 @@
 import { query } from '../src/lib/database';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 async function ejecutarMigracionTurnosExtras() {
   try {
@@ -45,7 +46,7 @@ async function ejecutarMigracionTurnosExtras() {
               await query(`ALTER TABLE turnos_extras ADD COLUMN IF NOT EXISTS usuario_pago VARCHAR(255) NULL`);
               break;
             case 'tenant_id':
-              await query(`ALTER TABLE turnos_extras ADD COLUMN IF NOT EXISTS tenant_id UUID NOT NULL DEFAULT 'accebf8a-bacc-41fa-9601-ed39cb320a52'`);
+              await query(`ALTER TABLE turnos_extras ADD COLUMN IF NOT EXISTS tenant_id UUID NOT NULL DEFAULT await getTenantId(request)`);
               break;
             case 'updated_at':
               await query(`ALTER TABLE turnos_extras ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()`);
@@ -85,7 +86,7 @@ async function ejecutarMigracionTurnosExtras() {
           fecha_pago DATE NULL,
           observaciones_pago TEXT NULL,
           usuario_pago VARCHAR(255) NULL,
-          tenant_id UUID NOT NULL DEFAULT 'accebf8a-bacc-41fa-9601-ed39cb320a52',
+          tenant_id UUID NOT NULL DEFAULT await getTenantId(request),
           created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
           updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         )

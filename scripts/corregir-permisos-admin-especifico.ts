@@ -1,5 +1,6 @@
 import { config } from 'dotenv';
 import * as path from 'path';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 // Cargar variables de entorno
 config({ path: path.join(__dirname, '../.env.local') });
@@ -19,7 +20,7 @@ async function corregirPermisosAdminEspecifico() {
       SELECT id, nombre, descripcion, tenant_id
       FROM roles
       WHERE nombre = 'Admin' 
-      AND tenant_id = 'accebf8a-bacc-41fa-9601-ed39cb320a52'
+      AND tenant_id = await getTenantId(request)
       AND descripcion LIKE '%acceso total%'
       AND activo = true
     `;

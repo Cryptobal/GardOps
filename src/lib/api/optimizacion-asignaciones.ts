@@ -1,4 +1,5 @@
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 // API functions para optimización de asignaciones
 import { getApiBaseUrl } from '@/lib/config';
@@ -126,5 +127,5 @@ export function buscarUbicacionesCercanas(
 export function getCurrentTenantId(): string {
   // Por ahora usar un tenant ID por defecto
   // En el futuro se puede implementar obtención desde cookies o contexto
-  return 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+  return await getTenantId(request);
 } 

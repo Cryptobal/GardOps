@@ -1,5 +1,6 @@
 import { query } from '../src/lib/database';
 import { v4 as uuidv4 } from 'uuid';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 // RUTs específicos a cargar
 const rutsEspecificos = [
@@ -251,7 +252,7 @@ function obtenerCoordenadas(direccion: string): { latitud: number | null; longit
 // Función para cargar un guardia específico
 async function cargarGuardia(rut: string, datos: any) {
   const id = uuidv4();
-  const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+  const tenantId = await getTenantId(request);
   const coords = obtenerCoordenadas(datos.direccion || '');
 
   const sqlQuery = `

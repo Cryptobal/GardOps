@@ -1,5 +1,6 @@
 import { config } from 'dotenv';
 import * as path from 'path';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 // Cargar variables de entorno
 config({ path: path.join(__dirname, '../.env.local') });
@@ -69,7 +70,7 @@ async function crearUsuariosPruebaRoles() {
 
         // Crear usuario
         const hashedPassword = await hash(usuario.password, 12);
-        const tenantId = usuario.rol === 'Platform Admin' ? null : 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+        const tenantId = usuario.rol === 'Platform Admin' ? null : await getTenantId(request);
         
         const nuevoUsuario = await sql`
           INSERT INTO usuarios (email, nombre, apellido, password, rol, tenant_id, activo)

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '../../../../../lib/database';
 import { logCRUD } from '@/lib/logging';
 import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 // PUT /api/guardias/[id]/fecha-os10 - Actualizar fecha de OS10
@@ -32,7 +33,7 @@ export async function PUT(
     const body = await request.json();
     
     // Por ahora usar un tenant_id fijo para testing
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const tenantId = await getTenantId(request);
     const usuario = 'admin@test.com';
     
     devLogger.success(' API Guardias - Actualizando fecha OS10 con datos:', body);
@@ -120,7 +121,7 @@ export async function PUT(
         endpoint: '/api/guardias/[id]/fecha-os10',
         method: 'PUT'
       },
-      'accebf8a-bacc-41fa-9601-ed39cb320a52'
+      await getTenantId(request)
     );
     
     return NextResponse.json(

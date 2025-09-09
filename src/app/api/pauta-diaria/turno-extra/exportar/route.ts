@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
+import { getTenantId } from '@/lib/utils/tenant-utils';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 // Configuración para evitar errores de Dynamic Server Usage
@@ -123,6 +124,9 @@ export async function GET(request: NextRequest) {
       'TENANT_ID'
     ];
 
+    // Obtener tenant_id una sola vez
+    const tenantId = await getTenantId(request);
+    
     const csvRows = turnosExtras.map((turno: any) => [
       turno.id,
       turno.guardia_rut,
@@ -137,7 +141,7 @@ export async function GET(request: NextRequest) {
       turno.usuario_pago || 'N/A',
       turno.observaciones_pago || 'N/A',
       turno.created_at,
-      'accebf8a-bacc-41fa-9601-ed39cb320a52' // tenant_id fijo
+      tenantId
     ]);
 
     const csvContent = [
