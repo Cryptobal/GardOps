@@ -212,7 +212,7 @@ export function mapearEstadoOperacionADisplay(
         text: "",
         className: "bg-transparent border-0",
         iconColor: "text-blue-500 dark:text-blue-300 text-xl font-bold",
-        tooltip: "Turno Planificado",
+        tooltip: "Turno Planificado (PPC o con Guardia)",
         badgeConfig: {
           label: "Planificado",
           variant: "default",

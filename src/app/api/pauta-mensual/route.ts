@@ -29,11 +29,11 @@ function mapearEstadoOperacionALegacy(estado_operacion: string): string {
       return 'P';
     case 'licencia_no_cubierto':
       return 'M';
-    case 'planificado': // legacy
+    case 'planificado': // MANTENER COMO PLANIFICADO (círculo azul ●)
       return 'planificado';
     default:
       console.warn(`Estado operación desconocido: ${estado_operacion}`);
-      return '';
+      return 'planificado'; // Fallback seguro para mostrar círculo azul
   }
 }
 

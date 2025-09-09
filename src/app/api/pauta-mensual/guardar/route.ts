@@ -309,12 +309,9 @@ async function procesarTurnos(turnos: any[]) {
           resolucion.guardia_asignado_id = guardia_id || null;
           resolucion.es_ppc = !guardia_id;
           
-          // Determinar estado_operacion según asignación
-          if (!guardia_id) {
-            resolucion.estado_operacion = 'ppc_no_cubierto';
-          } else {
-            resolucion.estado_operacion = 'asistido'; // Por defecto, se ajustará según asistencia real
-          }
+          // RESPETAR LA INTENCIÓN DEL USUARIO: si marca como "planificado", mantenerlo así
+          // No importa si es PPC, el usuario quiere que se planifique ese día
+          resolucion.estado_operacion = 'planificado'; // Mantener como planificado según edición manual
           
           // Aplicar resolución a BD
           await aplicarResolucionDia(puesto_id, fecha, resolucion);
