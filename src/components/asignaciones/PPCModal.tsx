@@ -218,27 +218,16 @@ export default function PPCModal({
   const handleTurnoExtraReemplazo = async (turno: TurnoAsignado) => {
     try {
       setAsignando(turno.id);
-      console.log('🟧 Turno extra reemplazo (usando lógica inasistencia):', { pauta_id: turno.id, guardia_id: guardia.id });
+      console.log('🟧 Turno extra reemplazo (usando api.marcarTurnoExtra):', { pauta_id: turno.id, guardia_id: guardia.id });
       
-      // Usar el mismo endpoint que PPC para consistencia total
-      const response = await fetch('/api/turnos/ppc/cubrir', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pauta_id: parseInt(turno.id),
-          guardia_id: guardia.id
-        })
-      });
-
-      if (!response.ok) {
-        let errorMessage = 'Error al crear reemplazo';
-        try {
-          const data = await response.json();
-          errorMessage = data?.error || errorMessage;
-        } catch (jsonError) {
-          logger.error('Error parsing JSON response::', jsonError);
-        }
-        throw new Error(errorMessage);
+      // Usar la misma función que el botón "Cubrir" en pauta diaria para consistencia total
+      const result = await api.marcarTurnoExtra(
+        guardia.id,
+        turno // Pasar la fila completa igual que pauta diaria
+      );
+      
+      if (!result || result.error) {
+        throw new Error(result?.error || 'Error al crear turno extra');
       }
 
       mostrarModalExito('turno_extra_reemplazo', null, turno);
