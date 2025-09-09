@@ -263,48 +263,62 @@ async function procesarTurnos(turnos: any[]) {
           logger.warn('⚠️ No se pudo limpiar banderas de cobertura/te antes del upsert:', { turno, error: preCleanFlagsErr });
         }
 
-        // INSERT/UPDATE RESPETANDO EDICIONES MANUALES DEL USUARIO
-        await query(
-          `
-          INSERT INTO as_turnos_pauta_mensual (
-            puesto_id, guardia_id, anio, mes, dia, estado, estado_ui,
-            observaciones, reemplazo_guardia_id, editado_manualmente, created_at, updated_at
-          )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
-          ON CONFLICT (puesto_id, anio, mes, dia)
-          DO UPDATE SET
-            guardia_id = EXCLUDED.guardia_id,
-            estado = EXCLUDED.estado,
-            estado_ui = EXCLUDED.estado_ui,
-            observaciones = EXCLUDED.observaciones,
-            reemplazo_guardia_id = EXCLUDED.reemplazo_guardia_id,
-            editado_manualmente = EXCLUDED.editado_manualmente,
-            updated_at = NOW()
-          WHERE 
-            COALESCE(as_turnos_pauta_mensual.estado_ui, '') <> 'te'
-            AND COALESCE(as_turnos_pauta_mensual.meta->>'tipo', '') <> 'turno_extra'
-            AND COALESCE(as_turnos_pauta_mensual.estado, '') NOT IN ('trabajado', 'inasistencia', 'permiso', 'vacaciones')
-            AND COALESCE(as_turnos_pauta_mensual.meta->>'cobertura_guardia_id', '') = ''
-        `,
-          [
-            puesto_id,
-            guardia_id || null,
-            anio,
-            mes,
-            dia,
-            estado,
-            // Establecer estado_ui correctamente según el estado (RESPETAR EDICIÓN MANUAL)
-            // Mapear estado a estado_ui válido según restricciones de BD
-            estado === 'planificado' ? 'plan' : 
-            estado === 'libre' ? 'sin_cobertura' : // 'libre' no es válido, usar 'sin_cobertura'
-            estado === 'trabajado' ? 'asistido' :
-            estado === 'inasistencia' ? 'inasistencia' :
-            estado === 'reemplazo' ? 'reemplazo' : null,
-            observaciones || null,
-            reemplazo_guardia_id || null,
-            true, // Marcar como editado manualmente
-          ]
-        );
+        // USAR RESOLVER DE ESTADOS PARA LÓGICA CORRECTA
+        // Importar resolver (se agregará al inicio del archivo)
+        const { resolverEstadoDia, aplicarResolucionDia } = await import('@/lib/resolver-estados');
+        
+        // Determinar plan_base según el estado recibido del frontend
+        const plan_base = estado === 'libre' ? 'libre' : 'planificado';
+        
+        // Para días libres, aplicar directamente sin resolver
+        if (plan_base === 'libre') {
+          await query(
+            `
+            INSERT INTO as_turnos_pauta_mensual (
+              puesto_id, guardia_id, anio, mes, dia, estado, plan_base, estado_rrhh, estado_operacion,
+              observaciones, reemplazo_guardia_id, editado_manualmente, created_at, updated_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+            ON CONFLICT (puesto_id, anio, mes, dia)
+            DO UPDATE SET
+              plan_base = EXCLUDED.plan_base,
+              estado_rrhh = EXCLUDED.estado_rrhh,
+              estado_operacion = EXCLUDED.estado_operacion,
+              observaciones = EXCLUDED.observaciones,
+              editado_manualmente = EXCLUDED.editado_manualmente,
+              updated_at = NOW()
+            `,
+            [
+              puesto_id, null, anio, mes, dia, 'libre', 'libre', 'sin_evento', 'libre',
+              observaciones || null, null, true
+            ]
+          );
+        } else {
+          // Para días planificados, usar el resolver
+          const fecha = `${anio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+          
+          // Resolver estado considerando la asignación manual del usuario
+          const resolucion = await resolverEstadoDia(
+            puesto_id, 
+            fecha, 
+            false, // asistencia_registrada (se determinará después)
+            null   // turno_extra_guardia_id (se determinará después)
+          );
+          
+          // Actualizar con la asignación del usuario
+          resolucion.guardia_asignado_id = guardia_id || null;
+          resolucion.es_ppc = !guardia_id;
+          
+          // Determinar estado_operacion según asignación
+          if (!guardia_id) {
+            resolucion.estado_operacion = 'ppc_no_cubierto';
+          } else {
+            resolucion.estado_operacion = 'asistido'; // Por defecto, se ajustará según asistencia real
+          }
+          
+          // Aplicar resolución a BD
+          await aplicarResolucionDia(puesto_id, fecha, resolucion);
+        }
         guardados++;
       }
     } catch (dbError) {
