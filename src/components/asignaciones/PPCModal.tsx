@@ -217,10 +217,10 @@ export default function PPCModal({
   const handleTurnoExtraReemplazo = async (turno: TurnoAsignado) => {
     try {
       setAsignando(turno.id);
-      console.log('🟧 Turno extra reemplazo (usando endpoint antiguo):', { pauta_id: turno.id, guardia_id: guardia.id });
+      console.log('🟧 Turno extra reemplazo (usando endpoint cobertura):', { pauta_id: turno.id, guardia_id: guardia.id });
       
-      // Usar endpoint antiguo que ya funcionaba
-      const response = await fetch('/api/turnos/extra', {
+      // Usar el mismo endpoint que funciona para coberturas en Pauta Diaria
+      const response = await fetch('/api/turnos/ppc/cubrir', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
