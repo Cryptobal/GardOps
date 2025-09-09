@@ -161,14 +161,36 @@ export default function PPCModal({
   const handleTurnoExtraPPC = async (ppc: PPC) => {
     try {
       setAsignando(ppc.id);
-      console.log('🟨 Turno extra PPC (usando lógica existente):', { pauta_id: ppc.id, guardia_id: guardia.id });
+      console.log('🟨 Turno extra PPC - Buscando pauta_id para puesto:', { puesto_id: ppc.id, guardia_id: guardia.id });
+      
+      // Primero buscar el pauta_id real del PPC en as_turnos_pauta_mensual
+      const fecha = new Date().toISOString().split('T')[0];
+      const [anio, mes, dia] = fecha.split('-').map(Number);
+      
+      const buscarPautaResponse = await fetch('/api/pauta-diaria-v2/data', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (!buscarPautaResponse.ok) {
+        throw new Error('No se pudo obtener datos de pauta diaria');
+      }
+      
+      const pautaData = await buscarPautaResponse.json();
+      const ppcEnPauta = pautaData.find((item: any) => item.puesto_id === ppc.id && item.es_ppc);
+      
+      if (!ppcEnPauta || !ppcEnPauta.pauta_id) {
+        throw new Error('No se encontró pauta_id para este PPC');
+      }
+      
+      console.log('🔍 PPC encontrado en pauta:', { pauta_id: ppcEnPauta.pauta_id, puesto_id: ppc.id });
       
       // Usar el mismo endpoint que botón "Cubrir" en pauta diaria
       const response = await fetch('/api/turnos/ppc/cubrir', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          pauta_id: ppc.id,
+          pauta_id: parseInt(ppcEnPauta.pauta_id), // Convertir a número
           guardia_id: guardia.id
         })
       });
