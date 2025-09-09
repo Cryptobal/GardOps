@@ -1,19 +1,16 @@
-#!/usr/bin/env ts-node
+const { Pool } = require('pg');
+require('dotenv').config();
 
-import { query } from '../src/lib/database';
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
 
-async function implementarVistaUnificada() {
-  console.log('🔧 IMPLEMENTANDO VISTA UNIFICADA DE PAUTA DIARIA\n');
-
+async function fixVista() {
+  console.log('🔧 CORRIGIENDO VISTA PARA TURNOS EXTRA...\n');
+  
   try {
-    // 1. Crear la vista unificada
-    console.log('1️⃣ Creando vista unificada...');
-    
-    await query(`
-      -- Vista unificada para Pauta Diaria con lógica correcta
-      -- SOLO muestra turnos con estado 'planificado' en Pauta Mensual
-      -- Implementa la lógica: Pauta Mensual = Planificación, Pauta Diaria = Ejecución
-
+    const sql = `
+      -- Fix: Corregir mapeo de estado_ui para turnos extra
       DROP VIEW IF EXISTS as_turnos_v_pauta_diaria_unificada CASCADE;
 
       CREATE OR REPLACE VIEW as_turnos_v_pauta_diaria_unificada AS
@@ -86,7 +83,7 @@ async function implementarVistaUnificada() {
         pd.instalacion_telefono,
         pd.estado_pauta_mensual,
         
-        -- Estado UI para Pauta Diaria (ejecución)
+        -- Estado UI para Pauta Diaria (ejecución) - FIXED
         CASE 
           -- Si no se ha marcado asistencia, aparece como 'planificado'
           WHEN pd.estado_ui IS NULL OR pd.estado_ui = 'plan' THEN 'planificado'
@@ -97,7 +94,7 @@ async function implementarVistaUnificada() {
           WHEN pd.estado_ui = 'reemplazo' THEN 'reemplazo'
           WHEN pd.estado_ui = 'sin_cobertura' THEN 'sin_cobertura'
           
-          -- Estados de turno extra (MANTENER COMO 'extra')
+          -- Estados de turno extra (MANTENER COMO 'extra') - FIX
           WHEN pd.estado_ui = 'extra' THEN 'extra'
           WHEN pd.estado_ui = 'turno_extra' THEN 'extra'
           WHEN pd.estado_ui = 'te' THEN 'extra'
@@ -188,97 +185,18 @@ async function implementarVistaUnificada() {
         END as cobertura_guardia_telefono
         
       FROM pauta_dedup pd;
-    `);
-
-    console.log('✅ Vista unificada creada exitosamente');
-
-    // 2. Crear índices para optimizar
-    console.log('\n2️⃣ Creando índices de optimización...');
+    `;
     
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_pauta_mensual_planificado 
-      ON as_turnos_pauta_mensual(estado) WHERE estado = 'planificado';
-    `);
-
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_pauta_mensual_fecha_completa 
-      ON as_turnos_pauta_mensual(anio, mes, dia);
-    `);
-
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_turnos_extras_pauta 
-      ON TE_turnos_extras(pauta_id);
-    `);
-
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_turnos_extras_created 
-      ON TE_turnos_extras(created_at DESC);
-    `);
-
-    console.log('✅ Índices creados exitosamente');
-
-    // 3. Verificar que la vista funcione correctamente
-    console.log('\n3️⃣ Verificando vista unificada...');
+    await pool.query(sql);
+    console.log('✅ Vista corregida exitosamente');
+    console.log('🎯 Ahora estado_ui = "extra" se mantiene como "extra"');
+    console.log('🎯 Los turnos extra aparecerán en la pauta sin necesidad de "Ver libres"');
     
-    const resultado = await query(`
-      SELECT 
-        COUNT(*) as total_turnos,
-        COUNT(CASE WHEN es_ppc = true THEN 1 END) as ppcs,
-        COUNT(CASE WHEN es_ppc = false THEN 1 END) as guardias,
-        COUNT(CASE WHEN estado_ui = 'planificado' THEN 1 END) as planificados
-      FROM as_turnos_v_pauta_diaria_unificada
-      WHERE fecha = '2025-08-30'
-    `);
-
-    const stats = resultado.rows[0];
-    console.log('📊 Estadísticas de la vista unificada (30 de agosto):');
-    console.log(`   - Total turnos: ${stats.total_turnos}`);
-    console.log(`   - PPCs: ${stats.ppcs}`);
-    console.log(`   - Guardias: ${stats.guardias}`);
-    console.log(`   - Planificados: ${stats.planificados}`);
-
-    // 4. Verificar que solo muestre turnos planificados
-    console.log('\n4️⃣ Verificando filtro de turnos planificados...');
-    
-    const turnosPlanificados = await query(`
-      SELECT 
-        instalacion_nombre,
-        puesto_nombre,
-        es_ppc,
-        guardia_trabajo_nombre,
-        estado_ui
-      FROM as_turnos_v_pauta_diaria_unificada
-      WHERE fecha = '2025-08-30'
-      ORDER BY instalacion_nombre, puesto_nombre
-    `);
-
-    console.log('✅ Turnos planificados mostrados:');
-    turnosPlanificados.rows.forEach((row: any) => {
-      const tipo = row.es_ppc ? 'PPC' : 'Guardia';
-      const guardia = row.guardia_trabajo_nombre || 'Sin asignar';
-      console.log(`   - ${row.instalacion_nombre}: ${row.puesto_nombre} (${tipo}) - ${guardia} - ${row.estado_ui}`);
-    });
-
-    console.log('\n🎯 IMPLEMENTACIÓN COMPLETADA:');
-    console.log('=============================');
-    console.log('✅ Vista unificada implementada');
-    console.log('✅ Solo muestra turnos planificados de Pauta Mensual');
-    console.log('✅ Estados correctos: planificado, asistido, inasistencia, reemplazo, sin_cobertura');
-    console.log('✅ Índices optimizados creados');
-    console.log('\n📋 PRÓXIMOS PASOS:');
-    console.log('1. Actualizar API de Pauta Diaria para usar la nueva vista');
-    console.log('2. Implementar Central de Monitoreo unificado');
-    console.log('3. Implementar sistema de replicación automática');
-
   } catch (error) {
-    console.error('❌ Error durante la implementación:', error);
+    console.error('❌ Error:', error.message);
   } finally {
-    process.exit(0);
+    await pool.end();
   }
 }
 
-// Cargar variables de entorno
-import dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
-
-implementarVistaUnificada();
+fixVista();

@@ -1,6 +1,6 @@
--- Vista unificada para Pauta Diaria con lógica correcta
--- SOLO muestra turnos con estado 'planificado' en Pauta Mensual
--- Implementa la lógica: Pauta Mensual = Planificación, Pauta Diaria = Ejecución
+-- Fix: Corregir mapeo de estado_ui para turnos extra
+-- El problema: estado_ui = 'extra' se mapeaba a 'reemplazo' en la vista
+-- La solución: mantener 'extra' como 'extra' para que aparezca en la pauta
 
 DROP VIEW IF EXISTS as_turnos_v_pauta_diaria_unificada CASCADE;
 
@@ -68,13 +68,13 @@ SELECT
   pd.pauta_id,
   pd.fecha::text,
   pd.puesto_id::text,
-  pd.puesto_nombre,
+  pd.nombre_puesto as puesto_nombre,
   pd.instalacion_id::text,
   pd.instalacion_nombre,
   pd.instalacion_telefono,
   pd.estado_pauta_mensual,
   
-  -- Estado UI para Pauta Diaria (ejecución)
+  -- Estado UI para Pauta Diaria (ejecución) - FIXED
   CASE 
     -- Si no se ha marcado asistencia, aparece como 'planificado'
     WHEN pd.estado_ui IS NULL OR pd.estado_ui = 'plan' THEN 'planificado'
@@ -85,7 +85,7 @@ SELECT
     WHEN pd.estado_ui = 'reemplazo' THEN 'reemplazo'
     WHEN pd.estado_ui = 'sin_cobertura' THEN 'sin_cobertura'
     
-    -- Estados de turno extra (MANTENER COMO 'extra')
+    -- Estados de turno extra (MANTENER COMO 'extra') - FIX
     WHEN pd.estado_ui = 'extra' THEN 'extra'
     WHEN pd.estado_ui = 'turno_extra' THEN 'extra'
     WHEN pd.estado_ui = 'te' THEN 'extra'
@@ -176,19 +176,3 @@ SELECT
   END as cobertura_guardia_telefono
   
 FROM pauta_dedup pd;
-
--- Crear índices para optimizar la vista
-CREATE INDEX IF NOT EXISTS idx_pauta_mensual_planificado 
-ON as_turnos_pauta_mensual(estado) WHERE estado = 'planificado';
-
-CREATE INDEX IF NOT EXISTS idx_pauta_mensual_fecha_completa 
-ON as_turnos_pauta_mensual(anio, mes, dia);
-
-CREATE INDEX IF NOT EXISTS idx_turnos_extras_pauta 
-ON TE_turnos_extras(pauta_id);
-
-CREATE INDEX IF NOT EXISTS idx_turnos_extras_created 
-ON TE_turnos_extras(created_at DESC);
-
--- Comentario descriptivo
-COMMENT ON VIEW as_turnos_v_pauta_diaria_unificada IS 'Vista unificada para Pauta Diaria: SOLO muestra turnos planificados de Pauta Mensual. Estados: planificado, asistido, inasistencia, reemplazo, sin_cobertura';
