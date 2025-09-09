@@ -219,12 +219,15 @@ export default function PPCModal({
       setAsignando(turno.id);
       console.log('🟧 Turno extra reemplazo (usando endpoint directo):', { pauta_id: turno.id, guardia_id: guardia.id });
       
+      // Obtener fecha actual para el turno extra
+      const fecha = new Date().toISOString().split('T')[0];
+      
       // Usar endpoint directo para evitar problemas de import
       const response = await fetch('/api/turnos/extra-new', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fecha: turno.fecha,
+          fecha: fecha, // Usar fecha actual
           instalacion_id: turno.instalacion_id,
           rol_id: turno.rol_id,
           puesto_id: turno.puesto_id,
