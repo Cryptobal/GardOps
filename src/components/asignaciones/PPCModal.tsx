@@ -6,15 +6,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, X, MapPin, Clock, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import ModalExitoAsignacion from '../ui/modal-exito-asignacion';
 
 interface PPC {
   id: string;
+  instalacion: string;
   instalacion_id: string;
-  instalacion_nombre: string;
-  rol_nombre: string;
-  rol_id: string;
-  nombre_puesto: string;
-  created_at: string;
+  rol: string;
+  jornada: string;
+  rol_tipo: string;
+  horario: string;
+  estado: string;
+  creado: string;
+  guardia_asignado?: any;
 }
 
 interface PPCModalProps {
@@ -42,6 +46,13 @@ export default function PPCModal({
   const [ppcs, setPpcs] = useState<PPC[]>([]);
   const [loading, setLoading] = useState(false);
   const [asignando, setAsignando] = useState<string | null>(null);
+  
+  // Estado para modal de éxito
+  const [modalExito, setModalExito] = useState({
+    isOpen: false,
+    guardiaInfo: { nombre: '', rut: '' },
+    ppcInfo: { instalacion: '', rol: '', horario: '' }
+  });
 
   useEffect(() => {
     if (isOpen && instalacionId) {
@@ -53,34 +64,18 @@ export default function PPCModal({
     try {
       setLoading(true);
       
-      // Primero, obtener todas las instalaciones con PPCs activos
-      const instalacionesResponse = await fetch('/api/instalaciones-con-ppc-activos');
-      const instalacionesData = await instalacionesResponse.json();
+      // Usar el mismo endpoint que el módulo PPC
+      const response = await fetch('/api/ppc?estado=Pendiente');
+      const ppcsData = await response.json();
       
-      if (!Array.isArray(instalacionesData)) {
-        console.error('Error: instalaciones-con-ppc-activos no devolvió un array');
+      if (!Array.isArray(ppcsData)) {
+        console.error('Error: /api/ppc no devolvió un array');
         setPpcs([]);
         return;
       }
       
-      // Buscar PPCs para todas las instalaciones que tengan PPCs
-      let todosLosPPCs: PPC[] = [];
-      
-      for (const instalacion of instalacionesData) {
-        try {
-          const response = await fetch(`/api/instalaciones/${instalacion.id}/ppcs`);
-          const data = await response.json();
-          
-          if (data && data.success && Array.isArray(data.data)) {
-            todosLosPPCs = [...todosLosPPCs, ...data.data];
-          }
-        } catch (error) {
-          console.error(`Error cargando PPCs para instalación ${instalacion.id}:`, error);
-        }
-      }
-      
-      console.log(`✅ PPCs encontrados: ${todosLosPPCs.length}`);
-      setPpcs(todosLosPPCs);
+      console.log(`✅ PPCs encontrados: ${ppcsData.length}`);
+      setPpcs(ppcsData);
       
     } catch (error) {
       console.error('Error cargando PPCs:', error);
@@ -91,61 +86,61 @@ export default function PPCModal({
   };
 
   const handleAsignarPPC = async (ppc: PPC) => {
-    // VERSION NUEVA 2025-09-08-21:15 - CODIGO ACTUALIZADO
     try {
       setAsignando(ppc.id);
-      console.log('🚀 VERSION NUEVA 2025-09-08-21:15 - ASIGNACION ULTRA ROBUSTA');
-      console.log('🔥 CODIGO ACTUALIZADO EJECUTANDOSE');
-      console.log('🔍 Enviando asignación:', {
+      console.log('🔍 Enviando asignación desde buscador GGSS:', {
         guardia_id: guardia.id,
-        instalacion_id: ppc.instalacion_id, // Usar la instalación del PPC, no del dropdown
-        ppc_id: ppc.id,
-        fecha: new Date().toISOString().split('T')[0],
-        motivo: `Asignación optimizada - PPC: ${ppc.rol_nombre}, Distancia: ${guardia.distancia.toFixed(1)}km`
+        puesto_operativo_id: ppc.id
       });
       
-      const response = await fetch('/api/asignaciones/crear', {
+      // Usar el mismo endpoint que el módulo PPC
+      const response = await fetch('/api/ppc/asignar', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           guardia_id: guardia.id,
-          instalacion_id: ppc.instalacion_id, // Usar la instalación del PPC, no del dropdown
-          ppc_id: ppc.id,
-          fecha: new Date().toISOString().split('T')[0],
-          motivo: `Asignación optimizada - PPC: ${ppc.rol_nombre}, Distancia: ${guardia.distancia.toFixed(1)}km`
+          puesto_operativo_id: ppc.id
         })
       });
 
-      console.log('📡 Status respuesta:', response.status);
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Error al asignar guardia');
+      }
 
-      // MANEJO SUPER SIMPLE - SI ES 200, ES EXITOSO
-      if (response.status === 200) {
-        console.log('🎉 RESPUESTA 200 - ASIGNACION EXITOSA - SALIENDO INMEDIATAMENTE');
-        toast.success(
-          `${guardia.nombre} asignado a ${ppc.rol_nombre} en ${ppc.instalacion_nombre}`, 
-          '✅ Asignación exitosa'
-        );
-        onAsignacionExitosa();
-        onClose();
-        setAsignando(null);
-        return; // SALIR INMEDIATAMENTE PARA EVITAR CODIGO VIEJO
-      } else {
-        console.log('❌ RESPUESTA NO 200:', response.status);
-        toast.error(`Error del servidor (${response.status})`, "Error en asignación");
-      }
+      // Mostrar modal de éxito con información detallada (igual que módulo PPC)
+      setModalExito({
+        isOpen: true,
+        guardiaInfo: {
+          nombre: guardia.nombre,
+          rut: '' // No tenemos RUT en buscador GGSS
+        },
+        ppcInfo: {
+          instalacion: ppc.instalacion,
+          rol: ppc.rol,
+          horario: ppc.horario
+        }
+      });
       
-    } catch (megaError) {
-      console.error('💀 MEGA ERROR CAPTURADO:', megaError);
-      toast.error("Error de conexión", "Error");
+      onAsignacionExitosa();
+      onClose();
+      
+    } catch (error) {
+      console.error('Error asignando guardia:', error);
+      toast.error('No se pudo asignar el guardia', 'Error');
     } finally {
-      try {
-        setAsignando(null);
-      } catch (finallyError) {
-        console.error('Error en finally:', finallyError);
-      }
+      setAsignando(null);
     }
+  };
+
+  const cerrarModalExito = () => {
+    setModalExito({
+      isOpen: false,
+      guardiaInfo: { nombre: '', rut: '' },
+      ppcInfo: { instalacion: '', rol: '', horario: '' }
+    });
   };
 
   if (!isOpen) return null;
@@ -199,14 +194,14 @@ export default function PPCModal({
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">{ppc.rol_nombre}</Badge>
-                          <Badge variant="outline" className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">{ppc.nombre_puesto}</Badge>
+                          <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">{ppc.rol}</Badge>
+                          <Badge variant="outline" className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">{ppc.jornada}</Badge>
                         </div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {ppc.instalacion_nombre}
+                          {ppc.instalacion}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-500">
-                          Creado: {new Date(ppc.created_at).toLocaleDateString('es-CL')}
+                          Horario: {ppc.horario}
                         </p>
                       </div>
                       <Button
@@ -232,6 +227,14 @@ export default function PPCModal({
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal de éxito de asignación */}
+      <ModalExitoAsignacion
+        isOpen={modalExito.isOpen}
+        onClose={cerrarModalExito}
+        guardiaInfo={modalExito.guardiaInfo}
+        ppcInfo={modalExito.ppcInfo}
+      />
     </div>
   );
 }
