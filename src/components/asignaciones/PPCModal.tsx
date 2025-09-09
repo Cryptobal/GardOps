@@ -226,15 +226,13 @@ export default function PPCModal({
       setAsignando(turno.id);
       console.log('🟧 Turno extra reemplazo (usando lógica inasistencia):', { pauta_id: turno.id, guardia_id: guardia.id });
       
-      // Usar el mismo endpoint que usa pauta diaria para inasistencia con cobertura
-      const response = await fetch('/api/turnos/inasistencia', {
+      // Usar el mismo endpoint que PPC para consistencia total
+      const response = await fetch('/api/turnos/ppc/cubrir', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pauta_id: parseInt(turno.id),
-          falta_sin_aviso: true,
-          motivo: 'Falta sin aviso',
-          cubierto_por: guardia.id
+          guardia_id: guardia.id
         })
       });
 
