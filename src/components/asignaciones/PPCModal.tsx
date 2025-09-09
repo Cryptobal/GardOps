@@ -1,7 +1,7 @@
 "use client";
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
-import { api } from '@/app/pauta-diaria-v2/apiAdapter';
+import { marcarTurnoExtra } from '@/app/pauta-diaria-v2/apiAdapter';
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -194,8 +194,6 @@ export default function PPCModal({
       devLogger.search(' PPC encontrado en pauta:', { pauta_id: ppcEnPauta.pauta_id, puesto_id: ppc.id });
       
       // Usar EXACTAMENTE la misma lógica que botón "Cubrir" en pauta diaria
-      const { marcarTurnoExtra } = await import('@/app/pauta-diaria-v2/apiAdapter');
-      
       const result = await marcarTurnoExtra(
         ppcEnPauta.pauta_id,
         guardia.id,
@@ -222,7 +220,8 @@ export default function PPCModal({
       console.log('🟧 Turno extra reemplazo (usando api.marcarTurnoExtra):', { pauta_id: turno.id, guardia_id: guardia.id });
       
       // Usar la misma función que el botón "Cubrir" en pauta diaria para consistencia total
-      const result = await api.marcarTurnoExtra(
+      const result = await marcarTurnoExtra(
+        turno.id,
         guardia.id,
         turno // Pasar la fila completa igual que pauta diaria
       );
