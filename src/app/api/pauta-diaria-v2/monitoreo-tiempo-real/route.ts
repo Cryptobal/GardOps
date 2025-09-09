@@ -59,10 +59,12 @@ export async function GET(request: NextRequest) {
         AND po.activo = true
     `;
     
-    // Agregar filtro según incluirLibres
+    // Agregar filtro según incluirLibres - CORREGIDO PARA NUEVA LÓGICA
     if (!incluirLibres) {
-      query += ` AND (pm.estado = 'planificado' OR (pm.estado = 'sin_cobertura' AND pm.estado_ui = 'plan'))`;
+      // Excluir días libres usando la nueva lógica estándar
+      query += ` AND NOT (pm.estado = 'libre' OR pm.estado_operacion = 'libre')`;
     } else {
+      // Incluir todos los estados
       query += ` AND pm.estado IN ('planificado', 'trabajado', 'libre', 'sin_cobertura')`;
     }
     
