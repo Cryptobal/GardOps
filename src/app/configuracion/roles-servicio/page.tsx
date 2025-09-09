@@ -356,7 +356,7 @@ export default function RolesServicioPage() {
   // Debug: Log de filtros
   console.log('🔍 Filtros activos:', { filtroEstado, filtroPatron });
   console.log('🔍 Total roles:', roles.length, 'Roles filtrados:', rolesFiltrados.length);
-
+  
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -520,16 +520,10 @@ export default function RolesServicioPage() {
                             
                             if (infoJornada.resumenHorario.esVariable) {
                               return (
-                                <TooltipSimple
-                                  titulo="Horarios Variables"
-                                  contenido={['Horarios personalizados por día']}
-                                  esVariable={true}
-                                >
-                                  <span className="flex items-center gap-1">
-                                    {infoJornada.resumenHorario.texto}
-                                    <Clock className="h-3 w-3 text-blue-400" />
-                                  </span>
-                                </TooltipSimple>
+                                <span className="flex items-center gap-1">
+                                  {infoJornada.resumenHorario.texto}
+                                  <Clock className="h-3 w-3 text-blue-400" />
+                                </span>
                               );
                             }
                             
