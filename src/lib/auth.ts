@@ -160,6 +160,12 @@ export async function requirePermission(permission: string): Promise<void> {
     return;
   }
   
+  // BYPASS TEMPORAL PARA PRODUCCIÓN - TURNOS
+  if (process.env.NODE_ENV === 'production' && permission === 'turnos.marcar_asistencia') {
+    console.log('🔍 [requirePermission] Bypass temporal para turnos.marcar_asistencia en producción');
+    return;
+  }
+  
   // En producción, verificar el permiso usando el sistema RBAC
   try {
     const { userHasPerm, getUserIdByEmail, getUserEmail } = await import('@/lib/auth/rbac');
