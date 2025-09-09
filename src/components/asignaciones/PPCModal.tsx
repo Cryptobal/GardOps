@@ -235,6 +235,11 @@ export default function PPCModal({
         throw new Error(errorText || 'Error al crear turno extra');
       }
 
+      // Recargar datos para que se vea en la pauta diaria
+      if (onAsignacionExitosa) {
+        onAsignacionExitosa();
+      }
+      
       mostrarModalExito('turno_extra_reemplazo', null, turno);
       
     } catch (error) {
