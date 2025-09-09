@@ -116,7 +116,7 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
     }
   }, [isOpen]);
 
-  // Manejar selección de guardia
+  // Manejar selección de guardia - ACTUALIZADO PARA SOLICITAR FECHA INICIO
   const handleSelectGuardia = (guardia: Guardia) => {
     if (mode === 'pauta-diaria' || mode === 'pauta-mensual') {
       // En Pauta Diaria y Pauta Mensual, no validamos instalaciones, solo seleccionamos
@@ -124,16 +124,16 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
       setSearchTerm("");
       onClose();
     } else {
-      // En instalaciones, validamos si ya está asignado a otra instalación
+      // En instalaciones, SIEMPRE solicitar fecha de inicio para asignaciones
       if (guardia.instalacion_actual_id && guardia.instalacion_actual_id !== instalacionId) {
-        // Guardia ya asignado a otra instalación
+        // Guardia ya asignado a otra instalación - mostrar modal de reasignación con fecha
         setGuardiaConAdvertencia(guardia);
         setShowWarning(true);
+        // El modal de confirmación incluirá fecha de inicio
       } else {
-        // Guardia disponible o ya asignado a esta instalación
-        onSelectGuardia(guardia.id);
-        setSearchTerm("");
-        onClose();
+        // Guardia disponible - solicitar fecha de inicio directamente
+        setGuardiaConAdvertencia(guardia);
+        setShowWarning(true); // Reutilizar modal para solicitar fecha
       }
     }
   };
