@@ -161,15 +161,15 @@ export default function PPCModal({
   const handleTurnoExtraPPC = async (ppc: PPC) => {
     try {
       setAsignando(ppc.id);
-      console.log('🟨 Turno extra PPC:', { guardia_id: guardia.id, puesto_id: ppc.id });
+      console.log('🟨 Turno extra PPC (usando lógica existente):', { pauta_id: ppc.id, guardia_id: guardia.id });
       
-      const response = await fetch('/api/turnos-extra/ppc', {
+      // Usar el mismo endpoint que botón "Cubrir" en pauta diaria
+      const response = await fetch('/api/turnos/ppc/cubrir', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          guardia_id: guardia.id,
-          puesto_id: ppc.id,
-          fecha: new Date().toISOString().split('T')[0]
+          pauta_id: ppc.id,
+          guardia_id: guardia.id
         })
       });
 
@@ -197,15 +197,15 @@ export default function PPCModal({
   const handleTurnoExtraReemplazo = async (turno: TurnoAsignado) => {
     try {
       setAsignando(turno.id);
-      console.log('🟧 Turno extra reemplazo:', { guardia_id: guardia.id, pauta_id: turno.id });
+      console.log('🟧 Turno extra reemplazo (usando lógica existente):', { pauta_id: turno.id, guardia_id: guardia.id });
       
-      const response = await fetch('/api/turnos-extra/reemplazo', {
+      // Usar el mismo endpoint que botón "Cubrir" en pauta diaria
+      const response = await fetch('/api/turnos/ppc/cubrir', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          guardia_id: guardia.id,
           pauta_id: turno.id,
-          fecha: new Date().toISOString().split('T')[0]
+          guardia_id: guardia.id
         })
       });
 
