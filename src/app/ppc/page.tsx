@@ -279,6 +279,13 @@ export default function PPCPage() {
 
   // Funciones para modal de guardias
   const abrirModalGuardias = async (ppc: any) => {
+    console.log('🔍 Debug abrirModalGuardias con PPC:', {
+      id: ppc.id,
+      instalacion_id: ppc.instalacion_id,
+      instalacion: ppc.instalacion,
+      rol: ppc.rol
+    });
+    
     setModalGuardias({
       isOpen: true,
       ppcId: ppc.id,
@@ -346,6 +353,13 @@ export default function PPCPage() {
   const handleAsignarGuardia = async (guardiaId: string) => {
     // NUEVA LÓGICA: Solicitar fecha de inicio antes de asignar
     const guardiaInfo = guardias.find(g => g.id === guardiaId);
+    
+    console.log('🔍 Debug modalGuardias antes de abrir fecha:', {
+      ppcId: modalGuardias.ppcId,
+      instalacionNombre: modalGuardias.instalacionNombre,
+      rolServicioNombre: modalGuardias.rolServicioNombre,
+      guardiaId: guardiaId
+    });
     
     setModalFechaInicio({
       isOpen: true,
@@ -912,7 +926,7 @@ export default function PPCPage() {
 
       {/* Modal de búsqueda de guardias */}
       <GuardiaSearchModal
-        isOpen={modalGuardias.isOpen}
+        isOpen={modalGuardias.isOpen && !modalFechaInicio.isOpen} // No mostrar si está abierto modal de fecha
         onClose={cerrarModalGuardias}
         onSelectGuardia={handleAsignarGuardia}
         guardias={guardias}
