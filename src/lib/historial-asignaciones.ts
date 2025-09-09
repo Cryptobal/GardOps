@@ -3,7 +3,7 @@
  * CONSERVADOR - Mantiene compatibilidad con lógica existente
  */
 
-import { query } from '@/lib/db';
+import { query } from '@/lib/database';
 
 export interface AsignacionHistorial {
   id: number;
