@@ -354,14 +354,22 @@ export default function PPCPage() {
       guardiaInstalacionActual: guardiaInfo?.instalacion_actual_nombre || ''
     });
     
-    // Cerrar modal de guardias
-    cerrarModalGuardias();
+    // NO cerrar modal de guardias todavía - mantener datos del PPC
+    // cerrarModalGuardias(); // COMENTADO para mantener variables
   };
 
   const handleConfirmarAsignacionConFecha = async (fechaInicio: string, observaciones?: string) => {
     try {
       setAsignando(true);
       
+      console.log('🔍 Datos para asignación:', {
+        guardia_id: modalFechaInicio.guardiaId,
+        puesto_operativo_id: modalGuardias.ppcId,
+        fecha_inicio: fechaInicio,
+        instalacion: modalGuardias.instalacionNombre,
+        rol: modalGuardias.rolServicioNombre
+      });
+
       const response = await fetch('/api/ppc/asignar', {
         method: 'POST',
         headers: {
@@ -378,11 +386,12 @@ export default function PPCPage() {
 
       if (!response.ok) {
         const data = await response.json();
+        console.error('❌ Error en asignación:', data);
         throw new Error(data.error || 'Error al asignar guardia');
       }
       
       // Encontrar información del guardia seleccionado
-      const guardiaSeleccionado = guardias.find(g => g.id === guardiaId);
+      const guardiaSeleccionado = guardias.find(g => g.id === modalFechaInicio.guardiaId);
       
       // Encontrar información del PPC para obtener el horario
       const ppcActual = ppcs.find(p => p.id === modalGuardias.ppcId);
@@ -402,7 +411,16 @@ export default function PPCPage() {
       });
       
       onAsignacionCompletada();
+      
+      // Cerrar ambos modales y limpiar estados
+      setModalFechaInicio({
+        isOpen: false,
+        guardiaId: '',
+        guardiaNombre: '',
+        guardiaInstalacionActual: ''
+      });
       cerrarModalGuardias();
+      
     } catch (error) {
       logger.error('Error asignando guardia::', error);
       toast.error('No se pudo asignar el guardia', 'Error');
@@ -915,12 +933,15 @@ export default function PPCPage() {
       {/* NUEVO: Modal para solicitar fecha de inicio de asignación */}
       <ModalFechaInicioAsignacion
         isOpen={modalFechaInicio.isOpen}
-        onClose={() => setModalFechaInicio({
-          isOpen: false,
-          guardiaId: '',
-          guardiaNombre: '',
-          guardiaInstalacionActual: ''
-        })}
+        onClose={() => {
+          console.log('🔍 Cerrando modal de fecha inicio');
+          setModalFechaInicio({
+            isOpen: false,
+            guardiaId: '',
+            guardiaNombre: '',
+            guardiaInstalacionActual: ''
+          });
+        }}
         onConfirmar={handleConfirmarAsignacionConFecha}
         guardiaNombre={modalFechaInicio.guardiaNombre}
         guardiaInstalacionActual={modalFechaInicio.guardiaInstalacionActual}
