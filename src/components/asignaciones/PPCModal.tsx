@@ -224,13 +224,8 @@ export default function PPCModal({
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'asignar_ppc',
-          turno: {
-            puesto_id: turno.puesto_id,
-            anio: new Date().getFullYear(),
-            mes: new Date().getMonth() + 1,
-            dia: new Date().getDate()
-          },
+          turnoId: turno.id,
+          accion: 'asignar_ppc',
           guardiaId: guardia.id
         })
       });
