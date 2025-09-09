@@ -294,27 +294,30 @@ async function procesarTurnos(turnos: any[]) {
             ]
           );
         } else {
-          // Para días planificados, usar el resolver
+          // Para días planificados, NO usar el resolver automático
+          // RESPETAR DIRECTAMENTE LA INTENCIÓN DEL USUARIO
           const fecha = `${anio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
           
-          // Resolver estado considerando la asignación manual del usuario
-          const resolucion = await resolverEstadoDia(
-            puesto_id, 
-            fecha, 
-            false, // asistencia_registrada (se determinará después)
-            null   // turno_extra_guardia_id (se determinará después)
+          await query(`
+            INSERT INTO as_turnos_pauta_mensual (
+              puesto_id, guardia_id, anio, mes, dia, estado, plan_base, estado_rrhh, estado_operacion,
+              observaciones, reemplazo_guardia_id, editado_manualmente, created_at, updated_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+            ON CONFLICT (puesto_id, anio, mes, dia)
+            DO UPDATE SET
+              plan_base = EXCLUDED.plan_base,
+              estado_rrhh = EXCLUDED.estado_rrhh,
+              estado_operacion = EXCLUDED.estado_operacion,
+              observaciones = EXCLUDED.observaciones,
+              editado_manualmente = EXCLUDED.editado_manualmente,
+              updated_at = NOW()
+            `,
+            [
+              puesto_id, guardia_id, anio, mes, dia, 'planificado', 'planificado', 'sin_evento', 'planificado',
+              observaciones || null, null, true
+            ]
           );
-          
-          // Actualizar con la asignación del usuario
-          resolucion.guardia_asignado_id = guardia_id || null;
-          resolucion.es_ppc = !guardia_id;
-          
-          // RESPETAR LA INTENCIÓN DEL USUARIO: si marca como "planificado", mantenerlo así
-          // No importa si es PPC, el usuario quiere que se planifique ese día
-          resolucion.estado_operacion = 'planificado'; // Mantener como planificado según edición manual
-          
-          // Aplicar resolución a BD
-          await aplicarResolucionDia(puesto_id, fecha, resolucion);
         }
         guardados++;
       }
