@@ -51,24 +51,42 @@ const isPlan = (estadoUI: string) => estadoUI === 'plan';
 const isSinCobertura = (estadoUI: string) => estadoUI === 'sin_cobertura';
 const isLibre = (estadoUI: string) => estadoUI === 'libre';
 
-const renderEstado = (estadoUI: string, isFalta: boolean, hasCobertura?: boolean) => {
+const renderEstado = (estadoUI: string, isFalta: boolean, hasCobertura?: boolean, estado?: string) => {
   // Estados consistentes entre pauta mensual y diaria
   const cls: Record<string,string> = {
     asistio:        'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20',
     turno_extra:    'bg-fuchsia-500/10 text-fuchsia-400 ring-fuchsia-500/20',
     sin_cobertura:  'bg-rose-500/10 text-rose-400 ring-rose-500/20',
+    libre:          'bg-gray-500/10 text-gray-400 ring-gray-500/20',
+    planificado:    'bg-blue-500/10 text-blue-400 ring-blue-500/20',
     // Estados legacy para compatibilidad
     asistido:       'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20',
     reemplazo:      'bg-fuchsia-500/10 text-fuchsia-400 ring-fuchsia-500/20',
     inasistencia:   'bg-rose-500/10 text-rose-400 ring-rose-500/20',
-    libre:          'bg-gray-500/10 text-gray-400 ring-gray-500/20',
     plan:           'bg-amber-500/10 text-amber-400 ring-amber-500/20',
     ppc_libre:      'bg-amber-500/10 text-amber-400 ring-amber-500/20',
     te:             'bg-fuchsia-500/10 text-fuchsia-400 ring-fuchsia-500/20',
-    extra:          'bg-fuchsia-500/10 text-fuchsia-400 ring-fuchsia-500/20', // AGREGAR COLOR MORADO PARA 'extra'
+    extra:          'bg-fuchsia-500/10 text-fuchsia-400 ring-fuchsia-500/20',
   };
   
-  // Mapear estados legacy a nuevos estados consistentes
+  // PRIORIDAD 1: Usar el campo 'estado' del backend si está disponible
+  if (estado === 'libre') {
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded ring-1 ${cls.libre}`}>
+        Libre
+      </span>
+    );
+  }
+  
+  if (estado === 'planificado') {
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded ring-1 ${cls.planificado}`}>
+        Planificado
+      </span>
+    );
+  }
+  
+  // PRIORIDAD 2: Mapear estados legacy a nuevos estados consistentes
   const estadoNormalizado = (() => {
     switch (estadoUI) {
       case 'asistido':
@@ -77,11 +95,16 @@ const renderEstado = (estadoUI: string, isFalta: boolean, hasCobertura?: boolean
       case 'reemplazo':
       case 'te':
       case 'turno_extra':
-      case 'extra':  // ← AGREGAR MAPEO PARA 'extra'
+      case 'extra':
         return 'turno_extra';
       case 'sin_cobertura':
       case 'inasistencia':
         return 'sin_cobertura';
+      case 'libre':
+        return 'libre';
+      case 'plan':
+      case 'planificado':
+        return 'planificado';
       default:
         return estadoUI;
     }
@@ -89,18 +112,22 @@ const renderEstado = (estadoUI: string, isFalta: boolean, hasCobertura?: boolean
   
   const base = cls[estadoNormalizado] ?? 'bg-gray-500/10 text-gray-400 ring-gray-500/20';
   
-  // SOLUCIÓN NUCLEAR: Forzar mapeo directo de 'extra' a 'Turno Extra'
+  // Determinar label
   let label = '';
   if (estadoUI === 'extra' || (hasCobertura && !['asistio', 'asistido', 'sin_cobertura', 'inasistencia', 'plan', 'libre'].includes(estadoUI))) {
-    label = 'Turno Extra'; // FORZAR DIRECTAMENTE para cualquier estado con cobertura
+    label = 'Turno Extra';
   } else if (estadoNormalizado === 'turno_extra') {
     label = 'Turno Extra';
   } else if (estadoNormalizado === 'asistio') {
     label = 'Asistió';
   } else if (estadoNormalizado === 'sin_cobertura') {
     label = 'Sin Cobertura';
+  } else if (estadoNormalizado === 'libre') {
+    label = 'Libre';
+  } else if (estadoNormalizado === 'planificado') {
+    label = 'Planificado';
   } else {
-    label = estadoUI;
+    label = estadoUI || 'Sin estado';
   }
   
   return (
@@ -1573,7 +1600,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                             ) : '—'}
                           </TableCell>
                           <TableCell>
-                            <div>{renderEstado(r.estado_ui, r.es_falta_sin_aviso, !!r.guardia_trabajo_id)}</div>
+                            <div>{renderEstado(r.estado_ui, r.es_falta_sin_aviso, !!r.guardia_trabajo_id, r.estado)}</div>
                           </TableCell>
                           <TableCell>
                             {(() => {
