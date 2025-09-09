@@ -120,14 +120,14 @@ export default function RolesServicioPage() {
     for (const rol of roles) {
       if (rol.tiene_horarios_variables) {
         try {
-          console.log(`🔄 Cargando series para rol ${rol.nombre}...`);
+          // console.log(`🔄 Cargando series para rol ${rol.nombre}...`);
           const response = await fetch(`/api/roles-servicio/${rol.id}/series`);
           
           if (response.ok) {
             const result = await response.json();
             if (result.success && result.data.series_dias) {
               nuevasSeriesPorRol.set(rol.id, result.data.series_dias);
-              console.log(`✅ Series cargadas para ${rol.nombre}:`, result.data.series_dias.length);
+              // console.log(`✅ Series cargadas para ${rol.nombre}:`, result.data.series_dias.length);
             }
           }
         } catch (error) {
@@ -137,7 +137,7 @@ export default function RolesServicioPage() {
     }
     
     setSeriesPorRol(nuevasSeriesPorRol);
-    console.log('✅ Series cargadas para', nuevasSeriesPorRol.size, 'roles');
+    // console.log('✅ Series cargadas para', nuevasSeriesPorRol.size, 'roles');
   };
 
   const cargarStats = async () => {
@@ -235,7 +235,7 @@ export default function RolesServicioPage() {
   const handleReplicarRol = async (rol: RolServicio, tipoSimil: 'diurno' | 'nocturno') => {
     try {
       setLoading(true);
-      console.log(`🔄 Replicando rol ${rol.nombre} a ${tipoSimil}...`);
+      // console.log(`🔄 Replicando rol ${rol.nombre} a ${tipoSimil}...`);
       
       const datosReplicacion = crearDatosReplicacion(rol);
       
@@ -337,25 +337,7 @@ export default function RolesServicioPage() {
     document.body.removeChild(link);
   };
 
-  // Extraer patrones únicos para el filtro
-  const patronesDisponibles = extraerPatronesUnicos(roles);
-  
-  // Temporalmente deshabilitar ordenamiento para debugging
-  const rolesFiltrados = filtrarRolesPorPatron(
-    roles.filter(rol => {
-      if (filtroEstado === 'activos') return rol.estado === 'Activo';
-      if (filtroEstado === 'inactivos') return rol.estado === 'Inactivo';
-      return true;
-    }),
-    filtroPatron
-  );
-  
-  // TODO: Rehabilitar ordenamiento cuando se resuelva el problema
-  // const rolesFiltrados = ordenarRolesPorPatron(filtrarRolesPorPatron(...));
-
-  // Debug: Log de filtros
-  console.log('🔍 Filtros activos:', { filtroEstado, filtroPatron });
-  console.log('🔍 Total roles:', roles.length, 'Roles filtrados:', rolesFiltrados.length);
+  const rolesFiltrados = roles;
   
   return (
     <div className="container mx-auto p-6 space-y-6">
