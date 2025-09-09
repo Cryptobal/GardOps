@@ -84,14 +84,50 @@ export async function POST(req: NextRequest) {
             return false;
           });
 
+          // Buscar si hay un día libre específico para este puesto en este día
+          const diaLibre = pauta.find((g: any) => {
+            if (g.guardia_id === puesto.id && puesto.es_ppc) {
+              // Es un PPC, verificar si tiene día libre para este día
+              const diaIndex = dia - 1;
+              return g.dias && g.dias[diaIndex] === 'L'; // 'L' = LIBRE
+            } else if (g.guardia_id === puesto.guardia_id && !puesto.es_ppc) {
+              // Es un guardia asignado, verificar si tiene día libre este día
+              const diaIndex = dia - 1;
+              return g.dias && g.dias[diaIndex] === 'L'; // 'L' = LIBRE
+            }
+            return false;
+          });
+
+          // Determinar el estado del turno
+          let estadoTurno: string;
+          let guardiaIdTurno: string | null;
+          let observacionesTurno: string | null;
+
+          if (guardiaAsignado) {
+            // Día de trabajo
+            estadoTurno = 'planificado';
+            guardiaIdTurno = puesto.es_ppc ? null : puesto.guardia_id;
+            observacionesTurno = 'Turno asignado';
+          } else if (diaLibre) {
+            // Día libre específico del guardia
+            estadoTurno = 'libre';
+            guardiaIdTurno = puesto.es_ppc ? null : puesto.guardia_id;
+            observacionesTurno = 'Día libre planificado';
+          } else {
+            // Sin asignación (solo para PPCs sin planificación)
+            estadoTurno = 'libre';
+            guardiaIdTurno = null;
+            observacionesTurno = null;
+          }
+
           const turno = {
             puesto_id: puesto.id,
-            guardia_id: guardiaAsignado ? (puesto.es_ppc ? null : puesto.guardia_id) : null,
+            guardia_id: guardiaIdTurno,
             anio: anio,
             mes: mes,
             dia: dia,
-            estado: guardiaAsignado ? 'trabajado' : 'libre',
-            observaciones: guardiaAsignado ? 'Turno asignado' : null,
+            estado: estadoTurno,
+            observaciones: observacionesTurno,
             reemplazo_guardia_id: null,
           };
 

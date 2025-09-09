@@ -61,7 +61,7 @@ WITH pauta_dedup AS (
     LIMIT 1
   ) te ON true
   WHERE po.activo = true
-    AND pm.estado = 'planificado'  -- SOLO turnos planificados en Pauta Mensual
+    AND pm.estado IN ('planificado', 'libre')  -- Incluir turnos planificados Y días libres
   ORDER BY pm.puesto_id, pm.anio, pm.mes, pm.dia, pm.id DESC
 )
 SELECT 

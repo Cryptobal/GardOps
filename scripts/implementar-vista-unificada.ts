@@ -72,8 +72,8 @@ async function implementarVistaUnificada() {
           ORDER BY te.created_at DESC
           LIMIT 1
         ) te ON true
-        WHERE po.activo = true
-          AND pm.estado = 'planificado'  -- SOLO turnos planificados en Pauta Mensual
+  WHERE po.activo = true
+    AND pm.estado IN ('planificado', 'libre')  -- Incluir turnos planificados Y días libres en Pauta Mensual
         ORDER BY pm.puesto_id, pm.anio, pm.mes, pm.dia, pm.id DESC
       )
       SELECT 
