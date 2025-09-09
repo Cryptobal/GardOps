@@ -109,22 +109,45 @@ async function sincronizarPautaMensual(
     const diasDescanso = parseInt(puesto.dias_descanso) || 4;
 
     for (let dia = 1; dia <= diasEnMes; dia++) {
-      // Determinar si el guardia trabaja este día según el patrón
+      // Verificar si ya existe una edición manual para este día
+      const edicionExistente = await query(`
+        SELECT estado, estado_ui, observaciones, editado_manualmente
+        FROM as_turnos_pauta_mensual
+        WHERE puesto_id = $1 AND anio = $2 AND mes = $3 AND dia = $4
+      `, [puestoId, anio, mes, dia]);
+
+      // Si ya existe una edición manual, respetarla y no aplicar patrón automático
+      if (edicionExistente.rows.length > 0) {
+        const registroExistente = edicionExistente.rows[0];
+        
+        // Solo respetar si fue editado manualmente
+        if (registroExistente.editado_manualmente) {
+          logger.debug(`📝 [SYNC-MENSUAL] Respetando edición manual existente para día ${dia}: estado=${registroExistente.estado}`);
+          
+          // Solo actualizar el guardia_id si es necesario, pero mantener el estado manual
+          await query(`
+            UPDATE as_turnos_pauta_mensual
+            SET guardia_id = $2, updated_at = NOW()
+            WHERE puesto_id = $1 AND anio = $3 AND mes = $4 AND dia = $5
+          `, [puestoId, guardiaId, anio, mes, dia]);
+          continue;
+        }
+      }
+
+      // Determinar si el guardia trabaja este día según el patrón (solo si no hay edición manual)
       const estado = aplicarPatronTurno(patronTurno, dia, anio, mes, diasTrabajo, diasDescanso);
       
       if (estado === 'planificado') {
-        // Insertar o actualizar en pauta mensual de manera segura
+        // Insertar nuevo registro solo si no existe edición manual (NO marcar como editado manualmente)
         await query(`
           INSERT INTO as_turnos_pauta_mensual (
-            puesto_id, guardia_id, anio, mes, dia, estado, estado_ui, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+            puesto_id, guardia_id, anio, mes, dia, estado, estado_ui, editado_manualmente, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
           ON CONFLICT (puesto_id, anio, mes, dia)
           DO UPDATE SET
             guardia_id = EXCLUDED.guardia_id,
-            estado = EXCLUDED.estado,
-            estado_ui = EXCLUDED.estado_ui,
             updated_at = NOW()
-        `, [puestoId, guardiaId, anio, mes, dia, 'planificado', 'plan']);
+        `, [puestoId, guardiaId, anio, mes, dia, 'planificado', 'plan', false]);
       }
     }
 

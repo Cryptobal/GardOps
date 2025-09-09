@@ -30,9 +30,9 @@ export async function POST(req: NextRequest) {
         actualizaciones_length: body.actualizaciones?.length
       });
 
-      // Si tiene actualizaciones, procesarlas directamente
+      // Si tiene actualizaciones, procesarlas directamente (RESPETAR EDICIONES MANUALES)
       if (body.actualizaciones && Array.isArray(body.actualizaciones) && body.actualizaciones.length > 0) {
-        logger.debug('📝 Procesando actualizaciones directamente:', body.actualizaciones.length);
+        logger.debug('📝 Procesando actualizaciones directamente (EDICIONES MANUALES):', body.actualizaciones.length);
         console.log('📝 Datos recibidos:', JSON.stringify(body.actualizaciones.slice(0, 3), null, 2)); // Mostrar solo los primeros 3
         return await procesarTurnos(body.actualizaciones);
       }
@@ -215,6 +215,7 @@ async function procesarTurnos(turnos: any[]) {
         }
 
         // Regla de unicidad por guardia/día: antes de insertar, liberar otros puestos del mismo guardia en ese día
+        // SOLO si es una edición manual (estado planificado)
         if (guardia_id && estado === 'planificado') {
           try {
             await query(
@@ -262,13 +263,14 @@ async function procesarTurnos(turnos: any[]) {
           logger.warn('⚠️ No se pudo limpiar banderas de cobertura/te antes del upsert:', { turno, error: preCleanFlagsErr });
         }
 
+        // INSERT/UPDATE RESPETANDO EDICIONES MANUALES DEL USUARIO
         await query(
           `
           INSERT INTO as_turnos_pauta_mensual (
             puesto_id, guardia_id, anio, mes, dia, estado, estado_ui,
-            observaciones, reemplazo_guardia_id, created_at, updated_at
+            observaciones, reemplazo_guardia_id, editado_manualmente, created_at, updated_at
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
           ON CONFLICT (puesto_id, anio, mes, dia)
           DO UPDATE SET
             guardia_id = EXCLUDED.guardia_id,
@@ -276,6 +278,7 @@ async function procesarTurnos(turnos: any[]) {
             estado_ui = EXCLUDED.estado_ui,
             observaciones = EXCLUDED.observaciones,
             reemplazo_guardia_id = EXCLUDED.reemplazo_guardia_id,
+            editado_manualmente = EXCLUDED.editado_manualmente,
             updated_at = NOW()
           WHERE 
             COALESCE(as_turnos_pauta_mensual.estado_ui, '') <> 'te'
@@ -290,11 +293,12 @@ async function procesarTurnos(turnos: any[]) {
             mes,
             dia,
             estado,
-            // Establecer estado_ui correctamente según el estado
+            // Establecer estado_ui correctamente según el estado (RESPETAR EDICIÓN MANUAL)
             estado === 'planificado' ? 'plan' : 
             estado === 'libre' ? 'libre' : null,
             observaciones || null,
             reemplazo_guardia_id || null,
+            true, // Marcar como editado manualmente
           ]
         );
         guardados++;
