@@ -1,0 +1,102 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { sql } from '@vercel/postgres';
+
+import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    let tenantId = searchParams.get('tenantId');
+
+    // Si no viene tenantId, inferirlo desde el usuario autenticado (igual que en la API principal)
+    if (!tenantId) {
+      const email = request.headers.get('x-user-email');
+      if (email) {
+        const t = await sql`SELECT tenant_id::text AS tid FROM usuarios WHERE lower(email)=lower(${email}) LIMIT 1`;
+        tenantId = t.rows?.[0]?.tid || '1';
+      } else {
+        tenantId = '1';
+      }
+    }
+
+    // Consulta directa para obtener estadísticas de roles
+    const rolesQuery = `
+      SELECT 
+        COUNT(*) as total_roles,
+        COUNT(*) FILTER (WHERE estado = 'Activo') as roles_activos,
+        COUNT(*) FILTER (WHERE estado = 'Inactivo') as roles_inactivos
+      FROM as_turnos_roles_servicio 
+      WHERE (tenant_id::text = $1 OR (tenant_id IS NULL AND $1 = '1'))
+    `;
+    
+    devLogger.search(' Stats API - tenantId:', tenantId);
+    const rolesResult = await sql.query(rolesQuery, [tenantId]);
+    const rolesStats = rolesResult.rows[0];
+    devLogger.search(' Stats API - rolesStats:', rolesStats);
+
+    // Consulta para obtener estadísticas de estructuras (si la tabla existe)
+    let estructurasStats = {
+      total_estructuras: 0,
+      estructuras_activas: 0,
+      estructuras_inactivas: 0
+    };
+
+    try {
+      const estructurasQuery = `
+        SELECT 
+          COUNT(*) as total_estructuras,
+          COUNT(*) FILTER (WHERE estado = 'Activo') as estructuras_activas,
+          COUNT(*) FILTER (WHERE estado = 'Inactivo') as estructuras_inactivas
+        FROM as_turnos_estructuras_servicio 
+        WHERE (tenant_id::text = $1 OR (tenant_id IS NULL AND $1 = '1'))
+      `;
+      
+      const estructurasResult = await sql.query(estructurasQuery, [tenantId]);
+      estructurasStats = estructurasResult.rows[0];
+    } catch (error) {
+      logger.debug('Tabla as_turnos_estructuras_servicio no existe o no es accesible');
+    }
+
+    // Consulta para roles con estructura
+    let rolesConEstructura = 0;
+    let rolesSinEstructura = 0;
+
+    try {
+      const rolesConEstructuraQuery = `
+        SELECT 
+          COUNT(DISTINCT rs.id) as roles_con_estructura
+        FROM as_turnos_roles_servicio rs
+        INNER JOIN as_turnos_estructuras_servicio es ON es.rol_servicio_id = rs.id
+        WHERE (rs.tenant_id::text = $1 OR (rs.tenant_id IS NULL AND $1 = '1'))
+      `;
+      
+      const rolesConEstructuraResult = await sql.query(rolesConEstructuraQuery, [tenantId]);
+      rolesConEstructura = parseInt(rolesConEstructuraResult.rows[0]?.roles_con_estructura || '0');
+      rolesSinEstructura = rolesStats.total_roles - rolesConEstructura;
+    } catch (error) {
+      logger.debug('No se pudo obtener estadísticas de roles con estructura');
+      rolesSinEstructura = rolesStats.total_roles;
+    }
+
+    const stats = {
+      total_roles: parseInt(rolesStats.total_roles),
+      roles_activos: parseInt(rolesStats.roles_activos),
+      roles_inactivos: parseInt(rolesStats.roles_inactivos),
+      total_estructuras: parseInt(estructurasStats.total_estructuras),
+      estructuras_activas: parseInt(estructurasStats.estructuras_activas),
+      estructuras_inactivas: parseInt(estructurasStats.estructuras_inactivas),
+      roles_con_estructura: rolesConEstructura,
+      roles_sin_estructura: rolesSinEstructura
+    };
+
+    return NextResponse.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    logger.error('Error al obtener estadísticas de roles de servicio::', error);
+    return NextResponse.json(
+      { success: false, error: 'Error interno del servidor' },
+      { status: 500 }
+    );
+  }
+}

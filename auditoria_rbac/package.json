@@ -1,0 +1,28 @@
+{
+  "name": "gardops-auditoria-rbac",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "audit:gen-endpoints": "ts-node scripts/generate_endpoint_map.ts",
+    "audit:snapshot": "ts-node scripts/snapshot_effective_permissions.ts",
+    "audit:api": "ts-node scripts/run_api_audit.ts",
+    "audit:ui": "ts-node scripts/run_ui_audit.ts",
+    "audit:sql": "ts-node scripts/sql_audit_runner.ts",
+    "audit:all": "npm run audit:gen-endpoints && npm run audit:snapshot && npm run audit:api && npm run audit:ui && npm run audit:sql"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.46.0",
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.14.2",
+    "csv-stringify": "^6.4.0",
+    "dotenv": "^16.4.5",
+    "fast-glob": "^3.3.2",
+    "jest": "^29.7.0",
+    "papaparse": "^5.4.1",
+    "pg": "^8.11.5",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5",
+    "undici": "^6.19.8"
+  }
+}

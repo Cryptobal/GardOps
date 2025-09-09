@@ -1,0 +1,34 @@
+# Scripts de desarrollo
+scripts/
+
+# Archivos de datos específicos
+BBDD GGSS.csv
+latlng_guardias.csv
+audit_*.json
+audit/
+
+# Archivos de configuración local
+.env.local
+.env.development
+
+# Logs
+*.log
+
+# Archivos temporales
+*.tmp
+*.temp
+
+# Archivos de build
+.next/
+out/
+dist/
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db 

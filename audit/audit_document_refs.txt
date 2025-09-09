@@ -1,0 +1,266 @@
+src/app/documentos/page.tsx:export default function DocumentosPage() {
+src/app/documentos/page.tsx:          <h2 className="text-2xl font-bold heading-gradient">Gestión Documental</h2>
+src/app/documentos/page.tsx:          Subir Documento
+src/app/documentos/page.tsx:            Archivo de Documentos
+src/app/ppc/page.tsx:          Nuevo Documento
+src/app/ppc/page.tsx:            Documentos PPC
+src/app/alertas/page.tsx:interface AlertaDocumento {
+src/app/alertas/page.tsx:  const [alertas, setAlertas] = useState<AlertaDocumento[]>([]);
+src/app/alertas/page.tsx:  const [documentoEditando, setDocumentoEditando] = useState<AlertaDocumento | null>(null);
+src/app/alertas/page.tsx:  const abrirModalEditar = (alerta: AlertaDocumento) => {
+src/app/alertas/page.tsx:    setDocumentoEditando(alerta);
+src/app/alertas/page.tsx:    setDocumentoEditando(null);
+src/app/alertas/page.tsx:              ❌ Documentos Vencidos
+src/app/alertas/page.tsx:              <strong>Documento:</strong> {documentoEditando?.documento_nombre}
+src/app/configuracion/tipos-documentos/page.tsx:interface TipoDocumento {
+src/app/configuracion/tipos-documentos/page.tsx:export default function TiposDocumentosPage() {
+src/app/configuracion/tipos-documentos/page.tsx:  const [tipos, setTipos] = useState<TipoDocumento[]>([]);
+src/app/configuracion/tipos-documentos/page.tsx:  const [tipoAEliminar, setTipoAEliminar] = useState<TipoDocumento | null>(null);
+src/app/configuracion/tipos-documentos/page.tsx:  const [editando, setEditando] = useState<TipoDocumento | null>(null);
+src/app/configuracion/tipos-documentos/page.tsx:  const abrirModal = (tipo?: TipoDocumento) => {
+src/app/configuracion/tipos-documentos/page.tsx:  const abrirModalEliminar = (tipo: TipoDocumento) => {
+src/app/configuracion/tipos-documentos/page.tsx:          <h1 className="text-xl font-medium text-white">Tipos de Documentos</h1>
+src/app/configuracion/tipos-documentos/page.tsx:                  Documentos con fecha de vencimiento
+src/app/configuracion/page.tsx:        {/* Tipos de Documentos */}
+src/app/configuracion/page.tsx:                Tipos de Documentos
+src/app/test-documentos/page.tsx:import { DocumentManager } from "@/components/ui/document-manager";
+src/app/test-documentos/page.tsx:import DocumentUploader from "@/components/DocumentUploader";
+src/app/test-documentos/page.tsx:export default function TestDocumentosPage() {
+src/app/test-documentos/page.tsx:        <h1 className="text-2xl font-bold">Prueba del Sistema de Documentos</h1>
+src/app/test-documentos/page.tsx:          <li>Usa el componente DocumentManager para subir archivos de prueba</li>
+src/app/test-documentos/page.tsx:          <h3 className="text-lg font-semibold mb-4">📁 Gestión Completa de Documentos</h3>
+src/app/test-documentos/page.tsx:          <DocumentManager 
+src/app/test-documentos/page.tsx:            onDocumentUploaded={() => console.log("Documento subido exitosamente")}
+src/app/test-documentos/page.tsx:          <h3 className="text-lg font-semibold mb-4">📤 Subida Simple de Documentos</h3>
+src/app/test-documentos/page.tsx:          <DocumentUploader modulo="test" entidadId={testId} />
+src/app/api/documentos/route.ts:        { success: false, error: 'Documento no encontrado' },
+src/app/api/alertas-documentos/route.ts:      console.log(`📄 Documento: ${row.documento_nombre}, Días restantes: ${diasRestantes}, Fecha: ${row.fecha_vencimiento}`);
+src/app/api/upload-document/route.ts:    console.log('✅ Documento guardado en BD:', {
+src/app/api/documents/route.ts:      return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
+src/app/api/documentos-clientes/route.ts:        { success: false, error: 'Documento no encontrado' },
+src/app/api/documentos-clientes/route.ts:    console.log('✅ Documento actualizado exitosamente:', result.rows[0]);
+src/app/api/documentos-clientes/route.ts:        { success: false, error: 'Documento no encontrado' },
+src/app/api/documentos-clientes/route.ts:    console.log('✅ Documento eliminado exitosamente:', result.rows[0]);
+src/app/api/download-document/route.ts:      console.log("❌ Documento no encontrado");
+src/app/api/download-document/route.ts:      return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
+src/app/api/download-document/route.ts:    console.log("📄 Documento encontrado:", { 
+src/app/instalaciones/page.tsx:import { DocumentManager } from "../../components/shared/document-manager";
+src/app/instalaciones/page.tsx:      label: "Documentos",
+src/app/instalaciones/page.tsx:        <DocumentManager
+src/app/instalaciones/page.tsx:          onDocumentDeleted={() => setRefreshTrigger(prev => prev + 1)}
+src/app/guardias/page.tsx:import { DocumentManager } from "../../components/shared/document-manager";
+src/app/guardias/page.tsx:      label: "Documentos",
+src/app/guardias/page.tsx:        <DocumentManager
+src/app/guardias/page.tsx:          onDocumentDeleted={() => setRefreshTrigger(prev => prev + 1)}
+src/app/page.tsx:interface AlertaDocumento {
+src/app/page.tsx:  const [alertas, setAlertas] = useState<AlertaDocumento[]>([]);
+src/app/page.tsx:                Documentación
+src/app/page.tsx:                <li>• Documentación y PPC</li>
+src/app/clientes/page.tsx:import DocumentUploader from "../../components/DocumentUploader";
+src/app/clientes/page.tsx:import { DocumentManager } from "../../components/shared/document-manager";
+src/app/clientes/page.tsx:      label: "Documentos",
+src/app/clientes/page.tsx:        <DocumentManager
+src/app/clientes/page.tsx:          onDocumentDeleted={handleUploadSuccess}
+src/app/clientes/page.tsx:        title="Subir Documento"
+src/app/clientes/page.tsx:          <DocumentUploader
+src/components/ui/document-manager.tsx:interface Documento {
+src/components/ui/document-manager.tsx:interface DocumentManagerProps {
+src/components/ui/document-manager.tsx:  onDocumentUploaded?: () => void;
+src/components/ui/document-manager.tsx:export function DocumentManager({ modulo, entidad_id, onDocumentUploaded }: DocumentManagerProps) {
+src/components/ui/document-manager.tsx:  const [documentos, setDocumentos] = useState<Documento[]>([]);
+src/components/ui/document-manager.tsx:  const cargarDocumentos = async () => {
+src/components/ui/document-manager.tsx:        setDocumentos(data.documentos);
+src/components/ui/document-manager.tsx:      cargarDocumentos();
+src/components/ui/document-manager.tsx:    const subirDocumento = async (file: File) => {
+src/components/ui/document-manager.tsx:          toast.success(`Documento "${file.name}" subido correctamente`, "Éxito");
+src/components/ui/document-manager.tsx:          cargarDocumentos();
+src/components/ui/document-manager.tsx:          onDocumentUploaded?.();
+src/components/ui/document-manager.tsx:    const descargarDocumento = async (documento: Documento) => {
+src/components/ui/document-manager.tsx:    const eliminarDocumento = async (id: string) => {
+src/components/ui/document-manager.tsx:          toast.success("Documento eliminado correctamente", "Éxito");
+src/components/ui/document-manager.tsx:          cargarDocumentos();
+src/components/ui/document-manager.tsx:      subirDocumento(file);
+src/components/ui/document-manager.tsx:        <h3 className="text-lg font-semibold">Documentos</h3>
+src/components/ui/document-manager.tsx:            {uploading ? "Subiendo..." : "Subir Documento"}
+src/components/ui/document-manager.tsx:                  onClick={() => descargarDocumento(documento)}
+src/components/ui/document-manager.tsx:                  onClick={() => eliminarDocumento(documento.id)}
+src/components/DocumentViewer.tsx:interface DocumentViewerProps {
+src/components/DocumentViewer.tsx:export default function DocumentViewer({ 
+src/components/DocumentViewer.tsx:}: DocumentViewerProps) {
+src/components/DocumentViewer.tsx:  const [documentUrl, setDocumentUrl] = useState<string>("");
+src/components/DocumentViewer.tsx:      loadDocument();
+src/components/DocumentViewer.tsx:  const loadDocument = async () => {
+src/components/DocumentViewer.tsx:        setDocumentUrl(downloadUrl);
+src/components/DocumentViewer.tsx:  const downloadDocument = () => {
+src/components/DocumentViewer.tsx:  const renderDocumentContent = () => {
+src/components/DocumentViewer.tsx:          <Button onClick={downloadDocument} className="bg-blue-600 hover:bg-blue-700">
+src/components/DocumentViewer.tsx:              onClick={downloadDocument} 
+src/components/DocumentViewer.tsx:        {renderDocumentContent()}
+src/components/documentos/README.md:# Sistema de Gestión de Documentos
+src/components/documentos/README.md:## Componente DocumentManager
+src/components/documentos/README.md:import { DocumentManager } from "@/components/ui/document-manager";
+src/components/documentos/README.md:    <DocumentManager 
+src/components/documentos/README.md:      onDocumentUploaded={() => console.log("Documento subido")}
+src/components/documentos/README.md:- `onDocumentUploaded`: Callback opcional cuando se sube un documento
+src/components/documentos/README.md:<DocumentManager modulo="guardias" entidad_id={guardia.id} />
+src/components/documentos/README.md:<DocumentManager modulo="clientes" entidad_id={cliente.id} />
+src/components/documentos/README.md:<DocumentManager modulo="instalaciones" entidad_id={instalacion.id} />
+src/components/DocumentUploader.tsx:import { logDocumentoSubido } from "@/lib/api/logs-clientes";
+src/components/DocumentUploader.tsx:interface TipoDocumento {
+src/components/DocumentUploader.tsx:interface DocumentUploaderProps {
+src/components/DocumentUploader.tsx:export default function DocumentUploader({ modulo, entidadId, onUploadSuccess }: DocumentUploaderProps) {
+src/components/DocumentUploader.tsx:  const [tipoDocumentoId, setTipoDocumentoId] = useState("");
+src/components/DocumentUploader.tsx:  const [tiposDocumentos, setTiposDocumentos] = useState<TipoDocumento[]>([]);
+src/components/DocumentUploader.tsx:  const tipoSeleccionado = tiposDocumentos.find(tipo => tipo.id === tipoDocumentoId);
+src/components/DocumentUploader.tsx:          const tiposFiltrados = data.data.filter((tipo: TipoDocumento) => tipo.modulo === modulo);
+src/components/DocumentUploader.tsx:            tiposFiltrados.map((t: TipoDocumento) => t.nombre));
+src/components/DocumentUploader.tsx:          setTiposDocumentos(tiposFiltrados);
+src/components/DocumentUploader.tsx:          setTiposDocumentos([]);
+src/components/DocumentUploader.tsx:        setTiposDocumentos([]);
+src/components/DocumentUploader.tsx:    if (!file || !tipoDocumentoId) {
+src/components/DocumentUploader.tsx:      tipo_documento_id: tipoDocumentoId,
+src/components/DocumentUploader.tsx:      formData.append("tipo_documento_id", tipoDocumentoId);
+src/components/DocumentUploader.tsx:      console.log('✅ Documento subido exitosamente:', result);
+src/components/DocumentUploader.tsx:        await logDocumentoSubido(entidadId, file.name);
+src/components/DocumentUploader.tsx:      setTipoDocumentoId("");
+src/components/DocumentUploader.tsx:      <label className="text-white text-sm font-medium">📄 Documento</label>
+src/components/DocumentUploader.tsx:        <Select value={tipoDocumentoId} onValueChange={setTipoDocumentoId} disabled={loadingTipos}>
+src/components/DocumentUploader.tsx:            {tiposDocumentos.length === 0 && !loadingTipos ? (
+src/components/DocumentUploader.tsx:              tiposDocumentos.map((tipo) => (
+src/components/DocumentUploader.tsx:        {tiposDocumentos.length === 0 && !loadingTipos && (
+src/components/DocumentUploader.tsx:            Ve a Configuración → Tipos de Documentos para crearlos.
+src/components/DocumentUploader.tsx:        disabled={!file || !tipoDocumentoId || status === "uploading" || loadingTipos}
+src/components/DocumentUploader.tsx:        <p className="text-green-400 text-sm">✅ Documento subido con éxito</p>
+src/components/DocumentListTabs.tsx:import { DocumentoCliente } from "@/lib/schemas/clientes";
+src/components/DocumentListTabs.tsx:import DocumentViewer from "./DocumentViewer";
+src/components/DocumentListTabs.tsx:import { logDocumentoEliminado } from "@/lib/api/logs-clientes";
+src/components/DocumentListTabs.tsx:interface DocumentListTabsProps {
+src/components/DocumentListTabs.tsx:  onDocumentDeleted?: () => void;
+src/components/DocumentListTabs.tsx:interface DocumentoAgrupado extends DocumentoCliente {
+src/components/DocumentListTabs.tsx:export default function DocumentListTabs({ 
+src/components/DocumentListTabs.tsx:  onDocumentDeleted,
+src/components/DocumentListTabs.tsx:}: DocumentListTabsProps) {
+src/components/DocumentListTabs.tsx:  const [documentos, setDocumentos] = useState<DocumentoAgrupado[]>([]);
+src/components/DocumentListTabs.tsx:  const [selectedDocument, setSelectedDocument] = useState<DocumentoAgrupado | null>(null);
+src/components/DocumentListTabs.tsx:    const cargarDocumentos = async (forceReload: boolean = false) => {
+src/components/DocumentListTabs.tsx:        setDocumentos(docsConTipo);
+src/components/DocumentListTabs.tsx:          const tipos = Array.from(new Set(docsConTipo.map((doc: DocumentoAgrupado) => doc.tipo_documento_nombre))) as string[];
+src/components/DocumentListTabs.tsx:    cargarDocumentos(true); // Forzar carga en cambios de props
+src/components/DocumentListTabs.tsx:  const eliminarDocumento = async (documentoId: string) => {
+src/components/DocumentListTabs.tsx:    const nombreDocumento = documento?.nombre || "Documento";
+src/components/DocumentListTabs.tsx:          await logDocumentoEliminado(entidadId, nombreDocumento);
+src/components/DocumentListTabs.tsx:        await cargarDocumentos(true); // Forzar recarga después de eliminar
+src/components/DocumentListTabs.tsx:        onDocumentDeleted?.();
+src/components/DocumentListTabs.tsx:  const descargarDocumento = async (documento: DocumentoAgrupado) => {
+src/components/DocumentListTabs.tsx:  const verDocumento = (documento: DocumentoAgrupado) => {
+src/components/DocumentListTabs.tsx:    setSelectedDocument(documento);
+src/components/DocumentListTabs.tsx:  }, {} as Record<string, DocumentoAgrupado[]>);
+src/components/DocumentListTabs.tsx:                Subir Documento
+src/components/DocumentListTabs.tsx:              Subir Documento
+src/components/DocumentListTabs.tsx:                    onClick={() => verDocumento(documento)}
+src/components/DocumentListTabs.tsx:                    onClick={() => descargarDocumento(documento)}
+src/components/DocumentListTabs.tsx:                    onClick={() => eliminarDocumento(documento.id)}
+src/components/DocumentListTabs.tsx:      {selectedDocument && (
+src/components/DocumentListTabs.tsx:        <DocumentViewer
+src/components/DocumentListTabs.tsx:            setSelectedDocument(null);
+src/components/DocumentListTabs.tsx:          documentId={selectedDocument.id}
+src/components/DocumentListTabs.tsx:          documentName={selectedDocument.nombre}
+src/components/shared/document-manager.tsx:import DocumentViewer from "../DocumentViewer";
+src/components/shared/document-manager.tsx:export interface Documento {
+src/components/shared/document-manager.tsx:export interface DocumentManagerProps {
+src/components/shared/document-manager.tsx:  onDocumentDeleted?: () => void;
+src/components/shared/document-manager.tsx:export function DocumentManager({ 
+src/components/shared/document-manager.tsx:  onDocumentDeleted,
+src/components/shared/document-manager.tsx:}: DocumentManagerProps) {
+src/components/shared/document-manager.tsx:  const [documentos, setDocumentos] = useState<Documento[]>([]);
+src/components/shared/document-manager.tsx:  const [selectedDocument, setSelectedDocument] = useState<Documento | null>(null);
+src/components/shared/document-manager.tsx:  const cargarDocumentos = async (forceReload: boolean = false) => {
+src/components/shared/document-manager.tsx:        setDocumentos(docsConTipo);
+src/components/shared/document-manager.tsx:          const tipos = Array.from(new Set(docsConTipo.map((doc: Documento) => doc.tipo_documento_nombre))) as string[];
+src/components/shared/document-manager.tsx:    cargarDocumentos(true);
+src/components/shared/document-manager.tsx:  const eliminarDocumento = async (documentoId: string) => {
+src/components/shared/document-manager.tsx:    const nombreDocumento = documento?.nombre || "Documento";
+src/components/shared/document-manager.tsx:        await cargarDocumentos(true);
+src/components/shared/document-manager.tsx:        onDocumentDeleted?.();
+src/components/shared/document-manager.tsx:  const descargarDocumento = async (documento: Documento) => {
+src/components/shared/document-manager.tsx:  const verDocumento = (documento: Documento) => {
+src/components/shared/document-manager.tsx:    setSelectedDocument(documento);
+src/components/shared/document-manager.tsx:  }, {} as Record<string, Documento[]>);
+src/components/shared/document-manager.tsx:            <CardTitle className="text-white">Documentos</CardTitle>
+src/components/shared/document-manager.tsx:                Subir Documento
+src/components/shared/document-manager.tsx:              Subir Documento
+src/components/shared/document-manager.tsx:                    onClick={() => verDocumento(documento)}
+src/components/shared/document-manager.tsx:                    onClick={() => descargarDocumento(documento)}
+src/components/shared/document-manager.tsx:                    onClick={() => eliminarDocumento(documento.id)}
+src/components/shared/document-manager.tsx:      {selectedDocument && (
+src/components/shared/document-manager.tsx:        <DocumentViewer
+src/components/shared/document-manager.tsx:            setSelectedDocument(null);
+src/components/shared/document-manager.tsx:          documentId={selectedDocument.id}
+src/components/shared/document-manager.tsx:          documentName={selectedDocument.nombre}
+src/components/InstalacionTabs.tsx:import { DocumentManager } from "./ui/document-manager";
+src/components/InstalacionTabs.tsx:  DocumentoInstalacion,
+src/components/InstalacionTabs.tsx:  obtenerDocumentosInstalacion,
+src/components/InstalacionTabs.tsx:function DocumentosPanel({ 
+src/components/InstalacionTabs.tsx:  documentos: DocumentoInstalacion[]; 
+src/components/InstalacionTabs.tsx:        <h3 className="text-lg font-semibold text-foreground">Documentos</h3>
+src/components/InstalacionTabs.tsx:      <DocumentManager
+src/components/InstalacionTabs.tsx:        onDocumentUploaded={cargarDatos}
+src/components/InstalacionTabs.tsx:  const [documentos, setDocumentos] = useState<DocumentoInstalacion[]>([]);
+src/components/InstalacionTabs.tsx:          const docs = await obtenerDocumentosInstalacion(instalacionId);
+src/components/InstalacionTabs.tsx:          setDocumentos(docs);
+src/components/InstalacionTabs.tsx:          <DocumentosPanel
+src/components/ClienteTabs.tsx:import DocumentListTabs from "./DocumentListTabs";
+src/components/ClienteTabs.tsx:  onDocumentDeleted?: () => void;
+src/components/ClienteTabs.tsx:  onDocumentDeleted, 
+src/components/ClienteTabs.tsx:      label: "Documentos",
+src/components/ClienteTabs.tsx:          <DocumentListTabs
+src/components/ClienteTabs.tsx:            onDocumentDeleted={onDocumentDeleted}
+src/components/DocumentUploader.md:# DocumentUploader Component
+src/components/DocumentUploader.md:import DocumentUploader from "@/components/DocumentUploader";
+src/components/DocumentUploader.md:<DocumentUploader 
+src/components/DocumentUploader.md:- `.pdf` - Documentos PDF
+src/components/DocumentUploader.md:import DocumentUploader from "@/components/DocumentUploader";
+src/components/DocumentUploader.md:        <h3>Documentos</h3>
+src/components/DocumentUploader.md:        <DocumentUploader 
+src/components/DocumentUploader.md:## Diferencias con DocumentManager
+src/components/DocumentUploader.md:| Característica | DocumentUploader | DocumentManager |
+src/components/DocumentList.tsx:import { DocumentoCliente } from "@/lib/schemas/clientes";
+src/components/DocumentList.tsx:interface DocumentListProps {
+src/components/DocumentList.tsx:  onDocumentDeleted?: () => void;
+src/components/DocumentList.tsx:export default function DocumentList({ 
+src/components/DocumentList.tsx:  onDocumentDeleted,
+src/components/DocumentList.tsx:}: DocumentListProps) {
+src/components/DocumentList.tsx:  const [documentos, setDocumentos] = useState<DocumentoCliente[]>([]);
+src/components/DocumentList.tsx:  const cargarDocumentos = async () => {
+src/components/DocumentList.tsx:        setDocumentos(data.data);
+src/components/DocumentList.tsx:    cargarDocumentos();
+src/components/DocumentList.tsx:  const eliminarDocumento = async (documentoId: string) => {
+src/components/DocumentList.tsx:        cargarDocumentos();
+src/components/DocumentList.tsx:        onDocumentDeleted?.();
+src/components/DocumentList.tsx:  const descargarDocumento = (documento: DocumentoCliente) => {
+src/components/DocumentList.tsx:  const verDocumento = (documento: DocumentoCliente) => {
+src/components/DocumentList.tsx:            <CardTitle className="text-white">📄 Documentos (0)</CardTitle>
+src/components/DocumentList.tsx:                Subir Documento
+src/components/DocumentList.tsx:          <CardTitle className="text-white">📄 Documentos ({documentos.length})</CardTitle>
+src/components/DocumentList.tsx:              Subir Documento
+src/components/DocumentList.tsx:                  onClick={() => verDocumento(documento)}
+src/components/DocumentList.tsx:                  onClick={() => descargarDocumento(documento)}
+src/components/DocumentList.tsx:                  onClick={() => eliminarDocumento(documento.id)}
+src/lib/navigation.ts:    name: "Documentos",
+src/lib/schemas/instalaciones.ts:export interface DocumentoInstalacion {
+src/lib/schemas/clientes.ts:export interface DocumentoCliente {
+src/lib/api/instalaciones.ts:  DocumentoInstalacion,
+src/lib/api/instalaciones.ts:export const obtenerDocumentosInstalacion = async (instalacionId: string): Promise<DocumentoInstalacion[]> => {
+src/lib/api/logs-clientes.ts:export async function logDocumentoSubido(cliente_id: string, nombreDocumento: string, usuario?: string) {
+src/lib/api/logs-clientes.ts:    accion: `Subió documento: ${nombreDocumento}`,
+src/lib/api/logs-clientes.ts:export async function logDocumentoEliminado(cliente_id: string, nombreDocumento: string, usuario?: string) {
+src/lib/api/logs-clientes.ts:    accion: `Eliminó documento: ${nombreDocumento}`,
+src/lib/api/documentos-clientes.ts:import { DocumentoCliente } from '../schemas/clientes';
+src/lib/api/documentos-clientes.ts:export async function obtenerDocumentosCliente(clienteId: string): Promise<DocumentoCliente[]> {
+src/lib/api/documentos-clientes.ts:export async function crearDocumentoCliente(
+src/lib/api/documentos-clientes.ts:  tipoDocumentoId?: string
+src/lib/api/documentos-clientes.ts:): Promise<DocumentoCliente> {
+src/lib/api/documentos-clientes.ts:    `, [clienteId, nombre, tipo, archivoUrl, tamaño, tipoDocumentoId]);
+src/lib/api/documentos-clientes.ts:export async function eliminarDocumentoCliente(documentoId: string): Promise<void> {
+src/lib/api/documentos-clientes.ts:      throw new Error('Documento no encontrado');
+src/lib/api/documentos-clientes.ts:export async function crearTablaDocumentosClientes(): Promise<void> {

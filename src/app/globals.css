@@ -1,0 +1,438 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Tema oscuro por defecto */
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --radius: 1rem;
+  }
+
+  /* Tema claro como alternativa */
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+  }
+
+  * {
+    /* border styles removed to fix Tailwind compilation */
+  }
+
+  /* Eliminar bordes de las celdas de la pauta mensual */
+  .pauta-table td,
+  .pauta-table th {
+    border: none !important;
+    outline: none !important;
+  }
+
+  /* Acentos mínimos para pauta mensual */
+  .pauta-header-weekend {
+    border-top: 2px solid rgba(245, 158, 11, 0.4); /* amber-500/40 */
+    background: transparent !important;
+  }
+  .pauta-header-holiday {
+    border-top: 2px solid rgba(248, 113, 113, 0.45); /* red-400/45 */
+    background: transparent !important;
+  }
+  .pauta-header-default {
+    border-top: 1px solid rgba(148, 163, 184, 0.25); /* slate-400/25 */
+    background: transparent !important;
+  }
+  .pauta-ppc-ring {
+    box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.6); /* purple-400/60 */
+    border-radius: 9999px;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-weight: 500;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Asegurar que los clicks funcionen correctamente */
+  .cursor-pointer {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+  }
+
+  /* Prevenir que el hover interfiera con el click */
+  .hover\:scale-105:hover {
+    transform: scale(1.05) !important;
+  }
+
+  /* Utilidades para truncar texto */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+  
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  /* Mejorar el scroll horizontal en móviles */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 3px;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(156, 163, 175, 0.7);
+  }
+
+  /* Mejorar la experiencia táctil en móviles */
+  @media (max-width: 640px) {
+    .overflow-x-auto {
+      scroll-snap-type: x mandatory;
+    }
+    
+    .overflow-x-auto > div {
+      scroll-snap-align: start;
+    }
+  }
+
+  /* Asegurar que las celdas sticky funcionen correctamente */
+  .sticky {
+    position: sticky !important;
+  }
+
+  /* Mejorar la legibilidad en móviles */
+  @media (max-width: 640px) {
+    .text-xs {
+      font-size: 0.75rem;
+      line-height: 1rem;
+    }
+  }
+}
+
+@layer components {
+  /* Clases personalizadas para GardOps */
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    color: hsl(var(--muted-foreground));
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 1rem;
+    margin: 0 0.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .sidebar-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s ease;
+  }
+  
+  .sidebar-item:hover::before {
+    left: 100%;
+  }
+  
+  .sidebar-item:hover {
+    color: hsl(var(--foreground));
+    background: linear-gradient(135deg, hsl(var(--accent) / 0.3), hsl(var(--accent) / 0.1));
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1);
+  }
+
+  .sidebar-item.active {
+    color: hsl(var(--foreground));
+    background: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent) / 0.8));
+    box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.15), 0 2px 8px -2px rgba(0, 0, 0, 0.1);
+    transform: translateX(2px);
+  }
+  
+  .sidebar-item.active::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 60%;
+    background: hsl(var(--primary));
+    border-radius: 2px 0 0 2px;
+  }
+
+  .card-elegant {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border) / 0.5);
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+  }
+  
+  .card-elegant:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  .btn-primary {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-radius: 1rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s ease;
+  }
+  
+  .btn-primary:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  .heading-gradient {
+    background: linear-gradient(to right, hsl(var(--foreground)), hsl(var(--muted-foreground)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* Animaciones personalizadas */
+  .animate-in {
+    animation-fill-mode: both;
+  }
+
+  .fade-in {
+    animation: fade-in 0.5s ease-out;
+  }
+
+  .slide-in-from-top-4 {
+    animation: slide-in-from-top 0.5s ease-out;
+  }
+
+  .slide-in-from-bottom-4 {
+    animation: slide-in-from-bottom 0.5s ease-out;
+  }
+
+  .slide-in-from-left-4 {
+    animation: slide-in-from-left 0.5s ease-out;
+  }
+
+  .duration-200 {
+    animation-duration: 0.2s;
+  }
+
+  .duration-300 {
+    animation-duration: 0.3s;
+  }
+
+  .duration-500 {
+    animation-duration: 0.5s;
+  }
+
+  .duration-700 {
+    animation-duration: 0.7s;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slide-in-from-top {
+    from { 
+      opacity: 0; 
+      transform: translateY(-1rem);
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-in-from-bottom {
+    from { 
+      opacity: 0; 
+      transform: translateY(1rem);
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-in-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Estilos personalizados para react-datepicker */
+.react-datepicker {
+  @apply bg-slate-800 border border-slate-600 rounded-lg shadow-lg !important;
+}
+
+.react-datepicker__header {
+  @apply bg-slate-700 border-slate-600 !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker__day-name,
+.react-datepicker__day {
+  @apply text-slate-200 !important;
+}
+
+.react-datepicker__day-name {
+  @apply text-slate-400 !important;
+}
+
+/* Estilos para el visualizador de documentos */
+.document-viewer-modal {
+  backdrop-filter: blur(8px);
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.document-viewer-content {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Estilos para el zoom y rotación */
+.document-zoom-controls {
+  backdrop-filter: blur(12px);
+  background-color: rgba(30, 41, 59, 0.9);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+}
+
+.react-datepicker__day:hover {
+  @apply bg-slate-600 !important;
+}
+
+.react-datepicker__day--selected {
+  @apply bg-blue-600 text-white !important;
+}
+
+.react-datepicker__day--today {
+  @apply bg-slate-600 text-white !important;
+}
+
+.react-datepicker__day--keyboard-selected {
+  @apply bg-blue-600 text-white !important;
+}
+
+.react-datepicker__navigation {
+  @apply text-slate-200 !important;
+}
+
+.react-datepicker__navigation:hover {
+  @apply text-white !important;
+}
+
+.react-datepicker__month-container {
+  @apply bg-slate-800 !important;
+}
+
+.react-datepicker__year-dropdown,
+.react-datepicker__month-dropdown {
+  @apply bg-slate-700 border-slate-600 !important;
+}
+
+.react-datepicker__year-option,
+.react-datepicker__month-option {
+  @apply text-slate-200 hover:bg-slate-600 !important;
+}
+
+.react-datepicker__year-option--selected,
+.react-datepicker__month-option--selected {
+  @apply bg-blue-600 text-white !important;
+}
+} 
+
+/* Animación de pulso sutil para estados críticos */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+} 

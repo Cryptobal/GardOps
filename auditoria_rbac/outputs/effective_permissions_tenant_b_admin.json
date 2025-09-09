@@ -1,0 +1,17 @@
+{
+  "user": {
+    "tenant": "TENANT_B",
+    "role": "admin",
+    "email": "user_admin_b@example.com"
+  },
+  "result": {
+    "read:list": false,
+    "read:detail": false,
+    "create": false,
+    "update": false,
+    "delete": false,
+    "export": false,
+    "manage:roles": false,
+    "admin:*": false
+  }
+}

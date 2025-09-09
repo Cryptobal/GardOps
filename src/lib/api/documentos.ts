@@ -1,0 +1,1 @@
+// Lógica API para documentos (fetch, post, etc.) 

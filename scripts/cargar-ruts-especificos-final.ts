@@ -1,0 +1,178 @@
+import * as dotenv from 'dotenv';
+import { query } from '../src/lib/database';
+import { v4 as uuidv4 } from 'uuid';
+
+// Cargar variables de entorno
+dotenv.config({ path: '.env.local' });
+
+// Datos de los guardias específicos extraídos del CSV
+const guardiasEspecificos = [
+  {
+    rut: '12833245-6',
+    apellido_paterno: 'Rebolledo',
+    apellido_materno: 'Molina',
+    nombre: 'Winter Benjamin',
+    email: '',
+    telefono: '959517552',
+    sexo: 'Hombre',
+    activo: false,
+    direccion: 'Antonio Rendic 5859',
+    comuna: 'Antofagasta',
+    ciudad: 'Antofagasta',
+    nacionalidad: 'CHILENA',
+    fecha_os10: null
+  },
+  {
+    rut: '21381703-5',
+    apellido_paterno: 'Sandoval',
+    apellido_materno: 'Inostroza',
+    nombre: 'Alexi Alejandro',
+    email: 'asndvl9@gmail.com',
+    telefono: '946235204',
+    sexo: 'Hombre',
+    activo: false,
+    direccion: 'pasaje valle hondo 1729',
+    comuna: 'Coronel',
+    ciudad: 'Concepción',
+    nacionalidad: 'CHILENA',
+    fecha_os10: '2028-02-11'
+  },
+  {
+    rut: '9178825-K',
+    apellido_paterno: 'Zamora',
+    apellido_materno: 'Zamora',
+    nombre: 'Marco antonio',
+    email: '',
+    telefono: '966751399',
+    sexo: 'Hombre',
+    activo: false,
+    direccion: 'Calle austral 4933 primer sector gomez carreño',
+    comuna: 'Viña del Mar',
+    ciudad: 'Valparaíso',
+    nacionalidad: 'CHILENA',
+    fecha_os10: null
+  },
+  {
+    rut: '13211292-4',
+    apellido_paterno: 'Avalos',
+    apellido_materno: 'Correa',
+    nombre: 'Pedro antonio',
+    email: '',
+    telefono: '957868900',
+    sexo: 'Hombre',
+    activo: false,
+    direccion: 'Ernesto riquelme 1575 - A',
+    comuna: 'Antofagasta',
+    ciudad: 'Antofagasta',
+    nacionalidad: 'CHILENA',
+    fecha_os10: null
+  },
+  {
+    rut: '18563612-7',
+    apellido_paterno: 'Cáceres',
+    apellido_materno: 'Aravena',
+    nombre: 'Diego Alejandro',
+    email: '',
+    telefono: '996313201',
+    sexo: 'Hombre',
+    activo: false,
+    direccion: 'Calle los álamos sin número',
+    comuna: 'Putaendo',
+    ciudad: 'San Felipe de Aconcagua',
+    nacionalidad: 'CHILENA',
+    fecha_os10: null
+  }
+];
+
+// Datos de coordenadas por dirección
+const coordenadasPorDireccion: Record<string, { latitud: number; longitud: number }> = {
+  'Antonio Rendic 5859': { latitud: -33.6194144, longitud: -70.6084387 },
+  'pasaje valle hondo 1729': { latitud: -33.49917001, longitud: -70.7365173 },
+  'Calle austral 4933 primer sector gomez carreño': { latitud: -33.4459946, longitud: -70.6670569 },
+  'Ernesto riquelme 1575 - A': { latitud: -33.59908493, longitud: -70.67393705 },
+  'Calle los álamos sin número': { latitud: -33.47247327, longitud: -70.65821487 }
+};
+
+// Función para obtener coordenadas por dirección
+function obtenerCoordenadas(direccion: string): { latitud: number | null; longitud: number | null } {
+  const coords = coordenadasPorDireccion[direccion];
+  return coords ? { latitud: coords.latitud, longitud: coords.longitud } : { latitud: null, longitud: null };
+}
+
+// Función para cargar un guardia específico
+async function cargarGuardia(guardia: any) {
+  const id = uuidv4();
+  const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+  const coords = obtenerCoordenadas(guardia.direccion || '');
+
+  const sqlQuery = `
+    INSERT INTO guardias (
+      id, tenant_id, nombre, email, telefono, activo, usuario_id, 
+      latitud, longitud, ciudad, comuna, rut, apellido_paterno, 
+      apellido_materno, nacionalidad, sexo, direccion, fecha_os10, 
+      created_from_excel
+    ) VALUES (
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 
+      $14, $15, $16, $17, $18, $19
+    )
+  `;
+
+  try {
+    await query(sqlQuery, [
+      id, tenantId, guardia.nombre || '', guardia.email || '', guardia.telefono || '', 
+      guardia.activo, null, coords.latitud, coords.longitud, guardia.ciudad || '', 
+      guardia.comuna || '', guardia.rut, guardia.apellido_paterno || '', 
+      guardia.apellido_materno || '', guardia.nacionalidad || '', guardia.sexo || '', 
+      guardia.direccion || '', guardia.fecha_os10 || null, true
+    ]);
+    
+    console.log(`✅ Guardia ${guardia.rut} cargado exitosamente`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error cargando guardia ${guardia.rut}:`, error);
+    return false;
+  }
+}
+
+// Función principal
+async function cargarRutsEspecificos() {
+  console.log('🚀 Iniciando carga de RUTs específicos...');
+  console.log(`📊 Procesando ${guardiasEspecificos.length} guardias específicos`);
+  
+  let exitosos = 0;
+  let fallidos = 0;
+  
+  for (const guardia of guardiasEspecificos) {
+    const resultado = await cargarGuardia(guardia);
+    if (resultado) {
+      exitosos++;
+    } else {
+      fallidos++;
+    }
+    
+    // Pequeña pausa para no sobrecargar la base de datos
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  
+  console.log(`\n📈 Resumen de carga:`);
+  console.log(`✅ Exitosos: ${exitosos}`);
+  console.log(`❌ Fallidos: ${fallidos}`);
+  console.log(`📊 Total procesados: ${guardiasEspecificos.length}`);
+  
+  return { exitosos, fallidos, total: guardiasEspecificos.length };
+}
+
+// Ejecutar el script
+if (require.main === module) {
+  cargarRutsEspecificos()
+    .then(() => {
+      console.log('🎉 Proceso completado');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('💥 Error en el proceso:', error);
+      process.exit(1);
+    });
+}
+
+export { cargarRutsEspecificos }; 

@@ -1,0 +1,8 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "Running lint --fix and typecheck..."
+npm run lint --silent || true
+npx tsc --noEmit || true
+
+

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Roles API</title>
+</head>
+<body>
+    <h1>Test Roles API</h1>
+    <button onclick="testRoles()">Probar API de Roles</button>
+    <div id="result"></div>
+
+    <script>
+        async function testRoles() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Probando...';
+            
+            try {
+                console.log('🧪 Probando API de roles desde el navegador...');
+                
+                const response = await fetch('/api/roles-servicio', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                console.log('📊 Status:', response.status);
+                console.log('📊 Headers:', Object.fromEntries(response.headers.entries()));
+
+                if (!response.ok) {
+                    throw new Error(`Error en la respuesta: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('📊 Respuesta completa:', result);
+
+                if (result.success) {
+                    resultDiv.innerHTML = `
+                        <h3>✅ Éxito</h3>
+                        <p>Roles encontrados: ${result.data.length}</p>
+                        <ul>
+                            ${result.data.map(rol => `<li>${rol.nombre} (${rol.estado})</li>`).join('')}
+                        </ul>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <h3>❌ Error</h3>
+                        <p>${result.error}</p>
+                    `;
+                }
+
+            } catch (error) {
+                console.error('❌ Error en la petición:', error);
+                resultDiv.innerHTML = `
+                    <h3>❌ Error</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

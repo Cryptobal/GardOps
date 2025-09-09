@@ -1,0 +1,192 @@
+export interface Instalacion {
+  id: string;
+  nombre: string;
+  cliente_id: string;
+  cliente_nombre?: string;
+  direccion: string;
+  latitud: number | null;
+  longitud: number | null;
+  ciudad: string;
+  comuna: string;
+  telefono?: string;
+  valor_turno_extra: number;
+  estado: "Activo" | "Inactivo";
+  created_at: string;
+  updated_at: string;
+  // Propiedades de estadísticas (opcionales)
+  puestos_creados?: number;
+  puestos_asignados?: number;
+  ppc_pendientes?: number;
+  ppc_totales?: number;
+  puestos_disponibles?: number;
+}
+
+export interface CrearInstalacionData {
+  nombre: string;
+  cliente_id: string;
+  direccion: string;
+  latitud: number | null;
+  longitud: number | null;
+  ciudad: string;
+  comuna: string;
+  telefono?: string;
+  valor_turno_extra: number;
+  estado: "Activo" | "Inactivo";
+}
+
+export interface GuardiaAsignado {
+  id: string;
+  nombre: string;
+  apellido: string;
+  email: string;
+  telefono: string;
+  estado: string;
+  asignado_desde: string;
+}
+
+export interface PuestoOperativo {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  guardias_requeridos: number;
+  guardias_asignados: number;
+  ppc: number; // Puestos por cubrir
+}
+
+export interface DocumentoInstalacion {
+  id: string;
+  nombre: string;
+  tipo: string;
+  fecha_vencimiento: string;
+  estado: string;
+  url: string;
+  created_at: string;
+}
+
+export interface LogInstalacion {
+  id: string;
+  fecha: string;
+  usuario: string;
+  accion: string;
+  detalles: string;
+}
+
+export interface Comuna {
+  id: string;
+  nombre: string;
+  region: string;
+}
+
+export interface Cliente {
+  id: string;
+  nombre: string;
+  rut: string;
+  estado: string;
+}
+
+export interface FiltrosInstalacion {
+  busqueda: string;
+  estado: string;
+  cliente_id: string;
+}
+
+// Schemas de Zod para validación
+import { z } from 'zod';
+
+export const crearInstalacionSchema = z.object({
+  nombre: z.string().min(1, 'El nombre es requerido').max(255, 'El nombre no puede exceder 255 caracteres'),
+  cliente_id: z.string().uuid('ID de cliente inválido'),
+  direccion: z.string().min(1, 'La dirección es requerida'),
+  latitud: z.union([z.string(), z.number()]).nullable().transform((val) => {
+    if (val === null || val === undefined) return null;
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    return isNaN(num) ? null : num;
+  }),
+  longitud: z.union([z.string(), z.number()]).nullable().transform((val) => {
+    if (val === null || val === undefined) return null;
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    return isNaN(num) ? null : num;
+  }),
+  ciudad: z.string().optional(),
+  comuna: z.string().optional(),
+  telefono: z.string().optional(),
+  valor_turno_extra: z.coerce.number().min(0, 'El valor de turno extra debe ser mayor o igual a 0'),
+  estado: z.enum(['Activo', 'Inactivo']).default('Activo'),
+});
+
+export const actualizarInstalacionSchema = z.object({
+  id: z.string().uuid('ID de instalación inválido'),
+  nombre: z.string().min(1, 'El nombre es requerido').max(255, 'El nombre no puede exceder 255 caracteres').optional(),
+  cliente_id: z.union([z.string().uuid('ID de cliente inválido'), z.string().length(0)]).nullable().optional().transform((val) => {
+    if (val === null || val === undefined || val === '') return null;
+    return val;
+  }),
+  direccion: z.union([z.string().min(1, 'La dirección es requerida'), z.string().length(0)]).nullable().optional().transform((val) => {
+    if (val === null || val === undefined || val === '') return null;
+    return val;
+  }),
+  latitud: z.union([z.string(), z.number()]).nullable().optional().transform((val) => {
+    if (val === null || val === undefined) return null;
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    return isNaN(num) ? null : num;
+  }),
+  longitud: z.union([z.string(), z.number()]).nullable().optional().transform((val) => {
+    if (val === null || val === undefined) return null;
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    return isNaN(num) ? null : num;
+  }),
+  ciudad: z.union([z.string(), z.string().length(0)]).nullable().optional().transform((val) => {
+    if (val === null || val === undefined || val === '') return null;
+    return val;
+  }),
+  comuna: z.union([z.string(), z.string().length(0)]).nullable().optional().transform((val) => {
+    if (val === null || val === undefined || val === '') return null;
+    return val;
+  }),
+  telefono: z.union([z.string(), z.string().length(0)]).nullable().optional().transform((val) => {
+    if (val === null || val === undefined || val === '') return null;
+    return val;
+  }),
+  valor_turno_extra: z.coerce.number().min(0, 'El valor de turno extra debe ser mayor o igual a 0').optional(),
+  estado: z.enum(['Activo', 'Inactivo']).optional(),
+});
+
+export interface RolServicio {
+  id: string;
+  nombre: string;
+  dias_trabajo: number;
+  dias_descanso: number;
+  horas_turno: number;
+  hora_inicio: string;
+  hora_termino: string;
+  estado: "Activo" | "Inactivo";
+  tenant_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TurnoInstalacion {
+  id: string;
+  instalacion_id: string;
+  rol_servicio_id: string;
+  cantidad_guardias: number;
+  estado: "Activo" | "Inactivo";
+  created_at: string;
+  updated_at: string;
+  // Campos calculados
+  rol_servicio?: RolServicio;
+  guardias_asignados?: number;
+  ppc_pendientes?: number;
+}
+
+export interface CrearTurnoInstalacionData {
+  instalacion_id: string;
+  rol_servicio_id: string;
+  cantidad_guardias: number;
+}
+
+export interface TurnoInstalacionConDetalles extends TurnoInstalacion {
+  rol_servicio: RolServicio;
+  guardias_asignados: number;
+  ppc_pendientes: number;
+} 
