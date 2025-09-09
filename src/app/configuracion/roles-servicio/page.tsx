@@ -372,77 +372,49 @@ export default function RolesServicioPage() {
         </div>
       </div>
 
-      {/* Estadísticas */}
+      {/* Estadísticas - Monitor First: Single Row */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total Roles</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total_roles || 0}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Activos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.roles_activos || 0}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Inactivos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{stats.roles_inactivos || 0}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Con Guardias</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{stats.roles_con_estructura || 0}</div>
-            </CardContent>
-          </Card>
+        <div className="flex flex-wrap gap-2 sm:gap-4">
+          <div className="flex-1 min-w-[120px] bg-white dark:bg-gray-800 rounded-lg border p-3">
+            <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Total Roles</div>
+            <div className="text-xl font-bold">{stats.total_roles || 0}</div>
+          </div>
+          <div className="flex-1 min-w-[120px] bg-white dark:bg-gray-800 rounded-lg border p-3">
+            <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Activos</div>
+            <div className="text-xl font-bold text-green-600">{stats.roles_activos || 0}</div>
+          </div>
+          <div className="flex-1 min-w-[120px] bg-white dark:bg-gray-800 rounded-lg border p-3">
+            <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Inactivos</div>
+            <div className="text-xl font-bold text-red-600">{stats.roles_inactivos || 0}</div>
+          </div>
+          <div className="flex-1 min-w-[120px] bg-white dark:bg-gray-800 rounded-lg border p-3">
+            <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Con Guardias</div>
+            <div className="text-xl font-bold text-blue-600">{stats.roles_con_estructura || 0}</div>
+          </div>
         </div>
       )}
 
-      {/* Botón de Creación Moderno */}
-      <Card className="mb-6">
-        <CardContent className="p-8">
-          <div className="text-center">
-            <div className="mb-4">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Calendar className="h-8 w-8 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Crear Nuevo Rol de Servicio</h3>
-              <p className="text-gray-600 max-w-md mx-auto">
-                Configura horarios personalizados para cada día del ciclo de trabajo
-              </p>
-            </div>
-            <Button 
-              onClick={() => setShowWizardCrear(true)}
-              size="lg"
-              className="bg-blue-600 hover:bg-blue-700 px-8 py-4 text-base font-medium"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Crear Rol de Servicio
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Botón de Creación Minimalista - Monitor First */}
+      <div className="flex justify-end mb-4">
+        <Button 
+          onClick={() => setShowWizardCrear(true)}
+          size="sm"
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          Nuevo Rol
+        </Button>
+      </div>
 
-      {/* Filtros en una línea */}
-      <div className="flex gap-2 flex-wrap items-center">
-        {/* Filtros de Estado */}
-        <div className="flex gap-1">
+      {/* Filtros - Monitor First: Compact Layout */}
+      <div className="space-y-2">
+        {/* Filtros de Estado - Compact */}
+        <div className="flex gap-1 flex-wrap">
           <Button
             variant={filtroEstado === 'todos' ? 'default' : 'outline'}
             onClick={() => setFiltroEstado('todos')}
             size="sm"
+            className="text-xs"
           >
             Todos ({roles.length})
           </Button>
@@ -450,6 +422,7 @@ export default function RolesServicioPage() {
             variant={filtroEstado === 'activos' ? 'default' : 'outline'}
             onClick={() => setFiltroEstado('activos')}
             size="sm"
+            className="text-xs"
           >
             Activos ({roles.filter(r => r.estado === 'Activo').length})
           </Button>
@@ -457,23 +430,22 @@ export default function RolesServicioPage() {
             variant={filtroEstado === 'inactivos' ? 'default' : 'outline'}
             onClick={() => setFiltroEstado('inactivos')}
             size="sm"
+            className="text-xs"
           >
             Inactivos ({roles.filter(r => r.estado === 'Inactivo').length})
           </Button>
         </div>
 
-        {/* Separador */}
-        <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-2"></div>
-
-        {/* Filtros de Patrón */}
+        {/* Filtros de Patrón - Compact */}
         {patronesDisponibles.length > 0 && (
           <div className="flex gap-1 flex-wrap">
             <Button
               variant={filtroPatron === 'todos' ? 'default' : 'outline'}
               onClick={() => setFiltroPatron('todos')}
               size="sm"
+              className="text-xs"
             >
-              Todos los Patrones
+              Todos
             </Button>
             {patronesDisponibles.map(patron => {
               const count = roles.filter(rol => {
@@ -487,6 +459,7 @@ export default function RolesServicioPage() {
                   variant={filtroPatron === patron ? 'default' : 'outline'}
                   onClick={() => setFiltroPatron(patron)}
                   size="sm"
+                  className="text-xs"
                 >
                   {patron} ({count})
                 </Button>
@@ -496,83 +469,65 @@ export default function RolesServicioPage() {
         )}
       </div>
 
-      {/* Tabla de Roles */}
+      {/* Tabla de Roles - Monitor First */}
       <Card>
-        <CardHeader>
-          <CardTitle>Roles de Servicio ({rolesFiltrados.length})</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Roles de Servicio ({rolesFiltrados.length})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {loading ? (
             <div className="text-center py-8">Cargando roles...</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Descripción</TableHead>
-                  <TableHead>Turno</TableHead>
-                  <TableHead>Horario</TableHead>
-                  <TableHead>Horas/Sem</TableHead>
-                  <TableHead>Jornada</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rolesFiltrados.map((rol) => (
-                  <TableRow key={rol.id}>
-                    <TableCell>
-                      <div className="font-medium">{rol.nombre}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm text-muted-foreground">
-                        {rol.nombre || 'Sin descripción'}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {rol.dias_trabajo}x{rol.dias_descanso}x{rol.horas_turno}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                        <div className="text-sm">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Nombre</TableHead>
+                    <TableHead className="text-xs hidden sm:table-cell">Descripción</TableHead>
+                    <TableHead className="text-xs">Turno</TableHead>
+                    <TableHead className="text-xs hidden md:table-cell">Horario</TableHead>
+                    <TableHead className="text-xs hidden lg:table-cell">Horas/Sem</TableHead>
+                    <TableHead className="text-xs hidden lg:table-cell">Jornada</TableHead>
+                    <TableHead className="text-xs">Estado</TableHead>
+                    <TableHead className="text-xs">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rolesFiltrados.map((rol) => (
+                    <TableRow key={rol.id}>
+                      <TableCell className="py-2">
+                        <div className="font-medium text-sm">{rol.nombre}</div>
+                        <div className="text-xs text-muted-foreground sm:hidden">
+                          {rol.dias_trabajo}x{rol.dias_descanso}x{rol.horas_turno}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-2 hidden sm:table-cell">
+                        <div className="text-xs text-muted-foreground">
+                          {rol.nombre || 'Sin descripción'}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <div className="text-xs">
+                          {rol.dias_trabajo}x{rol.dias_descanso}x{rol.horas_turno}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-2 hidden md:table-cell">
+                        <div className="text-xs">
                           {(() => {
                             // Obtener series específicas de este rol
                             const seriesDelRol = seriesPorRol.get(rol.id) || [];
                             const infoJornada = obtenerInfoJornada(rol, seriesDelRol);
                             
                             if (infoJornada.resumenHorario.esVariable) {
-                              // Generar contenido específico con horarios reales
-                              const contenidoEspecifico = seriesDelRol.length > 0 ? 
-                                seriesDelRol
-                                  .filter(s => s.es_dia_trabajo)
-                                  .map(s => {
-                                    const nombreDia = s.posicion_en_ciclo === 1 ? 'Lunes' :
-                                                     s.posicion_en_ciclo === 2 ? 'Martes' :
-                                                     s.posicion_en_ciclo === 3 ? 'Miércoles' :
-                                                     s.posicion_en_ciclo === 4 ? 'Jueves' :
-                                                     s.posicion_en_ciclo === 5 ? 'Viernes' :
-                                                     s.posicion_en_ciclo === 6 ? 'Sábado' :
-                                                     s.posicion_en_ciclo === 7 ? 'Domingo' :
-                                                     `Día ${s.posicion_en_ciclo}`;
-                                    return `${nombreDia}: ${s.hora_inicio?.slice(0,5)} - ${s.hora_termino?.slice(0,5)}`;
-                                  }) :
-                                [
-                                  'Este rol tiene horarios personalizados',
-                                  'Cada día del ciclo puede ser diferente',
-                                  `Promedio: ${rol.horas_turno}h por día de trabajo`
-                                ];
-                              
                               return (
                                 <TooltipSimple
                                   titulo="Horarios Variables"
-                                  contenido={contenidoEspecifico}
+                                  contenido={['Horarios personalizados por día']}
                                   esVariable={true}
                                 >
                                   <span className="flex items-center gap-1">
                                     {infoJornada.resumenHorario.texto}
-                                    <span className="text-blue-500 text-xs">*</span>
-                                    <Clock className="h-3 w-3 text-blue-400 ml-1" />
+                                    <Clock className="h-3 w-3 text-blue-400" />
                                   </span>
                                 </TooltipSimple>
                               );
@@ -585,97 +540,94 @@ export default function RolesServicioPage() {
                             );
                           })()}
                         </div>
-                    </TableCell>
+                      </TableCell>
                     
-                    {/* Nueva columna: Horas Semanales */}
-                    <TableCell>
-                      {(() => {
-                        const seriesDelRol = seriesPorRol.get(rol.id) || [];
-                        const infoJornada = obtenerInfoJornada(rol, seriesDelRol);
-                        return (
-                          <div className="text-sm">
-                            <div className="font-medium">{infoJornada.horasSemanales}h</div>
-                            {infoJornada.requiereColacion && (
-                              <div className="text-xs text-gray-500">
-                                ({infoJornada.horasConColacion}h + colación)
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </TableCell>
-                    
-                    {/* Nueva columna: Tipo de Jornada */}
-                    <TableCell>
-                      {(() => {
-                        const seriesDelRol = seriesPorRol.get(rol.id) || [];
-                        const infoJornada = obtenerInfoJornada(rol, seriesDelRol);
-                        return (
-                          <Badge 
-                            variant={
-                              infoJornada.colorIndicador === 'green' ? 'default' :
-                              infoJornada.colorIndicador === 'orange' ? 'secondary' : 'destructive'
-                            }
-                            title={infoJornada.descripcion}
-                            className={
-                              infoJornada.colorIndicador === 'green' ? 'bg-green-100 text-green-800' :
-                              infoJornada.colorIndicador === 'orange' ? 'bg-orange-100 text-orange-800' : 
-                              'bg-red-100 text-red-800'
-                            }
-                          >
-                            {infoJornada.tipoJornada}
-                          </Badge>
-                        );
-                      })()}
-                    </TableCell>
-                    
-                    <TableCell>
-                      <Badge variant={rol.estado === 'Activo' ? 'default' : 'secondary'}>
-                        {rol.estado}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        {/* Botón de editar eliminado - roles no se pueden editar una vez creados */}
-                        <div></div>
-                            {/* Botón de replicación inteligente */}
-                            {(() => {
-                              const analisis = analizarTodosLosRoles(roles);
-                              const rolAnalizado = analisis.find(r => r.rol.id === rol.id);
-                              
-                              if (rolAnalizado && !rolAnalizado.tieneSimil && rolAnalizado.tipoSimil) {
-                                return (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleReplicarRol(rol, rolAnalizado.tipoSimil!)}
-                                    title={`Crear turno ${rolAnalizado.tipoSimil}`}
-                                    className="text-purple-600 hover:text-purple-700"
-                                  >
-                                    {rolAnalizado.tipoSimil === 'nocturno' ? (
-                                      <Moon className="w-4 h-4" />
-                                    ) : (
-                                      <Sun className="w-4 h-4" />
-                                    )}
-                                  </Button>
-                                );
+                      {/* Horas Semanales - Hidden on small screens */}
+                      <TableCell className="py-2 hidden lg:table-cell">
+                        {(() => {
+                          const seriesDelRol = seriesPorRol.get(rol.id) || [];
+                          const infoJornada = obtenerInfoJornada(rol, seriesDelRol);
+                          return (
+                            <div className="text-xs">
+                              <div className="font-medium">{infoJornada.horasSemanales}h</div>
+                              {infoJornada.requiereColacion && (
+                                <div className="text-xs text-gray-500">
+                                  +colación
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </TableCell>
+                      
+                      {/* Tipo de Jornada - Hidden on small screens */}
+                      <TableCell className="py-2 hidden lg:table-cell">
+                        {(() => {
+                          const seriesDelRol = seriesPorRol.get(rol.id) || [];
+                          const infoJornada = obtenerInfoJornada(rol, seriesDelRol);
+                          return (
+                            <Badge 
+                              variant={
+                                infoJornada.colorIndicador === 'green' ? 'default' :
+                                infoJornada.colorIndicador === 'orange' ? 'secondary' : 'destructive'
                               }
-                              return null;
-                            })()}
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleActivarInactivar(rol)}
-                              title={rol.estado === 'Activo' ? 'Inactivar rol' : 'Activar rol'}
+                              className="text-xs"
                             >
-                              {rol.estado === 'Activo' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </Button>
-                      </div>
-                    </TableCell>
+                              {infoJornada.tipoJornada}
+                            </Badge>
+                          );
+                        })()}
+                      </TableCell>
+                      
+                      <TableCell className="py-2">
+                        <Badge 
+                          variant={rol.estado === 'Activo' ? 'default' : 'secondary'}
+                          className="text-xs"
+                        >
+                          {rol.estado}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-2">
+                          {/* Botón de replicación inteligente */}
+                          {(() => {
+                            const analisis = analizarTodosLosRoles(roles);
+                            const rolAnalizado = analisis.find(r => r.rol.id === rol.id);
+                            
+                            if (rolAnalizado && !rolAnalizado.tieneSimil && rolAnalizado.tipoSimil) {
+                              return (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleReplicarRol(rol, rolAnalizado.tipoSimil!)}
+                                  title={`Crear turno ${rolAnalizado.tipoSimil}`}
+                                  className="text-purple-600 hover:text-purple-700 p-1 h-6 w-6"
+                                >
+                                  {rolAnalizado.tipoSimil === 'nocturno' ? (
+                                    <Moon className="w-3 h-3" />
+                                  ) : (
+                                    <Sun className="w-3 h-3" />
+                                  )}
+                                </Button>
+                              );
+                            }
+                            return null;
+                          })()}
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleActivarInactivar(rol)}
+                            title={rol.estado === 'Activo' ? 'Inactivar rol' : 'Activar rol'}
+                            className="p-1 h-6 w-6"
+                          >
+                            {rol.estado === 'Activo' ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          </Button>
+                        </div>
+                      </TableCell>
                   </TableRow>
                 ))}
-              </TableBody>
-            </Table>
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
