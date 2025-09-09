@@ -63,6 +63,7 @@ const renderEstado = (estadoUI: string, isFalta: boolean) => {
     plan:           'bg-amber-500/10 text-amber-400 ring-amber-500/20',
     ppc_libre:      'bg-amber-500/10 text-amber-400 ring-amber-500/20',
     te:             'bg-fuchsia-500/10 text-fuchsia-400 ring-fuchsia-500/20',
+    extra:          'bg-fuchsia-500/10 text-fuchsia-400 ring-fuchsia-500/20', // AGREGAR COLOR MORADO PARA 'extra'
   };
   
   // Mapear estados legacy a nuevos estados consistentes
@@ -85,10 +86,20 @@ const renderEstado = (estadoUI: string, isFalta: boolean) => {
   })();
   
   const base = cls[estadoNormalizado] ?? 'bg-gray-500/10 text-gray-400 ring-gray-500/20';
-  const label = estadoNormalizado === 'turno_extra' ? 'Turno Extra' : 
-                estadoNormalizado === 'asistio' ? 'Asistió' : 
-                estadoNormalizado === 'sin_cobertura' ? 'Sin Cobertura' : 
-                estadoUI;
+  
+  // SOLUCIÓN NUCLEAR: Forzar mapeo directo de 'extra' a 'Turno Extra'
+  let label = '';
+  if (estadoUI === 'extra') {
+    label = 'Turno Extra'; // FORZAR DIRECTAMENTE
+  } else if (estadoNormalizado === 'turno_extra') {
+    label = 'Turno Extra';
+  } else if (estadoNormalizado === 'asistio') {
+    label = 'Asistió';
+  } else if (estadoNormalizado === 'sin_cobertura') {
+    label = 'Sin Cobertura';
+  } else {
+    label = estadoUI;
+  }
   
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded ring-1 ${base}`}>
