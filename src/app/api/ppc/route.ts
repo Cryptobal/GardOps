@@ -136,6 +136,7 @@ export async function GET(request: NextRequest) {
     const ppcs = await query(query_sql);
     
     console.log('🔍 Resultado de la consulta:', ppcs.rows.length, 'filas');
+    console.log('🔍 Primeras 3 filas:', ppcs.rows.slice(0, 3));
 
     const result = ppcs.rows.map((ppc: any) => {
       return {
