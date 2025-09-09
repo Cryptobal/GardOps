@@ -190,18 +190,13 @@ export default function PPCModal({
       
       console.log('🔍 PPC encontrado en pauta:', { pauta_id: ppcEnPauta.pauta_id, puesto_id: ppc.id });
       
-      // Usar el endpoint de turno extra NUEVO que genera estado morado
-      const response = await fetch('/api/turnos/extra-new', {
+      // Usar el mismo endpoint que funciona para reemplazo (genera estado reemplazo/morado)
+      const response = await fetch('/api/turnos/ppc/cubrir', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fecha: ppcEnPauta.fecha,
-          instalacion_id: ppcEnPauta.instalacion_id,
-          rol_id: ppcEnPauta.rol_id,
-          puesto_id: ppcEnPauta.puesto_id,
-          cobertura_guardia_id: guardia.id,
-          origen: 'ppc',
-          actor_ref: 'ui:buscador-ggss'
+          pauta_id: parseInt(ppcEnPauta.pauta_id),
+          guardia_id: guardia.id
         })
       });
 
