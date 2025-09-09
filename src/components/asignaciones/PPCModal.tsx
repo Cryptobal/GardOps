@@ -1,6 +1,7 @@
 "use client";
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
+import { api } from '@/app/pauta-diaria-v2/apiAdapter';
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
