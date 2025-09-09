@@ -46,6 +46,7 @@ import { DataTable, Column } from "../../components/ui/data-table";
 import { GuardiaSearchModal } from "../../components/ui/guardia-search-modal";
 import { useToast } from "../../components/ui/toast";
 import ModalExitoAsignacion from "../../components/ui/modal-exito-asignacion";
+import ModalFechaInicioAsignacion from "../../components/ui/modal-fecha-inicio-asignacion";
 
 // Componente KPI Box mejorado - Mobile First
 const KPIBox = ({ 
@@ -334,7 +335,30 @@ export default function PPCPage() {
     }
   };
 
+  // Estado para modal de fecha de inicio
+  const [modalFechaInicio, setModalFechaInicio] = useState({
+    isOpen: false,
+    guardiaId: '',
+    guardiaNombre: '',
+    guardiaInstalacionActual: ''
+  });
+
   const handleAsignarGuardia = async (guardiaId: string) => {
+    // NUEVA LÓGICA: Solicitar fecha de inicio antes de asignar
+    const guardiaInfo = guardias.find(g => g.id === guardiaId);
+    
+    setModalFechaInicio({
+      isOpen: true,
+      guardiaId: guardiaId,
+      guardiaNombre: guardiaInfo?.nombre_completo || 'Guardia',
+      guardiaInstalacionActual: guardiaInfo?.instalacion_actual_nombre || ''
+    });
+    
+    // Cerrar modal de guardias
+    cerrarModalGuardias();
+  };
+
+  const handleConfirmarAsignacionConFecha = async (fechaInicio: string, observaciones?: string) => {
     try {
       setAsignando(true);
       
@@ -344,8 +368,11 @@ export default function PPCPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          guardia_id: guardiaId,
-          puesto_operativo_id: modalGuardias.ppcId
+          guardia_id: modalFechaInicio.guardiaId,
+          puesto_operativo_id: modalGuardias.ppcId,
+          fecha_inicio: fechaInicio, // NUEVO: Fecha de inicio
+          motivo_inicio: 'asignacion_ppc',
+          observaciones
         }),
       });
 
@@ -883,6 +910,23 @@ export default function PPCPage() {
         onClose={cerrarModalExito}
         guardiaInfo={modalExito.guardiaInfo}
         ppcInfo={modalExito.ppcInfo}
+      />
+
+      {/* NUEVO: Modal para solicitar fecha de inicio de asignación */}
+      <ModalFechaInicioAsignacion
+        isOpen={modalFechaInicio.isOpen}
+        onClose={() => setModalFechaInicio({
+          isOpen: false,
+          guardiaId: '',
+          guardiaNombre: '',
+          guardiaInstalacionActual: ''
+        })}
+        onConfirmar={handleConfirmarAsignacionConFecha}
+        guardiaNombre={modalFechaInicio.guardiaNombre}
+        guardiaInstalacionActual={modalFechaInicio.guardiaInstalacionActual}
+        nuevaInstalacionNombre={modalGuardias.instalacionNombre}
+        nuevoRolServicioNombre={modalGuardias.rolServicioNombre}
+        esReasignacion={!!modalFechaInicio.guardiaInstalacionActual}
       />
 
       {/* Mensaje de éxito */}

@@ -124,16 +124,23 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
       setSearchTerm("");
       onClose();
     } else {
-      // En instalaciones, SIEMPRE solicitar fecha de inicio para asignaciones
+      // En instalaciones, verificar asignación actual real
+      console.log('🔍 Verificando guardia:', {
+        id: guardia.id,
+        nombre: guardia.nombre_completo,
+        instalacion_actual_id: guardia.instalacion_actual_id,
+        instalacion_actual_nombre: guardia.instalacion_actual_nombre
+      });
+      
       if (guardia.instalacion_actual_id && guardia.instalacion_actual_id !== instalacionId) {
-        // Guardia ya asignado a otra instalación - mostrar modal de reasignación con fecha
+        // Guardia ya asignado a otra instalación - mostrar advertencia
         setGuardiaConAdvertencia(guardia);
         setShowWarning(true);
-        // El modal de confirmación incluirá fecha de inicio
       } else {
-        // Guardia disponible - solicitar fecha de inicio directamente
-        setGuardiaConAdvertencia(guardia);
-        setShowWarning(true); // Reutilizar modal para solicitar fecha
+        // Guardia disponible - asignar directamente (el modal de fecha se maneja en el componente padre)
+        onSelectGuardia(guardia.id);
+        setSearchTerm("");
+        onClose();
       }
     }
   };
