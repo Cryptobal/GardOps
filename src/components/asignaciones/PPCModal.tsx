@@ -176,8 +176,13 @@ export default function PPCModal({
         throw new Error('No se pudo obtener datos de pauta diaria');
       }
       
-      const pautaData = await buscarPautaResponse.json();
-      const ppcEnPauta = pautaData.find((item: any) => item.puesto_id === ppc.id && item.es_ppc);
+      const pautaResponse = await buscarPautaResponse.json();
+      
+      if (!pautaResponse.success || !Array.isArray(pautaResponse.data)) {
+        throw new Error('Error en estructura de respuesta de pauta diaria');
+      }
+      
+      const ppcEnPauta = pautaResponse.data.find((item: any) => item.puesto_id === ppc.id && item.es_ppc);
       
       if (!ppcEnPauta || !ppcEnPauta.pauta_id) {
         throw new Error('No se encontró pauta_id para este PPC');
@@ -219,15 +224,17 @@ export default function PPCModal({
   const handleTurnoExtraReemplazo = async (turno: TurnoAsignado) => {
     try {
       setAsignando(turno.id);
-      console.log('🟧 Turno extra reemplazo (usando lógica existente):', { pauta_id: turno.id, guardia_id: guardia.id });
+      console.log('🟧 Turno extra reemplazo (usando lógica inasistencia):', { pauta_id: turno.id, guardia_id: guardia.id });
       
-      // Usar el mismo endpoint que botón "Cubrir" en pauta diaria
-      const response = await fetch('/api/turnos/ppc/cubrir', {
+      // Usar el mismo endpoint que usa pauta diaria para inasistencia con cobertura
+      const response = await fetch('/api/turnos/inasistencia', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          pauta_id: turno.id,
-          guardia_id: guardia.id
+          pauta_id: parseInt(turno.id),
+          falta_sin_aviso: true,
+          motivo: 'Falta sin aviso',
+          cubierto_por: guardia.id
         })
       });
 
