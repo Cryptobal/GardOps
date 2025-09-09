@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
         instalacion_id,
         rol_id,
         es_ppc,
-        guardia_id
+        guardia_titular_id as guardia_id
       FROM as_turnos_v_pauta_diaria_dedup_fixed
       WHERE pauta_id = $1 AND es_ppc = true AND estado_ui = 'plan'
     `, [puesto_operativo_id]);
