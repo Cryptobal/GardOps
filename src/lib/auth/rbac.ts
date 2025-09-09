@@ -41,8 +41,20 @@ export async function getUserIdByEmail(email: string): Promise<string | null> {
 }
 
 export async function userHasPerm(userId: string, perm: string): Promise<boolean> {
+  // Primero obtener el email del usuario por su ID
+  const userResult = await vercelSql<{ email: string }>`
+    SELECT email FROM usuarios WHERE id = ${userId}::uuid
+  `;
+  
+  if (!userResult?.rows?.[0]?.email) {
+    return false;
+  }
+  
+  const email = userResult.rows[0].email;
+  
+  // Ahora usar la función con email
   const result = await vercelSql<{ ok: boolean }>`
-    select public.fn_usuario_tiene_permiso(${userId}::uuid, ${perm}::text) as ok
+    select public.fn_usuario_tiene_permiso(${email}::text, ${perm}::text) as ok
   `;
   return Boolean(result?.rows?.[0]?.ok);
 }
