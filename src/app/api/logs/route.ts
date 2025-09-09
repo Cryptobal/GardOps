@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     
     // Por ahora usar un tenant_id fijo para testing
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337';
 
     // Si se especifica un módulo específico, consultar solo esa tabla
     if (modulo && modulo !== 'todos') {
@@ -379,7 +379,7 @@ export async function POST(request: NextRequest) {
           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8)
           RETURNING *
         `;
-        params = [entidadId, accion, usuario, tipo, detalles, null, null, 'accebf8a-bacc-41fa-9601-ed39cb320a52'];
+        params = [entidadId, accion, usuario, tipo, detalles, null, null, '1397e653-a702-4020-9702-3ae4f3f8b337'];
         break;
         
       case 'pauta_mensual':
@@ -388,7 +388,7 @@ export async function POST(request: NextRequest) {
           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8)
           RETURNING *
         `;
-        params = [entidadId, accion, usuario, tipo, detalles, null, null, 'accebf8a-bacc-41fa-9601-ed39cb320a52'];
+        params = [entidadId, accion, usuario, tipo, detalles, null, null, '1397e653-a702-4020-9702-3ae4f3f8b337'];
         break;
         
       case 'pauta_diaria':
@@ -397,7 +397,7 @@ export async function POST(request: NextRequest) {
           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8)
           RETURNING *
         `;
-        params = [entidadId, accion, usuario, tipo, detalles, null, null, 'accebf8a-bacc-41fa-9601-ed39cb320a52'];
+        params = [entidadId, accion, usuario, tipo, detalles, null, null, '1397e653-a702-4020-9702-3ae4f3f8b337'];
         break;
         
       case 'turnos_extras':
@@ -406,7 +406,7 @@ export async function POST(request: NextRequest) {
           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8)
           RETURNING *
         `;
-        params = [entidadId, accion, usuario, tipo, detalles, null, null, 'accebf8a-bacc-41fa-9601-ed39cb320a52'];
+        params = [entidadId, accion, usuario, tipo, detalles, null, null, '1397e653-a702-4020-9702-3ae4f3f8b337'];
         break;
         
       default:

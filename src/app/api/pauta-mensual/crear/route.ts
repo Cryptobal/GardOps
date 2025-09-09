@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     const { instalacion_id, anio, mes } = body;
     
     // Por ahora usar un tenant_id fijo para testing
-    const tenantId = 'accebf8a-bacc-41fa-9601-ed39cb320a52';
+    const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337';
     const usuario = 'admin@test.com'; // En producción, obtener del token de autenticación
 
     if (!instalacion_id || !anio || !mes) {
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
       'admin@test.com',
       error,
       { endpoint: '/api/pauta-mensual/crear', method: 'POST' },
-      'accebf8a-bacc-41fa-9601-ed39cb320a52'
+      '1397e653-a702-4020-9702-3ae4f3f8b337'
     );
     
     return NextResponse.json(
