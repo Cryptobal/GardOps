@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/database";
 import { sincronizarPautasPostAsignacion, revertirSincronizacionPautas } from "@/lib/sync-pautas";
+import { asignarGuardiaConFecha, verificarAsignacionActiva } from "@/lib/historial-asignaciones";
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 export async function POST(request: NextRequest) {
   try {
-    const { guardia_id, puesto_operativo_id, confirmar_reasignacion = false } = await request.json();
+    const { 
+      guardia_id, 
+      puesto_operativo_id, 
+      confirmar_reasignacion = false,
+      fecha_inicio, // NUEVO: Fecha de inicio de asignación (opcional para compatibilidad)
+      motivo_inicio = 'asignacion_ppc',
+      observaciones
+    } = await request.json();
 
     devLogger.search(' [PPC/ASIGNAR] Iniciando asignación:', {
       guardia_id,
@@ -138,29 +146,41 @@ export async function POST(request: NextRequest) {
         logger.debug(`✅ [REASIGNACIÓN] Puesto anterior ${asignacionActual.id} liberado correctamente`);
       }
 
-      // Asignar el guardia al nuevo puesto
-      // Si el PPC viene de la vista, usar puesto_id directamente
-      if (puestoCheck.rows.length > 0 && puestoCheck.rows[0].puesto_id) {
-        const puestoId = puestoCheck.rows[0].puesto_id;
-        await query(`
-          UPDATE as_turnos_puestos_operativos 
-          SET es_ppc = false,
-              guardia_id = $1,
-              actualizado_en = NOW()
-          WHERE id = $2
-        `, [guardia_id, puestoId]);
-        logger.debug(`✅ [ASIGNACIÓN] Guardia ${guardia_id} asignado al puesto ${puestoId}`);
-      } else {
-        // Fallback: usar el ID directamente
-        await query(`
-          UPDATE as_turnos_puestos_operativos 
-          SET es_ppc = false,
-              guardia_id = $1,
-              actualizado_en = NOW()
-          WHERE id = $2
-        `, [guardia_id, puesto_operativo_id]);
-        logger.debug(`✅ [ASIGNACIÓN] Guardia ${guardia_id} asignado al puesto ${puesto_operativo_id}`);
+      // NUEVA LÓGICA: Asignar con historial (COMPATIBLE con lógica existente)
+      const puestoIdFinal = (puestoCheck.rows.length > 0 && puestoCheck.rows[0].puesto_id) 
+        ? puestoCheck.rows[0].puesto_id 
+        : puesto_operativo_id;
+      
+      // Obtener instalación del puesto
+      const puestoInfo = await query(`
+        SELECT instalacion_id FROM as_turnos_puestos_operativos WHERE id = $1
+      `, [puestoIdFinal]);
+      
+      if (puestoInfo.rows.length === 0) {
+        throw new Error('Puesto no encontrado');
       }
+      
+      const instalacion_id = puestoInfo.rows[0].instalacion_id;
+      
+      // Usar fecha de inicio proporcionada o fecha actual como fallback (COMPATIBILIDAD)
+      const fechaInicioAsignacion = fecha_inicio || new Date().toISOString().split('T')[0];
+      
+      // Asignar usando nueva función con historial
+      const resultadoAsignacion = await asignarGuardiaConFecha(
+        guardia_id,
+        puestoIdFinal,
+        instalacion_id,
+        fechaInicioAsignacion,
+        'fija',
+        motivo_inicio,
+        observaciones
+      );
+      
+      if (!resultadoAsignacion.success) {
+        throw new Error(`Error en asignación con historial: ${resultadoAsignacion.error}`);
+      }
+      
+      logger.debug(`✅ [ASIGNACIÓN CON HISTORIAL] Guardia ${guardia_id} asignado al puesto ${puestoIdFinal} desde ${fechaInicioAsignacion}`);
 
       logger.debug(`✅ [ASIGNACIÓN] Guardia ${guardia_id} asignado al puesto ${puesto_operativo_id}`);
 

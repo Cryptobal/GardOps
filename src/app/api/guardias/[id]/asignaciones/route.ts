@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { obtenerAsignacionActual, obtenerHistorialAsignaciones } from '@/lib/historial-asignaciones';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 export async function GET(

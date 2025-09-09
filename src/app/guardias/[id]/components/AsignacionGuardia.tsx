@@ -37,12 +37,28 @@ export default function AsignacionGuardia({ guardiaId }: AsignacionGuardiaProps)
   const cargarAsignaciones = async () => {
     try {
       setLoading(true);
+      
+      // PRIORIDAD 1: Intentar nueva API con historial completo
+      const responseHistorial = await fetch(`/api/guardias/${guardiaId}/historial-asignaciones`);
+      
+      if (responseHistorial.ok) {
+        const data = await responseHistorial.json();
+        if (data.success && data.historial.length > 0) {
+          setAsignaciones(data.historial || []);
+          setAsignacionActual(data.asignacionActual || null);
+          logger.debug('✅ Historial cargado desde nueva API:', data.historial.length);
+          return;
+        }
+      }
+      
+      // FALLBACK: Usar API legacy si no hay datos en nuevo sistema
       const response = await fetch(`/api/guardias/${guardiaId}/asignaciones`);
       
       if (response.ok) {
         const data = await response.json();
         setAsignaciones(data.asignaciones || []);
         setAsignacionActual(data.asignacionActual || null);
+        logger.debug('✅ Asignaciones cargadas desde API legacy:', data.asignaciones?.length || 0);
       } else {
         logger.error('Error al cargar asignaciones::', response.statusText);
         toast({
