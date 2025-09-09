@@ -138,8 +138,14 @@ export default function PPCModal({
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Error al asignar guardia');
+        let errorMessage = 'Error al asignar guardia';
+        try {
+          const data = await response.json();
+          errorMessage = data?.error || errorMessage;
+        } catch (jsonError) {
+          console.error('Error parsing JSON response:', jsonError);
+        }
+        throw new Error(errorMessage);
       }
 
       mostrarModalExito('permanente', ppc, null);
@@ -168,8 +174,14 @@ export default function PPCModal({
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Error al crear turno extra');
+        let errorMessage = 'Error al crear turno extra';
+        try {
+          const data = await response.json();
+          errorMessage = data?.error || errorMessage;
+        } catch (jsonError) {
+          console.error('Error parsing JSON response:', jsonError);
+        }
+        throw new Error(errorMessage);
       }
 
       mostrarModalExito('turno_extra_ppc', ppc, null);
@@ -198,8 +210,14 @@ export default function PPCModal({
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Error al crear reemplazo');
+        let errorMessage = 'Error al crear reemplazo';
+        try {
+          const data = await response.json();
+          errorMessage = data?.error || errorMessage;
+        } catch (jsonError) {
+          console.error('Error parsing JSON response:', jsonError);
+        }
+        throw new Error(errorMessage);
       }
 
       mostrarModalExito('turno_extra_reemplazo', null, turno);

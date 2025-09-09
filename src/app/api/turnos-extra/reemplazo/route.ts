@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       await query(`
         UPDATE as_turnos_pauta_mensual 
         SET estado_ui = 'sin_cobertura',
-            actualizado_en = NOW()
+            updated_at = NOW()
         WHERE id = $1
       `, [pauta_id]);
 
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       await query(`
         UPDATE as_turnos_pauta_mensual 
         SET meta = COALESCE(meta, '{}')::jsonb || '{"cobertura_guardia_id": "${guardia_id}"}'::jsonb,
-            actualizado_en = NOW()
+            updated_at = NOW()
         WHERE id = $1
       `, [pauta_id]);
 

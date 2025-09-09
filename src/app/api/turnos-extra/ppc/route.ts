@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         UPDATE as_turnos_pauta_mensual 
         SET estado_ui = 'turno_extra',
             meta = COALESCE(meta, '{}')::jsonb || '{"cobertura_guardia_id": "${guardia_id}"}'::jsonb,
-            actualizado_en = NOW()
+            updated_at = NOW()
         WHERE id = $1
       `, [pautaId]);
     } else {
