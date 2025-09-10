@@ -164,7 +164,7 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
       } else {
         // Guardia disponible - verificar si necesitamos modal de fecha
         if (onConfirmarAsignacionConFecha && ppcId) {
-          // Abrir modal de fecha de inicio
+          // Abrir modal de fecha de inicio - NO cerrar modal de búsqueda
           setGuardiaParaAsignar(guardia);
           setShowModalFechaInicio(true);
         } else {
@@ -323,7 +323,16 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
             setShowModalFechaInicio(false);
             setGuardiaParaAsignar(null);
           }}
-          onConfirmar={onConfirmarAsignacionConFecha}
+          onConfirmar={(fechaInicio: string, observaciones?: string) => {
+            // Cerrar modales y limpiar estados
+            setShowModalFechaInicio(false);
+            setGuardiaParaAsignar(null);
+            setSearchTerm("");
+            onClose(); // Cerrar modal de búsqueda
+            
+            // Llamar a la función de confirmación
+            onConfirmarAsignacionConFecha(fechaInicio, observaciones);
+          }}
           guardiaNombre={guardiaParaAsignar.nombre_completo || 'Guardia'}
           guardiaInstalacionActual={guardiaParaAsignar.instalacion_actual_nombre}
           nuevaInstalacionNombre={instalacionNombrePauta || instalacionNombre || 'Instalación'}

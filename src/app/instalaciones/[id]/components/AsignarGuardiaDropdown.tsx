@@ -101,6 +101,8 @@ export default function AsignarGuardiaDropdown({
       instalacionNombre: instalacionNombre,
       rolServicioNombre: rolServicioNombre
     });
+    
+    // NO cerrar el modal de búsqueda aquí - se cerrará cuando se confirme la asignación
   };
 
   // Nueva función para confirmar asignación con fecha
