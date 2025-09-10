@@ -31,12 +31,8 @@ export async function GET(request: NextRequest) {
       WHERE pd.fecha = $1
     `;
 
-    // Agregar filtro según incluirLibres - CORREGIDO PARA NUEVA LÓGICA
-    if (!incluirLibres) {
-      // Filtrar días libres: estado = 'libre' O estado_ui = 'libre'
-      // También filtrar registros que son claramente días libres aunque tengan estado_ui incorrecto
-      query += ` AND NOT (pd.estado = 'libre' OR pd.estado_ui = 'libre')`;
-    }
+    // NO filtrar en el backend - dejar que el frontend maneje el filtro
+    // El frontend filtrará según el toggle "Ver libres"
 
     query += ` ORDER BY pd.es_ppc DESC, pd.instalacion_nombre NULLS LAST, pd.puesto_id, pd.pauta_id DESC`;
 
