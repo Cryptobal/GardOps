@@ -129,12 +129,12 @@ export async function asignarGuardiaConFecha(
       `, [fechaTermino.toISOString().split('T')[0], guardia_id]);
     }
     
-    // 3. Crear nueva asignación en historial
+    // 3. Crear nueva asignación en historial (CON TENANT_ID)
     await query(`
       INSERT INTO historial_asignaciones_guardias (
         guardia_id, instalacion_id, puesto_id, fecha_inicio,
-        tipo_asignacion, motivo_inicio, estado, observaciones
-      ) VALUES ($1, $2, $3, $4, $5, $6, 'activa', $7)
+        tipo_asignacion, motivo_inicio, estado, observaciones, tenant_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, 'activa', $7, obtener_tenant_id_actual())
     `, [guardia_id, instalacion_id, puesto_id, fecha_inicio, tipo_asignacion, motivo_inicio, observaciones]);
     
     // 4. Actualizar puesto operativo (MANTENER LÓGICA EXISTENTE)
