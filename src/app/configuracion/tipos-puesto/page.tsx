@@ -287,7 +287,7 @@ export default function TiposPuestoPage() {
   return (
     <div className="container mx-auto p-4 max-w-6xl">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -298,22 +298,22 @@ export default function TiposPuestoPage() {
             Volver
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Tipos de Puesto</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Tipos de Puesto</h1>
             <p className="text-sm text-muted-foreground">
               Administra los tipos de puestos operativos disponibles
             </p>
           </div>
         </div>
-        <Button onClick={() => abrirModal()}>
+        <Button onClick={() => abrirModal()} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Nuevo Tipo
         </Button>
       </div>
 
-      {/* Filtros */}
-      <Card className="mb-6">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
+      {/* Filtros Mobile-First */}
+      <Card className="mb-4 sm:mb-6">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">
@@ -325,7 +325,7 @@ export default function TiposPuestoPage() {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between sm:justify-end gap-2">
               <label htmlFor="mostrar-inactivos" className="text-sm">
                 Mostrar inactivos
               </label>
@@ -339,96 +339,191 @@ export default function TiposPuestoPage() {
         </CardContent>
       </Card>
 
-      {/* Tabla de tipos */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">Orden</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Descripción</TableHead>
-                <TableHead className="text-center">En Uso</TableHead>
-                <TableHead className="text-center">Estado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tipos.map((tipo) => (
-                <TableRow key={tipo.id} className={!tipo.activo ? 'opacity-50' : ''}>
-                  <TableCell className="font-mono text-xs">
-                    {tipo.orden}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">{tipo.emoji}</span>
-                      <div>
-                        <div className="font-medium">{tipo.nombre}</div>
-                        <Badge 
-                          variant="secondary" 
-                          className={`text-xs ${getBadgeColor(tipo.color)}`}
-                        >
-                          {tipo.color}
-                        </Badge>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-muted-foreground">
-                      {tipo.descripcion || 'Sin descripción'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-center">
+      {/* Vista Mobile: Tarjetas */}
+      <div className="block sm:hidden space-y-3">
+        {tipos.map((tipo) => (
+          <Card key={tipo.id} className={`p-4 ${!tipo.activo ? 'opacity-50' : ''}`}>
+            <div className="space-y-3">
+              {/* Header con emoji, nombre y orden */}
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{tipo.emoji}</span>
+                  <div>
+                    <h3 className="font-semibold text-base">{tipo.nombre}</h3>
+                    <Badge 
+                      variant="secondary" 
+                      className={`text-xs ${getBadgeColor(tipo.color)}`}
+                    >
+                      {tipo.color}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-muted-foreground">Orden</div>
+                  <div className="font-mono text-sm">{tipo.orden}</div>
+                </div>
+              </div>
+              
+              {/* Descripción */}
+              {tipo.descripcion && (
+                <div>
+                  <div className="text-sm text-muted-foreground">
+                    {tipo.descripcion}
+                  </div>
+                </div>
+              )}
+              
+              {/* Información de uso y estado */}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground">En Uso</div>
                     {tipo.cantidad_puestos_usando > 0 ? (
-                      <Badge variant="secondary">
+                      <Badge variant="secondary" className="text-xs">
                         {tipo.cantidad_puestos_usando}
                       </Badge>
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
-                  </TableCell>
-                  <TableCell className="text-center">
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground">Estado</div>
                     <Switch
                       checked={tipo.activo}
                       onCheckedChange={() => toggleActivo(tipo)}
                       aria-label={`${tipo.activo ? 'Desactivar' : 'Activar'} ${tipo.nombre}`}
                     />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => abrirModal(tipo)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      {tipo.puede_eliminar && (
+                  </div>
+                </div>
+              </div>
+              
+              {/* Acciones */}
+              <div className="flex gap-2 pt-2 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => abrirModal(tipo)}
+                  className="flex-1"
+                >
+                  <Edit2 className="h-4 w-4 mr-1" />
+                  Editar
+                </Button>
+                {tipo.puede_eliminar && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => eliminarTipo(tipo)}
+                    disabled={eliminando === tipo.id}
+                    className="flex-1 text-red-600 hover:text-red-700"
+                  >
+                    {eliminando === tipo.id ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                    ) : (
+                      <>
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Eliminar
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+      
+      {/* Vista Desktop: Tabla */}
+      <div className="hidden sm:block">
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">Orden</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Descripción</TableHead>
+                  <TableHead className="text-center">En Uso</TableHead>
+                  <TableHead className="text-center">Estado</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tipos.map((tipo) => (
+                  <TableRow key={tipo.id} className={!tipo.activo ? 'opacity-50' : ''}>
+                    <TableCell className="font-mono text-xs">
+                      {tipo.orden}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{tipo.emoji}</span>
+                        <div>
+                          <div className="font-medium">{tipo.nombre}</div>
+                          <Badge 
+                            variant="secondary" 
+                            className={`text-xs ${getBadgeColor(tipo.color)}`}
+                          >
+                            {tipo.color}
+                          </Badge>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground">
+                        {tipo.descripcion || 'Sin descripción'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {tipo.cantidad_puestos_usando > 0 ? (
+                        <Badge variant="secondary">
+                          {tipo.cantidad_puestos_usando}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={tipo.activo}
+                        onCheckedChange={() => toggleActivo(tipo)}
+                        aria-label={`${tipo.activo ? 'Desactivar' : 'Activar'} ${tipo.nombre}`}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => eliminarTipo(tipo)}
-                          disabled={eliminando === tipo.id}
+                          onClick={() => abrirModal(tipo)}
                         >
-                          {eliminando === tipo.id ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
-                          ) : (
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          )}
+                          <Edit2 className="h-4 w-4" />
                         </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                        {tipo.puede_eliminar && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => eliminarTipo(tipo)}
+                            disabled={eliminando === tipo.id}
+                          >
+                            {eliminando === tipo.id ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                            ) : (
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Modal de creación/edición */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md mx-4 sm:mx-0">
           <DialogHeader>
             <DialogTitle>
               {editando ? 'Editar Tipo de Puesto' : 'Nuevo Tipo de Puesto'}
