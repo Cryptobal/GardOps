@@ -610,7 +610,8 @@ export default function PautaTable({
     try {
       // Usar los datos del guardia pasados directamente o del estado
       const guardiaId = guardia?.id || modalFechaInicio.guardiaId;
-      const ppcId = modalFechaInicio.ppcId;
+      // Priorizar ppcId del estado modalFechaInicio, pero si está vacío, usar el de asignacionModal
+      const ppcId = modalFechaInicio.ppcId || asignacionModal.ppcData?.id;
 
       console.log('🔍 Debug PautaTable - Asignando guardia con fecha:', {
         guardiaId,
