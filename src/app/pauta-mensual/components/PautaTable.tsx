@@ -645,7 +645,7 @@ export default function PautaTable({
         instalacionNombre: '',
         rolServicioNombre: ''
       });
-      closeAsignacionModal();
+      closeAsignacionModal(); // Esto cierra el modal de búsqueda
       
       // Recargar la página para mostrar los cambios
       window.location.reload();

@@ -324,11 +324,11 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
             setGuardiaParaAsignar(null);
           }}
           onConfirmar={(fechaInicio: string, observaciones?: string) => {
-            // Cerrar modales y limpiar estados
+            // Cerrar solo el modal de fecha, NO el modal de búsqueda
             setShowModalFechaInicio(false);
             setGuardiaParaAsignar(null);
             setSearchTerm("");
-            onClose(); // Cerrar modal de búsqueda
+            // NO llamar onClose() aquí - que lo maneje el componente padre
             
             // Llamar a la función de confirmación con los datos del guardia
             onConfirmarAsignacionConFecha(fechaInicio, observaciones, guardiaParaAsignar);
