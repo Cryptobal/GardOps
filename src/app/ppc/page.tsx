@@ -392,7 +392,7 @@ export default function PPCPage() {
         rol: modalFechaInicio.rolServicioNombre // USAR DATOS GUARDADOS
       });
 
-      const response = await fetch('/api/ppc/asignar', {
+      const response = await fetch('/api/ppc/asignar-simple', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
