@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
     
     console.log(`[${timestamp}] 🔍 DEBUG - Pauta mensual encontrada:`, pautaResult.rows.length, 'registros');
 
-    // Obtener puestos operativos con guardias asignados (versión ultra simplificada)
+    // Obtener TODOS los puestos operativos (incluyendo PPCs sin guardias asignados)
     const puestosResult = await query(`
       SELECT 
         po.id as puesto_id,
@@ -143,7 +143,6 @@ export async function GET(request: NextRequest) {
       LEFT JOIN guardias g ON po.guardia_id = g.id
       WHERE po.instalacion_id = $1 
         AND po.activo = true
-        AND po.guardia_id IS NOT NULL
       ORDER BY po.nombre_puesto
     `, [instalacion_id]);
     
