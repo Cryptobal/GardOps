@@ -43,10 +43,12 @@ export default function AsignacionGuardia({ guardiaId }: AsignacionGuardiaProps)
       
       if (responseHistorial.ok) {
         const data = await responseHistorial.json();
-        if (data.success && data.historial.length > 0) {
+        console.log('🔍 Respuesta de nueva API historial:', data);
+        if (data.success) {
+          // USAR SIEMPRE la nueva API, aunque no haya datos (para mostrar vacío correctamente)
           setAsignaciones(data.historial || []);
           setAsignacionActual(data.asignacionActual || null);
-          logger.debug('✅ Historial cargado desde nueva API:', data.historial.length);
+          logger.debug('✅ Historial cargado desde nueva API:', data.historial?.length || 0);
           return;
         }
       }
