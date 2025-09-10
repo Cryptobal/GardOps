@@ -122,57 +122,31 @@ export async function GET(request: NextRequest) {
     const pautaQueryEnd = Date.now();
     logger.debug(`[${timestamp}] 🐌 Query pauta mensual: ${pautaQueryEnd - pautaQueryStart}ms, ${pautaResult.rows.length} registros encontrados`);
 
-    // Obtener puestos operativos: si hay registros en pauta, solo esos; si no, todos con guardias asignados
+    // Obtener puestos operativos con guardias asignados (versión simplificada)
     const puestosResult = await query(`
-      WITH puestos_con_pauta AS (
-        SELECT DISTINCT po.id as puesto_id
-        FROM as_turnos_puestos_operativos po
-        INNER JOIN as_turnos_pauta_mensual pm ON pm.puesto_id = po.id
-        WHERE po.instalacion_id = $1 
-          AND po.activo = true
-          AND pm.anio = $2 
-          AND pm.mes = $3
-      ),
-      puestos_base AS (
-        SELECT 
-          po.id as puesto_id,
-          po.nombre_puesto,
-          po.guardia_id,
-          po.es_ppc,
-          po.activo,
-          rs.nombre as rol_nombre,
-          CONCAT(rs.dias_trabajo, 'x', rs.dias_descanso) as patron_turno,
-          g.nombre as guardia_nombre,
-          g.apellido_paterno,
-          g.apellido_materno,
-          CASE 
-            WHEN po.guardia_id IS NOT NULL THEN CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, ''))
-            ELSE NULL
-          END as nombre_completo
-        FROM as_turnos_puestos_operativos po
-        LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-        LEFT JOIN guardias g ON po.guardia_id = g.id
-        WHERE po.instalacion_id = $1 
-          AND po.activo = true
-          AND po.guardia_id IS NOT NULL  -- Solo puestos con guardias asignados
-      )
       SELECT 
-        pb.puesto_id,
-        pb.nombre_puesto,
-        pb.guardia_id,
-        pb.es_ppc,
-        pb.activo,
-        pb.rol_nombre,
-        pb.patron_turno,
-        pb.guardia_nombre,
-        pb.apellido_paterno,
-        pb.apellido_materno,
-        pb.nombre_completo
-      FROM puestos_base pb
-      WHERE EXISTS (SELECT 1 FROM puestos_con_pauta pcp WHERE pcp.puesto_id = pb.puesto_id)
-         OR NOT EXISTS (SELECT 1 FROM puestos_con_pauta)  -- Si no hay registros en pauta, devolver todos los puestos base
-      ORDER BY pb.nombre_puesto
-    `, [instalacion_id, anio, mes]);
+        po.id as puesto_id,
+        po.nombre_puesto,
+        po.guardia_id,
+        po.es_ppc,
+        po.activo,
+        rs.nombre as rol_nombre,
+        CONCAT(rs.dias_trabajo, 'x', rs.dias_descanso) as patron_turno,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno,
+        g.apellido_materno,
+        CASE 
+          WHEN po.guardia_id IS NOT NULL THEN CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, ''))
+          ELSE NULL
+        END as nombre_completo
+      FROM as_turnos_puestos_operativos po
+      LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
+      LEFT JOIN guardias g ON po.guardia_id = g.id
+      WHERE po.instalacion_id = $1 
+        AND po.activo = true
+        AND po.guardia_id IS NOT NULL  -- Solo puestos con guardias asignados
+      ORDER BY po.nombre_puesto
+    `, [instalacion_id]);
 
     // Generar días del mes
     const diasDelMes = Array.from(
