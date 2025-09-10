@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 DEBUG - Investigando puestos para instalación:', instalacion_id);
 
-    // 1. Verificar todos los puestos operativos (activos e inactivos)
+    // 1. Verificar todos los puestos operativos (activos e inactivos) - consulta simple
     const todosPuestos = await query(`
       SELECT 
         po.id,
@@ -23,18 +23,13 @@ export async function GET(request: NextRequest) {
         po.guardia_id,
         po.es_ppc,
         po.activo,
-        po.rol_id,
-        rs.nombre as rol_nombre,
-        g.nombre as guardia_nombre,
-        g.apellido_paterno
+        po.rol_id
       FROM as_turnos_puestos_operativos po
-      LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-      LEFT JOIN guardias g ON po.guardia_id = g.id
       WHERE po.instalacion_id = $1
       ORDER BY po.activo DESC, po.nombre_puesto
     `, [instalacion_id]);
 
-    // 2. Verificar solo puestos activos
+    // 2. Verificar solo puestos activos - consulta simple
     const puestosActivos = await query(`
       SELECT 
         po.id,
@@ -42,18 +37,13 @@ export async function GET(request: NextRequest) {
         po.guardia_id,
         po.es_ppc,
         po.activo,
-        po.rol_id,
-        rs.nombre as rol_nombre,
-        g.nombre as guardia_nombre,
-        g.apellido_paterno
+        po.rol_id
       FROM as_turnos_puestos_operativos po
-      LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-      LEFT JOIN guardias g ON po.guardia_id = g.id
       WHERE po.instalacion_id = $1 AND po.activo = true
       ORDER BY po.nombre_puesto
     `, [instalacion_id]);
 
-    // 3. Verificar solo puestos con guardias asignados
+    // 3. Verificar solo puestos con guardias asignados - consulta simple
     const puestosConGuardias = await query(`
       SELECT 
         po.id,
@@ -61,13 +51,8 @@ export async function GET(request: NextRequest) {
         po.guardia_id,
         po.es_ppc,
         po.activo,
-        po.rol_id,
-        rs.nombre as rol_nombre,
-        g.nombre as guardia_nombre,
-        g.apellido_paterno
+        po.rol_id
       FROM as_turnos_puestos_operativos po
-      LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-      LEFT JOIN guardias g ON po.guardia_id = g.id
       WHERE po.instalacion_id = $1 
         AND po.activo = true 
         AND po.guardia_id IS NOT NULL
