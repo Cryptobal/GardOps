@@ -94,10 +94,30 @@ export default function AsignacionGuardia({ guardiaId }: AsignacionGuardiaProps)
       console.log('🔍 Formateando fecha:', { fechaOriginal: fecha });
       
       // Parsear fecha como YYYY-MM-DD directamente
-      const [año, mes, dia] = fecha.split('-').map(Number);
+      const partes = fecha.split('-');
+      console.log('🔍 Partes de fecha:', partes);
       
-      if (!año || !mes || !dia) {
-        console.warn('Formato de fecha inválido:', fecha);
+      if (partes.length !== 3) {
+        console.warn('Formato de fecha inválido - no tiene 3 partes:', fecha);
+        return 'Formato inválido';
+      }
+      
+      const [añoStr, mesStr, diaStr] = partes;
+      const año = parseInt(añoStr, 10);
+      const mes = parseInt(mesStr, 10);
+      const dia = parseInt(diaStr, 10);
+      
+      console.log('🔍 Fechas parseadas:', { año, mes, dia });
+      
+      // Validar que sean números válidos
+      if (isNaN(año) || isNaN(mes) || isNaN(dia)) {
+        console.warn('Fechas no son números válidos:', { año, mes, dia });
+        return 'Formato inválido';
+      }
+      
+      // Validar rangos básicos
+      if (año < 1900 || año > 2100 || mes < 1 || mes > 12 || dia < 1 || dia > 31) {
+        console.warn('Fechas fuera de rango válido:', { año, mes, dia });
         return 'Formato inválido';
       }
       
@@ -110,7 +130,7 @@ export default function AsignacionGuardia({ guardiaId }: AsignacionGuardiaProps)
         day: 'numeric'
       });
       
-      console.log('🔍 Fecha formateada:', {
+      console.log('🔍 Fecha formateada exitosamente:', {
         entrada: fecha,
         año, mes, dia,
         fechaLocal,
