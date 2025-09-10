@@ -38,8 +38,10 @@ export async function GET(request: NextRequest) {
       query += ` WHERE tenant_id = $1`;
       params.push(tenantId);
     } else {
-      // Si no hay tenant_id, obtener configuración por defecto
-      query += ` WHERE tenant_id IS NULL`;
+      // Si no hay tenant_id, usar tenant Gard por defecto (mismo que el resto del sistema)
+      const defaultTenantId = '1397e653-a702-4020-9702-3ae4f3f8b337';
+      query += ` WHERE tenant_id = $1`;
+      params.push(defaultTenantId);
     }
 
     query += ` ORDER BY created_at DESC LIMIT 1`;
@@ -50,7 +52,7 @@ export async function GET(request: NextRequest) {
     const result = await sql.query(query, params);
 
     if (result.rows.length === 0) {
-      // Si no hay configuración, crear una por defecto
+      // Si no hay configuración, crear una por defecto para el tenant
       const defaultConfig = await sql`
         INSERT INTO configuracion_sistema (
           tenant_id,
@@ -65,7 +67,7 @@ export async function GET(request: NextRequest) {
           separador_miles,
           separador_decimales
         ) VALUES (
-          ${tenantId || null},
+          ${tenantId || '1397e653-a702-4020-9702-3ae4f3f8b337'},
           'America/Santiago',
           '24h',
           'CL',
@@ -137,7 +139,7 @@ export async function POST(request: NextRequest) {
     // Verificar si existe configuración previa
     const existing = await sql`
       SELECT id FROM configuracion_sistema
-      WHERE tenant_id = ${tenant_id || null}
+      WHERE tenant_id = ${tenant_id || '1397e653-a702-4020-9702-3ae4f3f8b337'}
       LIMIT 1
     `;
 
@@ -157,7 +159,7 @@ export async function POST(request: NextRequest) {
           separador_miles = ${separador_miles || '.'},
           separador_decimales = ${separador_decimales || ','},
           updated_at = NOW()
-        WHERE tenant_id = ${tenant_id || null}
+        WHERE tenant_id = ${tenant_id || '1397e653-a702-4020-9702-3ae4f3f8b337'}
         RETURNING *
       `;
     } else {
@@ -177,7 +179,7 @@ export async function POST(request: NextRequest) {
           separador_decimales
         )
         VALUES (
-          ${tenant_id || null},
+          ${tenant_id || '1397e653-a702-4020-9702-3ae4f3f8b337'},
           ${zona_horaria || 'America/Santiago'},
           ${formato_hora || '24h'},
           ${pais || 'CL'},

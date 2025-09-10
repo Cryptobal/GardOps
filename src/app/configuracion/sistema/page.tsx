@@ -74,7 +74,9 @@ export default function SistemaPage() {
   const cargarConfiguracion = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/configuracion/sistema');
+      // Usar el tenant Gard por defecto (mismo que usa el resto del sistema)
+      const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337';
+      const response = await fetch(`/api/configuracion/sistema?tenant_id=${tenantId}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
@@ -95,12 +97,18 @@ export default function SistemaPage() {
   const guardarConfiguracion = async () => {
     setSaving(true);
     try {
+      // Incluir tenant_id en la configuración
+      const configConTenant = {
+        ...config,
+        tenant_id: '1397e653-a702-4020-9702-3ae4f3f8b337'
+      };
+      
       const response = await fetch('/api/configuracion/sistema', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(config),
+        body: JSON.stringify(configConTenant),
       });
 
       const data = await response.json();
