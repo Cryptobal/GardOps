@@ -298,7 +298,7 @@ export default function PautaMensualUnificadaPage() {
             const diaSemana = fecha.toLocaleDateString('es-ES', { weekday: 'short' });
             return { dia, diaSemana, esFeriado: false };
           });
-          console.log('🔍 DEBUG - diasSemanaArray generado:', diasSemanaArray);
+          console.log('🔍 DEBUG - diasSemanaArray generado:', diasSemanaArray.slice(0, 7)); // Solo primeros 7 días
           setDiasSemana(diasSemanaArray);
 
           // Crear estructura inicial con días vacíos - se llenará automáticamente
@@ -393,8 +393,7 @@ export default function PautaMensualUnificadaPage() {
         console.log('🔍 DEBUG - Pauta generada exitosamente, estableciendo pautaExiste = true');
         setPautaExiste(true);
         
-        // Recargar los datos para mostrar la pauta creada
-        await cargarDatos(false);
+        // No recargar datos - la pauta ya está creada y el estado está correcto
       } else {
         toast.error('Error', response.error || 'Error al crear la pauta mensual');
       }
