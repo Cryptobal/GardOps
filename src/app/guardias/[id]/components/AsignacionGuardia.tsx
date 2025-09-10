@@ -87,41 +87,36 @@ export default function AsignacionGuardia({ guardiaId }: AsignacionGuardiaProps)
   };
 
   const formatearFecha = (fecha: string) => {
-    // CORREGIDO: Manejar fechas inválidas y zona horaria
+    // SIMPLIFICADO: Parsear fecha directamente sin zona horaria
     if (!fecha) return 'Fecha no disponible';
     
     try {
       console.log('🔍 Formateando fecha:', { fechaOriginal: fecha });
       
-      // Para fechas en formato YYYY-MM-DD, agregar hora del mediodía para evitar problemas de zona horaria
-      let fechaParseada;
+      // Parsear fecha como YYYY-MM-DD directamente
+      const [año, mes, dia] = fecha.split('-').map(Number);
       
-      if (fecha.includes('T')) {
-        fechaParseada = new Date(fecha);
-      } else {
-        // CORREGIDO: Usar mediodía para evitar cambios de día por zona horaria
-        fechaParseada = new Date(fecha + 'T12:00:00');
+      if (!año || !mes || !dia) {
+        console.warn('Formato de fecha inválido:', fecha);
+        return 'Formato inválido';
       }
       
-      console.log('🔍 Fecha parseada:', { 
-        fechaParseada, 
-        timestamp: fechaParseada.getTime(),
-        esValida: !isNaN(fechaParseada.getTime())
-      });
+      // Crear fecha local sin problemas de zona horaria
+      const fechaLocal = new Date(año, mes - 1, dia); // mes - 1 porque Date usa 0-11
       
-      // Verificar que la fecha sea válida
-      if (isNaN(fechaParseada.getTime())) {
-        console.warn('Fecha inválida recibida:', fecha);
-        return 'Fecha inválida';
-      }
-      
-      const fechaFormateada = fechaParseada.toLocaleDateString('es-ES', {
+      const fechaFormateada = fechaLocal.toLocaleDateString('es-ES', {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
       });
       
-      console.log('🔍 Fecha formateada:', fechaFormateada);
+      console.log('🔍 Fecha formateada:', {
+        entrada: fecha,
+        año, mes, dia,
+        fechaLocal,
+        resultado: fechaFormateada
+      });
+      
       return fechaFormateada;
       
     } catch (error) {

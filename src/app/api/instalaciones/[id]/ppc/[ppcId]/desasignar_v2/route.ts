@@ -44,8 +44,18 @@ export async function POST(
       instalacionId
     });
 
-    // 1. Terminar asignación en historial (NUEVO SISTEMA)
-    const fechaTermino = new Date().toISOString().split('T')[0];
+    // 1. Terminar asignación en historial (NUEVO SISTEMA) - FECHA LOCAL CHILE
+    const hoy = new Date();
+    const año = hoy.getFullYear();
+    const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoy.getDate()).padStart(2, '0');
+    const fechaTermino = `${año}-${mes}-${dia}`;
+    
+    console.log('🔍 [DESASIGNAR] Fecha de término calculada:', {
+      fechaTermino,
+      fechaActual: hoy.toLocaleDateString('es-CL')
+    });
+    
     const resultadoHistorial = await terminarAsignacionActual(
       guardiaId,
       fechaTermino,
