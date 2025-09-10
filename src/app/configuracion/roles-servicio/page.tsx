@@ -342,32 +342,29 @@ export default function RolesServicioPage() {
   // Extraer patrones únicos para el filtro
   const patronesDisponibles = extraerPatronesUnicos(roles);
   
-  // Temporalmente deshabilitar ordenamiento para debugging
-  const rolesFiltrados = filtrarRolesPorPatron(
+  // Aplicar ordenamiento visual continuo por patrón de turno
+  const rolesFiltrados = ordenarRolesPorPatron(filtrarRolesPorPatron(
     roles.filter(rol => {
       if (filtroEstado === 'activos') return rol.estado === 'Activo';
       if (filtroEstado === 'inactivos') return rol.estado === 'Inactivo';
       return true;
     }),
     filtroPatron
-  );
-  
-  // TODO: Rehabilitar ordenamiento cuando se resuelva el problema
-  // const rolesFiltrados = ordenarRolesPorPatron(filtrarRolesPorPatron(...));
+  ));
 
   // Debug: Log de filtros
   devLogger.search(' Filtros activos:', { filtroEstado, filtroPatron });
   devLogger.search(' Total roles:', roles.length, 'Roles filtrados:', rolesFiltrados.length);
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Roles de Servicio</h1>
+    <div className="container mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold">Roles de Servicio</h1>
         <div className="flex gap-2">
-          <Button onClick={cargarRoles} variant="outline" disabled={loading}>
+          <Button onClick={cargarRoles} variant="outline" disabled={loading} size="sm">
             {loading ? 'Cargando...' : 'Recargar'}
           </Button>
-          <Button onClick={exportarRoles} variant="outline">
+          <Button onClick={exportarRoles} variant="outline" size="sm">
             <Download className="w-4 h-4 mr-2" />
             Exportar
           </Button>
@@ -376,7 +373,7 @@ export default function RolesServicioPage() {
 
       {/* Estadísticas */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Total Roles</CardTitle>
@@ -412,33 +409,20 @@ export default function RolesServicioPage() {
         </div>
       )}
 
-      {/* Botón de Creación Moderno */}
-      <Card className="mb-6">
-        <CardContent className="p-8">
-          <div className="text-center">
-            <div className="mb-4">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Calendar className="h-8 w-8 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Crear Nuevo Rol de Servicio</h3>
-              <p className="text-gray-600 max-w-md mx-auto">
-                Configura horarios personalizados para cada día del ciclo de trabajo
-              </p>
-            </div>
-            <Button 
-              onClick={() => setShowWizardCrear(true)}
-              size="lg"
-              className="bg-blue-600 hover:bg-blue-700 px-8 py-4 text-base font-medium"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Crear Rol de Servicio
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Botón de Creación Simplificado */}
+      <div className="flex justify-center mb-4 sm:mb-6">
+        <Button 
+          onClick={() => setShowWizardCrear(true)}
+          size="lg"
+          className="bg-blue-600 hover:bg-blue-700 px-6 py-3 text-base font-medium"
+        >
+          <Plus className="h-5 w-5 mr-2" />
+          Crear Rol de Servicio
+        </Button>
+      </div>
 
-      {/* Filtros en una línea */}
-      <div className="flex gap-2 flex-wrap items-center">
+      {/* Filtros responsive */}
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 sm:flex-wrap sm:items-center">
         {/* Filtros de Estado */}
         <div className="flex gap-1">
           <Button
@@ -507,11 +491,11 @@ export default function RolesServicioPage() {
           {loading ? (
             <div className="text-center py-8">Cargando roles...</div>
           ) : (
-            <Table>
+            <div className="overflow-x-auto">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre</TableHead>
-                  <TableHead>Descripción</TableHead>
                   <TableHead>Turno</TableHead>
                   <TableHead>Horario</TableHead>
                   <TableHead>Horas/Sem</TableHead>
@@ -525,11 +509,6 @@ export default function RolesServicioPage() {
                   <TableRow key={rol.id}>
                     <TableCell>
                       <div className="font-medium">{rol.nombre}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm text-muted-foreground">
-                        {rol.nombre || 'Sin descripción'}
-                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
@@ -677,7 +656,8 @@ export default function RolesServicioPage() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
