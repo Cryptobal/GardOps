@@ -524,11 +524,18 @@ export default function PautaTable({
   const cargarGuardias = async () => {
     try {
       setCargandoGuardias(true);
-      logger.debug('🔄 Cargando guardias desde /api/guardias...');
-      const response = await fetch('/api/guardias');
+      logger.debug('🔄 Cargando guardias desde /api/guardias/disponibles...');
+      
+      // Usar la misma API que los otros módulos para consistencia
+      const fecha = new Date().toISOString().split('T')[0]; // Fecha actual en formato YYYY-MM-DD
+      const params = new URLSearchParams({
+        fecha
+      });
+      
+      const response = await fetch(`/api/guardias/disponibles?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Guardias cargados:', { 
+        console.log('✅ Guardias disponibles cargados:', { 
           data, 
           isArray: Array.isArray(data), 
           length: data?.length,
@@ -537,15 +544,15 @@ export default function PautaTable({
         });
         
         // La API devuelve {items: [...]}, no un array directo
-        const guardias = data?.items || [];
-        logger.debug('📋 Guardias procesados:', { guardias, length: guardias.length });
+        const guardias = data?.items || data?.guardias || data || [];
+        logger.debug('📋 Guardias disponibles procesados:', { guardias, length: guardias.length });
         setGuardiasDisponibles(guardias);
       } else {
-        console.error('❌ Error cargando guardias:', response.statusText);
+        console.error('❌ Error cargando guardias disponibles:', response.statusText);
         setGuardiasDisponibles([]);
       }
     } catch (error) {
-      console.error('❌ Error cargando guardias:', error);
+      console.error('❌ Error cargando guardias disponibles:', error);
       setGuardiasDisponibles([]);
     } finally {
       setCargandoGuardias(false);
