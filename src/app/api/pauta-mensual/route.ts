@@ -148,6 +148,16 @@ export async function GET(request: NextRequest) {
     `, [instalacion_id]);
     
     console.log(`[${timestamp}] 🔍 DEBUG - Puestos operativos encontrados:`, puestosResult.rows.length, 'puestos');
+    
+    // Si no hay puestos con guardias asignados, devolver array vacío
+    if (puestosResult.rows.length === 0) {
+      console.log(`[${timestamp}] ⚠️ DEBUG - No hay puestos con guardias asignados, devolviendo array vacío`);
+      return NextResponse.json({
+        success: true,
+        data: [],
+        message: 'No hay puestos operativos con guardias asignados en esta instalación'
+      });
+    }
 
     // Generar días del mes
     const diasDelMes = Array.from(
