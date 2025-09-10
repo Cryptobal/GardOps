@@ -372,6 +372,7 @@ export default function PautaMensualUnificadaPage() {
   // Cargar datos iniciales
   useEffect(() => {
     if (instalacionId) {
+      console.log('🔍 DEBUG - useEffect ejecutándose, llamando cargarDatos(false)');
       cargarDatos(false);
       cargarInstalacionesDisponibles();
     }
