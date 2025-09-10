@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Search, X, User, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ModalFechaInicioAsignacion from "@/components/ui/modal-fecha-inicio-asignacion";
 
 interface Guardia {
   id: string;
@@ -37,6 +38,9 @@ interface GuardiaSearchModalProps {
   fecha?: string;
   rolNombre?: string;
   instalacionNombrePauta?: string;
+  // Props para modal de fecha de inicio
+  onConfirmarAsignacionConFecha?: (fechaInicio: string, observaciones?: string) => void;
+  ppcId?: string;
 }
 
 const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
@@ -53,11 +57,18 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
   mode = 'instalaciones',
   fecha,
   rolNombre,
-  instalacionNombrePauta
+  instalacionNombrePauta,
+  // Props para modal de fecha de inicio
+  onConfirmarAsignacionConFecha,
+  ppcId
 }) => {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [showWarning, setShowWarning] = React.useState(false);
   const [guardiaConAdvertencia, setGuardiaConAdvertencia] = React.useState<Guardia | null>(null);
+  
+  // Estado para modal de fecha de inicio
+  const [showModalFechaInicio, setShowModalFechaInicio] = React.useState(false);
+  const [guardiaParaAsignar, setGuardiaParaAsignar] = React.useState<Guardia | null>(null);
 
   // DEBUGGING: Log del estado de guardias
   console.log('🔍 GuardiaSearchModal - Estado de guardias:', {
@@ -118,11 +129,25 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
 
   // Manejar selección de guardia - ACTUALIZADO PARA SOLICITAR FECHA INICIO
   const handleSelectGuardia = (guardia: Guardia) => {
+    console.log('🔍 GuardiaSearchModal - Seleccionando guardia:', {
+      guardia: guardia.nombre_completo,
+      mode,
+      tieneModalFecha: !!onConfirmarAsignacionConFecha,
+      ppcId
+    });
+    
     if (mode === 'pauta-diaria' || mode === 'pauta-mensual') {
-      // En Pauta Diaria y Pauta Mensual, no validamos instalaciones, solo seleccionamos
-      onSelectGuardia(guardia.id);
-      setSearchTerm("");
-      onClose();
+      // En Pauta Diaria y Pauta Mensual, verificar si necesitamos modal de fecha
+      if (onConfirmarAsignacionConFecha && ppcId) {
+        // Abrir modal de fecha de inicio
+        setGuardiaParaAsignar(guardia);
+        setShowModalFechaInicio(true);
+      } else {
+        // Comportamiento legacy - solo seleccionar
+        onSelectGuardia(guardia.id);
+        setSearchTerm("");
+        onClose();
+      }
     } else {
       // En instalaciones, verificar asignación actual real
       console.log('🔍 Verificando guardia:', {
@@ -137,10 +162,17 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
         setGuardiaConAdvertencia(guardia);
         setShowWarning(true);
       } else {
-        // Guardia disponible - asignar directamente (el modal de fecha se maneja en el componente padre)
-        onSelectGuardia(guardia.id);
-        setSearchTerm("");
-        onClose();
+        // Guardia disponible - verificar si necesitamos modal de fecha
+        if (onConfirmarAsignacionConFecha && ppcId) {
+          // Abrir modal de fecha de inicio
+          setGuardiaParaAsignar(guardia);
+          setShowModalFechaInicio(true);
+        } else {
+          // Comportamiento legacy - asignar directamente
+          onSelectGuardia(guardia.id);
+          setSearchTerm("");
+          onClose();
+        }
       }
     }
   };
@@ -282,6 +314,23 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
           </div>
         </CardContent>
       </Card>
+      
+      {/* Modal de fecha de inicio de asignación */}
+      {showModalFechaInicio && guardiaParaAsignar && onConfirmarAsignacionConFecha && (
+        <ModalFechaInicioAsignacion
+          isOpen={showModalFechaInicio}
+          onClose={() => {
+            setShowModalFechaInicio(false);
+            setGuardiaParaAsignar(null);
+          }}
+          onConfirmar={onConfirmarAsignacionConFecha}
+          guardiaNombre={guardiaParaAsignar.nombre_completo || 'Guardia'}
+          guardiaInstalacionActual={guardiaParaAsignar.instalacion_actual_nombre}
+          nuevaInstalacionNombre={instalacionNombrePauta || instalacionNombre || 'Instalación'}
+          nuevoRolServicioNombre={rolNombre || 'Rol'}
+          esReasignacion={!!guardiaParaAsignar.instalacion_actual_id}
+        />
+      )}
     </div>
   );
 };

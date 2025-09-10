@@ -14,6 +14,7 @@ import { GuardiaSearchModal } from "../../../components/ui/guardia-search-modal"
 import { useToast } from "../../../components/ui/toast";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ModalFechaInicioAsignacion from "../../../components/ui/modal-fecha-inicio-asignacion";
 
 interface PautaGuardia {
   id: string;
@@ -441,6 +442,17 @@ export default function PautaTable({
   // Estado para los guardias disponibles
   const [guardiasDisponibles, setGuardiasDisponibles] = useState<any[]>([]);
   const [cargandoGuardias, setCargandoGuardias] = useState(false);
+  
+  // Estado para modal de fecha de inicio
+  const [modalFechaInicio, setModalFechaInicio] = useState({
+    isOpen: false,
+    guardiaId: '',
+    guardiaNombre: '',
+    guardiaInstalacionActual: '',
+    ppcId: '',
+    instalacionNombre: '',
+    rolServicioNombre: ''
+  });
 
   const { toast } = useToast();
 
@@ -563,17 +575,48 @@ export default function PautaTable({
   const handleGuardiaSeleccionado = async (guardiaId: string) => {
     if (!asignacionModal.ppcData) return;
 
+    // NUEVA LÓGICA: Solicitar fecha de inicio antes de asignar
+    const guardiaInfo = guardiasDisponibles.find(g => g.id === guardiaId);
+    
+    console.log('🔍 Debug PautaTable - Abriendo modal fecha inicio:', {
+      guardiaId,
+      guardiaNombre: guardiaInfo?.nombre_completo,
+      ppcId: asignacionModal.ppcData.id,
+      instalacionNombre: asignacionModal.ppcData.nombre_puesto,
+      rolServicioNombre: asignacionModal.ppcData.rol_nombre
+    });
+    
+    setModalFechaInicio({
+      isOpen: true,
+      guardiaId: guardiaId,
+      guardiaNombre: guardiaInfo?.nombre_completo || 'Guardia',
+      guardiaInstalacionActual: guardiaInfo?.instalacion_actual_nombre || '',
+      ppcId: asignacionModal.ppcData.id,
+      instalacionNombre: asignacionModal.ppcData.nombre_puesto,
+      rolServicioNombre: asignacionModal.ppcData.rol_nombre
+    });
+  };
+
+  // Nueva función para confirmar asignación con fecha
+  const handleConfirmarAsignacionConFecha = async (fechaInicio: string, observaciones?: string) => {
     try {
-      devLogger.process(' Asignando guardia:', guardiaId, 'a PPC:', asignacionModal.ppcData.id);
+      devLogger.process(' Asignando guardia con fecha:', {
+        guardiaId: modalFechaInicio.guardiaId,
+        ppcId: modalFechaInicio.ppcId,
+        fechaInicio
+      });
       
-      const response = await fetch('/api/ppc/asignar', {
+      const response = await fetch('/api/ppc/asignar-simple', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          guardia_id: guardiaId,
-          puesto_operativo_id: asignacionModal.ppcData.id
+          guardia_id: modalFechaInicio.guardiaId,
+          puesto_operativo_id: modalFechaInicio.ppcId,
+          fecha_inicio: fechaInicio,
+          motivo_inicio: 'asignacion_pauta_mensual',
+          observaciones
         }),
       });
 
@@ -584,6 +627,17 @@ export default function PautaTable({
       }
       
       toast.success('Guardia asignado correctamente', 'Éxito');
+      
+      // Cerrar modales y limpiar estados
+      setModalFechaInicio({
+        isOpen: false,
+        guardiaId: '',
+        guardiaNombre: '',
+        guardiaInstalacionActual: '',
+        ppcId: '',
+        instalacionNombre: '',
+        rolServicioNombre: ''
+      });
       closeAsignacionModal();
       
       // Recargar la página para mostrar los cambios
@@ -924,9 +978,34 @@ export default function PautaTable({
             instalacionNombrePauta={asignacionModal.ppcData.nombre_puesto}
             rolNombre={asignacionModal.ppcData.rol_nombre}
             fecha={`${anio || new Date().getFullYear()}-${(mes || new Date().getMonth() + 1).toString().padStart(2, '0')}`}
+            onConfirmarAsignacionConFecha={handleConfirmarAsignacionConFecha}
+            ppcId={asignacionModal.ppcData.id}
           />
         </>
       )}
+
+      {/* Modal de fecha de inicio de asignación */}
+      <ModalFechaInicioAsignacion
+        isOpen={modalFechaInicio.isOpen}
+        onClose={() => {
+          console.log('🔍 Cerrando modal de fecha inicio en PautaTable');
+          setModalFechaInicio({
+            isOpen: false,
+            guardiaId: '',
+            guardiaNombre: '',
+            guardiaInstalacionActual: '',
+            ppcId: '',
+            instalacionNombre: '',
+            rolServicioNombre: ''
+          });
+        }}
+        onConfirmar={handleConfirmarAsignacionConFecha}
+        guardiaNombre={modalFechaInicio.guardiaNombre}
+        guardiaInstalacionActual={modalFechaInicio.guardiaInstalacionActual}
+        nuevaInstalacionNombre={modalFechaInicio.instalacionNombre}
+        nuevoRolServicioNombre={modalFechaInicio.rolServicioNombre}
+        esReasignacion={!!modalFechaInicio.guardiaInstalacionActual}
+      />
     </div>
   );
 } 
