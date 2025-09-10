@@ -838,11 +838,8 @@ export default function PPCPage() {
             columns={columns}
             loading={loading}
             emptyMessage="No se encontraron PPCs"
-            onRowClick={(ppc) => {
-              router.push(`/ppc/${ppc.id}`);
-            }}
             mobileCard={(ppc) => (
-              <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-3 mb-3">
                     <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
