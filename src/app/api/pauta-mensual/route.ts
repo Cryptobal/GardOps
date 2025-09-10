@@ -122,7 +122,6 @@ export async function GET(request: NextRequest) {
     const pautaQueryEnd = Date.now();
     logger.debug(`[${timestamp}] 🐌 Query pauta mensual: ${pautaQueryEnd - pautaQueryStart}ms, ${pautaResult.rows.length} registros encontrados`);
     
-    console.log(`[${timestamp}] 🔍 DEBUG - Pauta mensual encontrada:`, pautaResult.rows.length, 'registros');
 
     // Obtener TODOS los puestos operativos (incluyendo PPCs sin guardias asignados)
     const puestosResult = await query(`
@@ -146,15 +145,13 @@ export async function GET(request: NextRequest) {
       ORDER BY po.nombre_puesto
     `, [instalacion_id]);
     
-    console.log(`[${timestamp}] 🔍 DEBUG - Puestos operativos encontrados:`, puestosResult.rows.length, 'puestos');
     
-    // Si no hay puestos con guardias asignados, devolver array vacío
+    // Si no hay puestos operativos, devolver array vacío
     if (puestosResult.rows.length === 0) {
-      console.log(`[${timestamp}] ⚠️ DEBUG - No hay puestos con guardias asignados, devolviendo array vacío`);
       return NextResponse.json({
         success: true,
         data: [],
-        message: 'No hay puestos operativos con guardias asignados en esta instalación'
+        message: 'No hay puestos operativos en esta instalación'
       });
     }
 
@@ -167,13 +164,10 @@ export async function GET(request: NextRequest) {
     logger.debug(`[${timestamp}] 📅 Generando pauta para ${diasDelMes.length} días del mes`);
 
     // Crear pauta en el formato esperado por el frontend
-    console.log(`[${timestamp}] 🔍 DEBUG - Iniciando creación de pauta para ${puestosResult.rows.length} puestos`);
-    
     const pauta = puestosResult.rows.map((puesto: any) => {
       // Buscar registros de pauta para este puesto específico
       const pautaPuesto = pautaResult.rows.filter((p: any) => p.puesto_id === puesto.puesto_id);
       
-      console.log(`[${timestamp}] 🔍 Puesto ${puesto.puesto_id} (${puesto.nombre_puesto}): ${pautaPuesto.length} registros encontrados`);
       
       // Crear array de días para este puesto - LÓGICA ESTÁNDAR ACTUALIZADA
       const dias = diasDelMes.map(dia => {

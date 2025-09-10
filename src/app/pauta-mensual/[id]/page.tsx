@@ -216,7 +216,6 @@ export default function PautaMensualUnificadaPage() {
         const pautaResponse = await obtenerPautaMensual(instalacionId, anio, mes);
         
         if (pautaResponse && instalacionInfo) {
-          console.log('🔍 DEBUG - Pauta existe, estableciendo pautaExiste = true');
           setPautaExiste(true);
           
           const diasDelMesArray = Array.from(
@@ -298,7 +297,6 @@ export default function PautaMensualUnificadaPage() {
             const diaSemana = fecha.toLocaleDateString('es-ES', { weekday: 'short' });
             return { dia, diaSemana, esFeriado: false };
           });
-          console.log('🔍 DEBUG - diasSemanaArray generado:', diasSemanaArray.slice(0, 7)); // Solo primeros 7 días
           setDiasSemana(diasSemanaArray);
 
           // Crear estructura inicial con días vacíos - se llenará automáticamente
@@ -336,14 +334,10 @@ export default function PautaMensualUnificadaPage() {
           setPautaDataOriginal(JSON.parse(JSON.stringify(pautaInicial)));
         } else {
           // No hay pauta existente, establecer estado correcto solo si no está ya en true
-          console.log('🔍 DEBUG - No hay pauta existente, verificando si resetear pautaExiste');
-          // No resetear si ya está en true (puede ser que se haya generado recientemente)
           setPautaExiste(prev => {
             if (prev === true) {
-              console.log('🔍 DEBUG - Manteniendo pautaExiste = true (ya estaba establecido)');
-              return true;
+              return true; // Mantener estado true si ya estaba establecido
             } else {
-              console.log('🔍 DEBUG - Estableciendo pautaExiste = false');
               return false;
             }
           });
@@ -381,7 +375,6 @@ export default function PautaMensualUnificadaPage() {
   // Cargar datos iniciales - SOLO UNA VEZ al montar el componente
   useEffect(() => {
     if (instalacionId) {
-      console.log('🔍 DEBUG - useEffect ejecutándose, cargando datos iniciales');
       cargarDatos(false);
       cargarInstalacionesDisponibles();
     }
@@ -400,7 +393,6 @@ export default function PautaMensualUnificadaPage() {
       
       if (response.success) {
         toast.success('Pauta creada', 'La pauta mensual se ha creado exitosamente');
-        console.log('🔍 DEBUG - Pauta generada exitosamente, estableciendo pautaExiste = true');
         setPautaExiste(true);
         
         // No recargar datos - la pauta ya está creada y el estado está correcto
@@ -769,7 +761,6 @@ export default function PautaMensualUnificadaPage() {
         </div>
         
         <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2">
-          {console.log('🔍 DEBUG - Renderizando botones, pautaExiste:', pautaExiste, 'editando:', editando)}
           {pautaExiste ? (
             <>
               {!editando ? (
