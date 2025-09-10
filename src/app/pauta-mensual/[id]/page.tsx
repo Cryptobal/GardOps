@@ -378,17 +378,14 @@ export default function PautaMensualUnificadaPage() {
     }
   };
 
-  // Cargar datos iniciales
+  // Cargar datos iniciales - SOLO UNA VEZ al montar el componente
   useEffect(() => {
     if (instalacionId) {
-      console.log('🔍 DEBUG - useEffect ejecutándose, llamando cargarDatos(false)');
-      // Solo cargar datos si no estamos en medio de generar una pauta
-      if (!generando) {
-        cargarDatos(false);
-      }
+      console.log('🔍 DEBUG - useEffect ejecutándose, cargando datos iniciales');
+      cargarDatos(false);
       cargarInstalacionesDisponibles();
     }
-  }, [instalacionId, anio, mes, generando]);
+  }, [instalacionId]); // Solo dependencia de instalacionId
 
   const generarPauta = async () => {
     if (!instalacion) return;
