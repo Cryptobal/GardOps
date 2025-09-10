@@ -298,6 +298,7 @@ export default function PautaMensualUnificadaPage() {
             const diaSemana = fecha.toLocaleDateString('es-ES', { weekday: 'short' });
             return { dia, diaSemana, esFeriado: false };
           });
+          console.log('🔍 DEBUG - diasSemanaArray generado:', diasSemanaArray);
           setDiasSemana(diasSemanaArray);
 
           // Crear estructura inicial con días vacíos - se llenará automáticamente
@@ -759,6 +760,7 @@ export default function PautaMensualUnificadaPage() {
         </div>
         
         <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2">
+          {console.log('🔍 DEBUG - Renderizando botones, pautaExiste:', pautaExiste, 'editando:', editando)}
           {pautaExiste ? (
             <>
               {!editando ? (
