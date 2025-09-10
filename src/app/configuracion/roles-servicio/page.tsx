@@ -491,173 +491,305 @@ export default function RolesServicioPage() {
           {loading ? (
             <div className="text-center py-8">Cargando roles...</div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Turno</TableHead>
-                  <TableHead>Horario</TableHead>
-                  <TableHead>Horas/Sem</TableHead>
-                  <TableHead>Jornada</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rolesFiltrados.map((rol) => (
-                  <TableRow key={rol.id}>
-                    <TableCell>
-                      <div className="font-medium">{rol.nombre}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {rol.dias_trabajo}x{rol.dias_descanso}x{rol.horas_turno}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                        <div className="text-sm">
-                          {(() => {
-                            // Obtener series específicas de este rol
-                            const seriesDelRol = seriesPorRol.get(rol.id) || [];
-                            const infoJornada = obtenerInfoJornada(rol, seriesDelRol);
-                            
-                            if (infoJornada.resumenHorario.esVariable) {
-                              // Generar contenido específico con horarios reales
-                              const contenidoEspecifico = seriesDelRol.length > 0 ? 
-                                seriesDelRol
-                                  .filter(s => s.es_dia_trabajo)
-                                  .map(s => {
-                                    const nombreDia = s.posicion_en_ciclo === 1 ? 'Lunes' :
-                                                     s.posicion_en_ciclo === 2 ? 'Martes' :
-                                                     s.posicion_en_ciclo === 3 ? 'Miércoles' :
-                                                     s.posicion_en_ciclo === 4 ? 'Jueves' :
-                                                     s.posicion_en_ciclo === 5 ? 'Viernes' :
-                                                     s.posicion_en_ciclo === 6 ? 'Sábado' :
-                                                     s.posicion_en_ciclo === 7 ? 'Domingo' :
-                                                     `Día ${s.posicion_en_ciclo}`;
-                                    return `${nombreDia}: ${s.hora_inicio?.slice(0,5)} - ${s.hora_termino?.slice(0,5)}`;
-                                  }) :
-                                [
-                                  'Este rol tiene horarios personalizados',
-                                  'Cada día del ciclo puede ser diferente',
-                                  `Promedio: ${rol.horas_turno}h por día de trabajo`
-                                ];
-                              
-                              return (
+            <>
+              {/* Vista Mobile: Tarjetas */}
+              <div className="block sm:hidden space-y-3">
+                {rolesFiltrados.map((rol) => {
+                  const seriesDelRol = seriesPorRol.get(rol.id) || [];
+                  const infoJornada = obtenerInfoJornada(rol, seriesDelRol);
+                  
+                  return (
+                    <Card key={rol.id} className="p-4">
+                      <div className="space-y-3">
+                        {/* Header con nombre y estado */}
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-base">{rol.nombre}</h3>
+                            <div className="text-sm text-gray-600 mt-1">
+                              {rol.dias_trabajo}x{rol.dias_descanso}x{rol.horas_turno}
+                            </div>
+                          </div>
+                          <Badge variant={rol.estado === 'Activo' ? 'default' : 'secondary'} className="ml-2">
+                            {rol.estado}
+                          </Badge>
+                        </div>
+                        
+                        {/* Información del horario */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium">Horario:</span>
+                            <span className="text-sm">
+                              {infoJornada.resumenHorario.esVariable ? (
                                 <TooltipSimple
                                   titulo="Horarios Variables"
-                                  contenido={contenidoEspecifico}
+                                  contenido={seriesDelRol.length > 0 ? 
+                                    seriesDelRol
+                                      .filter(s => s.es_dia_trabajo)
+                                      .map(s => {
+                                        const nombreDia = s.posicion_en_ciclo === 1 ? 'Lunes' :
+                                                         s.posicion_en_ciclo === 2 ? 'Martes' :
+                                                         s.posicion_en_ciclo === 3 ? 'Miércoles' :
+                                                         s.posicion_en_ciclo === 4 ? 'Jueves' :
+                                                         s.posicion_en_ciclo === 5 ? 'Viernes' :
+                                                         s.posicion_en_ciclo === 6 ? 'Sábado' :
+                                                         s.posicion_en_ciclo === 7 ? 'Domingo' :
+                                                         `Día ${s.posicion_en_ciclo}`;
+                                        return `${nombreDia}: ${s.hora_inicio?.slice(0,5)} - ${s.hora_termino?.slice(0,5)}`;
+                                      }) :
+                                    [
+                                      'Este rol tiene horarios personalizados',
+                                      'Cada día del ciclo puede ser diferente',
+                                      `Promedio: ${rol.horas_turno}h por día de trabajo`
+                                    ]
+                                  }
                                   esVariable={true}
                                 >
                                   <span className="flex items-center gap-1">
                                     {infoJornada.resumenHorario.texto}
-                                    <span className="text-blue-500 text-xs">*</span>
-                                    <Clock className="h-3 w-3 text-blue-400 ml-1" />
+                                    <Clock className="h-3 w-3 text-blue-400" />
                                   </span>
                                 </TooltipSimple>
+                              ) : (
+                                infoJornada.resumenHorario.texto
+                              )}
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium">Horas/Sem:</span>
+                            <span className="text-sm font-medium">{infoJornada.horasSemanales}h</span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium">Jornada:</span>
+                            <Badge 
+                              variant={
+                                infoJornada.colorIndicador === 'green' ? 'default' :
+                                infoJornada.colorIndicador === 'orange' ? 'secondary' : 'destructive'
+                              }
+                              className={
+                                infoJornada.colorIndicador === 'green' ? 'bg-green-100 text-green-800' :
+                                infoJornada.colorIndicador === 'orange' ? 'bg-orange-100 text-orange-800' : 
+                                'bg-red-100 text-red-800'
+                              }
+                            >
+                              {infoJornada.tipoJornada}
+                            </Badge>
+                          </div>
+                        </div>
+                        
+                        {/* Acciones */}
+                        <div className="flex gap-2 pt-2 border-t">
+                          {(() => {
+                            const analisis = analizarTodosLosRoles(roles);
+                            const rolAnalizado = analisis.find(r => r.rol.id === rol.id);
+                            
+                            if (rolAnalizado && !rolAnalizado.tieneSimil && rolAnalizado.tipoSimil) {
+                              return (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleReplicarRol(rol, rolAnalizado.tipoSimil!)}
+                                  title={`Crear turno ${rolAnalizado.tipoSimil}`}
+                                  className="text-purple-600 hover:text-purple-700 flex-1"
+                                >
+                                  {rolAnalizado.tipoSimil === 'nocturno' ? (
+                                    <Moon className="w-4 h-4 mr-1" />
+                                  ) : (
+                                    <Sun className="w-4 h-4 mr-1" />
+                                  )}
+                                  {rolAnalizado.tipoSimil === 'nocturno' ? 'Crear Noche' : 'Crear Día'}
+                                </Button>
                               );
                             }
-                            
-                            return (
-                              <span>
-                                {infoJornada.resumenHorario.texto}
-                              </span>
-                            );
+                            return null;
                           })()}
-                        </div>
-                    </TableCell>
-                    
-                    {/* Nueva columna: Horas Semanales */}
-                    <TableCell>
-                      {(() => {
-                        const seriesDelRol = seriesPorRol.get(rol.id) || [];
-                        const infoJornada = obtenerInfoJornada(rol, seriesDelRol);
-                        return (
-                          <div className="text-sm">
-                            <div className="font-medium">{infoJornada.horasSemanales}h</div>
-                            {infoJornada.requiereColacion && (
-                              <div className="text-xs text-gray-500">
-                                ({infoJornada.horasConColacion}h + colación)
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </TableCell>
-                    
-                    {/* Nueva columna: Tipo de Jornada */}
-                    <TableCell>
-                      {(() => {
-                        const seriesDelRol = seriesPorRol.get(rol.id) || [];
-                        const infoJornada = obtenerInfoJornada(rol, seriesDelRol);
-                        return (
-                          <Badge 
-                            variant={
-                              infoJornada.colorIndicador === 'green' ? 'default' :
-                              infoJornada.colorIndicador === 'orange' ? 'secondary' : 'destructive'
-                            }
-                            title={infoJornada.descripcion}
-                            className={
-                              infoJornada.colorIndicador === 'green' ? 'bg-green-100 text-green-800' :
-                              infoJornada.colorIndicador === 'orange' ? 'bg-orange-100 text-orange-800' : 
-                              'bg-red-100 text-red-800'
-                            }
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleActivarInactivar(rol)}
+                            title={rol.estado === 'Activo' ? 'Inactivar rol' : 'Activar rol'}
+                            className="flex-1"
                           >
-                            {infoJornada.tipoJornada}
-                          </Badge>
-                        );
-                      })()}
-                    </TableCell>
-                    
-                    <TableCell>
-                      <Badge variant={rol.estado === 'Activo' ? 'default' : 'secondary'}>
-                        {rol.estado}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        {/* Botón de editar eliminado - roles no se pueden editar una vez creados */}
-                        <div></div>
-                            {/* Botón de replicación inteligente */}
+                            {rol.estado === 'Activo' ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
+                            {rol.estado === 'Activo' ? 'Inactivar' : 'Activar'}
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+              
+              {/* Vista Desktop: Tabla */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nombre</TableHead>
+                    <TableHead>Turno</TableHead>
+                    <TableHead>Horario</TableHead>
+                    <TableHead>Horas/Sem</TableHead>
+                    <TableHead>Jornada</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rolesFiltrados.map((rol) => (
+                    <TableRow key={rol.id}>
+                      <TableCell>
+                        <div className="font-medium">{rol.nombre}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {rol.dias_trabajo}x{rol.dias_descanso}x{rol.horas_turno}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                          <div className="text-sm">
                             {(() => {
-                              const analisis = analizarTodosLosRoles(roles);
-                              const rolAnalizado = analisis.find(r => r.rol.id === rol.id);
+                              // Obtener series específicas de este rol
+                              const seriesDelRol = seriesPorRol.get(rol.id) || [];
+                              const infoJornada = obtenerInfoJornada(rol, seriesDelRol);
                               
-                              if (rolAnalizado && !rolAnalizado.tieneSimil && rolAnalizado.tipoSimil) {
+                              if (infoJornada.resumenHorario.esVariable) {
+                                // Generar contenido específico con horarios reales
+                                const contenidoEspecifico = seriesDelRol.length > 0 ? 
+                                  seriesDelRol
+                                    .filter(s => s.es_dia_trabajo)
+                                    .map(s => {
+                                      const nombreDia = s.posicion_en_ciclo === 1 ? 'Lunes' :
+                                                       s.posicion_en_ciclo === 2 ? 'Martes' :
+                                                       s.posicion_en_ciclo === 3 ? 'Miércoles' :
+                                                       s.posicion_en_ciclo === 4 ? 'Jueves' :
+                                                       s.posicion_en_ciclo === 5 ? 'Viernes' :
+                                                       s.posicion_en_ciclo === 6 ? 'Sábado' :
+                                                       s.posicion_en_ciclo === 7 ? 'Domingo' :
+                                                       `Día ${s.posicion_en_ciclo}`;
+                                      return `${nombreDia}: ${s.hora_inicio?.slice(0,5)} - ${s.hora_termino?.slice(0,5)}`;
+                                    }) :
+                                  [
+                                    'Este rol tiene horarios personalizados',
+                                    'Cada día del ciclo puede ser diferente',
+                                    `Promedio: ${rol.horas_turno}h por día de trabajo`
+                                  ];
+                                
                                 return (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleReplicarRol(rol, rolAnalizado.tipoSimil!)}
-                                    title={`Crear turno ${rolAnalizado.tipoSimil}`}
-                                    className="text-purple-600 hover:text-purple-700"
+                                  <TooltipSimple
+                                    titulo="Horarios Variables"
+                                    contenido={contenidoEspecifico}
+                                    esVariable={true}
                                   >
-                                    {rolAnalizado.tipoSimil === 'nocturno' ? (
-                                      <Moon className="w-4 h-4" />
-                                    ) : (
-                                      <Sun className="w-4 h-4" />
-                                    )}
-                                  </Button>
+                                    <span className="flex items-center gap-1">
+                                      {infoJornada.resumenHorario.texto}
+                                      <span className="text-blue-500 text-xs">*</span>
+                                      <Clock className="h-3 w-3 text-blue-400 ml-1" />
+                                    </span>
+                                  </TooltipSimple>
                                 );
                               }
-                              return null;
+                              
+                              return (
+                                <span>
+                                  {infoJornada.resumenHorario.texto}
+                                </span>
+                              );
                             })()}
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleActivarInactivar(rol)}
-                              title={rol.estado === 'Activo' ? 'Inactivar rol' : 'Activar rol'}
+                          </div>
+                      </TableCell>
+                      
+                      {/* Nueva columna: Horas Semanales */}
+                      <TableCell>
+                        {(() => {
+                          const seriesDelRol = seriesPorRol.get(rol.id) || [];
+                          const infoJornada = obtenerInfoJornada(rol, seriesDelRol);
+                          return (
+                            <div className="text-sm">
+                              <div className="font-medium">{infoJornada.horasSemanales}h</div>
+                              {infoJornada.requiereColacion && (
+                                <div className="text-xs text-gray-500">
+                                  ({infoJornada.horasConColacion}h + colación)
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </TableCell>
+                      
+                      {/* Nueva columna: Tipo de Jornada */}
+                      <TableCell>
+                        {(() => {
+                          const seriesDelRol = seriesPorRol.get(rol.id) || [];
+                          const infoJornada = obtenerInfoJornada(rol, seriesDelRol);
+                          return (
+                            <Badge 
+                              variant={
+                                infoJornada.colorIndicador === 'green' ? 'default' :
+                                infoJornada.colorIndicador === 'orange' ? 'secondary' : 'destructive'
+                              }
+                              title={infoJornada.descripcion}
+                              className={
+                                infoJornada.colorIndicador === 'green' ? 'bg-green-100 text-green-800' :
+                                infoJornada.colorIndicador === 'orange' ? 'bg-orange-100 text-orange-800' : 
+                                'bg-red-100 text-red-800'
+                              }
                             >
-                              {rol.estado === 'Activo' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              </Table>
-            </div>
+                              {infoJornada.tipoJornada}
+                            </Badge>
+                          );
+                        })()}
+                      </TableCell>
+                      
+                      <TableCell>
+                        <Badge variant={rol.estado === 'Activo' ? 'default' : 'secondary'}>
+                          {rol.estado}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          {/* Botón de editar eliminado - roles no se pueden editar una vez creados */}
+                          <div></div>
+                              {/* Botón de replicación inteligente */}
+                              {(() => {
+                                const analisis = analizarTodosLosRoles(roles);
+                                const rolAnalizado = analisis.find(r => r.rol.id === rol.id);
+                                
+                                if (rolAnalizado && !rolAnalizado.tieneSimil && rolAnalizado.tipoSimil) {
+                                  return (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleReplicarRol(rol, rolAnalizado.tipoSimil!)}
+                                      title={`Crear turno ${rolAnalizado.tipoSimil}`}
+                                      className="text-purple-600 hover:text-purple-700"
+                                    >
+                                      {rolAnalizado.tipoSimil === 'nocturno' ? (
+                                        <Moon className="w-4 h-4" />
+                                      ) : (
+                                        <Sun className="w-4 h-4" />
+                                      )}
+                                    </Button>
+                                  );
+                                }
+                                return null;
+                              })()}
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleActivarInactivar(rol)}
+                                title={rol.estado === 'Activo' ? 'Inactivar rol' : 'Activar rol'}
+                              >
+                                {rol.estado === 'Activo' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
