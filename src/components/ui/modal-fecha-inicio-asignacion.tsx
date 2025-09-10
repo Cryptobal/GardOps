@@ -36,8 +36,12 @@ export default function ModalFechaInicioAsignacion({
 }: ModalFechaInicioAsignacionProps) {
   
   const [fechaInicio, setFechaInicio] = useState(() => {
-    // Por defecto, fecha actual
-    return new Date().toISOString().split('T')[0];
+    // Por defecto, fecha actual en zona horaria local (Chile)
+    const hoy = new Date();
+    const año = hoy.getFullYear();
+    const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoy.getDate()).padStart(2, '0');
+    return `${año}-${mes}-${dia}`;
   });
   
   const [observaciones, setObservaciones] = useState('');
@@ -47,6 +51,12 @@ export default function ModalFechaInicioAsignacion({
     if (!fechaInicio) {
       return;
     }
+    
+    console.log('🔍 [MODAL-FECHA] Confirmando con fecha:', {
+      fechaSeleccionada: fechaInicio,
+      fechaActual: new Date().toLocaleDateString('es-CL'),
+      observaciones
+    });
     
     setLoading(true);
     try {
@@ -61,7 +71,12 @@ export default function ModalFechaInicioAsignacion({
 
   const handleClose = () => {
     if (!loading) {
-      setFechaInicio(new Date().toISOString().split('T')[0]);
+      // Resetear a fecha actual en zona horaria local (Chile)
+      const hoy = new Date();
+      const año = hoy.getFullYear();
+      const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+      const dia = String(hoy.getDate()).padStart(2, '0');
+      setFechaInicio(`${año}-${mes}-${dia}`);
       setObservaciones('');
       onClose();
     }

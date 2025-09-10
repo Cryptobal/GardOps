@@ -82,7 +82,14 @@ export async function POST(request: NextRequest) {
       const instalacion_id = puestoCheck.rows[0].instalacion_id;
       const fechaInicioFinal = fecha_inicio || new Date().toISOString().split('T')[0];
       
-      console.log('🔍 [SIMPLE] Registrando en historial...');
+      console.log('🔍 [SIMPLE] Registrando en historial...', {
+        guardia_id,
+        instalacion_id,
+        puesto_operativo_id,
+        fechaInicioFinal,
+        fechaOriginal: fecha_inicio
+      });
+      
       await query(`
         INSERT INTO historial_asignaciones_guardias (
           guardia_id, instalacion_id, puesto_id, fecha_inicio,
@@ -90,7 +97,7 @@ export async function POST(request: NextRequest) {
         ) VALUES ($1, $2, $3, $4, 'fija', 'asignacion_ppc_simple', 'activa', 'Asignación desde PPC con fecha')
       `, [guardia_id, instalacion_id, puesto_operativo_id, fechaInicioFinal]);
       
-      console.log('✅ [SIMPLE] Historial registrado');
+      console.log('✅ [SIMPLE] Historial registrado con fecha:', fechaInicioFinal);
     } catch (historialError) {
       console.log('⚠️ [SIMPLE] Error en historial (no crítico):', historialError);
     }
