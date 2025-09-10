@@ -91,14 +91,23 @@ export default function AsignacionGuardia({ guardiaId }: AsignacionGuardiaProps)
     if (!fecha) return 'Fecha no disponible';
     
     try {
-      // Intentar diferentes formatos de fecha
+      console.log('🔍 Formateando fecha:', { fechaOriginal: fecha });
+      
+      // Para fechas en formato YYYY-MM-DD, agregar hora del mediodía para evitar problemas de zona horaria
       let fechaParseada;
       
       if (fecha.includes('T')) {
         fechaParseada = new Date(fecha);
       } else {
+        // CORREGIDO: Usar mediodía para evitar cambios de día por zona horaria
         fechaParseada = new Date(fecha + 'T12:00:00');
       }
+      
+      console.log('🔍 Fecha parseada:', { 
+        fechaParseada, 
+        timestamp: fechaParseada.getTime(),
+        esValida: !isNaN(fechaParseada.getTime())
+      });
       
       // Verificar que la fecha sea válida
       if (isNaN(fechaParseada.getTime())) {
@@ -106,11 +115,15 @@ export default function AsignacionGuardia({ guardiaId }: AsignacionGuardiaProps)
         return 'Fecha inválida';
       }
       
-      return fechaParseada.toLocaleDateString('es-ES', {
+      const fechaFormateada = fechaParseada.toLocaleDateString('es-ES', {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
       });
+      
+      console.log('🔍 Fecha formateada:', fechaFormateada);
+      return fechaFormateada;
+      
     } catch (error) {
       console.error('Error formateando fecha:', fecha, error);
       return 'Error en fecha';
@@ -254,6 +267,8 @@ export default function AsignacionGuardia({ guardiaId }: AsignacionGuardiaProps)
                     <div className="flex items-center gap-2">
                       <Building className="h-4 w-4 text-muted-foreground" />
                       <h4 className="font-medium">{asignacion.instalacion_nombre}</h4>
+                      {/* NUEVO: ID de asignación (sutil) */}
+                      <span className="text-xs text-gray-400 font-mono">#{asignacion.id}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       {obtenerEstadoBadge(asignacion.estado)}
@@ -271,14 +286,18 @@ export default function AsignacionGuardia({ guardiaId }: AsignacionGuardiaProps)
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="text-muted-foreground">Inicio:</span>
-                      <span className="font-medium">{formatearFecha(asignacion.fecha_inicio)}</span>
+                      <span className="font-medium" title={`Fecha original: ${asignacion.fecha_inicio}`}>
+                        {formatearFecha(asignacion.fecha_inicio)}
+                      </span>
                     </div>
                     
-                    {asignacion.fecha_fin && (
+                    {asignacion.fecha_termino && (
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Fin:</span>
-                        <span className="font-medium">{formatearFecha(asignacion.fecha_fin)}</span>
+                        <span className="text-muted-foreground">Término:</span>
+                        <span className="font-medium" title={`Fecha original: ${asignacion.fecha_termino}`}>
+                          {formatearFecha(asignacion.fecha_termino)}
+                        </span>
                       </div>
                     )}
                   </div>
