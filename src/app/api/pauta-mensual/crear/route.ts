@@ -77,8 +77,12 @@ export async function POST(request: NextRequest) {
     const pautasParaInsertar = [];
     
     for (const puesto of puestosResult.rows) {
+      console.log(`🔍 Procesando puesto: ${puesto.nombre_puesto}, Guardia ID: ${puesto.guardia_id}, Es PPC: ${puesto.es_ppc}`);
+      
       // Solo crear pauta para puestos que tengan guardia asignado
       if (puesto.guardia_id) {
+        console.log(`✅ Puesto ${puesto.nombre_puesto} tiene guardia asignado, creando pauta...`);
+        
         for (const dia of diasDelMes) {
           // Aplicar patrón de turno automáticamente
           let estado = '';
@@ -86,6 +90,7 @@ export async function POST(request: NextRequest) {
           if (puesto.patron_turno) {
             // Aplicar lógica de patrón de turno
             estado = aplicarPatronTurno(puesto.patron_turno, dia, parseInt(anio), parseInt(mes));
+            console.log(`📅 Día ${dia}: patrón "${puesto.patron_turno}" -> estado "${estado}"`);
           }
           
           // Solo insertar si el estado no está vacío (es decir, si hay un patrón válido)
@@ -98,6 +103,8 @@ export async function POST(request: NextRequest) {
             });
           }
         }
+      } else {
+        console.log(`❌ Puesto ${puesto.nombre_puesto} NO tiene guardia asignado, saltando...`);
       }
       // Para PPCs sin guardia asignada, NO crear registros automáticamente
       // La pauta debe estar vacía hasta que se asigne un guardia
@@ -182,24 +189,24 @@ function aplicarPatronTurno(rolCompleto: string, dia: number, anio: number, mes:
   // Patrón 4x4 (4 días trabajando, 4 días libres)
   if (patron === '4x4') {
     const diaDelCiclo = ((dia - 1) % 8) + 1;
-    return diaDelCiclo <= 4 ? 'trabajado' : 'libre';
+    return diaDelCiclo <= 4 ? 'planificado' : 'libre';
   }
   
   // Patrón 5x2 (5 días trabajando, 2 días libres)
   if (patron === '5x2') {
     const diaDelCiclo = ((dia - 1) % 7) + 1;
-    return diaDelCiclo <= 5 ? 'trabajado' : 'libre';
+    return diaDelCiclo <= 5 ? 'planificado' : 'libre';
   }
   
   // Patrón 6x1 (6 días trabajando, 1 día libre)
   if (patron === '6x1') {
     const diaDelCiclo = ((dia - 1) % 7) + 1;
-    return diaDelCiclo <= 6 ? 'trabajado' : 'libre';
+    return diaDelCiclo <= 6 ? 'planificado' : 'libre';
   }
   
   // Patrón L-V (Lunes a Viernes)
   if (patron === 'L-V') {
-    return (diaSemana >= 1 && diaSemana <= 5) ? 'trabajado' : 'libre';
+    return (diaSemana >= 1 && diaSemana <= 5) ? 'planificado' : 'libre';
   }
   
   // Por defecto, días sin asignar
