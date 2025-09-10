@@ -15,6 +15,7 @@ interface ModalExitoAsignacionProps {
     instalacion: string;
     rol: string;
     horario: string;
+    fechaInicio?: string; // NUEVO: Fecha de inicio de asignación
   };
 }
 
@@ -109,6 +110,25 @@ export default function ModalExitoAsignacion({
                   {ppcInfo.horario}
                 </span>
               </div>
+              
+              {/* NUEVO: Fecha de inicio */}
+              {ppcInfo.fechaInicio && (
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 flex items-center justify-center">
+                    <span className="text-green-600 dark:text-green-400 text-sm">📅</span>
+                  </div>
+                  <span className="text-sm text-green-600 dark:text-green-300 font-medium">
+                    Fecha de inicio:
+                  </span>
+                  <span className="text-green-800 dark:text-green-200 font-semibold">
+                    {new Date(ppcInfo.fechaInicio).toLocaleDateString('es-ES', {
+                      year: 'numeric',
+                      month: 'long', 
+                      day: 'numeric'
+                    })}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

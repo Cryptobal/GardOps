@@ -418,19 +418,23 @@ export default function PPCPage() {
       // Encontrar información del PPC para obtener el horario
       const ppcActual = ppcs.find(p => p.id === modalGuardias.ppcId);
       
-      // Mostrar modal de éxito con información detallada
-      setModalExito({
+      // Mostrar modal de éxito con información detallada - USAR DATOS GUARDADOS
+      const datosModalExito = {
         isOpen: true,
         guardiaInfo: {
-          nombre: guardiaSeleccionado?.nombre_completo || 'Guardia',
+          nombre: modalFechaInicio.guardiaNombre || guardiaSeleccionado?.nombre_completo || 'Guardia',
           rut: guardiaSeleccionado?.rut || ''
         },
         ppcInfo: {
-          instalacion: modalGuardias.instalacionNombre,
-          rol: modalGuardias.rolServicioNombre,
-          horario: ppcActual?.horario || '08:00 - 20:00'
+          instalacion: modalFechaInicio.instalacionNombre, // USAR DATOS GUARDADOS
+          rol: modalFechaInicio.rolServicioNombre, // USAR DATOS GUARDADOS  
+          horario: ppcActual?.horario || '08:00 - 20:00',
+          fechaInicio: fechaInicio // AGREGAR FECHA DE INICIO
         }
-      });
+      };
+      
+      console.log('🔍 Datos para modal de éxito:', datosModalExito);
+      setModalExito(datosModalExito);
       
       onAsignacionCompletada();
       
