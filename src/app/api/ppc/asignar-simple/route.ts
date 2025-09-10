@@ -93,8 +93,8 @@ export async function POST(request: NextRequest) {
       await query(`
         INSERT INTO historial_asignaciones_guardias (
           guardia_id, instalacion_id, puesto_id, fecha_inicio,
-          tipo_asignacion, motivo_inicio, estado, observaciones
-        ) VALUES ($1, $2, $3, $4, 'fija', 'asignacion_ppc_simple', 'activa', 'Asignación desde PPC con fecha')
+          tipo_asignacion, motivo_inicio, estado, observaciones, tenant_id
+        ) VALUES ($1, $2, $3, $4, 'fija', 'asignacion_ppc_simple', 'activa', 'Asignación desde PPC con fecha', obtener_tenant_id_actual())
       `, [guardia_id, instalacion_id, puesto_operativo_id, fechaInicioFinal]);
       
       console.log('✅ [SIMPLE] Historial registrado con fecha:', fechaInicioFinal);
