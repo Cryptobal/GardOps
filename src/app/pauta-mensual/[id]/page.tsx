@@ -332,6 +332,9 @@ export default function PautaMensualUnificadaPage() {
             
           setPautaData(pautaInicial);
           setPautaDataOriginal(JSON.parse(JSON.stringify(pautaInicial)));
+        } else {
+          // No hay pauta existente, establecer estado correcto
+          setPautaExiste(false);
         }
       }
 

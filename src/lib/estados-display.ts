@@ -278,6 +278,21 @@ export function mapearEstadoLegacyADisplay(estado: string, cobertura?: any, esPP
       return mapearEstadoOperacionADisplay("permiso_con_goce_no_cubierto");
     case "m":
       return mapearEstadoOperacionADisplay("licencia_no_cubierto");
+    case "":
+    case null:
+    case undefined:
+      return {
+        icon: "",
+        text: "",
+        className: "bg-transparent border-0",
+        iconColor: "text-transparent",
+        tooltip: "Sin asignar",
+        badgeConfig: {
+          label: "Sin asignar",
+          variant: "secondary",
+          color: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900 dark:text-gray-200"
+        }
+      };
     default:
       return mapearEstadoOperacionADisplay("planificado");
   }
