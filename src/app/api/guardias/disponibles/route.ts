@@ -21,12 +21,7 @@ export async function GET(request: NextRequest) {
     );
   }
   
-  if (!instalacion_id) {
-    return NextResponse.json(
-      { error: 'El parámetro "instalacion_id" es obligatorio' },
-      { status: 400 }
-    );
-  }
+  // instalacion_id es opcional - si no está presente se buscarán guardias sin filtro de instalación
   
   // rol_id es opcional, si no está presente se buscarán guardias sin filtro de rol
   
