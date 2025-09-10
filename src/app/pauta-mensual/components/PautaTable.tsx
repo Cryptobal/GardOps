@@ -605,12 +605,18 @@ export default function PautaTable({
   };
 
   // Nueva función para confirmar asignación con fecha
-  const handleConfirmarAsignacionConFecha = async (fechaInicio: string, observaciones?: string) => {
+  const handleConfirmarAsignacionConFecha = async (fechaInicio: string, observaciones?: string, guardia?: any) => {
     try {
+      // Usar los datos del guardia pasados directamente o del estado
+      const guardiaId = guardia?.id || modalFechaInicio.guardiaId;
+      const ppcId = modalFechaInicio.ppcId;
+
       devLogger.process(' Asignando guardia con fecha:', {
-        guardiaId: modalFechaInicio.guardiaId,
-        ppcId: modalFechaInicio.ppcId,
-        fechaInicio
+        guardiaId,
+        ppcId,
+        fechaInicio,
+        guardiaPasado: !!guardia,
+        estadoModal: modalFechaInicio
       });
       
       const response = await fetch('/api/ppc/asignar-simple', {
@@ -619,8 +625,8 @@ export default function PautaTable({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          guardia_id: modalFechaInicio.guardiaId,
-          puesto_operativo_id: modalFechaInicio.ppcId,
+          guardia_id: guardiaId,
+          puesto_operativo_id: ppcId,
           fecha_inicio: fechaInicio,
           motivo_inicio: 'asignacion_pauta_mensual',
           observaciones
