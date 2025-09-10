@@ -121,7 +121,7 @@ export default function ModalExitoAsignacion({
                     Fecha de inicio:
                   </span>
                   <span className="text-green-800 dark:text-green-200 font-semibold">
-                    {new Date(ppcInfo.fechaInicio).toLocaleDateString('es-ES', {
+                    {new Date(ppcInfo.fechaInicio + 'T12:00:00').toLocaleDateString('es-ES', {
                       year: 'numeric',
                       month: 'long', 
                       day: 'numeric'

@@ -82,7 +82,8 @@ export default function AsignacionGuardia({ guardiaId }: AsignacionGuardiaProps)
   };
 
   const formatearFecha = (fecha: string) => {
-    return new Date(fecha).toLocaleDateString('es-ES', {
+    // CORREGIDO: Agregar hora para evitar problemas de zona horaria
+    return new Date(fecha + 'T12:00:00').toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
