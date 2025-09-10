@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/toast';
 import { UserPlus } from 'lucide-react';
 import { asignarGuardiaPPC } from '@/lib/api/instalaciones';
 import ConfirmacionReasignacionModal from '@/components/ui/confirmacion-reasignacion-modal';
+import ModalFechaInicioAsignacion from '@/components/ui/modal-fecha-inicio-asignacion';
 
 interface AsignarGuardiaDropdownProps {
   instalacionId: string;
@@ -35,6 +36,17 @@ export default function AsignarGuardiaDropdown({
   const [showConfirmacionModal, setShowConfirmacionModal] = useState(false);
   const [asignacionActual, setAsignacionActual] = useState<any>(null);
   const [guardiaSeleccionado, setGuardiaSeleccionado] = useState<string>('');
+  
+  // Estado para modal de fecha de inicio
+  const [modalFechaInicio, setModalFechaInicio] = useState({
+    isOpen: false,
+    guardiaId: '',
+    guardiaNombre: '',
+    guardiaInstalacionActual: '',
+    ppcId: '',
+    instalacionNombre: '',
+    rolServicioNombre: ''
+  });
 
   // Cargar guardias cuando se abre el modal
   useEffect(() => {
@@ -69,20 +81,50 @@ export default function AsignarGuardiaDropdown({
   };
 
   const handleSelectGuardia = async (guardiaId: string) => {
-    setGuardiaSeleccionado(guardiaId);
+    // NUEVA LÓGICA: Solicitar fecha de inicio antes de asignar
+    const guardiaInfo = guardias.find(g => g.id === guardiaId);
     
+    console.log('🔍 Debug AsignarGuardiaDropdown - Abriendo modal fecha inicio:', {
+      guardiaId,
+      guardiaNombre: guardiaInfo?.nombre_completo,
+      ppcId,
+      instalacionNombre,
+      rolServicioNombre
+    });
+    
+    setModalFechaInicio({
+      isOpen: true,
+      guardiaId: guardiaId,
+      guardiaNombre: guardiaInfo?.nombre_completo || 'Guardia',
+      guardiaInstalacionActual: guardiaInfo?.instalacion_actual_nombre || '',
+      ppcId: ppcId,
+      instalacionNombre: instalacionNombre,
+      rolServicioNombre: rolServicioNombre
+    });
+  };
+
+  // Nueva función para confirmar asignación con fecha
+  const handleConfirmarAsignacionConFecha = async (fechaInicio: string, observaciones?: string) => {
     try {
       setLoading(true);
       
-      // Intentar asignar el guardia
-      const response = await fetch('/api/ppc/asignar', {
+      console.log('🔍 Debug AsignarGuardiaDropdown - Asignando con fecha:', {
+        guardiaId: modalFechaInicio.guardiaId,
+        ppcId: modalFechaInicio.ppcId,
+        fechaInicio
+      });
+      
+      const response = await fetch('/api/ppc/asignar-simple', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          guardia_id: guardiaId,
-          puesto_operativo_id: ppcId
+          guardia_id: modalFechaInicio.guardiaId,
+          puesto_operativo_id: modalFechaInicio.ppcId,
+          fecha_inicio: fechaInicio,
+          motivo_inicio: 'asignacion_instalacion',
+          observaciones
         }),
       });
 
@@ -93,6 +135,15 @@ export default function AsignarGuardiaDropdown({
           // El guardia ya está asignado, mostrar modal de confirmación
           setAsignacionActual(data.asignacion_actual);
           setShowConfirmacionModal(true);
+          setModalFechaInicio({
+            isOpen: false,
+            guardiaId: '',
+            guardiaNombre: '',
+            guardiaInstalacionActual: '',
+            ppcId: '',
+            instalacionNombre: '',
+            rolServicioNombre: ''
+          });
           setModalOpen(false);
           setLoading(false);
           return;
@@ -101,8 +152,19 @@ export default function AsignarGuardiaDropdown({
       }
       
       toast.success('Guardia asignado correctamente', 'Éxito');
-      onAsignacionCompletada();
+      
+      // Cerrar modales y limpiar estados
+      setModalFechaInicio({
+        isOpen: false,
+        guardiaId: '',
+        guardiaNombre: '',
+        guardiaInstalacionActual: '',
+        ppcId: '',
+        instalacionNombre: '',
+        rolServicioNombre: ''
+      });
       setModalOpen(false);
+      onAsignacionCompletada();
     } catch (error) {
       logger.error('Error asignando guardia::', error);
       toast.error('No se pudo asignar el guardia', 'Error');
@@ -177,6 +239,8 @@ export default function AsignarGuardiaDropdown({
         title="Seleccionar Guardia"
         instalacionId={instalacionId}
         instalacionNombre={instalacionNombre}
+        onConfirmarAsignacionConFecha={handleConfirmarAsignacionConFecha}
+        ppcId={ppcId}
       />
 
       {/* Modal de confirmación de reasignación */}
@@ -191,6 +255,29 @@ export default function AsignarGuardiaDropdown({
           nuevoRolServicioNombre={rolServicioNombre}
         />
       )}
+
+      {/* Modal de fecha de inicio de asignación */}
+      <ModalFechaInicioAsignacion
+        isOpen={modalFechaInicio.isOpen}
+        onClose={() => {
+          console.log('🔍 Cerrando modal de fecha inicio en AsignarGuardiaDropdown');
+          setModalFechaInicio({
+            isOpen: false,
+            guardiaId: '',
+            guardiaNombre: '',
+            guardiaInstalacionActual: '',
+            ppcId: '',
+            instalacionNombre: '',
+            rolServicioNombre: ''
+          });
+        }}
+        onConfirmar={handleConfirmarAsignacionConFecha}
+        guardiaNombre={modalFechaInicio.guardiaNombre}
+        guardiaInstalacionActual={modalFechaInicio.guardiaInstalacionActual}
+        nuevaInstalacionNombre={modalFechaInicio.instalacionNombre}
+        nuevoRolServicioNombre={modalFechaInicio.rolServicioNombre}
+        esReasignacion={!!modalFechaInicio.guardiaInstalacionActual}
+      />
     </>
   );
 } 
