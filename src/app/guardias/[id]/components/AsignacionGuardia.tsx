@@ -3,6 +3,7 @@
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ export default function AsignacionGuardia({ guardiaId }: AsignacionGuardiaProps)
   const [loading, setLoading] = useState(true);
   const [asignacionActual, setAsignacionActual] = useState<Asignacion | null>(null);
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     cargarAsignaciones();
@@ -179,6 +181,11 @@ export default function AsignacionGuardia({ guardiaId }: AsignacionGuardiaProps)
     );
   };
 
+  const handleInstalacionClick = (instalacionId: string) => {
+    console.log('🔍 Navegando a instalación:', instalacionId);
+    router.push(`/instalaciones/${instalacionId}`);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -204,7 +211,12 @@ export default function AsignacionGuardia({ guardiaId }: AsignacionGuardiaProps)
               <div className="flex items-center gap-2">
                 <Building className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium">{asignacionActual.instalacion_nombre}</p>
+                  <button
+                    onClick={() => handleInstalacionClick(asignacionActual.instalacion_id)}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline cursor-pointer transition-colors"
+                  >
+                    {asignacionActual.instalacion_nombre}
+                  </button>
                   <p className="text-xs text-muted-foreground">Instalación</p>
                 </div>
               </div>
@@ -281,7 +293,12 @@ export default function AsignacionGuardia({ guardiaId }: AsignacionGuardiaProps)
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <Building className="h-4 w-4 text-muted-foreground" />
-                      <h4 className="font-medium">{asignacion.instalacion_nombre}</h4>
+                      <button
+                        onClick={() => handleInstalacionClick(asignacion.instalacion_id)}
+                        className="font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline cursor-pointer transition-colors"
+                      >
+                        {asignacion.instalacion_nombre}
+                      </button>
                       {/* NUEVO: ID de asignación (sutil) */}
                       <span className="text-xs text-gray-400 font-mono">#{asignacion.id}</span>
                     </div>
