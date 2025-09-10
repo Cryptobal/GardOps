@@ -97,6 +97,48 @@ export async function POST(
       // No fallar la operación, pero registrar el error
     }
 
+    // 4. LIMPIAR REGISTROS FANTASMA ADICIONALES - NUEVA FUNCIONALIDAD
+    console.log('🧹 [DESASIGNAR] Limpiando registros fantasma adicionales...');
+    try {
+      // Buscar y limpiar otros registros fantasma del mismo guardia para hoy
+      const registrosFantasma = await query(`
+        SELECT pm.id, pm.puesto_id, pm.guardia_id, pm.estado, pm.estado_ui, pm.anio, pm.mes, pm.dia,
+               po.nombre_puesto, po.guardia_id as puesto_guardia_id, po.es_ppc, po.instalacion_id,
+               i.nombre as instalacion_nombre
+        FROM as_turnos_pauta_mensual pm
+        LEFT JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
+        LEFT JOIN instalaciones i ON po.instalacion_id = i.id
+        WHERE pm.guardia_id = $1 AND pm.anio = 2025 AND pm.mes = 9 AND pm.dia = 10
+          AND pm.guardia_id IS NOT NULL
+          AND (po.guardia_id IS NULL OR po.guardia_id != pm.guardia_id OR po.es_ppc = true)
+      `, [guardiaId]);
+      
+      if (registrosFantasma.rows.length > 0) {
+        console.log(`🧹 [DESASIGNAR] Encontrados ${registrosFantasma.rows.length} registros fantasma adicionales`);
+        
+        for (const registro of registrosFantasma.rows) {
+          console.log(`🧹 [DESASIGNAR] Limpiando fantasma: ${registro.instalacion_nombre} - ${registro.nombre_puesto}`);
+          
+          // Limpiar el registro fantasma
+          await query(`
+            UPDATE as_turnos_pauta_mensual 
+            SET guardia_id = NULL,
+                estado = 'libre',
+                estado_ui = 'ppc',
+                updated_at = NOW()
+            WHERE id = $1
+          `, [registro.id]);
+        }
+        
+        console.log('✅ [DESASIGNAR] Registros fantasma limpiados correctamente');
+      } else {
+        console.log('✅ [DESASIGNAR] No se encontraron registros fantasma adicionales');
+      }
+    } catch (error) {
+      console.error('❌ [DESASIGNAR] Error limpiando registros fantasma:', error);
+      // No fallar la operación principal
+    }
+
     logger.debug(`✅ Guardia ${guardiaId} desasignado del puesto ${ppcId} correctamente`);
 
     return NextResponse.json({
