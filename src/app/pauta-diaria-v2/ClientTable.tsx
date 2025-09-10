@@ -724,19 +724,14 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
 
   const filtered = useMemo(() => {
     return (rows ?? []).filter((r:any) => {
-      // 🔍 DEBUG: Log para verificar estado_ui
-      if (!mostrarLibres) {
-        console.log(`🔍 Filtro "Ver libres": puesto=${r.puesto_nombre}, estado_ui=${r.estado_ui}, estado=${r.estado}`);
-      }
-      
-      // Filtrar filas con estado_ui === 'libre' cuando mostrarLibres === false
+      // Filtrar filas con estado === 'libre' cuando mostrarLibres === false
       // PERO SIEMPRE mostrar turnos "extra" (Turno Extra morado)
-      if (!mostrarLibres && r.estado_ui === 'libre') return false;
+      if (!mostrarLibres && r.estado === 'libre') return false;
 
       if (f.instalacion && `${r.instalacion_id}` !== f.instalacion && r.instalacion_nombre !== f.instalacion) return false;
       if (f.estado && f.estado !== 'todos') {
-        // Ahora usamos estado_ui directamente para filtrar
-        if (r.estado_ui !== f.estado) return false;
+        // Usar estado directamente para filtrar
+        if (r.estado !== f.estado) return false;
       }
       if (f.ppc !== 'all') {
         const want = f.ppc === true;
