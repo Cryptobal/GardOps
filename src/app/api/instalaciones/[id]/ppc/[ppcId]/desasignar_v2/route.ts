@@ -81,10 +81,23 @@ export async function POST(
     
     console.log('✅ [DESASIGNAR] Puesto liberado correctamente');
 
-    logger.debug(`✅ Guardia ${guardiaId} desasignado del puesto ${ppcId} correctamente`);
+    // 3. SINCRONIZAR PAUTA MENSUAL - CRÍTICO PARA PAUTA DIARIA
+    console.log('🔄 [DESASIGNAR] Iniciando sincronización de pauta mensual...');
+    const resultadoSync = await sincronizarPautasPostAsignacion(
+      ppcId,
+      null, // guardiaId = null para desasignación
+      instalacionId,
+      puestoData.rol_id
+    );
+    
+    if (resultadoSync.success) {
+      console.log('✅ [DESASIGNAR] Pauta mensual sincronizada correctamente');
+    } else {
+      console.error('❌ [DESASIGNAR] Error en sincronización:', resultadoSync.error);
+      // No fallar la operación, pero registrar el error
+    }
 
-    // SIMPLIFICADO: Sin sincronización por ahora para evitar errores
-    console.log('✅ [DESASIGNAR] Desasignación completada sin sincronización');
+    logger.debug(`✅ Guardia ${guardiaId} desasignado del puesto ${ppcId} correctamente`);
 
     return NextResponse.json({
       success: true,
