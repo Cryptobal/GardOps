@@ -285,7 +285,7 @@ export function mapearEstadoLegacyADisplay(estado: string, cobertura?: any, esPP
         icon: "",
         text: "",
         className: "bg-transparent border-0",
-        iconColor: "text-transparent",
+        iconColor: "text-gray-300 dark:text-gray-600",
         tooltip: "Sin asignar",
         badgeConfig: {
           label: "Sin asignar",
