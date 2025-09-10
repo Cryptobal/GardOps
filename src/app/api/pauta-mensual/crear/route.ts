@@ -77,33 +77,30 @@ export async function POST(request: NextRequest) {
     const pautasParaInsertar = [];
     
     for (const puesto of puestosResult.rows) {
-      // Solo crear pauta para puestos que tengan guardia asignado o sean PPCs
-      if (puesto.guardia_id || puesto.es_ppc) {
+      // Solo crear pauta para puestos que tengan guardia asignado
+      if (puesto.guardia_id) {
         for (const dia of diasDelMes) {
           // Aplicar patrón de turno automáticamente
           let estado = '';
           
-          if (puesto.guardia_id && puesto.patron_turno) {
+          if (puesto.patron_turno) {
             // Aplicar lógica de patrón de turno
             estado = aplicarPatronTurno(puesto.patron_turno, dia, parseInt(anio), parseInt(mes));
           }
           
-          // Para PPCs sin guardia asignada, establecer estado como 'libre' por defecto
-          if (puesto.es_ppc && !puesto.guardia_id) {
-            estado = 'libre';
-          }
-          
-          // Solo insertar si el estado no está vacío
+          // Solo insertar si el estado no está vacío (es decir, si hay un patrón válido)
           if (estado) {
             pautasParaInsertar.push({
               puesto_id: puesto.puesto_id,
-              guardia_id: puesto.guardia_id || puesto.puesto_id, // Para PPCs, usar el puesto_id como guardia_id
+              guardia_id: puesto.guardia_id,
               dia: parseInt(dia.toString()),
               estado: estado
             });
           }
         }
       }
+      // Para PPCs sin guardia asignada, NO crear registros automáticamente
+      // La pauta debe estar vacía hasta que se asigne un guardia
     }
 
     // Insertar todas las pautas
