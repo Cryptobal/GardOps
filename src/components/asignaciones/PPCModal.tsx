@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, X, MapPin, Clock, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ModalExitoAsignacion from '../ui/modal-exito-asignacion';
+import ModalFechaInicioAsignacion from '../ui/modal-fecha-inicio-asignacion';
 
 interface PPC {
   id: string;
@@ -78,6 +79,12 @@ export default function PPCModal({
     ppc: null as PPC | null
   });
 
+  // Estado para modal de fecha de inicio de asignación
+  const [modalFechaInicio, setModalFechaInicio] = useState({
+    isOpen: false,
+    ppc: null as PPC | null
+  });
+
   useEffect(() => {
     if (isOpen && instalacionId) {
       cargarPPCs();
@@ -126,17 +133,34 @@ export default function PPCModal({
     });
   };
 
-  const handleAsignarPermanente = async (ppc: PPC) => {
+  const handleAsignarPermanente = (ppc: PPC) => {
+    // Abrir modal de fecha de inicio en lugar de asignar directamente
+    setModalFechaInicio({
+      isOpen: true,
+      ppc: ppc
+    });
+  };
+
+  const handleConfirmarAsignacionConFecha = async (fechaInicio: string, observaciones?: string) => {
+    if (!modalFechaInicio.ppc) return;
+
     try {
-      setAsignando(ppc.id);
-      logger.debug('🟦 Asignación permanente:', { guardia_id: guardia.id, puesto_operativo_id: ppc.id });
+      setAsignando(modalFechaInicio.ppc.id);
+      logger.debug('🟦 Asignación permanente con fecha:', { 
+        guardia_id: guardia.id, 
+        puesto_operativo_id: modalFechaInicio.ppc.id,
+        fecha_inicio: fechaInicio
+      });
       
-      const response = await fetch('/api/ppc/asignar', {
+      const response = await fetch('/api/ppc/asignar-simple', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           guardia_id: guardia.id,
-          puesto_operativo_id: ppc.id
+          puesto_operativo_id: modalFechaInicio.ppc.id,
+          fecha_inicio: fechaInicio,
+          motivo_inicio: 'asignacion_buscador_ggss',
+          observaciones
         })
       });
 
@@ -151,7 +175,13 @@ export default function PPCModal({
         throw new Error(errorMessage);
       }
 
-      mostrarModalExito('permanente', ppc, null);
+      // Cerrar modal de fecha
+      setModalFechaInicio({
+        isOpen: false,
+        ppc: null
+      });
+
+      mostrarModalExito('permanente', modalFechaInicio.ppc, null);
       
     } catch (error) {
       logger.error('Error asignando guardia permanente::', error);
@@ -461,6 +491,20 @@ export default function PPCModal({
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Modal de fecha de inicio de asignación */}
+      {modalFechaInicio.isOpen && modalFechaInicio.ppc && (
+        <ModalFechaInicioAsignacion
+          isOpen={modalFechaInicio.isOpen}
+          onClose={() => setModalFechaInicio({ isOpen: false, ppc: null })}
+          onConfirmar={handleConfirmarAsignacionConFecha}
+          guardiaNombre={guardia.nombre}
+          guardiaInstalacionActual=""
+          nuevaInstalacionNombre={modalFechaInicio.ppc.instalacion}
+          nuevoRolServicioNombre={modalFechaInicio.ppc.rol}
+          esReasignacion={false}
+        />
       )}
 
       {/* Modal de éxito de asignación */}
