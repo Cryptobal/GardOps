@@ -349,7 +349,8 @@ export default function RolesServicioPage() {
       if (filtroEstado === 'inactivos') return rol.estado === 'Inactivo';
       return true;
     }),
-    filtroPatron
+    filtroPatron,
+    patronesDisponibles
   ));
 
   // Debug: Log de filtros
@@ -421,65 +422,153 @@ export default function RolesServicioPage() {
         </Button>
       </div>
 
-      {/* Filtros responsive */}
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 sm:flex-wrap sm:items-center">
-        {/* Filtros de Estado */}
-        <div className="flex gap-1">
-          <Button
-            variant={filtroEstado === 'todos' ? 'default' : 'outline'}
-            onClick={() => setFiltroEstado('todos')}
-            size="sm"
-          >
-            Todos ({roles.length})
-          </Button>
-          <Button
-            variant={filtroEstado === 'activos' ? 'default' : 'outline'}
-            onClick={() => setFiltroEstado('activos')}
-            size="sm"
-          >
-            Activos ({roles.filter(r => r.estado === 'Activo').length})
-          </Button>
-          <Button
-            variant={filtroEstado === 'inactivos' ? 'default' : 'outline'}
-            onClick={() => setFiltroEstado('inactivos')}
-            size="sm"
-          >
-            Inactivos ({roles.filter(r => r.estado === 'Inactivo').length})
-          </Button>
+      {/* Filtros Mobile-First */}
+      <div className="space-y-3 sm:space-y-0">
+        {/* Vista Mobile: Filtros en columnas */}
+        <div className="block sm:hidden space-y-3">
+          {/* Filtro de Estado */}
+          <div>
+            <Label className="text-sm font-medium mb-2 block">Estado</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <Button
+                variant={filtroEstado === 'todos' ? 'default' : 'outline'}
+                onClick={() => setFiltroEstado('todos')}
+                size="sm"
+                className="text-xs"
+              >
+                Todos ({roles.length})
+              </Button>
+              <Button
+                variant={filtroEstado === 'activos' ? 'default' : 'outline'}
+                onClick={() => setFiltroEstado('activos')}
+                size="sm"
+                className="text-xs"
+              >
+                Activos ({roles.filter(r => r.estado === 'Activo').length})
+              </Button>
+              <Button
+                variant={filtroEstado === 'inactivos' ? 'default' : 'outline'}
+                onClick={() => setFiltroEstado('inactivos')}
+                size="sm"
+                className="text-xs"
+              >
+                Inactivos ({roles.filter(r => r.estado === 'Inactivo').length})
+              </Button>
+            </div>
+          </div>
+
+          {/* Filtro de Patrón */}
+          {patronesDisponibles.length > 0 && (
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Tipo de Turno</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant={filtroPatron === 'todos' ? 'default' : 'outline'}
+                  onClick={() => setFiltroPatron('todos')}
+                  size="sm"
+                  className="text-xs"
+                >
+                  Todos
+                </Button>
+                {patronesDisponibles.slice(0, 3).map(patron => {
+                  const count = roles.filter(rol => {
+                    const info = extraerPatronTurno(rol.nombre);
+                    return info.patron === patron;
+                  }).length;
+                  
+                  return (
+                    <Button
+                      key={patron}
+                      variant={filtroPatron === patron ? 'default' : 'outline'}
+                      onClick={() => setFiltroPatron(patron)}
+                      size="sm"
+                      className="text-xs"
+                    >
+                      {patron} ({count})
+                    </Button>
+                  );
+                })}
+                {patronesDisponibles.length > 3 && (
+                  <Button
+                    variant={filtroPatron === 'otros' ? 'default' : 'outline'}
+                    onClick={() => setFiltroPatron('otros')}
+                    size="sm"
+                    className="text-xs col-span-2"
+                  >
+                    Otros ({patronesDisponibles.slice(3).reduce((acc, patron) => {
+                      const count = roles.filter(rol => {
+                        const info = extraerPatronTurno(rol.nombre);
+                        return info.patron === patron;
+                      }).length;
+                      return acc + count;
+                    }, 0)})
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Separador */}
-        <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-2"></div>
-
-        {/* Filtros de Patrón */}
-        {patronesDisponibles.length > 0 && (
-          <div className="flex gap-1 flex-wrap">
+        {/* Vista Desktop: Filtros en fila */}
+        <div className="hidden sm:flex sm:gap-2 sm:flex-wrap sm:items-center">
+          {/* Filtros de Estado */}
+          <div className="flex gap-1">
             <Button
-              variant={filtroPatron === 'todos' ? 'default' : 'outline'}
-              onClick={() => setFiltroPatron('todos')}
+              variant={filtroEstado === 'todos' ? 'default' : 'outline'}
+              onClick={() => setFiltroEstado('todos')}
               size="sm"
             >
-              Todos los Patrones
+              Todos ({roles.length})
             </Button>
-            {patronesDisponibles.map(patron => {
-              const count = roles.filter(rol => {
-                const info = extraerPatronTurno(rol.nombre);
-                return info.patron === patron;
-              }).length;
-              
-              return (
-                <Button
-                  key={patron}
-                  variant={filtroPatron === patron ? 'default' : 'outline'}
-                  onClick={() => setFiltroPatron(patron)}
-                  size="sm"
-                >
-                  {patron} ({count})
-                </Button>
-              );
-            })}
+            <Button
+              variant={filtroEstado === 'activos' ? 'default' : 'outline'}
+              onClick={() => setFiltroEstado('activos')}
+              size="sm"
+            >
+              Activos ({roles.filter(r => r.estado === 'Activo').length})
+            </Button>
+            <Button
+              variant={filtroEstado === 'inactivos' ? 'default' : 'outline'}
+              onClick={() => setFiltroEstado('inactivos')}
+              size="sm"
+            >
+              Inactivos ({roles.filter(r => r.estado === 'Inactivo').length})
+            </Button>
           </div>
-        )}
+
+          {/* Separador */}
+          <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-2"></div>
+
+          {/* Filtros de Patrón */}
+          {patronesDisponibles.length > 0 && (
+            <div className="flex gap-1 flex-wrap">
+              <Button
+                variant={filtroPatron === 'todos' ? 'default' : 'outline'}
+                onClick={() => setFiltroPatron('todos')}
+                size="sm"
+              >
+                Todos los Patrones
+              </Button>
+              {patronesDisponibles.map(patron => {
+                const count = roles.filter(rol => {
+                  const info = extraerPatronTurno(rol.nombre);
+                  return info.patron === patron;
+                }).length;
+                
+                return (
+                  <Button
+                    key={patron}
+                    variant={filtroPatron === patron ? 'default' : 'outline'}
+                    onClick={() => setFiltroPatron(patron)}
+                    size="sm"
+                  >
+                    {patron} ({count})
+                  </Button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tabla de Roles */}

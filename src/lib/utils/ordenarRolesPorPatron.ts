@@ -225,12 +225,22 @@ export function extraerPatronesUnicos(roles: RolServicio[]): string[] {
 /**
  * Filtra roles por patrón específico
  * @param roles - Array de roles de servicio
- * @param patronFiltro - Patrón a filtrar (ej: "4x4", "5x2")
+ * @param patronFiltro - Patrón a filtrar (ej: "4x4", "5x2", "otros")
+ * @param patronesDisponibles - Array de patrones disponibles para filtro "otros"
  * @returns Array de roles que coinciden con el patrón
  */
-export function filtrarRolesPorPatron(roles: RolServicio[], patronFiltro: string): RolServicio[] {
+export function filtrarRolesPorPatron(roles: RolServicio[], patronFiltro: string, patronesDisponibles?: string[]): RolServicio[] {
   if (!patronFiltro || patronFiltro === 'todos') {
     return roles;
+  }
+  
+  if (patronFiltro === 'otros' && patronesDisponibles) {
+    // Filtrar roles que NO están en los primeros 3 patrones más comunes
+    const patronesPrincipales = patronesDisponibles.slice(0, 3);
+    return roles.filter(rol => {
+      const info = extraerPatronTurno(rol.nombre);
+      return !patronesPrincipales.includes(info.patron);
+    });
   }
   
   return roles.filter(rol => {
