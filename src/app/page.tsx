@@ -126,6 +126,7 @@ export default function HomePage() {
   // Escuchar cambios en otras pestañas
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
+      logger.debug('🔍 Storage event detected:', { key: e.key, newValue: e.newValue });
       if ((e.key === 'pauta-diaria-update' || e.key === 'central-monitoreo-update') && e.newValue) {
         logger.debug('🔄 Actualización detectada desde otra pestaña - Recargando KPIs');
         cargarKPIs();
@@ -134,6 +135,16 @@ export default function HomePage() {
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Auto-refresh cada 30 segundos para mantener KPIs actualizados
+  useEffect(() => {
+    const interval = setInterval(() => {
+      logger.debug('🔄 Auto-refresh de KPIs (cada 30 segundos)');
+      cargarKPIs();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   return (

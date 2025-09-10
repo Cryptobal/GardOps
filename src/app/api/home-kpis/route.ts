@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     
     logger.debug(`🔍 Obteniendo KPIs de página de inicio para fecha: ${anio}/${mes}/${dia}`);
 
-    // Obtener KPIs de monitoreo en tiempo real
+    // Obtener KPIs de monitoreo en tiempo real - EXCLUYENDO TURNOS LIBRES
     const { rows } = await pool.query(`
       SELECT 
         COUNT(*) as total_turnos,
@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
       INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       WHERE pm.anio = $1 AND pm.mes = $2 AND pm.dia = $3
         AND po.activo = true
+        AND NOT (pm.estado = 'libre' OR pm.estado_operacion = 'libre')
     `, [anio, mes, dia]);
 
     // Obtener KPIs del Central de Monitoreo usando EXACTAMENTE la misma lógica que el endpoint de la Central
