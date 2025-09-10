@@ -123,7 +123,7 @@ export default function HomePage() {
   }, []);
 
 
-  // Escuchar cambios en otras pestañas
+  // Escuchar cambios en otras pestañas y en la misma pestaña
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       logger.debug('🔍 Storage event detected:', { key: e.key, newValue: e.newValue });
@@ -133,16 +133,29 @@ export default function HomePage() {
       }
     };
 
+    const handleCustomEvent = (e: CustomEvent) => {
+      logger.debug('🔍 Custom event detected:', e.detail);
+      logger.debug('🔄 Actualización detectada desde la misma pestaña - Recargando KPIs');
+      cargarKPIs();
+    };
+
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('pauta-diaria-update', handleCustomEvent as EventListener);
+    window.addEventListener('central-monitoreo-update', handleCustomEvent as EventListener);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('pauta-diaria-update', handleCustomEvent as EventListener);
+      window.removeEventListener('central-monitoreo-update', handleCustomEvent as EventListener);
+    };
   }, []);
 
-  // Auto-refresh cada 30 segundos para mantener KPIs actualizados
+  // Auto-refresh cada 5 segundos para mantener KPIs actualizados (temporal para testing)
   useEffect(() => {
     const interval = setInterval(() => {
-      logger.debug('🔄 Auto-refresh de KPIs (cada 30 segundos)');
+      logger.debug('🔄 Auto-refresh de KPIs (cada 5 segundos)');
       cargarKPIs();
-    }, 30000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);

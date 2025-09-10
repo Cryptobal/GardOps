@@ -277,6 +277,11 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
         };
         localStorage.setItem('pauta-diaria-update', JSON.stringify(updateNotification));
         
+        // También disparar evento personalizado para la misma pestaña
+        window.dispatchEvent(new CustomEvent('pauta-diaria-update', { 
+          detail: updateNotification 
+        }));
+        
         // Recargar datos para mostrar el cambio
         await cargarDatos();
       } else {
