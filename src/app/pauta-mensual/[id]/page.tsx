@@ -335,9 +335,18 @@ export default function PautaMensualUnificadaPage() {
           setPautaData(pautaInicial);
           setPautaDataOriginal(JSON.parse(JSON.stringify(pautaInicial)));
         } else {
-          // No hay pauta existente, establecer estado correcto
-          console.log('🔍 DEBUG - No hay pauta existente, estableciendo pautaExiste = false');
-          setPautaExiste(false);
+          // No hay pauta existente, establecer estado correcto solo si no está ya en true
+          console.log('🔍 DEBUG - No hay pauta existente, verificando si resetear pautaExiste');
+          // No resetear si ya está en true (puede ser que se haya generado recientemente)
+          setPautaExiste(prev => {
+            if (prev === true) {
+              console.log('🔍 DEBUG - Manteniendo pautaExiste = true (ya estaba establecido)');
+              return true;
+            } else {
+              console.log('🔍 DEBUG - Estableciendo pautaExiste = false');
+              return false;
+            }
+          });
         }
       }
 
