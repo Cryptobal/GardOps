@@ -590,7 +590,8 @@ export default function PautaTable({
       guardiaNombre: guardiaInfo?.nombre_completo,
       ppcId: asignacionModal.ppcData.id,
       instalacionNombre: asignacionModal.ppcData.nombre_puesto,
-      rolServicioNombre: asignacionModal.ppcData.rol_nombre
+      rolServicioNombre: asignacionModal.ppcData.rol_nombre,
+      asignacionModalCompleto: asignacionModal
     });
     
     setModalFechaInicio({
@@ -611,12 +612,14 @@ export default function PautaTable({
       const guardiaId = guardia?.id || modalFechaInicio.guardiaId;
       const ppcId = modalFechaInicio.ppcId;
 
-      devLogger.process(' Asignando guardia con fecha:', {
+      console.log('🔍 Debug PautaTable - Asignando guardia con fecha:', {
         guardiaId,
         ppcId,
         fechaInicio,
         guardiaPasado: !!guardia,
-        estadoModal: modalFechaInicio
+        guardiaObjeto: guardia,
+        estadoModal: modalFechaInicio,
+        asignacionModal: asignacionModal
       });
       
       const response = await fetch('/api/ppc/asignar-simple', {
