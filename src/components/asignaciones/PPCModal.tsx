@@ -135,6 +135,7 @@ export default function PPCModal({
 
   const handleAsignarPermanente = (ppc: PPC) => {
     // Abrir modal de fecha de inicio en lugar de asignar directamente
+    console.log('🔍 Debug PPCModal - Abriendo modal de fecha:', { ppc, guardia });
     setModalFechaInicio({
       isOpen: true,
       ppc: ppc
@@ -495,16 +496,19 @@ export default function PPCModal({
 
       {/* Modal de fecha de inicio de asignación */}
       {modalFechaInicio.isOpen && modalFechaInicio.ppc && (
-        <ModalFechaInicioAsignacion
-          isOpen={modalFechaInicio.isOpen}
-          onClose={() => setModalFechaInicio({ isOpen: false, ppc: null })}
-          onConfirmar={handleConfirmarAsignacionConFecha}
-          guardiaNombre={guardia.nombre}
-          guardiaInstalacionActual=""
-          nuevaInstalacionNombre={modalFechaInicio.ppc.instalacion}
-          nuevoRolServicioNombre={modalFechaInicio.ppc.rol}
-          esReasignacion={false}
-        />
+        <>
+          {console.log('🔍 Debug PPCModal - Renderizando modal de fecha:', { modalFechaInicio, guardia })}
+          <ModalFechaInicioAsignacion
+            isOpen={modalFechaInicio.isOpen}
+            onClose={() => setModalFechaInicio({ isOpen: false, ppc: null })}
+            onConfirmar={handleConfirmarAsignacionConFecha}
+            guardiaNombre={guardia.nombre}
+            guardiaInstalacionActual=""
+            nuevaInstalacionNombre={modalFechaInicio.ppc.instalacion}
+            nuevoRolServicioNombre={modalFechaInicio.ppc.rol}
+            esReasignacion={false}
+          />
+        </>
       )}
 
       {/* Modal de éxito de asignación */}
