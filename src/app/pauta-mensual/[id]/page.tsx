@@ -216,6 +216,7 @@ export default function PautaMensualUnificadaPage() {
         const pautaResponse = await obtenerPautaMensual(instalacionId, anio, mes);
         
         if (pautaResponse && instalacionInfo) {
+          console.log('🔍 DEBUG - Pauta existe, estableciendo pautaExiste = true');
           setPautaExiste(true);
           
           const diasDelMesArray = Array.from(
@@ -334,6 +335,7 @@ export default function PautaMensualUnificadaPage() {
           setPautaDataOriginal(JSON.parse(JSON.stringify(pautaInicial)));
         } else {
           // No hay pauta existente, establecer estado correcto
+          console.log('🔍 DEBUG - No hay pauta existente, estableciendo pautaExiste = false');
           setPautaExiste(false);
         }
       }
@@ -387,6 +389,7 @@ export default function PautaMensualUnificadaPage() {
       
       if (response.success) {
         toast.success('Pauta creada', 'La pauta mensual se ha creado exitosamente');
+        console.log('🔍 DEBUG - Pauta generada exitosamente, estableciendo pautaExiste = true');
         setPautaExiste(true);
         
         // Recargar los datos para mostrar la pauta creada
