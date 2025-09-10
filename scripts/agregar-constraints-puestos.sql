@@ -65,13 +65,18 @@ BEGIN
 END $$;
 
 -- PASO 2: CREAR ÍNDICES DE AUDITORÍA
-CREATE INDEX IF NOT EXISTS idx_puestos_operativos_activo 
-ON as_turnos_puestos_operativos(activo);
-
-CREATE INDEX IF NOT EXISTS idx_puestos_operativos_eliminado_en 
-ON as_turnos_puestos_operativos(eliminado_en);
-
-RAISE NOTICE '✅ Índices de auditoría creados';
+DO $$
+BEGIN
+    -- Crear índice para activo
+    CREATE INDEX IF NOT EXISTS idx_puestos_operativos_activo 
+    ON as_turnos_puestos_operativos(activo);
+    
+    -- Crear índice para eliminado_en
+    CREATE INDEX IF NOT EXISTS idx_puestos_operativos_eliminado_en 
+    ON as_turnos_puestos_operativos(eliminado_en);
+    
+    RAISE NOTICE '✅ Índices de auditoría creados';
+END $$;
 
 -- PASO 3: LIMPIAR DATOS INCONSISTENTES ANTES DE CONSTRAINTS
 DO $$
