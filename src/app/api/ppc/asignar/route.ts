@@ -15,6 +15,14 @@ export async function POST(request: NextRequest) {
       observaciones
     } = await request.json();
 
+    console.log('🔍 [PPC/ASIGNAR] Datos recibidos:', {
+      guardia_id,
+      puesto_operativo_id,
+      fecha_inicio,
+      motivo_inicio,
+      observaciones
+    });
+
     devLogger.search(' [PPC/ASIGNAR] Iniciando asignación:', {
       guardia_id,
       puesto_operativo_id,
@@ -28,20 +36,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar que el puesto operativo existe y está disponible como PPC
-    // Primero intentar en la vista de pauta diaria (para PPCs del módulo PPC)
-    logger.debug('🔍 [PPC/ASIGNAR] Buscando PPC en vista...');
+    // SIMPLIFICADO: Verificar que el puesto existe directamente en la tabla
+    console.log('🔍 [PPC/ASIGNAR] Verificando puesto...');
     let puestoCheck = await query(`
-      SELECT 
-        pauta_id,
-        puesto_id,
-        instalacion_id,
-        rol_id,
-        es_ppc,
-        guardia_titular_id as guardia_id
-      FROM as_turnos_v_pauta_diaria_dedup_fixed
-      WHERE puesto_id = $1 AND es_ppc = true AND estado_ui = 'plan'
+      SELECT id, instalacion_id, es_ppc, guardia_id, nombre_puesto
+      FROM as_turnos_puestos_operativos 
+      WHERE id = $1
     `, [puesto_operativo_id]);
+    
+    console.log('🔍 [PPC/ASIGNAR] Resultado puesto:', puestoCheck.rows[0] || null);
 
     devLogger.search(' [PPC/ASIGNAR] Resultado vista:', {
       rows: puestoCheck.rows.length,
@@ -97,22 +100,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar si el guardia ya tiene una asignación activa
+    // SIMPLIFICADO: Verificar asignación existente
+    console.log('🔍 [PPC/ASIGNAR] Verificando asignación existente...');
     const asignacionExistente = await query(`
-      SELECT 
-        po.id, 
-        po.instalacion_id, 
-        po.rol_id,
-        po.nombre_puesto,
-        i.nombre as instalacion_nombre,
-        rs.nombre as rol_servicio_nombre,
-        rs.hora_inicio,
-        rs.hora_termino
-      FROM as_turnos_puestos_operativos po
-      INNER JOIN instalaciones i ON po.instalacion_id = i.id
-      INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-      WHERE po.guardia_id = $1 AND po.es_ppc = false
+      SELECT id, instalacion_id, nombre_puesto, es_ppc
+      FROM as_turnos_puestos_operativos 
+      WHERE guardia_id = $1 AND es_ppc = false AND activo = true
     `, [guardia_id]);
+    
+    console.log('🔍 [PPC/ASIGNAR] Asignación existente:', asignacionExistente.rows[0] || 'Ninguna');
 
     // Si tiene asignación activa y no se confirma la reasignación, devolver error
     if (asignacionExistente.rows.length > 0 && !confirmar_reasignacion) {
@@ -126,8 +122,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Ejecutar reasignación con transacción para garantizar consistencia
-    await query('BEGIN');
+    // SIMPLIFICADO: Sin transacción por ahora para debuggear
+    console.log('🔍 [PPC/ASIGNAR] Iniciando asignación directa...');
     
     try {
       // Si tiene asignación activa y se confirma la reasignación, liberar el puesto actual
