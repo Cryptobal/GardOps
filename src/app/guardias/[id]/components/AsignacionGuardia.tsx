@@ -46,6 +46,7 @@ export default function AsignacionGuardia({ guardiaId }: AsignacionGuardiaProps)
         console.log('🔍 Respuesta de nueva API historial:', data);
         if (data.success) {
           // USAR SIEMPRE la nueva API, aunque no haya datos (para mostrar vacío correctamente)
+          console.log('🔍 Datos de historial recibidos:', data.historial);
           setAsignaciones(data.historial || []);
           setAsignacionActual(data.asignacionActual || null);
           logger.debug('✅ Historial cargado desde nueva API:', data.historial?.length || 0);
@@ -58,6 +59,10 @@ export default function AsignacionGuardia({ guardiaId }: AsignacionGuardiaProps)
       
       if (response.ok) {
         const data = await response.json();
+        console.log('🔍 Datos de API legacy:', {
+          asignaciones: data.asignaciones,
+          asignacionActual: data.asignacionActual
+        });
         setAsignaciones(data.asignaciones || []);
         setAsignacionActual(data.asignacionActual || null);
         logger.debug('✅ Asignaciones cargadas desde API legacy:', data.asignaciones?.length || 0);
@@ -82,12 +87,34 @@ export default function AsignacionGuardia({ guardiaId }: AsignacionGuardiaProps)
   };
 
   const formatearFecha = (fecha: string) => {
-    // CORREGIDO: Agregar hora para evitar problemas de zona horaria
-    return new Date(fecha + 'T12:00:00').toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    // CORREGIDO: Manejar fechas inválidas y zona horaria
+    if (!fecha) return 'Fecha no disponible';
+    
+    try {
+      // Intentar diferentes formatos de fecha
+      let fechaParseada;
+      
+      if (fecha.includes('T')) {
+        fechaParseada = new Date(fecha);
+      } else {
+        fechaParseada = new Date(fecha + 'T12:00:00');
+      }
+      
+      // Verificar que la fecha sea válida
+      if (isNaN(fechaParseada.getTime())) {
+        console.warn('Fecha inválida recibida:', fecha);
+        return 'Fecha inválida';
+      }
+      
+      return fechaParseada.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formateando fecha:', fecha, error);
+      return 'Error en fecha';
+    }
   };
 
   const obtenerEstadoBadge = (estado: string) => {
