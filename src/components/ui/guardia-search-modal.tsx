@@ -39,7 +39,7 @@ interface GuardiaSearchModalProps {
   rolNombre?: string;
   instalacionNombrePauta?: string;
   // Props para modal de fecha de inicio
-  onConfirmarAsignacionConFecha?: (fechaInicio: string, observaciones?: string) => void;
+  onConfirmarAsignacionConFecha?: (fechaInicio: string, observaciones?: string, guardia?: Guardia) => void;
   ppcId?: string;
 }
 
@@ -330,8 +330,8 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
             setSearchTerm("");
             onClose(); // Cerrar modal de búsqueda
             
-            // Llamar a la función de confirmación
-            onConfirmarAsignacionConFecha(fechaInicio, observaciones);
+            // Llamar a la función de confirmación con los datos del guardia
+            onConfirmarAsignacionConFecha(fechaInicio, observaciones, guardiaParaAsignar);
           }}
           guardiaNombre={guardiaParaAsignar.nombre_completo || 'Guardia'}
           guardiaInstalacionActual={guardiaParaAsignar.instalacion_actual_nombre}
