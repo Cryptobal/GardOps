@@ -122,9 +122,9 @@ export async function GET(request: NextRequest) {
     const pautaQueryEnd = Date.now();
     logger.debug(`[${timestamp}] 🐌 Query pauta mensual: ${pautaQueryEnd - pautaQueryStart}ms, ${pautaResult.rows.length} registros encontrados`);
 
-    // Obtener todos los puestos operativos de la instalación (con y sin guardia asignado)
+    // Obtener solo los puestos operativos que tienen registros en pauta mensual
     const puestosResult = await query(`
-      SELECT 
+      SELECT DISTINCT
         po.id as puesto_id,
         po.nombre_puesto,
         po.guardia_id,
@@ -142,10 +142,13 @@ export async function GET(request: NextRequest) {
       FROM as_turnos_puestos_operativos po
       LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       LEFT JOIN guardias g ON po.guardia_id = g.id
+      INNER JOIN as_turnos_pauta_mensual pm ON pm.puesto_id = po.id
       WHERE po.instalacion_id = $1 
         AND po.activo = true
+        AND pm.anio = $2 
+        AND pm.mes = $3
       ORDER BY po.nombre_puesto
-    `, [instalacion_id]);
+    `, [instalacion_id, anio, mes]);
 
     // Generar días del mes
     const diasDelMes = Array.from(
