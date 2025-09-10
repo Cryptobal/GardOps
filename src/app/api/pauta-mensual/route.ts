@@ -121,8 +121,10 @@ export async function GET(request: NextRequest) {
     
     const pautaQueryEnd = Date.now();
     logger.debug(`[${timestamp}] 🐌 Query pauta mensual: ${pautaQueryEnd - pautaQueryStart}ms, ${pautaResult.rows.length} registros encontrados`);
+    
+    console.log(`[${timestamp}] 🔍 DEBUG - Pauta mensual encontrada:`, pautaResult.rows.length, 'registros');
 
-    // Obtener puestos operativos con guardias asignados (versión simplificada)
+    // Obtener puestos operativos con guardias asignados (versión ultra simplificada)
     const puestosResult = await query(`
       SELECT 
         po.id as puesto_id,
@@ -135,18 +137,17 @@ export async function GET(request: NextRequest) {
         g.nombre as guardia_nombre,
         g.apellido_paterno,
         g.apellido_materno,
-        CASE 
-          WHEN po.guardia_id IS NOT NULL THEN CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, ''))
-          ELSE NULL
-        END as nombre_completo
+        CONCAT(g.nombre, ' ', g.apellido_paterno, ' ', COALESCE(g.apellido_materno, '')) as nombre_completo
       FROM as_turnos_puestos_operativos po
       LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       LEFT JOIN guardias g ON po.guardia_id = g.id
       WHERE po.instalacion_id = $1 
         AND po.activo = true
-        AND po.guardia_id IS NOT NULL  -- Solo puestos con guardias asignados
+        AND po.guardia_id IS NOT NULL
       ORDER BY po.nombre_puesto
     `, [instalacion_id]);
+    
+    console.log(`[${timestamp}] 🔍 DEBUG - Puestos operativos encontrados:`, puestosResult.rows.length, 'puestos');
 
     // Generar días del mes
     const diasDelMes = Array.from(
@@ -157,6 +158,8 @@ export async function GET(request: NextRequest) {
     logger.debug(`[${timestamp}] 📅 Generando pauta para ${diasDelMes.length} días del mes`);
 
     // Crear pauta en el formato esperado por el frontend
+    console.log(`[${timestamp}] 🔍 DEBUG - Iniciando creación de pauta para ${puestosResult.rows.length} puestos`);
+    
     const pauta = puestosResult.rows.map((puesto: any) => {
       // Buscar registros de pauta para este puesto específico
       const pautaPuesto = pautaResult.rows.filter((p: any) => p.puesto_id === puesto.puesto_id);
