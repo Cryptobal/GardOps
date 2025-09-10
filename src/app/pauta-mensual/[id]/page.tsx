@@ -373,10 +373,13 @@ export default function PautaMensualUnificadaPage() {
   useEffect(() => {
     if (instalacionId) {
       console.log('🔍 DEBUG - useEffect ejecutándose, llamando cargarDatos(false)');
-      cargarDatos(false);
+      // Solo cargar datos si no estamos en medio de generar una pauta
+      if (!generando) {
+        cargarDatos(false);
+      }
       cargarInstalacionesDisponibles();
     }
-  }, [instalacionId, anio, mes]);
+  }, [instalacionId, anio, mes, generando]);
 
   const generarPauta = async () => {
     if (!instalacion) return;
