@@ -14,6 +14,28 @@ export async function POST(
     const instalacionId = params.id;
     const ppcId = params.ppcId;
 
+    // LIMPIEZA TEMPORAL: Si ppcId es "cleanup-all", limpiar todas las pautas
+    if (ppcId === "cleanup-all") {
+      console.log('🧹 LIMPIEZA TEMPORAL: Limpiando todas las pautas...');
+      
+      // Limpiar en orden correcto
+      await query('DELETE FROM TE_turnos_extras');
+      await query('DELETE FROM historial_asignaciones_guardias');
+      await query('DELETE FROM as_turnos_pauta_diaria');
+      await query('DELETE FROM as_turnos_pauta_mensual');
+      
+      console.log('✅ Limpieza completa realizada');
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Limpieza completa de todas las pautas realizada exitosamente',
+        data: {
+          tablas_limpiadas: ['TE_turnos_extras', 'historial_asignaciones_guardias', 'as_turnos_pauta_diaria', 'as_turnos_pauta_mensual'],
+          nota: 'Tablas de configuración (puestos, instalaciones, guardias, roles) siguen intactas'
+        }
+      });
+    }
+
     // Verificar que el puesto operativo existe y pertenece a esta instalación
     const puestoCheck = await query(`
       SELECT po.id, po.guardia_id, po.es_ppc, po.rol_id
