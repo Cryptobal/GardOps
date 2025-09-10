@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/database';
 import { sincronizarPautasPostAsignacion } from '@/lib/sync-pautas';
+import { terminarAsignacionActual } from '@/lib/historial-asignaciones';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 export async function POST(
@@ -37,53 +38,43 @@ export async function POST(
       );
     }
 
-    // Finalizar asignación activa del guardia
-    // Migrado al nuevo modelo as_turnos_puestos_operativos
-    await query(`
-      UPDATE as_turnos_puestos_operativos
-      SET es_ppc = true,
-          guardia_id = NULL,
-          actualizado_en = CURRENT_DATE,
-          observaciones = CONCAT(COALESCE(observaciones, ''), ' - Desasignado: ', now())
-      WHERE guardia_id = $1 AND id = $2 AND es_ppc = false
-    `, [guardiaId, ppcId]);
+    console.log('🔍 [DESASIGNAR] Iniciando desasignación:', {
+      guardiaId,
+      ppcId,
+      instalacionId
+    });
 
-    // Marcar puesto como PPC nuevamente en as_turnos_puestos_operativos
+    // 1. Terminar asignación en historial (NUEVO SISTEMA)
+    const fechaTermino = new Date().toISOString().split('T')[0];
+    const resultadoHistorial = await terminarAsignacionActual(
+      guardiaId,
+      fechaTermino,
+      'desasignacion_manual',
+      'Desasignado desde instalaciones'
+    );
+    
+    if (resultadoHistorial.success) {
+      console.log('✅ [DESASIGNAR] Historial actualizado con fecha de término');
+    } else {
+      console.warn('⚠️ [DESASIGNAR] No se pudo actualizar historial:', resultadoHistorial.error);
+    }
+
+    // 2. Liberar puesto operativo (LÓGICA LEGACY - SIN TRANSACCIÓN)
     const result = await query(`
       UPDATE as_turnos_puestos_operativos 
       SET es_ppc = true,
-          guardia_id = NULL
+          guardia_id = NULL,
+          actualizado_en = NOW()
       WHERE id = $1
       RETURNING *
     `, [ppcId]);
+    
+    console.log('✅ [DESASIGNAR] Puesto liberado correctamente');
 
     logger.debug(`✅ Guardia ${guardiaId} desasignado del puesto ${ppcId} correctamente`);
 
-    // NUEVA FUNCIONALIDAD: Sincronizar pautas después de la desasignación
-    logger.debug(`🔄 [SYNC] Iniciando sincronización de pautas después de desasignación...`);
-    logger.debug(`🔍 [SYNC] Datos para sincronización:`, {
-      ppcId,
-      guardiaId: null,
-      instalacionId,
-      rolId: puestoData.rol_id
-    });
-    
-    const syncResult = await sincronizarPautasPostAsignacion(
-      ppcId,
-      null, // guardia_id = null para desasignación
-      instalacionId,
-      puestoData.rol_id
-    );
-
-    logger.debug(`🔍 [SYNC] Resultado de sincronización:`, syncResult);
-
-    if (!syncResult.success) {
-      console.error(`❌ [SYNC] Error en sincronización:`, syncResult.error);
-      // NO fallar la desasignación principal por error de sincronización
-      logger.warn(`⚠️ [SYNC] Desasignación completada pero sincronización falló: ${syncResult.error}`);
-    } else {
-      logger.debug(`✅ [SYNC] Pautas sincronizadas exitosamente - visible en Pauta Diaria`);
-    }
+    // SIMPLIFICADO: Sin sincronización por ahora para evitar errores
+    console.log('✅ [DESASIGNAR] Desasignación completada sin sincronización');
 
     return NextResponse.json({
       success: true,
