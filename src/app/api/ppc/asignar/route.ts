@@ -165,22 +165,37 @@ export async function POST(request: NextRequest) {
       // Usar fecha de inicio proporcionada o fecha actual como fallback (COMPATIBILIDAD)
       const fechaInicioAsignacion = fecha_inicio || new Date().toISOString().split('T')[0];
       
-      // Asignar usando nueva función con historial
-      const resultadoAsignacion = await asignarGuardiaConFecha(
-        guardia_id,
-        puestoIdFinal,
-        instalacion_id,
-        fechaInicioAsignacion,
-        'fija',
-        motivo_inicio,
-        observaciones
-      );
-      
-      if (!resultadoAsignacion.success) {
-        throw new Error(`Error en asignación con historial: ${resultadoAsignacion.error}`);
+      // FALLBACK TEMPORAL: Usar lógica legacy + registrar en historial por separado
+      try {
+        // 1. Asignación legacy (GARANTIZADA)
+        await query(`
+          UPDATE as_turnos_puestos_operativos 
+          SET 
+            guardia_id = $1,
+            es_ppc = false,
+            actualizado_en = NOW()
+          WHERE id = $2
+        `, [guardia_id, puestoIdFinal]);
+        
+        logger.debug(`✅ [ASIGNACIÓN LEGACY] Guardia ${guardia_id} asignado al puesto ${puestoIdFinal}`);
+        
+        // 2. Registrar en historial (OPCIONAL - no falla si hay error)
+        try {
+          await query(`
+            INSERT INTO historial_asignaciones_guardias (
+              guardia_id, instalacion_id, puesto_id, fecha_inicio,
+              tipo_asignacion, motivo_inicio, estado, observaciones
+            ) VALUES ($1, $2, $3, $4, 'fija', $5, 'activa', $6)
+          `, [guardia_id, instalacion_id, puestoIdFinal, fechaInicioAsignacion, motivo_inicio, observaciones]);
+          
+          logger.debug(`✅ [HISTORIAL] Asignación registrada en historial desde ${fechaInicioAsignacion}`);
+        } catch (historialError) {
+          logger.warn(`⚠️ [HISTORIAL] No se pudo registrar en historial, pero asignación exitosa:`, historialError);
+        }
+        
+      } catch (legacyError) {
+        throw new Error(`Error en asignación legacy: ${legacyError}`);
       }
-      
-      logger.debug(`✅ [ASIGNACIÓN CON HISTORIAL] Guardia ${guardia_id} asignado al puesto ${puestoIdFinal} desde ${fechaInicioAsignacion}`);
 
       logger.debug(`✅ [ASIGNACIÓN] Guardia ${guardia_id} asignado al puesto ${puesto_operativo_id}`);
 
