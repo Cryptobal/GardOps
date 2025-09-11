@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       });
       
       // Codificar correctamente el mensaje SSE
-      const sseMessage = `data: ${data}\n\n`;
+      const sseMessage = `event: connection\ndata: ${data}\n\n`;
       controller.enqueue(new TextEncoder().encode(sseMessage));
       
       // Función para limpiar la conexión cuando se cierre
@@ -65,10 +65,16 @@ export function notifyTurnoUpdate(data: any) {
   
   console.log(`📡 SSE: Enviando notificación a ${connections.size} conexiones:`, message);
   
+  if (connections.size === 0) {
+    console.log('⚠️ SSE: No hay conexiones activas para enviar notificación');
+    return;
+  }
+  
   // Enviar a todas las conexiones activas
-  connections.forEach(controller => {
+  connections.forEach((controller, index) => {
     try {
       const sseMessage = `event: turno_update\ndata: ${message}\n\n`;
+      console.log(`📡 SSE: Enviando a conexión ${index + 1}:`, sseMessage);
       controller.enqueue(new TextEncoder().encode(sseMessage));
     } catch (error) {
       console.error('❌ SSE: Error enviando mensaje:', error);
