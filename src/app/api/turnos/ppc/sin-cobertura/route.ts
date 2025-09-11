@@ -26,27 +26,33 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
       const functionExists = parseInt(funcCheck[0].count) > 0;
       
       if (functionExists) {
-        const { rows } = await client.query(
-          `select pm.id, make_date(pm.anio, pm.mes, pm.dia) as fecha, pm.estado, pm.meta
-           from as_turnos.fn_marcar_asistencia(
-             $1,'sin_cobertura',
-             jsonb_build_object('origen','ppc'),
-             $2
-           ) x
-           join public.as_turnos_pauta_mensual pm on pm.id = $1`,
+        await client.query(
+          `SELECT as_turnos.fn_marcar_sin_cobertura($1, $2)`,
           [pauta_id, actor]
+        );
+        
+        const { rows } = await client.query(
+          `SELECT id, make_date(anio, mes, dia) as fecha, estado, meta
+           FROM public.as_turnos_pauta_mensual
+           WHERE id = $1`,
+          [pauta_id]
         );
         return Response.json(rows[0] ?? null);
       } else {
-        // Fallback: actualizar directamente
+        // Fallback: actualizar directamente con nueva estructura
         await client.query(
           `UPDATE public.as_turnos_pauta_mensual
            SET estado = 'sin_cobertura',
+               estado_ui = 'sin_cobertura',
+               tipo_turno = 'planificado',
+               estado_puesto = 'ppc',
+               estado_guardia = 'falta',
+               tipo_cobertura = 'sin_cobertura',
                meta = jsonb_build_object(
-                 'actor_ref', $2,
-                 'timestamp', NOW()::text,
-                 'action', 'sin_cobertura',
-                 'origen', 'ppc'
+                 'action', 'marcar_sin_cobertura',
+                 'origen', 'ppc',
+                 'marcado_ts', NOW()::text,
+                 'marcado_por', $2
                )
            WHERE id = $1`,
           [pauta_id, actor]
