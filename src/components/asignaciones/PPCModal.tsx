@@ -4,6 +4,7 @@ import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 import { marcarTurnoExtra } from '@/app/pauta-diaria-v2/apiAdapter';
 
 import { useState, useEffect } from 'react';
+import { useChileDate } from '@/hooks/useChileDate';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -61,6 +62,7 @@ export default function PPCModal({
   onAsignacionExitosa 
 }: PPCModalProps) {
   const { toast } = useToast();
+  const { fechaHoy } = useChileDate();
   const [ppcs, setPpcs] = useState<PPC[]>([]);
   const [turnosAsignados, setTurnosAsignados] = useState<TurnoAsignado[]>([]);
   const [loading, setLoading] = useState(false);
@@ -95,8 +97,8 @@ export default function PPCModal({
     try {
       setLoading(true);
       
-      // Usar el nuevo endpoint de pauta completa del día
-      const fecha = new Date().toISOString().split('T')[0];
+      // Usar configuración de sistema para fecha
+      const fecha = fechaHoy || new Date().toISOString().split('T')[0];
       const response = await fetch(`/api/pauta-diaria/del-dia?fecha=${fecha}`);
       const data = await response.json();
       
@@ -198,7 +200,7 @@ export default function PPCModal({
       logger.debug('🟨 Turno extra PPC - Buscando pauta_id para puesto:', { puesto_id: ppc.id, guardia_id: guardia.id });
       
       // Primero buscar el pauta_id real del PPC en as_turnos_pauta_mensual
-      const fecha = new Date().toISOString().split('T')[0];
+      const fecha = fechaHoy || new Date().toISOString().split('T')[0];
       const [anio, mes, dia] = fecha.split('-').map(Number);
       
       const buscarPautaResponse = await fetch('/api/pauta-diaria-v2/data', {

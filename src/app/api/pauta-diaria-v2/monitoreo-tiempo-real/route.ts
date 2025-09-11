@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/database';
+import { getHoyChile } from '@/lib/utils/chile-date';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const fecha = searchParams.get('fecha') || new Date().toISOString().split('T')[0];
+    const fecha = searchParams.get('fecha') || await getHoyChile();
     const instalacionId = searchParams.get('instalacion');
     const turno = searchParams.get('turno');
     const incluirLibres = searchParams.get('incluirLibres') === 'true';

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/database';
 import { obtenerKPIsOS10 } from '@/lib/utils/os10-status';
+import { getHoyChile, getSystemTimezone } from '@/lib/utils/chile-date';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 export async function GET(request: NextRequest) {
   try {
-    // Usar zona horaria de Chile para obtener la fecha correcta de HOY (PRODUCCIÓN READY)
-    const fechaChile = new Date().toLocaleString("en-CA", { timeZone: "America/Santiago" }).split(',')[0];
+    // Usar configuración de sistema para zona horaria (MIGRACIÓN CRÍTICA)
+    const fechaChile = await getHoyChile();
     const [anio, mes, dia] = fechaChile.split('-').map(Number);
     
     logger.debug(`🔍 Obteniendo KPIs de página de inicio para fecha: ${anio}/${mes}/${dia}`);
@@ -35,8 +36,8 @@ export async function GET(request: NextRequest) {
     `, [anio, mes, dia]);
 
 
-    // Obtener KPIs del Central de Monitoreo usando EXACTAMENTE la misma lógica que el endpoint de la Central
-    const tz = 'America/Santiago';
+    // Obtener KPIs del Central de Monitoreo usando configuración de sistema
+    const tz = await getSystemTimezone();
     const { rows: monitoreoRows } = await pool.query(`
       SELECT 
         COUNT(*) as total_llamados,

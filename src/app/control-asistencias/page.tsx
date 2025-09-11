@@ -4,6 +4,7 @@ import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useChileDate } from '@/hooks/useChileDate';
 import { MonitoreoTiempoReal } from '@/app/pauta-diaria-v2/components/MonitoreoTiempoReal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Activity } from 'lucide-react';
@@ -11,8 +12,10 @@ import { Activity } from 'lucide-react';
 export default function ControlAsistenciasPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { fechaHoy, loading: loadingConfig } = useChileDate();
   
-  const fecha = searchParams.get('fecha') || new Date().toLocaleString("en-CA", { timeZone: "America/Santiago" }).split(',')[0];
+  // Usar configuración de sistema o fallback a fecha de URL
+  const fecha = searchParams.get('fecha') || fechaHoy;
 
   // 🔍 DEBUG: Log de renderizado
   devLogger.process(' [ControlAsistenciasPage] RENDERIZANDO:', {
