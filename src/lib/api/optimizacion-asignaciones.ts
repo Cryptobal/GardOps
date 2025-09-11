@@ -127,5 +127,5 @@ export function buscarUbicacionesCercanas(
 export function getCurrentTenantId(): string {
   // Por ahora usar un tenant ID por defecto
   // En el futuro se puede implementar obtención desde cookies o contexto
-  return await getTenantId(request);
+  return '1397e653-a702-4020-9702-3ae4f3f8b337';
 } 
