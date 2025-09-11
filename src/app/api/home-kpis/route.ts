@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     logger.debug(`🔍 Obteniendo KPIs de página de inicio para fecha: ${anio}/${mes}/${dia}`);
 
     // Obtener KPIs de monitoreo en tiempo real - EXCLUYENDO TURNOS LIBRES
+    // CORREGIDO: Mapeo correcto de estados semáforo NULL como pendientes
     const { rows } = await pool.query(`
       SELECT 
         COUNT(*) as total_turnos,
@@ -20,6 +21,7 @@ export async function GET(request: NextRequest) {
         COUNT(CASE WHEN pm.meta->>'estado_semaforo' = 'no_contesta' THEN 1 END) as no_contesta,
         COUNT(CASE WHEN pm.meta->>'estado_semaforo' = 'no_ira' THEN 1 END) as no_ira,
         COUNT(CASE WHEN pm.meta->>'estado_semaforo' = 'llego' THEN 1 END) as llego,
+        -- CORREGIDO: Estados NULL se mapean correctamente como pendientes
         COUNT(CASE WHEN pm.meta->>'estado_semaforo' = 'pendiente' OR pm.meta->>'estado_semaforo' IS NULL THEN 1 END) as pendiente,
         COUNT(CASE WHEN pm.meta->>'estado_semaforo' = 'retrasado' THEN 1 END) as retrasado,
         COUNT(CASE WHEN pm.estado IN ('Activo', 'asistido', 'reemplazo', 'te') THEN 1 END) as puestos_cubiertos,

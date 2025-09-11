@@ -673,7 +673,8 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
 
   // Reglas de visibilidad de botones según el prompt:
   const isTitularPlan = (r: PautaRow) => r.es_ppc === false && r.estado_ui === 'plan';
-  const isPpcPlan     = (r: PautaRow) => r.es_ppc === true  && (r.estado_ui === 'plan' || r.estado_ui === 'ppc_libre' || r.estado_ui === 'ppc');
+  // CORREGIDO: PPCs deben mostrar botones independiente del estado_ui (incluso si es null)
+  const isPpcPlan     = (r: PautaRow) => r.es_ppc === true && r.estado !== 'libre';
   const canUndo       = (r: PautaRow) => {
     // Estados que permiten deshacer (incluyendo estados legacy y nuevos)
     const canUndoResult = [
