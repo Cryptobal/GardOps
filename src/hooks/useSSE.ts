@@ -33,11 +33,16 @@ export function useSSE(url: string, onMessage?: (event: SSEEvent) => void) {
 
     eventSource.onmessage = (event) => {
       try {
+        console.log('📡 SSE: Mensaje recibido (raw):', event);
+        console.log('📡 SSE: Mensaje data:', event.data);
         const data: SSEEvent = JSON.parse(event.data);
-        console.log('📡 SSE: Mensaje recibido:', data);
-        
+        console.log('📡 SSE: Mensaje parseado:', data);
+
         if (onMessage) {
+          console.log('📡 SSE: Llamando onMessage con datos:', data);
           onMessage(data);
+        } else {
+          console.log('⚠️ SSE: onMessage no está definido');
         }
       } catch (error) {
         console.error('❌ SSE: Error parsing message:', error);
