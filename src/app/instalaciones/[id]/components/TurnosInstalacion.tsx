@@ -582,14 +582,11 @@ export default function TurnosInstalacion({
     <div className="space-y-6">
       {/* Formulario para crear nuevo turno */}
       <Card className="bg-muted/50 rounded-xl border-0">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xs uppercase text-muted-foreground font-medium">➕ Crear Nuevo Turno</span>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs text-muted-foreground mb-2 block">Rol de Servicio</label>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <span className="text-xs uppercase text-muted-foreground font-medium whitespace-nowrap">➕ Crear Nuevo Turno</span>
+            
+            <div className="flex-1">
               <SafeSelect
                 value={formData.rol_servicio_id}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, rol_servicio_id: value }))}
@@ -609,15 +606,14 @@ export default function TurnosInstalacion({
               </SafeSelect>
             </div>
 
-            <div>
-              <label className="text-xs text-muted-foreground mb-2 block">Cantidad de Guardias</label>
+            <div className="w-32">
               <SafeSelect
                 value={formData.cantidad_guardias.toString()}
                 onValueChange={(value) => setFormData(prev => ({ 
                   ...prev, 
                   cantidad_guardias: parseInt(value) || 1 
                 }))}
-                placeholder="Seleccionar cantidad"
+                placeholder="Cantidad"
               >
                 <SelectContent>
                   {Array.from({ length: 20 }, (_, i) => i + 1).map((numero) => (
@@ -629,17 +625,15 @@ export default function TurnosInstalacion({
               </SafeSelect>
             </div>
 
-            <div>
-              <Button 
-                onClick={handleCrearTurno}
-                disabled={creando || !formData.rol_servicio_id}
-                size="sm"
-                variant="secondary"
-                className="w-full"
-              >
-                {creando ? 'Creando...' : 'Crear Turno'}
-              </Button>
-            </div>
+            <Button 
+              onClick={handleCrearTurno}
+              disabled={creando || !formData.rol_servicio_id}
+              size="sm"
+              variant="secondary"
+              className="whitespace-nowrap"
+            >
+              {creando ? 'Creando...' : 'Crear Turno'}
+            </Button>
           </div>
         </CardContent>
       </Card>
