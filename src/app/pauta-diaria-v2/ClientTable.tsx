@@ -694,9 +694,9 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   }
 
   // Reglas de visibilidad de botones según el prompt:
-  const isTitularPlan = (r: PautaRow) => r.es_ppc === false && r.estado_ui === 'plan';
-  // CORREGIDO: PPCs deben mostrar botones independiente del estado_ui (incluso si es null)
-  const isPpcPlan     = (r: PautaRow) => r.es_ppc === true && r.estado !== 'libre';
+  const isTitularPlan = (r: PautaRow) => r.es_ppc === false && r.estado_ui === 'plan' && r.estado_pauta_mensual !== 'libre' && r.tipo_turno !== 'libre';
+  // CORREGIDO: PPCs deben mostrar botones independiente del estado_ui (incluso si es null) PERO NO si es turno libre
+  const isPpcPlan     = (r: PautaRow) => r.es_ppc === true && r.estado_pauta_mensual !== 'libre' && r.tipo_turno !== 'libre';
   const canUndo = (r: PautaRow) => {
     // NUEVA LÓGICA: Usar estructura de estados si está disponible
     if (r.tipo_turno || r.estado_puesto || r.estado_guardia || r.tipo_cobertura) {
@@ -784,7 +784,12 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     return (rows ?? []).filter((r:any) => {
       // Filtrar filas con estado === 'libre' cuando mostrarLibres === false
       // PERO SIEMPRE mostrar turnos "extra" (Turno Extra morado) y PPCs (planificados o marcados)
-      if (!mostrarLibres && (r.estado === 'libre' || r.estado_ui === 'libre' || (r.estado === null && !r.es_ppc))) return false;
+      if (!mostrarLibres && (
+        r.estado_pauta_mensual === 'libre' || 
+        r.estado_ui === 'libre' || 
+        r.tipo_turno === 'libre' ||
+        (r.estado_pauta_mensual === null && !r.es_ppc)
+      )) return false;
 
       if (f.instalacion && `${r.instalacion_id}` !== f.instalacion && r.instalacion_nombre !== f.instalacion) return false;
       if (f.estado && f.estado !== 'todos') {

@@ -22,9 +22,9 @@ export async function POST(req: Request) {
     } = await req.json();
     
     // Validación básica
-    if (!fecha || !instalacion_id || !rol_id || !puesto_id || !cobertura_guardia_id) {
+    if (!fecha || !instalacion_id || !puesto_id || !cobertura_guardia_id) {
       return NextResponse.json(
-        { ok: false, error: 'fecha, instalacion_id, rol_id, puesto_id y cobertura_guardia_id son requeridos' },
+        { ok: false, error: 'fecha, instalacion_id, puesto_id y cobertura_guardia_id son requeridos' },
         { status: 400 }
       );
     }
@@ -32,6 +32,7 @@ export async function POST(req: Request) {
     // Valores por defecto
     const origin = origen ?? 'ppc';
     const actor = actor_ref ?? 'ui:pauta-diaria';
+    const rolId = rol_id ?? '00000000-0000-0000-0000-000000000000'; // UUID por defecto si no hay rol_id
     
     // Log para telemetría
     console.info('[turnos/new] extra', { 
@@ -49,7 +50,7 @@ export async function POST(req: Request) {
       SELECT * FROM as_turnos.fn_marcar_extra(
         ${fecha}::date,
         ${instalacion_id}::uuid,
-        ${rol_id}::uuid,
+        ${rolId}::uuid,
         ${puesto_id}::uuid,
         ${cobertura_guardia_id}::uuid,
         ${origin}::text,
