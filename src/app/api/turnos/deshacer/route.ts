@@ -54,7 +54,10 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
         }
       }
       
-      return new Response(null, { status: 204 });
+      return new Response(JSON.stringify({ success: true, message: 'Marcado deshecho correctamente' }), { 
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
     } finally {
       client.release?.();
     }
