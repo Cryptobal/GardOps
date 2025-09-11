@@ -103,3 +103,4 @@ ORDER BY puesto_id, fecha, pauta_id DESC;
 -- 3. Comentarios en las vistas
 COMMENT ON VIEW public.as_turnos_v_pauta_diaria_unificada IS 'Vista unificada de pauta diaria con nueva lógica de estados';
 COMMENT ON VIEW public.as_turnos_v_pauta_diaria_dedup_fixed IS 'Vista deduplicada de pauta diaria con nueva lógica de estados';
+

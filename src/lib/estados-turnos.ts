@@ -151,3 +151,4 @@ export function isTurnoExtra(estado: EstadoTurno): boolean {
 export function getGuardiaTrabajo(estado: EstadoTurno, guardiaTitularId: string | null): string | null {
   return estado.guardia_trabajo_id || guardiaTitularId;
 }
+

@@ -27,6 +27,7 @@ interface PautaGuardia {
   guardia_id?: string;
   rol_nombre?: string;
   cobertura_por_dia?: any[]; // Array de coberturas por día
+  estados_detallados?: any[]; // Array de estados detallados por día
 }
 
 interface PautaTableProps {
@@ -271,9 +272,58 @@ const getEstadoDisplay = (
   estado_operacion?: string,
   plan_base?: string,
   estado_rrhh?: string,
-  turno_extra_guardia_nombre?: string
+  turno_extra_guardia_nombre?: string,
+  estadoDetallado?: any // Nuevo campo con estructura de estados
 ) => {
-  // PRIORIDAD 1: Si tenemos estado_operacion granular, usarlo
+  // PRIORIDAD 1: Si tenemos estructura de estados detallada, usarla
+  if (estadoDetallado && (estadoDetallado.tipo_turno || estadoDetallado.estado_puesto || estadoDetallado.estado_guardia || estadoDetallado.tipo_cobertura)) {
+    console.log('🔍 getEstadoDisplay - Usando nueva estructura:', estadoDetallado);
+    // Construir estado_operacion desde la nueva estructura
+    let estadoOperacion = '';
+    
+    if (estadoDetallado.tipo_turno === 'libre') {
+      estadoOperacion = 'libre';
+    } else if (estadoDetallado.estado_puesto === 'ppc') {
+      if (estadoDetallado.tipo_cobertura === 'turno_extra') {
+        estadoOperacion = 'ppc_cubierto_por_turno_extra';
+      } else {
+        // PPC planificado sin cobertura debe mostrarse como planificado (punto azul)
+        estadoOperacion = 'planificado';
+      }
+    } else if (estadoDetallado.estado_guardia === 'asistido') {
+      estadoOperacion = 'asistido';
+    } else if (estadoDetallado.estado_guardia === 'falta') {
+      if (estadoDetallado.tipo_cobertura === 'turno_extra') {
+        estadoOperacion = 'falta_cubierto_por_turno_extra';
+      } else {
+        estadoOperacion = 'falta_no_cubierto';
+      }
+    } else if (estadoDetallado.estado_guardia === 'permiso') {
+      if (estadoDetallado.tipo_cobertura === 'turno_extra') {
+        estadoOperacion = 'permiso_cubierto_por_turno_extra';
+      } else {
+        estadoOperacion = 'permiso_con_goce_no_cubierto';
+      }
+    } else if (estadoDetallado.estado_guardia === 'licencia') {
+      if (estadoDetallado.tipo_cobertura === 'turno_extra') {
+        estadoOperacion = 'licencia_cubierto_por_turno_extra';
+      } else {
+        estadoOperacion = 'licencia_no_cubierto';
+      }
+    } else {
+      // Estado planificado por defecto
+      estadoOperacion = 'planificado';
+    }
+    
+    return mapearEstadoOperacionADisplay(
+      estadoOperacion, 
+      plan_base, 
+      estado_rrhh, 
+      turno_extra_guardia_nombre
+    );
+  }
+  
+  // PRIORIDAD 2: Si tenemos estado_operacion granular, usarlo
   if (estado_operacion) {
     return mapearEstadoOperacionADisplay(
       estado_operacion, 
@@ -283,7 +333,7 @@ const getEstadoDisplay = (
     );
   }
   
-  // PRIORIDAD 2: Compatibilidad con estados legacy
+  // PRIORIDAD 3: Compatibilidad con estados legacy
   return mapearEstadoLegacyADisplay(estado, cobertura, esPPC);
 };
 
@@ -299,7 +349,8 @@ const DiaCell = ({
   modoEdicion = false,
   diasGuardados,
   esPPC = false,
-  cobertura = null
+  cobertura = null,
+  estadoDetallado = null
 }: { 
   estado: string; 
   onClick?: () => void;
@@ -312,8 +363,14 @@ const DiaCell = ({
   diasGuardados?: Set<string>;
   esPPC?: boolean;
   cobertura?: any;
+  estadoDetallado?: any;
 }) => {
-  const { icon, text, className, iconColor, tooltip } = getEstadoDisplay(estado, cobertura, esPPC);
+  // Debug: verificar si tenemos estadoDetallado
+  if (estadoDetallado) {
+    console.log('🔍 DiaCell - estadoDetallado recibido:', { guardiaNombre, diaNumero, estadoDetallado });
+  }
+  
+  const { icon, text, className, iconColor, tooltip } = getEstadoDisplay(estado, cobertura, esPPC, undefined, undefined, undefined, undefined, estadoDetallado);
 
   const esFinDeSemana = diaSemana === 'Sáb' || diaSemana === 'Dom';
   const esDiaEspecial = esFinDeSemana || esFeriado;
@@ -761,7 +818,7 @@ export default function PautaTable({
           </div>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md flex items-center justify-center">
-              <span className="text-red-600 dark:text-red-400 text-lg font-bold">✗</span>
+              <span className="text-red-600 dark:text-red-400 text-lg font-bold">▲</span>
             </div>
             <span className="text-gray-700 dark:text-gray-300 font-medium">Sin Cobertura</span>
           </div>
@@ -789,9 +846,8 @@ export default function PautaTable({
                 <div className="flex items-center gap-3"><span className="text-blue-600 text-lg font-bold">●</span> Turno</div>
                 <div className="flex items-center gap-3"><span className="text-gray-500 text-lg font-bold">○</span> Libre</div>
                 <div className="flex items-center gap-3"><span className="text-green-600 text-lg font-bold">✓</span> Asistió</div>
-                <div className="flex items-center gap-3"><span className="text-red-600 text-lg font-bold">✗</span> Sin Cobertura</div>
-                <div className="flex items-center gap-3"><span className="text-fuchsia-600 text-sm font-extrabold">TE</span> Turno Extra</div>
                 <div className="flex items-center gap-3"><span className="text-red-600 text-lg font-bold">▲</span> Sin Cobertura</div>
+                <div className="flex items-center gap-3"><span className="text-fuchsia-600 text-sm font-extrabold">TE</span> Turno Extra</div>
                 <div className="flex items-center gap-3"><span className="text-indigo-600 text-lg">🏖</span> Permiso</div>
                 <div className="flex items-center gap-3"><span className="text-purple-600 text-lg">🌴</span> Vacaciones</div>
               </div>
@@ -929,6 +985,7 @@ export default function PautaTable({
                       const diaInfo = diasSemana[diaIndex];
                       const esFeriado = diaInfo?.esFeriado || feriadosChile.includes(day);
                       const cobertura = guardia.cobertura_por_dia ? guardia.cobertura_por_dia[diaIndex] : null;
+                      const estadoDetallado = guardia.estados_detallados ? guardia.estados_detallados[diaIndex] : null;
                       return (
                         <DiaCell
                           key={day}
@@ -943,6 +1000,7 @@ export default function PautaTable({
                           diasGuardados={diasGuardados}
                           esPPC={guardia.es_ppc}
                           cobertura={cobertura}
+                          estadoDetallado={estadoDetallado}
                         />
                       );
                     })}

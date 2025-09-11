@@ -265,7 +265,29 @@ export async function GET(request: NextRequest) {
         tipo: puesto.tipo,
         es_ppc: puesto.es_ppc,
         guardia_id: puesto.guardia_id,
-        rol_nombre: puesto.rol_nombre
+        rol_nombre: puesto.rol_nombre,
+        // Nuevos campos de estructura de estados para el frontend
+        estados_detallados: diasDelMes.map(dia => {
+          const pautaDia = pautaPuesto.find((p: any) => p.dia === dia);
+          if (!pautaDia) {
+            return {
+              dia,
+              tipo_turno: 'planificado',
+              estado_puesto: puesto.es_ppc ? 'ppc' : 'asignado',
+              estado_guardia: null,
+              tipo_cobertura: puesto.es_ppc ? 'sin_cobertura' : 'guardia_asignado',
+              guardia_trabajo_id: puesto.guardia_id
+            };
+          }
+          return {
+            dia,
+            tipo_turno: pautaDia.tipo_turno || 'planificado',
+            estado_puesto: pautaDia.estado_puesto || (puesto.es_ppc ? 'ppc' : 'asignado'),
+            estado_guardia: pautaDia.estado_guardia || null,
+            tipo_cobertura: pautaDia.tipo_cobertura || (puesto.es_ppc ? 'sin_cobertura' : 'guardia_asignado'),
+            guardia_trabajo_id: pautaDia.guardia_trabajo_id || puesto.guardia_id
+          };
+        })
       };
     });
 

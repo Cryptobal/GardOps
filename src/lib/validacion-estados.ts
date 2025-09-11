@@ -140,3 +140,4 @@ export function crearEstadoPlanificado(esPPC: boolean = false): EstadoTurno {
     return crearEstadoAsignado('asistido', 'guardia_asignado');
   }
 }
+

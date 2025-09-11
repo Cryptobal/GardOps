@@ -88,6 +88,7 @@ interface PautaGuardia {
   es_ppc?: boolean;
   guardia_id?: string;
   rol_nombre?: string;
+  estados_detallados?: any[]; // Array de estados detallados por día
 }
 
 interface DiaSemana {
@@ -274,7 +275,8 @@ export default function PautaMensualUnificadaPage() {
               tipo: puestoOperativo?.tipo,
               es_ppc: guardiaPauta.es_ppc,
               guardia_id: guardiaPauta.guardia_id,
-              rol_nombre: turnoCompleto
+              rol_nombre: turnoCompleto,
+              estados_detallados: guardiaPauta.estados_detallados // Incluir los estados detallados
             };
           });
             

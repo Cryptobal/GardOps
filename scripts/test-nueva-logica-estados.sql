@@ -86,3 +86,4 @@ WHERE meta ? 'estado_ui' = false
 SELECT 
   'MIGRACIÓN COMPLETADA EXITOSAMENTE' as estado,
   NOW() as timestamp;
+

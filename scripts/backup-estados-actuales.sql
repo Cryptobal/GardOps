@@ -34,3 +34,4 @@ SELECT
   COUNT(CASE WHEN estado IS NOT NULL THEN 1 END) as con_estado,
   COUNT(CASE WHEN estado_ui IS NOT NULL THEN 1 END) as con_estado_ui
 FROM TE_turnos_extras;
+

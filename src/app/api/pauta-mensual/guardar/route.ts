@@ -276,9 +276,10 @@ async function procesarTurnos(turnos: any[]) {
             `
             INSERT INTO as_turnos_pauta_mensual (
               puesto_id, guardia_id, anio, mes, dia, estado, plan_base, estado_rrhh, estado_operacion,
-              observaciones, reemplazo_guardia_id, editado_manualmente, created_at, updated_at
+              observaciones, reemplazo_guardia_id, editado_manualmente, created_at, updated_at,
+              tipo_turno, estado_puesto, estado_guardia, tipo_cobertura, guardia_trabajo_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW(), $13, $14, $15, $16, $17)
             ON CONFLICT (puesto_id, anio, mes, dia)
             DO UPDATE SET
               plan_base = EXCLUDED.plan_base,
@@ -286,11 +287,17 @@ async function procesarTurnos(turnos: any[]) {
               estado_operacion = EXCLUDED.estado_operacion,
               observaciones = EXCLUDED.observaciones,
               editado_manualmente = EXCLUDED.editado_manualmente,
+              tipo_turno = EXCLUDED.tipo_turno,
+              estado_puesto = EXCLUDED.estado_puesto,
+              estado_guardia = EXCLUDED.estado_guardia,
+              tipo_cobertura = EXCLUDED.tipo_cobertura,
+              guardia_trabajo_id = EXCLUDED.guardia_trabajo_id,
               updated_at = NOW()
             `,
             [
               puesto_id, null, anio, mes, dia, 'libre', 'libre', 'sin_evento', 'libre',
-              observaciones || null, null, true
+              observaciones || null, null, true,
+              'libre', 'libre', null, null, null
             ]
           );
         } else {
@@ -298,12 +305,16 @@ async function procesarTurnos(turnos: any[]) {
           // RESPETAR DIRECTAMENTE LA INTENCIÓN DEL USUARIO
           const fecha = `${anio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
           
+          // Determinar si es PPC o puesto asignado
+          const esPPC = !guardia_id;
+          
           await query(`
             INSERT INTO as_turnos_pauta_mensual (
               puesto_id, guardia_id, anio, mes, dia, estado, plan_base, estado_rrhh, estado_operacion,
-              observaciones, reemplazo_guardia_id, editado_manualmente, created_at, updated_at
+              observaciones, reemplazo_guardia_id, editado_manualmente, created_at, updated_at,
+              tipo_turno, estado_puesto, estado_guardia, tipo_cobertura, guardia_trabajo_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW(), $13, $14, $15, $16, $17)
             ON CONFLICT (puesto_id, anio, mes, dia)
             DO UPDATE SET
               plan_base = EXCLUDED.plan_base,
@@ -311,11 +322,21 @@ async function procesarTurnos(turnos: any[]) {
               estado_operacion = EXCLUDED.estado_operacion,
               observaciones = EXCLUDED.observaciones,
               editado_manualmente = EXCLUDED.editado_manualmente,
+              tipo_turno = EXCLUDED.tipo_turno,
+              estado_puesto = EXCLUDED.estado_puesto,
+              estado_guardia = EXCLUDED.estado_guardia,
+              tipo_cobertura = EXCLUDED.tipo_cobertura,
+              guardia_trabajo_id = EXCLUDED.guardia_trabajo_id,
               updated_at = NOW()
             `,
             [
               puesto_id, guardia_id, anio, mes, dia, 'planificado', 'planificado', 'sin_evento', 'planificado',
-              observaciones || null, null, true
+              observaciones || null, null, true,
+              'planificado', 
+              esPPC ? 'ppc' : 'asignado',
+              esPPC ? null : 'asistido',
+              esPPC ? 'sin_cobertura' : 'guardia_asignado',
+              guardia_id
             ]
           );
         }
@@ -337,12 +358,17 @@ async function procesarTurnos(turnos: any[]) {
                 estado_ui = $3,
                 observaciones = $4,
                 reemplazo_guardia_id = $5,
+                tipo_turno = $6,
+                estado_puesto = $7,
+                estado_guardia = $8,
+                tipo_cobertura = $9,
+                guardia_trabajo_id = $10,
                 updated_at = NOW()
               WHERE 
-                guardia_id = $6
-                AND anio = $7 
-                AND mes = $8 
-                AND dia = $9
+                guardia_id = $11
+                AND anio = $12 
+                AND mes = $13 
+                AND dia = $14
                 AND COALESCE(estado_ui, '') <> 'te'
                 AND COALESCE(meta->>'tipo', '') <> 'turno_extra'
                 AND COALESCE(estado, '') NOT IN ('trabajado', 'inasistencia', 'permiso', 'vacaciones')
@@ -354,6 +380,11 @@ async function procesarTurnos(turnos: any[]) {
                 estado === 'planificado' ? 'plan' : (estado === 'libre' ? 'libre' : null),
                 observaciones || null,
                 reemplazo_guardia_id || null,
+                estado === 'libre' ? 'libre' : 'planificado',
+                estado === 'libre' ? 'libre' : 'asignado',
+                estado === 'libre' ? null : 'asistido',
+                estado === 'libre' ? null : 'guardia_asignado',
+                guardia_id,
                 guardia_id,
                 anio,
                 mes,

@@ -110,13 +110,31 @@ export async function POST(request: NextRequest) {
       // La pauta debe estar vacía hasta que se asigne un guardia
     }
 
-    // Insertar todas las pautas
-    const insertPromises = pautasParaInsertar.map(pauta => 
-      query(`
-        INSERT INTO as_turnos_pauta_mensual (puesto_id, guardia_id, anio, mes, dia, estado)
-        VALUES ($1, $2, $3, $4, $5, $6)
-      `, [pauta.puesto_id, pauta.guardia_id, anio, mes, pauta.dia, pauta.estado])
-    );
+    // Insertar todas las pautas con nueva estructura de estados
+    const insertPromises = pautasParaInsertar.map(pauta => {
+      const esPPC = !pauta.guardia_id;
+      const esLibre = pauta.estado === 'libre';
+      
+      return query(`
+        INSERT INTO as_turnos_pauta_mensual (
+          puesto_id, guardia_id, anio, mes, dia, estado,
+          tipo_turno, estado_puesto, estado_guardia, tipo_cobertura, guardia_trabajo_id
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      `, [
+        pauta.puesto_id, 
+        pauta.guardia_id, 
+        anio, 
+        mes, 
+        pauta.dia, 
+        pauta.estado,
+        esLibre ? 'libre' : 'planificado',
+        esLibre ? 'libre' : (esPPC ? 'ppc' : 'asignado'),
+        esLibre ? null : (esPPC ? null : 'asistido'),
+        esLibre ? null : (esPPC ? 'sin_cobertura' : 'guardia_asignado'),
+        pauta.guardia_id
+      ]);
+    });
 
     await Promise.all(insertPromises);
 
