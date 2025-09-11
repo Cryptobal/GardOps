@@ -885,86 +885,27 @@ export default function PautaMensualUnificadaPage() {
         </div>
       </div>
 
-      {/* Información de la instalación */}
-      <div className="flex flex-col lg:flex-row gap-4 mb-4 sm:mb-6">
-        <Card className="flex-1">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <Building2 className="h-4 w-4 sm:h-5 sm:w-5" />
-              <Link 
-                href={`/instalaciones/${instalacion.id}`}
-                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline flex items-center gap-1 truncate"
-              >
-                {instalacion?.nombre}
-                <ExternalLink className="h-3 w-3 flex-shrink-0" />
-              </Link>
-            </CardTitle>
-            <p className="text-xs sm:text-sm text-muted-foreground truncate">
-              {instalacion?.direccion}
-            </p>
-            {instalacion?.cliente_nombre && (
-              <p className="text-xs text-muted-foreground truncate">
-                Cliente: {instalacion.cliente_nombre}
-              </p>
-            )}
-            
-            {/* Selector de instalaciones */}
-            <div className="mt-3">
-              <label className="text-xs text-muted-foreground mb-2 block">
-                Cambiar a otra instalación:
-              </label>
-              <Select onValueChange={(value) => {
-                if (value && value !== instalacionId) {
-                  router.push(`/pauta-mensual/${value}?mes=${mes}&anio=${anio}`);
-                }
-              }}>
-                <SelectTrigger className="w-full text-xs">
-                  <SelectValue placeholder="Seleccionar instalación" />
-                </SelectTrigger>
-                <SelectContent>
-                  {instalacionesDisponibles.map((inst) => (
-                    <SelectItem key={inst.id} value={inst.id}>
-                      {inst.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-        </Card>
-
-        {/* Estadísticas de la pauta */}
-        {stats && (
-          <Card className="flex-1">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <Database className="h-4 w-4 sm:h-5 sm:w-5" />
-                <span className="hidden sm:inline">Estadísticas de Pauta</span>
-                <span className="sm:hidden">Estadísticas</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <Users className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500 flex-shrink-0" />
-                  <span className="truncate">{stats.totalGuardias} guardias</span>
-                </div>
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
-                  <span className="truncate">{stats.totalDias} días</span>
-                </div>
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 flex-shrink-0" />
-                  <span className="truncate">{stats.diasConAsignaciones} asignados</span>
-                </div>
-                <div className="flex items-center gap-1 sm:gap-2">
-                  <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500 flex-shrink-0" />
-                  <span className="truncate">{stats.porcentajeCobertura}% cobertura</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+      {/* Selector de instalación - Minimalista */}
+      <div className="mb-4 sm:mb-6">
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">Cambiar instalación:</span>
+          <Select onValueChange={(value) => {
+            if (value && value !== instalacionId) {
+              router.push(`/pauta-mensual/${value}?mes=${mes}&anio=${anio}`);
+            }
+          }}>
+            <SelectTrigger className="w-64 text-sm">
+              <SelectValue placeholder="Seleccionar instalación" />
+            </SelectTrigger>
+            <SelectContent>
+              {instalacionesDisponibles.map((inst) => (
+                <SelectItem key={inst.id} value={inst.id}>
+                  {inst.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Estado de la pauta */}
