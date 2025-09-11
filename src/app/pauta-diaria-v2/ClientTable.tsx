@@ -52,6 +52,18 @@ const isPlan = (estadoUI: string) => estadoUI === 'plan';
 const isSinCobertura = (estadoUI: string) => estadoUI === 'sin_cobertura';
 const isLibre = (estadoUI: string) => estadoUI === 'libre';
 
+// Función para formatear el ID del puesto
+const formatearPuestoId = (puestoId: string, puestoNombre?: string) => {
+  if (puestoNombre) {
+    return puestoNombre;
+  }
+  // Mostrar 4 primeros + 4 últimos dígitos del UUID
+  if (puestoId && puestoId.length >= 8) {
+    return `${puestoId.slice(0, 4)}…${puestoId.slice(-4)}`;
+  }
+  return puestoId;
+};
+
 const renderEstado = (row: PautaRow) => {
   // NUEVA LÓGICA: Usar estructura de estados si está disponible
   if (row.tipo_turno || row.estado_puesto || row.estado_guardia || row.tipo_cobertura) {
@@ -766,7 +778,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     return (rows ?? []).filter((r:any) => {
       // Filtrar filas con estado === 'libre' cuando mostrarLibres === false
       // PERO SIEMPRE mostrar turnos "extra" (Turno Extra morado)
-      if (!mostrarLibres && r.estado === 'libre') return false;
+      if (!mostrarLibres && (r.estado === 'libre' || r.estado_ui === 'libre')) return false;
 
       if (f.instalacion && `${r.instalacion_id}` !== f.instalacion && r.instalacion_nombre !== f.instalacion) return false;
       if (f.estado && f.estado !== 'todos') {
@@ -1616,9 +1628,12 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                           <TableCell className="hidden md:table-cell">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <span className="font-mono text-xs cursor-help">{r.puesto_nombre ?? `${r.puesto_id.slice(0,8)}…`}</span>
+                                <span className="font-mono text-xs cursor-help">{formatearPuestoId(r.puesto_id, r.puesto_nombre)}</span>
                               </TooltipTrigger>
-                              <TooltipContent><p>UUID: {r.puesto_id}</p></TooltipContent>
+                              <TooltipContent>
+                                <p>Nombre: {r.puesto_nombre || 'Sin nombre'}</p>
+                                <p>UUID: {r.puesto_id}</p>
+                              </TooltipContent>
                             </Tooltip>
                           </TableCell>
                           <TableCell>
