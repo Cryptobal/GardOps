@@ -47,11 +47,16 @@ export function useSSE(url: string, onMessage?: (event: SSEEvent) => void) {
     // Escuchar eventos específicos
     eventSource.addEventListener('turno_update', (event) => {
       try {
+        console.log('📡 SSE: Evento turno_update recibido (raw):', event);
+        console.log('📡 SSE: Evento turno_update data:', event.data);
         const data: SSEEvent = JSON.parse(event.data);
-        console.log('📡 SSE: Evento turno_update recibido:', data);
+        console.log('📡 SSE: Evento turno_update parseado:', data);
         
         if (onMessage) {
+          console.log('📡 SSE: Llamando onMessage con datos:', data);
           onMessage(data);
+        } else {
+          console.log('⚠️ SSE: onMessage no está definido');
         }
       } catch (error) {
         console.error('❌ SSE: Error parsing turno_update event:', error);
