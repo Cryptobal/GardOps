@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
         hora_inicio: row.hora_inicio,
         hora_termino: row.hora_termino,
         tipo_turno: row.tipo_turno,
-        estado_semaforo: row.estado_semaforo,
+        estado_semaforo: row.estado_monitoreo,
         observaciones_semaforo: row.observaciones_semaforo,
         ultima_actualizacion: row.ultima_actualizacion,
         estado_pauta_ui: row.estado_pauta_ui
@@ -171,7 +171,7 @@ export async function GET(request: NextRequest) {
           hora_inicio: row.hora_inicio,
           hora_termino: row.hora_termino,
           tipo_turno: row.tipo_turno,
-          estado_semaforo: row.estado_semaforo,
+          estado_semaforo: row.estado_monitoreo,
           observaciones_semaforo: row.observaciones_semaforo,
           ultima_actualizacion: row.ultima_actualizacion,
           estado_pauta_ui: row.estado_pauta_ui
