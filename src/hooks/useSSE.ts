@@ -71,11 +71,16 @@ export function useSSE(url: string, onMessage?: (event: SSEEvent) => void) {
     // También escuchar eventos de conexión
     eventSource.addEventListener('connection', (event) => {
       try {
+        console.log('📡 SSE: Evento connection recibido (raw):', event);
+        console.log('📡 SSE: Evento connection data:', event.data);
         const data: SSEEvent = JSON.parse(event.data);
-        console.log('📡 SSE: Evento connection recibido:', data);
+        console.log('📡 SSE: Evento connection parseado:', data);
         
         if (onMessage) {
+          console.log('📡 SSE: Llamando onMessage con datos connection:', data);
           onMessage(data);
+        } else {
+          console.log('⚠️ SSE: onMessage no está definido para connection');
         }
       } catch (error) {
         console.error('❌ SSE: Error parsing connection event:', error);
