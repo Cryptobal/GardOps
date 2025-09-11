@@ -127,7 +127,7 @@ export default function HomePage() {
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       logger.debug('🔍 Storage event detected:', { key: e.key, newValue: e.newValue });
-      if ((e.key === 'pauta-diaria-update' || e.key === 'central-monitoreo-update') && e.newValue) {
+      if ((e.key === 'pauta-diaria-update' || e.key === 'central-monitoreo-update' || e.key?.startsWith('pauta-diaria-update-')) && e.newValue) {
         logger.debug('🔄 Actualización detectada desde otra pestaña - Recargando KPIs');
         cargarKPIs();
       }
@@ -139,14 +139,37 @@ export default function HomePage() {
       cargarKPIs();
     };
 
+    // Función para verificar cambios en localStorage periódicamente
+    const checkLocalStorageChanges = () => {
+      const lastUpdate = localStorage.getItem('pauta-diaria-update');
+      if (lastUpdate) {
+        try {
+          const data = JSON.parse(lastUpdate);
+          const now = new Date().getTime();
+          const updateTime = new Date(data.timestamp).getTime();
+          // Si el cambio es reciente (menos de 10 segundos), recargar
+          if (now - updateTime < 10000) {
+            logger.debug('🔄 Cambio reciente detectado en localStorage - Recargando KPIs');
+            cargarKPIs();
+          }
+        } catch (error) {
+          logger.debug('Error parsing localStorage data:', error);
+        }
+      }
+    };
+
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('pauta-diaria-update', handleCustomEvent as EventListener);
     window.addEventListener('central-monitoreo-update', handleCustomEvent as EventListener);
+    
+    // Verificar cambios cada 2 segundos
+    const interval = setInterval(checkLocalStorageChanges, 2000);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('pauta-diaria-update', handleCustomEvent as EventListener);
       window.removeEventListener('central-monitoreo-update', handleCustomEvent as EventListener);
+      clearInterval(interval);
     };
   }, []);
 

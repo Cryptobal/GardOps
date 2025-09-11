@@ -275,12 +275,21 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
           estado: estado,
           timestamp: new Date().toISOString()
         };
+        
+        // Usar un timestamp único para forzar el cambio en localStorage
+        const uniqueKey = `pauta-diaria-update-${Date.now()}`;
+        localStorage.setItem(uniqueKey, JSON.stringify(updateNotification));
         localStorage.setItem('pauta-diaria-update', JSON.stringify(updateNotification));
         
         // También disparar evento personalizado para la misma pestaña
         window.dispatchEvent(new CustomEvent('pauta-diaria-update', { 
           detail: updateNotification 
         }));
+        
+        // Limpiar la clave temporal después de un momento
+        setTimeout(() => {
+          localStorage.removeItem(uniqueKey);
+        }, 1000);
         
         // Recargar datos para mostrar el cambio
         await cargarDatos();
