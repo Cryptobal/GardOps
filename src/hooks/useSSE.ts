@@ -35,6 +35,8 @@ export function useSSE(url: string, onMessage?: (event: SSEEvent) => void) {
       try {
         console.log('📡 SSE: Mensaje recibido (raw):', event);
         console.log('📡 SSE: Mensaje data:', event.data);
+        console.log('📡 SSE: Mensaje type:', event.type);
+        console.log('📡 SSE: Mensaje lastEventId:', event.lastEventId);
         const data: SSEEvent = JSON.parse(event.data);
         console.log('📡 SSE: Mensaje parseado:', data);
 
@@ -54,6 +56,8 @@ export function useSSE(url: string, onMessage?: (event: SSEEvent) => void) {
       try {
         console.log('📡 SSE: Evento turno_update recibido (raw):', event);
         console.log('📡 SSE: Evento turno_update data:', event.data);
+        console.log('📡 SSE: Evento turno_update type:', event.type);
+        console.log('📡 SSE: Evento turno_update lastEventId:', event.lastEventId);
         const data: SSEEvent = JSON.parse(event.data);
         console.log('📡 SSE: Evento turno_update parseado:', data);
         
