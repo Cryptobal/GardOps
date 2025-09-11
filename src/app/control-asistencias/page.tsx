@@ -12,7 +12,7 @@ export default function ControlAsistenciasPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  const fecha = searchParams.get('fecha') || new Date().toISOString().slice(0, 10);
+  const fecha = searchParams.get('fecha') || new Date().toLocaleString("en-CA", { timeZone: "America/Santiago" }).split(',')[0];
 
   // 🔍 DEBUG: Log de renderizado
   devLogger.process(' [ControlAsistenciasPage] RENDERIZANDO:', {

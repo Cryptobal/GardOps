@@ -5,9 +5,9 @@ import { obtenerKPIsOS10 } from '@/lib/utils/os10-status';
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 export async function GET(request: NextRequest) {
   try {
-    // Usar la misma lógica de fecha que el control de asistencias (UTC)
-    const fechaActual = new Date().toISOString().slice(0, 10);
-    const [anio, mes, dia] = fechaActual.split('-').map(Number);
+    // Usar zona horaria de Chile para obtener la fecha correcta de HOY
+    const fechaChile = new Date().toLocaleString("en-CA", { timeZone: "America/Santiago" }).split(',')[0];
+    const [anio, mes, dia] = fechaChile.split('-').map(Number);
     
     logger.debug(`🔍 Obteniendo KPIs de página de inicio para fecha: ${anio}/${mes}/${dia}`);
 
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
         COUNT(CASE WHEN estado_llamado = 'pendiente' THEN 1 END) as pendientes
       FROM central_v_llamados_automaticos
       WHERE DATE(((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}')) = $1
-    `, [fechaActual]);
+    `, [fechaChile]);
 
     const monitoreoKpis = monitoreoRows[0] || {
       total_llamados: 0,
