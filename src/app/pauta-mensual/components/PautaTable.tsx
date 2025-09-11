@@ -286,8 +286,9 @@ const getEstadoDisplay = (
     } else if (estadoDetallado.estado_puesto === 'ppc') {
       if (estadoDetallado.tipo_cobertura === 'turno_extra') {
         estadoOperacion = 'ppc_cubierto_por_turno_extra';
-      } else if (estadoDetallado.tipo_cobertura === 'sin_cobertura') {
+      } else if (estadoDetallado.tipo_cobertura === 'sin_cobertura' && estadoDetallado.estado === 'sin_cobertura') {
         // PPC marcado explícitamente como sin cobertura debe mostrarse como sin cobertura (triángulo rojo)
+        // Solo cuando el estado real es 'sin_cobertura', no solo el tipo_cobertura
         estadoOperacion = 'ppc_no_cubierto';
       } else {
         // PPC planificado sin cobertura debe mostrarse como planificado (punto azul)

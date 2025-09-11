@@ -272,6 +272,7 @@ export async function GET(request: NextRequest) {
           if (!pautaDia) {
             return {
               dia,
+              estado: 'planificado',
               tipo_turno: 'planificado',
               estado_puesto: puesto.es_ppc ? 'ppc' : 'asignado',
               estado_guardia: null,
@@ -281,6 +282,7 @@ export async function GET(request: NextRequest) {
           }
           return {
             dia,
+            estado: pautaDia.estado || 'planificado',
             tipo_turno: pautaDia.tipo_turno || 'planificado',
             estado_puesto: pautaDia.estado_puesto || (puesto.es_ppc ? 'ppc' : 'asignado'),
             estado_guardia: pautaDia.estado_guardia || null,
