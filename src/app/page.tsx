@@ -87,7 +87,7 @@ export default function HomePage() {
     setIsMounted(true);
   }, []);
 
-  const cargarKPIs = async () => {
+  const cargarKPIs = useCallback(async () => {
     try {
       logger.debug('🔄 Cargando KPIs...');
       setLoading(true);
@@ -116,12 +116,12 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Cargar datos iniciales
   useEffect(() => {
     cargarKPIs();
-  }, []);
+  }, [cargarKPIs]);
 
 
   // Función callback estable para manejar eventos SSE
@@ -133,7 +133,7 @@ export default function HomePage() {
       logger.debug('🔄 Actualización de turno detectada via SSE - Recargando KPIs');
       cargarKPIs();
     }
-  }, []);
+  }, [cargarKPIs]);
 
   // Usar Server-Sent Events para sincronización en tiempo real
   const { isConnected: sseConnected, error: sseError } = useSSE('/api/events/turnos', handleSSEEvent);
