@@ -138,20 +138,20 @@ export default function HomePage() {
   // Usar Server-Sent Events para sincronización en tiempo real
   const { isConnected: sseConnected, error: sseError } = useSSE('/api/events/turnos', handleSSEEvent);
 
-  // Auto-refresh cada 30 segundos para mantener KPIs actualizados
+  // Auto-refresh cada 5 segundos para mantener KPIs actualizados
   useEffect(() => {
     const interval = setInterval(() => {
-      logger.debug('🔄 Auto-refresh de KPIs (cada 30 segundos)');
+      logger.debug('🔄 Auto-refresh de KPIs (cada 5 segundos)');
       cargarKPIs();
-    }, 30000);
+    }, 5000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [cargarKPIs]);
 
   return (
     <div className="w-full max-w-full mx-auto p-3 space-y-3">
       
-      {/* Indicador de conexión SSE */}
+      {/* Indicador de conexión y controles */}
       <div className="flex justify-between items-center">
         <div className="flex gap-2">
           <Button
@@ -166,36 +166,14 @@ export default function HomePage() {
           >
             🔄 Recargar KPIs
           </Button>
-          <Button
-            onClick={async () => {
-              console.log('🧪 Prueba SSE: Enviando notificación de prueba...');
-              try {
-                const response = await fetch('/api/test-turno-update', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' }
-                });
-                const result = await response.json();
-                console.log('🧪 Resultado de prueba SSE:', result);
-              } catch (error) {
-                console.error('❌ Error en prueba SSE:', error);
-              }
-            }}
-            variant="outline"
-            size="sm"
-            className="text-xs"
-          >
-            🧪 Probar SSE
-          </Button>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={sseConnected ? "default" : "destructive"} className="text-xs">
-            {sseConnected ? "🟢 Tiempo Real" : "🔴 Desconectado"}
+          <Badge variant="default" className="text-xs">
+            🔄 Auto-actualización cada 5s
           </Badge>
-          {sseError && (
-            <Badge variant="outline" className="text-xs text-red-600">
-              Error: {sseError}
-            </Badge>
-          )}
+          <Badge variant={sseConnected ? "default" : "destructive"} className="text-xs">
+            {sseConnected ? "🟢 SSE Conectado" : "🔴 SSE Desconectado"}
+          </Badge>
         </div>
       </div>
 
