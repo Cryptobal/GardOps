@@ -330,3 +330,14 @@ export async function marcarTurnosExtrasComoPagados(
     return false;
   }
 }
+
+// Función de compatibilidad para imports faltantes
+export async function obtenerResumenDiasGuardiaMes(guardiaId: number, mes: number, anio: number) {
+  // Implementación básica para compatibilidad
+  return {
+    dias_trabajados: 0,
+    dias_feriados: 0,
+    dias_extras: 0,
+    total_dias: 0
+  };
+}

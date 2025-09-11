@@ -54,6 +54,8 @@ pool.on('remove', (client) => {
 });
 
 export default pool;
+export { pool };
+export const db = pool;
 
 // Función para obtener un cliente del pool
 export async function getClient() {

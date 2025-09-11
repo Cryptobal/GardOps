@@ -7,6 +7,7 @@ import { sql } from '@vercel/postgres';
 
 // Re-exportamos sql para uso directo
 export { sql };
+export const query = sql;
 
 // Helper para logging de queries en desarrollo
 export async function executeQuery<T = any>(

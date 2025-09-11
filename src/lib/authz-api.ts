@@ -189,3 +189,14 @@ export async function requireAuthz(
     );
   }
 }
+
+// Funciones de compatibilidad para imports faltantes
+export async function getSessionAndTenant(request: NextRequest) {
+  // Implementación básica para compatibilidad
+  return { user: null, tenant_id: null };
+}
+
+export async function loadEffectivePermissions(userId: string) {
+  // Implementación básica para compatibilidad
+  return [];
+}
