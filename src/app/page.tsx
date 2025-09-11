@@ -1,6 +1,7 @@
 "use client";
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
+import { useSSE } from '@/hooks/useSSE';
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -123,55 +124,13 @@ export default function HomePage() {
   }, []);
 
 
-  // Escuchar cambios en otras pestañas y en la misma pestaña
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      logger.debug('🔍 Storage event detected:', { key: e.key, newValue: e.newValue });
-      if ((e.key === 'pauta-diaria-update' || e.key === 'central-monitoreo-update' || e.key?.startsWith('pauta-diaria-update-')) && e.newValue) {
-        logger.debug('🔄 Actualización detectada desde otra pestaña - Recargando KPIs');
-        cargarKPIs();
-      }
-    };
-
-    const handleCustomEvent = (e: CustomEvent) => {
-      logger.debug('🔍 Custom event detected:', e.detail);
-      logger.debug('🔄 Actualización detectada desde la misma pestaña - Recargando KPIs');
+  // Usar Server-Sent Events para sincronización en tiempo real
+  const { isConnected: sseConnected } = useSSE('/api/events/turnos', (event) => {
+    if (event.type === 'turno_update') {
+      logger.debug('🔄 Actualización de turno detectada via SSE - Recargando KPIs');
       cargarKPIs();
-    };
-
-    // Función para verificar cambios en localStorage periódicamente
-    const checkLocalStorageChanges = () => {
-      const lastUpdate = localStorage.getItem('pauta-diaria-update');
-      if (lastUpdate) {
-        try {
-          const data = JSON.parse(lastUpdate);
-          const now = new Date().getTime();
-          const updateTime = new Date(data.timestamp).getTime();
-          // Si el cambio es reciente (menos de 10 segundos), recargar
-          if (now - updateTime < 10000) {
-            logger.debug('🔄 Cambio reciente detectado en localStorage - Recargando KPIs');
-            cargarKPIs();
-          }
-        } catch (error) {
-          logger.debug('Error parsing localStorage data:', error);
-        }
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('pauta-diaria-update', handleCustomEvent as EventListener);
-    window.addEventListener('central-monitoreo-update', handleCustomEvent as EventListener);
-    
-    // Verificar cambios cada 2 segundos
-    const interval = setInterval(checkLocalStorageChanges, 2000);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('pauta-diaria-update', handleCustomEvent as EventListener);
-      window.removeEventListener('central-monitoreo-update', handleCustomEvent as EventListener);
-      clearInterval(interval);
-    };
-  }, []);
+    }
+  });
 
   // Auto-refresh cada 5 segundos para mantener KPIs actualizados (temporal para testing)
   useEffect(() => {
@@ -185,6 +144,13 @@ export default function HomePage() {
 
   return (
     <div className="w-full max-w-full mx-auto p-3 space-y-3">
+      
+      {/* Indicador de conexión SSE */}
+      <div className="flex justify-end">
+        <Badge variant={sseConnected ? "default" : "destructive"} className="text-xs">
+          {sseConnected ? "🟢 Tiempo Real" : "🔴 Desconectado"}
+        </Badge>
+      </div>
 
       {/* KPIs de OS10 - Estado de Certificaciones */}
       <Card className="w-full">

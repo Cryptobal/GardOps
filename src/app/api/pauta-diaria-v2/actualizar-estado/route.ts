@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/database';
+import { notifyTurnoUpdate } from '@/app/api/events/turnos/route';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 export async function POST(request: NextRequest) {
@@ -45,6 +46,14 @@ export async function POST(request: NextRequest) {
     }
 
     logger.debug(`✅ Estado actualizado exitosamente: ${pauta_id} -> ${estado_semaforo}`);
+
+    // Notificar a todas las conexiones SSE sobre el cambio
+    notifyTurnoUpdate({
+      pauta_id,
+      estado_semaforo,
+      ultima_actualizacion: now,
+      fecha
+    });
 
     return NextResponse.json({
       success: true,
