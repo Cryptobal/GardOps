@@ -4,11 +4,14 @@ import { NextRequest } from 'next/server';
 const connections = new Set<ReadableStreamDefaultController>();
 
 export async function GET(request: NextRequest) {
+  console.log('🔌 SSE: Nueva conexión recibida');
+  
   // Crear un stream para Server-Sent Events
   const stream = new ReadableStream({
     start(controller) {
       // Agregar esta conexión al set de conexiones activas
       connections.add(controller);
+      console.log(`🔌 SSE: Conexión agregada. Total conexiones: ${connections.size}`);
       
       // Enviar mensaje de conexión establecida
       const data = JSON.stringify({
@@ -22,13 +25,14 @@ export async function GET(request: NextRequest) {
       // Función para limpiar la conexión cuando se cierre
       const cleanup = () => {
         connections.delete(controller);
+        console.log(`🔌 SSE: Conexión removida. Total conexiones: ${connections.size}`);
       };
       
       // Escuchar cuando se cierre la conexión
       request.signal.addEventListener('abort', cleanup);
     },
     
-    cancel() {
+    cancel(controller) {
       // Limpiar la conexión cuando se cancele
       connections.delete(controller);
     }
@@ -53,11 +57,14 @@ export function notifyTurnoUpdate(data: any) {
     timestamp: new Date().toISOString()
   });
   
+  console.log(`📡 SSE: Enviando notificación a ${connections.size} conexiones:`, message);
+  
   // Enviar a todas las conexiones activas
   connections.forEach(controller => {
     try {
-      controller.enqueue(`data: ${message}\n\n`);
+      controller.enqueue(`event: turno_update\ndata: ${message}\n\n`);
     } catch (error) {
+      console.error('❌ SSE: Error enviando mensaje:', error);
       // Si hay error, remover la conexión
       connections.delete(controller);
     }

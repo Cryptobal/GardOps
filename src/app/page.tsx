@@ -126,18 +126,19 @@ export default function HomePage() {
 
   // Usar Server-Sent Events para sincronización en tiempo real
   const { isConnected: sseConnected } = useSSE('/api/events/turnos', (event) => {
+    logger.debug('📡 SSE: Evento recibido en página principal:', event);
     if (event.type === 'turno_update') {
       logger.debug('🔄 Actualización de turno detectada via SSE - Recargando KPIs');
       cargarKPIs();
     }
   });
 
-  // Auto-refresh cada 5 segundos para mantener KPIs actualizados (temporal para testing)
+  // Auto-refresh cada 30 segundos para mantener KPIs actualizados
   useEffect(() => {
     const interval = setInterval(() => {
-      logger.debug('🔄 Auto-refresh de KPIs (cada 5 segundos)');
+      logger.debug('🔄 Auto-refresh de KPIs (cada 30 segundos)');
       cargarKPIs();
-    }, 5000);
+    }, 30000);
 
     return () => clearInterval(interval);
   }, []);
@@ -146,7 +147,18 @@ export default function HomePage() {
     <div className="w-full max-w-full mx-auto p-3 space-y-3">
       
       {/* Indicador de conexión SSE */}
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center">
+        <Button 
+          onClick={() => {
+            logger.debug('🔄 Prueba manual: Recargando KPIs');
+            cargarKPIs();
+          }}
+          variant="outline" 
+          size="sm"
+          className="text-xs"
+        >
+          🔄 Recargar KPIs
+        </Button>
         <Badge variant={sseConnected ? "default" : "destructive"} className="text-xs">
           {sseConnected ? "🟢 Tiempo Real" : "🔴 Desconectado"}
         </Badge>

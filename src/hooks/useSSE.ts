@@ -36,10 +36,71 @@ export function useSSE(url: string, onMessage?: (event: SSEEvent) => void) {
       }
     };
 
+    // Escuchar eventos específicos
+    eventSource.addEventListener('turno_update', (event) => {
+      try {
+        const data: SSEEvent = JSON.parse(event.data);
+        console.log('📡 SSE: Evento turno_update recibido:', data);
+        
+        if (onMessage) {
+          onMessage(data);
+        }
+      } catch (error) {
+        console.error('❌ SSE: Error parsing turno_update event:', error);
+      }
+    });
+
     eventSource.onerror = (error) => {
       console.error('❌ SSE: Error de conexión:', error);
       setError('Error de conexión SSE');
       setIsConnected(false);
+      
+      // Intentar reconectar después de 5 segundos
+      setTimeout(() => {
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close();
+        }
+        const newEventSource = new EventSource(url);
+        eventSourceRef.current = newEventSource;
+        
+        newEventSource.onopen = () => {
+          setIsConnected(true);
+          setError(null);
+          console.log('🔌 SSE: Reconexión establecida');
+        };
+        
+        newEventSource.onmessage = (event) => {
+          try {
+            const data: SSEEvent = JSON.parse(event.data);
+            console.log('📡 SSE: Mensaje recibido (reconexión):', data);
+            
+            if (onMessage) {
+              onMessage(data);
+            }
+          } catch (error) {
+            console.error('❌ SSE: Error parsing message (reconexión):', error);
+          }
+        };
+        
+        newEventSource.addEventListener('turno_update', (event) => {
+          try {
+            const data: SSEEvent = JSON.parse(event.data);
+            console.log('📡 SSE: Evento turno_update recibido (reconexión):', data);
+            
+            if (onMessage) {
+              onMessage(data);
+            }
+          } catch (error) {
+            console.error('❌ SSE: Error parsing turno_update event (reconexión):', error);
+          }
+        });
+        
+        newEventSource.onerror = (error) => {
+          console.error('❌ SSE: Error de reconexión:', error);
+          setError('Error de conexión SSE');
+          setIsConnected(false);
+        };
+      }, 5000);
     };
 
     // Cleanup al desmontar
