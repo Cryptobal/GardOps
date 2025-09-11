@@ -13,6 +13,8 @@ export function useSSE(url: string, onMessage?: (event: SSEEvent) => void) {
   const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
+    console.log('🔌 SSE: Iniciando conexión a:', url);
+    
     // Crear nueva conexión SSE
     const eventSource = new EventSource(url);
     eventSourceRef.current = eventSource;
@@ -20,7 +22,7 @@ export function useSSE(url: string, onMessage?: (event: SSEEvent) => void) {
     eventSource.onopen = () => {
       setIsConnected(true);
       setError(null);
-      console.log('🔌 SSE: Conexión establecida');
+      console.log('🔌 SSE: Conexión establecida exitosamente');
     };
 
     eventSource.onmessage = (event) => {
@@ -52,6 +54,7 @@ export function useSSE(url: string, onMessage?: (event: SSEEvent) => void) {
 
     eventSource.onerror = (error) => {
       console.error('❌ SSE: Error de conexión:', error);
+      console.error('❌ SSE: Estado de conexión:', eventSource.readyState);
       setError('Error de conexión SSE');
       setIsConnected(false);
       

@@ -125,9 +125,11 @@ export default function HomePage() {
 
 
   // Usar Server-Sent Events para sincronización en tiempo real
-  const { isConnected: sseConnected } = useSSE('/api/events/turnos', (event) => {
+  const { isConnected: sseConnected, error: sseError } = useSSE('/api/events/turnos', (event) => {
+    console.log('📡 SSE: Evento recibido en página principal:', event);
     logger.debug('📡 SSE: Evento recibido en página principal:', event);
     if (event.type === 'turno_update') {
+      console.log('🔄 Actualización de turno detectada via SSE - Recargando KPIs');
       logger.debug('🔄 Actualización de turno detectada via SSE - Recargando KPIs');
       cargarKPIs();
     }
@@ -148,20 +150,50 @@ export default function HomePage() {
       
       {/* Indicador de conexión SSE */}
       <div className="flex justify-between items-center">
-        <Button 
-          onClick={() => {
-            logger.debug('🔄 Prueba manual: Recargando KPIs');
-            cargarKPIs();
-          }}
-          variant="outline" 
-          size="sm"
-          className="text-xs"
-        >
-          🔄 Recargar KPIs
-        </Button>
-        <Badge variant={sseConnected ? "default" : "destructive"} className="text-xs">
-          {sseConnected ? "🟢 Tiempo Real" : "🔴 Desconectado"}
-        </Badge>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => {
+              console.log('🔄 Prueba manual: Recargando KPIs');
+              logger.debug('🔄 Prueba manual: Recargando KPIs');
+              cargarKPIs();
+            }}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            🔄 Recargar KPIs
+          </Button>
+          <Button
+            onClick={async () => {
+              console.log('🧪 Prueba SSE: Enviando notificación de prueba...');
+              try {
+                const response = await fetch('/api/test-turno-update', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+                console.log('🧪 Resultado de prueba SSE:', result);
+              } catch (error) {
+                console.error('❌ Error en prueba SSE:', error);
+              }
+            }}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            🧪 Probar SSE
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant={sseConnected ? "default" : "destructive"} className="text-xs">
+            {sseConnected ? "🟢 Tiempo Real" : "🔴 Desconectado"}
+          </Badge>
+          {sseError && (
+            <Badge variant="outline" className="text-xs text-red-600">
+              Error: {sseError}
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* KPIs de OS10 - Estado de Certificaciones */}
