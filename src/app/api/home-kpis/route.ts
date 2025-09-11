@@ -34,24 +34,6 @@ export async function GET(request: NextRequest) {
         AND NOT (pm.estado = 'libre' OR pm.estado_operacion = 'libre')
     `, [anio, mes, dia]);
 
-    // DEBUG: Verificar qué registros están siendo incluidos
-    const { rows: debugRows } = await pool.query(`
-      SELECT 
-        pm.id,
-        pm.estado,
-        pm.estado_operacion,
-        pm.meta->>'estado_semaforo' as estado_semaforo,
-        po.activo as puesto_activo,
-        po.es_ppc
-      FROM as_turnos_pauta_mensual pm
-      INNER JOIN as_turnos_puestos_operativos po ON pm.puesto_id = po.id
-      INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
-      WHERE pm.anio = $1 AND pm.mes = $2 AND pm.dia = $3
-        AND po.activo = true
-        AND NOT (pm.estado = 'libre' OR pm.estado_operacion = 'libre')
-    `, [anio, mes, dia]);
-    
-    logger.debug('🔍 Registros incluidos en KPIs:', debugRows);
 
     // Obtener KPIs del Central de Monitoreo usando EXACTAMENTE la misma lógica que el endpoint de la Central
     const fechaActual = new Date().toISOString().split('T')[0];
