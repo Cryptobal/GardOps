@@ -27,9 +27,9 @@ export async function POST(req: Request) {
     // Log para telemetría
     console.info('[turnos/new] deshacer', { pauta_id, actor_ref: actor });
     
-    // Llamamos a la función de Neon (usando función existente que funciona)
-    const { rows } = await sql`
-      SELECT * FROM as_turnos.fn_revertir_a_plan(
+    // Llamamos a la función de Neon (función que retorna void)
+    await sql`
+      SELECT as_turnos.fn_revertir_a_plan(
         ${pauta_id}::bigint,
         ${actor}::text
       );
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     
     return NextResponse.json({ 
       ok: true, 
-      data: rows?.[0] ?? null 
+      data: { id: pauta_id, mensaje: 'Turno revertido a planificado exitosamente' }
     });
     
   } catch (err: any) {
