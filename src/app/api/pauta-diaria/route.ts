@@ -40,6 +40,12 @@ type Row = {
   reemplazo_guardia_nombre: string | null;
   cobertura_guardia_nombre: string | null;
   cobertura_guardia_telefono: string | null;
+  
+  // NUEVA ESTRUCTURA DE ESTADOS
+  tipo_turno: string | null;
+  estado_puesto: string | null;
+  estado_guardia: string | null;
+  tipo_cobertura: string | null;
 };
 
 export async function GET(req: NextRequest) {
@@ -82,8 +88,14 @@ export async function GET(req: NextRequest) {
       rol_nombre,
       reemplazo_guardia_nombre,
       cobertura_guardia_nombre,
-      cobertura_guardia_telefono
-    FROM as_turnos_v_pauta_diaria_unificada
+      cobertura_guardia_telefono,
+      
+      -- NUEVA ESTRUCTURA DE ESTADOS
+      tipo_turno,
+      estado_puesto,
+      estado_guardia,
+      tipo_cobertura
+    FROM public.as_turnos_v_pauta_diaria_unificada
     WHERE fecha = $1
   `;
   if (instalacionId) { params.push(instalacionId); sql += ` AND instalacion_id = $2`; }

@@ -240,6 +240,9 @@ export async function POST(request: NextRequest) {
     // Enviar webhook (asíncrono)
     enviarWebhook(body.tenant_id, guardiaCreado.id, datosGuardia, modoPrueba);
 
+    // Crear notificación para administradores (asíncrono)
+    crearNotificacionNuevaPostulacion(body.tenant_id, guardiaCreado.id, datosGuardia);
+
     // Enviar email de confirmación (asíncrono)
     enviarEmailConfirmacion(datosGuardia);
 
@@ -530,5 +533,72 @@ async function enviarEmailConfirmacion(datosGuardia: any) {
     
   } catch (error) {
     console.error('❌ Error enviando email de confirmación:', error);
+  }
+}
+
+// Función para crear notificación de nueva postulación (asíncrona)
+async function crearNotificacionNuevaPostulacion(tenantId: string, guardiaId: string, datosGuardia: any) {
+  try {
+    const client = await getClient();
+    
+    // Obtener todos los usuarios administradores del tenant
+    const usuariosQuery = `
+      SELECT u.id, u.email, u.nombre
+      FROM usuarios u
+      JOIN usuarios_roles ur ON u.id = ur.usuario_id
+      JOIN roles r ON ur.rol_id = r.id
+      WHERE u.tenant_id = $1 
+        AND u.activo = true 
+        AND r.nombre ILIKE '%admin%'
+    `;
+    
+    const usuariosResult = await client.query(usuariosQuery, [tenantId]);
+    
+    if (usuariosResult.rows.length === 0) {
+      logger.debug('ℹ️ No hay usuarios administradores para notificar');
+      return;
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ops.gard.cl';
+    const fichaGuardiaUrl = `${baseUrl}/guardias?id=${guardiaId}`;
+    
+    // Crear notificación para cada administrador
+    for (const usuario of usuariosResult.rows) {
+      const notificacionQuery = `
+        INSERT INTO notificaciones (
+          tenant_id, usuario_id, tipo, titulo, mensaje, datos
+        ) VALUES ($1, $2, $3, $4, $5, $6)
+      `;
+      
+      const titulo = `Nueva postulación de guardia`;
+      const mensaje = `${datosGuardia.nombre} ${datosGuardia.apellido_paterno} (${datosGuardia.rut}) ha enviado una nueva postulación`;
+      
+      const datosNotificacion = {
+        guardia_id: guardiaId,
+        rut: datosGuardia.rut,
+        nombre: datosGuardia.nombre,
+        apellido_paterno: datosGuardia.apellido_paterno,
+        email: datosGuardia.email,
+        telefono: datosGuardia.telefono,
+        urls: {
+          ficha_guardia: fichaGuardiaUrl,
+          ficha_guardia_directa: `${baseUrl}/guardias/${guardiaId}`
+        }
+      };
+      
+      await client.query(notificacionQuery, [
+        tenantId,
+        usuario.id,
+        'nueva_postulacion',
+        titulo,
+        mensaje,
+        JSON.stringify(datosNotificacion)
+      ]);
+    }
+    
+    devLogger.success(`🔔 Notificaciones creadas para ${usuariosResult.rows.length} administradores`);
+    
+  } catch (error) {
+    console.error('❌ Error creando notificaciones:', error);
   }
 }

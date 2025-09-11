@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { PautaRow, PautaDiariaV2Props } from './types';
 import { toYmd, toDisplay } from '@/lib/date';
 import { GuardiaSearchModal } from '@/components/ui/guardia-search-modal';
+import { mapearAEstadoUI, EstadoTurno } from '@/lib/estados-turnos';
 import * as api from './apiAdapter';
 
 type Filtros = {
@@ -51,7 +52,30 @@ const isPlan = (estadoUI: string) => estadoUI === 'plan';
 const isSinCobertura = (estadoUI: string) => estadoUI === 'sin_cobertura';
 const isLibre = (estadoUI: string) => estadoUI === 'libre';
 
-const renderEstado = (estadoUI: string, isFalta: boolean, hasCobertura?: boolean, estado?: string) => {
+const renderEstado = (row: PautaRow) => {
+  // NUEVA LÓGICA: Usar estructura de estados si está disponible
+  if (row.tipo_turno || row.estado_puesto || row.estado_guardia || row.tipo_cobertura) {
+    const estadoTurno: EstadoTurno = {
+      tipo_turno: row.tipo_turno || 'planificado',
+      estado_puesto: row.estado_puesto || null,
+      estado_guardia: row.estado_guardia || null,
+      tipo_cobertura: row.tipo_cobertura || null,
+      guardia_trabajo_id: row.guardia_trabajo_id || null
+    };
+    
+    const estadoUI = mapearAEstadoUI(estadoTurno);
+    
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded ring-1 ${estadoUI.color}`}>
+        {estadoUI.icono} {estadoUI.descripcion}
+      </span>
+    );
+  }
+  
+  // LÓGICA LEGACY: Para compatibilidad con datos existentes
+  const estadoUI = row.estado_ui || '';
+  const hasCobertura = Boolean(row.guardia_trabajo_id && row.guardia_trabajo_id !== row.guardia_titular_id);
+  
   // Estados consistentes entre pauta mensual y diaria
   const cls: Record<string,string> = {
     asistio:        'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20',
@@ -69,24 +93,7 @@ const renderEstado = (estadoUI: string, isFalta: boolean, hasCobertura?: boolean
     extra:          'bg-fuchsia-500/10 text-fuchsia-400 ring-fuchsia-500/20',
   };
   
-  // PRIORIDAD 1: Usar el campo 'estado' del backend si está disponible
-  if (estado === 'libre') {
-    return (
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded ring-1 ${cls.libre}`}>
-        Libre
-      </span>
-    );
-  }
-  
-  if (estado === 'planificado') {
-    return (
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded ring-1 ${cls.planificado}`}>
-        Planificado
-      </span>
-    );
-  }
-  
-  // PRIORIDAD 2: Mapear estados legacy a nuevos estados consistentes
+  // Mapear estados legacy a nuevos estados consistentes
   const estadoNormalizado = (() => {
     switch (estadoUI) {
       case 'asistido':
@@ -114,9 +121,7 @@ const renderEstado = (estadoUI: string, isFalta: boolean, hasCobertura?: boolean
   
   // Determinar label
   let label = '';
-  if (estadoUI === 'extra' || (hasCobertura && !['asistio', 'asistido', 'sin_cobertura', 'inasistencia', 'plan', 'libre'].includes(estadoUI))) {
-    label = 'Turno Extra';
-  } else if (estadoNormalizado === 'turno_extra') {
+  if (estadoUI === 'extra' || estadoNormalizado === 'turno_extra' || (hasCobertura && !['asistio', 'asistido', 'sin_cobertura', 'inasistencia', 'plan', 'libre'].includes(estadoUI))) {
     label = 'Turno Extra';
   } else if (estadoNormalizado === 'asistio') {
     label = 'Asistió';
@@ -133,7 +138,6 @@ const renderEstado = (estadoUI: string, isFalta: boolean, hasCobertura?: boolean
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded ring-1 ${base}`}>
       {label}
-      {isFalta && <span className="ml-1 rounded px-1 text-[10px] ring-1 bg-red-500/10 text-red-400 ring-red-500/20">falta</span>}
     </span>
   );
 };
@@ -675,8 +679,31 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   const isTitularPlan = (r: PautaRow) => r.es_ppc === false && r.estado_ui === 'plan';
   // CORREGIDO: PPCs deben mostrar botones independiente del estado_ui (incluso si es null)
   const isPpcPlan     = (r: PautaRow) => r.es_ppc === true && r.estado !== 'libre';
-  const canUndo       = (r: PautaRow) => {
-    // Estados que permiten deshacer (incluyendo estados legacy y nuevos)
+  const canUndo = (r: PautaRow) => {
+    // NUEVA LÓGICA: Usar estructura de estados si está disponible
+    if (r.tipo_turno || r.estado_puesto || r.estado_guardia || r.tipo_cobertura) {
+      const estadoTurno: EstadoTurno = {
+        tipo_turno: r.tipo_turno || 'planificado',
+        estado_puesto: r.estado_puesto || null,
+        estado_guardia: r.estado_guardia || null,
+        tipo_cobertura: r.tipo_cobertura || null,
+        guardia_trabajo_id: r.guardia_trabajo_id || null
+      };
+      
+      const estadoUI = mapearAEstadoUI(estadoTurno);
+      const canUndoResult = ['asistido', 'turno_extra', 'sin_cobertura'].includes(estadoUI.estado);
+      
+      devLogger.search(' Debug canUndo nueva lógica:', {
+        pauta_id: r.pauta_id,
+        estadoTurno,
+        estadoUI,
+        canUndoResult
+      });
+      
+      return canUndoResult;
+    }
+    
+    // LÓGICA LEGACY: Para compatibilidad con datos existentes
     const canUndoResult = [
       'asistido', 'asistio',           // Estados de asistencia
       'reemplazo', 'turno_extra', 'te', // Estados de reemplazo/turno extra
@@ -696,9 +723,21 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       return true;
     }
     
+    // Para turnos extras (estado 'extra'), siempre permitir deshacer si tienen cobertura
+    if (r.estado_ui === 'extra' && r.guardia_trabajo_id) {
+      devLogger.search(' Debug canUndo turno extra:', {
+        pauta_id: r.pauta_id,
+        estado_ui: r.estado_ui,
+        es_ppc: r.es_ppc,
+        guardia_trabajo_id: r.guardia_trabajo_id,
+        canUndoResult: true
+      });
+      return true;
+    }
+    
     // Para otros casos, verificar que tenga guardia_trabajo_id y no sea plan o libre
     if (r.guardia_trabajo_id && r.estado_ui !== 'plan' && r.estado_ui !== 'libre') {
-      devLogger.search(' Debug canUndo:', {
+      devLogger.search(' Debug canUndo legacy:', {
         pauta_id: r.pauta_id,
         estado_ui: r.estado_ui,
         es_ppc: r.es_ppc,
@@ -1104,7 +1143,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                 <div className="text-xs text-muted-foreground">{row.hora_inicio.slice(0,5)} - {row.hora_fin.slice(0,5)}</div>
               )}
             </div>
-            <div>{renderEstado(row.estado_ui, row.es_falta_sin_aviso, !!row.guardia_trabajo_id)}</div>
+            <div>{renderEstado(row)}</div>
           </div>
 
           <div className="text-sm">
@@ -1601,7 +1640,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                             ) : '—'}
                           </TableCell>
                           <TableCell>
-                            <div>{renderEstado(r.estado_ui, r.es_falta_sin_aviso, !!r.guardia_trabajo_id, r.estado)}</div>
+                            <div>{renderEstado(r)}</div>
                           </TableCell>
                           <TableCell>
                             {(() => {

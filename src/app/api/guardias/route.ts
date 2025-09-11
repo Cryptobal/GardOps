@@ -457,6 +457,25 @@ export async function POST(request: NextRequest) {
 
     const nuevoGuardia = result.rows[0];
 
+    // Crear alarma para nuevo guardia
+    try {
+      const { crearAlarmaNuevoGuardia } = await import('@/lib/alarmas');
+      await crearAlarmaNuevoGuardia(
+        tenantId,
+        user.user_id,
+        {
+          id: nuevoGuardia.id,
+          nombre: nuevoGuardia.nombre,
+          apellido: nuevoGuardia.apellido_paterno,
+          email: nuevoGuardia.email
+        }
+      );
+      devLogger.success('🔔 Alarma de nuevo guardia creada');
+    } catch (alarmaError) {
+      logger.error('Error creando alarma de nuevo guardia:', alarmaError);
+      // No fallar la creación del guardia por error en la alarma
+    }
+
     return NextResponse.json({ 
       success: true, 
       guardia: nuevoGuardia 

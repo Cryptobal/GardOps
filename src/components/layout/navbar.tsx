@@ -9,6 +9,7 @@ import { Button } from "../ui/button";
 import { LogOut, User, Menu, Moon, Sun, Settings } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ProfileModal } from "../shared/ProfileModal";
+import { NotificationBell } from "../shared/NotificationBell";
 
 interface NavbarProps {
   onMobileMenuToggle?: () => void;
@@ -184,6 +185,9 @@ export function Navbar({ onMobileMenuToggle }: NavbarProps) {
               {isDark ? <Sun className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <Moon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
             </Button>
           )}
+
+          {/* Notification Bell */}
+          <NotificationBell />
 
           {/* Profile button - Responsive */}
           <Button

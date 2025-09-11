@@ -30,6 +30,12 @@ export interface PautaRow {
   cobertura_guardia_telefono?: string | null; // Teléfono del guardia de cobertura
   comentarios?: string | null; // Comentarios del turno
   estado_semaforo?: string | null; // Estado del semáforo (pendiente, en_camino, urgencia, completado)
+  
+  // NUEVA ESTRUCTURA DE ESTADOS
+  tipo_turno?: string | null; // 'planificado' | 'libre'
+  estado_puesto?: string | null; // 'asignado' | 'ppc' | 'libre'
+  estado_guardia?: string | null; // 'asistido' | 'falta' | 'permiso' | 'vacaciones' | 'licencia'
+  tipo_cobertura?: string | null; // 'sin_cobertura' | 'guardia_asignado' | 'turno_extra'
 }
 
 export interface PautaDiariaV2Props {
