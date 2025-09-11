@@ -71,11 +71,13 @@ export function notifyTurnoUpdate(data: any) {
   }
   
   // Enviar a todas las conexiones activas
-  connections.forEach((controller, index) => {
+  let connectionIndex = 0;
+  connections.forEach((controller) => {
     try {
       const sseMessage = `event: turno_update\ndata: ${message}\n\n`;
-      console.log(`📡 SSE: Enviando a conexión ${index + 1}:`, sseMessage);
+      console.log(`📡 SSE: Enviando a conexión ${connectionIndex + 1}:`, sseMessage);
       controller.enqueue(new TextEncoder().encode(sseMessage));
+      connectionIndex++;
     } catch (error) {
       console.error('❌ SSE: Error enviando mensaje:', error);
       // Si hay error, remover la conexión
