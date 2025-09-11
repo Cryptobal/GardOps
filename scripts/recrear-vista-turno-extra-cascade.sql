@@ -76,7 +76,7 @@ SELECT
   gw.telefono as guardia_trabajo_telefono,
   
   -- Información del guardia de cobertura (turno extra)
-  gc.nombre as cobertura_guardia_nombre,
+  CONCAT(gc.apellido_paterno, ' ', gc.apellido_materno, ', ', gc.nombre) as cobertura_guardia_nombre,
   gc.telefono as cobertura_guardia_telefono,
   
   -- Información del guardia de reemplazo (convertir text a uuid)
