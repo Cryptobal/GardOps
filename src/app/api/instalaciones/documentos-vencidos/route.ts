@@ -9,13 +9,13 @@ export async function GET(request: NextRequest) {
       SELECT 
         i.id as instalacion_id,
         i.nombre as instalacion_nombre,
-        COUNT(di.id) as documentos_vencidos
+        COUNT(d.id) as documentos_vencidos
       FROM instalaciones i
-      LEFT JOIN documentos_instalacion di ON i.id = di.instalacion_id
-      LEFT JOIN tipos_documentos td ON di.tipo_documento_id = td.id
-      WHERE di.fecha_vencimiento IS NOT NULL
+      LEFT JOIN documentos d ON i.id = d.instalacion_id
+      LEFT JOIN tipos_documentos td ON d.tipo_documento_id = td.id
+      WHERE d.fecha_vencimiento IS NOT NULL
         AND td.requiere_vencimiento = true
-        AND di.fecha_vencimiento < CURRENT_DATE
+        AND d.fecha_vencimiento < CURRENT_DATE
       GROUP BY i.id, i.nombre
       ORDER BY documentos_vencidos DESC
     `;

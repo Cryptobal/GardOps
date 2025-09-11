@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { getUserEmail, getUserIdByEmail, userHasPerm } from '@/lib/auth/rbac';
 
+// Configurar como ruta dinámica para evitar prerendering
+export const dynamic = 'force-dynamic';
+
 // Definir todos los módulos que deberían existir
 const MODULOS_ESPERADOS = [
   'home',

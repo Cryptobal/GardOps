@@ -15,11 +15,11 @@ export async function GET() {
         c.nombre as cliente_nombre,
         rs.nombre as rol_servicio,
         req.cantidad_guardias
-      FROM as_turnos_ppc ppc
-      INNER JOIN as_turnos_requisitos req ON ppc.requisito_puesto_id = req.id
+      FROM puestos_por_cubrir ppc
+      INNER JOIN requisitos_puesto req ON ppc.requisito_puesto_id = req.id
       INNER JOIN instalaciones i ON req.instalacion_id = i.id
       INNER JOIN clientes c ON i.cliente_id = c.id
-      INNER JOIN as_turnos_roles_servicio rs ON req.rol_servicio_id = rs.id
+      INNER JOIN roles_servicio rs ON req.rol_servicio_id = rs.id
       WHERE ppc.estado = 'Pendiente'
       ORDER BY ppc.fecha, i.nombre
     `);

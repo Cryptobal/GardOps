@@ -10,7 +10,6 @@ export async function GET() {
         u.email,
         u.nombre,
         u.tenant_id,
-        u.rol,
         u.activo
       FROM usuarios u
       WHERE u.email = 'demo@demo.com'

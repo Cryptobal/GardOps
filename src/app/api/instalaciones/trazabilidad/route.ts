@@ -9,8 +9,8 @@ export async function GET() {
       SELECT 
         (SELECT COUNT(*) FROM instalaciones WHERE estado = 'Activo') as instalaciones,
         (SELECT COUNT(*) FROM clientes WHERE estado = 'Activo') as clientes,
-        (SELECT COUNT(*) FROM as_turnos_requisitos WHERE estado = 'Activo') as requisitos,
-        (SELECT COUNT(*) FROM as_turnos_asignaciones WHERE estado = 'Activa') as asignaciones_activas
+        (SELECT COUNT(*) FROM requisitos_puesto WHERE estado = 'Activo') as requisitos,
+        (SELECT COUNT(*) FROM asignaciones_guardias WHERE estado = 'Activa') as asignaciones_activas
     `);
 
     // Calcular tasa de éxito (PPCs asignados vs total)
@@ -20,7 +20,7 @@ export async function GET() {
           WHEN COUNT(*) = 0 THEN 0
           ELSE ROUND((COUNT(CASE WHEN estado = 'Asignado' THEN 1 END) * 100.0 / COUNT(*)), 1)
         END as tasa_exito
-      FROM as_turnos_ppc
+      FROM puestos_por_cubrir
     `);
 
     const data = trazabilidad.rows[0];

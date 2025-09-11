@@ -12,7 +12,7 @@ export async function GET() {
         COUNT(CASE WHEN estado = 'Asignado' THEN 1 END) as asignados,
         COUNT(CASE WHEN estado = 'Cancelado' THEN 1 END) as cancelados,
         COUNT(CASE WHEN estado = 'Completado' THEN 1 END) as completados
-      FROM as_turnos_ppc
+      FROM puestos_por_cubrir
     `);
 
     const metrics = ppcMetrics.rows[0];

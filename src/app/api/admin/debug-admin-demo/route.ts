@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
 
     // 1. Verificar usuario
     const usuarioResult = await sql`
-      SELECT id, email, nombre, tenant_id, rol 
+      SELECT id, email, nombre, tenant_id 
       FROM usuarios 
       WHERE email = 'admin@demo.com'
     `;

@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
-import { isAuthenticated } from '../../../../lib/auth';
+import { getCurrentUserServer } from '@/lib/auth';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 // Obtener turnos de múltiples instalaciones
 export async function GET(request: NextRequest) {
   try {
     // Verificar autenticación
-    const authResult = await isAuthenticated(request);
-    if (!authResult.success) {
+    const user = getCurrentUserServer(request);
+    if (!user) {
       return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 });
     }
 

@@ -1,5 +1,9 @@
 import { NextRequest } from 'next/server';
 
+// Configurar como ruta dinámica para evitar prerendering
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // Store para mantener las conexiones SSE activas
 const connections = new Set<ReadableStreamDefaultController>();
 
@@ -20,7 +24,9 @@ export async function GET(request: NextRequest) {
         timestamp: new Date().toISOString()
       });
       
-      controller.enqueue(`data: ${data}\n\n`);
+      // Codificar correctamente el mensaje SSE
+      const sseMessage = `data: ${data}\n\n`;
+      controller.enqueue(new TextEncoder().encode(sseMessage));
       
       // Función para limpiar la conexión cuando se cierre
       const cleanup = () => {
@@ -62,7 +68,8 @@ export function notifyTurnoUpdate(data: any) {
   // Enviar a todas las conexiones activas
   connections.forEach(controller => {
     try {
-      controller.enqueue(`event: turno_update\ndata: ${message}\n\n`);
+      const sseMessage = `event: turno_update\ndata: ${message}\n\n`;
+      controller.enqueue(new TextEncoder().encode(sseMessage));
     } catch (error) {
       console.error('❌ SSE: Error enviando mensaje:', error);
       // Si hay error, remover la conexión
