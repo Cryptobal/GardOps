@@ -711,7 +711,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       const estadoUI = mapearAEstadoUI(estadoTurno);
       const canUndoResult = ['asistido', 'turno_extra', 'sin_cobertura'].includes(estadoUI.estado);
       
-      devLogger.search(' Debug canUndo nueva lógica:', {
+      console.log('🔍 Debug canUndo nueva lógica:', {
         pauta_id: r.pauta_id,
         estadoTurno,
         estadoUI,
