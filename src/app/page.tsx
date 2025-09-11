@@ -3,7 +3,7 @@
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 import { useSSE } from '@/hooks/useSSE';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -124,8 +124,8 @@ export default function HomePage() {
   }, []);
 
 
-  // Usar Server-Sent Events para sincronización en tiempo real
-  const { isConnected: sseConnected, error: sseError } = useSSE('/api/events/turnos', (event) => {
+  // Función callback estable para manejar eventos SSE
+  const handleSSEEvent = useCallback((event: any) => {
     console.log('📡 SSE: Evento recibido en página principal:', event);
     logger.debug('📡 SSE: Evento recibido en página principal:', event);
     if (event.type === 'turno_update') {
@@ -133,7 +133,10 @@ export default function HomePage() {
       logger.debug('🔄 Actualización de turno detectada via SSE - Recargando KPIs');
       cargarKPIs();
     }
-  });
+  }, []);
+
+  // Usar Server-Sent Events para sincronización en tiempo real
+  const { isConnected: sseConnected, error: sseError } = useSSE('/api/events/turnos', handleSSEEvent);
 
   // Auto-refresh cada 30 segundos para mantener KPIs actualizados
   useEffect(() => {

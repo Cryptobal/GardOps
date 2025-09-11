@@ -15,6 +15,12 @@ export function useSSE(url: string, onMessage?: (event: SSEEvent) => void) {
   useEffect(() => {
     console.log('🔌 SSE: Iniciando conexión a:', url);
     
+    // Cerrar conexión anterior si existe
+    if (eventSourceRef.current) {
+      console.log('🔌 SSE: Cerrando conexión anterior');
+      eventSourceRef.current.close();
+    }
+    
     // Crear nueva conexión SSE
     const eventSource = new EventSource(url);
     eventSourceRef.current = eventSource;
@@ -49,6 +55,20 @@ export function useSSE(url: string, onMessage?: (event: SSEEvent) => void) {
         }
       } catch (error) {
         console.error('❌ SSE: Error parsing turno_update event:', error);
+      }
+    });
+
+    // También escuchar eventos de conexión
+    eventSource.addEventListener('connection', (event) => {
+      try {
+        const data: SSEEvent = JSON.parse(event.data);
+        console.log('📡 SSE: Evento connection recibido:', data);
+        
+        if (onMessage) {
+          onMessage(data);
+        }
+      } catch (error) {
+        console.error('❌ SSE: Error parsing connection event:', error);
       }
     });
 
@@ -112,7 +132,7 @@ export function useSSE(url: string, onMessage?: (event: SSEEvent) => void) {
       eventSourceRef.current = null;
       setIsConnected(false);
     };
-  }, [url, onMessage]);
+  }, [url]); // Remover onMessage de las dependencias para evitar recreaciones
 
   const close = () => {
     if (eventSourceRef.current) {
