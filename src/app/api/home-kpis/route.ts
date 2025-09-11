@@ -5,7 +5,7 @@ import { obtenerKPIsOS10 } from '@/lib/utils/os10-status';
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 export async function GET(request: NextRequest) {
   try {
-    // Usar zona horaria de Chile para obtener la fecha correcta de HOY
+    // Usar zona horaria de Chile para obtener la fecha correcta de HOY (PRODUCCIÓN READY)
     const fechaChile = new Date().toLocaleString("en-CA", { timeZone: "America/Santiago" }).split(',')[0];
     const [anio, mes, dia] = fechaChile.split('-').map(Number);
     
