@@ -3,6 +3,10 @@ import pool from '@/lib/database';
 import { notifyTurnoUpdate } from '@/app/api/events/turnos/route';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST(request: NextRequest) {
   try {
     const { pauta_id, estado_semaforo, fecha } = await request.json();

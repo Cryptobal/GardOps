@@ -2,12 +2,11 @@ import { NextRequest } from 'next/server';
 import { withPermission } from '@/app/api/_middleware/withPermission';
 import { getClient } from '@/lib/database';
 import { getCurrentUserRef } from '@/lib/auth';
-import { unstable_noStore as noStore } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export const POST = withPermission('turnos.marcar_asistencia', async (req: NextRequest) => {
-  noStore();
   try {
     const { pauta_id } = await req.json();
     if (!pauta_id) return new Response('pauta_id requerido', { status: 400 });

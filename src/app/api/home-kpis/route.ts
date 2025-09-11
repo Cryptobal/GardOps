@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/database';
 import { obtenerKPIsOS10 } from '@/lib/utils/os10-status';
 import { getHoyChile, getSystemTimezone } from '@/lib/utils/chile-date';
-import { noStore } from 'next/cache';
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
+
+// Configurar para evitar caché
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
-  noStore(); // Evitar caché para datos en tiempo real
   try {
     // Usar configuración de sistema para zona horaria (MIGRACIÓN CRÍTICA)
     const fechaChile = await getHoyChile();

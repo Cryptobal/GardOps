@@ -37,8 +37,17 @@ export interface SearchResult {
   rut?: string;
 }
 
+// Interfaces para compatibilidad con el código existente
+export interface GuardiaConCoordenadas extends LocationData {
+  tipo: 'guardia';
+}
+
+export interface InstalacionConCoordenadas extends LocationData {
+  tipo: 'instalacion';
+}
+
 // Obtener guardias con coordenadas
-export const obtenerGuardiasConCoordenadas = async (): Promise<GuardiaConCoordenadas[]> => {
+export const getGuardiasConCoordenadas = async (): Promise<LocationData[]> => {
   try {
     const baseUrl = getApiBaseUrl();
     const response = await fetch(`${baseUrl}/api/guardias-con-coordenadas`);
@@ -64,7 +73,7 @@ export const obtenerGuardiasConCoordenadas = async (): Promise<GuardiaConCoorden
 }
 
 // Obtener instalaciones con coordenadas
-export const obtenerInstalacionesConCoordenadas = async (): Promise<InstalacionConCoordenadas[]> => {
+export const getInstalacionesConCoordenadas = async (): Promise<LocationData[]> => {
   try {
     const baseUrl = getApiBaseUrl();
     const response = await fetch(`${baseUrl}/api/instalaciones-con-coordenadas`);
