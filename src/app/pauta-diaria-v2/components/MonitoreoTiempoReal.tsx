@@ -379,6 +379,10 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
             </Button>
           </div>
           
+        </div>
+
+        {/* Botones y controles centrados */}
+        <div className="flex items-center justify-center gap-2">
           {/* Botón Hoy */}
           <Button 
             variant="outline" 
@@ -388,10 +392,17 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
           >
             Hoy
           </Button>
+
+          {/* KPI Total */}
+          <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-950/50 rounded-lg border border-blue-200 dark:border-blue-800">
+            <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Total:</span>
+            <span className="text-sm font-bold text-blue-800 dark:text-blue-200">{data?.kpis.total_turnos || 0}</span>
+          </div>
         </div>
 
-        {/* Botones y KPI Total */}
-        <div className="flex items-center justify-between gap-2">
+        {/* Botón Ver Libres */}
+        <div className="flex items-center justify-start">
           <Button
             onClick={() => setIncluirLibres(!incluirLibres)}
             variant={incluirLibres ? "default" : "outline"}
@@ -401,13 +412,6 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
             <Eye className="w-3 h-3 mr-1" />
             <span className="text-xs">Ver Libres</span>
           </Button>
-
-          {/* KPI Total */}
-          <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-950/50 rounded-lg border border-blue-200 dark:border-blue-800">
-            <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Total:</span>
-            <span className="text-sm font-bold text-blue-800 dark:text-blue-200">{data?.kpis.total_turnos || 0}</span>
-          </div>
         </div>
 
         {/* Selector de modo vista */}
