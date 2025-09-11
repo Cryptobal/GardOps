@@ -5,9 +5,9 @@ import { obtenerKPIsOS10 } from '@/lib/utils/os10-status';
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 export async function GET(request: NextRequest) {
   try {
-    const anio = new Date().getFullYear();
-    const mes = new Date().getMonth() + 1;
-    const dia = new Date().getDate();
+    // Usar la misma lógica de fecha que el control de asistencias (UTC)
+    const fechaActual = new Date().toISOString().slice(0, 10);
+    const [anio, mes, dia] = fechaActual.split('-').map(Number);
     
     logger.debug(`🔍 Obteniendo KPIs de página de inicio para fecha: ${anio}/${mes}/${dia}`);
 
@@ -36,7 +36,6 @@ export async function GET(request: NextRequest) {
 
 
     // Obtener KPIs del Central de Monitoreo usando EXACTAMENTE la misma lógica que el endpoint de la Central
-    const fechaActual = new Date().toISOString().split('T')[0];
     const tz = 'America/Santiago';
     const { rows: monitoreoRows } = await pool.query(`
       SELECT 
