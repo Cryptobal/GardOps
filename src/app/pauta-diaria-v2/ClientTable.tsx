@@ -617,9 +617,13 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   }
 
   async function onSinCoberturaPPC(pauta_id: string) {
+    console.log('🔍 [onSinCoberturaPPC] Iniciando función con pauta_id:', pauta_id);
     try {
       setSavingId(pauta_id);
-      await api.marcarSinCoberturaPPC(pauta_id);
+      console.log('🔍 [onSinCoberturaPPC] Llamando a api.marcarSinCoberturaPPC...');
+      const result = await api.marcarSinCoberturaPPC(pauta_id);
+      console.log('🔍 [onSinCoberturaPPC] Resultado de la API:', result);
+      
       addToast({
         title: "✅ Éxito",
         description: "Marcado sin cobertura",
@@ -628,9 +632,11 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       
       // Actualizar datos sin recargar la página
       if (onRecargarDatos) {
+        console.log('🔍 [onSinCoberturaPPC] Recargando datos...');
         await onRecargarDatos();
       }
     } catch (e:any) {
+      console.error('❌ [onSinCoberturaPPC] Error:', e);
       addToast({
         title: "❌ Error",
         description: `Error al marcar sin cobertura: ${e.message ?? e}`,
@@ -1709,7 +1715,10 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                                         variant="outline" 
                                         disabled={isLoading} 
                                         className="h-6 px-2 text-xs" 
-                                        onClick={() => onSinCoberturaPPC(r.pauta_id)}
+                                        onClick={() => {
+                                          console.log('🔍 [Button] Click en Sin cobertura para pauta_id:', r.pauta_id);
+                                          onSinCoberturaPPC(r.pauta_id);
+                                        }}
                                       >
                                         ⛔ Sin cobertura
                                       </Button>
