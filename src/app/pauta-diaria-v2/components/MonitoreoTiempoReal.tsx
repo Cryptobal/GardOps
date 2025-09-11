@@ -348,16 +348,11 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
       {/* Header con controles - Mobile First */}
       <div className="space-y-2">
         {/* Controles de navegación de fecha - Mobile First */}
-        <div className="flex items-center justify-between gap-2">
-          {/* Navegación de fecha */}
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" onClick={() => go(-1)} className="h-8 w-8 p-0">
-              <ChevronLeft className="h-3 w-3" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => go(1)} className="h-8 w-8 p-0">
-              <ChevronRight className="h-3 w-3" />
-            </Button>
-          </div>
+        <div className="flex items-center justify-center gap-2">
+          {/* Flecha izquierda */}
+          <Button variant="outline" size="sm" onClick={() => go(-1)} className="h-8 w-8 p-0">
+            <ChevronLeft className="h-3 w-3" />
+          </Button>
           
           {/* Selector de fecha compacto */}
           <div className="flex items-center gap-1">
@@ -379,6 +374,10 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
             </Button>
           </div>
           
+          {/* Flecha derecha */}
+          <Button variant="outline" size="sm" onClick={() => go(1)} className="h-8 w-8 p-0">
+            <ChevronRight className="h-3 w-3" />
+          </Button>
         </div>
 
         {/* Botones y controles centrados */}
