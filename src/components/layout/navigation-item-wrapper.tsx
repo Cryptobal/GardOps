@@ -71,16 +71,6 @@ export const NavigationItemWrapper = React.memo(function NavigationItemWrapper({
   
   // Lógica mejorada para detectar estado activo
   const isActive = (() => {
-    // Debug: solo para guardias
-    if (item.href === '/guardias') {
-      console.log('🔍 Debug navegación guardias:', {
-        pathname,
-        itemHref: item.href,
-        exactMatch: pathname === item.href,
-        startsWith: pathname.startsWith(item.href + '/')
-      });
-    }
-    
     // Caso directo: pathname coincide exactamente con href
     if (pathname === item.href) return true;
     

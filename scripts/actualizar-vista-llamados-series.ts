@@ -34,7 +34,7 @@ async function actualizarVistaLlamadosSeries() {
         INNER JOIN as_turnos_puestos_operativos po ON po.id = pm.puesto_id AND po.activo = true
         INNER JOIN instalaciones i ON i.id = po.instalacion_id
         INNER JOIN central_config_instalacion cci ON cci.instalacion_id = i.id
-        WHERE pm.estado = 'planificado'
+        WHERE pm.estado_operacion = 'planificado'
           AND cci.habilitado = true
           AND cci.intervalo_minutos IS NOT NULL
           AND cci.ventana_inicio IS NOT NULL

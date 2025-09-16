@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     
     // Llamamos a la función de Neon (función que retorna void)
     await sql`
-      SELECT as_turnos.fn_revertir_a_plan(
+      SELECT as_turnos.fn_deshacer(
         ${pauta_id}::bigint,
         ${actor}::text
       );

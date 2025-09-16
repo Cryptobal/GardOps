@@ -8,6 +8,56 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { logger } from '@/lib/utils/logger';
 
+// Helper para obtener headers de autenticación
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  };
+
+  if (typeof window !== 'undefined') {
+    try {
+      // Intentar obtener desde localStorage
+      const currentUser = localStorage.getItem('current_user');
+      
+      if (currentUser) {
+        try {
+          const userInfo = JSON.parse(currentUser);
+          if (userInfo.email) {
+            headers['x-user-email'] = userInfo.email;
+            return headers;
+          }
+        } catch (parseError) {
+          logger.warn('Error parseando localStorage current_user:', parseError);
+        }
+      }
+
+      // Intentar obtener desde JWT
+      const authToken = localStorage.getItem('auth_token') || 
+                       document.cookie.match(/(?:^|;\s*)auth_token=([^;]+)/)?.[1];
+      
+      if (authToken) {
+        try {
+          const parts = authToken.split('.');
+          if (parts.length === 3) {
+            const payload = JSON.parse(atob(parts[1]));
+            if (payload.email) {
+              headers['x-user-email'] = payload.email;
+              return headers;
+            }
+          }
+        } catch (parseError) {
+          logger.warn('Error parseando JWT:', parseError);
+        }
+      }
+    } catch (error) {
+      logger.error('Error obteniendo headers de auth:', error);
+    }
+  }
+
+  // En modo silencioso para producción
+  return headers;
+}
+
 interface Notificacion {
   id: string;
   tipo: string;
@@ -33,7 +83,19 @@ export function NotificationBell({ className }: NotificationBellProps) {
   const cargarNotificaciones = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/notificaciones?limit=20');
+      const response = await fetch('/api/notificaciones?limit=20', {
+        headers: getAuthHeaders()
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          // En producción, simplemente no mostrar notificaciones si no hay auth
+          logger.debug('No autorizado para cargar notificaciones - modo silencioso');
+          return;
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
       const data = await response.json();
       
       if (data.success) {
@@ -51,7 +113,8 @@ export function NotificationBell({ className }: NotificationBellProps) {
   const marcarComoLeida = async (notificacionId: string) => {
     try {
       const response = await fetch(`/api/notificaciones/${notificacionId}`, {
-        method: 'PUT'
+        method: 'PUT',
+        headers: getAuthHeaders()
       });
       
       if (response.ok) {
@@ -74,7 +137,8 @@ export function NotificationBell({ className }: NotificationBellProps) {
   const marcarTodasComoLeidas = async () => {
     try {
       const response = await fetch('/api/notificaciones/marcar-todas-leidas', {
-        method: 'PUT'
+        method: 'PUT',
+        headers: getAuthHeaders()
       });
       
       if (response.ok) {
@@ -92,7 +156,8 @@ export function NotificationBell({ className }: NotificationBellProps) {
   const eliminarNotificacion = async (notificacionId: string) => {
     try {
       const response = await fetch(`/api/notificaciones/${notificacionId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getAuthHeaders()
       });
       
       if (response.ok) {
@@ -149,11 +214,8 @@ export function NotificationBell({ className }: NotificationBellProps) {
 
   // Cargar notificaciones al montar el componente
   useEffect(() => {
-    cargarNotificaciones();
-    
-    // Recargar cada 30 segundos
-    const interval = setInterval(cargarNotificaciones, 30000);
-    return () => clearInterval(interval);
+    // DESHABILITADO TEMPORALMENTE - causaba re-renders infinitos
+    return;
   }, []);
 
   return (

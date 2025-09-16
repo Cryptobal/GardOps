@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CalendarIcon, Download, DollarSign, RefreshCw, CheckCircle, XCircle, AlertTriangle, BarChart3, FileSpreadsheet, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { CalendarIcon, Download, DollarSign, RefreshCw, CheckCircle, XCircle, AlertTriangle, BarChart3, FileSpreadsheet, Calendar, ChevronDown, ChevronUp, Trash2, Edit3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSearchParams, useRouter } from 'next/navigation';
 import NavigationTabs from './components/NavigationTabs';
@@ -21,6 +21,7 @@ import StatsCards from './components/StatsCards';
 import FiltrosAvanzados from './components/FiltrosAvanzados';
 import DashboardStats from './components/DashboardStats';
 import CalendarView from './components/CalendarView';
+import DeleteConfirmModal from './components/DeleteConfirmModal';
 
 interface TurnoExtra {
   id: string;
@@ -114,8 +115,210 @@ export default function TurnosExtrasPage() {
   } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showFiltrosLocal, setShowFiltrosLocal] = useState(false);
+  
+  // Estados para eliminación individual
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [turnoToDelete, setTurnoToDelete] = useState<TurnoExtra | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Estados para edición de valor
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [turnoToEdit, setTurnoToEdit] = useState<TurnoExtra | null>(null);
+  const [nuevoValor, setNuevoValor] = useState('');
+  const [editando, setEditando] = useState(false);
 
   const { success, error } = useToast();
+
+  // Función para abrir modal de eliminación
+  const handleDeleteTurno = (turno: TurnoExtra) => {
+    console.log('🔍 Abriendo modal de eliminación para turno:', turno);
+    console.log('🔍 Turno source:', turno.source);
+    console.log('🔍 Turno id:', turno.id);
+    console.log('🔍 Turno pauta_id:', turno.pauta_id);
+    setTurnoToDelete(turno);
+    setShowDeleteModal(true);
+  };
+
+  // Función para abrir modal de edición
+  const handleEditTurno = (turno: TurnoExtra) => {
+    console.log('✏️ Abriendo modal de edición para turno:', turno);
+    setTurnoToEdit(turno);
+    
+    // Formatear el valor inicial con separadores de miles
+    const valorNumerico = typeof turno.valor === 'string' ? parseFloat(turno.valor) : turno.valor;
+    const valorFormateado = Math.round(valorNumerico).toLocaleString('es-CL', { 
+      minimumFractionDigits: 0, 
+      maximumFractionDigits: 0 
+    });
+    setNuevoValor(valorFormateado);
+    setShowEditModal(true);
+  };
+
+  // Función para cerrar modal de eliminación
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+    setTurnoToDelete(null);
+  };
+
+  // Función para cerrar modal de edición
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setTurnoToEdit(null);
+    setNuevoValor('');
+    setEditando(false);
+  };
+
+  // Función para confirmar eliminación
+  const confirmDeleteTurno = async () => {
+    if (!turnoToDelete) {
+      console.log('❌ No hay turno para eliminar');
+      return;
+    }
+
+    console.log('🗑️ Iniciando eliminación del turno:', turnoToDelete);
+
+    try {
+      setDeleting(true);
+      
+      let endpoint = '';
+      let id = '';
+
+      // TODOS los turnos extras se eliminan igual: revertir la cobertura
+      console.log('🔍 turnoToDelete.id:', turnoToDelete.id);
+      console.log('🔍 turnoToDelete.pauta_id:', turnoToDelete.pauta_id);
+      
+      if (turnoToDelete.pauta_id) {
+        // Usar el endpoint para revertir la cobertura en la pauta mensual
+        endpoint = `/api/turnos-extras/virtual/${turnoToDelete.pauta_id}`;
+        id = turnoToDelete.pauta_id.toString();
+      } else {
+        throw new Error('No se puede eliminar: falta pauta_id');
+      }
+
+      console.log('🌐 Endpoint determinado:', endpoint);
+      console.log('🆔 ID del turno:', id);
+
+      console.log('📡 Enviando request DELETE...');
+      const response = await fetch(endpoint, {
+        method: 'DELETE',
+      });
+
+      console.log('📊 Response status:', response.status);
+      console.log('📊 Response ok:', response.ok);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Error response:', errorData);
+        throw new Error(errorData.error || 'Error al eliminar turno extra');
+      }
+
+      const result = await response.json();
+      console.log('✅ Resultado de eliminación:', result);
+      
+      success({
+        title: "✅ Turno eliminado",
+        description: result.message || 'Turno extra eliminado correctamente'
+      });
+
+      // Recargar los datos
+      console.log('🔄 Iniciando recarga de datos después de eliminar...');
+      await cargarTurnosExtras();
+      console.log('✅ Recarga de datos completada');
+      
+      // Cerrar modal
+      closeDeleteModal();
+
+    } catch (err) {
+      console.error('❌ Error al eliminar turno extra:', err);
+      error({
+        title: "❌ Error",
+        description: err instanceof Error ? err.message : 'Error al eliminar turno extra'
+      });
+    } finally {
+      setDeleting(false);
+      console.log('🏁 Eliminación finalizada');
+    }
+  };
+
+  // Función para confirmar edición de valor
+  const confirmEditTurno = async () => {
+    if (!turnoToEdit) {
+      console.log('❌ No hay turno para editar');
+      return;
+    }
+
+    const valorNumerico = parseFloat(nuevoValor.replace(/[^\d]/g, ''));
+    if (isNaN(valorNumerico) || valorNumerico < 0) {
+      error({
+        title: "❌ Error",
+        description: "El valor debe ser un número válido mayor o igual a 0"
+      });
+      return;
+    }
+
+    console.log('✏️ Iniciando edición del turno:', turnoToEdit);
+    console.log('💰 Nuevo valor:', valorNumerico);
+
+    try {
+      setEditando(true);
+      
+      let endpoint = '';
+      let body = {};
+
+      // TODOS los turnos extras se editan en la pauta mensual
+      if (turnoToEdit.pauta_id) {
+        endpoint = `/api/turnos-extras/virtual/${turnoToEdit.pauta_id}/valor`;
+        body = {
+          valor: valorNumerico
+        };
+      } else {
+        throw new Error('No se puede editar: falta pauta_id');
+      }
+
+      console.log('🌐 Endpoint determinado:', endpoint);
+      console.log('📦 Body:', body);
+
+      const response = await fetch(endpoint, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Error response:', errorData);
+        throw new Error(errorData.error || 'Error al actualizar valor del turno extra');
+      }
+
+      const result = await response.json();
+      console.log('✅ Resultado de edición:', result);
+      
+      success({
+        title: "✅ Valor actualizado",
+        description: `Valor actualizado a $${valorNumerico.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+      });
+
+      // Recargar los datos
+      console.log('🔄 Iniciando recarga de datos después de editar...');
+      await cargarTurnosExtras();
+      console.log('✅ Recarga de datos completada');
+      
+      // Cerrar modal
+      closeEditModal();
+
+    } catch (err) {
+      console.error('❌ Error al editar turno extra:', err);
+      error({
+        title: "❌ Error",
+        description: err instanceof Error ? err.message : 'Error al actualizar valor del turno extra'
+      });
+    } finally {
+      setEditando(false);
+      console.log('🏁 Edición finalizada');
+    }
+  };
 
   // Detectar si es móvil automáticamente
   useEffect(() => {
@@ -191,6 +394,7 @@ export default function TurnosExtrasPage() {
 
   // Cargar turnos extras
   const cargarTurnosExtras = async () => {
+    console.log('📡 cargarTurnosExtras() iniciada');
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -204,20 +408,50 @@ export default function TurnosExtrasPage() {
       if (filtros.montoMax) params.append('monto_max', filtros.montoMax);
       if (filtros.rangoFecha) params.append('rango_fecha', filtros.rangoFecha);
 
-      const response = await fetch(`/api/pauta-diaria/turno-extra?${params.toString()}`);
+      // Agregar timestamp para evitar caché
+      params.append('_t', Date.now().toString());
+
+      const url = `/api/pauta-diaria/turno-extra?${params.toString()}`;
+      console.log('🌐 Fetching URL:', url);
+      
+      const response = await fetch(url, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
       const data = await response.json();
+      
+      console.log('📊 Response status:', response.status);
+      console.log('📊 Response data:', data);
 
       if (response.ok) {
-        setTurnosExtras(data.turnos_extras || []);
-        calcularEstadisticas(data.turnos_extras || []);
+        const turnos = data.turnos_extras || [];
+        console.log('✅ Datos recibidos:', turnos.length, 'turnos');
+        console.log('📋 Detalles de turnos:', turnos.map(t => ({ id: t.id, source: t.source, pauta_id: t.pauta_id })));
+        
+        // Limpiar estado anterior antes de actualizar
+        setTurnosExtras([]);
+        
+        // Pequeña pausa para asegurar que el estado se limpie
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Actualizar con nuevos datos
+        setTurnosExtras(turnos);
+        calcularEstadisticas(turnos);
+        console.log('✅ Estado actualizado con', turnos.length, 'turnos');
       } else {
+        console.error('❌ Error en response:', data.error);
         error("Error", data.error || "Error al cargar turnos extras");
       }
     } catch (err) {
-      console.error('Error:', err);
+      console.error('❌ Error en cargarTurnosExtras:', err);
       error("Error", "Error de conexión");
     } finally {
       setLoading(false);
+      console.log('🏁 cargarTurnosExtras() finalizada');
     }
   };
 
@@ -475,6 +709,11 @@ export default function TurnosExtrasPage() {
   };
 
   useEffect(() => {
+    // Limpiar estado anterior
+    setTurnosExtras([]);
+    setTurnoToDelete(null);
+    setTurnoToEdit(null);
+    
     cargarTurnosExtras();
     cargarInstalaciones();
   }, [filtros]);
@@ -761,20 +1000,42 @@ export default function TurnosExtrasPage() {
                           </Badge>
                         </td>
                         <td className="p-2">
-                          {!turno.pagado && !turno.planilla_id && (
-                            <Button
-                              onClick={() => {
-                                setSelectedTurnos([turno.id]);
-                                setShowPagoModal(true);
-                              }}
-                              size="sm"
-                              variant="outline"
-                              className="text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
-                            >
-                              <DollarSign className="h-4 w-4 mr-1" />
-                              Pagado
-                            </Button>
-                          )}
+                          <div className="flex gap-2">
+                            {!turno.pagado && !turno.planilla_id && (
+                              <Button
+                                onClick={() => {
+                                  setSelectedTurnos([turno.id]);
+                                  setShowPagoModal(true);
+                                }}
+                                size="sm"
+                                variant="outline"
+                                className="text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                              >
+                                <DollarSign className="h-4 w-4 mr-1" />
+                                Pagado
+                              </Button>
+                            )}
+                            {!turno.pagado && !turno.planilla_id && (
+                              <div className="flex gap-1">
+                                <Button
+                                  onClick={() => handleEditTurno(turno)}
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                >
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  onClick={() => handleDeleteTurno(turno)}
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -898,6 +1159,82 @@ export default function TurnosExtrasPage() {
             >
               <CalendarIcon className="h-4 w-4 mr-2" />
               Ir al Historial
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Confirmación de Eliminación */}
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDeleteTurno}
+        turno={turnoToDelete}
+        loading={deleting}
+      />
+
+      {/* Modal de Edición de Valor */}
+      <Dialog open={showEditModal} onOpenChange={closeEditModal}>
+        <DialogContent className="max-w-md bg-background border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg text-foreground">
+              <Edit3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              Editar Valor del Turno Extra
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Modifica el valor monetario de este turno extra.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {turnoToEdit && (
+            <div className="space-y-4">
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p><strong className="text-foreground">Guardia:</strong> {turnoToEdit.guardia_nombre} {turnoToEdit.guardia_apellido_paterno}</p>
+                <p><strong className="text-foreground">Instalación:</strong> {turnoToEdit.instalacion_nombre}</p>
+                <p><strong className="text-foreground">Puesto:</strong> {turnoToEdit.nombre_puesto}</p>
+                <p><strong className="text-foreground">Fecha:</strong> {format(new Date(turnoToEdit.fecha), 'dd/MM/yyyy', { locale: es })}</p>
+                <p><strong className="text-foreground">Tipo:</strong> {turnoToEdit.estado.toUpperCase()}</p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="nuevo-valor" className="text-foreground">Nuevo Valor ($)</Label>
+                <input
+                  id="nuevo-valor"
+                  type="text"
+                  value={nuevoValor}
+                  onChange={(e) => {
+                    const valor = e.target.value.replace(/[^\d]/g, '');
+                    const numero = valor ? parseInt(valor, 10) : 0;
+                    setNuevoValor(numero.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
+                  }}
+                  className="w-full px-3 py-2 border border-input bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                  placeholder="Ingresa el nuevo valor"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Valor actual: ${(() => {
+                    const valorNumerico = typeof turnoToEdit.valor === 'string' ? parseFloat(turnoToEdit.valor) : turnoToEdit.valor;
+                    return Math.round(valorNumerico).toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                  })()}
+                </p>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={closeEditModal}
+              disabled={editando}
+              className="w-full sm:w-auto"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmEditTurno}
+              disabled={editando}
+              className="w-full sm:w-auto"
+            >
+              {editando ? 'Actualizando...' : 'Actualizar Valor'}
             </Button>
           </DialogFooter>
         </DialogContent>

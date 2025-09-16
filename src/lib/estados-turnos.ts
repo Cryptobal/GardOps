@@ -7,7 +7,7 @@ export interface EstadoTurno {
   tipo_turno: 'planificado' | 'libre';
   estado_puesto: 'asignado' | 'ppc' | 'libre';
   estado_guardia: 'asistido' | 'falta' | 'permiso' | 'vacaciones' | 'licencia' | null;
-  tipo_cobertura: 'sin_cobertura' | 'guardia_asignado' | 'turno_extra' | null;
+  tipo_cobertura: 'ppc' | 'sin_cobertura' | 'guardia_asignado' | 'turno_extra' | null;
   guardia_trabajo_id: string | null;
 }
 
@@ -62,6 +62,15 @@ export function mapearAEstadoUI(estado: EstadoTurno): EstadoUI {
         descripcion: 'Turno Extra'
       };
     }
+    // Si es PPC planificado (tipo_cobertura = 'ppc'), mostrar como planificado (punto azul)
+    if (estado.tipo_cobertura === 'ppc') {
+      return {
+        estado: 'planificado',
+        icono: '●',
+        color: 'text-blue-600',
+        descripcion: 'PPC Planificado'
+      };
+    }
     return {
       estado: 'sin_cobertura',
       icono: '✗',
@@ -89,11 +98,21 @@ export function mapearAEstadoUI(estado: EstadoTurno): EstadoUI {
       };
     }
     if (estado.tipo_cobertura === 'guardia_asignado') {
+      // Si el guardia asistió, mostrar como asistido
+      if (estado.estado_guardia === 'asistido') {
+        return {
+          estado: 'asistido',
+          icono: '✓',
+          color: 'text-green-600',
+          descripcion: 'Asistió'
+        };
+      }
+      // Si no asistió, mostrar como planificado
       return {
-        estado: 'asistido',
-        icono: '✓',
-        color: 'text-green-600',
-        descripcion: 'Asistió'
+        estado: 'planificado',
+        icono: '●',
+        color: 'text-blue-600',
+        descripcion: 'Planificado'
       };
     }
   }
@@ -122,9 +141,9 @@ export function mapearEstadoOperacionALegacy(estado: EstadoTurno): string {
     case 'sin_cobertura':
       return 'S';
     case 'planificado':
-      return 'planificado';
+      return 'S'; // S para turnos planificados (punto azul) en pauta mensual
     default:
-      return 'planificado';
+      return 'S';
   }
 }
 

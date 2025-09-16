@@ -325,7 +325,56 @@ export async function GET(req: Request) {
 
     const { rows: virtuales } = await query(qVirt, pVirt);
 
-    const rows = [...materializados, ...virtuales];
+    // 3) Horas extras desde pauta mensual
+    let qHorasExtras = `
+      SELECT 
+        ('he-'||pm.id)::text as id,
+        pm.guardia_id,
+        g.nombre as guardia_nombre,
+        g.apellido_paterno as guardia_apellido_paterno,
+        g.apellido_materno as guardia_apellido_materno,
+        g.rut as guardia_rut,
+        pm.instalacion_id,
+        i.nombre as instalacion_nombre,
+        pm.puesto_id,
+        po.nombre_puesto,
+        pm.id as pauta_id,
+        make_date(pm.anio, pm.mes, pm.dia) as fecha,
+        'horas_extras' as estado,
+        pm.horas_extras as valor,
+        false as pagado,
+        NULL::timestamp as fecha_pago,
+        NULL::text as observaciones_pago,
+        NULL::text as usuario_pago,
+        NULL::bigint as planilla_id,
+        pm.updated_at as created_at,
+        'horas_extras' as source
+      FROM as_turnos_pauta_mensual pm
+      LEFT JOIN guardias g ON g.id = pm.guardia_id
+      LEFT JOIN instalaciones i ON i.id = pm.instalacion_id
+      LEFT JOIN as_turnos_puestos_operativos po ON po.id = pm.puesto_id
+      WHERE pm.horas_extras > 0
+    `;
+    const pHorasExtras: any[] = [];
+    
+    if (guardia_id) { qHorasExtras += ` AND pm.guardia_id = $${pHorasExtras.length+1}`; pHorasExtras.push(guardia_id); }
+    if (instalacion_id) { qHorasExtras += ` AND pm.instalacion_id = $${pHorasExtras.length+1}`; pHorasExtras.push(instalacion_id); }
+    if (fecha_inicio) { qHorasExtras += ` AND make_date(pm.anio, pm.mes, pm.dia) >= $${pHorasExtras.length+1}`; pHorasExtras.push(fecha_inicio); }
+    if (fecha_fin) { qHorasExtras += ` AND make_date(pm.anio, pm.mes, pm.dia) <= $${pHorasExtras.length+1}`; pHorasExtras.push(fecha_fin); }
+    if (busqueda) {
+      qHorasExtras += ` AND (
+        g.nombre ILIKE $${pHorasExtras.length+1} OR 
+        g.apellido_paterno ILIKE $${pHorasExtras.length+1} OR 
+        g.rut ILIKE $${pHorasExtras.length+1} OR 
+        i.nombre ILIKE $${pHorasExtras.length+1}
+      )`;
+      pHorasExtras.push(`%${busqueda}%`);
+    }
+    qHorasExtras += ` ORDER BY fecha DESC`;
+
+    const { rows: horasExtras } = await query(qHorasExtras, pHorasExtras);
+
+    const rows = [...materializados, ...virtuales, ...horasExtras];
 
     return NextResponse.json({ 
       ok: true, 

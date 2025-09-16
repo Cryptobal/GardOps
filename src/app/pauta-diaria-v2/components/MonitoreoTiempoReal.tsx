@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { toYmd, toDisplay } from '@/lib/date';
+import { useChileDate } from '@/hooks/useChileDate';
 
 // Helper para agregar días a una fecha
 const addDays = (d: string, delta: number) => {
@@ -89,6 +90,7 @@ interface MonitoreoTiempoRealProps {
 export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: MonitoreoTiempoRealProps) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const { fechaHoy } = useChileDate();
   const [data, setData] = useState<MonitoreoData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -386,7 +388,7 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => goToDate(toYmd(new Date()))}
+            onClick={() => goToDate(fechaHoy || toYmd(new Date()))}
             className="h-8 px-2 text-xs"
           >
             Hoy

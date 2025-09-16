@@ -16,8 +16,27 @@ export async function POST(request: NextRequest) {
           (pm.meta->>'cobertura_guardia_id')::uuid as cobertura_guardia_id,
           pm.guardia_id as titular_guardia_id,
           make_date(pm.anio, pm.mes, pm.dia) as fecha,
-          pm.estado,
-          pm.estado_ui,
+          CASE 
+          WHEN pm.tipo_turno = 'libre' THEN 'libre'
+          WHEN pm.estado_puesto = 'libre' THEN 'libre'
+          WHEN pm.estado_puesto = 'ppc' AND pm.tipo_cobertura = 'sin_cobertura' THEN 'sin_cobertura'
+          WHEN pm.estado_puesto = 'ppc' AND pm.tipo_cobertura = 'turno_extra' THEN 'trabajado'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'asistido' THEN 'trabajado'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'falta' AND pm.tipo_cobertura = 'turno_extra' THEN 'reemplazo'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'falta' AND pm.tipo_cobertura = 'sin_cobertura' THEN 'inasistencia'
+          ELSE 'planificado'
+        END,
+          CASE 
+          WHEN pm.tipo_turno = 'libre' THEN 'libre'
+          WHEN pm.estado_puesto = 'libre' THEN 'libre'
+          WHEN pm.estado_puesto = 'ppc' AND pm.tipo_cobertura = 'sin_cobertura' THEN 'sin_cobertura'
+          WHEN pm.estado_puesto = 'ppc' AND pm.tipo_cobertura = 'turno_extra' THEN 'turno_extra'
+          WHEN pm.estado_puesto = 'asignado' AND pm.tipo_cobertura = 'turno_extra' THEN 'turno_extra'
+          WHEN pm.estado_puesto = 'asignado' AND pm.tipo_cobertura = 'sin_cobertura' THEN 'sin_cobertura'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'asistido' THEN 'asistido'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'falta' THEN 'sin_cobertura'
+          ELSE 'plan'
+        END,
           po.instalacion_id,
           COALESCE(i.valor_turno_extra, 50000) as valor_turno_extra,
           -- Determinar el tipo de turno extra
@@ -33,8 +52,27 @@ export async function POST(request: NextRequest) {
           pm.meta->>'cobertura_guardia_id' IS NOT NULL
           -- Y el estado indica que fue trabajado o reemplazado
           AND (
-            pm.estado IN ('trabajado', 'T', 'reemplazo', 'cubierto', 'inasistencia')
-            OR pm.estado_ui = 'reemplazo'
+            CASE 
+          WHEN pm.tipo_turno = 'libre' THEN 'libre'
+          WHEN pm.estado_puesto = 'libre' THEN 'libre'
+          WHEN pm.estado_puesto = 'ppc' AND pm.tipo_cobertura = 'sin_cobertura' THEN 'sin_cobertura'
+          WHEN pm.estado_puesto = 'ppc' AND pm.tipo_cobertura = 'turno_extra' THEN 'trabajado'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'asistido' THEN 'trabajado'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'falta' AND pm.tipo_cobertura = 'turno_extra' THEN 'reemplazo'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'falta' AND pm.tipo_cobertura = 'sin_cobertura' THEN 'inasistencia'
+          ELSE 'planificado'
+        END IN ('trabajado', 'T', 'reemplazo', 'cubierto', 'inasistencia')
+            OR CASE 
+          WHEN pm.tipo_turno = 'libre' THEN 'libre'
+          WHEN pm.estado_puesto = 'libre' THEN 'libre'
+          WHEN pm.estado_puesto = 'ppc' AND pm.tipo_cobertura = 'sin_cobertura' THEN 'sin_cobertura'
+          WHEN pm.estado_puesto = 'ppc' AND pm.tipo_cobertura = 'turno_extra' THEN 'turno_extra'
+          WHEN pm.estado_puesto = 'asignado' AND pm.tipo_cobertura = 'turno_extra' THEN 'turno_extra'
+          WHEN pm.estado_puesto = 'asignado' AND pm.tipo_cobertura = 'sin_cobertura' THEN 'sin_cobertura'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'asistido' THEN 'asistido'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'falta' THEN 'sin_cobertura'
+          ELSE 'plan'
+        END = 'reemplazo'
             OR pm.meta->>'estado_ui' = 'reemplazo'
           )
           -- Y no existe ya un turno extra para esta combinación
@@ -144,8 +182,27 @@ export async function GET(request: NextRequest) {
       WHERE 
         pm.meta->>'cobertura_guardia_id' IS NOT NULL
         AND (
-          pm.estado IN ('trabajado', 'T', 'reemplazo', 'cubierto', 'inasistencia')
-          OR pm.estado_ui = 'reemplazo'
+          CASE 
+          WHEN pm.tipo_turno = 'libre' THEN 'libre'
+          WHEN pm.estado_puesto = 'libre' THEN 'libre'
+          WHEN pm.estado_puesto = 'ppc' AND pm.tipo_cobertura = 'sin_cobertura' THEN 'sin_cobertura'
+          WHEN pm.estado_puesto = 'ppc' AND pm.tipo_cobertura = 'turno_extra' THEN 'trabajado'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'asistido' THEN 'trabajado'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'falta' AND pm.tipo_cobertura = 'turno_extra' THEN 'reemplazo'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'falta' AND pm.tipo_cobertura = 'sin_cobertura' THEN 'inasistencia'
+          ELSE 'planificado'
+        END IN ('trabajado', 'T', 'reemplazo', 'cubierto', 'inasistencia')
+          OR CASE 
+          WHEN pm.tipo_turno = 'libre' THEN 'libre'
+          WHEN pm.estado_puesto = 'libre' THEN 'libre'
+          WHEN pm.estado_puesto = 'ppc' AND pm.tipo_cobertura = 'sin_cobertura' THEN 'sin_cobertura'
+          WHEN pm.estado_puesto = 'ppc' AND pm.tipo_cobertura = 'turno_extra' THEN 'turno_extra'
+          WHEN pm.estado_puesto = 'asignado' AND pm.tipo_cobertura = 'turno_extra' THEN 'turno_extra'
+          WHEN pm.estado_puesto = 'asignado' AND pm.tipo_cobertura = 'sin_cobertura' THEN 'sin_cobertura'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'asistido' THEN 'asistido'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'falta' THEN 'sin_cobertura'
+          ELSE 'plan'
+        END = 'reemplazo'
           OR pm.meta->>'estado_ui' = 'reemplazo'
         )
         AND NOT EXISTS (

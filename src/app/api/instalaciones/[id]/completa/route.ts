@@ -184,7 +184,17 @@ export async function GET(
           pm.anio,
           pm.mes,
           pm.dia,
-          pm.estado,
+          -- Mapear campos nuevos a estado legacy para compatibilidad
+          CASE 
+            WHEN pm.tipo_turno = 'libre' THEN 'libre'
+            WHEN pm.estado_puesto = 'libre' THEN 'libre'
+            WHEN pm.estado_puesto = 'ppc' AND pm.tipo_cobertura = 'sin_cobertura' THEN 'sin_cobertura'
+            WHEN pm.estado_puesto = 'ppc' AND pm.tipo_cobertura = 'turno_extra' THEN 'trabajado'
+            WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'asistido' THEN 'trabajado'
+            WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'falta' AND pm.tipo_cobertura = 'turno_extra' THEN 'reemplazo'
+            WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'falta' AND pm.tipo_cobertura = 'sin_cobertura' THEN 'inasistencia'
+            ELSE 'planificado'
+          END as estado,
           pm.created_at,
           pm.updated_at,
           g.nombre || ' ' || g.apellido_paterno || ' ' || COALESCE(g.apellido_materno, '') as guardia_nombre,

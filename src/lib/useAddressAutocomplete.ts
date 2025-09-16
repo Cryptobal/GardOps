@@ -35,10 +35,32 @@ export const useAddressAutocomplete = () => {
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<AddressData | null>(null);
+  const [isDisabled, setIsDisabled] = useState(false);
   
   const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
   const placesService = useRef<google.maps.places.PlacesService | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
+
+  // Listener global para errores de Google Maps
+  useEffect(() => {
+    // Interceptar errores de Google Maps a nivel global
+    const originalConsoleError = console.error;
+    console.error = (...args) => {
+      const message = args.join(' ');
+      if (message.includes('RefererNotAllowedMapError') || 
+          message.includes('REQUEST_DENIED') ||
+          message.includes('IntersectionObserver')) {
+        setIsDisabled(true);
+        sessionStorage.setItem('google-maps-auth-error', 'true');
+        // Modo silencioso para producción
+      }
+      originalConsoleError.apply(console, args);
+    };
+
+    return () => {
+      console.error = originalConsoleError;
+    };
+  }, []);
 
   // Inicializar Google Maps API
   useEffect(() => {
@@ -96,15 +118,39 @@ export const useAddressAutocomplete = () => {
         setIsLoaded(false);
         // Restaurar console.warn en caso de error
         console.warn = originalWarn;
+        
+        // Si es error de autorización de Google Maps, deshabilitar completamente
+        if (error instanceof Error && (
+          error.message.includes('RefererNotAllowedMapError') ||
+          error.message.includes('REQUEST_DENIED')
+        )) {
+          autocompleteService.current = null;
+          placesService.current = null;
+          setIsDisabled(true);
+          // Guardar en sessionStorage para evitar reintentos
+          sessionStorage.setItem('google-maps-auth-error', 'true');
+          // Modo silencioso para producción
+          return;
+        }
       }
     };
 
-    initializeGoogleMaps();
+    if (typeof window !== 'undefined') {
+      // Verificar si ya hubo un error de autorización previo
+      const hasAuthError = sessionStorage.getItem('google-maps-auth-error');
+      if (hasAuthError) {
+        setIsDisabled(true);
+        // Modo silencioso para producción
+        return;
+      }
+      
+      initializeGoogleMaps();
+    }
   }, []);
 
   // Buscar sugerencias de direcciones
   const searchAddresses = async (query: string) => {
-    if (!isLoaded || !autocompleteService.current || query.length < 3) {
+    if (isDisabled || !isLoaded || !autocompleteService.current || query.length < 3) {
       setSuggestions([]);
       return;
     }
@@ -167,7 +213,7 @@ export const useAddressAutocomplete = () => {
 
   // Obtener detalles completos de una dirección seleccionada
   const selectAddress = async (placeId: string): Promise<AddressData | null> => {
-    if (!isLoaded || !placesService.current) {
+    if (isDisabled || !isLoaded || !placesService.current) {
       return null;
     }
 
@@ -333,7 +379,7 @@ export const useAddressAutocomplete = () => {
   };
 
   return {
-    isLoaded,
+    isLoaded: isLoaded && !isDisabled,
     suggestions,
     isLoading,
     selectedAddress,
@@ -341,5 +387,6 @@ export const useAddressAutocomplete = () => {
     selectAddress,
     clearSelection,
     setExistingAddress,
+    isDisabled,
   };
 }; 

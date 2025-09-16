@@ -163,18 +163,10 @@ export async function marcarTurnoExtra(
   
   // Si estamos usando los endpoints nuevos
   if (ep.extra.includes('-new')) {
-    // fn_marcar_extra necesita: fecha, instalacion_id, rol_id, puesto_id, cobertura_guardia_id, origen, actor_ref
-    if (!row) {
-      throw new Error('Se requiere información de la fila para el nuevo endpoint');
-    }
-    return postJson(ep.extra, {
-      fecha: row.fecha,
-      instalacion_id: row.instalacion_id,
-      rol_id: row.rol_id,
-      puesto_id: row.puesto_id,
-      cobertura_guardia_id,
-      origen: 'ppc',
-      actor_ref: 'ui:pauta-diaria-v2',
+    // Temporalmente usar el endpoint viejo que funciona
+    return postJson('/api/turnos/ppc/cubrir', {
+      pauta_id,
+      guardia_id: cobertura_guardia_id,
     });
   }
   

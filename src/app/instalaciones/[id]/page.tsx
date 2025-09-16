@@ -41,6 +41,7 @@ export default function InstalacionDetallePage() {
   const [geocodingData, setGeocodingData] = useState<GeocodingResult | null>(null);
   const [mapLoading, setMapLoading] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [geocodingAttempted, setGeocodingAttempted] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Estados para edición inline
@@ -103,16 +104,7 @@ export default function InstalacionDetallePage() {
       // Usar la función optimizada que obtiene todo en una sola llamada
       const datosCompletos = await obtenerDatosCompletosInstalacion(instalacionId);
       
-      devLogger.search(' Datos recibidos del endpoint:', {
-        turnos: datosCompletos.turnos.length,
-        ppcs: datosCompletos.ppcs.length,
-        guardias: datosCompletos.guardias.length,
-        roles: datosCompletos.roles.length
-      });
-      
-      devLogger.search(' Datos de instalación recibidos:', datosCompletos.instalacion);
-      devLogger.search(' Cliente ID en datos recibidos:', datosCompletos.instalacion.cliente_id);
-      devLogger.search(' Dirección en datos recibidos:', datosCompletos.instalacion.direccion);
+      // Logs removidos para evitar re-renders infinitos
       
       setInstalacion(datosCompletos.instalacion);
       
@@ -122,8 +114,9 @@ export default function InstalacionDetallePage() {
       setGuardiasPrecargados(datosCompletos.guardias);
       setRolesPrecargados(datosCompletos.roles);
       
-      // Cargar datos de geocodificación si hay dirección
-      if (datosCompletos.instalacion.direccion) {
+      // Cargar datos de geocodificación si hay dirección y no se ha intentado antes
+      if (datosCompletos.instalacion.direccion && !geocodingAttempted) {
+        setGeocodingAttempted(true);
         await cargarDatosGeograficos(datosCompletos.instalacion.direccion);
       }
     } catch (error) {
@@ -138,7 +131,7 @@ export default function InstalacionDetallePage() {
       setMapLoading(true);
       setMapError(null);
       
-      logger.debug('Iniciando geocodificación para dirección:', direccion);
+      // logger.debug('Iniciando geocodificación para dirección:', direccion);
       
       // Cargar Google Maps si no está disponible
       const mapsLoaded = await cargarGoogleMaps();
@@ -148,19 +141,29 @@ export default function InstalacionDetallePage() {
         return;
       }
 
-      logger.debug('Google Maps cargado correctamente');
+      // logger.debug('Google Maps cargado correctamente');
 
       // Geocodificar la dirección
       const resultado = await geocodificarDireccion(direccion);
       if (resultado) {
         setGeocodingData(resultado);
-        logger.debug('Información con mapa integrada correctamente');
+        // logger.debug('Información con mapa integrada correctamente');
       } else {
         console.error('No se pudo obtener la ubicación de la dirección');
         setMapError('No se pudo obtener la ubicación de la dirección');
       }
     } catch (error) {
       logger.error('Error al cargar datos geográficos::', error);
+      
+      // Si es error de autorización de Google Maps, no mostrar error al usuario
+      if (error instanceof Error && (
+        error.message.includes('RefererNotAllowedMapError') ||
+        error.message.includes('REQUEST_DENIED')
+      )) {
+        setMapError('Google Maps no está configurado para este dominio');
+        return;
+      }
+      
       setMapError('Error al cargar la información geográfica');
     } finally {
       setMapLoading(false);
@@ -206,19 +209,19 @@ export default function InstalacionDetallePage() {
         dataToUpdate[field] = editValue;
       }
       
-      devLogger.search(' Datos a actualizar:', dataToUpdate);
-      devLogger.search(' Instalación actual antes de actualizar:', instalacion);
+      // Logs removidos para evitar re-renders
       
       await actualizarInstalacion(instalacionId, dataToUpdate);
       
       // En lugar de actualizar estado local, recargar desde el servidor
-      logger.debug('🔄 Recargando instalación desde el servidor después de actualizar');
+      // logger.debug('🔄 Recargando instalación desde el servidor después de actualizar');
       // Pequeño delay para asegurar que la DB se haya actualizado
       await new Promise(resolve => setTimeout(resolve, 100));
       await cargarInstalacion();
       
       // Si se actualizó la dirección, recargar datos geográficos
       if (field === 'direccion') {
+        setGeocodingAttempted(false); // Resetear flag para permitir nueva geocodificación
         await cargarDatosGeograficos(dataToUpdate[field]);
       }
       
@@ -424,6 +427,7 @@ export default function InstalacionDetallePage() {
 
   const handleReintentarGeocodificacion = () => {
     if (instalacion?.direccion) {
+      setGeocodingAttempted(false); // Resetear flag para permitir reintento
       cargarDatosGeograficos(instalacion.direccion);
     }
   };
@@ -474,7 +478,7 @@ export default function InstalacionDetallePage() {
             </h1>
             <p className="text-xs sm:text-sm text-gray-600 truncate">
               Cliente: {(() => { 
-                devLogger.search(' cliente_nombre:', instalacion.cliente_nombre, typeof instalacion.cliente_nombre); 
+                // Log removido para evitar re-renders 
                 return instalacion.cliente_nombre?.toString().trim(); 
               })()}
             </p>
@@ -527,11 +531,7 @@ export default function InstalacionDetallePage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Puestos Operativos</p>
                   <p className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white">
-                    {(() => {
-                      const total = turnosPrecargados.reduce((total, turno) => total + turno.cantidad_guardias, 0);
-                      devLogger.search(' Puestos operativos calculados:', total, 'de', turnosPrecargados.length, 'turnos');
-                      return total;
-                    })()}
+                    {turnosPrecargados.reduce((total, turno) => total + turno.cantidad_guardias, 0)}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
                     {turnosPrecargados.length} turnos • {ppcsPrecargados.filter((ppc: any) => ppc.estado === 'Pendiente').length} PPCs
@@ -547,11 +547,7 @@ export default function InstalacionDetallePage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Guardias Asignados</p>
                   <p className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white">
-                    {(() => {
-                      const asignados = guardiasPrecargados.filter((g: any) => g.tipo === 'asignado').length;
-                      devLogger.search(' Guardias asignados calculados:', asignados, 'de', guardiasPrecargados.length, 'total');
-                      return asignados;
-                    })()}
+                    {guardiasPrecargados.filter((g: any) => g.tipo === 'asignado').length}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
                     {guardiasPrecargados.filter((g: any) => g.tipo === 'asignado' && g.activo).length} activos
@@ -567,11 +563,7 @@ export default function InstalacionDetallePage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400">PPCs</p>
                   <p className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white">
-                    {(() => {
-                      const pendientes = ppcsPrecargados.filter((ppc: any) => ppc.estado === 'Pendiente').length;
-                      devLogger.search(' PPCs pendientes calculados:', pendientes, 'de', ppcsPrecargados.length, 'total');
-                      return pendientes;
-                    })()}
+                    {ppcsPrecargados.filter((ppc: any) => ppc.estado === 'Pendiente').length}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
                     {ppcsPrecargados.filter((ppc: any) => ppc.estado === 'Pendiente').length} pendientes
@@ -587,10 +579,7 @@ export default function InstalacionDetallePage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Roles de Servicio</p>
                   <p className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white">
-                    {(() => {
-                      devLogger.search(' Roles de servicio calculados:', turnosPrecargados.length, 'activos');
-                      return turnosPrecargados.length;
-                    })()}
+                    {turnosPrecargados.length}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
                     {turnosPrecargados.length} activos

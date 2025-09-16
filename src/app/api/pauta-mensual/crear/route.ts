@@ -117,20 +117,19 @@ export async function POST(request: NextRequest) {
       
       return query(`
         INSERT INTO as_turnos_pauta_mensual (
-          puesto_id, guardia_id, anio, mes, dia, estado,
+          puesto_id, guardia_id, anio, mes, dia,
           tipo_turno, estado_puesto, estado_guardia, tipo_cobertura, guardia_trabajo_id
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       `, [
         pauta.puesto_id, 
         pauta.guardia_id, 
         anio, 
         mes, 
         pauta.dia, 
-        pauta.estado,
         esLibre ? 'libre' : 'planificado',
         esLibre ? 'libre' : (esPPC ? 'ppc' : 'asignado'),
-        esLibre ? null : (esPPC ? null : 'asistido'),
+        esLibre ? null : (esPPC ? null : null),
         esLibre ? null : (esPPC ? 'sin_cobertura' : 'guardia_asignado'),
         pauta.guardia_id
       ]);

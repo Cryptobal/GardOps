@@ -40,6 +40,7 @@ type Row = {
   reemplazo_guardia_nombre: string | null;
   cobertura_guardia_nombre: string | null;
   cobertura_guardia_telefono: string | null;
+  horas_extras: number | null;
   
   // NUEVA ESTRUCTURA DE ESTADOS
   tipo_turno: string | null;
@@ -89,6 +90,7 @@ export async function GET(req: NextRequest) {
       reemplazo_guardia_nombre,
       cobertura_guardia_nombre,
       cobertura_guardia_telefono,
+      horas_extras,
       
       -- NUEVA ESTRUCTURA DE ESTADOS
       tipo_turno,
@@ -164,12 +166,14 @@ export async function PUT(req: NextRequest) {
         break;
 
       case 'asistio':
-        // Marcar como asistido
+        // Marcar como asistido - USAR CAMPOS NUEVOS
         await query(`
           UPDATE as_turnos_pauta_mensual
           SET 
-            estado = 'trabajado',
-            estado_ui = 'trabajado',
+            tipo_turno = 'planificado',
+            estado_puesto = 'asignado',
+            estado_guardia = 'asistido',
+            tipo_cobertura = 'guardia_asignado',
             meta = COALESCE(meta, '{}'::jsonb) || jsonb_build_object(
               'marcado_por', 'ui:pauta-diaria',
               'marcado_ts', NOW()::text,
@@ -186,12 +190,45 @@ export async function PUT(req: NextRequest) {
         break;
 
       case 'no_asistio':
-        // Marcar como inasistencia
+        // Marcar como inasistencia - USAR CAMPOS NUEVOS
         await query(`
           UPDATE as_turnos_pauta_mensual
           SET 
-            estado = 'inasistencia',
-            estado_ui = 'inasistencia',
+            tipo_turno = 'planificado',
+            estado_puesto = 'asignado',
+            estado_guardia = 'falta',
+            tipo_cobertura = 'sin_cobertura',
+            meta = COALESCE(meta, '{}'::jsonb) || jsonb_build_object(
+              'marcado_por', 'ui:pauta-diaria',
+              'marcado_ts', NOW()::text,
+              'action', 'inasistencia',
+              'motivo', $5
+            ),
+            updated_at = NOW()
+          WHERE puesto_id = $1 
+            AND anio = $2 
+            AND mes = $3 
+            AND dia = $4
+        `, [turno.puesto_id, turno.anio, turno.mes, turno.dia, motivo || 'sin_aviso']);
+        
+        logger.debug(`✅ Inasistencia marcada para puesto ${turno.puesto_id}, día ${turno.dia}`);
+        break;
+
+      case 'sin_cobertura':
+        // Marcar como sin cobertura - USAR CAMPOS NUEVOS  
+        await query(`
+          UPDATE as_turnos_pauta_mensual
+          SET 
+            tipo_turno = 'planificado',
+            estado_puesto = CASE 
+              WHEN guardia_id IS NOT NULL THEN 'asignado'
+              ELSE 'ppc'
+            END,
+            estado_guardia = CASE 
+              WHEN guardia_id IS NOT NULL THEN 'falta'
+              ELSE NULL
+            END,
+            tipo_cobertura = 'sin_cobertura',
             meta = COALESCE(meta, '{}'::jsonb) || jsonb_build_object(
               'marcado_por', 'ui:pauta-diaria',
               'marcado_ts', NOW()::text,

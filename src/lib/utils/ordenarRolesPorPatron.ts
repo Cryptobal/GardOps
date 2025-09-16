@@ -90,8 +90,8 @@ export function extraerPatronTurno(nombreRol: string): {
       };
     }
     
-    // Fallback para nombres que no siguen ningún patrón
-    logger.warn(' extraerPatronTurno: No se pudo parsear el nombre:', nombreRol);
+    // Fallback para nombres que no siguen ningún patrón (modo silencioso)
+    // logger.warn(' extraerPatronTurno: No se pudo parsear el nombre:', nombreRol);
     return {
       patron: nombreRol,
       esDia: true,

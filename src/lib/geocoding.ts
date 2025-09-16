@@ -39,7 +39,7 @@ export async function cargarGoogleMaps(): Promise<boolean> {
 
 export async function geocodificarDireccion(direccion: string): Promise<GeocodingResult | null> {
   try {
-    logger.debug('Iniciando geocodificación para:', direccion);
+    // logger.debug('Iniciando geocodificación para:', direccion);
 
     // Cargar Google Maps si no está disponible
     const mapsLoaded = await cargarGoogleMaps();
@@ -59,13 +59,13 @@ export async function geocodificarDireccion(direccion: string): Promise<Geocodin
     const geocoder = new google.maps.Geocoder();
     
     return new Promise((resolve, reject) => {
-      logger.debug('Ejecutando geocodificación...');
+      // logger.debug('Ejecutando geocodificación...');
       
       geocoder.geocode({ 
         address: direccion,
         region: 'CL' // Especificar Chile para mejores resultados
       }, (results, status) => {
-        logger.debug('Resultado de geocodificación:', status, results);
+        // logger.debug('Resultado de geocodificación:', status, results);
         
         if (status === 'OK' && results && results[0]) {
           const result = results[0];

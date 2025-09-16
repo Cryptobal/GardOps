@@ -270,6 +270,7 @@ export function mapearEstadoLegacyADisplay(estado: string, cobertura?: any, esPP
     case "a":
       return mapearEstadoOperacionADisplay("asistido");
     case "s":
+      return mapearEstadoOperacionADisplay("planificado");
     case "i":
       return esPPC ? 
         mapearEstadoOperacionADisplay("ppc_no_cubierto") : 
@@ -312,7 +313,8 @@ export function crearTooltipEnriquecido(
   esFeriado?: boolean,
   isDiaGuardado?: boolean,
   esPPC?: boolean,
-  modoEdicion?: boolean
+  modoEdicion?: boolean,
+  guardiaInfo?: any
 ): string {
   const partes = [
     `${guardiaNombre} - Día ${diaNumero}${diaSemana ? ` (${diaSemana})` : ''}${esFeriado ? ' - FERIADO' : ''}`,
@@ -320,6 +322,7 @@ export function crearTooltipEnriquecido(
     plan_base ? `Plan: ${plan_base}` : '',
     estado_rrhh && estado_rrhh !== 'sin_evento' ? `RRHH: ${estado_rrhh}` : '',
     turno_extra_guardia_nombre ? `TE por: ${turno_extra_guardia_nombre}` : '',
+    guardiaInfo ? `👤 ${guardiaInfo.nombre_completo} (${guardiaInfo.iniciales})` : '',
     isDiaGuardado ? '✅ Guardado en BD' : '',
     esPPC ? 'PPC' : '',
     !modoEdicion ? 'Modo solo lectura' : ''

@@ -29,8 +29,8 @@ export async function GET(request: NextRequest) {
         -- CORREGIDO: Estados NULL se mapean correctamente como pendientes
         COUNT(CASE WHEN pm.meta->>'estado_semaforo' = 'pendiente' OR pm.meta->>'estado_semaforo' IS NULL THEN 1 END) as pendiente,
         COUNT(CASE WHEN pm.meta->>'estado_semaforo' = 'retrasado' THEN 1 END) as retrasado,
-        COUNT(CASE WHEN pm.estado IN ('Activo', 'asistido', 'reemplazo', 'te') THEN 1 END) as puestos_cubiertos,
-        COUNT(CASE WHEN pm.estado = 'sin_cobertura' THEN 1 END) as puestos_sin_cobertura,
+        COUNT(CASE WHEN pm.estado_operacion IN ('asistido', 'falta_cubierto_por_turno_extra', 'permiso_con_goce_cubierto_por_turno_extra', 'permiso_sin_goce_cubierto_por_turno_extra', 'licencia_cubierto_por_turno_extra', 'ppc_cubierto_por_turno_extra') THEN 1 END) as puestos_cubiertos,
+        COUNT(CASE WHEN pm.estado_operacion IN ('falta_no_cubierto', 'permiso_con_goce_no_cubierto', 'permiso_sin_goce_no_cubierto', 'licencia_no_cubierto', 'ppc_no_cubierto') THEN 1 END) as puestos_sin_cobertura,
         COUNT(CASE WHEN po.es_ppc = true THEN 1 END) as puestos_ppc,
         COUNT(CASE WHEN rs.hora_inicio::time < '12:00'::time THEN 1 END) as turnos_dia,
         COUNT(CASE WHEN rs.hora_inicio::time >= '12:00'::time THEN 1 END) as turnos_noche
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       WHERE pm.anio = $1 AND pm.mes = $2 AND pm.dia = $3
         AND po.activo = true
-        AND NOT (pm.estado = 'libre' OR pm.estado_operacion = 'libre')
+        AND NOT (pm.plan_base = 'libre' OR pm.estado_operacion = 'libre')
     `, [anio, mes, dia]);
 
 

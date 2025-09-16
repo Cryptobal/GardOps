@@ -126,7 +126,11 @@ export async function POST(req: NextRequest) {
             anio: anio,
             mes: mes,
             dia: dia,
-            estado: estadoTurno,
+            // Usar campos nuevos en lugar de estado legacy
+            tipo_turno: estadoTurno,
+            estado_puesto: estadoTurno === 'libre' ? 'libre' : (puesto.es_ppc ? 'ppc' : 'asignado'),
+            estado_guardia: null, // Siempre NULL hasta que se marque asistencia
+            tipo_cobertura: estadoTurno === 'libre' ? null : (puesto.es_ppc ? 'ppc' : 'guardia_asignado'),
             observaciones: observacionesTurno,
             reemplazo_guardia_id: null,
           };
@@ -174,7 +178,11 @@ async function procesarTurnos(turnos: any[]) {
       anio,
       mes,
       dia,
-      estado,
+      estado, // Mantener para compatibilidad
+      tipo_turno,
+      estado_puesto,
+      estado_guardia,
+      tipo_cobertura,
       observaciones,
       reemplazo_guardia_id,
     } = turno;
@@ -186,17 +194,20 @@ async function procesarTurnos(turnos: any[]) {
     }
 
     try {
+      // Usar tipo_turno si está disponible, sino usar estado para compatibilidad
+      const estadoFinal = tipo_turno || estado;
+      
       // CAMBIO: Si estado es null, intentar eliminar SOLO si no es TE/diaria ni tiene cobertura
-      if (estado === null || estado === '') {
+      if (estadoFinal === null || estadoFinal === '') {
         const { rowCount } = await query(
           `DELETE FROM as_turnos_pauta_mensual 
            WHERE puesto_id = $1 
              AND anio = $2 
              AND mes = $3 
              AND dia = $4
-             AND COALESCE(estado_ui, '') <> 'te'
+             AND COALESCE(tipo_cobertura, '') <> 'turno_extra'
              AND COALESCE(meta->>'tipo', '') <> 'turno_extra'
-             AND COALESCE(estado, '') NOT IN ('trabajado', 'inasistencia', 'permiso', 'vacaciones')
+             AND COALESCE(estado_guardia, '') NOT IN ('asistido', 'falta', 'permiso', 'licencia')
              AND COALESCE(meta->>'cobertura_guardia_id', '') = ''`,
           [puesto_id, anio, mes, dia]
         );
@@ -209,28 +220,30 @@ async function procesarTurnos(turnos: any[]) {
         }
       } else {
         // Validación de estado solo si no es null
-        if (!['trabajado', 'libre', 'planificado'].includes(estado)) {
-          errores.push(`Estado inválido: ${estado} - debe ser 'trabajado', 'libre', 'planificado', o null para eliminar`);
+        if (!['trabajado', 'libre', 'planificado'].includes(estadoFinal)) {
+          errores.push(`Estado inválido: ${estadoFinal} - debe ser 'trabajado', 'libre', 'planificado', o null para eliminar`);
           continue;
         }
 
         // Regla de unicidad por guardia/día: antes de insertar, liberar otros puestos del mismo guardia en ese día
         // SOLO si es una edición manual (estado planificado)
-        if (guardia_id && estado === 'planificado') {
+        if (guardia_id && estadoFinal === 'planificado') {
           try {
             await query(
               `
               UPDATE as_turnos_pauta_mensual
               SET guardia_id = NULL,
-                  estado = 'libre',
-                  estado_ui = 'libre',
+                  tipo_turno = 'libre',
+                  estado_puesto = 'libre',
+                  estado_guardia = NULL,
+                  tipo_cobertura = NULL,
                   updated_at = NOW()
               WHERE guardia_id = $1
                 AND anio = $2 AND mes = $3 AND dia = $4
                 AND puesto_id <> $5
-                AND COALESCE(estado_ui, '') <> 'te'
+                AND COALESCE(tipo_cobertura, '') <> 'turno_extra'
                 AND COALESCE(meta->>'tipo', '') <> 'turno_extra'
-                AND COALESCE(estado, '') NOT IN ('trabajado', 'inasistencia', 'permiso', 'vacaciones')
+                AND COALESCE(estado_guardia, '') NOT IN ('asistido', 'falta', 'permiso', 'licencia')
                 AND COALESCE(meta->>'cobertura_guardia_id', '') = ''
               `,
               [guardia_id, anio, mes, dia, puesto_id]
@@ -247,7 +260,7 @@ async function procesarTurnos(turnos: any[]) {
             `
             UPDATE as_turnos_pauta_mensual
             SET 
-              estado_ui = CASE WHEN LOWER(COALESCE(estado_ui,'')) = 'te' THEN NULL ELSE estado_ui END,
+              tipo_cobertura = CASE WHEN LOWER(COALESCE(tipo_cobertura,'')) = 'turno_extra' THEN NULL ELSE tipo_cobertura END,
               meta = CASE 
                        WHEN meta ? 'cobertura_guardia_id' THEN (meta - 'cobertura_guardia_id')
                        ELSE meta
@@ -255,7 +268,7 @@ async function procesarTurnos(turnos: any[]) {
               updated_at = NOW()
             WHERE puesto_id = $1 AND anio = $2 AND mes = $3 AND dia = $4
               AND COALESCE(meta->>'tipo', '') <> 'turno_extra'
-              AND COALESCE(estado, '') NOT IN ('trabajado', 'inasistencia', 'permiso', 'vacaciones')
+              AND COALESCE(estado_guardia, '') NOT IN ('asistido', 'falta', 'permiso', 'licencia')
             `,
             [puesto_id, anio, mes, dia]
           );
@@ -268,18 +281,18 @@ async function procesarTurnos(turnos: any[]) {
         const { resolverEstadoDia, aplicarResolucionDia } = await import('@/lib/resolver-estados');
         
         // Determinar plan_base según el estado recibido del frontend
-        const plan_base = estado === 'libre' ? 'libre' : 'planificado';
+        const plan_base = estadoFinal === 'libre' ? 'libre' : 'planificado';
         
         // Para días libres, aplicar directamente sin resolver
         if (plan_base === 'libre') {
           await query(
             `
             INSERT INTO as_turnos_pauta_mensual (
-              puesto_id, guardia_id, anio, mes, dia, estado, plan_base, estado_rrhh, estado_operacion,
+              puesto_id, guardia_id, anio, mes, dia, plan_base, estado_rrhh, estado_operacion,
               observaciones, reemplazo_guardia_id, editado_manualmente, created_at, updated_at,
               tipo_turno, estado_puesto, estado_guardia, tipo_cobertura, guardia_trabajo_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW(), $13, $14, $15, $16, $17)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW(), $12, $13, $14, $15, $16)
             ON CONFLICT (puesto_id, anio, mes, dia)
             DO UPDATE SET
               plan_base = EXCLUDED.plan_base,
@@ -295,7 +308,7 @@ async function procesarTurnos(turnos: any[]) {
               updated_at = NOW()
             `,
             [
-              puesto_id, null, anio, mes, dia, 'libre', 'libre', 'sin_evento', 'libre',
+              puesto_id, null, anio, mes, dia, 'libre', 'sin_evento', 'libre',
               observaciones || null, null, true,
               'libre', 'libre', null, null, null
             ]
@@ -310,11 +323,11 @@ async function procesarTurnos(turnos: any[]) {
           
           await query(`
             INSERT INTO as_turnos_pauta_mensual (
-              puesto_id, guardia_id, anio, mes, dia, estado, plan_base, estado_rrhh, estado_operacion,
+              puesto_id, guardia_id, anio, mes, dia, plan_base, estado_rrhh, estado_operacion,
               observaciones, reemplazo_guardia_id, editado_manualmente, created_at, updated_at,
               tipo_turno, estado_puesto, estado_guardia, tipo_cobertura, guardia_trabajo_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW(), $13, $14, $15, $16, $17)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW(), $12, $13, $14, $15, $16)
             ON CONFLICT (puesto_id, anio, mes, dia)
             DO UPDATE SET
               plan_base = EXCLUDED.plan_base,
@@ -330,13 +343,13 @@ async function procesarTurnos(turnos: any[]) {
               updated_at = NOW()
             `,
             [
-              puesto_id, guardia_id, anio, mes, dia, 'planificado', 'planificado', 'sin_evento', 'planificado',
+              puesto_id, guardia_id, anio, mes, dia, 'planificado', 'sin_evento', 'planificado',
               observaciones || null, null, true,
-              'planificado', 
-              esPPC ? 'ppc' : 'asignado',
-              esPPC ? null : 'asistido',
-              esPPC ? 'sin_cobertura' : 'guardia_asignado',
-              guardia_id
+              estadoFinal === 'libre' ? 'libre' : 'planificado',  // tipo_turno
+              esPPC ? 'ppc' : 'asignado',                          // estado_puesto
+              esPPC ? null : 'asistido',                           // estado_guardia
+              esPPC ? 'ppc' : 'guardia_asignado',                  // tipo_cobertura
+              guardia_id                                           // guardia_trabajo_id
             ]
           );
         }
@@ -369,9 +382,9 @@ async function procesarTurnos(turnos: any[]) {
                 AND anio = $12 
                 AND mes = $13 
                 AND dia = $14
-                AND COALESCE(estado_ui, '') <> 'te'
+                AND COALESCE(tipo_cobertura, '') <> 'turno_extra'
                 AND COALESCE(meta->>'tipo', '') <> 'turno_extra'
-                AND COALESCE(estado, '') NOT IN ('trabajado', 'inasistencia', 'permiso', 'vacaciones')
+                AND COALESCE(estado_guardia, '') NOT IN ('asistido', 'falta', 'permiso', 'licencia')
                 AND COALESCE(meta->>'cobertura_guardia_id', '') = ''
               `,
               [

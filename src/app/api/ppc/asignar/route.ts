@@ -195,13 +195,14 @@ export async function POST(request: NextRequest) {
 
       logger.debug(`✅ [ASIGNACIÓN] Guardia ${guardia_id} asignado al puesto ${puesto_operativo_id}`);
 
-      // REHABILITADO: Sincronización de pautas CORREGIDA
-      logger.debug(`🔄 [SYNC] Iniciando sincronización de pautas...`);
+      // REHABILITADO: Sincronización de pautas CORREGIDA CON FECHA DE INICIO
+      logger.debug(`🔄 [SYNC] Iniciando sincronización de pautas desde ${fechaInicioAsignacion}...`);
       const syncResult = await sincronizarPautasPostAsignacion(
         puesto_operativo_id,
         guardia_id,
         puesto.instalacion_id,
-        puesto.rol_id
+        puesto.rol_id,
+        fechaInicioAsignacion  // ← NUEVO: Pasar fecha de inicio
       );
 
       if (!syncResult.success) {

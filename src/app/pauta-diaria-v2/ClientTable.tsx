@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, Calendar, Eye, EyeOff, AlertTriangle, MoreHorizontal, ChevronDown, ChevronUp, Users, X, Zap, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Eye, EyeOff, AlertTriangle, MoreHorizontal, ChevronDown, ChevronUp, Users, X, Zap, Info, MessageSquare, DollarSign } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -21,6 +21,9 @@ import { useToast } from '@/hooks/use-toast';
 import { PautaRow, PautaDiariaV2Props } from './types';
 import { toYmd, toDisplay } from '@/lib/date';
 import { GuardiaSearchModal } from '@/components/ui/guardia-search-modal';
+import { ComentarioModal } from '@/components/ui/comentario-modal';
+import { HorasExtrasModal } from '@/components/ui/horas-extras-modal';
+import { useChileDate } from '@/hooks/useChileDate';
 import { mapearAEstadoUI, EstadoTurno } from '@/lib/estados-turnos';
 import * as api from './apiAdapter';
 
@@ -44,6 +47,59 @@ const addDays = (d: string, delta: number) => {
   return t.toISOString().slice(0,10);
 };
 
+// Helper para limpiar nombres que vienen con formato incorrecto
+const limpiarNombreGuardia = (nombre: string | null | undefined): string => {
+  if (!nombre || nombre.trim() === '' || nombre === 'null' || nombre === 'undefined') return '—';
+  
+  const nombreTrimmed = nombre.trim();
+  
+  // Caso específico: solo coma o espacios con coma (formato malformado)
+  if (nombreTrimmed === ',' || nombreTrimmed === ' ,' || nombreTrimmed === ', ' || nombreTrimmed === ' , ') {
+    return '—';
+  }
+  
+  // Si tiene formato "Apellido1 Apellido2, Nombre" -> convertir a "Nombre Apellido1"
+  if (nombreTrimmed.includes(',')) {
+    const partes = nombreTrimmed.split(',');
+    if (partes.length === 2) {
+      const apellidos = partes[0].trim();
+      const nombreParte = partes[1].trim();
+      
+      // Si alguna parte está vacía, mostrar guión
+      if (!apellidos || !nombreParte) {
+        return '—';
+      }
+      
+      const primerApellido = apellidos.split(' ')[0];
+      return `${nombreParte} ${primerApellido}`;
+    }
+  }
+  
+  // Si solo tiene una coma al final (formato malformado)
+  if (nombreTrimmed.endsWith(',')) {
+    const sinComa = nombreTrimmed.slice(0, -1).trim();
+    return sinComa || '—';
+  }
+  
+  return nombreTrimmed || '—';
+};
+
+  // Helper para obtener el nombre correcto del guardia
+  const obtenerNombreCorrecto = (row: PautaRow): string => {
+    const nombreTitular = row.guardia_titular_nombre;
+    const nombreTrabajo = row.guardia_trabajo_nombre;
+    
+    // Usar siempre el nombre real de la API, sin hardcodear
+    return limpiarNombreGuardia(nombreTitular || nombreTrabajo);
+  };
+
+  // Helper para obtener el nombre del guardia de cobertura
+  const obtenerNombreCobertura = (row: PautaRow): string | null => {
+    // La API ahora incluye cobertura_guardia_nombre calculado correctamente
+    return row.cobertura_guardia_nombre || row.reemplazo_guardia_nombre || null;
+  };
+
+
 // Helpers para estados usando estado_ui
 const isAsistido = (estadoUI: string) => {
   return estadoUI === 'asistido' || estadoUI === 'reemplazo' || estadoUI === 'te';
@@ -66,16 +122,20 @@ const formatearPuestoId = (puestoId: string, puestoNombre?: string) => {
 
 const renderEstado = (row: PautaRow) => {
   // NUEVA LÓGICA: Usar estructura de estados si está disponible
-  if (row.tipo_turno || row.estado_puesto || row.estado_guardia || row.tipo_cobertura) {
+  const camposNuevosDisponibles = row.tipo_turno || row.estado_puesto || row.tipo_cobertura;
+  
+  
+  if (camposNuevosDisponibles) {
     const estadoTurno: EstadoTurno = {
       tipo_turno: row.tipo_turno || 'planificado',
       estado_puesto: row.estado_puesto || null,
-      estado_guardia: row.estado_guardia || null,
+      estado_guardia: row.estado_guardia === 'null' ? null : row.estado_guardia || null,
       tipo_cobertura: row.tipo_cobertura || null,
       guardia_trabajo_id: row.guardia_trabajo_id || null
     };
     
     const estadoUI = mapearAEstadoUI(estadoTurno);
+    
     
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded ring-1 ${estadoUI.color}`}>
@@ -87,6 +147,7 @@ const renderEstado = (row: PautaRow) => {
   // LÓGICA LEGACY: Para compatibilidad con datos existentes
   const estadoUI = row.estado_ui || '';
   const hasCobertura = Boolean(row.guardia_trabajo_id && row.guardia_trabajo_id !== row.guardia_titular_id);
+  
   
   // Estados consistentes entre pauta mensual y diaria
   const cls: Record<string,string> = {
@@ -133,7 +194,7 @@ const renderEstado = (row: PautaRow) => {
   
   // Determinar label
   let label = '';
-  if (estadoUI === 'extra' || estadoNormalizado === 'turno_extra' || (hasCobertura && !['asistio', 'asistido', 'sin_cobertura', 'inasistencia', 'plan', 'libre'].includes(estadoUI))) {
+  if (estadoUI === 'extra' || estadoNormalizado === 'turno_extra' || (hasCobertura && !['asistio', 'asistido', 'sin_cobertura', 'inasistencia', 'plan', 'libre', 'planificado'].includes(estadoUI))) {
     label = 'Turno Extra';
   } else if (estadoNormalizado === 'asistio') {
     label = 'Asistió';
@@ -158,6 +219,10 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   
   // FORCE DEPLOYMENT - DEBUG PPC
   logger.debug('🚀🚀🚀 PAUTA DIARIA V2 LOADED 🚀🚀🚀');
+  console.log('🔍 ClientTable se está ejecutando - TEST BOTON debería estar visible');
+  
+  // Hook para obtener fecha actual respetando configuración del tenant
+  const { fechaHoy } = useChileDate();
   
   if (rawRows && rawRows.length > 0) {
     const ppcs = rawRows.filter(row => row.es_ppc === true);
@@ -196,6 +261,25 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   // Estado para el modal de selección de guardias
   const [showGuardiaModal, setShowGuardiaModal] = useState(false);
   const [currentRowForModal, setCurrentRowForModal] = useState<PautaRow | null>(null);
+  
+  const [showComentarioModal, setShowComentarioModal] = useState(false);
+  const [currentComentarioData, setCurrentComentarioData] = useState<{
+    turnoId: string;
+    fecha: string;
+    comentarioActual?: string;
+    puestoNombre?: string;
+    guardiaNombre?: string;
+  } | null>(null);
+  
+  const [showHorasExtrasModal, setShowHorasExtrasModal] = useState(false);
+  const [currentHorasExtrasData, setCurrentHorasExtrasData] = useState<{
+    pautaId: string;
+    guardiaNombre?: string;
+    instalacionNombre?: string;
+    rolNombre?: string;
+    montoActual?: number;
+    puestoNombre?: string;
+  } | null>(null);
   
   const [f, setF] = useState<Filtros>(() => ({ 
     ppc: 'all',
@@ -379,6 +463,61 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     setShowGuardiaModal(false);
     setCurrentRowForModal(null);
   }, []);
+
+  // Función para abrir modal de comentarios
+  const openComentarioModal = useCallback((row: PautaRow) => {
+    setCurrentComentarioData({
+      turnoId: row.pauta_id,
+      fecha: fechaStr,
+      comentarioActual: row.comentario || undefined,
+      puestoNombre: row.puesto_nombre,
+      guardiaNombre: limpiarNombreGuardia(row.guardia_trabajo_nombre)
+    });
+    setShowComentarioModal(true);
+  }, [fechaStr]);
+
+  // Función para cerrar modal de comentarios
+  const closeComentarioModal = useCallback(() => {
+    setShowComentarioModal(false);
+    setCurrentComentarioData(null);
+  }, []);
+
+  // Función para manejar cuando se guarda un comentario
+  const handleComentarioSaved = useCallback((comentario: string | null) => {
+    console.log('🔍 handleComentarioSaved ejecutado. Comentario guardado:', comentario);
+    // Actualizar los datos después de guardar el comentario
+    if (onRecargarDatos) {
+      onRecargarDatos();
+    }
+  }, [onRecargarDatos]);
+
+  // Función para abrir modal de horas extras
+  const openHorasExtrasModal = useCallback((row: PautaRow) => {
+    setCurrentHorasExtrasData({
+      pautaId: row.pauta_id,
+      guardiaNombre: row.guardia_trabajo_nombre || row.guardia_titular_nombre,
+      instalacionNombre: row.instalacion_nombre,
+      rolNombre: row.rol_nombre,
+      montoActual: row.horas_extras || 0,
+      puestoNombre: row.puesto_nombre
+    });
+    setShowHorasExtrasModal(true);
+  }, []);
+
+  // Función para cerrar modal de horas extras
+  const closeHorasExtrasModal = useCallback(() => {
+    setShowHorasExtrasModal(false);
+    setCurrentHorasExtrasData(null);
+  }, []);
+
+  // Función para manejar cuando se guardan horas extras
+  const handleHorasExtrasSaved = useCallback((monto: number) => {
+    console.log('🔍 handleHorasExtrasSaved ejecutado. Monto guardado:', monto);
+    // Actualizar los datos después de guardar las horas extras
+    if (onRecargarDatos) {
+      onRecargarDatos();
+    }
+  }, [onRecargarDatos]);
 
   // Función para manejar selección de guardia desde el modal
   const handleGuardiaSelected = useCallback((guardiaId: string) => {
@@ -632,7 +771,6 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       
       // Actualizar datos sin recargar la página
       if (onRecargarDatos) {
-        console.log('🔍 [onSinCoberturaPPC] Recargando datos...');
         await onRecargarDatos();
       }
     } catch (e:any) {
@@ -655,7 +793,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       devLogger.success(' Resultado de deshacer:', result);
       
       // Verificar si el resultado es exitoso
-      if (result && result.ok !== false) {
+      if (result && (result.success === true || result.ok === true)) {
         addToast({
           title: "✅ Éxito",
           description: "Estado revertido a planificado",
@@ -678,6 +816,9 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
         if (onRecargarDatos) {
           await onRecargarDatos();
         }
+        
+        // Limpiar el estado de saving
+        setSavingId(null);
       } else {
         // Si hay un error en la respuesta
         throw new Error(result?.error || 'Error al deshacer');
@@ -693,17 +834,65 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     }
   }
 
-  // Reglas de visibilidad de botones según el prompt:
-  const isTitularPlan = (r: PautaRow) => r.es_ppc === false && r.estado_ui === 'plan' && r.estado_pauta_mensual !== 'libre' && r.tipo_turno !== 'libre';
-  // CORREGIDO: PPCs deben mostrar botones independiente del estado_ui (incluso si es null) PERO NO si es turno libre
-  const isPpcPlan     = (r: PautaRow) => r.es_ppc === true && r.estado_pauta_mensual !== 'libre' && r.tipo_turno !== 'libre';
+  // NUEVA LÓGICA: Usar campos nuevos para determinar visibilidad de botones
+  const isTitularPlan = (r: PautaRow) => {
+    // Si hay guardia asignado (titular o de trabajo), mostrar botones de asistencia
+    const tieneGuardiaAsignado = (r.guardia_titular_nombre && r.guardia_titular_nombre.trim()) || (r.guardia_trabajo_nombre && r.guardia_trabajo_nombre.trim());
+    
+    if (tieneGuardiaAsignado) {
+      // CORREGIDO: Verificar que el estado_puesto sea realmente 'asignado', no solo que no sea 'libre'
+      return r.tipo_turno === 'planificado' && r.estado_puesto === 'asignado';
+    }
+    
+    // Usar campos nuevos si están disponibles
+    if (r.tipo_turno && r.estado_puesto) {
+      return r.estado_puesto === 'asignado' && r.tipo_turno === 'planificado' && 
+             (r.estado_guardia === 'asistido' || r.estado_guardia === null || r.estado_guardia === 'null');
+    }
+    // Fallback a lógica legacy
+    return r.es_ppc === false && (r.estado_ui === 'plan' || r.estado_ui === 'planificado') && 
+           r.estado_pauta_mensual !== 'libre' && r.tipo_turno !== 'libre';
+  };
+  
+  const isPpcPlan = (r: PautaRow) => {
+    // NO mostrar botones de PPC si hay guardia asignado
+    const tieneGuardiaAsignado = (r.guardia_titular_nombre && r.guardia_titular_nombre.trim()) || (r.guardia_trabajo_nombre && r.guardia_trabajo_nombre.trim());
+    if (tieneGuardiaAsignado) {
+      return false;
+    }
+    
+    // Usar campos nuevos si están disponibles
+    if (r.tipo_turno && r.estado_puesto) {
+      return r.estado_puesto === 'ppc' && r.tipo_turno === 'planificado' && 
+             r.tipo_cobertura !== 'turno_extra' && r.tipo_cobertura !== 'sin_cobertura';
+    }
+    // Fallback a lógica legacy
+    return r.es_ppc === true && r.estado_pauta_mensual !== 'libre' && 
+           r.tipo_turno !== 'libre' && r.estado_ui !== 'sin_cobertura';
+  };
+  // PPCs sin cobertura: Solo muestran Cubrir y Deshacer (NO "Sin cobertura")
+  const isPpcSinCobertura = (r: PautaRow) => {
+    // NO mostrar botones de PPC si hay guardia asignado
+    const tieneGuardiaAsignado = (r.guardia_titular_nombre && r.guardia_titular_nombre.trim()) || (r.guardia_trabajo_nombre && r.guardia_trabajo_nombre.trim());
+    if (tieneGuardiaAsignado) {
+      return false;
+    }
+    
+    // Usar campos nuevos si están disponibles
+    if (r.tipo_turno && r.estado_puesto) {
+      return r.estado_puesto === 'ppc' && r.tipo_turno === 'planificado' && 
+             r.tipo_cobertura === 'sin_cobertura';
+    }
+    // Fallback a lógica legacy
+    return r.es_ppc === true && r.estado_ui === 'sin_cobertura';
+  };
   const canUndo = (r: PautaRow) => {
     // NUEVA LÓGICA: Usar estructura de estados si está disponible
-    if (r.tipo_turno || r.estado_puesto || r.estado_guardia || r.tipo_cobertura) {
+    if (r.tipo_turno || r.estado_puesto || r.tipo_cobertura) {
       const estadoTurno: EstadoTurno = {
         tipo_turno: r.tipo_turno || 'planificado',
         estado_puesto: r.estado_puesto || null,
-        estado_guardia: r.estado_guardia || null,
+        estado_guardia: r.estado_guardia === 'null' ? null : r.estado_guardia || null,
         tipo_cobertura: r.tipo_cobertura || null,
         guardia_trabajo_id: r.guardia_trabajo_id || null
       };
@@ -715,7 +904,9 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
         pauta_id: r.pauta_id,
         estadoTurno,
         estadoUI,
-        canUndoResult
+        canUndoResult,
+        allowedStates: ['asistido', 'turno_extra', 'sin_cobertura'],
+        estadoIncluido: ['asistido', 'turno_extra', 'sin_cobertura'].includes(estadoUI.estado)
       });
       
       return canUndoResult;
@@ -1038,72 +1229,8 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
               {/* Panel genérico de acciones cuando no hay tipo específico */}
               {!panelData.type && (
                 <div className="space-y-3">
-                  {/* Titular en plan: Asistió / No asistió */}
-                  {isTitularPlan(row) && canMarkOverride && (
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        className="flex-1"
-                        disabled={isLoading} 
-                        onClick={() => onAsistio(row.pauta_id)}
-                      >
-                        {isLoading ? 'Guardando...' : '✅ Asistió'}
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="flex-1"
-                        disabled={isLoading} 
-                        onClick={() => {
-                          updatePanelData({ 
-                            type: 'no_asistio',
-                            tipoCobertura: 'sin_cobertura', // Inicializar con sin_cobertura por defecto
-                            guardias: undefined,
-                            loadingGuardias: false
-                          });
-                        }}
-                      >
-                        ❌ No asistió
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* PPC en plan: Cubrir / Sin cobertura */}
-                  {isPpcPlan(row) && canMarkOverride && (
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="flex-1"
-                        disabled={isLoading} 
-                        onClick={() => {
-                          logger.debug('🖱️ CUBRIR CLICKED - PPC ID:', row.pauta_id);
-                          updatePanelData({ 
-                            type: 'cubrir_ppc',
-                            guardias: undefined,
-                            loadingGuardias: false,
-                            guardiaReemplazo: '',
-                            filtroGuardias: ''
-                          });
-                          setTimeout(() => loadGuardias(row), 0);
-                        }}
-                      >
-                        👥 Cubrir
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="flex-1"
-                        disabled={isLoading} 
-                        onClick={() => onSinCoberturaPPC(row.pauta_id)}
-                      >
-                        ⛔ Sin cobertura
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Deshacer para estados asistido/reemplazo/sin_cobertura */}
-                  {canUndo(row) && canMarkOverride && (
+                  {/* Si se puede deshacer, SOLO mostrar el botón deshacer */}
+                  {canUndo(row) && canMarkOverride ? (
                     <Button 
                       size="sm" 
                       variant="secondary"
@@ -1113,6 +1240,73 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                     >
                       {isLoading ? 'Guardando...' : '↩️ Deshacer'}
                     </Button>
+                  ) : (
+                    <>
+                      {/* Botones iniciales solo si NO se puede deshacer */}
+                      {/* Titular en plan: Asistió / No asistió */}
+                      {isTitularPlan(row) && canMarkOverride && (
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            className="flex-1"
+                            disabled={isLoading} 
+                            onClick={() => onAsistio(row.pauta_id)}
+                          >
+                            {isLoading ? 'Guardando...' : '✅ Asistió'}
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="flex-1"
+                            disabled={isLoading} 
+                            onClick={() => {
+                              updatePanelData({ 
+                                type: 'no_asistio',
+                                tipoCobertura: 'sin_cobertura', // Inicializar con sin_cobertura por defecto
+                                guardias: undefined,
+                                loadingGuardias: false
+                              });
+                            }}
+                          >
+                            ❌ No asistió
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* PPC en plan: Cubrir / Sin cobertura */}
+                      {isPpcPlan(row) && canMarkOverride && (
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="flex-1"
+                            disabled={isLoading} 
+                            onClick={() => {
+                              logger.debug('🖱️ CUBRIR CLICKED - PPC ID:', row.pauta_id);
+                              updatePanelData({ 
+                                type: 'cubrir_ppc',
+                                guardias: undefined,
+                                loadingGuardias: false,
+                                guardiaReemplazo: '',
+                                filtroGuardias: ''
+                              });
+                              setTimeout(() => loadGuardias(row), 0);
+                            }}
+                          >
+                            👥 Cubrir
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="flex-1"
+                            disabled={isLoading} 
+                            onClick={() => onSinCoberturaPPC(row.pauta_id)}
+                          >
+                            ⛔ Sin cobertura
+                          </Button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -1162,6 +1356,20 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
               <div className="text-base font-semibold">
                 {row.rol_alias || row.rol_nombre?.split('/')[0]?.trim() || '—'}
               </div>
+              <Tooltip delayDuration={100}>
+                <TooltipTrigger asChild>
+                  <div className="text-xs text-muted-foreground cursor-help">
+                    📍 {row.puesto_nombre || 'Sin nombre'}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="text-sm space-y-1">
+                    <div><strong>Puesto:</strong> {row.puesto_nombre || 'Sin nombre'}</div>
+                    <div><strong>ID Puesto:</strong> {row.puesto_id}</div>
+                    <div><strong>ID Turno:</strong> {row.pauta_id}</div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
               {row.hora_inicio && row.hora_fin && (
                 <div className="text-xs text-muted-foreground">{row.hora_inicio.slice(0,5)} - {row.hora_fin.slice(0,5)}</div>
               )}
@@ -1171,7 +1379,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
 
           <div className="text-sm">
             <div className="flex items-center gap-2">
-              <span className="font-medium">{esPPC ? 'PPC' : (row.guardia_titular_nombre || row.guardia_trabajo_nombre || '—')}</span>
+              <span className="font-medium">{esPPC ? 'PPC' : obtenerNombreCorrecto(row)}</span>
               {esDuplicado && (
                 <Badge variant="destructive" className="text-xs">Duplicado</Badge>
               )}
@@ -1179,24 +1387,117 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
             {row.estado_ui === 'te' && (row.cobertura_guardia_nombre || row.meta?.cobertura_guardia_id) && (
               <div className="text-xs text-muted-foreground mt-1">Cobertura: {row.cobertura_guardia_nombre || 'Guardia de cobertura'}</div>
             )}
+            {/* Indicador visual de comentarios existentes */}
+            {row.comentario && (
+              <div className="flex items-center gap-1 mt-1">
+                <MessageSquare className="h-3 w-3 text-blue-500" />
+                <span className="text-xs text-blue-600 font-medium">Comentario disponible</span>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {isTitularPlan(row) && (
-              <>
-                <Button size="sm" disabled={isLoading} onClick={() => onAsistio(row.pauta_id)} className="flex-1">✅ Asistió</Button>
-                <Button size="sm" variant="outline" disabled={isLoading} className="flex-1" onClick={() => toggleRowPanel(row, 'no_asistio')}>❌ No asistió</Button>
-              </>
-            )}
-            {isPpcPlan(row) && (
-              <>
-                <Button size="sm" variant="outline" disabled={isLoading} className="flex-1" onClick={() => { toggleRowPanel(row, 'cubrir_ppc'); setTimeout(()=>loadGuardias(row),0); }}>👥 Cubrir</Button>
-                <Button size="sm" variant="outline" disabled={isLoading} className="flex-1" onClick={() => onSinCoberturaPPC(row.pauta_id)}>⛔ Sin cobertura</Button>
-              </>
-            )}
-            {canUndo(row) && (
+            {/* Si se puede deshacer, SOLO mostrar el botón deshacer */}
+            {canUndo(row) ? (
               <Button size="sm" variant="secondary" disabled={isLoading} className="w-full" onClick={() => onDeshacer(row.pauta_id)}>↩️ Deshacer</Button>
+            ) : (
+              <>
+                {/* Botones iniciales solo si NO se puede deshacer */}
+                {isTitularPlan(row) && (
+                  <>
+                    <Button size="sm" disabled={isLoading} onClick={() => onAsistio(row.pauta_id)} className="flex-1">✅ Asistió</Button>
+                    <Button size="sm" variant="outline" disabled={isLoading} className="flex-1" onClick={() => toggleRowPanel(row, 'no_asistio')}>❌ No asistió</Button>
+                  </>
+                )}
+                {isPpcPlan(row) && (
+                  <>
+                    <Button size="sm" variant="outline" disabled={isLoading} className="flex-1" onClick={() => { toggleRowPanel(row, 'cubrir_ppc'); setTimeout(()=>loadGuardias(row),0); }}>👥 Cubrir</Button>
+                    <Button size="sm" variant="outline" disabled={isLoading} className="flex-1" onClick={() => onSinCoberturaPPC(row.pauta_id)}>⛔ Sin cobertura</Button>
+                  </>
+                )}
+                {isPpcSinCobertura(row) && (
+                  <Button size="sm" variant="outline" disabled={isLoading} className="w-full" onClick={() => { toggleRowPanel(row, 'cubrir_ppc'); setTimeout(()=>loadGuardias(row),0); }}>👥 Cubrir</Button>
+                )}
+              </>
             )}
+            {/* Botones de horas extras y comentarios - lado a lado */}
+            <div className="flex gap-2">
+              {/* Botón de comentarios - disponible para todos los turnos */}
+              <div className="relative flex-1">
+                <Tooltip delayDuration={100}>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      disabled={isLoading} 
+                      className={`w-full ${
+                        row.comentario 
+                          ? 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200 hover:border-green-300' 
+                          : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 hover:border-blue-300'
+                      }`}
+                      onClick={() => {
+                        console.log('🔍 CLICK BOTÓN COMENTARIO para:', row.puesto_nombre, 'estado:', row.estado_ui);
+                        openComentarioModal(row);
+                      }}
+                    >
+                      <MessageSquare className="h-4 w-4 mr-1" />
+                      {row.comentario ? 'Editar comentario' : 'Comentario'}
+                      {/* Indicador de que hay comentario */}
+                      {row.comentario && (
+                        <div className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full"></div>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="text-sm">
+                      {row.comentario ? `Editar comentario: ${row.comentario}` : 'Agregar comentario'}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              
+              {/* Botón de horas extras - disponible para turnos con guardia asignado */}
+              {row.guardia_trabajo_id && (
+                <div className="relative flex-1">
+                  <Tooltip delayDuration={100}>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        disabled={isLoading} 
+                        className={`w-full ${
+                          row.horas_extras && row.horas_extras > 0
+                            ? 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200 hover:border-green-300'
+                            : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 hover:border-blue-300'
+                        }`}
+                        onClick={() => {
+                          console.log('🔍 CLICK BOTÓN HORAS EXTRAS para:', row.puesto_nombre, 'monto:', row.horas_extras);
+                          openHorasExtrasModal(row);
+                        }}
+                      >
+                        <DollarSign className="h-4 w-4 mr-1" />
+                        {row.horas_extras && row.horas_extras > 0 ? 'Editar horas extras' : 'Horas extras'}
+                        {/* Indicador de horas extras */}
+                        {row.horas_extras && row.horas_extras > 0 && (
+                          <div className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full"></div>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div className="text-sm">
+                        {row.horas_extras && row.horas_extras > 0 
+                          ? `Editar horas extras: $${Math.round(row.horas_extras).toLocaleString('es-CL', {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0
+                            })}` 
+                          : 'Agregar horas extras'
+                        }
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Botones de contacto: Llamar y WhatsApp */}
@@ -1497,7 +1798,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                       variant="outline" 
                       size="sm" 
                       onClick={() => {
-                        const hoy = toYmd(new Date());
+                        const hoy = fechaHoy || toYmd(new Date()); // Usar fecha del sistema con fallback
                         const params = new URLSearchParams();
                         if (f.instalacion) params.set('instalacion', f.instalacion);
                         if (f.estado && f.estado !== 'todos') params.set('estado', f.estado);
@@ -1637,13 +1938,16 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                             ) : '—'}
                           </TableCell>
                           <TableCell className="hidden md:table-cell">
-                            <Tooltip>
+                            <Tooltip delayDuration={100}>
                               <TooltipTrigger asChild>
-                                <span className="font-mono text-xs cursor-help">{formatearPuestoId(r.puesto_id, r.puesto_nombre)}</span>
+                                <span className="text-xs cursor-help">{r.puesto_nombre || 'Sin nombre'}</span>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Nombre: {r.puesto_nombre || 'Sin nombre'}</p>
-                                <p>UUID: {r.puesto_id}</p>
+                                <div className="text-sm space-y-1">
+                                  <div><strong>Puesto:</strong> {r.puesto_nombre || 'Sin nombre'}</div>
+                                  <div><strong>ID Puesto:</strong> {r.puesto_id}</div>
+                                  <div><strong>ID Turno:</strong> {r.pauta_id}</div>
+                                </div>
                               </TooltipContent>
                             </Tooltip>
                           </TableCell>
@@ -1651,19 +1955,22 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                             {r.es_ppc ? (
                               <span className="rounded-md border px-1.5 py-0.5 text-[10px] bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20">PPC</span>
                             ) : (
-                              r.guardia_titular_nombre || r.guardia_trabajo_nombre || '—'
+                              obtenerNombreCorrecto(r)
                             )}
                             {esDuplicado && (
                               <Badge variant="destructive" className="text-xs mt-1"><AlertTriangle className="h-3 w-3 mr-1"/>Duplicado</Badge>
                             )}
                           </TableCell>
                           <TableCell>
-                            {(r.cobertura_guardia_nombre || r.reemplazo_guardia_nombre || r.meta?.cobertura_guardia_id) ? (
-                              <div className="flex flex-col">
-                                <span className="font-medium text-xs">{r.cobertura_guardia_nombre || r.reemplazo_guardia_nombre || 'Guardia de cobertura'}</span>
-                                {r.meta?.motivo && (<span className="text-xs text-muted-foreground">{r.meta.motivo}</span>)}
-                              </div>
-                            ) : '—'}
+                            {(() => {
+                              const nombreCobertura = obtenerNombreCobertura(r);
+                              return nombreCobertura ? (
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-xs">{nombreCobertura}</span>
+                                  {r.meta?.motivo && (<span className="text-xs text-muted-foreground">{r.meta.motivo}</span>)}
+                                </div>
+                              ) : '—';
+                            })()}
                           </TableCell>
                           <TableCell>
                             <div>{renderEstado(r)}</div>
@@ -1672,64 +1979,17 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                             {(() => {
                               const isTitular = isTitularPlan(r);
                               const isPpc = isPpcPlan(r);
+                              const isPpcSinCob = isPpcSinCobertura(r);
                               const canUndoResult = canUndo(r);
-                              const hasActions = isTitular || isPpc || canUndoResult;
+                              const hasActions = isTitular || isPpc || isPpcSinCob || canUndoResult;
                               const showButton = !loadingPerms && canMarkOverride && hasActions;
                               
                               if (!showButton) return <span className="text-xs text-muted-foreground">—</span>;
                               
                               return (
                                 <div className="flex flex-col gap-1">
-                                  {isTitular && (
-                                    <div className="flex gap-1">
-                                      <Button 
-                                        size="sm" 
-                                        disabled={isLoading} 
-                                        onClick={() => onAsistio(r.pauta_id)} 
-                                        className="h-6 px-2 text-xs"
-                                      >
-                                        ✅ Asistió
-                                      </Button>
-                                      <Button 
-                                        size="sm" 
-                                        variant="outline" 
-                                        disabled={isLoading} 
-                                        className="h-6 px-2 text-xs" 
-                                        onClick={() => toggleRowPanel(r, 'no_asistio')}
-                                      >
-                                        ❌ No asistió
-                                      </Button>
-                                    </div>
-                                  )}
-                                  {isPpc && (
-                                    <div className="flex gap-1">
-                                      <Button 
-                                        size="sm" 
-                                        variant="outline" 
-                                        disabled={isLoading} 
-                                        className="h-6 px-2 text-xs" 
-                                        onClick={() => { 
-                                          toggleRowPanel(r, 'cubrir_ppc'); 
-                                          setTimeout(()=>loadGuardias(r),0); 
-                                        }}
-                                      >
-                                        👥 Cubrir
-                                      </Button>
-                                      <Button 
-                                        size="sm" 
-                                        variant="outline" 
-                                        disabled={isLoading} 
-                                        className="h-6 px-2 text-xs" 
-                                        onClick={() => {
-                                          console.log('🔍 [Button] Click en Sin cobertura para pauta_id:', r.pauta_id);
-                                          onSinCoberturaPPC(r.pauta_id);
-                                        }}
-                                      >
-                                        ⛔ Sin cobertura
-                                      </Button>
-                                    </div>
-                                  )}
-                                  {canUndoResult && (
+                                  {/* Si se puede deshacer, SOLO mostrar el botón deshacer */}
+                                  {canUndoResult ? (
                                     <Button 
                                       size="sm" 
                                       variant="secondary" 
@@ -1739,7 +1999,151 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                                     >
                                       ↩️ Deshacer
                                     </Button>
+                                  ) : (
+                                    <>
+                                      {/* Botones iniciales solo si NO se puede deshacer */}
+                                      {isTitular && (
+                                        <div className="flex gap-1">
+                                          <Button 
+                                            size="sm" 
+                                            disabled={isLoading} 
+                                            onClick={() => onAsistio(r.pauta_id)} 
+                                            className="h-6 px-2 text-xs"
+                                          >
+                                            ✅ Asistió
+                                          </Button>
+                                          <Button 
+                                            size="sm" 
+                                            variant="outline" 
+                                            disabled={isLoading} 
+                                            className="h-6 px-2 text-xs" 
+                                            onClick={() => toggleRowPanel(r, 'no_asistio')}
+                                          >
+                                            ❌ No asistió
+                                          </Button>
+                                        </div>
+                                      )}
+                                      {isPpc && (
+                                        <div className="flex gap-1">
+                                          <Button 
+                                            size="sm" 
+                                            variant="outline" 
+                                            disabled={isLoading} 
+                                            className="h-6 px-2 text-xs" 
+                                            onClick={() => { 
+                                              toggleRowPanel(r, 'cubrir_ppc'); 
+                                              setTimeout(()=>loadGuardias(r),0); 
+                                            }}
+                                          >
+                                            👥 Cubrir
+                                          </Button>
+                                          <Button 
+                                            size="sm" 
+                                            variant="outline" 
+                                            disabled={isLoading} 
+                                            className="h-6 px-2 text-xs" 
+                                            onClick={() => {
+                                              console.log('🔍 [Button] Click en Sin cobertura para pauta_id:', r.pauta_id);
+                                              onSinCoberturaPPC(r.pauta_id);
+                                            }}
+                                          >
+                                            ⛔ Sin cobertura
+                                          </Button>
+                                        </div>
+                                      )}
+                                      {isPpcSinCob && (
+                                        <div className="flex gap-1">
+                                          <Button 
+                                            size="sm" 
+                                            variant="outline" 
+                                            disabled={isLoading} 
+                                            className="h-6 px-2 text-xs" 
+                                            onClick={() => { 
+                                              toggleRowPanel(r, 'cubrir_ppc'); 
+                                              setTimeout(()=>loadGuardias(r),0); 
+                                            }}
+                                          >
+                                            👥 Cubrir
+                                          </Button>
+                                        </div>
+                                      )}
+                                    </>
                                   )}
+                                  
+                                  {/* Botones de horas extras y comentarios - lado a lado */}
+                                  <div className="mt-1 flex gap-1">
+                                    {/* Botón de horas extras - disponible para turnos con guardia asignado */}
+                                    {r.guardia_trabajo_id && (
+                                      <div className="relative">
+                                        <Tooltip delayDuration={100}>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className={`h-6 w-6 p-0 ${
+                                                r.horas_extras && r.horas_extras > 0
+                                                  ? 'text-green-700 bg-green-100 border-green-300 hover:bg-green-200'
+                                                  : 'text-green-600 hover:text-green-700 hover:bg-green-50'
+                                              }`}
+                                              onClick={() => {
+                                                console.log('🔍 CLICK BOTÓN HORAS EXTRAS DESKTOP para:', r.puesto_nombre, 'monto:', r.horas_extras);
+                                                openHorasExtrasModal(r);
+                                              }}
+                                            >
+                                              <DollarSign className="h-3 w-3" />
+                                              {/* Indicador de horas extras */}
+                                              {r.horas_extras && r.horas_extras > 0 && (
+                                                <div className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full"></div>
+                                              )}
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <div className="text-sm">
+                                              {r.horas_extras && r.horas_extras > 0 
+                                                ? `Editar horas extras: $${Math.round(r.horas_extras).toLocaleString('es-CL', {
+                                                    minimumFractionDigits: 0,
+                                                    maximumFractionDigits: 0
+                                                  })}` 
+                                                : 'Agregar horas extras'
+                                              }
+                                            </div>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Botón de comentarios - disponible para todos los turnos */}
+                                    <div className="relative">
+                                      <Tooltip delayDuration={100}>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className={`h-6 w-6 p-0 ${
+                                              r.comentario 
+                                                ? 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200 hover:border-green-300' 
+                                                : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 hover:border-blue-300'
+                                            }`}
+                                            onClick={() => {
+                                              console.log('🔍 CLICK BOTÓN COMENTARIO DESKTOP para:', r.puesto_nombre, 'estado:', r.estado_ui);
+                                              openComentarioModal(r);
+                                            }}
+                                          >
+                                            <MessageSquare className="h-3 w-3" />
+                                            {/* Indicador de que hay comentario */}
+                                            {r.comentario && (
+                                              <div className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full"></div>
+                                            )}
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <div className="text-sm">
+                                            {r.comentario ? `Editar comentario: ${r.comentario}` : 'Agregar comentario'}
+                                          </div>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </div>
+                                  </div>
                                 </div>
                               );
                             })()}
@@ -1814,7 +2218,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                     <DatePicker value={fechaStr} onChange={(v)=> v && goTo(v)} />
                   </DialogContent>
                 </Dialog>
-                <Button variant="outline" size="sm" onClick={()=>goTo(toYmd(new Date()))} className="text-xs">Hoy</Button>
+                <Button variant="outline" size="sm" onClick={()=>goTo(fechaHoy || toYmd(new Date()))} className="text-xs">Hoy</Button>
                 <Button variant="outline" size="sm" onClick={()=>go(1)}>
                   <ChevronRight className="h-3 w-3" />
                 </Button>
@@ -1865,6 +2269,34 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
               instalacionNombrePauta={currentRowForModal.instalacion_nombre}
             />
           </>
+        )}
+
+        {/* Modal de comentarios */}
+        {currentComentarioData && (
+          <ComentarioModal
+            isOpen={showComentarioModal}
+            onClose={closeComentarioModal}
+            turnoId={currentComentarioData.turnoId}
+            fecha={currentComentarioData.fecha}
+            comentarioActual={currentComentarioData.comentarioActual}
+            puestoNombre={currentComentarioData.puestoNombre}
+            guardiaNombre={currentComentarioData.guardiaNombre}
+            onComentarioSaved={handleComentarioSaved}
+          />
+        )}
+
+        {/* Modal de horas extras */}
+        {currentHorasExtrasData && (
+          <HorasExtrasModal
+            pautaId={currentHorasExtrasData.pautaId}
+            guardiaNombre={currentHorasExtrasData.guardiaNombre}
+            instalacionNombre={currentHorasExtrasData.instalacionNombre}
+            rolNombre={currentHorasExtrasData.rolNombre}
+            montoActual={currentHorasExtrasData.montoActual || 0}
+            onGuardar={handleHorasExtrasSaved}
+            isOpen={showHorasExtrasModal}
+            onClose={closeHorasExtrasModal}
+          />
         )}
       </>
     </TooltipProvider>

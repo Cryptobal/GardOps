@@ -30,6 +30,7 @@ export interface PautaRow {
   cobertura_guardia_telefono?: string | null; // Teléfono del guardia de cobertura
   comentarios?: string | null; // Comentarios del turno
   estado_semaforo?: string | null; // Estado del semáforo (pendiente, en_camino, urgencia, completado)
+  horas_extras?: number | null; // Monto de horas extras realizadas en este turno
   
   // NUEVA ESTRUCTURA DE ESTADOS
   tipo_turno?: string | null; // 'planificado' | 'libre'

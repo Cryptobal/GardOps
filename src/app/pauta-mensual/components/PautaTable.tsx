@@ -266,18 +266,28 @@ const ModalAutocompletarPauta = ({
 
 // Función centralizada para obtener el display del estado - LÓGICA ESTÁNDAR ACTUALIZADA
 const getEstadoDisplay = (
-  estado: string, 
+  estado: string | null, 
   cobertura: any = null, 
   esPPC: boolean = false,
   estado_operacion?: string,
   plan_base?: string,
   estado_rrhh?: string,
   turno_extra_guardia_nombre?: string,
-  estadoDetallado?: any // Nuevo campo con estructura de estados
+  estadoDetallado?: any, // Nuevo campo con estructura de estados
+  modoEdicion: boolean = false // Agregar parámetro de modo edición
 ) => {
-  // PRIORIDAD 1: Si tenemos estructura de estados detallada, usarla
+  // PRIORIDAD 0: Si no hay estado (null), devolver vacío
+  if (estado === null) {
+    return {
+      icon: null,
+      text: '',
+      className: 'bg-transparent border-gray-200 dark:border-gray-700',
+      iconColor: '',
+      tooltip: 'Sin datos'
+    };
+  }
+  // PRIORIDAD 1: Usar estadoDetallado cuando esté disponible (tanto en modo normal como edición)
   if (estadoDetallado && (estadoDetallado.tipo_turno || estadoDetallado.estado_puesto || estadoDetallado.estado_guardia || estadoDetallado.tipo_cobertura)) {
-    console.log('🔍 getEstadoDisplay - Usando nueva estructura:', estadoDetallado);
     // Construir estado_operacion desde la nueva estructura
     let estadoOperacion = '';
     
@@ -295,7 +305,7 @@ const getEstadoDisplay = (
         estadoOperacion = 'planificado';
       }
     } else if (estadoDetallado.estado_guardia === 'asistido') {
-      estadoOperacion = 'asistido';
+      estadoOperacion = 'planificado';
     } else if (estadoDetallado.estado_guardia === 'falta') {
       if (estadoDetallado.tipo_cobertura === 'turno_extra') {
         estadoOperacion = 'falta_cubierto_por_turno_extra';
@@ -356,7 +366,7 @@ const DiaCell = ({
   cobertura = null,
   estadoDetallado = null
 }: { 
-  estado: string; 
+  estado: string | null; 
   onClick?: () => void;
   onRightClick?: (e: React.MouseEvent) => void;
   guardiaNombre: string;
@@ -369,12 +379,7 @@ const DiaCell = ({
   cobertura?: any;
   estadoDetallado?: any;
 }) => {
-  // Debug: verificar si tenemos estadoDetallado
-  if (estadoDetallado) {
-    console.log('🔍 DiaCell - estadoDetallado recibido:', { guardiaNombre, diaNumero, estadoDetallado });
-  }
-  
-  const { icon, text, className, iconColor, tooltip } = getEstadoDisplay(estado, cobertura, esPPC, undefined, undefined, undefined, undefined, estadoDetallado);
+  const { icon, text, className, iconColor, tooltip } = getEstadoDisplay(estado, cobertura, esPPC, undefined, undefined, undefined, undefined, estadoDetallado, modoEdicion);
 
   const esFinDeSemana = diaSemana === 'Sáb' || diaSemana === 'Dom';
   const esDiaEspecial = esFinDeSemana || esFeriado;
@@ -417,7 +422,8 @@ const DiaCell = ({
     esFeriado,
     isDiaGuardado,
     esPPC,
-    modoEdicion
+    modoEdicion,
+    estadoDetallado?.guardia_info // Información del guardia
   );
 
   return (
@@ -439,13 +445,22 @@ const DiaCell = ({
           </span>
         )}
         
-        <div className={`flex items-center justify-center`}>
-          <span className={`${icon === '⟲' ? 'text-4xl' : icon === '▲' ? 'text-3xl' : 'text-xl'} font-bold ${iconColor || 'text-gray-400'} drop-shadow-sm`}>
-            {icon}
-          </span>
-          {/* Indicador adicional para estados críticos */}
-          {estado === 'i' && (
-            <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+        <div className={`flex flex-col items-center justify-center`}>
+          <div className="flex items-center justify-center">
+            <span className={`${icon === '⟲' ? 'text-4xl' : icon === '▲' ? 'text-3xl' : 'text-xl'} font-bold ${iconColor || 'text-gray-400'} drop-shadow-sm`}>
+              {icon}
+            </span>
+            {/* Indicador adicional para estados críticos */}
+            {estado === 'i' && (
+              <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+            )}
+          </div>
+          
+          {/* Mostrar iniciales del guardia si está asignado */}
+          {estadoDetallado?.guardia_info && (
+            <div className="mt-1 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1 py-0.5 rounded border border-blue-200 dark:border-blue-700">
+              {estadoDetallado.guardia_info.iniciales}
+            </div>
           )}
         </div>
       </div>
@@ -958,7 +973,7 @@ export default function PautaTable({
                             </Link>
                           </div>
                           <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight">
-                            <span className="font-medium">{guardia.nombre_puesto}</span>
+                            <span className="font-medium" title={`Nombre: ${guardia.nombre_puesto}\nUUID: ${guardia.id}`}>{guardia.nombre_puesto}</span>
                             {guardia.es_ppc && (
                               <div className="flex items-center gap-2 mt-1">
                                 <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-xs font-medium">

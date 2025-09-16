@@ -41,7 +41,7 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
         // Añadir metadata de falta
         await client.query(
           `UPDATE public.as_turnos_pauta_mensual
-             SET meta = COALESCE(meta,'{}'::jsonb) || jsonb_build_object(
+             SET meta = COALESCE(public.as_turnos_pauta_mensual.meta,'{}'::jsonb) || jsonb_build_object(
                'falta_sin_aviso', $2::boolean,
                'motivo', $3::text
              )
@@ -50,7 +50,8 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
         );
 
         const { rows } = await client.query(
-          `SELECT id, make_date(anio, mes, dia) as fecha, estado, meta
+          `SELECT id, make_date(anio, mes, dia) as fecha, 
+                  tipo_turno, estado_puesto, estado_guardia, tipo_cobertura, meta
            FROM public.as_turnos_pauta_mensual
            WHERE id = $1::bigint`,
           [id]
@@ -74,7 +75,8 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
         );
 
         const { rows } = await client.query(
-          `SELECT id, make_date(anio, mes, dia) as fecha, estado, meta
+          `SELECT id, make_date(anio, mes, dia) as fecha, 
+                  tipo_turno, estado_puesto, estado_guardia, tipo_cobertura, meta
            FROM public.as_turnos_pauta_mensual
            WHERE id = $1::bigint`,
           [id]
@@ -86,9 +88,8 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
           // TE (origen reemplazo)
           await client.query(
             `UPDATE public.as_turnos_pauta_mensual
-             SET estado = 'trabajado',
-                 estado_ui = 'te',
-                 meta = COALESCE(meta,'{}'::jsonb) || jsonb_build_object(
+             SET tipo_turno = 'planificado', estado_puesto = 'asignado', estado_guardia = 'asistido', tipo_cobertura = 'guardia_asignado',
+                 meta = COALESCE(public.as_turnos_pauta_mensual.meta,'{}'::jsonb) || jsonb_build_object(
                    'tipo','turno_extra',
                    'te_origen','reemplazo',
                    'cobertura_guardia_id', $2::text,
@@ -103,20 +104,25 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
           // Inasistencia sin cobertura
           await client.query(
             `UPDATE public.as_turnos_pauta_mensual
-             SET estado = 'inasistencia',
-                 meta = jsonb_build_object(
+             SET tipo_turno = 'planificado', 
+                 estado_puesto = CASE WHEN guardia_id IS NOT NULL THEN 'asignado' ELSE 'ppc' END, 
+                 estado_guardia = CASE WHEN guardia_id IS NOT NULL THEN 'falta' ELSE NULL END, 
+                 tipo_cobertura = 'sin_cobertura',
+                 meta = COALESCE(public.as_turnos_pauta_mensual.meta,'{}'::jsonb) || jsonb_build_object(
                    'actor_ref', $2::text,
                    'timestamp', NOW()::text,
                    'action', 'inasistencia',
                    'falta_sin_aviso', $3::boolean,
                    'motivo', $4::text
-                 )
+                 ),
+                 updated_at = NOW()
              WHERE id = $1::bigint`,
             [id, actor, !!falta_sin_aviso, motivo ?? null]
           );
         }
         const { rows } = await client.query(
-          `SELECT id, make_date(anio, mes, dia) as fecha, estado, meta
+          `SELECT id, make_date(anio, mes, dia) as fecha, 
+                  tipo_turno, estado_puesto, estado_guardia, tipo_cobertura, meta
            FROM public.as_turnos_pauta_mensual
            WHERE id = $1::bigint`,
           [id]

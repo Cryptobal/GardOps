@@ -56,8 +56,24 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
           ? center 
           : DEFAULT_CENTER;
 
+        // Validar que el elemento del mapa existe y está en el DOM
+        if (!mapRef.current || !document.contains(mapRef.current)) {
+          logger.warn('Elemento del mapa no está disponible en el DOM');
+          return;
+        }
+
+        // Silenciar warning de Marker deprecated
+        const originalWarn = console.warn;
+        console.warn = (...args) => {
+          const message = args.join(' ');
+          if (message.includes('google.maps.Marker is deprecated')) {
+            return; // Silenciar warning de Marker deprecated
+          }
+          originalWarn.apply(console, args);
+        };
+
         // Crear el mapa
-        const map = new google.maps.Map(mapRef.current!, {
+        const map = new google.maps.Map(mapRef.current, {
           center: validCenter,
           zoom,
           mapTypeControl: true,
@@ -72,6 +88,11 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
             }
           ]
         });
+
+        // Restaurar console.warn después de 5 segundos
+        setTimeout(() => {
+          console.warn = originalWarn;
+        }, 5000);
 
         mapInstanceRef.current = map;
 
@@ -91,25 +112,27 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
         }
 
         setIsMapReady(true);
-        logger.debug('Mapa de Google Maps inicializado exitosamente');
+        // Modo silencioso para producción
       } catch (err) {
         logger.error('Error al inicializar el mapa::', err);
       }
     };
 
-    initMap();
-  }, [isLoaded, center, zoom, onMapClick]);
+    if (isLoaded && mapRef.current && !mapInstanceRef.current) {
+      initMap();
+    }
+  }, [isLoaded]);
 
-  // Actualizar centro del mapa
+  // Actualizar centro del mapa (solo cuando el mapa se inicializa)
   useEffect(() => {
-    if (mapInstanceRef.current && isLoaded && center && 
+    if (mapInstanceRef.current && isMapReady && center && 
         typeof center.lat === 'number' && typeof center.lng === 'number' &&
         !isNaN(center.lat) && !isNaN(center.lng) &&
         isFinite(center.lat) && isFinite(center.lng)) {
       mapInstanceRef.current.setCenter(center);
       mapInstanceRef.current.setZoom(zoom);
     }
-  }, [center, zoom, isLoaded]);
+  }, [isMapReady]);
 
   // Actualizar marcadores
   useEffect(() => {

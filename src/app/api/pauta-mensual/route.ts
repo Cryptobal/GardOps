@@ -41,8 +41,28 @@ export async function GET(request: NextRequest) {
         pm.puesto_id,
         pm.guardia_id,
         pm.dia,
-        pm.estado,
-        pm.estado_ui,
+        -- Mapear campos nuevos a legacy para compatibilidad
+        CASE 
+          WHEN pm.tipo_turno = 'libre' THEN 'libre'
+          WHEN pm.estado_puesto = 'libre' THEN 'libre'
+          WHEN pm.estado_puesto = 'ppc' AND pm.tipo_cobertura = 'sin_cobertura' THEN 'sin_cobertura'
+          WHEN pm.estado_puesto = 'ppc' AND pm.tipo_cobertura = 'turno_extra' THEN 'trabajado'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'asistido' THEN 'trabajado'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'falta' AND pm.tipo_cobertura = 'turno_extra' THEN 'reemplazo'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'falta' AND pm.tipo_cobertura = 'sin_cobertura' THEN 'inasistencia'
+          ELSE 'planificado'
+        END as estado,
+        CASE 
+          WHEN pm.tipo_turno = 'libre' THEN 'libre'
+          WHEN pm.estado_puesto = 'libre' THEN 'libre'
+          WHEN pm.estado_puesto = 'ppc' AND pm.tipo_turno = 'planificado' THEN 'plan'
+          WHEN pm.estado_puesto = 'ppc' AND pm.tipo_cobertura = 'turno_extra' THEN 'turno_extra'
+          WHEN pm.estado_puesto = 'asignado' AND pm.tipo_turno = 'planificado' THEN 'plan'
+          WHEN pm.estado_puesto = 'asignado' AND pm.tipo_cobertura = 'turno_extra' THEN 'turno_extra'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'asistido' THEN 'asistido'
+          WHEN pm.estado_puesto = 'asignado' AND pm.estado_guardia = 'falta' THEN 'sin_cobertura'
+          ELSE 'plan'
+        END as estado_ui,
         pm.meta,
         -- NUEVOS CAMPOS ESTÁNDAR
         pm.plan_base,
@@ -147,7 +167,7 @@ export async function GET(request: NextRequest) {
         const pautaDia = pautaPuesto.find((p: any) => p.dia === dia);
         
         if (!pautaDia) {
-          return 'planificado'; // Sin datos = planificado
+          return null; // Sin datos = vacío (no renderizar)
         }
         
         // PRIORIDAD 1: Usar nueva estructura de estados si está disponible
@@ -270,24 +290,46 @@ export async function GET(request: NextRequest) {
         estados_detallados: diasDelMes.map(dia => {
           const pautaDia = pautaPuesto.find((p: any) => p.dia === dia);
           if (!pautaDia) {
-            return {
-              dia,
-              estado: 'planificado',
-              tipo_turno: 'planificado',
-              estado_puesto: puesto.es_ppc ? 'ppc' : 'asignado',
-              estado_guardia: null,
-              tipo_cobertura: puesto.es_ppc ? 'sin_cobertura' : 'guardia_asignado',
-              guardia_trabajo_id: puesto.guardia_id
+            return null; // Sin datos = null (no generar estados automáticos)
+          }
+          // Determinar el estado correcto basado en los campos nuevos
+          let estadoFinal = 'planificado';
+          if (pautaDia.tipo_turno === 'libre') {
+            estadoFinal = 'libre';
+          } else if (pautaDia.estado_puesto === 'ppc' && pautaDia.tipo_turno === 'planificado') {
+            estadoFinal = 'planificado'; // PPC planificado = punto azul
+          } else if (pautaDia.estado_puesto === 'asignado' && pautaDia.tipo_turno === 'planificado') {
+            estadoFinal = 'planificado'; // Guardia asignado planificado = punto azul
+          } else if (pautaDia.estado_guardia === 'asistido') {
+            estadoFinal = 'planificado';
+          } else if (pautaDia.estado_guardia === 'falta') {
+            estadoFinal = 'inasistencia';
+          }
+
+          // Generar información del guardia para mostrar iniciales
+          let guardiaInfo = null;
+          // Solo mostrar info del guardia si es día de trabajo Y tiene guardia asignado
+          if (pautaDia.tipo_turno !== 'libre' && pautaDia.guardia_trabajo_id && pautaDia.guardia_nombre) {
+            const iniciales = `${pautaDia.guardia_nombre.charAt(0)}${pautaDia.apellido_paterno.charAt(0)}`;
+            guardiaInfo = {
+              id: pautaDia.guardia_trabajo_id,
+              nombre: pautaDia.guardia_nombre,
+              apellido_paterno: pautaDia.apellido_paterno,
+              apellido_materno: pautaDia.apellido_materno,
+              iniciales: iniciales,
+              nombre_completo: `${pautaDia.guardia_nombre} ${pautaDia.apellido_paterno} ${pautaDia.apellido_materno || ''}`.trim()
             };
           }
+
           return {
             dia,
-            estado: pautaDia.estado || 'planificado',
+            estado: estadoFinal,
             tipo_turno: pautaDia.tipo_turno || 'planificado',
             estado_puesto: pautaDia.estado_puesto || (puesto.es_ppc ? 'ppc' : 'asignado'),
             estado_guardia: pautaDia.estado_guardia || null,
-            tipo_cobertura: pautaDia.tipo_cobertura || (puesto.es_ppc ? 'sin_cobertura' : 'guardia_asignado'),
-            guardia_trabajo_id: pautaDia.guardia_trabajo_id || puesto.guardia_id
+            tipo_cobertura: pautaDia.tipo_cobertura || (puesto.es_ppc ? 'ppc' : 'guardia_asignado'),
+            guardia_trabajo_id: pautaDia.guardia_trabajo_id,
+            guardia_info: guardiaInfo
           };
         })
       };

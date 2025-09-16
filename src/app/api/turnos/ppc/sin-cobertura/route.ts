@@ -32,7 +32,7 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
         );
         
         const { rows } = await client.query(
-          `SELECT id, make_date(anio, mes, dia) as fecha, estado, meta
+          `SELECT id, make_date(anio, mes, dia) as fecha, tipo_turno, estado_puesto, estado_guardia, tipo_cobertura, meta
            FROM public.as_turnos_pauta_mensual
            WHERE id = $1`,
           [pauta_id]
@@ -42,8 +42,7 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
         // Fallback: actualizar directamente con nueva estructura
         await client.query(
           `UPDATE public.as_turnos_pauta_mensual
-           SET estado = 'sin_cobertura',
-               estado_ui = 'sin_cobertura',
+           SET tipo_turno = 'planificado', estado_puesto = 'ppc', estado_guardia = NULL, tipo_cobertura = 'sin_cobertura',
                tipo_turno = 'planificado',
                estado_puesto = 'ppc',
                estado_guardia = 'falta',
@@ -59,7 +58,7 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
         );
         
         const { rows } = await client.query(
-          `SELECT id, make_date(anio, mes, dia) as fecha, estado, meta
+          `SELECT id, make_date(anio, mes, dia) as fecha, tipo_turno, estado_puesto, estado_guardia, tipo_cobertura, meta
            FROM public.as_turnos_pauta_mensual
            WHERE id = $1`,
           [pauta_id]

@@ -32,23 +32,22 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
       const functionExists = parseInt(funcCheck[0].count) > 0;
       
       if (functionExists) {
-        // Primero ejecutar la función para actualizar
+        // Usar actualización directa con nuevos campos
+        // Actualizar tanto guardia_id como guardia_trabajo_id para satisfacer el trigger
         await client.query(
-          `SELECT * FROM as_turnos.fn_marcar_asistencia(
-             $1::bigint,
-             'reemplazo',
-             jsonb_build_object(
-               'cobertura_guardia_id', $2::text,
-               'estado_ui', 'reemplazo'
-             ),
-             $3::text
-           )`,
-          [finalPautaId, finalGuardiaId, actor]
+          `UPDATE public.as_turnos_pauta_mensual
+           SET tipo_cobertura = 'turno_extra',
+               guardia_id = $2::uuid,
+               guardia_trabajo_id = $2::uuid,
+               meta = COALESCE(meta, '{}'::jsonb) || jsonb_build_object('cobertura_guardia_id', $2::text),
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = $1::bigint`,
+          [finalPautaId, finalGuardiaId]
         );
         
         // Luego obtener los datos actualizados
         const { rows } = await client.query(
-          `SELECT pm.id, make_date(pm.anio, pm.mes, pm.dia) as fecha, pm.estado, pm.meta
+          `SELECT pm.id, make_date(pm.anio, pm.mes, pm.dia) as fecha, pm.tipo_cobertura, pm.guardia_trabajo_id
            FROM public.as_turnos_pauta_mensual pm
            WHERE pm.id = $1::bigint`,
           [finalPautaId]
@@ -76,23 +75,21 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
         
         return NextResponse.json(rows[0] ?? null);
       } else {
-        // Fallback: actualizar directamente
+        // Fallback: actualizar directamente con nuevos campos
+        // Actualizar tanto guardia_id como guardia_trabajo_id para satisfacer el trigger
         await client.query(
           `UPDATE public.as_turnos_pauta_mensual
-           SET estado = 'reemplazo',
-               meta = jsonb_build_object(
-                 'actor_ref', $2::text,
-                 'timestamp', NOW()::text,
-                 'action', 'reemplazo',
-                 'cobertura_guardia_id', $3::text,
-                 'estado_ui', 'reemplazo'
-               )
+           SET tipo_cobertura = 'turno_extra',
+               guardia_id = $2::uuid,
+               guardia_trabajo_id = $2::uuid,
+               meta = COALESCE(meta, '{}'::jsonb) || jsonb_build_object('cobertura_guardia_id', $2::text),
+               updated_at = CURRENT_TIMESTAMP
            WHERE id = $1::bigint`,
-          [finalPautaId, actor, finalGuardiaId]
+          [finalPautaId, finalGuardiaId]
         );
         
         const { rows } = await client.query(
-          `SELECT id, make_date(anio, mes, dia) as fecha, estado, meta
+          `SELECT id, make_date(anio, mes, dia) as fecha, tipo_cobertura, guardia_trabajo_id
            FROM public.as_turnos_pauta_mensual
            WHERE id = $1::bigint`,
           [finalPautaId]

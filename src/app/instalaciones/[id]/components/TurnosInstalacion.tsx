@@ -2,7 +2,7 @@
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -108,6 +108,11 @@ export default function TurnosInstalacion({
   const [expandedTurnos, setExpandedTurnos] = useState<{[key: string]: boolean}>({});
 
   const [asignando, setAsignando] = useState<string | null>(null);
+
+  // Memoizar roles ordenados para evitar re-renders
+  const rolesOrdenados = useMemo(() => {
+    return Array.isArray(rolesServicio) ? ordenarRolesPorPatron(rolesServicio) : [];
+  }, [rolesServicio]);
   const [desasignando, setDesasignando] = useState<string | null>(null);
   const [eliminandoPuesto, setEliminandoPuesto] = useState<string | null>(null);
   const [agregandoPuestos, setAgregandoPuestos] = useState<string | null>(null);
@@ -593,7 +598,7 @@ export default function TurnosInstalacion({
                 placeholder="Seleccionar rol"
               >
                 <SelectContent>
-                  {Array.isArray(rolesServicio) ? ordenarRolesPorPatron(rolesServicio).map((rol) => (
+                  {Array.isArray(rolesServicio) ? rolesOrdenados.map((rol) => (
                     <SelectItem key={rol.id} value={rol.id}>
                       {rol.nombre}
                     </SelectItem>

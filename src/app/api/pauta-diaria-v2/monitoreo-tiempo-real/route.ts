@@ -22,13 +22,13 @@ export async function GET(request: NextRequest) {
         pm.mes,
         pm.dia,
         CONCAT(pm.anio, '-', LPAD(pm.mes::text, 2, '0'), '-', LPAD(pm.dia::text, 2, '0')) as fecha,
-        pm.estado as estado_pauta,
-        pm.estado_ui,
+        pm.estado_operacion as estado_pauta,
+        pm.estado_operacion as estado_ui,
         pm.meta,
         pm.meta->>'estado_semaforo' as estado_semaforo,
         pm.meta->>'observaciones_semaforo' as observaciones_semaforo,
         pm.meta->>'ultima_actualizacion_semaforo' as ultima_actualizacion,
-        pm.estado_ui as estado_pauta_ui,
+        pm.estado_operacion as estado_pauta_ui,
         g.id as guardia_id,
         CONCAT(g.nombre, ' ', COALESCE(g.apellido_paterno, ''), ' ', COALESCE(g.apellido_materno, '')) as guardia_nombre,
         g.apellido_paterno,
@@ -63,10 +63,10 @@ export async function GET(request: NextRequest) {
     // Agregar filtro según incluirLibres - CORREGIDO PARA NUEVA LÓGICA
     if (!incluirLibres) {
       // Excluir días libres usando la nueva lógica estándar
-      query += ` AND NOT (pm.estado = 'libre' OR pm.estado_operacion = 'libre')`;
+      query += ` AND NOT (pm.plan_base = 'libre' OR pm.estado_operacion = 'libre')`;
     } else {
       // Incluir todos los estados
-      query += ` AND pm.estado IN ('planificado', 'trabajado', 'libre', 'sin_cobertura')`;
+      query += ` AND pm.estado_operacion IN ('planificado', 'asistido', 'libre', 'falta_no_cubierto', 'falta_cubierto_por_turno_extra', 'permiso_con_goce_no_cubierto', 'permiso_con_goce_cubierto_por_turno_extra', 'permiso_sin_goce_no_cubierto', 'permiso_sin_goce_cubierto_por_turno_extra', 'licencia_no_cubierto', 'licencia_cubierto_por_turno_extra', 'ppc_no_cubierto', 'ppc_cubierto_por_turno_extra')`;
     }
     
     const params: any[] = [anio, mes, dia];

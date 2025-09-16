@@ -147,12 +147,6 @@ export default function EditarPautaMensualPage() {
     setPautaData(prevData => {
       const newData = [...prevData];
       
-      // Verificar si es un PPC y bloquear la edición
-      if (newData[guardiaIndex].es_ppc) {
-        logger.debug('🚫 Intento de editar PPC bloqueado en actualizarPauta');
-        return prevData; // No hacer cambios
-      }
-      
       newData[guardiaIndex].dias[diaIndex] = nuevoEstado;
       return newData;
     });
@@ -160,12 +154,6 @@ export default function EditarPautaMensualPage() {
 
   const eliminarGuardia = (guardiaIndex: number) => {
     setPautaData(prevData => {
-      // Verificar si es un PPC y bloquear la eliminación
-      if (prevData[guardiaIndex].es_ppc) {
-        logger.debug('🚫 Intento de eliminar PPC bloqueado');
-        return prevData; // No hacer cambios
-      }
-      
       return prevData.filter((_, index) => index !== guardiaIndex);
     });
   };
