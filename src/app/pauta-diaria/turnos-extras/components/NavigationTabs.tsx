@@ -48,7 +48,7 @@ export default function NavigationTabs({ activeTab, onTabChange }: NavigationTab
   ];
 
   return (
-    <div className={`flex gap-1 bg-muted/30 p-1 rounded-lg mb-4 sm:mb-6 ${
+    <div className={`flex gap-2 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-700/50 p-2 rounded-xl mb-4 sm:mb-6 shadow-sm border border-gray-200/50 dark:border-gray-700/50 ${
       isMobile ? 'grid grid-cols-3' : 'flex-wrap'
     }`}>
       {tabs.map((tab) => {
@@ -61,14 +61,20 @@ export default function NavigationTabs({ activeTab, onTabChange }: NavigationTab
             key={tab.name}
             onClick={() => onTabChange(tab.value)}
             className={cn(
-              'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all whitespace-nowrap border border-transparent',
+              'flex items-center gap-2 px-3 py-3 text-sm font-semibold rounded-lg transition-all duration-300 whitespace-nowrap border-2 shadow-sm transform hover:scale-105 active:scale-95',
               isActive
-                ? 'bg-blue-600/20 text-blue-300 border-blue-500/30 shadow-sm'
-                : 'text-muted-foreground hover:text-white hover:bg-muted/40'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-500 shadow-lg shadow-blue-200/50 dark:shadow-blue-900/30'
+                : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-transparent hover:border-blue-200 dark:hover:border-blue-800'
             )}
           >
-            <Icon className="h-4 w-4" />
-            <span className={isMobile ? 'text-xs' : ''}>
+            <Icon className={cn(
+              'h-4 w-4 transition-colors duration-300',
+              isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400'
+            )} />
+            <span className={cn(
+              'transition-colors duration-300',
+              isMobile ? 'text-xs' : 'text-sm'
+            )}>
               {displayName}
             </span>
           </button>

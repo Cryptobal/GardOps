@@ -201,12 +201,12 @@ export default function HomePage() {
           </CardContent>
         </Card>
 
-        {/* Cobertura de Puestos - Mobile First */}
+        {/* Control de Asistencia - Mobile First */}
         <Card className="w-full">
           <CardHeader className="pb-2 px-3">
             <CardTitle className="flex items-center gap-2 text-sm">
               <Building2 className="w-4 h-4" />
-              Cobertura de Puestos
+              Control de Asistencia
             </CardTitle>
           </CardHeader>
           <CardContent className="px-3 pb-3">

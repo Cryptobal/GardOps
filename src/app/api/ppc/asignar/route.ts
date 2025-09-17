@@ -12,7 +12,8 @@ export async function POST(request: NextRequest) {
       confirmar_reasignacion = false,
       fecha_inicio, // NUEVO: Fecha de inicio de asignación (opcional para compatibilidad)
       motivo_inicio = 'asignacion_ppc',
-      observaciones
+      observaciones,
+      eliminar_conflictos = false // NUEVO: Flag para eliminar conflictos de pauta diaria
     } = await request.json();
 
     console.log('🔍 [PPC/ASIGNAR] Datos recibidos:', {
@@ -160,6 +161,58 @@ export async function POST(request: NextRequest) {
       
       // Usar fecha de inicio proporcionada o fecha actual como fallback (COMPATIBILIDAD)
       const fechaInicioAsignacion = fecha_inicio || new Date().toISOString().split('T')[0];
+      
+      // NUEVA VALIDACIÓN: Verificar conflictos con pauta diaria
+      logger.debug(`🔍 [VALIDACIÓN] Verificando conflictos con pauta diaria desde ${fechaInicioAsignacion}...`);
+      
+      const conflictosResult = await query(`
+        SELECT 
+          pd.fecha,
+          pd.estado_ui,
+          pd.estado_guardia,
+          g.nombre as guardia_nombre,
+          g.apellido_paterno
+        FROM as_turnos_pauta_diaria pd
+        LEFT JOIN guardias g ON pd.guardia_id = g.id
+        WHERE pd.puesto_id = $1 
+          AND pd.fecha >= $2
+          AND pd.estado_ui IN ('asistido', 'plan', 'trabajado', 'inasistencia')
+        ORDER BY pd.fecha
+      `, [puestoIdFinal, fechaInicioAsignacion]);
+      
+      if (conflictosResult.rows.length > 0) {
+        logger.warn(`⚠️ [CONFLICTO] Se encontraron ${conflictosResult.rows.length} registros en pauta diaria`);
+        
+        if (!eliminar_conflictos) {
+          // Mostrar modal de confirmación
+          return NextResponse.json({
+            success: false,
+            error: 'Conflicto con pauta diaria',
+            requiere_confirmacion: true,
+            conflictos: conflictosResult.rows.map(row => ({
+              fecha: row.fecha,
+              estado: row.estado_ui,
+              guardia: `${row.guardia_nombre} ${row.guardia_apellido_paterno}`.trim(),
+              mensaje: `Día ${row.fecha} tiene registro de ${row.estado_ui}`
+            })),
+            mensaje: `Este puesto tiene ${conflictosResult.rows.length} registros en pauta diaria desde ${fechaInicioAsignacion}. ¿Desea eliminar estos registros y proceder con la asignación?`
+          }, { status: 409 });
+        } else {
+          // Eliminar registros de pauta diaria y continuar
+          logger.info(`🗑️ [ELIMINACIÓN] Eliminando ${conflictosResult.rows.length} registros de pauta diaria...`);
+          
+          await query(`
+            DELETE FROM as_turnos_pauta_diaria 
+            WHERE puesto_id = $1 
+              AND fecha >= $2
+              AND estado_ui IN ('asistido', 'plan', 'trabajado', 'inasistencia')
+          `, [puestoIdFinal, fechaInicioAsignacion]);
+          
+          logger.info(`✅ [ELIMINACIÓN] Registros de pauta diaria eliminados exitosamente`);
+        }
+      }
+      
+      logger.debug(`✅ [VALIDACIÓN] No se encontraron conflictos con pauta diaria`);
       
       // FALLBACK TEMPORAL: Usar lógica legacy + registrar en historial por separado
       try {

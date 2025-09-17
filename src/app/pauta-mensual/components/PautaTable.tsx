@@ -411,8 +411,12 @@ const DiaCell = ({
   };
 
   // Usar tooltip enriquecido con información completa
+  // CORREGIDO: Usar nombre del día específico, no del puesto
+  const nombreParaTooltip = estadoDetallado?.guardia_info?.nombre_completo || 
+                           (esPPC || !estadoDetallado?.guardia_info ? 'PPC - Puesto Por Cubrir' : guardiaNombre);
+  
   const tooltipText = crearTooltipEnriquecido(
-    guardiaNombre,
+    nombreParaTooltip,
     diaNumero,
     diaSemana,
     undefined, // plan_base (se agregará cuando esté disponible)
@@ -421,7 +425,7 @@ const DiaCell = ({
     undefined, // turno_extra_guardia_nombre (se agregará cuando esté disponible)
     esFeriado,
     isDiaGuardado,
-    esPPC,
+    esPPC || !estadoDetallado?.guardia_info, // Es PPC si no hay guardia_info
     modoEdicion,
     estadoDetallado?.guardia_info // Información del guardia
   );

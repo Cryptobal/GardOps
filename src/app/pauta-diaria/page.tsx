@@ -143,33 +143,38 @@ export default function PautaDiariaPage() {
   }
 
   return (
-    <div className="w-full max-w-full mx-auto p-3 space-y-3">
-      {/* Header Mobile First */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold">Pauta Diaria</h1>
-          <p className="text-gray-600 text-xs">Sistema de gestión de turnos diarios</p>
+    <div className="w-full max-w-full mx-auto p-2 space-y-2">
+      {/* Header Mobile First Minimalista */}
+      <div className="flex items-center justify-between py-2">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg font-bold text-gray-900 dark:text-white truncate">
+            📅 Pauta Diaria
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
+            {new Date(fecha).toLocaleDateString('es-ES', { 
+              weekday: 'short', 
+              day: '2-digit', 
+              month: '2-digit' 
+            })}
+          </p>
+        </div>
+        <div className="flex-shrink-0">
+          <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+            <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          </div>
         </div>
       </div>
 
-      {/* Pauta Diaria Content */}
-      <Card className="w-full">
-        <CardHeader className="pb-2 px-3">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            <Users className="w-4 h-4" />
-            Gestión de Pauta Diaria
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-3 pb-3">
-          <ClientTable 
-            rows={rows} 
-            fecha={fecha} 
-            incluirLibres={incluirLibres} 
-            onRecargarDatos={recargarDatos}
-            activeTab="pauta"
-          />
-        </CardContent>
-      </Card>
+      {/* Pauta Diaria Content - Sin Card para maximizar espacio */}
+      <div className="w-full">
+        <ClientTable 
+          rows={rows} 
+          fecha={fecha} 
+          incluirLibres={incluirLibres} 
+          onRecargarDatos={recargarDatos}
+          activeTab="pauta"
+        />
+      </div>
     </div>
   );
 }

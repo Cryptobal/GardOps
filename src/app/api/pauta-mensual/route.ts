@@ -89,6 +89,9 @@ export async function GET(request: NextRequest) {
         rs.nombre as rol_nombre,
         CONCAT(rs.dias_trabajo, 'x', rs.dias_descanso) as patron_turno,
         
+        -- NUEVO: Fecha de asignación del historial para validar iniciales
+        ha.fecha_inicio as fecha_asignacion_historial,
+        
         -- Información de cobertura
         (pm.meta->>'cobertura_guardia_id') as cobertura_guardia_id,
         rg.nombre as cobertura_nombre,
@@ -105,6 +108,13 @@ export async function GET(request: NextRequest) {
       LEFT JOIN public.as_turnos_roles_servicio rs ON po.rol_id = rs.id
       LEFT JOIN public.guardias rg ON rg.id::text = (pm.meta->>'cobertura_guardia_id')
       LEFT JOIN public.guardias te_g ON pm.turno_extra_guardia_id = te_g.id
+      -- NUEVO: JOIN con historial de asignaciones para obtener fecha real de asignación
+      LEFT JOIN historial_asignaciones_guardias ha ON (
+        ha.guardia_id = pm.guardia_id 
+        AND ha.puesto_id = pm.puesto_id 
+        AND ha.estado = 'activa' 
+        AND ha.fecha_termino IS NULL
+      )
       WHERE po.instalacion_id = $1 
         AND pm.anio = $2 
         AND pm.mes = $3
@@ -308,7 +318,8 @@ export async function GET(request: NextRequest) {
 
           // Generar información del guardia para mostrar iniciales
           let guardiaInfo = null;
-          // Solo mostrar info del guardia si es día de trabajo Y tiene guardia asignado
+          // NUEVA LÓGICA SIMPLIFICADA: Si hay guardia_trabajo_id, mostrar iniciales
+          // La lógica de fechas ya se maneja en sincronizarPautasPostAsignacion
           if (pautaDia.tipo_turno !== 'libre' && pautaDia.guardia_trabajo_id && pautaDia.guardia_nombre) {
             const iniciales = `${pautaDia.guardia_nombre.charAt(0)}${pautaDia.apellido_paterno.charAt(0)}`;
             guardiaInfo = {

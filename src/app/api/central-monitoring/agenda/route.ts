@@ -26,56 +26,59 @@ export async function GET(request: NextRequest) {
 
     logger.debug(`🔍 [CENTRAL-MONITORING] Consultando llamados para fecha: ${fecha}, timezone: ${tz}`);
 
-    // Obtener llamados desde la vista automática
+    // Obtener llamados desde la vista automática con IDs consistentes
     let query = `
       SELECT 
-        id,
-        instalacion_id,
-        guardia_id,
-        pauta_id,
-        puesto_id,
-        programado_para::text as programado_para,
-        estado_llamado as estado,
-        contacto_tipo,
-        contacto_telefono,
-        contacto_nombre,
-        observaciones,
-        instalacion_nombre,
-        guardia_nombre,
-        nombre_puesto,
-        rol_nombre,
-        intervalo_minutos,
-        ventana_inicio::text as ventana_inicio,
-        ventana_fin::text as ventana_fin,
-        modo,
-        mensaje_template,
-        es_urgente,
-        es_actual,
-        es_proximo,
+        -- Usar ID real de central_llamados si existe, sino usar el de la vista
+        COALESCE(cl.id, v.id) as id,
+        v.instalacion_id,
+        v.guardia_id,
+        v.pauta_id,
+        v.puesto_id,
+        v.programado_para::text as programado_para,
+        -- Usar estado real si existe, sino usar el de la vista
+        COALESCE(cl.estado, v.estado_llamado) as estado,
+        v.contacto_tipo,
+        v.contacto_telefono,
+        v.contacto_nombre,
+        v.observaciones,
+        v.instalacion_nombre,
+        v.guardia_nombre,
+        v.nombre_puesto,
+        v.rol_nombre,
+        v.intervalo_minutos,
+        v.ventana_inicio::text as ventana_inicio,
+        v.ventana_fin::text as ventana_fin,
+        v.modo,
+        v.mensaje_template,
+        v.es_urgente,
+        v.es_actual,
+        v.es_proximo,
         -- Calcular minutos de atraso (sin conversión de zona horaria)
         CASE 
-          WHEN programado_para < now() THEN 
-            EXTRACT(EPOCH FROM (now() - programado_para)) / 60
+          WHEN v.programado_para < now() THEN 
+            EXTRACT(EPOCH FROM (now() - v.programado_para)) / 60
           ELSE 0
         END as minutos_atraso
-      FROM central_v_llamados_automaticos
-      WHERE DATE(programado_para) = $1
+      FROM central_v_llamados_automaticos v
+      LEFT JOIN central_llamados cl ON cl.id = v.id
+      WHERE DATE(v.programado_para) = $1
     `;
 
     const params: any[] = [fecha];
 
     // Aplicar filtros
     if (instalacionFilter) {
-      query += ` AND instalacion_id = $${params.length + 1}`;
+      query += ` AND v.instalacion_id = $${params.length + 1}`;
       params.push(instalacionFilter);
     }
 
     if (guardiaFilter) {
-      query += ` AND (guardia_nombre ILIKE $${params.length + 1} OR instalacion_nombre ILIKE $${params.length + 1})`;
+      query += ` AND (v.guardia_nombre ILIKE $${params.length + 1} OR v.instalacion_nombre ILIKE $${params.length + 1})`;
       params.push(`%${guardiaFilter}%`);
     }
 
-    query += ` ORDER BY programado_para ASC`;
+    query += ` ORDER BY v.programado_para ASC`;
 
     console.log(`📊 [CENTRAL-MONITORING] Query final: ${query.substring(0, 200)}...`);
     console.log(`📊 [CENTRAL-MONITORING] Parámetros: ${JSON.stringify(params)}`);

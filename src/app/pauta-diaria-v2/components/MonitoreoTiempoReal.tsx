@@ -347,21 +347,24 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
 
   return (
     <div className="space-y-4">
-      {/* Header con controles - Mobile First */}
-      <div className="space-y-2">
-        {/* Controles de navegación de fecha - Mobile First */}
+      {/* Header con controles - Mobile First Optimizado */}
+      <div className="space-y-3">
+        {/* Navegación de fechas compacta */}
         <div className="flex items-center justify-center gap-2">
-          {/* Flecha izquierda */}
-          <Button variant="outline" size="sm" onClick={() => go(-1)} className="h-8 w-8 p-0">
-            <ChevronLeft className="h-3 w-3" />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => go(-1)} 
+            className="h-9 w-9 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+          >
+            <ChevronLeft className="h-4 w-4" />
           </Button>
           
-          {/* Selector de fecha compacto */}
           <div className="flex items-center gap-1">
             <Input
               ref={inputRef}
               type="date"
-              className="w-auto text-xs h-8 px-2"
+              className="w-auto text-sm font-medium border-blue-200 dark:border-blue-800 focus:border-blue-500 dark:focus:border-blue-400"
               value={fecha}
               onChange={(e) => goToDate(e.target.value)}
             />
@@ -370,135 +373,223 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
               variant="outline"
               size="sm"
               onClick={() => inputRef.current?.showPicker?.()}
-              className="h-8 w-8 p-0"
+              className="h-9 px-3 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20"
             >
-              <Calendar className="h-3 w-3" />
+              <Calendar className="h-4 w-4" />
             </Button>
           </div>
           
-          {/* Flecha derecha */}
-          <Button variant="outline" size="sm" onClick={() => go(1)} className="h-8 w-8 p-0">
-            <ChevronRight className="h-3 w-3" />
-          </Button>
-        </div>
-
-        {/* Botones y controles centrados */}
-        <div className="flex items-center justify-center gap-2">
-          {/* Botón Hoy */}
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => goToDate(fechaHoy || toYmd(new Date()))}
-            className="h-8 px-2 text-xs"
+            onClick={() => go(1)} 
+            className="h-9 w-9 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800"
           >
-            Hoy
+            <ChevronRight className="h-4 w-4" />
           </Button>
+        </div>
 
-          {/* KPI Total */}
-          <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-950/50 rounded-lg border border-blue-200 dark:border-blue-800">
-            <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Total:</span>
-            <span className="text-sm font-bold text-blue-800 dark:text-blue-200">{data?.kpis.total_turnos || 0}</span>
+        {/* Controles principales en grid compacto */}
+        <div className="grid grid-cols-2 gap-2">
+          {/* Auto-refresh y actualización */}
+          <div className="flex gap-1">
+            <Button
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              variant={autoRefresh ? "default" : "outline"}
+              size="sm"
+              className="h-8 px-2 flex-1 text-xs"
+            >
+              <RefreshCw className={`w-3 h-3 mr-1 ${autoRefresh ? 'animate-spin' : ''}`} />
+              Auto
+            </Button>
+            <Button
+              onClick={cargarDatos}
+              variant="outline"
+              size="sm"
+              className="h-8 px-2 flex-1 text-xs"
+            >
+              <RefreshCw className="w-3 h-3 mr-1" />
+              Actualizar
+            </Button>
+          </div>
+
+          {/* Modo vista y ver libres */}
+          <div className="flex gap-1">
+            <Button
+              onClick={() => setModoVista('lista')}
+              variant={modoVista === 'lista' ? "default" : "outline"}
+              size="sm"
+              className="h-8 w-8 p-0"
+              title="Vista Lista"
+            >
+              <List className="w-3 h-3" />
+            </Button>
+            <Button
+              onClick={() => setModoVista('grid')}
+              variant={modoVista === 'grid' ? "default" : "outline"}
+              size="sm"
+              className="h-8 w-8 p-0"
+              title="Vista Grid"
+            >
+              <Grid className="w-3 h-3" />
+            </Button>
+            <Button
+              onClick={() => setIncluirLibres(!incluirLibres)}
+              variant={incluirLibres ? "default" : "outline"}
+              size="sm"
+              className="h-8 px-2 flex-1 text-xs"
+            >
+              <Eye className="w-3 h-3 mr-1" />
+              Libres
+            </Button>
           </div>
         </div>
 
-        {/* Botón Ver Libres */}
-        <div className="flex items-center justify-start">
-          <Button
-            onClick={() => setIncluirLibres(!incluirLibres)}
-            variant={incluirLibres ? "default" : "outline"}
-            size="sm"
-            className="h-8 px-3 flex-shrink-0"
-          >
-            <Eye className="w-3 h-3 mr-1" />
-            <span className="text-xs">Ver Libres</span>
-          </Button>
-        </div>
-
-        {/* Selector de modo vista */}
-        <div className="flex items-center gap-1">
-          <Button
-            onClick={() => setModoVista('lista')}
-            variant={modoVista === 'lista' ? "default" : "outline"}
-            size="sm"
-            className="h-8 w-8 p-0"
-            title="Vista Lista"
-          >
-            <List className="w-3 h-3" />
-          </Button>
-          <Button
-            onClick={() => setModoVista('grid')}
-            variant={modoVista === 'grid' ? "default" : "outline"}
-            size="sm"
-            className="h-8 w-8 p-0"
-            title="Vista Grid"
-          >
-            <Grid className="w-3 h-3" />
-          </Button>
+        {/* KPI Total destacado */}
+        <div className="flex items-center justify-center">
+          <div className="flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+            <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Turnos:</span>
+            <span className="text-lg font-bold text-blue-800 dark:text-blue-200">{data?.kpis.total_turnos || 0}</span>
+          </div>
         </div>
       </div>
 
-      {/* KPIs optimizados para móvil - Grid responsive */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-        <Card className="border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/50">
-          <CardContent className="p-2">
-            <div className="flex flex-col items-center text-center space-y-1">
-              <Clock className="w-3 h-3 text-gray-600 dark:text-gray-400" />
-              <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Pendiente</p>
-              <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{data.kpis.pendiente}</p>
-            </div>
-          </CardContent>
-        </Card>
+      {/* KPIs Mobile First - Diseño compacto y minimalista */}
+      <div className="space-y-3">
+        {/* KPIs principales en grid compacto */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          <Card className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-700/50 border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow duration-200">
+            <CardContent className="p-3">
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center shadow-md">
+                  <Clock className="h-4 w-4 text-white" />
+                </div>
+                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Pendiente</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">{data.kpis.pendiente}</p>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="border-yellow-200 dark:border-yellow-800 bg-yellow-50/50 dark:bg-yellow-950/50">
-          <CardContent className="p-2">
-            <div className="flex flex-col items-center text-center space-y-1">
-              <Clock className="w-3 h-3 text-yellow-600 dark:text-yellow-400" />
-              <p className="text-xs font-medium text-yellow-700 dark:text-yellow-300">En Camino</p>
-              <p className="text-sm font-bold text-yellow-800 dark:text-yellow-200">{data.kpis.en_camino}</p>
-            </div>
-          </CardContent>
-        </Card>
+          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/20 border-yellow-200 dark:border-yellow-700 hover:shadow-md transition-shadow duration-200">
+            <CardContent className="p-3">
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center shadow-md">
+                  <Clock className="h-4 w-4 text-white" />
+                </div>
+                <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">En Camino</p>
+                <p className="text-lg font-bold text-yellow-900 dark:text-yellow-100">{data.kpis.en_camino}</p>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/50">
-          <CardContent className="p-2">
-            <div className="flex flex-col items-center text-center space-y-1">
-              <Activity className="w-3 h-3 text-green-600 dark:text-green-400" />
-              <p className="text-xs font-medium text-green-700 dark:text-green-300">Llegó</p>
-              <p className="text-sm font-bold text-green-800 dark:text-green-200">{data.kpis.llego}</p>
-            </div>
-          </CardContent>
-        </Card>
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/20 border-green-200 dark:border-green-700 hover:shadow-md transition-shadow duration-200">
+            <CardContent className="p-3">
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-md">
+                  <Activity className="h-4 w-4 text-white" />
+                </div>
+                <p className="text-xs font-semibold text-green-700 dark:text-green-300">Llegó</p>
+                <p className="text-lg font-bold text-green-900 dark:text-green-100">{data.kpis.llego}</p>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/50">
-          <CardContent className="p-2">
-            <div className="flex flex-col items-center text-center space-y-1">
-              <Activity className="w-3 h-3 text-red-600 dark:text-red-400" />
-              <p className="text-xs font-medium text-red-700 dark:text-red-300">No Contesta</p>
-              <p className="text-sm font-bold text-red-800 dark:text-red-200">{data.kpis.no_contesta}</p>
-            </div>
-          </CardContent>
-        </Card>
+          <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/20 border-red-200 dark:border-red-700 hover:shadow-md transition-shadow duration-200">
+            <CardContent className="p-3">
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center shadow-md">
+                  <Activity className="h-4 w-4 text-white" />
+                </div>
+                <p className="text-xs font-semibold text-red-700 dark:text-red-300">No Contesta</p>
+                <p className="text-lg font-bold text-red-900 dark:text-red-100">{data.kpis.no_contesta}</p>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="border-red-600 dark:border-red-800 bg-red-100/50 dark:bg-red-950/50">
-          <CardContent className="p-2">
-            <div className="flex flex-col items-center text-center space-y-1">
-              <XCircle className="w-3 h-3 text-red-600 dark:text-red-400" />
-              <p className="text-xs font-medium text-red-700 dark:text-red-300">No Irá</p>
-              <p className="text-sm font-bold text-red-800 dark:text-red-200">{data.kpis.no_ira}</p>
-            </div>
-          </CardContent>
-        </Card>
+          <Card className="bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/40 dark:to-red-800/30 border-red-300 dark:border-red-600 hover:shadow-md transition-shadow duration-200">
+            <CardContent className="p-3">
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center shadow-md">
+                  <XCircle className="h-4 w-4 text-white" />
+                </div>
+                <p className="text-xs font-semibold text-red-700 dark:text-red-300">No Irá</p>
+                <p className="text-lg font-bold text-red-900 dark:text-red-100">{data.kpis.no_ira}</p>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/50">
-          <CardContent className="p-2">
-            <div className="flex flex-col items-center text-center space-y-1">
-              <Clock className="w-3 h-3 text-orange-600 dark:text-orange-400" />
-              <p className="text-xs font-medium text-orange-700 dark:text-orange-300">Retrasado</p>
-              <p className="text-sm font-bold text-orange-800 dark:text-orange-200">{data.kpis.retrasado}</p>
-            </div>
-          </CardContent>
-        </Card>
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/20 border-orange-200 dark:border-orange-700 hover:shadow-md transition-shadow duration-200">
+            <CardContent className="p-3">
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-md">
+                  <Clock className="h-4 w-4 text-white" />
+                </div>
+                <p className="text-xs font-semibold text-orange-700 dark:text-orange-300">Retrasado</p>
+                <p className="text-lg font-bold text-orange-900 dark:text-orange-100">{data.kpis.retrasado}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* KPIs secundarios compactos */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 border-blue-200 dark:border-blue-700">
+            <CardContent className="p-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                    <Users className="h-3 w-3 text-white" />
+                  </div>
+                  <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Total</span>
+                </div>
+                <span className="text-sm font-bold text-blue-900 dark:text-blue-100">{data.kpis.total_turnos}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/20 border-green-200 dark:border-green-700">
+            <CardContent className="p-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                    <Building2 className="h-3 w-3 text-white" />
+                  </div>
+                  <span className="text-xs font-medium text-green-700 dark:text-green-300">Cubiertos</span>
+                </div>
+                <span className="text-sm font-bold text-green-900 dark:text-green-100">{data.kpis.puestos_cubiertos}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/20 border-amber-200 dark:border-amber-700">
+            <CardContent className="p-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
+                    <Clock className="h-3 w-3 text-white" />
+                  </div>
+                  <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Día</span>
+                </div>
+                <span className="text-sm font-bold text-amber-900 dark:text-amber-100">{data.kpis.turnos_dia}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20 border-purple-200 dark:border-purple-700">
+            <CardContent className="p-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
+                    <Clock className="h-3 w-3 text-white" />
+                  </div>
+                  <span className="text-xs font-medium text-purple-700 dark:text-purple-300">Noche</span>
+                </div>
+                <span className="text-sm font-bold text-purple-900 dark:text-purple-100">{data.kpis.turnos_noche}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Indicador de última actualización */}
@@ -512,20 +603,29 @@ export function MonitoreoTiempoReal({ fecha, activeTab = 'monitoreo' }: Monitore
         </p>
       </div>
 
-      {/* Selector de vista */}
+      {/* Selector de vista - Mobile First Optimizado */}
       <Tabs value={vistaTurnos} onValueChange={(value: string) => setVistaTurnos(value as 'instalaciones' | 'todos' | 'dia_noche')} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 h-9">
-          <TabsTrigger value="dia_noche" className="flex items-center gap-1 text-xs">
+        <TabsList className="grid w-full grid-cols-3 h-10 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-700">
+          <TabsTrigger 
+            value="dia_noche" 
+            className="flex items-center gap-1 text-xs font-medium data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
+          >
             <Clock className="w-3 h-3" />
             <span className="hidden sm:inline">Día y Noche</span>
             <span className="sm:hidden">Día/Noche</span>
           </TabsTrigger>
-          <TabsTrigger value="instalaciones" className="flex items-center gap-1 text-xs">
+          <TabsTrigger 
+            value="instalaciones" 
+            className="flex items-center gap-1 text-xs font-medium data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
+          >
             <Building2 className="w-3 h-3" />
             <span className="hidden sm:inline">Por Instalación</span>
             <span className="sm:hidden">Instalación</span>
           </TabsTrigger>
-          <TabsTrigger value="todos" className="flex items-center gap-1 text-xs">
+          <TabsTrigger 
+            value="todos" 
+            className="flex items-center gap-1 text-xs font-medium data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200"
+          >
             <Users className="w-3 h-3" />
             <span className="hidden sm:inline">Todos los Turnos</span>
             <span className="sm:hidden">Todos</span>
@@ -779,56 +879,55 @@ function TurnoCard({
 
   if (modoVista === 'grid') {
     return (
-      <Card className={`relative overflow-hidden transition-all duration-200 hover:shadow-md border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${
-        turno.tipo_turno === 'noche' ? 'border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/30' : 'border-amber-200 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-950/30'
+      <Card className={`relative overflow-hidden transition-all duration-200 hover:shadow-lg border-2 ${
+        turno.tipo_turno === 'noche' 
+          ? 'border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20' 
+          : 'border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/20'
       }`}>
         <CardContent className="p-3">
-          {/* Header con información principal */}
+          {/* Header compacto con información esencial */}
           <div className="mb-3">
-            <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate mb-1">
-              {turno.guardia_nombre || 'Sin asignar'}
-            </h4>
-            <p className="text-xs text-gray-600 dark:text-gray-400 truncate mb-2">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                {turno.guardia_nombre || 'Sin asignar'}
+              </h4>
+              <div className={`w-3 h-3 rounded-full ${estadoActual.color} shadow-sm`}></div>
+            </div>
+            
+            <p className="text-xs text-gray-600 dark:text-gray-400 truncate mb-1">
               {turno.puesto_nombre} • {turno.rol_nombre}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-2">
               {turno.instalacion_nombre}
             </p>
-            {/* Estado de la pauta diaria */}
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-gray-500 dark:text-gray-400">Estado:</span>
-              <Badge variant="outline" className="text-xs px-1 py-0 h-4">
-                {turno.estado_pauta_ui}
-              </Badge>
+            
+            {/* Horario destacado */}
+            <div className="text-center mb-3">
+              <p className="text-sm font-bold text-gray-800 dark:text-gray-200 bg-white/50 dark:bg-gray-800/50 px-2 py-1 rounded">
+                {formatearHora(turno.hora_inicio)} - {formatearHora(turno.hora_termino)}
+              </p>
             </div>
           </div>
 
-          {/* Horario */}
-          <div className="text-center mb-3">
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {formatearHora(turno.hora_inicio)} - {formatearHora(turno.hora_termino)}
-            </p>
-          </div>
-
-          {/* Selector de estado */}
+          {/* Selector de estado compacto */}
           <div className="mb-3">
             <Select 
               value={turno.estado_semaforo} 
               onValueChange={(value) => onEstadoChange(turno.pauta_id, value)}
             >
-              <SelectTrigger className={`h-8 text-xs border-2 ${estadoActual.borderColor} bg-white dark:bg-gray-800`}>
+              <SelectTrigger className={`h-9 text-sm font-medium border-2 ${estadoActual.borderColor} bg-white dark:bg-gray-800 hover:shadow-md transition-shadow`}>
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${estadoActual.color}`}></div>
-                  <span>{estadoActual.label}</span>
+                  <div className={`w-3 h-3 rounded-full ${estadoActual.color} shadow-sm`}></div>
+                  <span className="font-semibold">{estadoActual.label}</span>
                 </div>
-                <ChevronDown className="w-3 h-3 ml-auto" />
+                <ChevronDown className="w-4 h-4 ml-auto" />
               </SelectTrigger>
               <SelectContent>
                 {estadosSemaforo.map((estado) => (
                   <SelectItem key={estado.value} value={estado.value}>
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${estado.color}`}></div>
-                      {estado.label}
+                      <div className={`w-3 h-3 rounded-full ${estado.color} shadow-sm`}></div>
+                      <span className="font-medium">{estado.label}</span>
                     </div>
                   </SelectItem>
                 ))}
@@ -836,8 +935,8 @@ function TurnoCard({
             </Select>
           </div>
 
-          {/* Botones de acción */}
-          <div className="flex gap-1">
+          {/* Botones de acción compactos */}
+          <div className="flex gap-2">
             <Button 
               size="sm" 
               variant="outline" 
@@ -849,11 +948,10 @@ function TurnoCard({
                   toast.error('No hay teléfono disponible');
                 }
               }} 
-              className="flex-1 h-7 text-xs border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700" 
+              className="flex-1 h-8 text-xs font-medium border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/20" 
               disabled={!turno.guardia_telefono && !turno.instalacion_telefono}
             >
-              <Phone className="w-3 h-3 mr-1" />
-              Llamar
+              📞 Llamar
             </Button>
             <Button 
               size="sm" 
@@ -866,29 +964,27 @@ function TurnoCard({
                   toast.error('No hay teléfono disponible');
                 }
               }} 
-              className="flex-1 h-7 text-xs border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700" 
+              className="flex-1 h-8 text-xs font-medium border-green-200 text-green-600 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-900/20" 
               disabled={!turno.guardia_telefono && !turno.instalacion_telefono}
             >
-              <MessageSquare className="w-3 h-3 mr-1" />
-              WhatsApp
+              💬 WhatsApp
             </Button>
           </div>
 
-          {/* Observaciones */}
+          {/* Observaciones compactas */}
           {turno.observaciones_semaforo && (
-            <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 p-2 rounded mt-2">
-              <strong>Observaciones:</strong> {turno.observaciones_semaforo}
+            <div className="text-xs text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-800/50 p-2 rounded mt-2 border border-gray-200 dark:border-gray-700">
+              <strong>📝 Observaciones:</strong> {turno.observaciones_semaforo}
             </div>
           )}
 
-          {/* Última actualización */}
+          {/* Última actualización compacta */}
           {turno.ultima_actualizacion && (
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Última actualización: {isMounted ? new Date(turno.ultima_actualizacion).toLocaleTimeString('es-CL', {
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+              🔄 {isMounted ? new Date(turno.ultima_actualizacion).toLocaleTimeString('es-CL', {
                 hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-              }) : '--:--:--'}
+                minute: '2-digit'
+              }) : '--:--'}
             </div>
           )}
         </CardContent>

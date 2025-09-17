@@ -469,7 +469,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     setCurrentComentarioData({
       turnoId: row.pauta_id,
       fecha: fechaStr,
-      comentarioActual: row.comentario || undefined,
+      comentarioActual: row.comentarios || undefined,
       puestoNombre: row.puesto_nombre,
       guardiaNombre: limpiarNombreGuardia(row.guardia_trabajo_nombre)
     });
@@ -1348,206 +1348,157 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     }, [panelData.guardias, panelData.filtroGuardias]);
 
     return (
-      <Card className={esDuplicado ? 'border-yellow-300' : ''}>
-        <CardContent className="p-4 space-y-3">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="text-xs text-muted-foreground">{row.instalacion_nombre}</div>
-              <div className="text-base font-semibold">
-                {row.rol_alias || row.rol_nombre?.split('/')[0]?.trim() || '—'}
+      <Card className={`${esDuplicado ? 'border-yellow-300' : ''} shadow-sm hover:shadow-md transition-shadow duration-200`}>
+        <CardContent className="p-3 space-y-2">
+          {/* Header compacto con información esencial */}
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                  {row.rol_alias || row.rol_nombre?.split('/')[0]?.trim() || '—'}
+                </div>
+                {esDuplicado && (
+                  <Badge variant="destructive" className="text-xs px-1 py-0">Dup</Badge>
+                )}
               </div>
-              <Tooltip delayDuration={100}>
-                <TooltipTrigger asChild>
-                  <div className="text-xs text-muted-foreground cursor-help">
-                    📍 {row.puesto_nombre || 'Sin nombre'}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <div className="text-sm space-y-1">
-                    <div><strong>Puesto:</strong> {row.puesto_nombre || 'Sin nombre'}</div>
-                    <div><strong>ID Puesto:</strong> {row.puesto_id}</div>
-                    <div><strong>ID Turno:</strong> {row.pauta_id}</div>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
+              <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                {row.instalacion_nombre} • {row.puesto_nombre || 'Sin nombre'}
+              </div>
               {row.hora_inicio && row.hora_fin && (
-                <div className="text-xs text-muted-foreground">{row.hora_inicio.slice(0,5)} - {row.hora_fin.slice(0,5)}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {row.hora_inicio.slice(0,5)} - {row.hora_fin.slice(0,5)}
+                </div>
               )}
             </div>
-            <div>{renderEstado(row)}</div>
+            <div className="flex-shrink-0 ml-2">
+              {renderEstado(row)}
+            </div>
           </div>
 
-          <div className="text-sm">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">{esPPC ? 'PPC' : obtenerNombreCorrecto(row)}</span>
-              {esDuplicado && (
-                <Badge variant="destructive" className="text-xs">Duplicado</Badge>
-              )}
-            </div>
-            {row.estado_ui === 'te' && (row.cobertura_guardia_nombre || row.meta?.cobertura_guardia_id) && (
-              <div className="text-xs text-muted-foreground mt-1">Cobertura: {row.cobertura_guardia_nombre || 'Guardia de cobertura'}</div>
-            )}
-            {/* Indicador visual de comentarios existentes */}
-            {row.comentario && (
-              <div className="flex items-center gap-1 mt-1">
-                <MessageSquare className="h-3 w-3 text-blue-500" />
-                <span className="text-xs text-blue-600 font-medium">Comentario disponible</span>
+          {/* Información del guardia compacta */}
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                {esPPC ? '🔄 PPC' : obtenerNombreCorrecto(row)}
               </div>
-            )}
+              {row.estado_ui === 'te' && (row.cobertura_guardia_nombre || row.meta?.cobertura_guardia_id) && (
+                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  Cobertura: {row.cobertura_guardia_nombre || 'Guardia de cobertura'}
+                </div>
+              )}
+            </div>
+            {/* Indicadores compactos */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {row.comentarios && (
+                <div className="w-2 h-2 bg-blue-500 rounded-full" title="Comentario disponible"></div>
+              )}
+              {row.horas_extras && row.horas_extras > 0 && (
+                <div className="w-2 h-2 bg-green-500 rounded-full" title="Horas extras"></div>
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {/* Si se puede deshacer, SOLO mostrar el botón deshacer */}
+          {/* Botones de acción compactos */}
+          <div className="space-y-2">
+            {/* Botones principales */}
             {canUndo(row) ? (
-              <Button size="sm" variant="secondary" disabled={isLoading} className="w-full" onClick={() => onDeshacer(row.pauta_id)}>↩️ Deshacer</Button>
+              <Button size="sm" variant="secondary" disabled={isLoading} className="w-full h-8 text-xs" onClick={() => onDeshacer(row.pauta_id)}>
+                ↩️ Deshacer
+              </Button>
             ) : (
-              <>
-                {/* Botones iniciales solo si NO se puede deshacer */}
+              <div className="flex gap-1">
                 {isTitularPlan(row) && (
                   <>
-                    <Button size="sm" disabled={isLoading} onClick={() => onAsistio(row.pauta_id)} className="flex-1">✅ Asistió</Button>
-                    <Button size="sm" variant="outline" disabled={isLoading} className="flex-1" onClick={() => toggleRowPanel(row, 'no_asistio')}>❌ No asistió</Button>
+                    <Button size="sm" disabled={isLoading} onClick={() => onAsistio(row.pauta_id)} className="flex-1 h-8 text-xs">
+                      ✅ Asistió
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={isLoading} className="flex-1 h-8 text-xs" onClick={() => toggleRowPanel(row, 'no_asistio')}>
+                      ❌ No asistió
+                    </Button>
                   </>
                 )}
                 {isPpcPlan(row) && (
                   <>
-                    <Button size="sm" variant="outline" disabled={isLoading} className="flex-1" onClick={() => { toggleRowPanel(row, 'cubrir_ppc'); setTimeout(()=>loadGuardias(row),0); }}>👥 Cubrir</Button>
-                    <Button size="sm" variant="outline" disabled={isLoading} className="flex-1" onClick={() => onSinCoberturaPPC(row.pauta_id)}>⛔ Sin cobertura</Button>
+                    <Button size="sm" variant="outline" disabled={isLoading} className="flex-1 h-8 text-xs" onClick={() => { toggleRowPanel(row, 'cubrir_ppc'); setTimeout(()=>loadGuardias(row),0); }}>
+                      👥 Cubrir
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={isLoading} className="flex-1 h-8 text-xs" onClick={() => onSinCoberturaPPC(row.pauta_id)}>
+                      ⛔ Sin cobertura
+                    </Button>
                   </>
                 )}
                 {isPpcSinCobertura(row) && (
-                  <Button size="sm" variant="outline" disabled={isLoading} className="w-full" onClick={() => { toggleRowPanel(row, 'cubrir_ppc'); setTimeout(()=>loadGuardias(row),0); }}>👥 Cubrir</Button>
+                  <Button size="sm" variant="outline" disabled={isLoading} className="w-full h-8 text-xs" onClick={() => { toggleRowPanel(row, 'cubrir_ppc'); setTimeout(()=>loadGuardias(row),0); }}>
+                    👥 Cubrir
+                  </Button>
                 )}
-              </>
-            )}
-            {/* Botones de horas extras y comentarios - lado a lado */}
-            <div className="flex gap-2">
-              {/* Botón de comentarios - disponible para todos los turnos */}
-              <div className="relative flex-1">
-                <Tooltip delayDuration={100}>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      disabled={isLoading} 
-                      className={`w-full ${
-                        row.comentario 
-                          ? 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200 hover:border-green-300' 
-                          : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 hover:border-blue-300'
-                      }`}
-                      onClick={() => {
-                        console.log('🔍 CLICK BOTÓN COMENTARIO para:', row.puesto_nombre, 'estado:', row.estado_ui);
-                        openComentarioModal(row);
-                      }}
-                    >
-                      <MessageSquare className="h-4 w-4 mr-1" />
-                      {row.comentario ? 'Editar comentario' : 'Comentario'}
-                      {/* Indicador de que hay comentario */}
-                      {row.comentario && (
-                        <div className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full"></div>
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <div className="text-sm">
-                      {row.comentario ? `Editar comentario: ${row.comentario}` : 'Agregar comentario'}
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
               </div>
+            )}
+            
+            {/* Botones secundarios compactos */}
+            <div className="flex gap-1">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                disabled={isLoading} 
+                className={`flex-1 h-7 text-xs ${
+                  row.comentarios 
+                    ? 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200' 
+                    : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200'
+                }`}
+                onClick={() => openComentarioModal(row)}
+              >
+                💬 {row.comentarios ? 'Editar' : 'Comentario'}
+              </Button>
               
-              {/* Botón de horas extras - disponible para turnos con guardia asignado */}
               {row.guardia_trabajo_id && (
-                <div className="relative flex-1">
-                  <Tooltip delayDuration={100}>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        disabled={isLoading} 
-                        className={`w-full ${
-                          row.horas_extras && row.horas_extras > 0
-                            ? 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200 hover:border-green-300'
-                            : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 hover:border-blue-300'
-                        }`}
-                        onClick={() => {
-                          console.log('🔍 CLICK BOTÓN HORAS EXTRAS para:', row.puesto_nombre, 'monto:', row.horas_extras);
-                          openHorasExtrasModal(row);
-                        }}
-                      >
-                        <DollarSign className="h-4 w-4 mr-1" />
-                        {row.horas_extras && row.horas_extras > 0 ? 'Editar horas extras' : 'Horas extras'}
-                        {/* Indicador de horas extras */}
-                        {row.horas_extras && row.horas_extras > 0 && (
-                          <div className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full"></div>
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <div className="text-sm">
-                        {row.horas_extras && row.horas_extras > 0 
-                          ? `Editar horas extras: $${Math.round(row.horas_extras).toLocaleString('es-CL', {
-                              minimumFractionDigits: 0,
-                              maximumFractionDigits: 0
-                            })}` 
-                          : 'Agregar horas extras'
-                        }
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  disabled={isLoading} 
+                  className={`flex-1 h-7 text-xs ${
+                    row.horas_extras && row.horas_extras > 0
+                      ? 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200'
+                      : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200'
+                  }`}
+                  onClick={() => openHorasExtrasModal(row)}
+                >
+                  💰 {row.horas_extras && row.horas_extras > 0 ? 'Editar' : 'Horas'}
+                </Button>
               )}
             </div>
           </div>
 
-          {/* Botones de contacto: Llamar y WhatsApp */}
+          {/* Botones de contacto compactos */}
           {(row.guardia_trabajo_telefono || row.cobertura_guardia_telefono || row.guardia_titular_telefono) && (
-            <div className="space-y-2">
-              <div className="text-xs text-muted-foreground font-medium">📞 Contacto del guardia</div>
-              <div className="flex gap-2">
-                {/* Botón Llamar */}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    const telefono = row.guardia_trabajo_telefono || row.cobertura_guardia_telefono || row.guardia_titular_telefono;
-                    if (telefono) {
-                      llamarTelefono(telefono);
-                    }
-                  }}
-                >
-                  📞 Llamar
-                </Button>
-                
-                {/* Botón WhatsApp */}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    const telefono = row.guardia_trabajo_telefono || row.cobertura_guardia_telefono || row.guardia_titular_telefono;
-                    if (telefono) {
-                      abrirWhatsApp(telefono);
-                    }
-                  }}
-                >
-                  💬 WhatsApp
-                </Button>
-              </div>
+            <div className="flex gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 h-7 text-xs"
+                onClick={() => {
+                  const telefono = row.guardia_trabajo_telefono || row.cobertura_guardia_telefono || row.guardia_titular_telefono;
+                  if (telefono) {
+                    llamarTelefono(telefono);
+                  }
+                }}
+              >
+                📞 Llamar
+              </Button>
               
-              {/* Mostrar información del guardia contactado */}
-              <div className="text-xs text-muted-foreground">
-                {row.cobertura_guardia_telefono && (
-                  <span>📱 Cobertura: {row.cobertura_guardia_nombre || 'Guardia de cobertura'}</span>
-                )}
-                {!row.cobertura_guardia_telefono && row.guardia_trabajo_telefono && (
-                  <span>📱 Trabajando: {row.guardia_trabajo_nombre || 'Guardia asignado'}</span>
-                )}
-                {!row.cobertura_guardia_telefono && !row.guardia_trabajo_telefono && row.guardia_titular_telefono && (
-                  <span>📱 Titular: {row.guardia_titular_nombre || 'Guardia titular'}</span>
-                )}
-              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 h-7 text-xs"
+                onClick={() => {
+                  const telefono = row.guardia_trabajo_telefono || row.cobertura_guardia_telefono || row.guardia_titular_telefono;
+                  if (telefono) {
+                    abrirWhatsApp(telefono);
+                  }
+                }}
+              >
+                💬 WhatsApp
+              </Button>
             </div>
           )}
 
@@ -1754,51 +1705,30 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
 
   return (
     <TooltipProvider>
-      <>
-        {/* Header fecha + nav - Mobile First */}
-        <Card className="mb-3 w-full">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-2">
-                {/* En móvil, ocultamos navegación superior para no duplicar con bottom bar */}
-                {!isMobile && (
-                  <>
-                    <Button variant="outline" size="sm" onClick={()=>go(-1)}>
-                      <ChevronLeft className="h-3 w-3" />
-                    </Button>
-                    <div className="flex items-stretch gap-1">
-                      <Input
-                        ref={inputRef}
-                        type="date"
-                        className="w-auto text-xs"
-                        value={fechaStr}
-                        onChange={(e) => {
-                          const params = new URLSearchParams();
-                          if (f.instalacion) params.set('instalacion', f.instalacion);
-                          if (f.estado && f.estado !== 'todos') params.set('estado', f.estado);
-                          if (f.ppc !== 'all') params.set('ppc', f.ppc === true ? 'true' : 'false');
-                          if (f.q) params.set('q', f.q);
-                          if (mostrarLibres) params.set('incluirLibres', 'true');
-                          
-                          // ✅ NAVEGAR A LA NUEVA PÁGINA SEPARADA
-                          const newUrl = `/pauta-diaria?fecha=${e.target.value}${params.toString() ? '&' + params.toString() : ''}`;
-                          router.push(newUrl);
-                        }}
-                      />
-                      <Button
-                        aria-label="Abrir calendario"
-                        variant="outline"
-                        size="sm"
-                        onClick={()=>inputRef.current?.showPicker?.()}
-                      >
-                        <Calendar className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => {
-                        const hoy = fechaHoy || toYmd(new Date()); // Usar fecha del sistema con fallback
+      <div className={`w-full ${isMobile ? 'pb-20' : ''}`}>
+        {/* Header fecha + nav - Desktop Optimizado */}
+        <Card className="mb-4 w-full bg-gradient-to-r from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 border-2 border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              {/* Navegación de fechas para desktop */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={()=>go(-1)}
+                    className="h-10 w-10 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800 transition-colors"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  <div className="flex items-stretch gap-1">
+                    <Input
+                      ref={inputRef}
+                      type="date"
+                      className="w-auto text-sm font-medium border-blue-200 dark:border-blue-800 focus:border-blue-500 dark:focus:border-blue-400"
+                      value={fechaStr}
+                      onChange={(e) => {
                         const params = new URLSearchParams();
                         if (f.instalacion) params.set('instalacion', f.instalacion);
                         if (f.estado && f.estado !== 'todos') params.set('estado', f.estado);
@@ -1806,115 +1736,270 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                         if (f.q) params.set('q', f.q);
                         if (mostrarLibres) params.set('incluirLibres', 'true');
                         
-                        // ✅ NAVEGAR A LA NUEVA PÁGINA SEPARADA
-                        const newUrl = `/pauta-diaria?fecha=${hoy}${params.toString() ? '&' + params.toString() : ''}`;
+                        const newUrl = `/pauta-diaria?fecha=${e.target.value}${params.toString() ? '&' + params.toString() : ''}`;
                         router.push(newUrl);
                       }}
+                    />
+                    <Button
+                      aria-label="Abrir calendario"
+                      variant="outline"
+                      size="sm"
+                      onClick={()=>inputRef.current?.showPicker?.()}
+                      className="h-10 px-3 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                     >
-                      Hoy
+                      <Calendar className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="sm" onClick={()=>go(1)}>
-                      <ChevronRight className="h-3 w-3" />
-                    </Button>
-                  </>
-                )}
-
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      const hoy = fechaHoy || toYmd(new Date());
+                      const params = new URLSearchParams();
+                      if (f.instalacion) params.set('instalacion', f.instalacion);
+                      if (f.estado && f.estado !== 'todos') params.set('estado', f.estado);
+                      if (f.ppc !== 'all') params.set('ppc', f.ppc === true ? 'true' : 'false');
+                      if (f.q) params.set('q', f.q);
+                      if (mostrarLibres) params.set('incluirLibres', 'true');
+                      
+                      const newUrl = `/pauta-diaria?fecha=${hoy}${params.toString() ? '&' + params.toString() : ''}`;
+                      router.push(newUrl);
+                    }}
+                    className="h-10 px-4 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 font-semibold"
+                  >
+                    📅 Hoy
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={()=>go(1)}
+                    className="h-10 w-10 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800 transition-colors"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                {/* Fecha actual destacada */}
+                <div className="bg-blue-100 dark:bg-blue-900/30 px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="text-lg font-bold text-blue-800 dark:text-blue-200">
+                    {toDisplay(fechaStr)}
+                  </div>
+                </div>
               </div>
               
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2">
-                  {mostrarLibres ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+              {/* Controles para desktop */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-2">
+                    {mostrarLibres ? <Eye className="h-4 w-4 text-green-600" /> : <EyeOff className="h-4 w-4 text-gray-500" />}
+                    <Label htmlFor="incluir-libres" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Incluir turnos libres
+                    </Label>
+                  </div>
                   <Switch
+                    id="incluir-libres"
                     checked={mostrarLibres}
                     onCheckedChange={setMostrarLibres}
+                    className="data-[state=checked]:bg-blue-600"
                   />
-                  <span className="text-xs">Ver libres</span>
+                </div>
+                
+                {/* Estadísticas rápidas */}
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="font-medium">{filtered.length} turnos</span>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Controles de filtro - Mobile First */}
-        <Card className="mb-3 w-full">
-          <CardContent className="p-3">
-            {/* Toggle filtros para móvil */}
-            {isMobile && (
-              <div className="mb-2 flex items-center justify-between">
-                <Button variant="outline" size="sm" onClick={()=>setFiltersOpen(o=>!o)} className="text-xs">
-                  {filtersOpen ? 'Ocultar filtros' : 'Mostrar filtros'}
+        {/* Controles de filtro - Mobile First Minimalista */}
+        {isMobile ? (
+          <div className="mb-2">
+            {/* Toggle filtros compacto para móvil */}
+            <div className="flex items-center justify-between mb-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={()=>setFiltersOpen(o=>!o)} 
+                className="text-xs h-8 px-3"
+              >
+                🔍 {filtersOpen ? 'Ocultar filtros' : 'Mostrar filtros'}
+              </Button>
+              {filtersOpen && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setF({})} 
+                  className="text-xs h-8 px-2 text-gray-500"
+                >
+                  Limpiar
                 </Button>
+              )}
+            </div>
+            
+            {/* Filtros expandibles para móvil */}
+            {filtersOpen && (
+              <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border">
+                <div className="grid grid-cols-1 gap-2">
+                  <Input
+                    placeholder="Filtrar instalación…"
+                    value={f.instalacion ?? ''} 
+                    onChange={e=>setF(s=>({ ...s, instalacion: e.target.value || undefined }))}
+                    className="text-xs h-8"
+                  />
+                  
+                  <Select value={f.estado ?? 'todos'} onValueChange={(value) => setF(s=>({ ...s, estado: value === 'todos' ? undefined : value }))}>
+                    <SelectTrigger className="text-xs h-8">
+                      <SelectValue placeholder="Estado (todos)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Estado (todos)</SelectItem>
+                      <SelectItem value="plan">Plan</SelectItem>
+                      <SelectItem value="ppc_libre">PPC Libre</SelectItem>
+                      <SelectItem value="asistido">Asistido</SelectItem>
+                      <SelectItem value="libre">Libre</SelectItem>
+                      <SelectItem value="reemplazo">Reemplazo</SelectItem>
+                      <SelectItem value="sin_cobertura">Sin cobertura</SelectItem>
+                      <SelectItem value="inasistencia">Inasistencia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Select value={f.ppc === 'all' ? 'all' : f.ppc === true ? 'true' : 'false'} 
+                          onValueChange={(value) => {
+                            const v = value as 'all'|'true'|'false';
+                            setF(s=>({ ...s, ppc: v === 'all' ? 'all' : v === 'true' }));
+                          }}>
+                    <SelectTrigger className="text-xs h-8">
+                      <SelectValue placeholder="PPC (todos)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="true">Solo PPC</SelectItem>
+                      <SelectItem value="false">Solo con guardia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Input
+                    placeholder="Buscar guardia / rol / instalación…"
+                    value={f.q ?? ''} 
+                    onChange={e=>setF(s=>({ ...s, q: e.target.value || undefined }))}
+                    className="text-xs h-8"
+                  />
+                </div>
               </div>
             )}
-            {(!isMobile || filtersOpen) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2">
-              <Input
-                placeholder="Filtrar instalación…"
-                value={f.instalacion ?? ''} 
-                onChange={e=>setF(s=>({ ...s, instalacion: e.target.value || undefined }))}
-                className="text-xs"
-              />
+          </div>
+        ) : (
+          <Card className="mb-4 w-full bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 border border-gray-200/50 dark:border-gray-700/50 shadow-md">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  🔍 Filtros Avanzados
+                </h3>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={()=>setF({ ppc:'all' })} 
+                  className="text-sm h-8 px-3 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400"
+                >
+                  🗑️ Limpiar Filtros
+                </Button>
+              </div>
               
-              <Select value={f.estado ?? 'todos'} onValueChange={(value) => setF(s=>({ ...s, estado: value === 'todos' ? undefined : value }))}>
-                <SelectTrigger className="text-xs">
-                  <SelectValue placeholder="Estado (todos)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Estado (todos)</SelectItem>
-                  <SelectItem value="plan">Plan</SelectItem>
-                  <SelectItem value="ppc_libre">PPC Libre</SelectItem>
-                  <SelectItem value="asistido">Asistido</SelectItem>
-                  <SelectItem value="libre">Libre</SelectItem>
-                  <SelectItem value="reemplazo">Reemplazo</SelectItem>
-                  <SelectItem value="sin_cobertura">Sin cobertura</SelectItem>
-                  <SelectItem value="inasistencia">Inasistencia</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Select value={f.ppc === 'all' ? 'all' : f.ppc === true ? 'true' : 'false'} 
-                      onValueChange={(value) => {
-                        const v = value as 'all'|'true'|'false';
-                        setF(s=>({ ...s, ppc: v === 'all' ? 'all' : v === 'true' }));
-                      }}>
-                <SelectTrigger className="text-xs">
-                  <SelectValue placeholder="PPC (todos)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="true">Solo PPC</SelectItem>
-                  <SelectItem value="false">Solo con guardia</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Input
-                placeholder="Buscar guardia / rol / instalación…"
-                value={f.q ?? ''} 
-                onChange={e=>setF(s=>({ ...s, q: e.target.value || undefined }))}
-                className="text-xs"
-              />
-              
-              <Button variant="outline" size="sm" onClick={()=>setF({ ppc:'all' })} className="text-xs">
-                Limpiar
-              </Button>
-            </div>
-            )}
-          </CardContent>
-        </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Instalación</Label>
+                  <Input
+                    placeholder="Filtrar instalación…"
+                    value={f.instalacion ?? ''} 
+                    onChange={e=>setF(s=>({ ...s, instalacion: e.target.value || undefined }))}
+                    className="text-sm h-10 border-gray-200 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-400"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Estado</Label>
+                  <Select value={f.estado ?? 'todos'} onValueChange={(value) => setF(s=>({ ...s, estado: value === 'todos' ? undefined : value }))}>
+                    <SelectTrigger className="text-sm h-10 border-gray-200 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-400">
+                      <SelectValue placeholder="Estado (todos)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Estado (todos)</SelectItem>
+                      <SelectItem value="plan">Plan</SelectItem>
+                      <SelectItem value="ppc_libre">PPC Libre</SelectItem>
+                      <SelectItem value="asistido">Asistido</SelectItem>
+                      <SelectItem value="libre">Libre</SelectItem>
+                      <SelectItem value="reemplazo">Reemplazo</SelectItem>
+                      <SelectItem value="sin_cobertura">Sin cobertura</SelectItem>
+                      <SelectItem value="inasistencia">Inasistencia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Tipo de Turno</Label>
+                  <Select value={f.ppc === 'all' ? 'all' : f.ppc === true ? 'true' : 'false'} 
+                          onValueChange={(value) => {
+                            const v = value as 'all'|'true'|'false';
+                            setF(s=>({ ...s, ppc: v === 'all' ? 'all' : v === 'true' }));
+                          }}>
+                    <SelectTrigger className="text-sm h-10 border-gray-200 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-400">
+                      <SelectValue placeholder="PPC (todos)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="true">Solo PPC</SelectItem>
+                      <SelectItem value="false">Solo con guardia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Búsqueda</Label>
+                  <Input
+                    placeholder="Buscar guardia / rol / instalación…"
+                    value={f.q ?? ''} 
+                    onChange={e=>setF(s=>({ ...s, q: e.target.value || undefined }))}
+                    className="text-sm h-10 border-gray-200 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-400"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Acciones</Label>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={()=>setF({ ppc:'all' })} 
+                      className="text-sm h-10 px-3 flex-1 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    >
+                      Limpiar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Vista Desktop (tabla) u opción Mobile (cards) - Mobile First */}
+        {/* Vista Desktop (tabla) optimizada */}
         {!isMobile ? (
-          <Card className="w-full">
+          <Card className="w-full bg-white dark:bg-gray-900 border-2 border-gray-200/50 dark:border-gray-700/50 shadow-lg">
             <CardContent className="p-0 overflow-x-auto">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs">Instalación</TableHead>
-                    <TableHead className="text-xs">Rol</TableHead>
-                    <TableHead className="hidden md:table-cell text-xs">Puesto</TableHead>
-                    <TableHead className="text-xs">Guardia</TableHead>
-                    <TableHead className="text-xs">Cobertura</TableHead>
-                    <TableHead className="text-xs">Estado</TableHead>
-                    <TableHead className="text-xs">Acciones</TableHead>
+                <TableHeader className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700">
+                  <TableRow className="border-b-2 border-gray-200 dark:border-gray-700">
+                    <TableHead className="text-sm font-semibold text-gray-900 dark:text-white py-4 px-4">Instalación</TableHead>
+                    <TableHead className="text-sm font-semibold text-gray-900 dark:text-white py-4 px-4">Rol</TableHead>
+                    <TableHead className="hidden md:table-cell text-sm font-semibold text-gray-900 dark:text-white py-4 px-4">Puesto</TableHead>
+                    <TableHead className="text-sm font-semibold text-gray-900 dark:text-white py-4 px-4">Guardia</TableHead>
+                    <TableHead className="text-sm font-semibold text-gray-900 dark:text-white py-4 px-4">Cobertura</TableHead>
+                    <TableHead className="text-sm font-semibold text-gray-900 dark:text-white py-4 px-4">Estado</TableHead>
+                    <TableHead className="text-sm font-semibold text-gray-900 dark:text-white py-4 px-4">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1925,22 +2010,24 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                     const isLoading = savingId === r.pauta_id;
                     return (
                       <React.Fragment key={r.pauta_id}>
-                        <TableRow className={esDuplicado ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}>
-                          <TableCell className="text-xs">{r.instalacion_nombre}</TableCell>
-                          <TableCell>
+                        <TableRow className={`${esDuplicado ? 'bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'} transition-colors duration-200`}>
+                          <TableCell className="text-sm font-medium text-gray-900 dark:text-white py-4 px-4">{r.instalacion_nombre}</TableCell>
+                          <TableCell className="py-4 px-4">
                             {r.rol_nombre ? (
-                              <div className="flex flex-col">
-                                <span className="font-medium text-xs">{r.rol_alias || r.rol_nombre.split('/')[0].trim()}</span>
+                              <div className="flex flex-col gap-1">
+                                <span className="font-semibold text-sm text-gray-900 dark:text-white">{r.rol_alias || r.rol_nombre.split('/')[0].trim()}</span>
                                 {r.hora_inicio && r.hora_fin && (
-                                  <span className="text-xs text-muted-foreground">{r.hora_inicio.slice(0,5)} - {r.hora_fin.slice(0,5)}</span>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">{r.hora_inicio.slice(0,5)} - {r.hora_fin.slice(0,5)}</span>
                                 )}
                               </div>
-                            ) : '—'}
+                            ) : (
+                              <span className="text-sm text-gray-400 dark:text-gray-500">—</span>
+                            )}
                           </TableCell>
-                          <TableCell className="hidden md:table-cell">
+                          <TableCell className="hidden md:table-cell py-4 px-4">
                             <Tooltip delayDuration={100}>
                               <TooltipTrigger asChild>
-                                <span className="text-xs cursor-help">{r.puesto_nombre || 'Sin nombre'}</span>
+                                <span className="text-sm text-gray-700 dark:text-gray-300 cursor-help">{r.puesto_nombre || 'Sin nombre'}</span>
                               </TooltipTrigger>
                               <TooltipContent>
                                 <div className="text-sm space-y-1">
@@ -1951,31 +2038,35 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                               </TooltipContent>
                             </Tooltip>
                           </TableCell>
-                          <TableCell>
-                            {r.es_ppc ? (
-                              <span className="rounded-md border px-1.5 py-0.5 text-[10px] bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20">PPC</span>
-                            ) : (
-                              obtenerNombreCorrecto(r)
-                            )}
-                            {esDuplicado && (
-                              <Badge variant="destructive" className="text-xs mt-1"><AlertTriangle className="h-3 w-3 mr-1"/>Duplicado</Badge>
-                            )}
+                          <TableCell className="py-4 px-4">
+                            <div className="flex flex-col gap-1">
+                              {r.es_ppc ? (
+                                <span className="rounded-md border px-2 py-1 text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/20 font-semibold">🔄 PPC</span>
+                              ) : (
+                                <span className="font-semibold text-sm text-gray-900 dark:text-white">{obtenerNombreCorrecto(r)}</span>
+                              )}
+                              {esDuplicado && (
+                                <Badge variant="destructive" className="text-xs w-fit"><AlertTriangle className="h-3 w-3 mr-1"/>Duplicado</Badge>
+                              )}
+                            </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-4 px-4">
                             {(() => {
                               const nombreCobertura = obtenerNombreCobertura(r);
                               return nombreCobertura ? (
-                                <div className="flex flex-col">
-                                  <span className="font-medium text-xs">{nombreCobertura}</span>
-                                  {r.meta?.motivo && (<span className="text-xs text-muted-foreground">{r.meta.motivo}</span>)}
+                                <div className="flex flex-col gap-1">
+                                  <span className="font-medium text-sm text-gray-900 dark:text-white">{nombreCobertura}</span>
+                                  {r.meta?.motivo && (<span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">{r.meta.motivo}</span>)}
                                 </div>
-                              ) : '—';
+                              ) : (
+                                <span className="text-sm text-gray-400 dark:text-gray-500">—</span>
+                              );
                             })()}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-4 px-4">
                             <div>{renderEstado(r)}</div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-4 px-4">
                             {(() => {
                               const isTitular = isTitularPlan(r);
                               const isPpc = isPpcPlan(r);
@@ -1987,14 +2078,14 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                               if (!showButton) return <span className="text-xs text-muted-foreground">—</span>;
                               
                               return (
-                                <div className="flex flex-col gap-1">
+                                <div className="flex flex-col gap-2">
                                   {/* Si se puede deshacer, SOLO mostrar el botón deshacer */}
                                   {canUndoResult ? (
                                     <Button 
                                       size="sm" 
                                       variant="secondary" 
                                       disabled={isLoading} 
-                                      className="h-6 px-2 text-xs" 
+                                      className="h-8 px-3 text-sm font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700" 
                                       onClick={() => onDeshacer(r.pauta_id)}
                                     >
                                       ↩️ Deshacer
@@ -2003,12 +2094,12 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                                     <>
                                       {/* Botones iniciales solo si NO se puede deshacer */}
                                       {isTitular && (
-                                        <div className="flex gap-1">
+                                        <div className="flex gap-2">
                                           <Button 
                                             size="sm" 
                                             disabled={isLoading} 
                                             onClick={() => onAsistio(r.pauta_id)} 
-                                            className="h-6 px-2 text-xs"
+                                            className="h-8 px-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white"
                                           >
                                             ✅ Asistió
                                           </Button>
@@ -2016,7 +2107,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                                             size="sm" 
                                             variant="outline" 
                                             disabled={isLoading} 
-                                            className="h-6 px-2 text-xs" 
+                                            className="h-8 px-3 text-sm font-medium border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20" 
                                             onClick={() => toggleRowPanel(r, 'no_asistio')}
                                           >
                                             ❌ No asistió
@@ -2024,12 +2115,12 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                                         </div>
                                       )}
                                       {isPpc && (
-                                        <div className="flex gap-1">
+                                        <div className="flex gap-2">
                                           <Button 
                                             size="sm" 
                                             variant="outline" 
                                             disabled={isLoading} 
-                                            className="h-6 px-2 text-xs" 
+                                            className="h-8 px-3 text-sm font-medium border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/20" 
                                             onClick={() => { 
                                               toggleRowPanel(r, 'cubrir_ppc'); 
                                               setTimeout(()=>loadGuardias(r),0); 
@@ -2041,7 +2132,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                                             size="sm" 
                                             variant="outline" 
                                             disabled={isLoading} 
-                                            className="h-6 px-2 text-xs" 
+                                            className="h-8 px-3 text-sm font-medium border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-900/20" 
                                             onClick={() => {
                                               console.log('🔍 [Button] Click en Sin cobertura para pauta_id:', r.pauta_id);
                                               onSinCoberturaPPC(r.pauta_id);
@@ -2052,12 +2143,12 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                                         </div>
                                       )}
                                       {isPpcSinCob && (
-                                        <div className="flex gap-1">
+                                        <div className="flex gap-2">
                                           <Button 
                                             size="sm" 
                                             variant="outline" 
                                             disabled={isLoading} 
-                                            className="h-6 px-2 text-xs" 
+                                            className="h-8 px-3 text-sm font-medium border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/20" 
                                             onClick={() => { 
                                               toggleRowPanel(r, 'cubrir_ppc'); 
                                               setTimeout(()=>loadGuardias(r),0); 
@@ -2070,8 +2161,8 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                                     </>
                                   )}
                                   
-                                  {/* Botones de horas extras y comentarios - lado a lado */}
-                                  <div className="mt-1 flex gap-1">
+                                  {/* Botones secundarios - horas extras y comentarios */}
+                                  <div className="flex gap-2">
                                     {/* Botón de horas extras - disponible para turnos con guardia asignado */}
                                     {r.guardia_trabajo_id && (
                                       <div className="relative">
@@ -2080,17 +2171,17 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                                             <Button
                                               size="sm"
                                               variant="outline"
-                                              className={`h-6 w-6 p-0 ${
+                                              className={`h-8 px-3 text-sm font-medium ${
                                                 r.horas_extras && r.horas_extras > 0
-                                                  ? 'text-green-700 bg-green-100 border-green-300 hover:bg-green-200'
-                                                  : 'text-green-600 hover:text-green-700 hover:bg-green-50'
+                                                  ? 'text-green-700 bg-green-100 border-green-300 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800'
+                                                  : 'text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20'
                                               }`}
                                               onClick={() => {
                                                 console.log('🔍 CLICK BOTÓN HORAS EXTRAS DESKTOP para:', r.puesto_nombre, 'monto:', r.horas_extras);
                                                 openHorasExtrasModal(r);
                                               }}
                                             >
-                                              <DollarSign className="h-3 w-3" />
+                                              💰 {r.horas_extras && r.horas_extras > 0 ? 'Editar' : 'Horas'}
                                               {/* Indicador de horas extras */}
                                               {r.horas_extras && r.horas_extras > 0 && (
                                                 <div className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full"></div>
@@ -2119,26 +2210,26 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                                           <Button
                                             size="sm"
                                             variant="outline"
-                                            className={`h-6 w-6 p-0 ${
-                                              r.comentario 
-                                                ? 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200 hover:border-green-300' 
-                                                : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 hover:border-blue-300'
+                                            className={`h-8 px-3 text-sm font-medium ${
+                                              r.comentarios 
+                                                ? 'bg-green-50 hover:bg-green-100 text-green-700 border-green-200 hover:border-green-300 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800' 
+                                                : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 hover:border-blue-300 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'
                                             }`}
                                             onClick={() => {
                                               console.log('🔍 CLICK BOTÓN COMENTARIO DESKTOP para:', r.puesto_nombre, 'estado:', r.estado_ui);
                                               openComentarioModal(r);
                                             }}
                                           >
-                                            <MessageSquare className="h-3 w-3" />
+                                            💬 {r.comentarios ? 'Editar' : 'Comentario'}
                                             {/* Indicador de que hay comentario */}
-                                            {r.comentario && (
+                                            {r.comentarios && (
                                               <div className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full"></div>
                                             )}
                                           </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>
                                           <div className="text-sm">
-                                            {r.comentario ? `Editar comentario: ${r.comentario}` : 'Agregar comentario'}
+                                            {r.comentarios ? `Editar comentario: ${r.comentarios}` : 'Agregar comentario'}
                                           </div>
                                         </TooltipContent>
                                       </Tooltip>
@@ -2190,25 +2281,30 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
           </div>
         )}
 
-        {/* Bottom bar móvil: navegación + leyenda - Mobile First */}
+        {/* Bottom bar móvil optimizada - Mobile First */}
         {isMobile && (
-          <div className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-3 z-40">
+          <div className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-white/95 dark:bg-gray-900/95 backdrop-blur-md supports-[backdrop-filter]:bg-white/90 dark:supports-[backdrop-filter]:bg-gray-900/90 p-2 z-40 shadow-lg">
             <div className="w-full flex items-center justify-between">
-              {/* Placeholder para centrar grupo central */}
-              <div className="invisible">
-                <Button variant="outline" size="sm" className="gap-1">
-                  <Info className="h-3 w-3" />
-                  Leyenda
+              {/* Navegación de fechas compacta */}
+              <div className="flex items-center gap-1 flex-1 justify-center">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={()=>go(-1)}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
-              </div>
-              <div className="flex items-center gap-2 mx-auto">
-                <Button variant="outline" size="sm" onClick={()=>go(-1)}>
-                  <ChevronLeft className="h-3 w-3" />
-                </Button>
+                
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Calendar className="h-3 w-3" />
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="h-8 px-3 text-xs font-medium"
+                    >
+                      <Calendar className="h-3 w-3 mr-1" />
+                      {toDisplay(fechaStr)}
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-sm">
@@ -2218,16 +2314,35 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                     <DatePicker value={fechaStr} onChange={(v)=> v && goTo(v)} />
                   </DialogContent>
                 </Dialog>
-                <Button variant="outline" size="sm" onClick={()=>goTo(fechaHoy || toYmd(new Date()))} className="text-xs">Hoy</Button>
-                <Button variant="outline" size="sm" onClick={()=>go(1)}>
-                  <ChevronRight className="h-3 w-3" />
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={()=>goTo(fechaHoy || toYmd(new Date()))} 
+                  className="h-8 px-2 text-xs font-medium"
+                >
+                  Hoy
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={()=>go(1)}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
+              
+              {/* Botón de leyenda compacto */}
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1">
-                    <Info className="h-3 w-3" />
-                    Leyenda
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                  >
+                    <Info className="h-4 w-4" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-sm">
@@ -2298,7 +2413,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
             onClose={closeHorasExtrasModal}
           />
         )}
-      </>
+      </div>
     </TooltipProvider>
   );
 }

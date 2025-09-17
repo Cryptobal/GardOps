@@ -44,6 +44,9 @@ export default function AsignarGuardiaModal({
   const [asignacionActual, setAsignacionActual] = useState<any>(null);
   const [showModalFechaInicio, setShowModalFechaInicio] = useState(false);
   const [guardiaParaAsignar, setGuardiaParaAsignar] = useState<any>(null);
+  const [showModalConflictoPautaDiaria, setShowModalConflictoPautaDiaria] = useState(false);
+  const [conflictosPautaDiaria, setConflictosPautaDiaria] = useState<any[]>([]);
+  const [mensajeConflicto, setMensajeConflicto] = useState('');
 
   // Función para filtrar guardias por nombre, apellido o RUT
   const guardiasFiltrados = guardias.filter(guardia => {
@@ -165,9 +168,17 @@ export default function AsignarGuardiaModal({
 
       if (!response.ok) {
         if (response.status === 409 && data.requiere_confirmacion) {
-          // El guardia ya está asignado, mostrar modal de confirmación
-          setAsignacionActual(data.asignacion_actual);
-          setShowConfirmacionModal(true);
+          // Verificar si es conflicto con pauta diaria o reasignación
+          if (data.conflictos && data.conflictos.length > 0) {
+            // Conflicto con pauta diaria
+            setConflictosPautaDiaria(data.conflictos);
+            setMensajeConflicto(data.mensaje);
+            setShowModalConflictoPautaDiaria(true);
+          } else {
+            // El guardia ya está asignado, mostrar modal de confirmación de reasignación
+            setAsignacionActual(data.asignacion_actual);
+            setShowConfirmacionModal(true);
+          }
           setLoading(false);
           return;
         }
@@ -217,6 +228,46 @@ export default function AsignarGuardiaModal({
     } catch (error) {
       logger.error('Error reasignando guardia::', error);
       toast.error('No se pudo reasignar el guardia', 'Error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Nueva función para confirmar asignación eliminando conflictos de pauta diaria
+  const handleConfirmarAsignacionConEliminacion = async () => {
+    if (!guardiaParaAsignar) return;
+
+    try {
+      setLoading(true);
+      
+      const response = await fetch('/api/ppc/asignar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          guardia_id: guardiaParaAsignar.id,
+          puesto_operativo_id: ppcId,
+          fecha_inicio: guardiaParaAsignar.fecha_inicio,
+          motivo_inicio: 'asignacion_ppc',
+          observaciones: 'Asignación con eliminación de conflictos de pauta diaria',
+          eliminar_conflictos: true // NUEVO: Flag para eliminar conflictos
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al asignar guardia');
+      }
+      
+      toast.success('Guardia asignado correctamente (conflictos eliminados)', 'Éxito');
+      setShowModalConflictoPautaDiaria(false);
+      onAsignacionCompletada();
+      onClose();
+    } catch (error) {
+      logger.error('Error asignando guardia con eliminación::', error);
+      toast.error('No se pudo asignar el guardia', 'Error');
     } finally {
       setLoading(false);
     }
@@ -364,6 +415,62 @@ export default function AsignarGuardiaModal({
           nuevoRolServicioNombre={rolServicioNombre}
           esReasignacion={!!guardiaParaAsignar.instalacion_actual_id}
         />
+      )}
+
+      {/* NUEVO: Modal de conflicto con pauta diaria */}
+      {showModalConflictoPautaDiaria && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-lg mx-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-amber-500">⚠️</span>
+                Conflicto con Pauta Diaria
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  {mensajeConflicto}
+                </p>
+              </div>
+              
+              <div>
+                <h4 className="font-medium mb-2">Registros que se eliminarán:</h4>
+                <div className="max-h-32 overflow-y-auto space-y-1">
+                  {conflictosPautaDiaria.map((conflicto, index) => (
+                    <div key={index} className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">
+                      <span className="font-medium">{conflicto.fecha}:</span> {conflicto.estado} 
+                      {conflicto.guardia && <span> - {conflicto.guardia}</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <p className="text-sm text-red-800 dark:text-red-200">
+                  <strong>Advertencia:</strong> Esta acción eliminará permanentemente los registros de pauta diaria. 
+                  Esta acción no se puede deshacer.
+                </p>
+              </div>
+            </CardContent>
+            <CardFooter className="flex gap-2 justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowModalConflictoPautaDiaria(false)}
+                disabled={loading}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={handleConfirmarAsignacionConEliminacion}
+                disabled={loading}
+              >
+                {loading ? 'Procesando...' : 'Eliminar y Asignar'}
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
       )}
     </>
   );

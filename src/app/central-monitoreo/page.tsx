@@ -19,15 +19,22 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { 
   Phone, MessageSquare, Clock, CheckCircle, XCircle, 
   AlertTriangle, Users, Building2, RefreshCw, Download,
   Calendar, ChevronLeft, ChevronRight, AlertCircle,
   PhoneOff, PhoneCall, Loader2, Search, Filter,
-  TrendingUp, TrendingDown, Activity, Target, Bell, Settings, Plus
+  TrendingUp, TrendingDown, Activity, Target, Bell, Settings, Plus, Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { rbacFetch } from '@/lib/rbacClient';
+import { useChileDate } from '@/hooks/useChileDate';
 
 // Importar componentes locales
 import { KPICards } from './components/KPICards';
@@ -61,15 +68,12 @@ interface Llamado {
 }
 
 export default function CentralMonitoreoPage() {
+  // ✅ NUEVA ARQUITECTURA: Usar fechas de Chile consistentes
+  const { fechaHoy, timezone, loading: loadingConfig } = useChileDate();
+  
   // Estados principales
   const [loading, setLoading] = useState(true);
-  const [fecha, setFecha] = useState(() => {
-    const hoy = new Date();
-    const year = hoy.getFullYear();
-    const month = String(hoy.getMonth() + 1).padStart(2, '0');
-    const day = String(hoy.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  });
+  const [fecha, setFecha] = useState(fechaHoy);
   const [llamados, setLlamados] = useState<Llamado[]>([]);
   const [kpis, setKpis] = useState({
     total: 0,
@@ -86,38 +90,49 @@ export default function CentralMonitoreoPage() {
   const [llamadoSeleccionado, setLlamadoSeleccionado] = useState<Llamado | null>(null);
   const [estadoRegistro, setEstadoRegistro] = useState('');
   const [observacionesRegistro, setObservacionesRegistro] = useState('');
+  const [modalConfirmacion, setModalConfirmacion] = useState({
+    mostrar: false,
+    mensaje: '',
+    programado: '',
+    actual: '',
+    estado: '',
+    observaciones: ''
+  });
 
   // Ref para evitar recargas innecesarias
   const fechaRef = useRef(fecha);
   fechaRef.current = fecha;
 
-  // Función para cargar datos automáticamente (optimizada)
+  // Función para cargar datos automáticamente (optimizada) - NUEVA ARQUITECTURA
   const cargarDatos = useCallback(async (isSilent = false) => {
     if (!isSilent) {
       setLoading(true);
     }
     try {
-      // Cargar agenda
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Santiago';
+      // ✅ NUEVA ARQUITECTURA: Usar timezone de configuración de sistema
+      const tz = timezone || 'America/Santiago';
       const currentFecha = fechaRef.current;
       
-      const responseAgenda = await rbacFetch(`/api/central-monitoring/agenda?fecha=${currentFecha}&tz=${encodeURIComponent(tz)}`);
-      if (responseAgenda.ok) {
-        const dataAgenda = await responseAgenda.json();
-        setLlamados(dataAgenda.data || []);
-      }
-
-      // Cargar KPIs desde el backend
-      const responseKPIs = await rbacFetch(`/api/central-monitoring/kpis?fecha=${currentFecha}&tz=${encodeURIComponent(tz)}`);
-      if (responseKPIs.ok) {
-        const dataKPIs = await responseKPIs.json();
+      // ✅ NUEVO: Usar endpoint unificado que calcula KPIs y filtros en backend
+      const responseFiltros = await rbacFetch(`/api/central-monitoring/filtros?fecha=${currentFecha}&filtro=${filtroEstado}&busqueda=${encodeURIComponent(busqueda)}&tz=${encodeURIComponent(tz)}`);
+      
+      if (responseFiltros.ok) {
+        const dataFiltros = await responseFiltros.json();
+        
+        // ✅ Backend ya calcula KPIs y filtros - solo asignar
+        setLlamados(dataFiltros.data.llamados || []);
         setKpis({
-          total: dataKPIs.data.kpis.total || 0,
-          actuales: dataKPIs.data.kpis.actuales || 0,
-          proximos: dataKPIs.data.kpis.proximos || 0,
-          no_realizados: dataKPIs.data.kpis.no_realizados || 0,
-          urgentes: dataKPIs.data.kpis.urgentes || 0,
-          completados: dataKPIs.data.kpis.exitosos || 0
+          total: dataFiltros.data.kpis.total || 0,
+          actuales: dataFiltros.data.kpis.actuales || 0,
+          proximos: dataFiltros.data.kpis.proximos || 0,
+          no_realizados: dataFiltros.data.kpis.no_realizados || 0,
+          urgentes: dataFiltros.data.kpis.urgentes || 0,
+          completados: dataFiltros.data.kpis.completados || 0
+        });
+        
+        logger.debug('✅ [CENTRAL-MONITORING] Datos cargados desde backend unificado:', {
+          llamados: dataFiltros.data.llamados?.length || 0,
+          kpis: dataFiltros.data.kpis
         });
       }
       
@@ -138,12 +153,21 @@ export default function CentralMonitoreoPage() {
         setLoading(false);
       }
     }
-  }, []); // Sin dependencias para evitar recreaciones
+  }, [filtroEstado, busqueda, timezone]); // ✅ Incluir filtros y timezone como dependencias
 
-  // Efecto para cargar datos cuando cambia la fecha
+  // ✅ NUEVA ARQUITECTURA: Actualizar fecha cuando cambie la configuración
   useEffect(() => {
-    cargarDatos();
-  }, [fecha, cargarDatos]);
+    if (fechaHoy && !loadingConfig) {
+      setFecha(fechaHoy);
+    }
+  }, [fechaHoy, loadingConfig]);
+
+  // ✅ NUEVA ARQUITECTURA: Recargar cuando cambien fecha, filtros o búsqueda
+  useEffect(() => {
+    if (!loadingConfig) {
+      cargarDatos();
+    }
+  }, [fecha, filtroEstado, busqueda, cargarDatos, loadingConfig]);
 
   // Auto-refresh cada 30 segundos (silencioso) - optimizado
   useEffect(() => {
@@ -178,51 +202,11 @@ export default function CentralMonitoreoPage() {
 
 
 
-  // Filtrar llamados
+  // ✅ NUEVA ARQUITECTURA: Backend ya filtra los datos, frontend solo muestra
   const llamadosFiltrados = useMemo(() => {
-    let filtrados = [...llamados];
-    
-    // Filtros con lógica corregida usando fecha/hora local
-    const ahora = new Date();
-    const ahoraString = ahora.toISOString().slice(0, 19); // "2025-09-06T18:00:00"
-    
-    if (filtroEstado === 'urgentes') {
-      filtrados = filtrados.filter(l => l.estado === 'pendiente' && l.es_urgente);
-    } else if (filtroEstado === 'actuales') {
-      // Actuales: hora actual del día actual
-      const horaActual = ahora.getHours();
-      filtrados = filtrados.filter(l => {
-        const programadoPara = new Date(l.programado_para);
-        const esHoy = programadoPara.toDateString() === ahora.toDateString();
-        const esHoraActual = programadoPara.getHours() === horaActual;
-        return esHoy && esHoraActual;
-      });
-    } else if (filtroEstado === 'proximos') {
-      // Próximos: futuros del día seleccionado
-      filtrados = filtrados.filter(l => {
-        const programadoPara = new Date(l.programado_para);
-        return programadoPara > ahora;
-      });
-    } else if (filtroEstado === 'no_realizados') {
-      // No realizados: que ya pasaron y están pendientes
-      filtrados = filtrados.filter(l => {
-        const programadoPara = new Date(l.programado_para);
-        return programadoPara < ahora && l.estado === 'pendiente';
-      });
-    } else if (filtroEstado === 'completados') {
-      filtrados = filtrados.filter(l => l.estado !== 'pendiente');
-    }
-    
-    // Filtro por búsqueda
-    if (busqueda) {
-      filtrados = filtrados.filter(l =>
-        l.instalacion_nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
-        l.guardia_nombre?.toLowerCase().includes(busqueda.toLowerCase())
-      );
-    }
-    
-    return filtrados;
-  }, [llamados, filtroEstado, busqueda]);
+    // Backend ya aplica filtros, solo retornar los datos recibidos
+    return llamados;
+  }, [llamados]);
 
   // Handlers
   const handleWhatsApp = (telefono: string, mensaje: string) => {
@@ -235,7 +219,7 @@ export default function CentralMonitoreoPage() {
     setModalRegistro(true);
   };
 
-  const handleGuardarRegistro = async (estado: string, observaciones: string) => {
+  const handleGuardarRegistro = async (estado: string, observaciones: string, forzarRegistro = false) => {
     if (!llamadoSeleccionado) return;
     
     try {
@@ -244,7 +228,8 @@ export default function CentralMonitoreoPage() {
         body: JSON.stringify({
           estado,
           observaciones,
-          canal: 'telefono'
+          canal: 'telefono',
+          forzarRegistro
         })
       });
       
@@ -252,12 +237,39 @@ export default function CentralMonitoreoPage() {
         toast.success('Llamado registrado exitosamente');
         cargarDatos();
       } else {
-        toast.error('Error al registrar el llamado');
+        const errorData = await response.json();
+        
+        // Si requiere confirmación, mostrar modal
+        if (errorData.requiereConfirmacion) {
+          setModalConfirmacion({
+            mostrar: true,
+            mensaje: errorData.error,
+            programado: errorData.programado,
+            actual: errorData.actual,
+            estado,
+            observaciones
+          });
+        } else {
+          toast.error(errorData.error || 'Error al registrar el llamado');
+        }
       }
     } catch (error) {
       console.error('Error:', error);
       toast.error('Error al registrar el llamado');
     }
+  };
+
+  // Handler para confirmar registro fuera de rango
+  const handleConfirmarRegistro = async () => {
+    if (modalConfirmacion.estado && modalConfirmacion.observaciones) {
+      await handleGuardarRegistro(modalConfirmacion.estado, modalConfirmacion.observaciones, true);
+      setModalConfirmacion({ mostrar: false, mensaje: '', programado: '', actual: '', estado: '', observaciones: '' });
+    }
+  };
+
+  // Handler para cancelar registro fuera de rango
+  const handleCancelarRegistro = () => {
+    setModalConfirmacion({ mostrar: false, mensaje: '', programado: '', actual: '', estado: '', observaciones: '' });
   };
 
   // Handler para filtrar por KPI
@@ -299,23 +311,46 @@ export default function CentralMonitoreoPage() {
   }
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      {/* Header Mobile-First */}
-      <div className="flex flex-col gap-2 sm:gap-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-xl sm:text-3xl font-bold">📞 Central</h1>
-            <p className="text-gray-600 text-sm sm:block hidden">Monitoreo de guardias en tiempo real</p>
+    <div className="w-full max-w-full mx-auto p-2 space-y-2">
+      {/* Header Mobile First Minimalista */}
+      <div className="flex items-center justify-between py-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white truncate">
+              📞 Central de Monitoreo
+            </h1>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-blue-500 hover:text-blue-600 cursor-help flex-shrink-0" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <div className="text-sm">
+                    <p className="font-semibold mb-2">🕐 Lógica de Turnos</p>
+                    <p className="mb-1">Cada día muestra un turno de 24 horas:</p>
+                    <p className="mb-1">• <strong>12:00 PM - 11:59 PM</strong> del día actual</p>
+                    <p>• <strong>12:00 AM - 11:59 AM</strong> del día siguiente</p>
+                    <p className="mt-2 text-xs text-gray-400">
+                      Ejemplo: 16/09 muestra llamados del 16/09 12:00 PM al 17/09 11:59 AM
+                    </p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="hidden sm:flex">
-              <Download className="h-4 w-4 mr-2" />
-              Exportar
-            </Button>
+          <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
+            Monitoreo de guardias en tiempo real
+          </p>
+        </div>
+        <div className="flex-shrink-0">
+          <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+            <Phone className="w-4 h-4 text-red-600 dark:text-red-400" />
           </div>
         </div>
-        
-        {/* Selector de fecha */}
+      </div>
+
+      {/* Selector de fecha - Mobile First Optimizado */}
+      <div className="mb-4">
         <DateSelector
           fecha={fecha}
           onFechaChange={setFecha}
@@ -325,36 +360,43 @@ export default function CentralMonitoreoPage() {
         />
       </div>
 
-              {/* KPIs */}
+      {/* KPIs - Mobile First Optimizado */}
+      <div className="mb-4">
         <KPICards 
           {...kpis} 
           filtroActivo={filtroEstado}
           onKPIClick={handleKPIClick}
         />
+      </div>
 
-      {/* Búsqueda */}
-      <div className="flex gap-4">
-        <div className="flex-1 relative">
+      {/* Búsqueda - Mobile First Optimizado */}
+      <div className="mb-4">
+        <div className="relative">
           <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
           <Input
             placeholder="Buscar por instalación o guardia..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-10 text-sm border-gray-200 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-400"
           />
         </div>
       </div>
 
-      {/* Lista de llamados */}
-      <div className="mt-6">
+      {/* Lista de llamados - Mobile First Optimizado */}
+      <div className="space-y-3">
         {llamadosFiltrados.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <p className="text-gray-500">No hay llamados en esta categoría</p>
+          <Card className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 border-2 border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+            <CardContent className="p-6 text-center">
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                  <Search className="w-6 h-6 text-gray-400" />
+                </div>
+                <p className="text-gray-500 dark:text-gray-400 font-medium">No hay llamados en esta categoría</p>
+              </div>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-stretch">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {llamadosFiltrados.map(llamado => (
               <LlamadoCard
                 key={llamado.id}
@@ -375,6 +417,58 @@ export default function CentralMonitoreoPage() {
         llamado={llamadoSeleccionado}
         onRegistrar={handleGuardarRegistro}
       />
+
+      {/* Modal de confirmación para llamadas fuera de rango */}
+      <Dialog open={modalConfirmacion.mostrar} onOpenChange={handleCancelarRegistro}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Confirmar Registro
+            </DialogTitle>
+            <DialogDescription>
+              Esta llamada está fuera del rango de tiempo normal (24 horas)
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+              <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">
+                {modalConfirmacion.mensaje}
+              </p>
+            </div>
+            
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-400">Programado:</span>
+                <span className="font-medium">
+                  {modalConfirmacion.programado ? new Date(modalConfirmacion.programado).toLocaleString('es-CL') : ''}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-400">Actual:</span>
+                <span className="font-medium">
+                  {modalConfirmacion.actual ? new Date(modalConfirmacion.actual).toLocaleString('es-CL') : ''}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-400">Estado:</span>
+                <span className="font-medium capitalize">{modalConfirmacion.estado}</span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={handleCancelarRegistro}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmarRegistro} className="bg-amber-600 hover:bg-amber-700">
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              Confirmar Registro
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

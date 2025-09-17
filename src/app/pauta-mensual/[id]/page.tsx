@@ -120,6 +120,7 @@ export default function PautaMensualUnificadaPage() {
   const [generando, setGenerando] = useState(false);
   const [exportandoPDF, setExportandoPDF] = useState(false);
   const [exportandoXLSX, setExportandoXLSX] = useState(false);
+  const [showModalAyuda, setShowModalAyuda] = useState(false);
   const [actualizando, setActualizando] = useState(false);
   const [tab, setTab] = useState<'dia' | 'semana' | 'mes'>(typeof window !== 'undefined' && window.innerWidth >= 640 ? 'mes' : 'dia');
   const [instalacionesDisponibles, setInstalacionesDisponibles] = useState<Array<{id: string, nombre: string}>>([]);
@@ -703,8 +704,17 @@ export default function PautaMensualUnificadaPage() {
             }`} />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg sm:text-2xl font-bold truncate">
+            <h1 className="text-lg sm:text-2xl font-bold truncate flex items-center gap-2">
               {pautaExiste ? "Editar Pauta Mensual" : "Crear Pauta Mensual"}
+              <button
+                onClick={() => setShowModalAyuda(true)}
+                className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                title="Información sobre la pauta mensual"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                </svg>
+              </button>
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground truncate">
               <Link 
@@ -1022,6 +1032,83 @@ export default function PautaMensualUnificadaPage() {
         )}
         {hayCambios() && <span className="text-[11px] text-amber-600">Cambios sin guardar</span>}
       </div>
+
+      {/* Modal de ayuda */}
+      {showModalAyuda && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                </svg>
+                Información sobre la Pauta Mensual
+              </h2>
+              <button
+                onClick={() => setShowModalAyuda(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="space-y-4 text-sm">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">📋 Pauta Mensual = Planificación</h3>
+                <p className="text-blue-700 dark:text-blue-300">
+                  La pauta mensual muestra <strong>qué guardia debería trabajar cada día</strong> según su patrón de turno (4x4, 5x2, etc.). 
+                  Es la planificación base para el mes.
+                </p>
+              </div>
+
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                <h3 className="font-semibold text-green-800 dark:text-green-200 mb-2">✅ Pauta Diaria = Ejecución</h3>
+                <p className="text-green-700 dark:text-green-300">
+                  La pauta diaria registra <strong>qué pasó realmente cada día</strong> (asistió, faltó, reemplazo, etc.). 
+                  Se llena día a día con los eventos reales.
+                </p>
+              </div>
+
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                <h3 className="font-semibold text-amber-800 dark:text-amber-200 mb-2">⚠️ Restricción Importante</h3>
+                <p className="text-amber-700 dark:text-amber-300">
+                  <strong>No se puede asignar un guardia</strong> si ya hay registros en la pauta diaria para ese puesto en el rango de fechas. 
+                  Si esto ocurre, el sistema te permitirá eliminar esos registros para proceder con la asignación.
+                </p>
+              </div>
+
+              <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+                <h3 className="font-semibold text-purple-800 dark:text-purple-200 mb-2">👤 Iniciales de Guardias</h3>
+                <p className="text-purple-700 dark:text-purple-300">
+                  Las iniciales del guardia (ej: <strong>AA</strong> para Aaron Aguilera, <strong>MA</strong> para Marcelo Astorga) 
+                  aparecen solo desde la <strong>fecha de asignación</strong> del guardia al puesto, respetando su patrón de turno.
+                </p>
+              </div>
+
+              <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">📊 Estados en la Pauta</h3>
+                <ul className="text-gray-700 dark:text-gray-300 space-y-1">
+                  <li>• <strong>Punto azul:</strong> Día de trabajo planificado</li>
+                  <li>• <strong>L:</strong> Día libre</li>
+                  <li>• <strong>PPC:</strong> Puesto Por Cubrir (sin guardia asignado)</li>
+                  <li>• <strong>Iniciales:</strong> Guardia asignado para ese día</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowModalAyuda(false)}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

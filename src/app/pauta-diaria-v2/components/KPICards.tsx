@@ -195,7 +195,7 @@ export function KPICards({ kpis, fecha, loading = false }: KPICardsProps) {
       <div>
         <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
           <Building2 className="w-5 h-5 mr-2" />
-          Cobertura de Puestos
+          Control de Asistencia
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {coberturaConfigs.map((config) => {

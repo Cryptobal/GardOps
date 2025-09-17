@@ -23,30 +23,31 @@ export default function ControlAsistenciasPage() {
   });
 
   return (
-    <div className="w-full max-w-full mx-auto p-2 sm:p-3 space-y-2 sm:space-y-3">
-      {/* Header Mobile First */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg sm:text-xl font-bold text-white">Control de Asistencias</h1>
-          <p className="text-gray-400 text-xs">Monitoreo en tiempo real de asistencias</p>
+    <div className="w-full max-w-full mx-auto p-2 space-y-2">
+      {/* Header Mobile First Minimalista */}
+      <div className="flex items-center justify-between py-2">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg font-bold text-gray-900 dark:text-white truncate">
+            📊 Control de Asistencias
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
+            Monitoreo en tiempo real
+          </p>
+        </div>
+        <div className="flex-shrink-0">
+          <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+            <Activity className="w-4 h-4 text-green-600 dark:text-green-400" />
+          </div>
         </div>
       </div>
 
-      {/* Control de Asistencias Content */}
-      <Card className="w-full">
-        <CardHeader className="pb-2 px-2 sm:px-3">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            <Activity className="w-4 h-4" />
-            Control de Asistencias en Tiempo Real
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-2 sm:px-3 pb-2 sm:pb-3">
-          <MonitoreoTiempoReal 
-            fecha={fecha} 
-            activeTab="monitoreo"
-          />
-        </CardContent>
-      </Card>
+      {/* Control de Asistencias Content - Sin Card para maximizar espacio */}
+      <div className="w-full">
+        <MonitoreoTiempoReal 
+          fecha={fecha} 
+          activeTab="monitoreo"
+        />
+      </div>
     </div>
   );
 }

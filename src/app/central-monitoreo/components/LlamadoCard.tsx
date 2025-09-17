@@ -12,6 +12,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { 
   MessageSquare, Phone, CheckCircle, XCircle, 
   AlertTriangle, Clock, User, Building2, PhoneCall, Edit
@@ -107,12 +113,14 @@ export function LlamadoCard({ llamado, onRegistrar, onWhatsApp, onObservacionesU
     const config = configs[llamado.estado] || configs.pendiente;
     
     return (
-      <Badge className={`${config.color} text-white flex items-center gap-1`}>
+      <Badge className={`${config.color} text-white flex items-center gap-1 text-xs px-2 py-1 whitespace-nowrap`}>
         {config.icon}
-        {config.label}
-        {esUrgente && llamado.estado === 'pendiente' && minutosDiff > 0 && (
-          <span className="ml-1 text-xs">({minutosDiff} min atrasado)</span>
-        )}
+        <span>
+          {config.label}
+          {esUrgente && llamado.estado === 'pendiente' && minutosDiff > 0 && (
+            <span className="ml-1">({minutosDiff}min)</span>
+          )}
+        </span>
       </Badge>
     );
   };
@@ -133,7 +141,61 @@ export function LlamadoCard({ llamado, onRegistrar, onWhatsApp, onObservacionesU
     
     return formatTime(fechaObj, false, false); // NO aplicar zona horaria
   };
+
+  const formatearFechaHora = (fecha: string) => {
+    // La fecha viene de la base de datos como '2025-09-06 19:00:00'
+    const fechaObj = new Date(fecha);
+    
+    // Si la fecha es inválida, intentar parsear manualmente
+    if (isNaN(fechaObj.getTime())) {
+      const [fechaPart, horaPart] = fecha.split(' ');
+      const [anio, mes, dia] = fechaPart.split('-');
+      const [hora, minuto] = horaPart.split(':');
+      const fechaCorrecta = new Date(parseInt(anio), parseInt(mes) - 1, parseInt(dia), parseInt(hora), parseInt(minuto));
+      return fechaCorrecta;
+    }
+    
+    return fechaObj;
+  };
   
+  const formatearTelefonoChile = (telefono: string) => {
+    // Limpiar el número de cualquier carácter que no sea dígito
+    const numeroLimpio = telefono.replace(/\D/g, '');
+    
+    // Si ya tiene código de país (+56), devolverlo tal como está
+    if (numeroLimpio.startsWith('56') && numeroLimpio.length >= 11) {
+      return `+${numeroLimpio}`;
+    }
+    
+    // Si tiene 9 dígitos (formato chileno sin código de país)
+    if (numeroLimpio.length === 9) {
+      // Agregar +56 al inicio
+      return `+56${numeroLimpio}`;
+    }
+    
+    // Si tiene 8 dígitos, agregar 9 al inicio y luego +56
+    if (numeroLimpio.length === 8) {
+      return `+569${numeroLimpio}`;
+    }
+    
+    // Si tiene menos de 8 dígitos, asumir que necesita el 9 al inicio
+    if (numeroLimpio.length < 8) {
+      return `+569${numeroLimpio.padStart(8, '0')}`;
+    }
+    
+    // Para cualquier otro caso, devolver el número limpio con +56
+    return `+56${numeroLimpio}`;
+  };
+
+  const formatearHoraRegistro = (fecha: string) => {
+    const fechaObj = new Date(fecha);
+    return fechaObj.toLocaleTimeString('es-CL', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
+  };
+
   const generarMensajeWhatsApp = () => {
     const hora = formatearHora(llamado.programado_para);
     return `Hola, soy de la Central de Monitoreo de GardOps. Realizando control de las ${hora} hrs. ¿Todo en orden en ${llamado.instalacion_nombre}?`;
@@ -155,19 +217,56 @@ export function LlamadoCard({ llamado, onRegistrar, onWhatsApp, onObservacionesU
   
   return (
     <>
-      <Card className={`${esUrgente ? 'border-red-500 shadow-lg' : esActual ? 'border-yellow-500' : ''} transition-all hover:shadow-md h-full flex flex-col`}>
+      <Card className={`${esUrgente ? 'border-red-500 shadow-lg' : esActual ? 'border-yellow-500' : ''} transition-all hover:shadow-md h-full flex flex-col relative overflow-hidden`}>
         <CardHeader className="pb-3 flex-shrink-0">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                {llamado.instalacion_nombre}
-              </h3>
-              <p className="text-sm text-gray-600 mt-1">
-                {formatearHora(llamado.programado_para)}
-              </p>
+          <div className="space-y-2">
+            {/* Nombre de la instalación - Prioridad máxima */}
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <Building2 className="h-4 w-4 flex-shrink-0 text-blue-600" />
+              <span className="break-words leading-tight">{llamado.instalacion_nombre}</span>
+            </h3>
+            
+            {/* Fecha, hora y estado en la misma línea */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-sm text-gray-600 font-medium">
+                <div className="flex items-center gap-1">
+                  <span>📅</span>
+                  <span>{formatearFechaHora(llamado.programado_para).toLocaleDateString('es-CL', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    year: 'numeric' 
+                  })}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span>🕐</span>
+                  <span>{formatearHora(llamado.programado_para)}</span>
+                </div>
+              </div>
+              <div className="flex-shrink-0">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        {getEstadoBadge()}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs font-mono">ID: {llamado.id}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                {/* Hora de registro para llamadas completadas */}
+                {llamado.estado !== 'pendiente' && llamado.ejecutado_en && (
+                  <div className="mt-1 text-xs text-gray-500 text-center">
+                    <span className="flex items-center justify-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      <span>Registrado: {formatearHoraRegistro(llamado.ejecutado_en)}</span>
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
-            {getEstadoBadge()}
           </div>
         </CardHeader>
         
@@ -208,9 +307,9 @@ export function LlamadoCard({ llamado, onRegistrar, onWhatsApp, onObservacionesU
                       size="sm"
                       variant="ghost"
                       onClick={() => setShowEditModal(true)}
-                      className="h-6 px-2 flex-shrink-0"
+                      className="h-6 px-2 flex-shrink-0 text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/20"
                     >
-                      <Edit className="h-3 w-3" />
+                      ✏️
                     </Button>
                   )}
                 </div>
@@ -225,26 +324,24 @@ export function LlamadoCard({ llamado, onRegistrar, onWhatsApp, onObservacionesU
               <div className="flex gap-2">
                 <Button
                   size="sm"
-                  className="flex-1 h-9"
+                  className="flex-1 h-8 text-xs font-medium bg-green-600 hover:bg-green-700 text-white border-green-200 hover:border-green-300 shadow-sm"
                   onClick={() => {
                     const telefono = llamado.contacto_telefono || llamado.instalacion_telefono;
                     if (telefono) {
-                      onWhatsApp(telefono, generarMensajeWhatsApp());
+                      const telefonoFormateado = formatearTelefonoChile(telefono);
+                      onWhatsApp(telefonoFormateado, generarMensajeWhatsApp());
                     }
                   }}
                 >
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  WhatsApp
+                  💬 WhatsApp
                 </Button>
                 
                 <Button
                   size="sm"
-                  variant="outline"
-                  className="flex-1 h-9"
+                  className="flex-1 h-8 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white border-blue-200 hover:border-blue-300 shadow-sm"
                   onClick={() => onRegistrar(llamado)}
                 >
-                  <PhoneCall className="h-4 w-4 mr-2" />
-                  Registrar
+                  📞 Registrar
                 </Button>
               </div>
             )}
@@ -253,12 +350,10 @@ export function LlamadoCard({ llamado, onRegistrar, onWhatsApp, onObservacionesU
             {esCompletado && !llamado.observaciones && (
               <Button
                 size="sm"
-                variant="outline"
-                className="w-full h-9"
+                className="w-full h-8 text-xs font-medium bg-purple-600 hover:bg-purple-700 text-white border-purple-200 hover:border-purple-300 shadow-sm"
                 onClick={() => setShowEditModal(true)}
               >
-                <Edit className="h-4 w-4 mr-2" />
-                Agregar Observaciones
+                ✏️ Agregar Observaciones
               </Button>
             )}
           </div>

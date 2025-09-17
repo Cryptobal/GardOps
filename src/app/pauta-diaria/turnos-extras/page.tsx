@@ -736,36 +736,50 @@ export default function TurnosExtrasPage() {
         <div className="hidden" />
       </div>
 
-      {/* Selector de Período compacto (Mobile First) */}
-      <Card className="overflow-hidden">
-        <CardHeader className="py-3">
+      {/* Selector de Período premium (Mobile First) */}
+      <Card className="overflow-hidden bg-gradient-to-r from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 border-2 border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+        <CardHeader className="py-4">
           <button
             type="button"
             onClick={() => setShowFiltrosLocal((v) => !v)}
-            className="w-full flex items-center justify-between gap-2"
+            className="w-full flex items-center justify-between gap-3 p-2 rounded-lg hover:bg-gray-100/50 dark:hover:bg-gray-800/50 transition-all duration-300"
           >
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Seleccionar período y filtros
+            <CardTitle className="text-lg sm:text-xl flex items-center gap-3 font-bold text-gray-900 dark:text-white">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-md">
+                <Calendar className="h-5 w-5 text-white" />
+              </div>
+              <span>Seleccionar período y filtros</span>
             </CardTitle>
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-              <span className="truncate">{buildPeriodoResumen()}</span>
-              {showFiltrosLocal ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-100 dark:bg-blue-900/30 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800">
+                <span className="text-sm font-semibold text-blue-800 dark:text-blue-200 truncate max-w-[120px] sm:max-w-none">
+                  {buildPeriodoResumen()}
+                </span>
+              </div>
+              <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center transition-transform duration-300">
+                {showFiltrosLocal ? (
+                  <ChevronUp className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                ) : (
+                  <ChevronDown className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                )}
+              </div>
             </div>
           </button>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className={`${showFiltrosLocal ? 'block' : 'hidden'}`}>
-            <FiltrosAvanzados
-              filtros={filtros}
-              setFiltros={setFiltros}
-              instalaciones={instalaciones}
-              embedded
-            />
+          <div className={`transition-all duration-500 ease-in-out ${
+            showFiltrosLocal 
+              ? 'max-h-[2000px] opacity-100' 
+              : 'max-h-0 opacity-0 overflow-hidden'
+          }`}>
+            <div className="border-t border-gray-200/50 dark:border-gray-700/50 pt-4">
+              <FiltrosAvanzados
+                filtros={filtros}
+                setFiltros={setFiltros}
+                instalaciones={instalaciones}
+                embedded
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -803,36 +817,41 @@ export default function TurnosExtrasPage() {
         instalaciones={instalaciones}
       />
 
-      {/* Acciones Masivas */}
+      {/* Acciones Masivas Premium */}
       {selectedTurnos.length > 0 && (
-        <Card className="border-blue-600/50 bg-blue-900/20 dark:bg-blue-900/30 sm:static sticky bottom-2 left-0 right-0 z-20 backdrop-blur supports-[backdrop-filter]:bg-blue-900/30">
+        <Card className="border-2 border-blue-500/50 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-blue-800/30 sm:static sticky bottom-3 left-3 right-3 z-20 backdrop-blur-md supports-[backdrop-filter]:bg-blue-50/90 dark:supports-[backdrop-filter]:bg-blue-900/40 shadow-2xl shadow-blue-200/50 dark:shadow-blue-900/30">
           <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <FileSpreadsheet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                <span className="font-medium text-blue-600 dark:text-blue-400">
-                  {selectedTurnos.length} turno(s) seleccionado(s)
-                </span>
-                <Badge variant="outline" className="ml-2 border-blue-600/50 text-blue-600 dark:text-blue-400">
-                  {formatCurrency(montoTotalSeleccionados)}
-                </Badge>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-md">
+                  <FileSpreadsheet className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="font-bold text-lg text-blue-800 dark:text-blue-200">
+                    {selectedTurnos.length} turno(s) seleccionado(s)
+                  </span>
+                  <Badge variant="outline" className="w-fit border-blue-500/50 text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 font-semibold">
+                    {formatCurrency(montoTotalSeleccionados)}
+                  </Badge>
+                </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-3 w-full sm:w-auto">
                 <Button
                   onClick={abrirModalGenerarPlanilla}
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-700"
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 flex-1 sm:flex-none"
                 >
-                  <FileSpreadsheet className="h-4 w-4 mr-2" />
-                  {!isMobile && "Generar Planilla"}
+                  <FileSpreadsheet className="h-5 w-5 mr-2" />
+                  {isMobile ? "Generar Planilla" : "Generar Planilla"}
                 </Button>
                 <Button
                   onClick={() => setSelectedTurnos([])}
                   variant="outline"
-                  size="sm"
+                  size="lg"
+                  className="border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 font-semibold shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95 flex-1 sm:flex-none"
                 >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  {!isMobile && "Cancelar Selección"}
+                  <XCircle className="h-5 w-5 mr-2" />
+                  {isMobile ? "Cancelar" : "Cancelar Selección"}
                 </Button>
               </div>
             </div>
@@ -860,79 +879,150 @@ export default function TurnosExtrasPage() {
               <p className="text-sm">Ajusta los filtros o crea nuevos turnos extras</p>
             </div>
           ) : isMobile ? (
-            // Vista Móvil - Contenedores responsivos
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            // Vista Móvil - Diseño premium con mejor UX
+            <div className="grid grid-cols-1 gap-3">
               {turnosExtras.map((turno) => {
                 const estadoTurno = getEstadoTurno(turno);
                 const isSelectable = !turno.pagado && !turno.planilla_id;
                 const isSelected = selectedTurnos.includes(turno.id);
                 
                 return (
-                  <Card key={turno.id} className={`overflow-hidden border-l-4 ${
+                  <Card key={turno.id} className={`overflow-hidden border-l-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
                     isSelected 
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                      ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 shadow-blue-200/50 ring-2 ring-blue-200 dark:ring-blue-800' 
                       : estadoTurno.variant === 'destructive'
-                      ? 'border-red-500'
+                      ? 'border-red-500 hover:border-red-600 bg-gradient-to-r from-red-50/50 to-white dark:from-red-900/20 dark:to-gray-900'
                       : estadoTurno.variant === 'secondary'
-                      ? 'border-orange-500'
-                      : 'border-green-500'
+                      ? 'border-orange-500 hover:border-orange-600 bg-gradient-to-r from-orange-50/50 to-white dark:from-orange-900/20 dark:to-gray-900'
+                      : 'border-green-500 hover:border-green-600 bg-gradient-to-r from-green-50/50 to-white dark:from-green-900/20 dark:to-gray-900'
                   }`}>
-                    <CardContent className="p-4">
-                      {/* Header con checkbox y estado */}
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2 min-w-0">
+                    <CardContent className="p-5 space-y-5">
+                      {/* Header premium con mejor jerarquía visual */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-4 min-w-0 flex-1">
                           {isSelectable && (
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={() => toggleSelectTurno(turno.id)}
-                            />
+                            <div className="flex-shrink-0">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleSelectTurno(turno.id)}
+                                className="h-6 w-6 border-2 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                              />
+                            </div>
                           )}
-                          <Badge variant={estadoTurno.variant} className="text-xs">
-                            {estadoTurno.texto}
-                          </Badge>
+                          <div className="flex flex-col gap-2 min-w-0 flex-1">
+                            <div className="flex flex-wrap gap-2">
+                              <Badge 
+                                variant={estadoTurno.variant} 
+                                className={`text-xs font-semibold px-3 py-1 ${
+                                  estadoTurno.variant === 'destructive' 
+                                    ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' 
+                                    : estadoTurno.variant === 'secondary'
+                                    ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+                                    : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                }`}
+                              >
+                                {estadoTurno.texto}
+                              </Badge>
+                              <Badge 
+                                variant={turno.estado === 'reemplazo' ? 'default' : 'secondary'} 
+                                className="text-xs font-semibold px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                              >
+                                {turno.estado.toUpperCase()}
+                              </Badge>
+                            </div>
+                          </div>
                         </div>
-                        <Badge variant={turno.estado === 'reemplazo' ? 'default' : 'secondary'} className="text-xs">
-                          {turno.estado.toUpperCase()}
-                        </Badge>
+                        <div className="text-right flex-shrink-0">
+                          <p className="font-bold text-xl text-green-600 dark:text-green-400">
+                            {formatCurrency(turno.valor)}
+                          </p>
+                        </div>
                       </div>
 
-                      {/* Información del guardia */}
-                      <div className="mb-3">
-                        <h4 className="font-semibold text-sm truncate">
-                          {turno.guardia_nombre} {turno.guardia_apellido_paterno}
-                        </h4>
-                        <p className="text-xs text-muted-foreground truncate">{turno.guardia_rut}</p>
+                      {/* Información del guardia con diseño premium */}
+                      <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/60 dark:to-gray-700/40 rounded-xl p-4 border border-gray-200/50 dark:border-gray-700/50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                            {turno.guardia_nombre.charAt(0)}{turno.guardia_apellido_paterno.charAt(0)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-bold text-lg text-gray-900 dark:text-white truncate">
+                              {turno.guardia_nombre} {turno.guardia_apellido_paterno}
+                            </h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 font-mono">{turno.guardia_rut}</p>
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Información de la instalación y puesto */}
-                      <div className="mb-3 space-y-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{turno.instalacion_nombre}</p>
-                        <p className="text-xs text-muted-foreground truncate">{turno.nombre_puesto}</p>
+                      {/* Información de ubicación con iconos mejorados */}
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3 p-3 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
+                          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                            <div className="w-3 h-3 bg-white rounded-full"></div>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Instalación</p>
+                            <p className="text-sm text-blue-700 dark:text-blue-300 truncate">{turno.instalacion_nombre}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 p-3 bg-purple-50/50 dark:bg-purple-900/20 rounded-lg border border-purple-200/50 dark:border-purple-800/50">
+                          <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                            <div className="w-3 h-3 bg-white rounded-full"></div>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-purple-900 dark:text-purple-100">Puesto</p>
+                            <p className="text-sm text-purple-700 dark:text-purple-300 truncate">{turno.nombre_puesto}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 p-3 bg-gray-50/50 dark:bg-gray-800/50 rounded-lg border border-gray-200/50 dark:border-gray-700/50">
+                          <div className="w-8 h-8 bg-gray-500 rounded-lg flex items-center justify-center">
+                            <Calendar className="h-4 w-4 text-white" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Fecha</p>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 font-mono">
+                              {format(new Date(turno.fecha), 'dd/MM/yyyy')}
+                            </p>
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Fecha y valor */}
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(turno.fecha), 'dd/MM/yyyy')}
-                        </p>
-                        <p className="font-bold text-sm">{formatCurrency(turno.valor)}</p>
-                      </div>
-
-                      {/* Botón de acción */}
+                      {/* Botones de acción premium para móvil */}
                       {isSelectable && (
-                        <div className="mt-3 pt-3 border-t">
+                        <div className="space-y-3 pt-4 border-t-2 border-gray-200/50 dark:border-gray-700/50">
                           <Button
                             onClick={() => {
                               setSelectedTurnos([turno.id]);
                               setShowPagoModal(true);
                             }}
-                            size="sm"
-                            variant="outline"
-                            className="w-full text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                            size="lg"
+                            className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 h-14 text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
                           >
-                            <DollarSign className="h-4 w-4 mr-1" />
+                            <DollarSign className="h-6 w-6 mr-3" />
                             Marcar como Pagado
                           </Button>
+                          <div className="grid grid-cols-2 gap-3">
+                            <Button
+                              onClick={() => handleEditTurno(turno)}
+                              size="lg"
+                              variant="outline"
+                              className="text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 h-12 font-semibold shadow-md hover:shadow-lg transition-all duration-300"
+                            >
+                              <Edit3 className="h-5 w-5 mr-2" />
+                              Editar
+                            </Button>
+                            <Button
+                              onClick={() => handleDeleteTurno(turno)}
+                              size="lg"
+                              variant="outline"
+                              className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-2 border-red-200 dark:border-red-800 h-12 font-semibold shadow-md hover:shadow-lg transition-all duration-300"
+                            >
+                              <Trash2 className="h-5 w-5 mr-2" />
+                              Eliminar
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </CardContent>
@@ -1047,60 +1137,85 @@ export default function TurnosExtrasPage() {
         </CardContent>
       </Card>
 
-      {/* Modal de Confirmación de Pago */}
+      {/* Modal de Confirmación de Pago Premium */}
       <Dialog open={showPagoModal} onOpenChange={setShowPagoModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar Pago de Turnos Extras</DialogTitle>
-            <DialogDescription>
-              Estás a punto de marcar {selectedTurnos.length} turno(s) como pagado(s).
-              Esta acción no se puede deshacer.
-            </DialogDescription>
+        <DialogContent className="sm:max-w-md max-w-[95vw] mx-4 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 border-2 border-gray-200/50 dark:border-gray-700/50 shadow-2xl">
+          <DialogHeader className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-lg">
+                <DollarSign className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">
+                  Confirmar Pago de Turnos Extras
+                </DialogTitle>
+                <DialogDescription className="text-gray-600 dark:text-gray-400">
+                  Estás a punto de marcar {selectedTurnos.length} turno(s) como pagado(s).
+                  Esta acción no se puede deshacer.
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
           
-          <div className="space-y-4">
-            <div className="bg-orange-50 p-4 rounded-lg">
-              <h4 className="font-medium text-orange-800 mb-2">Resumen del pago:</h4>
-              <ul className="text-sm text-orange-700 space-y-1">
-                <li>• Turnos seleccionados: {selectedTurnos.length}</li>
-                <li>• Monto total: {formatCurrency(montoTotalSeleccionados)}</li>
-                <li>• Fecha de pago: {new Date().toLocaleDateString('es-ES')}</li>
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/20 p-5 rounded-xl border border-green-200/50 dark:border-green-700/50">
+              <h4 className="font-bold text-green-800 dark:text-green-200 mb-3 flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                Resumen del pago:
+              </h4>
+              <ul className="text-sm text-green-700 dark:text-green-300 space-y-2">
+                <li className="flex justify-between items-center">
+                  <span>Turnos seleccionados:</span>
+                  <span className="font-semibold">{selectedTurnos.length}</span>
+                </li>
+                <li className="flex justify-between items-center">
+                  <span>Monto total:</span>
+                  <span className="font-bold text-lg">{formatCurrency(montoTotalSeleccionados)}</span>
+                </li>
+                <li className="flex justify-between items-center">
+                  <span>Fecha de pago:</span>
+                  <span className="font-semibold">{new Date().toLocaleDateString('es-ES')}</span>
+                </li>
               </ul>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="observaciones">Observaciones (opcional)</Label>
+            <div className="space-y-3">
+              <Label htmlFor="observaciones" className="text-base font-semibold text-gray-900 dark:text-white">
+                Observaciones (opcional)
+              </Label>
               <Textarea
                 id="observaciones"
                 placeholder="Agregar comentarios sobre el pago..."
                 value={observacionesPago}
                 onChange={(e) => setObservacionesPago(e.target.value)}
-                rows={3}
+                rows={4}
+                className="border-2 border-gray-200 dark:border-gray-700 focus:border-green-500 dark:focus:border-green-400 rounded-lg text-base"
               />
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-4">
             <Button
               variant="outline"
               onClick={() => setShowPagoModal(false)}
               disabled={procesandoPago}
+              className="w-full sm:w-auto border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 font-semibold h-12"
             >
               Cancelar
             </Button>
             <Button
               onClick={confirmarPago}
               disabled={procesandoPago}
-              className="bg-green-600 hover:bg-green-700"
+              className="w-full sm:w-auto bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-300 h-12"
             >
               {procesandoPago ? (
                 <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
                   Procesando...
                 </>
               ) : (
                 <>
-                  <DollarSign className="h-4 w-4 mr-2" />
+                  <DollarSign className="h-5 w-5 mr-2" />
                   Confirmar Pago
                 </>
               )}
@@ -1173,31 +1288,60 @@ export default function TurnosExtrasPage() {
         loading={deleting}
       />
 
-      {/* Modal de Edición de Valor */}
+      {/* Modal de Edición de Valor Premium */}
       <Dialog open={showEditModal} onOpenChange={closeEditModal}>
-        <DialogContent className="max-w-md bg-background border-border">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg text-foreground">
-              <Edit3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              Editar Valor del Turno Extra
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Modifica el valor monetario de este turno extra.
-            </DialogDescription>
+        <DialogContent className="max-w-md max-w-[95vw] mx-4 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 border-2 border-gray-200/50 dark:border-gray-700/50 shadow-2xl">
+          <DialogHeader className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                <Edit3 className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">
+                  Editar Valor del Turno Extra
+                </DialogTitle>
+                <DialogDescription className="text-gray-600 dark:text-gray-400">
+                  Modifica el valor monetario de este turno extra.
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
           
           {turnoToEdit && (
-            <div className="space-y-4">
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p><strong className="text-foreground">Guardia:</strong> {turnoToEdit.guardia_nombre} {turnoToEdit.guardia_apellido_paterno}</p>
-                <p><strong className="text-foreground">Instalación:</strong> {turnoToEdit.instalacion_nombre}</p>
-                <p><strong className="text-foreground">Puesto:</strong> {turnoToEdit.nombre_puesto}</p>
-                <p><strong className="text-foreground">Fecha:</strong> {format(new Date(turnoToEdit.fecha), 'dd/MM/yyyy', { locale: es })}</p>
-                <p><strong className="text-foreground">Tipo:</strong> {turnoToEdit.estado.toUpperCase()}</p>
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/60 dark:to-gray-700/40 p-4 rounded-xl border border-gray-200/50 dark:border-gray-700/50">
+                <h4 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  Información del turno:
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-400">Guardia:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{turnoToEdit.guardia_nombre} {turnoToEdit.guardia_apellido_paterno}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-400">Instalación:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{turnoToEdit.instalacion_nombre}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-400">Puesto:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{turnoToEdit.nombre_puesto}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-400">Fecha:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{format(new Date(turnoToEdit.fecha), 'dd/MM/yyyy', { locale: es })}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-400">Tipo:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{turnoToEdit.estado.toUpperCase()}</span>
+                  </div>
+                </div>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="nuevo-valor" className="text-foreground">Nuevo Valor ($)</Label>
+              <div className="space-y-3">
+                <Label htmlFor="nuevo-valor" className="text-base font-semibold text-gray-900 dark:text-white">
+                  Nuevo Valor ($)
+                </Label>
                 <input
                   id="nuevo-valor"
                   type="text"
@@ -1207,34 +1351,46 @@ export default function TurnosExtrasPage() {
                     const numero = valor ? parseInt(valor, 10) : 0;
                     setNuevoValor(numero.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
                   }}
-                  className="w-full px-3 py-2 border border-input bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg font-semibold"
                   placeholder="Ingresa el nuevo valor"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Valor actual: ${(() => {
-                    const valorNumerico = typeof turnoToEdit.valor === 'string' ? parseFloat(turnoToEdit.valor) : turnoToEdit.valor;
-                    return Math.round(valorNumerico).toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                  })()}
-                </p>
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Valor actual:</strong> ${(() => {
+                      const valorNumerico = typeof turnoToEdit.valor === 'string' ? parseFloat(turnoToEdit.valor) : turnoToEdit.valor;
+                      return Math.round(valorNumerico).toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                    })()}
+                  </p>
+                </div>
               </div>
             </div>
           )}
           
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-4">
             <Button
               variant="outline"
               onClick={closeEditModal}
               disabled={editando}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 font-semibold h-12"
             >
               Cancelar
             </Button>
             <Button
               onClick={confirmEditTurno}
               disabled={editando}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-300 h-12"
             >
-              {editando ? 'Actualizando...' : 'Actualizar Valor'}
+              {editando ? (
+                <>
+                  <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+                  Actualizando...
+                </>
+              ) : (
+                <>
+                  <Edit3 className="h-5 w-5 mr-2" />
+                  Actualizar Valor
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

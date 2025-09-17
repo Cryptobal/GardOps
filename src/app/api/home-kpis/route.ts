@@ -13,12 +13,32 @@ export async function GET(request: NextRequest) {
   try {
     // Usar configuración de sistema para zona horaria (MIGRACIÓN CRÍTICA)
     const fechaChile = await getHoyChile();
-    const [anio, mes, dia] = fechaChile.split('-').map(Number);
     
-    logger.debug(`🔍 Obteniendo KPIs de página de inicio para fecha: ${anio}/${mes}/${dia}`);
+    // CORREGIDO: Aplicar la MISMA lógica de turno 24h que Central de Monitoreo
+    // Si son las 00:00-11:59, usar el día anterior (turno nocturno)
+    // Si son las 12:00-23:59, usar el día actual (turno diurno)
+    const fechaObj = new Date(fechaChile);
+    const horaActual = new Date().getHours();
+    
+    let fechaParaKPIs: string;
+    if (horaActual < 12) {
+      // Madrugada (00:00-11:59): usar día anterior
+      fechaObj.setDate(fechaObj.getDate() - 1);
+      fechaParaKPIs = fechaObj.toISOString().split('T')[0];
+    } else {
+      // Tarde/noche (12:00-23:59): usar día actual
+      fechaParaKPIs = fechaChile;
+    }
+    
+    const [anio, mes, dia] = fechaParaKPIs.split('-').map(Number);
+    
+    logger.debug(`🔍 Obteniendo KPIs de página de inicio para fecha: ${anio}/${mes}/${dia} (hora actual: ${horaActual}:00, fecha original: ${fechaChile})`);
+
+    // Obtener tenant_id del usuario (por ahora usar el tenant por defecto)
+    const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337'; // Tenant Gard
 
     // Obtener KPIs de monitoreo en tiempo real - EXCLUYENDO TURNOS LIBRES
-    // CORREGIDO: Mapeo correcto de estados semáforo NULL como pendientes
+    // CORREGIDO: Usar tipo_turno en lugar de plan_base/estado_operacion y agregar tenant_id
     const { rows } = await pool.query(`
       SELECT 
         COUNT(*) as total_turnos,
@@ -39,48 +59,57 @@ export async function GET(request: NextRequest) {
       INNER JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       WHERE pm.anio = $1 AND pm.mes = $2 AND pm.dia = $3
         AND po.activo = true
-        AND NOT (pm.plan_base = 'libre' OR pm.estado_operacion = 'libre')
-    `, [anio, mes, dia]);
+        AND pm.tenant_id = $4
+        AND pm.tipo_turno != 'libre'
+    `, [anio, mes, dia, tenantId]);
 
 
-    // Obtener KPIs del Central de Monitoreo usando configuración de sistema
+    // Obtener KPIs del Central de Monitoreo usando la MISMA lógica de turno 24h que central-monitoring/filtros
     const tz = await getSystemTimezone();
+    
+    // CORREGIDO: Usar la misma fecha que Control de Asistencia para mantener coherencia
+    // Calcular fecha del día siguiente para la lógica de turno 24h
+    const fechaObjMonitoreo = new Date(fechaParaKPIs);
+    const fechaSiguiente = new Date(fechaObjMonitoreo);
+    fechaSiguiente.setDate(fechaObjMonitoreo.getDate() + 1);
+    const fechaSiguienteStr = fechaSiguiente.toISOString().split('T')[0];
+    
     const { rows: monitoreoRows } = await pool.query(`
       SELECT 
         COUNT(*) as total_llamados,
-        -- Actuales: solo si es el día actual y en la hora actual en la TZ especificada
-        COUNT(CASE 
-          WHEN DATE(((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}')) = $1
-           AND date_trunc('hour', ((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}')) = date_trunc('hour', (now() AT TIME ZONE '${tz}'))
-          THEN 1 
-        END) as actuales,
-        -- Próximos: futuros del día actual + todos los de días futuros en la TZ especificada
-        COUNT(CASE 
-          WHEN (DATE(((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}')) = $1 AND ((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}') > (now() AT TIME ZONE '${tz}'))
-           OR DATE(((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}')) > $1
-          THEN 1 
-        END) as proximos,
-        -- Urgentes: solo del día actual que ya pasaron >30 min en la TZ especificada
-        COUNT(CASE 
-          WHEN DATE(((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}')) = $1
-           AND ((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}') < (now() AT TIME ZONE '${tz}') - interval '30 minutes'
-          THEN 1 
-        END) as urgentes,
-        COUNT(CASE WHEN estado_llamado = 'exitoso' THEN 1 END) as exitosos,
-        COUNT(CASE WHEN estado_llamado = 'no_contesta' THEN 1 END) as no_contesta,
-        COUNT(CASE WHEN estado_llamado = 'ocupado' THEN 1 END) as ocupado,
-        COUNT(CASE WHEN estado_llamado = 'incidente' THEN 1 END) as incidentes,
-        COUNT(CASE WHEN estado_llamado = 'no_registrado' THEN 1 END) as no_registrado,
-        COUNT(CASE WHEN estado_llamado = 'pendiente' THEN 1 END) as pendientes
-      FROM central_v_llamados_automaticos
-      WHERE DATE(((programado_para AT TIME ZONE 'UTC') AT TIME ZONE '${tz}')) = $1
-    `, [fechaChile]);
+        -- Usar la MISMA lógica que central-monitoring/filtros
+        COUNT(CASE WHEN v.es_actual = true THEN 1 END) as actuales,
+        COUNT(CASE WHEN v.es_proximo = true THEN 1 END) as proximos,
+        COUNT(CASE WHEN v.es_urgente = true THEN 1 END) as urgentes,
+        COUNT(CASE WHEN v.es_no_realizado = true THEN 1 END) as no_realizados,
+        COUNT(CASE WHEN COALESCE(cl.estado, v.estado_llamado) != 'pendiente' THEN 1 END) as completados,
+        COUNT(CASE WHEN COALESCE(cl.estado, v.estado_llamado) = 'exitoso' THEN 1 END) as exitosos,
+        COUNT(CASE WHEN COALESCE(cl.estado, v.estado_llamado) = 'no_contesta' THEN 1 END) as no_contesta,
+        COUNT(CASE WHEN COALESCE(cl.estado, v.estado_llamado) = 'ocupado' THEN 1 END) as ocupado,
+        COUNT(CASE WHEN COALESCE(cl.estado, v.estado_llamado) = 'incidente' THEN 1 END) as incidentes,
+        COUNT(CASE WHEN COALESCE(cl.estado, v.estado_llamado) = 'no_registrado' THEN 1 END) as no_registrado,
+        COUNT(CASE WHEN COALESCE(cl.estado, v.estado_llamado) = 'pendiente' THEN 1 END) as pendientes
+      FROM central_v_llamados_automaticos v
+      LEFT JOIN central_llamados cl ON cl.id = v.id
+      WHERE (
+        -- Llamados del día actual desde las 12:00 PM hasta las 23:59 PM
+        (DATE(v.programado_para AT TIME ZONE 'America/Santiago') = $1 
+         AND EXTRACT(HOUR FROM v.programado_para AT TIME ZONE 'America/Santiago') >= 12)
+        OR
+        -- Llamados del día siguiente desde las 00:00 AM hasta las 11:59 AM
+        (DATE(v.programado_para AT TIME ZONE 'America/Santiago') = $2 
+         AND EXTRACT(HOUR FROM v.programado_para AT TIME ZONE 'America/Santiago') < 12)
+      )
+      AND v.tenant_id = $3
+    `, [fechaParaKPIs, fechaSiguienteStr, tenantId]);
 
     const monitoreoKpis = monitoreoRows[0] || {
       total_llamados: 0,
       actuales: 0,
       proximos: 0,
       urgentes: 0,
+      no_realizados: 0,
+      completados: 0,
       exitosos: 0,
       no_contesta: 0,
       ocupado: 0,
@@ -89,15 +118,15 @@ export async function GET(request: NextRequest) {
       pendientes: 0
     };
 
-    // "No realizados" son los urgentes (llamados atrasados más de 30 min)
-    const noRealizados = parseInt(monitoreoKpis.urgentes || 0);
+    // Usar el campo no_realizados directamente de la vista
+    const noRealizados = parseInt(monitoreoKpis.no_realizados || 0);
 
     const kpis = {
       ...rows[0],
       monitoreo_urgentes: monitoreoKpis.urgentes,
       monitoreo_actuales: monitoreoKpis.actuales,
       monitoreo_proximos: monitoreoKpis.proximos,
-      monitoreo_completados: monitoreoKpis.exitosos,
+      monitoreo_completados: monitoreoKpis.completados,
       monitoreo_total: monitoreoKpis.total_llamados,
       monitoreo_no_realizados: noRealizados
     } || {

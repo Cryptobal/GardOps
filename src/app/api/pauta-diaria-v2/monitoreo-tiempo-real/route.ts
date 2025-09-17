@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const fecha = searchParams.get('fecha') || await getHoyChile();
     const instalacionId = searchParams.get('instalacion');
     const turno = searchParams.get('turno');
-    const incluirLibres = searchParams.get('incluirLibres') === 'true';
+    const incluirLibres = searchParams.get('incluirLibres') === 'true'; // Por defecto excluir días libres
 
     const [anio, mes, dia] = fecha.split('-').map(Number);
 
@@ -58,18 +58,22 @@ export async function GET(request: NextRequest) {
       LEFT JOIN guardias g ON pm.guardia_id = g.id
       WHERE pm.anio = $1 AND pm.mes = $2 AND pm.dia = $3
         AND po.activo = true
+        AND pm.tenant_id = $4
     `;
     
     // Agregar filtro según incluirLibres - CORREGIDO PARA NUEVA LÓGICA
     if (!incluirLibres) {
-      // Excluir días libres usando la nueva lógica estándar
-      query += ` AND NOT (pm.plan_base = 'libre' OR pm.estado_operacion = 'libre')`;
+      // Excluir días libres usando tipo_turno
+      query += ` AND pm.tipo_turno != 'libre'`;
     } else {
-      // Incluir todos los estados
-      query += ` AND pm.estado_operacion IN ('planificado', 'asistido', 'libre', 'falta_no_cubierto', 'falta_cubierto_por_turno_extra', 'permiso_con_goce_no_cubierto', 'permiso_con_goce_cubierto_por_turno_extra', 'permiso_sin_goce_no_cubierto', 'permiso_sin_goce_cubierto_por_turno_extra', 'licencia_no_cubierto', 'licencia_cubierto_por_turno_extra', 'ppc_no_cubierto', 'ppc_cubierto_por_turno_extra')`;
+      // Incluir todos los tipos de turno
+      query += ` AND pm.tipo_turno IN ('planificado', 'libre', 'asistido', 'falta_no_cubierto', 'falta_cubierto_por_turno_extra', 'permiso_con_goce_no_cubierto', 'permiso_con_goce_cubierto_por_turno_extra', 'permiso_sin_goce_no_cubierto', 'permiso_sin_goce_cubierto_por_turno_extra', 'licencia_no_cubierto', 'licencia_cubierto_por_turno_extra', 'ppc_no_cubierto', 'ppc_cubierto_por_turno_extra')`;
     }
     
-    const params: any[] = [anio, mes, dia];
+    // Obtener tenant_id del usuario (por ahora usar el tenant por defecto)
+    const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337'; // Tenant Gard
+    
+    const params: any[] = [anio, mes, dia, tenantId];
 
     if (instalacionId) {
       query += ` AND i.id = $${params.length + 1}`;

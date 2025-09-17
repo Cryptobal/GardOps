@@ -84,35 +84,52 @@ export function KPICards({
   ];
 
   return (
-    <div className="grid grid-cols-5 sm:grid-cols-2 md:grid-cols-5 gap-2 sm:gap-4">
-      {kpis.map((kpi, index) => {
-        const isActive = filtroActivo === kpi.tipo;
-        return (
-          <Card 
-            key={index} 
-            className={`${isActive ? kpi.activeBgColor : kpi.bgColor} border-0 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md`}
-            onClick={() => onKPIClick(kpi.tipo)}
-          >
-            <CardContent className="p-2 sm:p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div className="text-center sm:text-left">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
+    <div className="space-y-3">
+      {/* KPIs principales en grid compacto */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        {kpis.map((kpi, index) => {
+          const isActive = filtroActivo === kpi.tipo;
+          return (
+            <Card 
+              key={index} 
+              className={`${isActive ? kpi.activeBgColor : kpi.bgColor} border-2 cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md rounded-lg ${
+                isActive ? 'ring-2 ring-blue-500 shadow-lg' : 'border-gray-200 dark:border-gray-700'
+              }`}
+              onClick={() => onKPIClick(kpi.tipo)}
+            >
+              <CardContent className="p-3">
+                <div className="flex flex-col items-center text-center space-y-2">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md ${
+                    kpi.tipo === 'actuales' ? 'bg-yellow-500' :
+                    kpi.tipo === 'proximos' ? 'bg-blue-500' :
+                    kpi.tipo === 'completados' ? 'bg-green-500' :
+                    kpi.tipo === 'no_realizados' ? 'bg-red-500' :
+                    'bg-purple-500'
+                  }`}>
+                    <kpi.icon className="h-4 w-4 text-white" />
+                  </div>
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                     <span className="sm:hidden">{kpi.labelShort}</span>
                     <span className="hidden sm:inline">{kpi.label}</span>
                   </p>
-                  <p className={`text-lg sm:text-2xl font-bold ${kpi.color}`}>
+                  <p className={`text-lg font-bold ${
+                    kpi.tipo === 'actuales' ? 'text-yellow-700 dark:text-yellow-300' :
+                    kpi.tipo === 'proximos' ? 'text-blue-700 dark:text-blue-300' :
+                    kpi.tipo === 'completados' ? 'text-green-700 dark:text-green-300' :
+                    kpi.tipo === 'no_realizados' ? 'text-red-700 dark:text-red-300' :
+                    'text-purple-700 dark:text-purple-300'
+                  }`}>
                     {kpi.value.toLocaleString('es-CL')}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1 hidden sm:block">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
                     {kpi.description}
                   </p>
                 </div>
-                <kpi.icon className={`h-4 w-4 sm:h-8 sm:w-8 ${kpi.color} opacity-50 hidden sm:block`} />
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
