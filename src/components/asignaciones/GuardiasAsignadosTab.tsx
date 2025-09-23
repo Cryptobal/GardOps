@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Phone, MessageCircle, MapPin, Users, TrendingUp, Loader2, Sun, Moon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useCan } from '@/hooks/useCan';
+import { useCan } from '@/lib/permissions';
 
 interface GuardiaAsignado {
   guardia_id: string;
