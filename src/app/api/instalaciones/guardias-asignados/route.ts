@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
     logger.debug('🔍 Obteniendo guardias asignados por instalación...', { tenantId });
 
     // Obtener guardias asignados con información de instalación y distancia
+    // Usar tenant_id si está disponible, sino obtener todos los puestos con es_ppc = false
     const result = await query(`
       SELECT 
         g.id as guardia_id,
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
       JOIN instalaciones i ON po.instalacion_id = i.id
       LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
       WHERE po.es_ppc = false
-        AND po.tenant_id = $1
+        AND (po.tenant_id = $1 OR po.tenant_id IS NULL)
         AND g.latitud IS NOT NULL 
         AND g.longitud IS NOT NULL
         AND i.latitud IS NOT NULL 
@@ -112,7 +113,8 @@ export async function GET(request: NextRequest) {
       
       // Calcular puntuación de optimización (inversa de la distancia promedio)
       // Menor distancia promedio = mayor puntuación
-      const puntuacionOptimizacion = Math.max(0, Math.min(100, 100 - (distanciaPromedio * 10)));
+      // Fórmula ajustada: 100 - (distancia_promedio * 2) para que sea más realista
+      const puntuacionOptimizacion = Math.max(0, Math.min(100, 100 - (distanciaPromedio * 2)));
       
       return {
         ...inst,
