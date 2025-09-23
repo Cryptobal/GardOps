@@ -7,14 +7,23 @@ export async function GET(request: NextRequest) {
   try {
     // Verificar autenticación
     const user = getCurrentUserServer(request);
-    if (!user || !user.tenant_id) {
+    
+    // En desarrollo, usar tenant por defecto si no hay autenticación
+    let tenantId = user?.tenant_id;
+    if (!tenantId && process.env.NODE_ENV === 'development') {
+      tenantId = '903edee6-6964-42b8-bcc4-14d23d4bbe1b'; // Tenant por defecto en desarrollo
+      logger.debug('🔍 [DEV] Usando tenant por defecto:', tenantId);
+    }
+    
+    if (!tenantId) {
+      logger.debug('🔍 [AUTH] No se encontró tenant_id:', { user, hasUser: !!user });
       return NextResponse.json(
-        { success: false, error: 'No autorizado' },
+        { success: false, error: 'No autorizado - falta tenant_id' },
         { status: 401 }
       );
     }
 
-    logger.debug('🔍 Obteniendo guardias asignados por instalación...');
+    logger.debug('🔍 Obteniendo guardias asignados por instalación...', { tenantId });
 
     // Obtener guardias asignados con información de instalación y distancia
     const result = await query(`
@@ -43,7 +52,7 @@ export async function GET(request: NextRequest) {
         AND i.latitud IS NOT NULL 
         AND i.longitud IS NOT NULL
       ORDER BY i.nombre, g.apellido_paterno, g.nombre
-    `, [user.tenant_id]);
+    `, [tenantId]);
 
     // Calcular distancias usando fórmula de Haversine
     const guardiasConDistancia = result.rows.map((row: any) => {
@@ -51,72 +60,71 @@ export async function GET(request: NextRequest) {
       const guardLng = parseFloat(row.guardia_lng);
       const instLat = parseFloat(row.instalacion_lat);
       const instLng = parseFloat(row.instalacion_lng);
-
-      if (isNaN(guardLat) || isNaN(guardLng) || isNaN(instLat) || isNaN(instLng)) {
-        return null;
-      }
-
-      const distancia = calcularDistancia(instLat, instLng, guardLat, guardLng);
-
-      return {
-        guardia_id: row.guardia_id,
-        guardia_nombre: row.guardia_nombre,
-        telefono: row.telefono || '',
-        guardia_comuna: row.guardia_comuna,
-        guardia_lat: guardLat,
-        guardia_lng: guardLng,
-        instalacion_id: row.instalacion_id,
-        instalacion_nombre: row.instalacion_nombre,
-        instalacion_lat: instLat,
-        instalacion_lng: instLng,
-        rol_nombre: row.rol_nombre,
-        fecha_asignacion: row.fecha_asignacion,
-        asignado_desde: row.asignado_desde,
-        distancia: distancia
-      };
-    }).filter(item => item !== null);
-
-    // Agrupar por instalación y calcular estadísticas
-    const instalacionesConEstadisticas = guardiasConDistancia.reduce((acc: any, guardia: any) => {
-      const instId = guardia.instalacion_id;
       
-      if (!acc[instId]) {
-        acc[instId] = {
-          instalacion_id: instId,
-          instalacion_nombre: guardia.instalacion_nombre,
-          instalacion_lat: guardia.instalacion_lat,
-          instalacion_lng: guardia.instalacion_lng,
-          guardias: [],
-          total_guardias: 0,
-          distancia_promedio: 0,
-          distancia_maxima: 0,
-          distancia_minima: Infinity,
-          puntuacion_optimizacion: 0
-        };
-      }
-
-      acc[instId].guardias.push(guardia);
-      acc[instId].total_guardias++;
-      acc[instId].distancia_maxima = Math.max(acc[instId].distancia_maxima, guardia.distancia);
-      acc[instId].distancia_minima = Math.min(acc[instId].distancia_minima, guardia.distancia);
-
-      return acc;
-    }, {});
-
-    // Calcular estadísticas finales y puntuación de optimización
-    const instalacionesOptimizadas = Object.values(instalacionesConEstadisticas).map((inst: any) => {
-      const distancias = inst.guardias.map((g: any) => g.distancia);
-      inst.distancia_promedio = distancias.reduce((sum: number, dist: number) => sum + dist, 0) / distancias.length;
-      inst.distancia_minima = inst.distancia_minima === Infinity ? 0 : inst.distancia_minima;
-
-      // Puntuación de optimización (menor distancia promedio = mejor puntuación)
-      // Escala de 0-100, donde 100 es la mejor optimización
-      inst.puntuacion_optimizacion = Math.max(0, 100 - (inst.distancia_promedio * 2));
-
-      return inst;
+      const distancia = calcularDistancia(guardLat, guardLng, instLat, instLng);
+      
+      return {
+        ...row,
+        distancia: Math.round(distancia * 10) / 10 // Redondear a 1 decimal
+      };
     });
 
-    // Ordenar por puntuación de optimización (mejor primero)
+    // Agrupar por instalación
+    const instalacionesMap = new Map();
+    
+    guardiasConDistancia.forEach((guardia: any) => {
+      const instId = guardia.instalacion_id;
+      
+      if (!instalacionesMap.has(instId)) {
+        instalacionesMap.set(instId, {
+          instalacion_id: instId,
+          instalacion_nombre: guardia.instalacion_nombre,
+          instalacion_lat: parseFloat(guardia.instalacion_lat),
+          instalacion_lng: parseFloat(guardia.instalacion_lng),
+          guardias: [],
+          distancias: []
+        });
+      }
+      
+      const instalacion = instalacionesMap.get(instId);
+      instalacion.guardias.push({
+        guardia_id: guardia.guardia_id,
+        guardia_nombre: guardia.guardia_nombre,
+        telefono: guardia.telefono,
+        guardia_comuna: guardia.guardia_comuna,
+        guardia_lat: parseFloat(guardia.guardia_lat),
+        guardia_lng: parseFloat(guardia.guardia_lng),
+        rol_nombre: guardia.rol_nombre,
+        fecha_asignacion: guardia.fecha_asignacion,
+        asignado_desde: guardia.asignado_desde,
+        distancia: guardia.distancia
+      });
+      
+      instalacion.distancias.push(guardia.distancia);
+    });
+
+    // Calcular métricas de optimización para cada instalación
+    const instalacionesOptimizadas = Array.from(instalacionesMap.values()).map((inst: any) => {
+      const distancias = inst.distancias;
+      const distanciaPromedio = distancias.reduce((sum: number, dist: number) => sum + dist, 0) / distancias.length;
+      const distanciaMaxima = Math.max(...distancias);
+      const distanciaMinima = Math.min(...distancias);
+      
+      // Calcular puntuación de optimización (inversa de la distancia promedio)
+      // Menor distancia promedio = mayor puntuación
+      const puntuacionOptimizacion = Math.max(0, Math.min(100, 100 - (distanciaPromedio * 10)));
+      
+      return {
+        ...inst,
+        total_guardias: inst.guardias.length,
+        distancia_promedio: Math.round(distanciaPromedio * 10) / 10,
+        distancia_maxima: Math.round(distanciaMaxima * 10) / 10,
+        distancia_minima: Math.round(distanciaMinima * 10) / 10,
+        puntuacion_optimizacion: Math.round(puntuacionOptimizacion)
+      };
+    });
+
+    // Ordenar por puntuación de optimización (mayor a menor)
     instalacionesOptimizadas.sort((a: any, b: any) => b.puntuacion_optimizacion - a.puntuacion_optimizacion);
 
     logger.debug(`✅ Instalaciones con guardias asignados: ${instalacionesOptimizadas.length}`);

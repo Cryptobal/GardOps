@@ -61,11 +61,19 @@ export default function GuardiasAsignadosTab({ map }: GuardiasAsignadosTabProps)
           setInstalacionSeleccionada(data.data[0]); // Seleccionar la primera por defecto
         }
       } else {
-        toast.error(data.error || 'Error cargando guardias asignados', 'Error');
+        if (toast?.error) {
+          toast.error(data.error || 'Error cargando guardias asignados', 'Error');
+        } else {
+          console.error('Error cargando guardias asignados:', data.error);
+        }
       }
     } catch (error) {
       logger.error('Error cargando guardias asignados::', error);
-      toast.error('Error de conexión al cargar datos', 'Error');
+      if (toast?.error) {
+        toast.error('Error de conexión al cargar datos', 'Error');
+      } else {
+        console.error('Error de conexión al cargar datos:', error);
+      }
     } finally {
       setLoading(false);
     }
