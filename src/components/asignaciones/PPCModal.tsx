@@ -26,21 +26,6 @@ interface PPC {
   estado: string;
 }
 
-interface TurnoAsignado {
-  id: string;
-  puesto_id: string;
-  tipo: 'turno_asignado';
-  instalacion: string;
-  instalacion_id: string;
-  rol: string;
-  rol_id: string;
-  horario: string;
-  guardia_asignado: {
-    id: string;
-    nombre: string;
-  };
-  estado: string;
-}
 
 interface PPCModalProps {
   isOpen: boolean;
@@ -72,7 +57,6 @@ export default function PPCModal({
   const inputRef = useRef<HTMLInputElement>(null);
   
   const [ppcs, setPpcs] = useState<PPC[]>([]);
-  const [turnosAsignados, setTurnosAsignados] = useState<TurnoAsignado[]>([]);
   const [loading, setLoading] = useState(false);
   const [asignando, setAsignando] = useState<string | null>(null);
   
@@ -414,7 +398,7 @@ export default function PPCModal({
         ppc: null
       });
 
-      mostrarModalExito('permanente', guardia, modalFechaInicio.ppc, null);
+      mostrarModalExito('permanente', guardia, modalFechaInicio.ppc);
       
     } catch (error) {
       logger.error('Error asignando guardia permanente::', error);
@@ -534,7 +518,7 @@ export default function PPCModal({
                   console.log('🎉 Fecha:', fecha);
                   console.log('🎉 Pauta ID:', createResult.pauta_id);
                   
-                  mostrarModalExito('turno_extra_ppc', guardia, ppc, null);
+                  mostrarModalExito('turno_extra_ppc', guardia, ppc);
                   
                   return; // Salir exitosamente
                 } else {
@@ -584,47 +568,8 @@ export default function PPCModal({
     }
   };
 
-  const handleTurnoExtraReemplazo = async (turno: TurnoAsignado) => {
-    try {
-      setAsignando(turno.id);
-      console.log('🟧 Turno extra reemplazo (usando endpoint pauta-diaria):', { pauta_id: turno.id, guardia_id: guardia.id });
-      
-      // Usar el endpoint que marca estado = 'extra' y estado_ui = 'extra'
-      const response = await fetch('/api/pauta-diaria', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          turnoId: turno.id,
-          accion: 'asignar_ppc',
-          guardiaId: guardia.id
-        })
-      });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Error al crear turno extra');
-      }
-
-      // Recargar datos para que se vea en la pauta diaria
-      try {
-        if (typeof onAsignacionExitosa === 'function') {
-          onAsignacionExitosa();
-        }
-      } catch (error) {
-        logger.error('Error en onAsignacionExitosa:', error);
-      }
-      
-      mostrarModalExito('turno_extra_reemplazo', turno.guardia, null, turno);
-      
-    } catch (error) {
-      logger.error('Error creando turno extra reemplazo::', error);
-      toast.error('No se pudo crear el reemplazo', 'Error');
-    } finally {
-      setAsignando(null);
-    }
-  };
-
-  const mostrarModalExito = (tipo: string, guardia: Guard, ppc: PPC | null, turno: TurnoAsignado | null) => {
+  const mostrarModalExito = (tipo: string, guardia: Guard, ppc: PPC | null) => {
     let mensaje = '';
     let info = { instalacion: '', rol: '', horario: '' };
     
@@ -634,9 +579,6 @@ export default function PPCModal({
     } else if (tipo === 'turno_extra_ppc' && ppc) {
       mensaje = 'Turno Extra - PPC';
       info = { instalacion: ppc.instalacion, rol: ppc.rol, horario: ppc.horario };
-    } else if (tipo === 'turno_extra_reemplazo' && turno) {
-      mensaje = 'Turno Extra - Reemplazo';
-      info = { instalacion: turno.instalacion, rol: turno.rol, horario: turno.horario };
     }
 
     setModalExito({
@@ -909,51 +851,6 @@ export default function PPCModal({
             )}
           </div>
 
-          {/* Turnos Asignados para Reemplazo */}
-          <div>
-            <h3 className="font-medium mb-3 text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              🟧 Turnos Asignados (Generar Turno Extra)
-            </h3>
-            
-            {turnosAsignados.length === 0 ? (
-              <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-                <User className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                <p>No hay turnos asignados hoy</p>
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {turnosAsignados.map((turno) => (
-                  <div key={turno.id} className="border border-orange-200 dark:border-orange-700 rounded-lg p-3 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors bg-white dark:bg-gray-900">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge variant="secondary" className="bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200">{turno.rol}</Badge>
-                          <Badge variant="outline" className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">{turno.guardia_asignado.nombre}</Badge>
-                        </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{turno.instalacion}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-500">Horario: {turno.horario}</p>
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={() => handleTurnoExtraReemplazo(turno)}
-                        disabled={asignando === turno.id}
-                        className="ml-3 bg-orange-600 hover:bg-orange-700 text-white"
-                      >
-                        {asignando === turno.id ? (
-                          <>
-                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                            Creando...
-                          </>
-                        ) : (
-                          'Turno Extra'
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </CardContent>
       </Card>
 
