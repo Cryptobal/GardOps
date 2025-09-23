@@ -250,7 +250,6 @@ export default function PPCModal({
       }));
       
       setPpcs(ppcsFormateados);
-      setTurnosAsignados([]); // Por ahora no cargamos turnos asignados desde este endpoint
       setPpcsCargados(true); // Marcar como cargado para evitar recargas
       
     } catch (error) {
@@ -261,7 +260,6 @@ export default function PPCModal({
         console.error('Error de conexión al cargar PPCs:', error);
       }
       setPpcs([]);
-      setTurnosAsignados([]);
     } finally {
       setLoading(false);
     }
