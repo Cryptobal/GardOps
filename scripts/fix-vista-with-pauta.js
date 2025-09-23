@@ -272,3 +272,4 @@ async function fixVistaWithPauta() {
 fixVistaWithPauta()
   .then(() => process.exit(0))
   .catch(() => process.exit(1));
+

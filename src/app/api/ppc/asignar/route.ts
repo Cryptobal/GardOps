@@ -159,8 +159,26 @@ export async function POST(request: NextRequest) {
       
       const instalacion_id = puestoInfo.rows[0].instalacion_id;
       
+      console.log('🔍 [PPC/ASIGNAR] Datos para historial:', {
+        guardia_id,
+        instalacion_id,
+        puestoIdFinal,
+        fechaInicioAsignacion,
+        fecha_inicio_recibida: fecha_inicio,
+        fechaActualUTC: new Date().toISOString(),
+        fechaActualChile: new Date().toLocaleString('es-CL', { timeZone: 'America/Santiago' })
+      });
+      
       // Usar fecha de inicio proporcionada o fecha actual como fallback (COMPATIBILIDAD)
-      const fechaInicioAsignacion = fecha_inicio || new Date().toISOString().split('T')[0];
+      const fechaInicioAsignacion = fecha_inicio || new Date().toLocaleString('en-CA', { timeZone: 'America/Santiago' }).split(',')[0];
+      
+      console.log('🔍 [PPC/ASIGNAR] Procesando fecha de inicio:', {
+        fecha_inicio_recibida: fecha_inicio,
+        fechaInicioAsignacion,
+        fechaActualUTC: new Date().toISOString(),
+        fechaActualChile: new Date().toLocaleString('es-CL', { timeZone: 'America/Santiago' }),
+        fechaActualChileISO: new Date().toLocaleString('en-CA', { timeZone: 'America/Santiago' })
+      });
       
       // NUEVA VALIDACIÓN: Verificar conflictos con pauta diaria
       logger.debug(`🔍 [VALIDACIÓN] Verificando conflictos con pauta diaria desde ${fechaInicioAsignacion}...`);

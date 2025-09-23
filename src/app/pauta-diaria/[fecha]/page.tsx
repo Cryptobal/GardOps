@@ -1,6 +1,8 @@
 "use client";
 
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
+import { useStylishConfirm } from '@/hooks/useStylishConfirm';
+import { StylishConfirmProvider } from '@/components/ui/stylish-confirm-modal';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { format } from 'date-fns';
@@ -65,6 +67,7 @@ interface Puesto {
 
 export default function PautaDiariaPage({ params }: { params: { fecha: string } }) {
   const router = useRouter();
+  const { confirm, close, modal } = useStylishConfirm();
   
   // Función helper para generar ID corto de puesto
   const generarIdCortoPuesto = (puestoId: string | number) => {
@@ -235,10 +238,8 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
       setLoading(true);
     }
     try {
-      // Corregir el problema de zona horaria
-      const [anio, mes, dia] = fecha.split('-').map(Number);
-      
-      const response = await fetch(`/api/pauta-diaria?anio=${anio}&mes=${mes}&dia=${dia}`);
+      // Usar el endpoint correcto con el formato de fecha adecuado
+      const response = await fetch(`/api/pauta-diaria?fecha=${fecha}`);
       if (response.ok) {
         const data = await response.json();
         setPuestos(data.puestos || data);
@@ -291,9 +292,17 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
   }, [fechaSeleccionada]);
 
   // Navegación de fechas
-  const cambiarFecha = (dias: number) => {
+  const cambiarFecha = async (dias: number) => {
     if (cambiosPendientes) {
-      if (!confirm('Hay cambios pendientes. ¿Deseas continuar sin guardar?')) {
+      const confirmed = await confirm({
+        title: 'Cambios pendientes',
+        message: 'Hay cambios pendientes. ¿Deseas continuar sin guardar?',
+        type: 'warning',
+        confirmText: 'Continuar',
+        cancelText: 'Cancelar'
+      });
+      
+      if (!confirmed) {
         return;
       }
       setCambiosPendientes(false);
@@ -306,14 +315,23 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
     router.push(`/pauta-diaria/${nuevaFecha}`);
   };
 
-  const irAHoy = () => {
+  const irAHoy = async () => {
     if (cambiosPendientes) {
-      if (!confirm('Hay cambios pendientes. ¿Deseas continuar sin guardar?')) {
+      const confirmed = await confirm({
+        title: 'Cambios pendientes',
+        message: 'Hay cambios pendientes. ¿Deseas continuar sin guardar?',
+        type: 'warning',
+        confirmText: 'Continuar',
+        cancelText: 'Cancelar'
+      });
+      
+      if (!confirmed) {
         return;
       }
       setCambiosPendientes(false);
     }
-    const fechaFormateada = format(new Date(), 'yyyy-MM-dd');
+    // Usar la fecha actual en zona horaria de Chile
+    const fechaFormateada = new Date().toLocaleString("en-CA", { timeZone: 'America/Santiago' }).split(',')[0];
     devLogger.process(' Navegando a hoy:', fechaFormateada);
     setFechaSeleccionada(fechaFormateada);
     router.push(`/pauta-diaria/${fechaFormateada}`);
@@ -1090,8 +1108,13 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
   }, []); // Solo ejecutar una vez
 
   return (
-    <TooltipProvider>
-      <div className="container mx-auto p-2 sm:p-6 space-y-4 sm:space-y-6">
+    <StylishConfirmProvider 
+      modal={modal} 
+      onClose={close} 
+      onConfirm={() => modal.onConfirm?.()}
+    >
+      <TooltipProvider>
+        <div className="container mx-auto p-2 sm:p-6 space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="text-center sm:text-left">
@@ -1405,6 +1428,15 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
                                 >
                                   {generarIdCortoPuesto(puesto.puesto_id)}
                                 </button>
+                                {puesto.pauta_id && (
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                                    (Turno: {puesto.pauta_id})
+                                  </span>
+                                )}
+                                {/* Debug: mostrar siempre el pauta_id para verificar */}
+                                <span className="text-xs text-red-500 ml-1">
+                                  [DEBUG: {puesto.pauta_id || 'NO_ID'}]
+                                </span>
                               </div>
                               {puesto.es_ppc && (
                                 <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
@@ -1625,6 +1657,7 @@ export default function PautaDiariaPage({ params }: { params: { fecha: string } 
           </div>
         </div>
       )}
-    </TooltipProvider>
+      </TooltipProvider>
+    </StylishConfirmProvider>
   );
 } 

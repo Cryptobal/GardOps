@@ -74,18 +74,23 @@ export const NavigationItemWrapper = React.memo(function NavigationItemWrapper({
     // Caso directo: pathname coincide exactamente con href
     if (pathname === item.href) return true;
     
-    // Caso especial: páginas de detalle deben mantener el elemento padre activo
-    // Ejemplo: /clientes/123 debe mantener /clientes activo
-    if (pathname.startsWith(item.href + '/')) return true;
+    // Caso especial: pauta diaria - solo activo en /pauta-diaria exacto
+    if (item.href === '/pauta-diaria' && pathname === '/pauta-diaria') return true;
     
-    // Caso especial: pauta diaria - solo activo en /pauta-diaria
-    if (item.href === '/pauta-diaria' && pathname.startsWith('/pauta-diaria')) return true;
+    // Caso especial: turnos extras está dentro de pauta-diaria
+    if (item.href === '/pauta-diaria/turnos-extras' && pathname.startsWith('/pauta-diaria/turnos-extras')) return true;
     
     // Caso especial: control de asistencias - solo activo en /control-asistencias
     if (item.href === '/control-asistencias' && pathname.startsWith('/control-asistencias')) return true;
     
-    // Caso especial: turnos extras está dentro de pauta-diaria
-    if (item.href === '/pauta-diaria/turnos-extras' && pathname.startsWith('/pauta-diaria/turnos-extras')) return true;
+    // Caso general: páginas de detalle deben mantener el elemento padre activo
+    // Ejemplo: /clientes/123 debe mantener /clientes activo
+    // PERO excluir casos especiales ya manejados arriba
+    if (pathname.startsWith(item.href + '/') && 
+        item.href !== '/pauta-diaria' && 
+        item.href !== '/control-asistencias') {
+      return true;
+    }
     
     return false;
   })();

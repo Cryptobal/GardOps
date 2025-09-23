@@ -81,20 +81,30 @@ export async function POST(
     
     console.log('✅ [DESASIGNAR] Puesto liberado correctamente');
 
-    // 3. SINCRONIZAR PAUTA MENSUAL - CRÍTICO PARA PAUTA DIARIA
-    console.log('🔄 [DESASIGNAR] Iniciando sincronización de pauta mensual...');
-    const resultadoSync = await sincronizarPautasPostAsignacion(
-      ppcId,
-      null, // guardiaId = null para desasignación
-      instalacionId,
-      puestoData.rol_id
-    );
-    
-    if (resultadoSync.success) {
-      console.log('✅ [DESASIGNAR] Pauta mensual sincronizada correctamente');
-    } else {
-      console.error('❌ [DESASIGNAR] Error en sincronización:', resultadoSync.error);
-      // No fallar la operación, pero registrar el error
+    // 3. LIMPIAR SOLO LOS REGISTROS DEL GUARDIA DESASIGNADO - NO REGENERAR PAUTA COMPLETA
+    console.log('🔄 [DESASIGNAR] Limpiando registros del guardia desasignado...');
+    try {
+      // Solo limpiar los registros donde este guardia estaba asignado
+      const registrosDelGuardia = await query(`
+        UPDATE as_turnos_pauta_mensual 
+        SET guardia_id = NULL,
+            estado_puesto = 'ppc',
+            estado_guardia = NULL,
+            tipo_cobertura = 'ppc',
+            guardia_trabajo_id = NULL,
+            updated_at = NOW()
+        WHERE puesto_id = $1 AND guardia_id = $2
+        RETURNING id, anio, mes, dia
+      `, [ppcId, guardiaId]);
+      
+      console.log(`✅ [DESASIGNAR] Limpiados ${registrosDelGuardia.rows.length} registros del guardia desasignado`);
+      
+      if (registrosDelGuardia.rows.length > 0) {
+        console.log('🔍 [DESASIGNAR] Registros limpiados:', registrosDelGuardia.rows.map(r => `${r.anio}-${r.mes}-${r.dia}`));
+      }
+    } catch (error) {
+      console.error('❌ [DESASIGNAR] Error limpiando registros del guardia:', error);
+      // No fallar la operación principal
     }
 
     // 4. LIMPIAR REGISTROS FANTASMA ADICIONALES - NUEVA FUNCIONALIDAD

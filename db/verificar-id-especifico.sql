@@ -43,3 +43,4 @@ FROM central_llamados
 WHERE DATE(programado_para AT TIME ZONE 'America/Santiago') = '2025-09-16'
 ORDER BY programado_para ASC
 LIMIT 5;
+

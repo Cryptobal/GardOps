@@ -6,7 +6,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './dialog';
 import { Button } from './button';
 import { Input } from './input';
 import { Label } from './label';
@@ -22,6 +22,8 @@ interface ModalFechaInicioAsignacionProps {
   nuevaInstalacionNombre: string;
   nuevoRolServicioNombre: string;
   esReasignacion: boolean;
+  fechaInicial?: string; // Nueva prop para la fecha inicial
+  ppcId?: string; // ID del puesto para validar conflictos
 }
 
 export default function ModalFechaInicioAsignacion({
@@ -32,20 +34,101 @@ export default function ModalFechaInicioAsignacion({
   guardiaInstalacionActual,
   nuevaInstalacionNombre,
   nuevoRolServicioNombre,
-  esReasignacion
+  esReasignacion,
+  fechaInicial,
+  ppcId
 }: ModalFechaInicioAsignacionProps) {
   
+  console.log('🔍 [DEBUG] ModalFechaInicioAsignacion - Props recibidas:', {
+    isOpen,
+    guardiaNombre,
+    nuevaInstalacionNombre,
+    nuevoRolServicioNombre,
+    esReasignacion,
+    fechaInicial
+  });
+  
   const [fechaInicio, setFechaInicio] = useState(() => {
-    // Por defecto, fecha actual en zona horaria local (Chile)
+    console.log('🔍 [DEBUG] ModalFechaInicioAsignacion - fechaInicial recibida:', fechaInicial);
+    
+    // Usar fechaInicial si está disponible, sino usar fecha actual en zona horaria de Chile
+    if (fechaInicial) {
+      // Si viene en formato YYYY-MM-DD, usarla directamente
+      if (fechaInicial.includes('-') && fechaInicial.length === 10) {
+        console.log('🔍 [DEBUG] Usando fecha en formato YYYY-MM-DD:', fechaInicial);
+        return fechaInicial;
+      }
+      // Si viene en formato DD/MM/YYYY, convertir a YYYY-MM-DD
+      const partes = fechaInicial.split('/');
+      if (partes.length === 3) {
+        const dia = partes[0].padStart(2, '0');
+        const mes = partes[1].padStart(2, '0');
+        const año = partes[2];
+        const fechaConvertida = `${año}-${mes}-${dia}`;
+        console.log('🔍 [DEBUG] Fecha convertida de DD/MM/YYYY a YYYY-MM-DD:', fechaInicial, '->', fechaConvertida);
+        return fechaConvertida;
+      }
+    }
+    
+    // Por defecto, fecha actual en zona horaria de Chile
     const hoy = new Date();
     const año = hoy.getFullYear();
     const mes = String(hoy.getMonth() + 1).padStart(2, '0');
     const dia = String(hoy.getDate()).padStart(2, '0');
-    return `${año}-${mes}-${dia}`;
+    const fechaActual = `${año}-${mes}-${dia}`;
+    console.log('🔍 [DEBUG] Usando fecha actual:', fechaActual);
+    return fechaActual;
   });
   
   const [observaciones, setObservaciones] = useState('');
   const [loading, setLoading] = useState(false);
+  const [validandoFecha, setValidandoFecha] = useState(false);
+  const [conflictosFecha, setConflictosFecha] = useState<any[]>([]);
+  const [mensajeValidacion, setMensajeValidacion] = useState('');
+  
+  // Validar fecha inicial cuando se abre el modal - TEMPORALMENTE DESHABILITADO
+  // React.useEffect(() => {
+  //   if (isOpen && ppcId && fechaInicio) {
+  //     validarFechaAsignacion(fechaInicio);
+  //   }
+  // }, [isOpen, ppcId, fechaInicio]);
+  
+  // Función para validar fecha de asignación
+  const validarFechaAsignacion = async (fecha: string) => {
+    if (!fecha) {
+      setConflictosFecha([]);
+      setMensajeValidacion('');
+      return;
+    }
+    
+    setValidandoFecha(true);
+    try {
+      const response = await fetch('/api/validar-fecha-asignacion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          puesto_id: ppcId,
+          fecha_inicio: fecha
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setConflictosFecha(data.conflictos || []);
+        setMensajeValidacion(data.mensaje || '');
+      } else {
+        setConflictosFecha([]);
+        setMensajeValidacion('Error validando fecha');
+      }
+    } catch (error) {
+      console.error('Error validando fecha:', error);
+      setConflictosFecha([]);
+      setMensajeValidacion('Error validando fecha');
+    } finally {
+      setValidandoFecha(false);
+    }
+  };
 
   const handleConfirmar = async () => {
     if (!fechaInicio) {
@@ -54,7 +137,11 @@ export default function ModalFechaInicioAsignacion({
     
     console.log('🔍 [MODAL-FECHA] Confirmando con fecha:', {
       fechaSeleccionada: fechaInicio,
+      fechaInicialRecibida: fechaInicial,
       fechaActual: new Date().toLocaleDateString('es-CL'),
+      fechaActualUTC: new Date().toISOString(),
+      fechaActualChile: new Date().toLocaleString('es-CL', { timeZone: 'America/Santiago' }),
+      fechaActualChileISO: new Date().toLocaleString('en-CA', { timeZone: 'America/Santiago' }),
       observaciones
     });
     
@@ -71,12 +158,28 @@ export default function ModalFechaInicioAsignacion({
 
   const handleClose = () => {
     if (!loading) {
-      // Resetear a fecha actual en zona horaria local (Chile)
-      const hoy = new Date();
-      const año = hoy.getFullYear();
-      const mes = String(hoy.getMonth() + 1).padStart(2, '0');
-      const dia = String(hoy.getDate()).padStart(2, '0');
-      setFechaInicio(`${año}-${mes}-${dia}`);
+      // Resetear a fecha inicial o fecha actual
+      if (fechaInicial) {
+        // Si viene en formato YYYY-MM-DD, usarla directamente
+        if (fechaInicial.includes('-') && fechaInicial.length === 10) {
+          setFechaInicio(fechaInicial);
+        } else {
+          // Si viene en formato DD/MM/YYYY, convertir a YYYY-MM-DD
+          const partes = fechaInicial.split('/');
+          if (partes.length === 3) {
+            const dia = partes[0].padStart(2, '0');
+            const mes = partes[1].padStart(2, '0');
+            const año = partes[2];
+            setFechaInicio(`${año}-${mes}-${dia}`);
+          }
+        }
+      } else {
+        const hoy = new Date();
+        const año = hoy.getFullYear();
+        const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+        const dia = String(hoy.getDate()).padStart(2, '0');
+        setFechaInicio(`${año}-${mes}-${dia}`);
+      }
       setObservaciones('');
       onClose();
     }
@@ -92,6 +195,12 @@ export default function ModalFechaInicioAsignacion({
             <Calendar className="h-5 w-5 text-blue-600" />
             {esReasignacion ? 'Confirmar Reasignación' : 'Confirmar Asignación'}
           </DialogTitle>
+          <DialogDescription>
+            {esReasignacion 
+              ? 'Selecciona la fecha de inicio para la nueva asignación del guardia.'
+              : 'Selecciona la fecha de inicio para asignar el guardia al puesto.'
+            }
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -140,9 +249,17 @@ export default function ModalFechaInicioAsignacion({
               id="fecha-inicio"
               type="date"
               value={fechaInicio}
-              onChange={(e) => setFechaInicio(e.target.value)}
+              onChange={(e) => {
+                const nuevaFecha = e.target.value;
+                setFechaInicio(nuevaFecha);
+                // Validación automática temporalmente deshabilitada
+                // if (ppcId && nuevaFecha) {
+                //   validarFechaAsignacion(nuevaFecha);
+                // }
+              }}
               required
               className="w-full"
+              max="2030-12-31"
             />
             <p className="text-xs text-gray-500">
               {esReasignacion 
@@ -150,6 +267,41 @@ export default function ModalFechaInicioAsignacion({
                 : 'Fecha desde la cual el guardia estará asignado a esta instalación'
               }
             </p>
+            {fechaInicial && (
+              <p className="text-xs text-blue-600 dark:text-blue-400">
+                💡 Fecha sugerida desde el buscador: {fechaInicial}
+              </p>
+            )}
+            
+            {/* Validación de conflictos */}
+            {validandoFecha && (
+              <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                🔍 Validando fecha...
+              </p>
+            )}
+            
+            {mensajeValidacion && !validandoFecha && (
+              <div className={`text-xs p-2 rounded ${
+                conflictosFecha.length > 0 
+                  ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950' 
+                  : 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950'
+              }`}>
+                {conflictosFecha.length > 0 ? (
+                  <div>
+                    <p className="font-medium">⚠️ {mensajeValidacion}</p>
+                    <div className="mt-1">
+                      {conflictosFecha.map((conflicto, index) => (
+                        <p key={index} className="text-xs">
+                          • {conflicto.fecha}: {conflicto.guardia_nombre} ({conflicto.estado})
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p>✅ {mensajeValidacion}</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Observaciones */}

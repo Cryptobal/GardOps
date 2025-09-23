@@ -61,15 +61,24 @@ export async function DELETE(
     }
 
     // Revertir la cobertura usando la función fn_deshacer
-    const { rows: resultado } = await query(`
-      SELECT * FROM as_turnos.fn_deshacer($1::bigint, $2::text)
-    `, [pauta_id, 'api_turnos_extras']);
+    try {
+      const { rows: resultado } = await query(`
+        SELECT * FROM as_turnos.fn_deshacer($1::bigint, $2::text)
+      `, [pauta_id, 'api_turnos_extras']);
 
-    if (resultado.length === 0 || !resultado[0].ok) {
-      return NextResponse.json(
-        { error: 'Error al revertir la cobertura' },
-        { status: 500 }
-      );
+      logger.debug(`Resultado fn_deshacer para pauta ${pauta_id}:`, resultado);
+
+      if (resultado.length === 0 || !resultado[0].ok) {
+        logger.error(`fn_deshacer falló para pauta ${pauta_id}:`, resultado);
+        return NextResponse.json(
+          { error: 'Error al revertir la cobertura' },
+          { status: 500 }
+        );
+      }
+    } catch (fnError) {
+      logger.error(`Error ejecutando fn_deshacer para pauta ${pauta_id}:`, fnError);
+      // Si la función fn_deshacer falla, continuar con la lógica manual
+      logger.info(`Continuando con lógica manual para pauta ${pauta_id}`);
     }
 
         // Restaurar el estado original según si el puesto es originalmente PPC o no

@@ -210,13 +210,27 @@ export function mapearEstadoOperacionADisplay(
       return {
         icon: "●",
         text: "",
-        className: "bg-transparent border-0",
-        iconColor: "text-blue-500 dark:text-blue-300 text-xl font-bold",
+        className: "bg-blue-100 border-2 border-blue-300 dark:bg-blue-900/30 dark:border-blue-600",
+        iconColor: "text-blue-600 dark:text-blue-400 text-xl font-bold",
         tooltip: "Turno Planificado (PPC o con Guardia)",
         badgeConfig: {
           label: "Planificado",
           variant: "default",
           color: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-200"
+        }
+      };
+
+    case 'libre':
+      return {
+        icon: "○",
+        text: "",
+        className: "bg-gray-100 border-2 border-gray-300 dark:bg-gray-800 dark:border-gray-600",
+        iconColor: "text-gray-500 dark:text-gray-400 text-lg",
+        tooltip: "Día Libre",
+        badgeConfig: {
+          label: "Libre",
+          variant: "secondary",
+          color: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900 dark:text-gray-200"
         }
       };
 
@@ -262,10 +276,32 @@ export function mapearEstadoLegacyADisplay(estado: string, cobertura?: any, esPP
   
   switch (estadoNormalizado) {
     case "planificado":
-      return mapearEstadoOperacionADisplay("planificado");
+      return {
+        icon: "●",
+        text: "",
+        className: "bg-blue-100 border-2 border-blue-300 dark:bg-blue-900/30 dark:border-blue-600",
+        iconColor: "text-blue-600 dark:text-blue-400 text-xl font-bold",
+        tooltip: "Turno Planificado",
+        badgeConfig: {
+          label: "Planificado",
+          variant: "default",
+          color: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-200"
+        }
+      };
     case "libre":
     case "l":
-      return mapearEstadoOperacionADisplay("libre");
+      return {
+        icon: "○",
+        text: "",
+        className: "bg-gray-100 border-2 border-gray-300 dark:bg-gray-800 dark:border-gray-600",
+        iconColor: "text-gray-500 dark:text-gray-400 text-lg",
+        tooltip: "Día Libre",
+        badgeConfig: {
+          label: "Libre",
+          variant: "secondary",
+          color: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900 dark:text-gray-200"
+        }
+      };
     case "trabajado":
     case "a":
       return mapearEstadoOperacionADisplay("asistido");

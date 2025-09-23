@@ -9,9 +9,10 @@ export async function GET(request: NextRequest) {
     const fecha = searchParams.get('fecha') || await getHoyChile();
     const filtroEstado = searchParams.get('filtro') || 'todos';
     const busqueda = searchParams.get('busqueda') || '';
+    const filtroInstalacion = searchParams.get('instalacion') || '';
     const tz = searchParams.get('tz') || await getSystemTimezone();
 
-    logger.debug(`🔍 [CENTRAL-MONITORING-FILTROS] Consultando para fecha: ${fecha}, filtro: ${filtroEstado}, busqueda: ${busqueda}`);
+    logger.debug(`🔍 [CENTRAL-MONITORING-FILTROS] Consultando para fecha: ${fecha}, filtro: ${filtroEstado}, busqueda: ${busqueda}, instalacion: ${filtroInstalacion}`);
 
     // Obtener tenant_id del usuario (por ahora usar el tenant por defecto)
     const tenantId = '1397e653-a702-4020-9702-3ae4f3f8b337'; // Tenant Gard
@@ -99,6 +100,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Aplicar filtro por instalación
+    if (filtroInstalacion.trim()) {
+      query += ` AND v.instalacion_id = $${params.length + 1}`;
+      params.push(filtroInstalacion.trim());
+    }
+
     // Aplicar búsqueda
     if (busqueda.trim()) {
       query += ` AND (v.instalacion_nombre ILIKE $${params.length + 1} OR v.guardia_nombre ILIKE $${params.length + 1})`;
@@ -159,14 +166,28 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    // Obtener lista de instalaciones disponibles para el filtro
+    const queryInstalaciones = `
+      SELECT DISTINCT 
+        v.instalacion_id,
+        v.instalacion_nombre
+      FROM central_v_llamados_automaticos v
+      WHERE v.tenant_id = $1
+      ORDER BY v.instalacion_nombre
+    `;
+    
+    const { rows: instalacionesRows } = await pool.query(queryInstalaciones, [tenantId]);
+
     logger.debug(`✅ [CENTRAL-MONITORING-FILTROS] Llamados encontrados: ${rows.length}`);
     logger.debug(`📊 [CENTRAL-MONITORING-FILTROS] KPIs calculados:`, kpis);
+    logger.debug(`🏢 [CENTRAL-MONITORING-FILTROS] Instalaciones disponibles: ${instalacionesRows.length}`);
 
     return NextResponse.json({
       success: true,
       data: {
         llamados: rows,
         kpis: kpis,
+        instalaciones: instalacionesRows,
         filtro_aplicado: filtroEstado,
         busqueda_aplicada: busqueda
       }

@@ -177,3 +177,4 @@ SELECT
 FROM central_v_llamados_automaticos 
 WHERE DATE(programado_para) = CURRENT_DATE;
 
+

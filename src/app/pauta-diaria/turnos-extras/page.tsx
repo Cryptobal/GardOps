@@ -43,6 +43,8 @@ interface TurnoExtra {
   usuario_pago: string | null;
   planilla_id: number | null;
   created_at: string;
+  source?: string; // 'materializado', 'virtual', 'horas_extras'
+  pauta_id?: string; // Para turnos virtuales
 }
 
 // Función para formatear números con puntos como separadores de miles sin decimales
@@ -176,6 +178,7 @@ export default function TurnosExtrasPage() {
     }
 
     console.log('🗑️ Iniciando eliminación del turno:', turnoToDelete);
+    console.log('🔍 turnoToDelete.source:', turnoToDelete.source);
 
     try {
       setDeleting(true);
@@ -183,16 +186,24 @@ export default function TurnosExtrasPage() {
       let endpoint = '';
       let id = '';
 
-      // TODOS los turnos extras se eliminan igual: revertir la cobertura
       console.log('🔍 turnoToDelete.id:', turnoToDelete.id);
       console.log('🔍 turnoToDelete.pauta_id:', turnoToDelete.pauta_id);
       
-      if (turnoToDelete.pauta_id) {
-        // Usar el endpoint para revertir la cobertura en la pauta mensual
+      if (!turnoToDelete.pauta_id) {
+        throw new Error('No se puede eliminar: falta pauta_id');
+      }
+
+      // Determinar endpoint según el tipo de turno
+      if (turnoToDelete.source === 'horas_extras') {
+        // Horas extras: usar endpoint específico
+        endpoint = `/api/turnos-extras/horas-extras/${turnoToDelete.pauta_id}`;
+        id = turnoToDelete.pauta_id.toString();
+        console.log('🔍 Tipo: Horas Extras');
+      } else {
+        // Turno virtual: usar endpoint de turnos virtuales
         endpoint = `/api/turnos-extras/virtual/${turnoToDelete.pauta_id}`;
         id = turnoToDelete.pauta_id.toString();
-      } else {
-        throw new Error('No se puede eliminar: falta pauta_id');
+        console.log('🔍 Tipo: Turno Virtual');
       }
 
       console.log('🌐 Endpoint determinado:', endpoint);
@@ -209,6 +220,45 @@ export default function TurnosExtrasPage() {
       if (!response.ok) {
         const errorData = await response.json();
         console.error('❌ Error response:', errorData);
+        
+        // Si es un error 400 "Este no es un turno virtual válido", 
+        // significa que el turno ya no es virtual (fue procesado)
+        if (response.status === 400 && errorData.error?.includes('no es un turno virtual válido')) {
+          console.log('🔄 Turno ya no es virtual, recargando lista...');
+          success({
+            title: "✅ Turno procesado",
+            description: 'El turno ya fue procesado, actualizando lista...'
+          });
+          await cargarTurnosExtras();
+          closeDeleteModal();
+          return;
+        }
+        
+        // Si es un error 500 "Error al revertir la cobertura",
+        // también puede significar que el turno ya fue procesado
+        if (response.status === 500 && errorData.error?.includes('Error al revertir la cobertura')) {
+          console.log('🔄 Error al revertir cobertura, recargando lista...');
+          success({
+            title: "✅ Turno procesado",
+            description: 'El turno ya fue procesado, actualizando lista...'
+          });
+          await cargarTurnosExtras();
+          closeDeleteModal();
+          return;
+        }
+        
+        // Si es cualquier error 500, asumir que el turno ya fue procesado
+        if (response.status === 500) {
+          console.log('🔄 Error 500 detectado, recargando lista...');
+          success({
+            title: "✅ Turno procesado",
+            description: 'El turno ya fue procesado, actualizando lista...'
+          });
+          await cargarTurnosExtras();
+          closeDeleteModal();
+          return;
+        }
+        
         throw new Error(errorData.error || 'Error al eliminar turno extra');
       }
 
@@ -265,14 +315,21 @@ export default function TurnosExtrasPage() {
       let endpoint = '';
       let body = {};
 
-      // TODOS los turnos extras se editan en la pauta mensual
-      if (turnoToEdit.pauta_id) {
+      // Determinar el endpoint correcto según el tipo de turno
+      if (turnoToEdit.source === 'materializado') {
+        // Turno extra materializado - usar endpoint de materializados
+        endpoint = `/api/turnos-extras/materializado/${turnoToEdit.id}/valor`;
+        body = {
+          valor: valorNumerico
+        };
+      } else if (turnoToEdit.pauta_id) {
+        // Turno virtual - usar endpoint de virtuales
         endpoint = `/api/turnos-extras/virtual/${turnoToEdit.pauta_id}/valor`;
         body = {
           valor: valorNumerico
         };
       } else {
-        throw new Error('No se puede editar: falta pauta_id');
+        throw new Error('No se puede editar: falta información del turno');
       }
 
       console.log('🌐 Endpoint determinado:', endpoint);

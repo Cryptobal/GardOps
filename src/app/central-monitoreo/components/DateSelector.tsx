@@ -27,11 +27,9 @@ export function DateSelector({
   };
 
   const irAHoy = () => {
-    const hoy = new Date();
-    const year = hoy.getFullYear();
-    const month = String(hoy.getMonth() + 1).padStart(2, '0');
-    const day = String(hoy.getDate()).padStart(2, '0');
-    onFechaChange(`${year}-${month}-${day}`);
+    // Usar la fecha actual en zona horaria de Chile
+    const hoyChile = new Date().toLocaleString("en-CA", { timeZone: 'America/Santiago' }).split(',')[0];
+    onFechaChange(hoyChile);
   };
 
   const formatearFecha = (fecha: string) => {

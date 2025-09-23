@@ -32,6 +32,7 @@ type Filtros = {
   estado?: string;
   ppc?: boolean | 'all';
   q?: string;
+  turno?: string; // 'dia', 'noche', 'todos'
 };
 
 interface Guardia {
@@ -89,8 +90,19 @@ const limpiarNombreGuardia = (nombre: string | null | undefined): string => {
     const nombreTitular = row.guardia_titular_nombre;
     const nombreTrabajo = row.guardia_trabajo_nombre;
     
-    // Usar siempre el nombre real de la API, sin hardcodear
-    return limpiarNombreGuardia(nombreTitular || nombreTrabajo);
+    // Priorizar nombre de trabajo (guardia asignado) sobre nombre titular
+    // Si hay guardia de trabajo asignado, usar ese nombre
+    if (nombreTrabajo && nombreTrabajo.trim() && nombreTrabajo !== 'null' && nombreTrabajo !== 'undefined') {
+      return limpiarNombreGuardia(nombreTrabajo);
+    }
+    
+    // Si no hay guardia de trabajo, usar nombre titular
+    if (nombreTitular && nombreTitular.trim() && nombreTitular !== 'null' && nombreTitular !== 'undefined') {
+      return limpiarNombreGuardia(nombreTitular);
+    }
+    
+    // Si no hay ningún nombre válido, mostrar guión
+    return '—';
   };
 
   // Helper para obtener el nombre del guardia de cobertura
@@ -285,9 +297,10 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     ppc: 'all',
     instalacion: searchParams.get('instalacion') || undefined,
     estado: searchParams.get('estado') || 'todos',
-    q: searchParams.get('q') || undefined
+    q: searchParams.get('q') || undefined,
+    turno: searchParams.get('turno') || 'todos' // Nuevo filtro para día/noche
   }));
-  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false); // Mobile first: filtros cerrados por defecto
   
   // Normalizar fecha a string YYYY-MM-DD
   const fechaStr = toYmd(fecha);
@@ -321,6 +334,38 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     };
   }, []);
 
+  // Escuchar eventos de recarga desde el buscador GSS
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const handlePautaReload = (event: CustomEvent) => {
+      console.log('🔄 Evento pauta-diaria-reload recibido en ClientTable:', event.detail);
+      logger.debug('🔄 Recarga solicitada desde buscador GSS:', event.detail);
+      
+      // Solo UNA recarga cuando se recibe el evento
+      refetch();
+    };
+
+    // LocalStorage fallback REMOVIDO - era molesto
+    
+    console.log('🎧 ClientTable: Registrando listener para pauta-diaria-reload');
+    console.log('🎧 ClientTable: URL actual:', window.location.href);
+    
+    // Registrar listener de eventos
+    window.addEventListener('pauta-diaria-reload', handlePautaReload as EventListener);
+    
+    // LocalStorage polling REMOVIDO - era molesto para el usuario
+    
+    return () => {
+      console.log('🎧 ClientTable: Removiendo listener para pauta-diaria-reload');
+      window.removeEventListener('pauta-diaria-reload', handlePautaReload as EventListener);
+    };
+  }, [refetch]);
+
+  // Recarga automática REMOVIDA - era molesta para el usuario
+
+  // Recarga por visibilidad REMOVIDA - era molesta para el usuario
+
   // Persistir filtros en URL (excepto mostrarLibres)
   useEffect(() => {
     const params = new URLSearchParams();
@@ -328,6 +373,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     if (f.estado && f.estado !== 'todos') params.set('estado', f.estado);
     if (f.ppc !== 'all') params.set('ppc', f.ppc === true ? 'true' : 'false');
     if (f.q) params.set('q', f.q);
+    if (f.turno && f.turno !== 'todos') params.set('turno', f.turno);
     if (incluirLibres) params.set('incluirLibres', 'true');
     
     // ✅ NAVEGAR A LA NUEVA PÁGINA SEPARADA
@@ -487,6 +533,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     console.log('🔍 handleComentarioSaved ejecutado. Comentario guardado:', comentario);
     // Actualizar los datos después de guardar el comentario
     if (onRecargarDatos) {
+      console.log('🔄 Recargando datos después de comentario...');
       onRecargarDatos();
     }
   }, [onRecargarDatos]);
@@ -972,7 +1019,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   }, [rows]);
 
   const filtered = useMemo(() => {
-    return (rows ?? []).filter((r:any) => {
+    const filteredRows = (rows ?? []).filter((r:any) => {
       // Filtrar filas con estado === 'libre' cuando mostrarLibres === false
       // PERO SIEMPRE mostrar turnos "extra" (Turno Extra morado) y PPCs (planificados o marcados)
       if (!mostrarLibres && (
@@ -998,9 +1045,37 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                  || (r.instalacion_nombre || '').toLowerCase().includes(q);
         if (!hay) return false;
       }
+      
+      // Filtrar por turno (día/noche)
+      if (f.turno && f.turno !== 'todos') {
+        const horaInicio = r.hora_inicio;
+        if (horaInicio) {
+          const hora = parseInt(horaInicio.split(':')[0]);
+          if (f.turno === 'dia' && hora >= 12) return false; // Turno de día: antes de las 12:00
+          if (f.turno === 'noche' && hora < 12) return false; // Turno de noche: después de las 12:00
+        }
+      }
+      
       return true;
     });
-  }, [rows, f.instalacion, f.estado, f.ppc, f.q, mostrarLibres]);
+
+    // Ordenar por horario de ingreso y luego por nombre de instalación alfabéticamente
+    return filteredRows.sort((a: any, b: any) => {
+      // 1. Priorizar por horario de ingreso
+      const horaA = a.hora_inicio ? parseInt(a.hora_inicio.split(':')[0]) : 0;
+      const horaB = b.hora_inicio ? parseInt(b.hora_inicio.split(':')[0]) : 0;
+      
+      if (horaA !== horaB) {
+        return horaA - horaB;
+      }
+      
+      // 2. Si tienen la misma hora, ordenar por nombre de instalación alfabéticamente
+      const nombreA = (a.instalacion_nombre || '').toLowerCase();
+      const nombreB = (b.instalacion_nombre || '').toLowerCase();
+      
+      return nombreA.localeCompare(nombreB);
+    });
+  }, [rows, f.instalacion, f.estado, f.ppc, f.q, f.turno, mostrarLibres]);
 
   // No retornar temprano cuando no hay datos, para mantener los controles de navegación
 
@@ -1706,27 +1781,33 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   return (
     <TooltipProvider>
       <div className={`w-full ${isMobile ? 'pb-20' : ''}`}>
-        {/* Header fecha + nav - Desktop Optimizado */}
-        <Card className="mb-4 w-full bg-gradient-to-r from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 border-2 border-gray-200/50 dark:border-gray-700/50 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              {/* Navegación de fechas para desktop */}
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
+        {/* Header fecha + nav - Mobile First Responsive */}
+        <Card className={`mb-4 w-full bg-gradient-to-r from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 border-2 border-gray-200/50 dark:border-gray-700/50 shadow-lg ${isMobile ? 'sticky top-0 z-20' : ''}`}>
+          <CardContent className="p-3 md:p-4">
+            {/* Layout responsive: vertical en móvil, horizontal en desktop */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
+              
+              {/* Navegación de fechas - Mobile First */}
+              <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                
+                
+                {/* Controles de navegación - Optimizados para móvil */}
+                <div className="flex items-center justify-center gap-2 md:gap-2">
                   <Button 
                     variant="outline" 
                     size="sm" 
                     onClick={()=>go(-1)}
-                    className="h-10 w-10 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800 transition-colors"
+                    className="h-9 w-9 md:h-10 md:w-10 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800 transition-colors"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   
+                  {/* Input de fecha compacto para móvil */}
                   <div className="flex items-stretch gap-1">
                     <Input
                       ref={inputRef}
                       type="date"
-                      className="w-auto text-sm font-medium border-blue-200 dark:border-blue-800 focus:border-blue-500 dark:focus:border-blue-400"
+                      className="w-32 md:w-auto text-sm font-medium border-blue-200 dark:border-blue-800 focus:border-blue-500 dark:focus:border-blue-400"
                       value={fechaStr}
                       onChange={(e) => {
                         const params = new URLSearchParams();
@@ -1745,12 +1826,13 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                       variant="outline"
                       size="sm"
                       onClick={()=>inputRef.current?.showPicker?.()}
-                      className="h-10 px-3 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                      className="h-9 md:h-10 px-2 md:px-3 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                     >
                       <Calendar className="h-4 w-4" />
                     </Button>
                   </div>
                   
+                  {/* Botón Hoy compacto para móvil */}
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -1766,31 +1848,25 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                       const newUrl = `/pauta-diaria?fecha=${hoy}${params.toString() ? '&' + params.toString() : ''}`;
                       router.push(newUrl);
                     }}
-                    className="h-10 px-4 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 font-semibold"
+                    className="h-9 md:h-10 px-2 md:px-4 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 font-semibold text-xs md:text-sm"
                   >
-                    📅 Hoy
+                    <span className="hidden sm:inline">📅 Hoy</span>
+                    <span className="sm:hidden">Hoy</span>
                   </Button>
                   
                   <Button 
                     variant="outline" 
                     size="sm" 
                     onClick={()=>go(1)}
-                    className="h-10 w-10 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800 transition-colors"
+                    className="h-9 w-9 md:h-10 md:w-10 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-800 transition-colors"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-                
-                {/* Fecha actual destacada */}
-                <div className="bg-blue-100 dark:bg-blue-900/30 px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="text-lg font-bold text-blue-800 dark:text-blue-200">
-                    {toDisplay(fechaStr)}
-                  </div>
-                </div>
               </div>
               
-              {/* Controles para desktop */}
-              <div className="flex items-center gap-4">
+              {/* Controles responsive - Ocultos en móvil, visibles en desktop */}
+              <div className="hidden md:flex items-center gap-4">
                 <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center gap-2">
                     {mostrarLibres ? <Eye className="h-4 w-4 text-green-600" /> : <EyeOff className="h-4 w-4 text-gray-500" />}
@@ -1812,20 +1888,43 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                   <span className="font-medium">{filtered.length} turnos</span>
                 </div>
               </div>
+              
+              {/* Controles móviles compactos */}
+              <div className="md:hidden flex items-center justify-between w-full">
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="font-medium">{filtered.length} turnos</span>
+                </div>
+                
+                {/* Switch compacto para móvil */}
+                <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 px-3 py-1 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-1">
+                    {mostrarLibres ? <Eye className="h-3 w-3 text-green-600" /> : <EyeOff className="h-3 w-3 text-gray-500" />}
+                    <Label htmlFor="incluir-libres-mobile" className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                      Libres
+                    </Label>
+                  </div>
+                  <Switch
+                    id="incluir-libres-mobile"
+                    checked={mostrarLibres}
+                    onCheckedChange={setMostrarLibres}
+                    className="data-[state=checked]:bg-blue-600 scale-75"
+                  />
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Controles de filtro - Mobile First Minimalista */}
-        {isMobile ? (
-          <div className="mb-2">
-            {/* Toggle filtros compacto para móvil */}
-            <div className="flex items-center justify-between mb-2">
+        {/* Botón de filtros fijo en móvil - Mobile First */}
+        {isMobile && (
+          <div className="mb-3 sticky top-16 z-10 bg-white dark:bg-gray-900 py-2">
+            <div className="flex items-center justify-between">
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={()=>setFiltersOpen(o=>!o)} 
-                className="text-xs h-8 px-3"
+                className="text-xs h-8 px-3 flex-1 mr-2"
               >
                 🔍 {filtersOpen ? 'Ocultar filtros' : 'Mostrar filtros'}
               </Button>
@@ -1840,10 +1939,44 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                 </Button>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Controles de filtro - Mobile First Minimalista */}
+        {isMobile ? (
+          <div className="mb-2">
             
             {/* Filtros expandibles para móvil */}
             {filtersOpen && (
               <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border">
+                {/* Botones de filtro día/noche */}
+                <div className="flex gap-2 mb-3">
+                  <Button 
+                    variant={f.turno === 'todos' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setF({...f, turno: 'todos'})}
+                    className="flex-1 text-xs h-8"
+                  >
+                    🌅 Todos
+                  </Button>
+                  <Button 
+                    variant={f.turno === 'dia' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setF({...f, turno: 'dia'})}
+                    className="flex-1 text-xs h-8"
+                  >
+                    ☀️ Día
+                  </Button>
+                  <Button 
+                    variant={f.turno === 'noche' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setF({...f, turno: 'noche'})}
+                    className="flex-1 text-xs h-8"
+                  >
+                    🌙 Noche
+                  </Button>
+                </div>
+                
                 <div className="grid grid-cols-1 gap-2">
                   <Input
                     placeholder="Filtrar instalación…"
@@ -1890,6 +2023,34 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                     className="text-xs h-8"
                   />
                 </div>
+                
+                {/* Botones de filtro día/noche */}
+                <div className="flex gap-2 mt-3">
+                  <Button 
+                    variant={f.turno === 'todos' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setF({...f, turno: 'todos'})}
+                    className="flex-1 text-xs h-8"
+                  >
+                    🌅 Todos
+                  </Button>
+                  <Button 
+                    variant={f.turno === 'dia' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setF({...f, turno: 'dia'})}
+                    className="flex-1 text-xs h-8"
+                  >
+                    ☀️ Día
+                  </Button>
+                  <Button 
+                    variant={f.turno === 'noche' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setF({...f, turno: 'noche'})}
+                    className="flex-1 text-xs h-8"
+                  >
+                    🌙 Noche
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -1903,7 +2064,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={()=>setF({ ppc:'all' })} 
+                  onClick={() => setF({ ppc: 'all' })} 
                   className="text-sm h-8 px-3 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400"
                 >
                   🗑️ Limpiar Filtros
@@ -1974,12 +2135,43 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={()=>setF({ ppc:'all' })} 
+                      onClick={() => setF({ ppc: 'all' })} 
                       className="text-sm h-10 px-3 flex-1 hover:bg-gray-50 dark:hover:bg-gray-800"
                     >
                       Limpiar
                     </Button>
                   </div>
+                </div>
+              </div>
+              
+              {/* Botones de filtro día/noche */}
+              <div className="mt-4">
+                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Filtrar por Turno</Label>
+                <div className="flex gap-2">
+                  <Button 
+                    variant={f.turno === 'todos' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setF({...f, turno: 'todos'})}
+                    className="flex-1 text-sm h-10"
+                  >
+                    🌅 Todos
+                  </Button>
+                  <Button 
+                    variant={f.turno === 'dia' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setF({...f, turno: 'dia'})}
+                    className="flex-1 text-sm h-10"
+                  >
+                    ☀️ Día
+                  </Button>
+                  <Button 
+                    variant={f.turno === 'noche' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setF({...f, turno: 'noche'})}
+                    className="flex-1 text-sm h-10"
+                  >
+                    🌙 Noche
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -2027,7 +2219,14 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                           <TableCell className="hidden md:table-cell py-4 px-4">
                             <Tooltip delayDuration={100}>
                               <TooltipTrigger asChild>
-                                <span className="text-sm text-gray-700 dark:text-gray-300 cursor-help">{r.puesto_nombre || 'Sin nombre'}</span>
+                                <div className="flex flex-col">
+                                  <span className="text-sm text-gray-700 dark:text-gray-300 cursor-help">{r.puesto_nombre || 'Sin nombre'}</span>
+                                  {r.pauta_id && (
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                      (Turno: {r.pauta_id})
+                                    </span>
+                                  )}
+                                </div>
                               </TooltipTrigger>
                               <TooltipContent>
                                 <div className="text-sm space-y-1">
@@ -2188,14 +2387,19 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                                               )}
                                             </Button>
                                           </TooltipTrigger>
-                                          <TooltipContent>
-                                            <div className="text-sm">
+                                          <TooltipContent 
+                                            side="bottom" 
+                                            align="center"
+                                            sideOffset={8}
+                                            className="z-[60] bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-700 dark:border-slate-300 shadow-lg"
+                                          >
+                                            <div className="text-sm font-medium">
                                               {r.horas_extras && r.horas_extras > 0 
-                                                ? `Editar horas extras: $${Math.round(r.horas_extras).toLocaleString('es-CL', {
+                                                ? `💰 Editar horas extras: $${Math.round(r.horas_extras).toLocaleString('es-CL', {
                                                     minimumFractionDigits: 0,
                                                     maximumFractionDigits: 0
                                                   })}` 
-                                                : 'Agregar horas extras'
+                                                : '💰 Agregar horas extras'
                                               }
                                             </div>
                                           </TooltipContent>
@@ -2227,9 +2431,17 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                                             )}
                                           </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent>
-                                          <div className="text-sm">
-                                            {r.comentarios ? `Editar comentario: ${r.comentarios}` : 'Agregar comentario'}
+                                        <TooltipContent 
+                                          side="bottom" 
+                                          align="center"
+                                          sideOffset={8}
+                                          className="z-[60] bg-blue-900 dark:bg-blue-100 text-white dark:text-blue-900 border-blue-700 dark:border-blue-300 shadow-lg max-w-xs"
+                                        >
+                                          <div className="text-sm font-medium">
+                                            {r.comentarios 
+                                              ? `💬 Editar comentario: ${r.comentarios.length > 50 ? r.comentarios.substring(0, 50) + '...' : r.comentarios}` 
+                                              : '💬 Agregar comentario'
+                                            }
                                           </div>
                                         </TooltipContent>
                                       </Tooltip>

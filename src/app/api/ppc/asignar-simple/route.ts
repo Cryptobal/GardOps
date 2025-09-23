@@ -17,7 +17,21 @@ export async function POST(request: NextRequest) {
     console.log('🔍 [SIMPLE] Datos extraídos:', {
       guardia_id,
       puesto_operativo_id,
-      fecha_inicio
+      fecha_inicio,
+      fecha_inicio_tipo: typeof fecha_inicio,
+      fecha_inicio_length: fecha_inicio?.length
+    });
+    
+    // DEPURACIÓN ESPECÍFICA PARA EL PROBLEMA - PARA CUALQUIER PUESTO
+    console.log('🔴 [BACKEND] RECIBIDO EN EL SERVIDOR:', {
+      puesto_id: puesto_operativo_id,
+      fecha_inicio_recibida: fecha_inicio,
+      fecha_inicio_tipo: typeof fecha_inicio,
+      fecha_parseada_normal: new Date(fecha_inicio),
+      fecha_parseada_con_hora: new Date(fecha_inicio + 'T12:00:00'),
+      fecha_parseada_iso: new Date(fecha_inicio).toISOString(),
+      fecha_parseada_chile: new Date(fecha_inicio).toLocaleString('es-CL', { timeZone: 'America/Santiago' }),
+      diferencia_dias: new Date(fecha_inicio).getDate() - new Date(fecha_inicio + 'T12:00:00').getDate()
     });
 
     if (!guardia_id || !puesto_operativo_id) {
@@ -77,17 +91,87 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ [SIMPLE] Asignación completada');
 
+    // CRÍTICO: Sincronizar la pauta mensual para que muestre las iniciales
+    console.log('🔍 [SIMPLE] Sincronizando pauta mensual...');
+    const fechaInicioFinal = fecha_inicio || new Date().toLocaleString('en-CA', { timeZone: 'America/Santiago' }).split(',')[0];
+    const fechaInicioDate = new Date(fechaInicioFinal);
+    const anio = fechaInicioDate.getFullYear();
+    const mes = fechaInicioDate.getMonth() + 1; // getMonth() es 0-based
+    const diaInicio = fechaInicioDate.getDate();
+    
+    console.log('🔍 [SIMPLE] Parámetros de sincronización:', {
+      puesto_operativo_id,
+      guardia_id,
+      fechaInicioFinal,
+      anio,
+      mes,
+      diaInicio
+    });
+
+    // CORRECCIÓN CRÍTICA: Solo actualizar días PLANIFICADOS, dejar días libres sin cambios
+    const updatePautaResult = await query(`
+      UPDATE as_turnos_pauta_mensual 
+      SET 
+        guardia_id = CASE 
+          WHEN tipo_turno = 'planificado' THEN $1  -- Solo días planificados
+          ELSE guardia_id  -- Días libres NO cambian
+        END,
+        guardia_trabajo_id = CASE 
+          WHEN tipo_turno = 'planificado' THEN $1  -- Solo días planificados
+          ELSE guardia_trabajo_id  -- Días libres NO cambian
+        END,
+        estado_puesto = CASE 
+          WHEN tipo_turno = 'planificado' THEN 'asignado'  -- Solo días planificados
+          ELSE estado_puesto  -- Días libres NO cambian
+        END,
+        estado_guardia = null,  -- SIEMPRE null en pauta mensual
+        tipo_cobertura = CASE 
+          WHEN tipo_turno = 'planificado' THEN 'guardia_asignado'  -- Solo días planificados
+          ELSE tipo_cobertura  -- Días libres NO cambian
+        END,
+        updated_at = NOW()
+      WHERE puesto_id = $2 
+        AND anio = $3 
+        AND mes = $4
+        AND dia >= $5  -- Solo desde fecha de inicio
+    `, [guardia_id, puesto_operativo_id, anio, mes, diaInicio]);
+    
+    console.log('✅ [SIMPLE] Pauta mensual sincronizada:', updatePautaResult.rowCount, 'registros actualizados');
+    
+    // Verificar que la actualización funcionó correctamente
+    console.log('🔍 [SIMPLE] Verificando actualización...');
+    const verificacion = await query(`
+      SELECT dia, tipo_turno, guardia_id, guardia_trabajo_id, estado_puesto, tipo_cobertura
+      FROM as_turnos_pauta_mensual 
+      WHERE puesto_id = $1 
+        AND anio = $2 
+        AND mes = $3
+        AND dia >= $4
+      ORDER BY dia
+    `, [puesto_operativo_id, anio, mes, diaInicio]);
+    
+    console.log('🔍 [SIMPLE] Resultado de verificación:', verificacion.rows.slice(0, 10));
+
     // Registrar en historial (opcional)
     try {
       const instalacion_id = puestoCheck.rows[0].instalacion_id;
-      const fechaInicioFinal = fecha_inicio || new Date().toISOString().split('T')[0];
+      const fechaInicioFinal = fecha_inicio || new Date().toLocaleString('en-CA', { timeZone: 'America/Santiago' }).split(',')[0];
       
       console.log('🔍 [SIMPLE] Registrando en historial...', {
         guardia_id,
         instalacion_id,
         puesto_operativo_id,
         fechaInicioFinal,
-        fechaOriginal: fecha_inicio
+        fechaOriginal: fecha_inicio,
+        fechaActualUTC: new Date().toISOString(),
+        fechaActualChile: new Date().toLocaleString('es-CL', { timeZone: 'America/Santiago' }),
+        fechaActualChileISO: new Date().toLocaleString('en-CA', { timeZone: 'America/Santiago' })
+      });
+      
+      console.log('🔍 [SIMPLE] FECHA RECIBIDA VS FINAL:', {
+        fecha_inicio_recibida: fecha_inicio,
+        fechaInicioFinal_calculada: fechaInicioFinal,
+        son_iguales: fecha_inicio === fechaInicioFinal
       });
       
       await query(`
@@ -108,7 +192,7 @@ export async function POST(request: NextRequest) {
       data: {
         guardia_id,
         puesto_operativo_id,
-        fecha_inicio: fecha_inicio || new Date().toISOString().split('T')[0]
+        fecha_inicio: fecha_inicio || new Date().toLocaleString('en-CA', { timeZone: 'America/Santiago' }).split(',')[0]
       }
     });
 

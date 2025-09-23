@@ -197,6 +197,9 @@ export default function EditarPautaMensualPage() {
 
       setMensaje('✅ Pauta mensual guardada exitosamente');
       
+      // Recargar datos para mostrar las series correctamente después del guardado
+      await cargarPautaMensual();
+      
       // Limpiar mensaje después de 3 segundos
       setTimeout(() => {
         setMensaje(null);

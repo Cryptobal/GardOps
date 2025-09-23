@@ -403,7 +403,7 @@ export async function crearTurnoInstalacion(data: CrearTurnoInstalacionData): Pr
 export async function getPPCsInstalacion(instalacionId: string): Promise<any[]> {
   try {
     const baseUrl = getApiBaseUrl();
-    const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/ppc`, {
+    const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/ppc-activos`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -414,7 +414,13 @@ export async function getPPCsInstalacion(instalacionId: string): Promise<any[]> 
       throw new Error(`Error al obtener PPCs: ${response.statusText}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    logger.debug(`🔍 PPCs obtenidos para instalación ${instalacionId}:`, {
+      total: data.length,
+      ppcs: data.slice(0, 3) // Solo mostrar los primeros 3 para debug
+    });
+    
+    return data;
   } catch (error) {
     logger.error('Error obteniendo PPCs::', error);
     throw error;
@@ -529,13 +535,19 @@ export async function getGuardiasDisponibles(
 export async function getPPCsActivosInstalacion(instalacionId: string): Promise<any[]> {
   try {
     const baseUrl = getApiBaseUrl();
-    const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/ppc-activos_v2`);
+    const response = await fetch(`${baseUrl}/api/instalaciones/${instalacionId}/ppc-activos`);
     
     if (!response.ok) {
       throw new Error(`Error al obtener PPCs activos: ${response.statusText}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    logger.debug(`🔍 PPCs activos obtenidos para instalación ${instalacionId}:`, {
+      total: data.length,
+      ppcs: data.slice(0, 3) // Solo mostrar los primeros 3 para debug
+    });
+    
+    return data;
   } catch (error) {
     logger.error('Error obteniendo PPCs activos::', error);
     throw error;

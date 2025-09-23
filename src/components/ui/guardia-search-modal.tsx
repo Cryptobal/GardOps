@@ -338,6 +338,8 @@ const GuardiaSearchModal: React.FC<GuardiaSearchModalProps> = ({
           nuevaInstalacionNombre={instalacionNombrePauta || instalacionNombre || 'Instalación'}
           nuevoRolServicioNombre={rolNombre || 'Rol'}
           esReasignacion={!!guardiaParaAsignar.instalacion_actual_id}
+          fechaInicial={fecha}
+          ppcId={ppcId}
         />
       )}
     </div>

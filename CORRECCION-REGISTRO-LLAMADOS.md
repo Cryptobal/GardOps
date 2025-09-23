@@ -165,3 +165,4 @@ if (llamadaExistente.rows.length > 0) {
 4. **Verificar** que los KPIs se actualizan correctamente
 5. **Confirmar** que los incidentes se crean automáticamente
 
+

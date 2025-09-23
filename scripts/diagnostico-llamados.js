@@ -62,3 +62,4 @@ async function diagnosticar() {
 }
 
 diagnosticar();
+

@@ -41,3 +41,4 @@ SELECT
   COUNT(*) as total_registros
 FROM central_config_instalacion
 WHERE habilitado = true;
+

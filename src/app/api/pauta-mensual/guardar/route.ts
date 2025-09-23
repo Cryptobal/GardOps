@@ -106,12 +106,12 @@ export async function POST(req: NextRequest) {
           if (guardiaAsignado) {
             // Día de trabajo
             estadoTurno = 'planificado';
-            guardiaIdTurno = puesto.es_ppc ? null : puesto.guardia_id;
+            guardiaIdTurno = puesto.guardia_id; // Usar el guardia_id del puesto (puede ser null para PPCs sin asignar)
             observacionesTurno = 'Turno asignado';
           } else if (diaLibre) {
             // Día libre específico del guardia
             estadoTurno = 'libre';
-            guardiaIdTurno = puesto.es_ppc ? null : puesto.guardia_id;
+            guardiaIdTurno = puesto.guardia_id; // Usar el guardia_id del puesto (puede ser null para PPCs sin asignar)
             observacionesTurno = 'Día libre planificado';
           } else {
             // Sin asignación (solo para PPCs sin planificación)
@@ -193,9 +193,29 @@ async function procesarTurnos(turnos: any[]) {
       continue;
     }
 
+    // DEBUG: Log de datos recibidos
+    logger.debug(`📥 Datos recibidos para día ${dia}:`, {
+      puesto_id,
+      guardia_id,
+      anio,
+      mes,
+      dia,
+      estado,
+      tipo_turno,
+      observaciones,
+      guardia_id_type: typeof guardia_id,
+      guardia_id_value: guardia_id
+    });
+
     try {
       // Usar tipo_turno si está disponible, sino usar estado para compatibilidad
       const estadoFinal = tipo_turno || estado;
+      
+      // Validación adicional: Solo 'asistido' requiere guardia_id, 'planificado' puede ser para PPCs
+      if (estadoFinal === 'asistido' && !guardia_id) {
+        errores.push(`Error procesando turno para puesto ${puesto_id}, día ${dia}: No se puede marcar como ${estadoFinal} sin guardia`);
+        continue;
+      }
       
       // CAMBIO: Si estado es null, intentar eliminar SOLO si no es TE/diaria ni tiene cobertura
       if (estadoFinal === null || estadoFinal === '') {
@@ -319,7 +339,73 @@ async function procesarTurnos(turnos: any[]) {
           const fecha = `${anio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
           
           // Determinar si es PPC o puesto asignado
+          // IMPORTANTE: Si se está asignando un guardia a un PPC, ya no es PPC
           const esPPC = !guardia_id;
+          
+          // SINCRONIZACIÓN AUTOMÁTICA DESACTIVADA TEMPORALMENTE
+          // Esta lógica estaba causando problemas al sobrescribir correcciones manuales
+          // TODO: Implementar una lógica más inteligente que no sobrescriba datos correctos
+          /*
+          if (guardia_id) {
+            const syncResult = await query(`
+              UPDATE as_turnos_pauta_mensual 
+              SET 
+                guardia_trabajo_id = CASE 
+                  WHEN tipo_turno = 'planificado' THEN $1
+                  WHEN tipo_turno = 'libre' THEN null
+                  ELSE guardia_trabajo_id
+                END,
+                estado_puesto = CASE 
+                  WHEN tipo_turno = 'planificado' THEN 'asignado'
+                  WHEN tipo_turno = 'libre' THEN 'libre'
+                  ELSE estado_puesto
+                END,
+                estado_guardia = null,  -- SIEMPRE null en pauta mensual
+                tipo_cobertura = CASE 
+                  WHEN tipo_turno = 'planificado' THEN 'guardia_asignado'
+                  WHEN tipo_turno = 'libre' THEN 'libre'
+                  ELSE tipo_cobertura
+                END,
+                guardia_id = $1,
+                updated_at = NOW()
+              WHERE puesto_id = $2 
+                AND anio = $3 
+                AND mes = $4
+                AND (estado_puesto = 'ppc' OR guardia_trabajo_id IS NULL)
+            `, [guardia_id, puesto_id, anio, mes]);
+            
+            if (syncResult.rowCount && syncResult.rowCount > 0) {
+              logger.debug(`🔄 Sincronización automática: ${syncResult.rowCount} registros actualizados para puesto ${puesto_id} con guardia ${guardia_id}`);
+            }
+          }
+          */
+          
+          // DEBUG: Log de la decisión de PPC
+          logger.debug(`🔍 Decisión de PPC para día ${dia}:`, {
+            guardia_id,
+            esPPC,
+            guardia_id_type: typeof guardia_id,
+            guardia_id_truthy: !!guardia_id
+          });
+          
+          // Logging para debug
+          logger.debug(`💾 Guardando turno:`, {
+            puesto_id,
+            guardia_id,
+            dia,
+            estadoFinal,
+            esPPC,
+            fecha,
+            valores_a_insertar: [
+              puesto_id, guardia_id, anio, mes, dia, 'planificado', 'sin_evento', 'planificado',
+              observaciones || null, null, true,
+              estadoFinal === 'libre' ? 'libre' : 'planificado',  // tipo_turno
+              guardia_id ? 'asignado' : 'ppc',                     // estado_puesto: asignado si hay guardia
+              null,                                                // estado_guardia: SIEMPRE null en pauta mensual
+              guardia_id ? 'guardia_asignado' : 'ppc',            // tipo_cobertura: guardia_asignado si hay guardia
+              guardia_id                                           // guardia_trabajo_id
+            ]
+          });
           
           await query(`
             INSERT INTO as_turnos_pauta_mensual (
@@ -346,10 +432,10 @@ async function procesarTurnos(turnos: any[]) {
               puesto_id, guardia_id, anio, mes, dia, 'planificado', 'sin_evento', 'planificado',
               observaciones || null, null, true,
               estadoFinal === 'libre' ? 'libre' : 'planificado',  // tipo_turno
-              esPPC ? 'ppc' : 'asignado',                          // estado_puesto
-              esPPC ? null : 'asistido',                           // estado_guardia
-              esPPC ? 'ppc' : 'guardia_asignado',                  // tipo_cobertura
-              guardia_id                                           // guardia_trabajo_id
+              guardia_id ? 'asignado' : 'ppc',                     // estado_puesto: asignado si hay guardia
+              null,                                                // estado_guardia: SIEMPRE null en pauta mensual
+              guardia_id ? 'guardia_asignado' : 'ppc',            // tipo_cobertura: guardia_asignado si hay guardia
+              guardia_id                                          // guardia_trabajo_id
             ]
           );
         }

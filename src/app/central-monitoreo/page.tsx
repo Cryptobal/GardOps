@@ -84,7 +84,8 @@ export default function CentralMonitoreoPage() {
     completados: 0
   });
   const [filtroEstado, setFiltroEstado] = useState<string>('actuales');
-  const [busqueda, setBusqueda] = useState('');
+  const [filtroInstalacion, setFiltroInstalacion] = useState<string>('todas');
+  const [instalaciones, setInstalaciones] = useState<Array<{instalacion_id: string, instalacion_nombre: string}>>([]);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [modalRegistro, setModalRegistro] = useState(false);
   const [llamadoSeleccionado, setLlamadoSeleccionado] = useState<Llamado | null>(null);
@@ -104,7 +105,7 @@ export default function CentralMonitoreoPage() {
   fechaRef.current = fecha;
 
   // Función para cargar datos automáticamente (optimizada) - NUEVA ARQUITECTURA
-  const cargarDatos = useCallback(async (isSilent = false) => {
+  const cargarDatos = useCallback(async (isSilent = false, forceReload = false) => {
     if (!isSilent) {
       setLoading(true);
     }
@@ -113,14 +114,15 @@ export default function CentralMonitoreoPage() {
       const tz = timezone || 'America/Santiago';
       const currentFecha = fechaRef.current;
       
-      // ✅ NUEVO: Usar endpoint unificado que calcula KPIs y filtros en backend
-      const responseFiltros = await rbacFetch(`/api/central-monitoring/filtros?fecha=${currentFecha}&filtro=${filtroEstado}&busqueda=${encodeURIComponent(busqueda)}&tz=${encodeURIComponent(tz)}`);
+      // ✅ NUEVO: Usar endpoint unificado que calcula KPIs y filtros en backend (sin filtro de instalación)
+      const responseFiltros = await rbacFetch(`/api/central-monitoring/filtros?fecha=${currentFecha}&filtro=${filtroEstado}&busqueda=&instalacion=&tz=${encodeURIComponent(tz)}`);
       
       if (responseFiltros.ok) {
         const dataFiltros = await responseFiltros.json();
         
         // ✅ Backend ya calcula KPIs y filtros - solo asignar
         setLlamados(dataFiltros.data.llamados || []);
+        setInstalaciones(dataFiltros.data.instalaciones || []);
         setKpis({
           total: dataFiltros.data.kpis.total || 0,
           actuales: dataFiltros.data.kpis.actuales || 0,
@@ -136,8 +138,8 @@ export default function CentralMonitoreoPage() {
         });
       }
       
-      // Notificar a otras pestañas sobre la actualización
-      if (typeof window !== 'undefined') {
+      // Notificar a otras pestañas sobre la actualización solo si es forzada
+      if (forceReload && typeof window !== 'undefined') {
         localStorage.setItem('central-monitoreo-update', JSON.stringify({
           fecha: currentFecha,
           timestamp: new Date().toISOString()
@@ -153,7 +155,7 @@ export default function CentralMonitoreoPage() {
         setLoading(false);
       }
     }
-  }, [filtroEstado, busqueda, timezone]); // ✅ Incluir filtros y timezone como dependencias
+  }, [filtroEstado, timezone]); // ✅ Incluir filtros y timezone como dependencias (sin filtroInstalacion)
 
   // ✅ NUEVA ARQUITECTURA: Actualizar fecha cuando cambie la configuración
   useEffect(() => {
@@ -167,7 +169,15 @@ export default function CentralMonitoreoPage() {
     if (!loadingConfig) {
       cargarDatos();
     }
-  }, [fecha, filtroEstado, busqueda, cargarDatos, loadingConfig]);
+  }, [fecha, cargarDatos, loadingConfig]); // Removido filtroEstado para evitar recargas innecesarias
+
+  // ✅ NUEVO: Manejar cambio de filtro de estado sin recargar toda la página
+  useEffect(() => {
+    if (!loadingConfig) {
+      // Solo recargar datos cuando cambie el filtro de estado, pero de forma silenciosa
+      cargarDatos(true, false);
+    }
+  }, [filtroEstado, cargarDatos, loadingConfig]);
 
   // Auto-refresh cada 30 segundos (silencioso) - optimizado
   useEffect(() => {
@@ -202,11 +212,14 @@ export default function CentralMonitoreoPage() {
 
 
 
-  // ✅ NUEVA ARQUITECTURA: Backend ya filtra los datos, frontend solo muestra
+  // ✅ NUEVA ARQUITECTURA: Backend filtra por estado y búsqueda, frontend filtra por instalación
   const llamadosFiltrados = useMemo(() => {
-    // Backend ya aplica filtros, solo retornar los datos recibidos
-    return llamados;
-  }, [llamados]);
+    // Aplicar filtro de instalación en el frontend
+    if (filtroInstalacion === 'todas') {
+      return llamados;
+    }
+    return llamados.filter(llamado => llamado.instalacion_id === filtroInstalacion);
+  }, [llamados, filtroInstalacion]);
 
   // Handlers
   const handleWhatsApp = (telefono: string, mensaje: string) => {
@@ -235,7 +248,7 @@ export default function CentralMonitoreoPage() {
       
       if (response.ok) {
         toast.success('Llamado registrado exitosamente');
-        cargarDatos();
+        cargarDatos(true, true); // Recarga silenciosa pero con notificación a otras pestañas
       } else {
         const errorData = await response.json();
         
@@ -272,10 +285,11 @@ export default function CentralMonitoreoPage() {
     setModalConfirmacion({ mostrar: false, mensaje: '', programado: '', actual: '', estado: '', observaciones: '' });
   };
 
-  // Handler para filtrar por KPI
-  const handleKPIClick = (tipo: string) => {
+  // Handler para filtrar por KPI - optimizado para evitar recargas
+  const handleKPIClick = useCallback((tipo: string) => {
     setFiltroEstado(tipo);
-  };
+    // No llamar cargarDatos aquí - el useEffect se encargará si es necesario
+  }, []);
 
   const handleObservacionesUpdate = async (llamadoId: string, observaciones: string) => {
     try {
@@ -288,7 +302,7 @@ export default function CentralMonitoreoPage() {
       
       if (response.ok) {
         toast.success('Observaciones actualizadas exitosamente');
-        cargarDatos();
+        cargarDatos(true, true); // Recarga silenciosa pero con notificación a otras pestañas
       } else {
         const errorData = await response.json();
         toast.error(errorData.error || 'Error al actualizar observaciones');
@@ -354,7 +368,7 @@ export default function CentralMonitoreoPage() {
         <DateSelector
           fecha={fecha}
           onFechaChange={setFecha}
-          onRefresh={cargarDatos}
+          onRefresh={() => cargarDatos(false, true)} // Recarga completa con notificación
           autoRefresh={autoRefresh}
           onAutoRefreshToggle={() => setAutoRefresh(!autoRefresh)}
         />
@@ -369,16 +383,23 @@ export default function CentralMonitoreoPage() {
         />
       </div>
 
-      {/* Búsqueda - Mobile First Optimizado */}
+      {/* Filtro por instalación - Mobile First Optimizado */}
       <div className="mb-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Buscar por instalación o guardia..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            className="pl-10 h-10 text-sm border-gray-200 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-400"
-          />
+        <div className="flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <Select value={filtroInstalacion} onValueChange={setFiltroInstalacion}>
+            <SelectTrigger className="h-10 text-sm border-gray-200 dark:border-gray-700 focus:border-blue-500 dark:focus:border-blue-400">
+              <SelectValue placeholder="Todas las instalaciones" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas las instalaciones</SelectItem>
+              {instalaciones.map((instalacion) => (
+                <SelectItem key={instalacion.instalacion_id} value={instalacion.instalacion_id}>
+                  {instalacion.instalacion_nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

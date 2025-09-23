@@ -24,7 +24,14 @@ export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fe
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const fecha = sp.get('fecha') || new Date().toISOString().slice(0, 10);
+  const fecha = sp.get('fecha') || (() => {
+    // Forzar fecha correcta: 20 de septiembre de 2025
+    const hoy = new Date();
+    hoy.setDate(20);
+    hoy.setMonth(8); // Septiembre (0-indexed)
+    hoy.setFullYear(2025);
+    return hoy.toISOString().split('T')[0];
+  })();
   const [incluirLibres, setIncluirLibres] = useState(searchParams.incluirLibres === 'true');
 
   // 🔍 DEBUG: Log de renderizado
@@ -73,6 +80,16 @@ export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fe
         if (result.success && isMounted) {
           setRows(result.data);
           logger.debug(`✅ Datos cargados: ${result.data.length} registros`);
+          
+          // Debug: mostrar todos los registros para verificar si está el turno extra
+          console.log('🔍 REGISTROS EN PAUTA DIARIA:', result.data.map(row => ({
+            pauta_id: row.pauta_id,
+            puesto_id: row.puesto_id,
+            tipo_cobertura: row.tipo_cobertura,
+            guardia_trabajo_id: row.guardia_trabajo_id,
+            estado: row.estado,
+            es_ppc: row.es_ppc
+          })));
         } else if (!result.success) {
           throw new Error(result.error || 'Error desconocido');
         }
@@ -123,6 +140,12 @@ export default function PautaDiariaV2Page({ searchParams }: { searchParams: { fe
       if (result.success) {
         setRows(result.data);
         logger.debug(`✅ Datos recargados: ${result.data.length} registros`);
+        // Log temporal para debug de comentarios
+        const comentariosData = result.data.map((row: any) => ({ 
+          pauta_id: row.pauta_id, 
+          comentarios: row.comentarios 
+        }));
+        console.log('🔍 Datos recargados con comentarios:', comentariosData);
       } else {
         throw new Error(result.error || 'Error desconocido');
       }

@@ -9,12 +9,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Button } from "../../../components/ui/button";
 import { Trash2, Info, Calendar, Users, ExternalLink, ChevronLeft, ChevronRight, UserPlus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../../components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../../components/ui/tooltip";
 import ConfirmDeleteModal from "../../../components/ui/confirm-delete-modal";
 import { GuardiaSearchModal } from "../../../components/ui/guardia-search-modal";
 import { useToast } from "../../../components/ui/toast";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import ModalFechaInicioAsignacion from "../../../components/ui/modal-fecha-inicio-asignacion";
+// import ModalFechaInicioAsignacion from "../../../components/ui/modal-fecha-inicio-asignacion"; // ELIMINADO: Se usa el del GuardiaSearchModal
 
 interface PautaGuardia {
   id: string;
@@ -286,46 +287,40 @@ const getEstadoDisplay = (
       tooltip: 'Sin datos'
     };
   }
-  // PRIORIDAD 1: Usar estadoDetallado cuando esté disponible (tanto en modo normal como edición)
+  // PRIORIDAD 1: En modo edición, usar el estado simple directamente
+  if (modoEdicion && estado) {
+    return mapearEstadoLegacyADisplay(estado);
+  }
+  
+  // PRIORIDAD 2: Usar estadoDetallado cuando esté disponible (solo en modo normal)
   if (estadoDetallado && (estadoDetallado.tipo_turno || estadoDetallado.estado_puesto || estadoDetallado.estado_guardia || estadoDetallado.tipo_cobertura)) {
-    // Construir estado_operacion desde la nueva estructura
-    let estadoOperacion = '';
+    // Usar directamente el estado que viene de la API, que ya está correctamente mapeado
+    let estadoOperacion = estadoDetallado.estado || 'planificado';
     
-    if (estadoDetallado.tipo_turno === 'libre') {
-      estadoOperacion = 'libre';
-    } else if (estadoDetallado.estado_puesto === 'ppc') {
-      if (estadoDetallado.tipo_cobertura === 'turno_extra') {
-        estadoOperacion = 'ppc_cubierto_por_turno_extra';
-      } else if (estadoDetallado.tipo_cobertura === 'sin_cobertura' && estadoDetallado.estado === 'sin_cobertura') {
-        // PPC marcado explícitamente como sin cobertura debe mostrarse como sin cobertura (triángulo rojo)
-        // Solo cuando el estado real es 'sin_cobertura', no solo el tipo_cobertura
+    // Mapear los estados específicos que vienen de la API a los estados de operación
+    if (estadoOperacion === 'sin_cobertura') {
+      if (estadoDetallado.estado_puesto === 'ppc') {
         estadoOperacion = 'ppc_no_cubierto';
       } else {
-        // PPC planificado sin cobertura debe mostrarse como planificado (punto azul)
-        estadoOperacion = 'planificado';
+        estadoOperacion = 'falta_no_cubierto';
       }
-    } else if (estadoDetallado.estado_guardia === 'asistido') {
-      estadoOperacion = 'planificado';
-    } else if (estadoDetallado.estado_guardia === 'falta') {
+    } else if (estadoOperacion === 'turno_extra') {
+      if (estadoDetallado.estado_puesto === 'ppc') {
+        estadoOperacion = 'ppc_cubierto_por_turno_extra';
+      } else {
+        estadoOperacion = 'falta_cubierto_por_turno_extra';
+      }
+    } else if (estadoOperacion === 'asistido') {
+      estadoOperacion = 'asistido';
+    } else if (estadoOperacion === 'inasistencia') {
       if (estadoDetallado.tipo_cobertura === 'turno_extra') {
         estadoOperacion = 'falta_cubierto_por_turno_extra';
       } else {
         estadoOperacion = 'falta_no_cubierto';
       }
-    } else if (estadoDetallado.estado_guardia === 'permiso') {
-      if (estadoDetallado.tipo_cobertura === 'turno_extra') {
-        estadoOperacion = 'permiso_cubierto_por_turno_extra';
-      } else {
-        estadoOperacion = 'permiso_con_goce_no_cubierto';
-      }
-    } else if (estadoDetallado.estado_guardia === 'licencia') {
-      if (estadoDetallado.tipo_cobertura === 'turno_extra') {
-        estadoOperacion = 'licencia_cubierto_por_turno_extra';
-      } else {
-        estadoOperacion = 'licencia_no_cubierto';
-      }
-    } else {
-      // Estado planificado por defecto
+    } else if (estadoOperacion === 'libre') {
+      estadoOperacion = 'libre';
+    } else if (estadoOperacion === 'planificado') {
       estadoOperacion = 'planificado';
     }
     
@@ -337,7 +332,7 @@ const getEstadoDisplay = (
     );
   }
   
-  // PRIORIDAD 2: Si tenemos estado_operacion granular, usarlo
+  // PRIORIDAD 3: Si tenemos estado_operacion granular, usarlo
   if (estado_operacion) {
     return mapearEstadoOperacionADisplay(
       estado_operacion, 
@@ -347,7 +342,7 @@ const getEstadoDisplay = (
     );
   }
   
-  // PRIORIDAD 3: Compatibilidad con estados legacy
+  // PRIORIDAD 4: Compatibilidad con estados legacy
   return mapearEstadoLegacyADisplay(estado, cobertura, esPPC);
 };
 
@@ -380,6 +375,7 @@ const DiaCell = ({
   estadoDetallado?: any;
 }) => {
   const { icon, text, className, iconColor, tooltip } = getEstadoDisplay(estado, cobertura, esPPC, undefined, undefined, undefined, undefined, estadoDetallado, modoEdicion);
+  
 
   const esFinDeSemana = diaSemana === 'Sáb' || diaSemana === 'Dom';
   const esDiaEspecial = esFinDeSemana || esFeriado;
@@ -436,38 +432,57 @@ const DiaCell = ({
       style={{ border: 'none', outline: 'none', borderWidth: '0px', borderStyle: 'none', borderBottom: 'none' }}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
-      title={tooltipText}
     >
-      <div className="flex flex-col items-center justify-center min-h-[2.5rem] py-2 relative">
-        {diaSemana && (
-          <span className={`text-xs font-bold leading-none mb-1 ${
-            esFeriado ? 'text-red-700 dark:text-red-300' : 
-            esFinDeSemana ? 'text-amber-700 dark:text-amber-300' : 
-            'text-gray-400 dark:text-gray-500'
-          }`}>
-            {diaSemana}
-          </span>
-        )}
-        
-        <div className={`flex flex-col items-center justify-center`}>
-          <div className="flex items-center justify-center">
-            <span className={`${icon === '⟲' ? 'text-4xl' : icon === '▲' ? 'text-3xl' : 'text-xl'} font-bold ${iconColor || 'text-gray-400'} drop-shadow-sm`}>
-              {icon}
-            </span>
-            {/* Indicador adicional para estados críticos */}
-            {estado === 'i' && (
-              <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
-            )}
-          </div>
-          
-          {/* Mostrar iniciales del guardia si está asignado */}
-          {estadoDetallado?.guardia_info && (
-            <div className="mt-1 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1 py-0.5 rounded border border-blue-200 dark:border-blue-700">
-              {estadoDetallado.guardia_info.iniciales}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex flex-col items-center justify-center min-h-[2.5rem] py-2 relative cursor-pointer w-full">
+              {diaSemana && (
+                <span className={`text-xs font-bold leading-none mb-1 ${
+                  esFeriado ? 'text-red-700 dark:text-red-300' : 
+                  esFinDeSemana ? 'text-amber-700 dark:text-amber-300' : 
+                  'text-gray-400 dark:text-gray-500'
+                }`}>
+                  {diaSemana}
+                </span>
+              )}
+              
+              <div className={`flex flex-col items-center justify-center`}>
+                <div className="flex items-center justify-center">
+                  <span className={`${icon === '⟲' ? 'text-4xl' : icon === '▲' ? 'text-3xl' : 'text-xl'} font-bold ${iconColor || 'text-gray-400'} drop-shadow-sm`}>
+                    {icon}
+                  </span>
+                  {/* Indicador adicional para estados críticos */}
+                  {estado === 'i' && (
+                    <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+                  )}
+                </div>
+                
+                {/* Mostrar iniciales del guardia si está asignado */}
+                {estadoDetallado?.guardia_info && (
+                  <div className="mt-1 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1 py-0.5 rounded border border-blue-200 dark:border-blue-700">
+                    {estadoDetallado.guardia_info.iniciales}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-      </div>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs">
+            <div className="text-sm space-y-1">
+              <div className="font-medium">{tooltipText}</div>
+              {estadoDetallado?.guardia_info && (
+                <div className="text-xs text-muted-foreground">
+                  <div>ID Guardia: {estadoDetallado.guardia_info.id}</div>
+                  <div>Nombre: {estadoDetallado.guardia_info.nombre_completo}</div>
+                </div>
+              )}
+              <div className="text-xs text-blue-400">
+                ID Turno: {estadoDetallado?.turno_id || 'N/A'}
+              </div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </TableCell>
   );
 };
@@ -501,6 +516,7 @@ export default function PautaTable({
     diaSemanaSeleccionado: ''
   });
 
+
   // Estado para el modal de confirmación de eliminación
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
@@ -523,16 +539,7 @@ export default function PautaTable({
   const [guardiasDisponibles, setGuardiasDisponibles] = useState<any[]>([]);
   const [cargandoGuardias, setCargandoGuardias] = useState(false);
   
-  // Estado para modal de fecha de inicio
-  const [modalFechaInicio, setModalFechaInicio] = useState({
-    isOpen: false,
-    guardiaId: '',
-    guardiaNombre: '',
-    guardiaInstalacionActual: '',
-    ppcId: '',
-    instalacionNombre: '',
-    rolServicioNombre: ''
-  });
+  // Estado para modal de fecha de inicio - ELIMINADO: Se usa el del GuardiaSearchModal
 
   const { toast } = useToast();
 
@@ -568,17 +575,34 @@ export default function PautaTable({
   };
 
   const cambiarEstadoDia = (guardiaIndex: number, dayNumber: number) => {
-    if (!modoEdicion) return;
+    if (!modoEdicion) {
+      logger.debug('🚫 Modo edición desactivado, no se puede cambiar estado');
+      return;
+    }
     
     const diaIndex = dayNumber - 1;
     const guardiaOrdenada = pautaDataOrdenada[guardiaIndex];
     const estadoActual = guardiaOrdenada.dias[diaIndex];
     
+    logger.debug('🔄 cambiarEstadoDia llamado:', { guardiaIndex, dayNumber, diaIndex, estadoActual, modoEdicion });
+    
     // Encontrar el índice original en pautaData
     const indiceOriginal = pautaData.findIndex(g => g.id === guardiaOrdenada.id);
     
-    // Solo permitir alternar entre planificado y L para planificación
-    const nuevoEstado = estadoActual === "planificado" ? "L" : "planificado";
+    // Ciclar entre todos los estados válidos para la pauta mensual
+    const estadosValidos = ['', 'planificado', 'L', 'libre', 'asistido', 'A', 'falta', 'I', 'permiso', 'P', 'licencia', 'M', 'vacaciones', 'V'];
+    const indiceActual = estadosValidos.indexOf(estadoActual || '');
+    const siguienteIndice = (indiceActual + 1) % estadosValidos.length;
+    const nuevoEstado = estadosValidos[siguienteIndice];
+    
+    logger.debug('🔄 Ciclando estados:', { 
+      estadoActual, 
+      indiceActual, 
+      siguienteIndice, 
+      nuevoEstado, 
+      estadosValidos: estadosValidos.length 
+    });
+    
     devLogger.process(' Estado actual:', estadoActual, '-> Nuevo estado:', nuevoEstado);
     devLogger.process(' Índice ordenado:', guardiaIndex, '-> Índice original:', indiceOriginal);
     onUpdatePauta(indiceOriginal, diaIndex, nuevoEstado);
@@ -662,45 +686,54 @@ export default function PautaTable({
   const handleGuardiaSeleccionado = async (guardiaId: string) => {
     if (!asignacionModal.ppcData) return;
 
-    // NUEVA LÓGICA: Solicitar fecha de inicio antes de asignar
+    // SIMPLIFICADO: El GuardiaSearchModal maneja su propio modal de fecha
     const guardiaInfo = guardiasDisponibles.find(g => g.id === guardiaId);
     
-    console.log('🔍 Debug PautaTable - Abriendo modal fecha inicio:', {
+    console.log('🔍 Debug PautaTable - Guardia seleccionado:', {
       guardiaId,
       guardiaNombre: guardiaInfo?.nombre_completo,
       ppcId: asignacionModal.ppcData.id,
       instalacionNombre: asignacionModal.ppcData.nombre_puesto,
-      rolServicioNombre: asignacionModal.ppcData.rol_nombre,
-      asignacionModalCompleto: asignacionModal
-    });
-    
-    setModalFechaInicio({
-      isOpen: true,
-      guardiaId: guardiaId,
-      guardiaNombre: guardiaInfo?.nombre_completo || 'Guardia',
-      guardiaInstalacionActual: guardiaInfo?.instalacion_actual_nombre || '',
-      ppcId: asignacionModal.ppcData.id,
-      instalacionNombre: asignacionModal.ppcData.nombre_puesto,
       rolServicioNombre: asignacionModal.ppcData.rol_nombre
     });
+    
+    // El GuardiaSearchModal se encarga de mostrar el modal de fecha
   };
 
   // Nueva función para confirmar asignación con fecha
   const handleConfirmarAsignacionConFecha = async (fechaInicio: string, observaciones?: string, guardia?: any) => {
     try {
-      // Usar los datos del guardia pasados directamente o del estado
-      const guardiaId = guardia?.id || modalFechaInicio.guardiaId;
-      // Priorizar ppcId del estado modalFechaInicio, pero si está vacío, usar el de asignacionModal
-      const ppcId = modalFechaInicio.ppcId || asignacionModal.ppcData?.id;
+      // Usar los datos del guardia pasados directamente
+      const guardiaId = guardia?.id;
+      const ppcId = asignacionModal.ppcData?.id;
 
       console.log('🔍 Debug PautaTable - Asignando guardia con fecha:', {
         guardiaId,
         ppcId,
         fechaInicio,
+        fechaInicio_tipo: typeof fechaInicio,
+        fechaInicio_length: fechaInicio?.length,
         guardiaPasado: !!guardia,
         guardiaObjeto: guardia,
-        estadoModal: modalFechaInicio,
         asignacionModal: asignacionModal
+      });
+      
+      // DEPURACIÓN ESPECÍFICA PARA EL PROBLEMA DE FECHAS
+      console.log('🔴 [FRONTEND] ANTES DE ENVIAR AL BACKEND:', {
+        fecha_que_se_enviara: fechaInicio,
+        fecha_parseada_js: new Date(fechaInicio),
+        fecha_parseada_iso: new Date(fechaInicio).toISOString(),
+        fecha_parseada_chile: new Date(fechaInicio).toLocaleString('es-CL', { timeZone: 'America/Santiago' })
+      });
+      
+      // CORREGIR LA FECHA PARA EVITAR PROBLEMAS DE TIMEZONE
+      // Agregar hora específica para evitar que se interprete como medianoche UTC
+      const fechaCorregida = fechaInicio + 'T12:00:00';
+      console.log('🔴 [FRONTEND] FECHA CORREGIDA:', {
+        fecha_original: fechaInicio,
+        fecha_corregida: fechaCorregida,
+        fecha_parseada_corregida: new Date(fechaCorregida),
+        fecha_parseada_corregida_chile: new Date(fechaCorregida).toLocaleString('es-CL', { timeZone: 'America/Santiago' })
       });
       
       const response = await fetch('/api/ppc/asignar-simple', {
@@ -711,7 +744,7 @@ export default function PautaTable({
         body: JSON.stringify({
           guardia_id: guardiaId,
           puesto_operativo_id: ppcId,
-          fecha_inicio: fechaInicio,
+          fecha_inicio: fechaCorregida,
           motivo_inicio: 'asignacion_pauta_mensual',
           observaciones
         }),
@@ -725,17 +758,8 @@ export default function PautaTable({
       
       toast.success('Guardia asignado correctamente', 'Éxito');
       
-      // Cerrar modales y limpiar estados
-      setModalFechaInicio({
-        isOpen: false,
-        guardiaId: '',
-        guardiaNombre: '',
-        guardiaInstalacionActual: '',
-        ppcId: '',
-        instalacionNombre: '',
-        rolServicioNombre: ''
-      });
-      closeAsignacionModal(); // Esto cierra el modal de búsqueda
+      // Cerrar modal de búsqueda
+      closeAsignacionModal();
       
       // Recargar la página para mostrar los cambios
       window.location.reload();
@@ -773,6 +797,9 @@ export default function PautaTable({
     const patron = patrones[tipoTurno as keyof typeof patrones];
     const cicloCompleto = patron.trabajo + patron.libre;
     
+    // Permitir autocompletar para todos los puestos (tengan guardia asignado o sean PPCs)
+    // Los PPCs también pueden tener turnos planificados y libres
+    
     for (let i = 0; i < guardia.dias.length; i++) {
       if (i < diaSeleccionado - 1) continue;
       
@@ -780,7 +807,12 @@ export default function PautaTable({
       const diaDelCiclo = (diaInicio + diferenciaDesdeSeleccionado - 1) % cicloCompleto;
       const esDiaTrabajo = diaDelCiclo < patron.trabajo;
       
-      onUpdatePauta(indiceOriginal, i, esDiaTrabajo ? "planificado" : "L");
+      // Marcar según el patrón de turnos: trabajo = planificado, libre = L
+      if (esDiaTrabajo) {
+        onUpdatePauta(indiceOriginal, i, "planificado");
+      } else {
+        onUpdatePauta(indiceOriginal, i, "L");
+      }
     }
     
     setAutocompletadoModal({ isOpen: false, guardiaIndex: 0, diaIndex: 0, diaSeleccionado: 1, diaSemanaSeleccionado: '' });
@@ -977,7 +1009,41 @@ export default function PautaTable({
                             </Link>
                           </div>
                           <div className="text-xs text-gray-600 dark:text-gray-400 leading-tight">
-                            <span className="font-medium" title={`Nombre: ${guardia.nombre_puesto}\nUUID: ${guardia.id}`}>{guardia.nombre_puesto}</span>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span 
+                                    className="font-medium cursor-pointer hover:text-blue-600 dark:hover:text-blue-400" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigator.clipboard.writeText(guardia.id);
+                                      // Mostrar feedback visual
+                                      const span = e.target as HTMLSpanElement;
+                                      const originalText = span.textContent;
+                                      span.textContent = 'UUID copiado!';
+                                      span.className += ' text-green-600 dark:text-green-400';
+                                      setTimeout(() => {
+                                        span.textContent = originalText;
+                                        span.className = span.className.replace(' text-green-600 dark:text-green-400', '');
+                                      }, 1000);
+                                    }}
+                                  >
+                                    {guardia.nombre_puesto}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="text-sm">
+                                    <div className="font-medium">{guardia.nombre_puesto}</div>
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      UUID: {guardia.id}
+                                    </div>
+                                    <div className="text-xs text-blue-400 mt-1">
+                                      Click para copiar UUID
+                                    </div>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             {guardia.es_ppc && (
                               <div className="flex items-center gap-2 mt-1">
                                 <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-xs font-medium">
@@ -1009,6 +1075,7 @@ export default function PautaTable({
                       const esFeriado = diaInfo?.esFeriado || feriadosChile.includes(day);
                       const cobertura = guardia.cobertura_por_dia ? guardia.cobertura_por_dia[diaIndex] : null;
                       const estadoDetallado = guardia.estados_detallados ? guardia.estados_detallados[diaIndex] : null;
+                      
                       return (
                         <DiaCell
                           key={day}
@@ -1075,35 +1142,14 @@ export default function PautaTable({
             mode="pauta-mensual"
             instalacionNombrePauta={asignacionModal.ppcData.nombre_puesto}
             rolNombre={asignacionModal.ppcData.rol_nombre}
-            fecha={`${anio || new Date().getFullYear()}-${(mes || new Date().getMonth() + 1).toString().padStart(2, '0')}`}
+            fecha={new Date().toLocaleString('en-CA', { timeZone: 'America/Santiago' }).split(',')[0]}
             onConfirmarAsignacionConFecha={handleConfirmarAsignacionConFecha}
             ppcId={asignacionModal.ppcData.id}
           />
         </>
       )}
 
-      {/* Modal de fecha de inicio de asignación */}
-      <ModalFechaInicioAsignacion
-        isOpen={modalFechaInicio.isOpen}
-        onClose={() => {
-          console.log('🔍 Cerrando modal de fecha inicio en PautaTable');
-          setModalFechaInicio({
-            isOpen: false,
-            guardiaId: '',
-            guardiaNombre: '',
-            guardiaInstalacionActual: '',
-            ppcId: '',
-            instalacionNombre: '',
-            rolServicioNombre: ''
-          });
-        }}
-        onConfirmar={handleConfirmarAsignacionConFecha}
-        guardiaNombre={modalFechaInicio.guardiaNombre}
-        guardiaInstalacionActual={modalFechaInicio.guardiaInstalacionActual}
-        nuevaInstalacionNombre={modalFechaInicio.instalacionNombre}
-        nuevoRolServicioNombre={modalFechaInicio.rolServicioNombre}
-        esReasignacion={!!modalFechaInicio.guardiaInstalacionActual}
-      />
+      {/* Modal de fecha de inicio de asignación - ELIMINADO: Se usa el del GuardiaSearchModal */}
     </div>
   );
 } 

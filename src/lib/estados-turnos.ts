@@ -62,20 +62,21 @@ export function mapearAEstadoUI(estado: EstadoTurno): EstadoUI {
         descripcion: 'Turno Extra'
       };
     }
-    // Si es PPC planificado (tipo_cobertura = 'ppc'), mostrar como planificado (punto azul)
-    if (estado.tipo_cobertura === 'ppc') {
+    // Si es PPC sin cobertura, mostrar como sin cobertura
+    if (estado.tipo_cobertura === 'sin_cobertura') {
       return {
-        estado: 'planificado',
-        icono: '●',
-        color: 'text-blue-600',
-        descripcion: 'PPC Planificado'
+        estado: 'sin_cobertura',
+        icono: '✗',
+        color: 'text-red-600',
+        descripcion: 'Sin Cobertura'
       };
     }
+    // Si es PPC planificado (sin tipo_cobertura o tipo_cobertura = 'ppc'), mostrar como planificado
     return {
-      estado: 'sin_cobertura',
-      icono: '✗',
-      color: 'text-red-600',
-      descripcion: 'Sin Cobertura'
+      estado: 'planificado',
+      icono: '●',
+      color: 'text-blue-600',
+      descripcion: 'PPC Planificado'
     };
   }
   
@@ -141,9 +142,9 @@ export function mapearEstadoOperacionALegacy(estado: EstadoTurno): string {
     case 'sin_cobertura':
       return 'S';
     case 'planificado':
-      return 'S'; // S para turnos planificados (punto azul) en pauta mensual
+      return 'planificado'; // 'planificado' para turnos planificados (punto azul) en pauta mensual
     default:
-      return 'S';
+      return 'planificado';
   }
 }
 

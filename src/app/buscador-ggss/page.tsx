@@ -35,7 +35,7 @@ export default function Asignaciones() {
   const { toast } = useToast();
   const [instalaciones,setInstalaciones]=useState<Inst[]>([]);
   const [instSelected,setInstSelected]=useState<Inst|null>(null);
-  const [radio,setRadio]=useState<number>(Number(localStorage.getItem('radioKm')||10));
+  const [radio,setRadio]=useState<number>(10);
   const [guards,setGuards]=useState<Guard[]>([]);
   const [map,setMap]=useState<google.maps.Map|null>(null);
   const [asignando,setAsignando]=useState<string|null>(null); // ID del guardia siendo asignado
@@ -45,6 +45,14 @@ export default function Asignaciones() {
 
   /* Cargar instalaciones para el autocomplete */
   useEffect(()=>{ fetch('/api/instalaciones?withCoords=true').then(r=>r.json()).then(setInstalaciones); },[]);
+
+  /* Cargar radio desde localStorage después del mount */
+  useEffect(() => {
+    const savedRadio = localStorage.getItem('radioKm');
+    if (savedRadio) {
+      setRadio(Number(savedRadio));
+    }
+  }, []);
 
   /* Inicializar mapa una sola vez */
   useEffect(()=>{
@@ -170,7 +178,7 @@ export default function Asignaciones() {
         logger.error('Error obteniendo guardias cercanos::', error);
         setGuards([]);
       });
-  },[instSelected,radio,map]);
+  },[instSelected,radio,map,tabActiva]);
 
   /* Persistir radio en localStorage */
   useEffect(()=>{ localStorage.setItem('radioKm',String(radio)); },[radio]);
@@ -192,6 +200,26 @@ export default function Asignaciones() {
       // Actualizar la lista de guardias removiendo el asignado
       setGuards(prev => prev.filter(g => g.id !== guardiaSeleccionado.id));
     }
+    
+    // Mostrar mensaje de éxito sin navegar
+    try {
+      if (typeof toast === 'function') {
+        toast({
+          title: 'Éxito',
+          description: 'Turno extra asignado exitosamente',
+          variant: 'default'
+        });
+      } else {
+        console.log('Toast no está disponible, usando fallback');
+        // Fallback: usar alert si toast falla
+        alert('Turno extra asignado exitosamente');
+      }
+    } catch (error) {
+      console.log('Toast error:', error);
+      // Fallback: usar alert si toast falla
+      alert('Turno extra asignado exitosamente');
+    }
+    
     setPpcModalOpen(false);
     setGuardiaSeleccionado(null);
   };
@@ -350,7 +378,6 @@ export default function Asignaciones() {
         <GuardiasAsignadosTab map={map} />
       )}
 
-      {(() => { logger.debug('Optimización de Asignaciones v2 cargada correctamente'); return null; })()}
 
       {/* Modal de PPCs */}
       {guardiaSeleccionado && (
@@ -363,6 +390,7 @@ export default function Asignaciones() {
           guardia={guardiaSeleccionado}
           instalacionId={instSelected?.id || ''}
           onAsignacionExitosa={handleAsignacionExitosa}
+          fechaInicial={new Date().toLocaleString("en-CA", { timeZone: 'America/Santiago' }).split(',')[0]}
         />
       )}
     </Fragment>

@@ -115,8 +115,16 @@ export async function asignarGuardiaConFecha(
     
     // 2. Si hay asignación activa, terminarla
     if (asignacionActiva.rows.length > 0) {
-      const fechaTermino = new Date(fecha_inicio);
+      // CORREGIDO: Parsear fecha en zona horaria local para evitar problemas de UTC
+      const fechaTermino = new Date(fecha_inicio + 'T12:00:00');
       fechaTermino.setDate(fechaTermino.getDate() - 1); // Día anterior al inicio
+      
+      console.log('🔍 [HISTORIAL] Procesando fecha de término:', {
+        fecha_inicio_recibida: fecha_inicio,
+        fechaTerminoCalculada: fechaTermino.toISOString().split('T')[0],
+        fechaActualUTC: new Date().toISOString(),
+        fechaActualChile: new Date().toLocaleString('es-CL', { timeZone: 'America/Santiago' })
+      });
       
       await query(`
         UPDATE historial_asignaciones_guardias 

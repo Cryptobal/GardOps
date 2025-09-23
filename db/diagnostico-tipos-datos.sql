@@ -33,3 +33,4 @@ SELECT
   MIN(id) as id_minimo,
   MAX(id) as id_maximo
 FROM instalaciones;
+

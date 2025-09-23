@@ -64,7 +64,11 @@ export async function GET(request: NextRequest) {
         puesto_actual_nombre: row.puesto_actual_nombre
       }));
       
-      logger.debug(`[Neon] Guardias disponibles encontrados: ${items.length}`);
+      logger.debug(`[Neon] Guardias disponibles encontrados: ${items.length}`, {
+        instalacion_id,
+        fecha,
+        items: items.slice(0, 3) // Solo mostrar los primeros 3 para debug
+      });
       console.log(`[Neon] Guardias con asignación actual: ${items.filter(g => g.instalacion_actual_id).length}`);
       
       return NextResponse.json({ items });
@@ -139,10 +143,18 @@ export async function GET(request: NextRequest) {
       apellido_paterno: row.apellido_paterno,
       apellido_materno: row.apellido_materno,
       rut: row.rut || '', // Agregar campo rut
-      nombre_completo: `${row.apellido_paterno || ''} ${row.apellido_materno || ''}, ${row.nombre || ''}`.trim()
+      nombre_completo: `${row.apellido_paterno || ''} ${row.apellido_materno || ''}, ${row.nombre || ''}`.trim(),
+      // Campos adicionales para compatibilidad
+      instalacion_actual_id: null,
+      instalacion_actual_nombre: null,
+      puesto_actual_nombre: null
     }));
     
-    logger.debug(`[Legacy] Guardias disponibles encontrados: ${items.length}`);
+    logger.debug(`[Legacy] Guardias disponibles encontrados: ${items.length}`, {
+      instalacion_id,
+      fecha,
+      items: items.slice(0, 3) // Solo mostrar los primeros 3 para debug
+    });
     
     return NextResponse.json({ items });
     

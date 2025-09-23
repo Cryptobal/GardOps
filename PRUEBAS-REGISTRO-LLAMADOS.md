@@ -115,3 +115,4 @@ Se creó `scripts/test-registro-llamados.js` que prueba:
 - ✅ 0% de errores en consola del navegador
 - ✅ 0% de errores en logs del backend
 
+

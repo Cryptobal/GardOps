@@ -189,9 +189,11 @@ export default function TurnosInstalacion({
   };
 
   useEffect(() => {
-    // Siempre cargar datos frescos para asegurar que tenemos la información más actualizada
-    cargarDatos();
-  }, [instalacionId]);
+    // Solo cargar datos si no tenemos datos precargados
+    if (!turnosPrecargados && !ppcsPrecargados && !guardiasPrecargados && !rolesPrecargados) {
+      cargarDatos();
+    }
+  }, [instalacionId, turnosPrecargados, ppcsPrecargados, guardiasPrecargados, rolesPrecargados]);
 
   // Limpiar estados al desmontar el componente
   useEffect(() => {
@@ -222,6 +224,7 @@ export default function TurnosInstalacion({
       setTurnos(turnosPrecargados);
     }
     if (ppcsPrecargados) {
+      console.log('🔍 [DEBUG] PPCs precargados recibidos:', ppcsPrecargados);
       setPpcs(ppcsPrecargados);
     }
     if (guardiasPrecargados) {
@@ -347,11 +350,43 @@ export default function TurnosInstalacion({
 
   const handleDesasignarGuardia = async (ppcId: string) => {
     try {
+      console.log('🔍 [DEBUG] Iniciando desasignación para PPC:', ppcId);
       setDesasignando(ppcId);
-      await desasignarGuardiaPPC(instalacionId, ppcId);
+      
+      const resultado = await desasignarGuardiaPPC(instalacionId, ppcId);
+      console.log('🔍 [DEBUG] Resultado de desasignación:', resultado);
+      
       toast.success('Guardia desasignado correctamente', 'Éxito');
-      await cargarDatos();
+      
+      // Actualizar el estado local en lugar de recargar todos los datos
+      setPpcs(prevPpcs => {
+        const nuevosPpcs = prevPpcs.map(ppc => 
+          ppc.id === ppcId 
+            ? { ...ppc, estado: 'Pendiente', guardia_asignado_id: null, guardia_nombre: null }
+            : ppc
+        );
+        console.log('🔍 [DEBUG] PPCs actualizados:', nuevosPpcs);
+        return nuevosPpcs;
+      });
+      
+      // También actualizar los turnos para reflejar el cambio
+      setTurnos(prevTurnos => {
+        const nuevosTurnos = prevTurnos.map(turno => {
+          const ppcsDelRol = ppcs.filter(ppc => ppc.rol_servicio_id === turno.rol_servicio_id);
+          const ppcsAsignados = ppcsDelRol.filter(ppc => ppc.guardia_asignado_id);
+          const ppcsPendientes = ppcsDelRol.filter(ppc => !ppc.guardia_asignado_id);
+          
+          return {
+            ...turno,
+            guardias_asignados: ppcsAsignados.length,
+            ppc_pendientes: ppcsPendientes.length
+          };
+        });
+        console.log('🔍 [DEBUG] Turnos actualizados:', nuevosTurnos);
+        return nuevosTurnos;
+      });
     } catch (error) {
+      console.error('🔍 [DEBUG] Error en desasignación:', error);
       logger.error('Error desasignando guardia::', error);
       toast.error('No se pudo desasignar el guardia', 'Error');
     } finally {
@@ -360,7 +395,9 @@ export default function TurnosInstalacion({
   };
 
   const handleAsignacionCompletada = () => {
-    cargarDatos();
+    // En lugar de recargar todos los datos, solo recargar la página para obtener datos frescos
+    // Esto es necesario porque la asignación puede haber cambiado múltiples estados
+    window.location.reload();
   };
 
   const handleNavegarAGuardia = (guardiaId: string) => {
@@ -447,15 +484,21 @@ export default function TurnosInstalacion({
   const getPPCsPorRol = (rolServicioId: string) => {
     return ppcs.filter(ppc => 
       ppc.rol_servicio_id === rolServicioId && 
-      ppc.estado === 'Pendiente'
+      (!ppc.guardia_asignado_id || ppc.estado === 'Pendiente')
     );
   };
 
   const getPPCsAsignadosPorRol = (rolServicioId: string) => {
-    return ppcs.filter(ppc => 
+    const result = ppcs.filter(ppc => 
       ppc.rol_servicio_id === rolServicioId && 
-      ppc.estado === 'Asignado'
+      (ppc.guardia_asignado_id || ppc.estado === 'Asignado')
     );
+    console.log('🔍 [DEBUG] getPPCsAsignadosPorRol para rol:', rolServicioId, {
+      totalPPCs: ppcs.length,
+      ppcsDelRol: ppcs.filter(ppc => ppc.rol_servicio_id === rolServicioId),
+      result: result
+    });
+    return result;
   };
 
   const getPPCColor = (estado: string) => {

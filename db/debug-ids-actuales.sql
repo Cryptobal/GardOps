@@ -12,3 +12,4 @@ SELECT
 FROM central_v_llamados_automaticos 
 WHERE programado_para::date = '2025-09-16'
 ORDER BY programado_para ASC;
+

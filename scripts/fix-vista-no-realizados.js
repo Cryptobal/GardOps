@@ -257,3 +257,4 @@ async function fixVistaNoRealizados() {
 fixVistaNoRealizados()
   .then(() => process.exit(0))
   .catch(() => process.exit(1));
+

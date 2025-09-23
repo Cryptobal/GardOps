@@ -37,6 +37,7 @@ import { useToast } from "../../components/ui/toast";
 import { useRouter } from "next/navigation";
 import ConfirmDeleteModal from "../../components/ui/confirm-delete-modal";
 import InstalacionCard from "./components/InstalacionCard";
+import { useCan } from "@/lib/permissions";
 
 interface RolServicio {
   id: string;
@@ -126,7 +127,6 @@ const KPIBox = ({
 
 export default function PautaMensualPage() {
   // Gate UI: requiere permiso para ver pautas
-  const { useCan } = require("@/lib/permissions");
   const { allowed, loading: permLoading } = useCan('pautas.view');
   const router = useRouter();
   const { toast } = useToast();

@@ -288,7 +288,6 @@ export async function GET(
 
     // Crear PPCs basados en puestos operativos (tanto pendientes como asignados)
     const ppcs = puestosOperativosResult.rows
-      .filter((row: any) => row.es_ppc) // Incluir todos los PPCs, tanto pendientes como asignados
       .map((row: any) => ({
         id: row.id,
         instalacion_id: row.instalacion_id,

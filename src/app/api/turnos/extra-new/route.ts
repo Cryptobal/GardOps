@@ -82,14 +82,27 @@ export async function POST(req: Request) {
     // Llamamos a la función de Neon con pauta_id
     let result;
     if (body.pauta_id) {
-      result = await sql`
-        SELECT * FROM as_turnos.fn_marcar_extra(
-          ${body.pauta_id}::bigint,
-          ${cobertura_guardia_id}::uuid,
-          ${origin}::text,
-          ${actor}::text
-        );
-      `;
+      console.log('🔧 /api/turnos/extra-new - Llamando fn_marcar_extra con pauta_id:', {
+        pauta_id: body.pauta_id,
+        cobertura_guardia_id,
+        origin,
+        actor
+      });
+      
+      try {
+        result = await sql`
+          SELECT * FROM as_turnos.fn_marcar_extra(
+            ${body.pauta_id}::bigint,
+            ${cobertura_guardia_id}::uuid,
+            ${origin}::text,
+            ${actor}::text
+          );
+        `;
+        console.log('✅ /api/turnos/extra-new - Resultado fn_marcar_extra:', result);
+      } catch (error) {
+        console.error('❌ /api/turnos/extra-new - Error en fn_marcar_extra:', error);
+        throw error;
+      }
     } else {
       // Fallback para parámetros individuales (si es necesario)
       result = await sql`
@@ -104,6 +117,8 @@ export async function POST(req: Request) {
         );
       `;
     }
+    
+    console.log('✅ /api/turnos/extra-new - Respuesta exitosa:', result.rows?.[0] ?? null);
     
     return NextResponse.json({ 
       ok: true, 

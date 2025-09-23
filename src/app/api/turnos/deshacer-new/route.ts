@@ -27,9 +27,9 @@ export async function POST(req: Request) {
     // Log para telemetría
     console.info('[turnos/new] deshacer', { pauta_id, actor_ref: actor });
     
-    // Llamamos a la función de Neon (función que retorna void)
-    await sql`
-      SELECT as_turnos.fn_deshacer(
+    // Llamamos a la función de Neon
+    const { rows } = await sql`
+      SELECT * FROM as_turnos.fn_deshacer(
         ${pauta_id}::bigint,
         ${actor}::text
       );

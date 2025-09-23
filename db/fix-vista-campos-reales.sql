@@ -188,3 +188,4 @@ FROM central_v_llamados_automaticos v
 LEFT JOIN central_llamados c ON c.id = v.id
 WHERE v.estado_llamado = 'pendiente'
 LIMIT 3;
+

@@ -55,3 +55,4 @@ SELECT
 FROM instalaciones i
 INNER JOIN central_config_instalacion cci ON cci.instalacion_id = i.id
 WHERE cci.habilitado = true;
+

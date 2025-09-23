@@ -16,7 +16,19 @@ export async function sincronizarPautasPostAsignacion(
   
   try {
     // Usar fecha de inicio si se proporciona, sino fecha actual
-    const fechaAsignacion = fechaInicio ? new Date(fechaInicio) : new Date();
+    // CORREGIDO: Parsear fecha en zona horaria local para evitar problemas de UTC
+    const fechaAsignacion = fechaInicio 
+      ? new Date(fechaInicio + 'T12:00:00') // Agregar hora para evitar problemas de zona horaria
+      : new Date();
+    
+    console.log('🔴 [SYNC] DEPURANDO FECHA DE ASIGNACIÓN:', {
+      fechaInicio_recibida: fechaInicio,
+      fechaAsignacion_parseada: fechaAsignacion.toISOString(),
+      fechaAsignacion_chile: fechaAsignacion.toLocaleString('es-CL', { timeZone: 'America/Santiago' }),
+      dia_calculado: fechaAsignacion.getDate(),
+      mes_calculado: fechaAsignacion.getMonth() + 1,
+      anio_calculado: fechaAsignacion.getFullYear()
+    });
     const anioActual = new Date().getFullYear();
     const mesActual = new Date().getMonth() + 1;
 
@@ -66,14 +78,23 @@ export async function sincronizarPautasPostAsignacion(
         const diaEnCiclo = (diasTranscurridosDesdeEnero % cicloCompleto) + 1;
         const esDiaTrabajo = diaEnCiclo <= diasTrabajo;
         
+        console.log('🔍 [SYNC] Procesando fecha:', {
+          fecha: `${fecha.anio}-${fecha.mes}-${fecha.dia}`,
+          fechaActual: fechaActual.toISOString(),
+          diasTranscurridosDesdeEnero,
+          diaEnCiclo,
+          esDiaTrabajo,
+          fechaInicioRecibida: fechaInicio
+        });
+        
         if (esDiaTrabajo) {
           // DÍA DE TRABAJO PLANIFICADO COMO PPC
           await query(`
             INSERT INTO as_turnos_pauta_mensual (
               puesto_id, guardia_id, anio, mes, dia, 
               tipo_turno, estado_puesto, estado_guardia, tipo_cobertura, guardia_trabajo_id,
-              created_at, updated_at
-            ) VALUES ($1, NULL, $2, $3, $4, $5, $6, NULL, $7, NULL, NOW(), NOW())
+              created_at, updated_at, tenant_id
+            ) VALUES ($1, NULL, $2, $3, $4, $5, $6, NULL, $7, NULL, NOW(), NOW(), $8)
             ON CONFLICT (puesto_id, anio, mes, dia)
             DO UPDATE SET
               guardia_id = NULL,
@@ -82,7 +103,8 @@ export async function sincronizarPautasPostAsignacion(
               estado_guardia = NULL,
               tipo_cobertura = EXCLUDED.tipo_cobertura,
               guardia_trabajo_id = NULL,
-              updated_at = NOW()
+              updated_at = NOW(),
+              tenant_id = EXCLUDED.tenant_id
           `, [
             puestoId, 
             fecha.anio, 
@@ -90,7 +112,8 @@ export async function sincronizarPautasPostAsignacion(
             fecha.dia,
             'planificado',           // tipo_turno (día de trabajo planificado)
             'ppc',                  // estado_puesto (PPC)
-            'ppc'                   // tipo_cobertura (PPC)
+            'ppc',                  // tipo_cobertura (PPC)
+            '1397e653-a702-4020-9702-3ae4f3f8b337'  // tenant_id
           ]);
         } else {
           // DÍA LIBRE
@@ -159,12 +182,16 @@ export async function sincronizarPautasPostAsignacion(
           const diasTranscurridosDesdeAsignacion = Math.floor((fechaActual - fechaAsignacion) / (1000 * 60 * 60 * 24));
           const diaEnCiclo = (diasTranscurridosDesdeAsignacion % cicloCompleto) + 1;
           esDiaTrabajo = diaEnCiclo <= diasTrabajo;
+          
+          logger.debug(`📅 [SYNC] Día ${fecha.dia}: días desde asignación=${diasTranscurridosDesdeAsignacion}, día en ciclo=${diaEnCiclo}, es trabajo=${esDiaTrabajo}`);
         } else {
           // Si el día es < fecha de asignación, mostrar patrón genérico (PPC)
           // Calcular desde el 1 de enero para mantener consistencia visual
           const diasTranscurridosDesdeEnero = Math.floor((fechaActual - fechaInicioAño) / (1000 * 60 * 60 * 24));
           const diaEnCiclo = (diasTranscurridosDesdeEnero % cicloCompleto) + 1;
           esDiaTrabajo = diaEnCiclo <= diasTrabajo;
+          
+          logger.debug(`📅 [SYNC] Día ${fecha.dia} (antes de asignación): días desde enero=${diasTranscurridosDesdeEnero}, día en ciclo=${diaEnCiclo}, es trabajo=${esDiaTrabajo}`);
         }
         
         if (esDiaTrabajo) {

@@ -202,3 +202,4 @@ SELECT
   COUNT(CASE WHEN estado_llamado = 'pendiente' AND programado_para < now() THEN 1 END) as no_realizados
 FROM central_v_llamados_automaticos
 WHERE DATE(programado_para AT TIME ZONE 'America/Santiago') = CURRENT_DATE;
+

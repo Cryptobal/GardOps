@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pool from '@/lib/database';
+import { query } from '@/lib/database';
 import { getCurrentUserServer } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { turno_id, fecha, comentario } = body;
+
 
     // Validar campos requeridos
     if (!turno_id || !fecha || comentario === undefined) {
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
     const usuario_id = user?.id || null;
 
     // Usar UPSERT para insertar o actualizar comentario
-    const query = `
+    const queryText = `
       INSERT INTO as_turnos_comentarios (turno_id, fecha, comentario, usuario_id)
       VALUES ($1, $2, $3, $4)
       ON CONFLICT (turno_id, fecha)
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
       RETURNING id, comentario, updated_at
     `;
 
-    const { rows } = await pool.query(query, [
+    const { rows } = await query(queryText, [
       parseInt(turno_id),
       fecha,
       comentario.trim(),
@@ -69,12 +70,12 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const query = `
+    const queryText = `
       DELETE FROM as_turnos_comentarios 
       WHERE turno_id = $1 AND fecha = $2
     `;
 
-    const result = await pool.query(query, [parseInt(turno_id), fecha]);
+    const result = await query(queryText, [parseInt(turno_id), fecha]);
 
     return NextResponse.json({
       success: true,

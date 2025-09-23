@@ -14,12 +14,24 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
     const finalPautaId = pauta_id || turno_id;
     const finalGuardiaId = cobertura_guardia_id || guardia_id;
     
+    logger.debug('🔧 /api/turnos/ppc/cubrir - Recibido:', {
+      pauta_id,
+      guardia_id,
+      turno_id,
+      cobertura_guardia_id,
+      finalPautaId,
+      finalGuardiaId
+    });
+    
     if (!finalPautaId || !finalGuardiaId) {
+      logger.warn('⚠️ /api/turnos/ppc/cubrir - Parámetros faltantes');
       return new Response('turno_id/pauta_id y cobertura_guardia_id/guardia_id requeridos', { status: 400 });
     }
     const actor = await getCurrentUserRef();
+    logger.debug('🔧 /api/turnos/ppc/cubrir - Actor obtenido:', actor);
 
     const client = await getClient();
+    logger.debug('🔧 /api/turnos/ppc/cubrir - Cliente de DB obtenido');
     try {
       // Verificar si la función existe
       const { rows: funcCheck } = await client.query(`
@@ -73,6 +85,7 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
           logger.warn(' No se pudo sincronizar turno extra:', error);
         }
         
+        logger.debug('✅ /api/turnos/ppc/cubrir - Respuesta exitosa (función existe):', rows[0] ?? null);
         return NextResponse.json(rows[0] ?? null);
       } else {
         // Fallback: actualizar directamente con nuevos campos
@@ -107,6 +120,8 @@ export const POST = withPermission('turnos.marcar_asistencia', async (req: NextR
       client.release?.();
     }
   } catch (err:any) {
+    logger.error('❌ /api/turnos/ppc/cubrir - Error completo:', err);
+    logger.error('❌ /api/turnos/ppc/cubrir - Stack:', err?.stack);
     console.error('[ppc/cubrir] error completo:', err);
     console.error('[ppc/cubrir] stack:', err?.stack);
     return new Response(err?.message ?? 'error', { status: 500 });

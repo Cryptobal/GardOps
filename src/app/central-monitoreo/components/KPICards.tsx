@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { 
   AlertCircle, Clock, CheckCircle, Activity, BarChart3
@@ -15,7 +15,7 @@ interface KPICardsProps {
   onKPIClick: (tipo: string) => void;
 }
 
-export function KPICards({ 
+export const KPICards = memo(function KPICards({ 
   urgentes, 
   actuales, 
   proximos, 
@@ -132,4 +132,4 @@ export function KPICards({
       </div>
     </div>
   );
-}
+});

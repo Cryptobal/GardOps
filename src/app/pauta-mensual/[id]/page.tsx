@@ -328,7 +328,7 @@ export default function PautaMensualUnificadaPage() {
               dias: Array.from({ length: diasEnMes }, () => ''), // Días vacíos por defecto
               tipo: puesto.tipo,
               es_ppc: puesto.tipo === 'ppc',
-              guardia_id: puesto.id,
+              guardia_id: puesto.tipo === 'ppc' ? null : puesto.guardia_id,
               rol_nombre: turnoCompleto
             });
           });
@@ -479,7 +479,7 @@ export default function PautaMensualUnificadaPage() {
           
                       // Validar que el estado no esté incompleto
             if (estadoDB && typeof estadoDB === 'string' && estadoDB.trim() !== '') {
-              // Validar que el estado sea válido
+              // Permitir todos los estados válidos tanto para PPCs como para guardias asignados
               if (['planificado', 'libre'].includes(estadoDB)) {
                 actualizaciones.push({
                   puesto_id: guardia.id,
@@ -533,7 +533,7 @@ export default function PautaMensualUnificadaPage() {
       const result = await response.json();
       logger.debug(`[${timestamp}] ✅ Pauta guardada exitosamente:`, result);
 
-      // Recargar desde backend para reflejar inmediatamente TE/reemplazos/diaria
+      // Recargar datos para mostrar las series correctamente después del guardado
       await cargarDatos(false);
 
       toast.success('Pauta guardada', 'Los cambios se han guardado exitosamente');
@@ -565,8 +565,9 @@ export default function PautaMensualUnificadaPage() {
     const timestamp = new Date().toISOString();
     logger.debug(`[${timestamp}] 🔄 actualizarPauta:`, { guardiaIndex, diaIndex, nuevoEstado });
     
-    // Solo permitir estados planificado y L
-    if (nuevoEstado !== 'planificado' && nuevoEstado !== 'L') {
+    // Permitir todos los estados válidos para la pauta mensual
+    const estadosValidos = ['planificado', 'L', 'libre', 'asistido', 'A', 'falta', 'I', 'permiso', 'P', 'licencia', 'M', 'vacaciones', 'V'];
+    if (!estadosValidos.includes(nuevoEstado)) {
       logger.debug('🚫 Estado no permitido:', nuevoEstado);
       return;
     }

@@ -227,3 +227,4 @@ async function fixVistaJoinFecha() {
 }
 
 fixVistaJoinFecha();
+

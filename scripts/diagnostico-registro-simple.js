@@ -114,3 +114,4 @@ async function diagnosticoRegistro() {
 
 diagnosticoRegistro();
 
+

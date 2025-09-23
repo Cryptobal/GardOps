@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
     const pautaQueryStart = Date.now();
     const pautaResult = await query(`
       SELECT 
+        pm.id as turno_id,
         pm.puesto_id,
         pm.guardia_id,
         pm.dia,
@@ -104,7 +105,7 @@ export async function GET(request: NextRequest) {
         te_g.apellido_materno as turno_extra_guardia_apellido_materno
       FROM public.as_turnos_pauta_mensual pm
       INNER JOIN public.as_turnos_puestos_operativos po ON pm.puesto_id = po.id
-      LEFT JOIN public.guardias g ON (pm.guardia_id = g.id OR (pm.guardia_id IS NULL AND po.guardia_id = g.id))
+      LEFT JOIN public.guardias g ON pm.guardia_trabajo_id = g.id
       LEFT JOIN public.as_turnos_roles_servicio rs ON po.rol_id = rs.id
       LEFT JOIN public.guardias rg ON rg.id::text = (pm.meta->>'cobertura_guardia_id')
       LEFT JOIN public.guardias te_g ON pm.turno_extra_guardia_id = te_g.id
@@ -124,6 +125,20 @@ export async function GET(request: NextRequest) {
     
     const pautaQueryEnd = Date.now();
     logger.debug(`[${timestamp}] 🐌 Query pauta mensual: ${pautaQueryEnd - pautaQueryStart}ms, ${pautaResult.rows.length} registros encontrados`);
+    
+    // Log de los primeros registros para debug
+    if (pautaResult.rows.length > 0) {
+      logger.debug(`[${timestamp}] 🔍 Primeros 3 registros de la consulta:`, pautaResult.rows.slice(0, 3).map(row => ({
+        puesto_id: row.puesto_id,
+        dia: row.dia,
+        guardia_id: row.guardia_id,
+        guardia_trabajo_id: row.guardia_trabajo_id,
+        guardia_nombre: row.guardia_nombre,
+        apellido_paterno: row.apellido_paterno,
+        tipo_turno: row.tipo_turno,
+        estado_puesto: row.estado_puesto
+      })));
+    }
     
 
     // Obtener TODOS los puestos operativos (incluyendo PPCs sin guardias asignados)
@@ -306,21 +321,44 @@ export async function GET(request: NextRequest) {
           let estadoFinal = 'planificado';
           if (pautaDia.tipo_turno === 'libre') {
             estadoFinal = 'libre';
+          } else if (pautaDia.estado_guardia === 'asistido') {
+            estadoFinal = 'asistido'; // Guardia asistió = checkmark verde
+          } else if (pautaDia.estado_guardia === 'falta') {
+            estadoFinal = 'inasistencia'; // Guardia faltó = X roja
+          } else if (pautaDia.tipo_cobertura === 'sin_cobertura') {
+            estadoFinal = 'sin_cobertura'; // Sin cobertura = triángulo rojo
+          } else if (pautaDia.tipo_cobertura === 'turno_extra') {
+            estadoFinal = 'turno_extra'; // Turno extra = TE fucsia
           } else if (pautaDia.estado_puesto === 'ppc' && pautaDia.tipo_turno === 'planificado') {
             estadoFinal = 'planificado'; // PPC planificado = punto azul
           } else if (pautaDia.estado_puesto === 'asignado' && pautaDia.tipo_turno === 'planificado') {
             estadoFinal = 'planificado'; // Guardia asignado planificado = punto azul
-          } else if (pautaDia.estado_guardia === 'asistido') {
-            estadoFinal = 'planificado';
-          } else if (pautaDia.estado_guardia === 'falta') {
-            estadoFinal = 'inasistencia';
           }
 
           // Generar información del guardia para mostrar iniciales
           let guardiaInfo = null;
           // NUEVA LÓGICA SIMPLIFICADA: Si hay guardia_trabajo_id, mostrar iniciales
           // La lógica de fechas ya se maneja en sincronizarPautasPostAsignacion
-          if (pautaDia.tipo_turno !== 'libre' && pautaDia.guardia_trabajo_id && pautaDia.guardia_nombre) {
+          
+          // DEBUG: Log completo de pautaDia para entender qué está pasando
+          if (dia <= 3) { // Solo log para los primeros 3 días para no saturar
+            logger.debug(`🔍 DEBUG pautaDia para día ${dia}:`, {
+              pautaDia: pautaDia ? {
+                tipo_turno: pautaDia.tipo_turno,
+                estado_puesto: pautaDia.estado_puesto,
+                estado_guardia: pautaDia.estado_guardia,
+                tipo_cobertura: pautaDia.tipo_cobertura,
+                guardia_trabajo_id: pautaDia.guardia_trabajo_id,
+                guardia_id: pautaDia.guardia_id,
+                puesto_guardia_id: pautaDia.puesto_guardia_id,
+                guardia_nombre: pautaDia.guardia_nombre,
+                apellido_paterno: pautaDia.apellido_paterno,
+                apellido_materno: pautaDia.apellido_materno
+              } : null
+            });
+          }
+          
+          if (pautaDia && pautaDia.guardia_trabajo_id && pautaDia.guardia_nombre && pautaDia.apellido_paterno) {
             const iniciales = `${pautaDia.guardia_nombre.charAt(0)}${pautaDia.apellido_paterno.charAt(0)}`;
             guardiaInfo = {
               id: pautaDia.guardia_trabajo_id,
@@ -330,6 +368,16 @@ export async function GET(request: NextRequest) {
               iniciales: iniciales,
               nombre_completo: `${pautaDia.guardia_nombre} ${pautaDia.apellido_paterno} ${pautaDia.apellido_materno || ''}`.trim()
             };
+            logger.debug(`🔍 Generando iniciales para guardia: ${guardiaInfo.iniciales} (${guardiaInfo.nombre_completo})`);
+          } else {
+            logger.debug(`❌ No se generaron iniciales para día ${dia}:`, {
+              pautaDia: pautaDia ? {
+                tipo_turno: pautaDia.tipo_turno,
+                guardia_trabajo_id: pautaDia.guardia_trabajo_id,
+                guardia_nombre: pautaDia.guardia_nombre,
+                apellido_paterno: pautaDia.apellido_paterno
+              } : null
+            });
           }
 
           return {
@@ -340,6 +388,7 @@ export async function GET(request: NextRequest) {
             estado_guardia: pautaDia.estado_guardia || null,
             tipo_cobertura: pautaDia.tipo_cobertura || (puesto.es_ppc ? 'ppc' : 'guardia_asignado'),
             guardia_trabajo_id: pautaDia.guardia_trabajo_id,
+            turno_id: pautaDia.turno_id,
             guardia_info: guardiaInfo
           };
         })

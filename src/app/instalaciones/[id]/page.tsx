@@ -105,6 +105,12 @@ export default function InstalacionDetallePage() {
       const datosCompletos = await obtenerDatosCompletosInstalacion(instalacionId);
       
       // Logs removidos para evitar re-renders infinitos
+      console.log('🔍 [DEBUG] Datos completos de instalación recibidos en page.tsx:', {
+        turnos: datosCompletos.turnos?.length || 0,
+        ppcs: datosCompletos.ppcs?.length || 0,
+        guardias: datosCompletos.guardias?.length || 0,
+        roles: datosCompletos.roles?.length || 0
+      });
       
       setInstalacion(datosCompletos.instalacion);
       
