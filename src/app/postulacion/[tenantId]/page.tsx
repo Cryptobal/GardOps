@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-import { GoogleMapsAutocomplete } from "@/components/ui/google-maps-autocomplete";
+import { GoogleMapsSearch } from "@/components/ui/google-maps-search";
 import { DatePickerComponent } from "@/components/ui/date-picker";
 import { Camera, Upload, ArrowRight, ArrowLeft, CheckCircle, AlertCircle, Sun, Moon, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
@@ -98,21 +98,19 @@ export default function PostulacionPage() {
     talla_camisa: '', talla_pantalon: '', talla_zapato: 40, altura_cm: 170, peso_kg: 70
   });
 
-  const [documentos, setDocumentos] = useState<Documento[]>([
-    { tipo: 'Certificado OS10', archivo: null, obligatorio: true, fecha_vencimiento: '' },
-    { tipo: 'Carnet Identidad Frontal', archivo: null, obligatorio: false },
-    { tipo: 'Carnet Identidad Reverso', archivo: null, obligatorio: false },
-    { tipo: 'Certificado Antecedentes', archivo: null, obligatorio: false },
-    { tipo: 'Certificado Enseñanza Media', archivo: null, obligatorio: false },
-    { tipo: 'Certificado AFP', archivo: null, obligatorio: false },
-    { tipo: 'Certificado AFC', archivo: null, obligatorio: false },
-    { tipo: 'Certificado FONASA/ISAPRE', archivo: null, obligatorio: false }
-  ]);
+  const [documentos, setDocumentos] = useState<Documento[]>([]);
 
   const [bancos, setBancos] = useState<Array<{id: string, nombre: string}>>([]);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [success, setSuccess] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Leer el tema del localStorage al iniciar
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme');
+      return savedTheme === 'dark';
+    }
+    return false;
+  });
   
   // Estado para el modal de validación de RUT
   const [modalRut, setModalRut] = useState<{
@@ -129,9 +127,22 @@ export default function PostulacionPage() {
     message: ''
   });
 
-  // Cargar bancos al montar el componente
+  // Cargar bancos y documentos configurados al montar el componente
   useEffect(() => {
     cargarBancos();
+    cargarTiposDocumentos();
+  }, []);
+
+  // Aplicar tema al cargar la página
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
   }, []);
 
   // NOTA: Se eliminó la persistencia en localStorage por seguridad
@@ -149,9 +160,70 @@ export default function PostulacionPage() {
     }
   };
 
+  const cargarTiposDocumentos = async () => {
+    try {
+      logger.debug('🔄 Cargando tipos de documentos configurados...');
+      
+      // Agregar timestamp para evitar caché
+      const timestamp = new Date().getTime();
+      const response = await fetch(`/api/setup-document-types?_t=${timestamp}`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const tipos = data.tipos_documentos || [];
+        
+        logger.debug(`✅ ${tipos.length} tipos de documentos cargados:`, tipos);
+        
+        // Convertir tipos de documentos a formato de documentos del formulario
+        const documentosConfigurados = tipos
+          .filter((tipo: any) => tipo.activo !== false) // Solo documentos activos
+          .map((tipo: any) => ({
+            tipo: tipo.nombre,
+            archivo: null,
+            obligatorio: tipo.obligatorio || false,
+            fecha_vencimiento: tipo.requiere_vencimiento ? '' : undefined
+          }));
+        
+        setDocumentos(documentosConfigurados);
+        logger.debug('📄 Documentos del formulario actualizados:', documentosConfigurados);
+      } else {
+        logger.error('Error en respuesta de tipos de documentos:', response.status);
+        // Fallback a documentos por defecto si falla la carga
+        setDocumentos([
+          { tipo: 'Certificado OS10', archivo: null, obligatorio: true, fecha_vencimiento: '' }
+        ]);
+      }
+    } catch (error) {
+      logger.error('Error cargando tipos de documentos::', error);
+      // Fallback a documentos por defecto si falla la carga
+      setDocumentos([
+        { tipo: 'Certificado OS10', archivo: null, obligatorio: true, fecha_vencimiento: '' }
+      ]);
+    }
+  };
+
   const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
+    const newTheme = !isDarkMode;
+    setIsDarkMode(newTheme);
+    
+    // Guardar en localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+      
+      // Aplicar clase al documento
+      if (newTheme) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
   };
 
   const mostrarModalRut = (
@@ -175,35 +247,19 @@ export default function PostulacionPage() {
     setModalRut(prev => ({ ...prev, isOpen: false }));
   };
 
-  const handlePlaceSelect = (place: google.maps.places.PlaceResult) => {
-    if (place.address_components) {
-      let comuna = '';
-      let ciudad = '';
-
-      // Extraer comuna y ciudad de los componentes de la dirección
-      for (const component of place.address_components) {
-        const types = component.types;
-        
-        // Buscar comuna en diferentes tipos
-        if (types.includes('sublocality_level_1') || types.includes('sublocality')) {
-          comuna = component.long_name;
-        }
-        // Buscar ciudad en diferentes tipos
-        if (types.includes('locality') || types.includes('administrative_area_level_1')) {
-          ciudad = component.long_name;
-        }
-      }
-
-      logger.debug('Google Maps - Place:', place);
-      logger.debug('Google Maps - Comuna:', comuna, 'Ciudad:', ciudad);
-
-      // Actualizar los campos de comuna y ciudad
-      setFormData(prev => ({
-        ...prev,
-        comuna: comuna || 'No encontrada',
-        ciudad: ciudad || 'No encontrada'
-      }));
-    }
+  const handlePlaceSelect = (address: string, comuna: string, ciudad: string) => {
+    console.log('✅ DATOS RECIBIDOS DE GOOGLE MAPS:');
+    console.log('   Dirección:', address);
+    console.log('   Comuna:', comuna);
+    console.log('   Ciudad:', ciudad);
+    
+    // Actualizar formulario
+    setFormData(prev => ({
+      ...prev,
+      direccion: address,
+      comuna: comuna || prev.comuna,
+      ciudad: ciudad || prev.ciudad
+    }));
   };
 
   // Validaciones
@@ -429,10 +485,20 @@ export default function PostulacionPage() {
             formData.append('fecha_vencimiento', doc.fecha_vencimiento);
           }
 
-          await fetch('/api/postulacion/documento', {
+          logger.debug(`📤 Subiendo documento: ${doc.tipo}`);
+          const docResponse = await fetch('/api/postulacion/documento', {
             method: 'POST',
             body: formData
           });
+
+          if (!docResponse.ok) {
+            const errorData = await docResponse.json().catch(() => ({ error: 'Error desconocido' }));
+            logger.error(`❌ Error subiendo documento ${doc.tipo}:`, errorData);
+            throw new Error(`Error subiendo ${doc.tipo}: ${errorData.error || 'Error desconocido'}`);
+          }
+
+          const docData = await docResponse.json();
+          logger.debug(`✅ Documento ${doc.tipo} subido exitosamente:`, docData);
         }
       }
 
@@ -541,26 +607,20 @@ export default function PostulacionPage() {
           
 
           
-          <div className="flex justify-center items-center space-x-2 mt-4">
-            <div className={`w-3 h-3 rounded-full ${currentPage >= 1 ? 'bg-blue-500' : 'bg-gray-300'}`} />
-            <div className={`w-3 h-3 rounded-full ${currentPage >= 2 ? 'bg-blue-500' : 'bg-gray-300'}`} />
-          </div>
         </motion.div>
 
-        {/* Formulario */}
+        {/* Formulario Unificado */}
         <motion.div
-          key={currentPage}
-          initial={{ opacity: 0, x: currentPage === 2 ? 20 : -20 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          {currentPage === 1 ? (
-            <Card className="shadow-xl bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-2xl text-center text-gray-800 dark:text-white">
-                  📋 Información Personal y Laboral
-                </CardTitle>
-              </CardHeader>
+          <Card className="shadow-xl bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-2xl text-center text-gray-800 dark:text-white">
+                📋 Formulario de Postulación
+              </CardTitle>
+            </CardHeader>
               <CardContent className="space-y-6">
                 {/* Datos Personales */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -685,7 +745,7 @@ export default function PostulacionPage() {
                   </div>
                   
                   <div className="md:col-span-2">
-                    <GoogleMapsAutocomplete
+                    <GoogleMapsSearch
                       label="Dirección *"
                       value={formData.direccion}
                       onChange={(value) => handleInputChange('direccion', value)}
@@ -694,33 +754,30 @@ export default function PostulacionPage() {
                       error={errors.direccion}
                     />
                     {errors.direccion && <p className="text-red-500 text-sm mt-1">{errors.direccion}</p>}
-                    <p className="text-xs text-gray-500 mt-1">Busca y selecciona tu dirección</p>
                   </div>
                   
                   <div>
                     <Label htmlFor="comuna">Comuna</Label>
                     <Input
                       id="comuna"
-                      placeholder="Se extrae automáticamente"
+                      placeholder="Escribe la comuna si no se extrae automáticamente"
                       value={formData.comuna}
                       onChange={(e) => handleInputChange('comuna', e.target.value)}
-                      disabled
-                      className="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                      className="bg-background"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Extraída de Google Maps</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Se extrae automáticamente de Google Maps o puedes escribirla</p>
                   </div>
                   
                   <div>
                     <Label htmlFor="ciudad">Ciudad</Label>
                     <Input
                       id="ciudad"
-                      placeholder="Se extrae automáticamente"
+                      placeholder="Escribe la ciudad si no se extrae automáticamente"
                       value={formData.ciudad}
                       onChange={(e) => handleInputChange('ciudad', e.target.value)}
-                      disabled
-                      className="bg-gray-50 dark:bg-gray-500 text-gray-600 dark:text-gray-300"
+                      className="bg-background"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Extraída de Google Maps</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Se extrae automáticamente de Google Maps o puedes escribirla</p>
                   </div>
                 </div>
 
@@ -974,29 +1031,16 @@ export default function PostulacionPage() {
 
                 </div>
 
-                {/* Botones de navegación */}
-                <div className="flex justify-end pt-6">
-                  <Button
-                    onClick={siguientePagina}
-                    className="bg-blue-600 hover:bg-blue-700"
-                    size="lg"
-                  >
-                    Siguiente <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="shadow-xl bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-2xl text-center text-gray-800 dark:text-white">
-                  📄 Ingreso de Documentos
-                </CardTitle>
-                <p className="text-center text-gray-600 dark:text-gray-300">
-                  En esta sección debe cargar documentos necesarios para su ficha
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-6">
+                {/* Sección de Documentos */}
+                <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+                  <h3 className="text-xl font-semibold text-center mb-2 text-gray-800 dark:text-white">
+                    📄 Ingreso de Documentos
+                  </h3>
+                  <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
+                    En esta sección debe cargar documentos necesarios para su ficha
+                  </p>
+                  
+                  <div className="space-y-6">
                 {documentos.map((doc, index) => (
                                      <div key={doc.tipo} className="border rounded-lg p-4 space-y-4">
                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -1049,11 +1093,12 @@ export default function PostulacionPage() {
                           <Label className="text-sm">
                             Fecha de Vencimiento *
                           </Label>
-                          <DatePickerComponent
+                          <Input
+                            type="date"
                             value={doc.fecha_vencimiento || ''}
-                            onChange={(dateStr: string) => {
+                            onChange={(e) => {
                               const newDocs = [...documentos];
-                              newDocs[index].fecha_vencimiento = dateStr;
+                              newDocs[index].fecha_vencimiento = e.target.value;
                               setDocumentos(newDocs);
                             }}
                             placeholder="Seleccionar fecha de vencimiento"
@@ -1080,33 +1125,22 @@ export default function PostulacionPage() {
                     </p>
                   </div>
                 ))}
+                  </div>
+                </div>
 
-                {/* Botones de navegación */}
-                <div className="flex justify-between pt-6">
+                {/* Botón de Enviar */}
+                <div className="flex justify-center pt-8">
                   <Button
-                    variant="outline"
-                    onClick={paginaAnterior}
+                    onClick={enviarFormulario}
+                    disabled={loading}
+                    className="bg-green-600 hover:bg-green-700"
                     size="lg"
                   >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Atrás
+                    {loading ? 'Enviando...' : 'Enviar Postulación'}
                   </Button>
-                  
-                  <div className="flex gap-3">
-                    {/* Botón de Enviar Postulación */}
-                    <Button
-                      onClick={enviarFormulario}
-                      disabled={loading}
-                      className="bg-green-600 hover:bg-green-700"
-                      size="lg"
-                    >
-                      {loading ? 'Enviando...' : 'Enviar Postulación'}
-                    </Button>
-                  </div>
                 </div>
               </CardContent>
             </Card>
-          )}
         </motion.div>
       </div>
       

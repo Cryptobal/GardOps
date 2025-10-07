@@ -18,6 +18,21 @@ export async function POST(
       );
     }
 
+    // Obtener tenant_id de la instalación
+    const instalacionResult = await query(
+      'SELECT tenant_id FROM instalaciones WHERE id = $1',
+      [instalacionId]
+    );
+
+    if (instalacionResult.rows.length === 0) {
+      return NextResponse.json(
+        { error: 'Instalación no encontrada' },
+        { status: 404 }
+      );
+    }
+
+    const tenantId = instalacionResult.rows[0].tenant_id;
+
     // Verificar que el turno existe y pertenece a la instalación
     const turnoResult = await query(`
       SELECT rol_id, COUNT(*) as total_puestos
@@ -44,10 +59,11 @@ export async function POST(
           rol_id,
           nombre_puesto,
           es_ppc,
+          tenant_id,
           creado_en
-        ) VALUES ($1, $2, $3, true, NOW())
+        ) VALUES ($1, $2, $3, true, $4, NOW())
         RETURNING id
-      `, [instalacionId, turnoId, `Puesto ${parseInt(turno.total_puestos) + i + 1}`]);
+      `, [instalacionId, turnoId, `Puesto ${parseInt(turno.total_puestos) + i + 1}`, tenantId]);
 
       puestosCreados.push(puestoResult.rows[0].id);
     }

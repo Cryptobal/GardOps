@@ -355,8 +355,6 @@ export async function getRolesServicio(): Promise<RolServicio[]> {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        // Agregar el header manualmente para asegurar que funcione
-        'x-user-email': 'carlos.irigoyen@gard.cl',
       },
     });
 

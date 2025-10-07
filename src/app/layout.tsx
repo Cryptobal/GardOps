@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import Script from 'next/script'
 import './globals.css'
 import { AuthWrapperWorking as AuthWrapper } from '../components/layout/auth-wrapper-working'
 import { ToastContainer } from '../components/ui/toast'
@@ -20,6 +21,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className="dark">
+      <head>
+        <Script
+          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`}
+          strategy="beforeInteractive"
+        />
+      </head>
       <body className={inter.className}>
         <ErrorBoundary>
           <FlagsProvider>

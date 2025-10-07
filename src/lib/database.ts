@@ -23,21 +23,21 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   
   // Configuraciones optimizadas para estabilidad y rendimiento
-  max: 20, // Reducir máximo número de conexiones para evitar sobrecarga
-  idleTimeoutMillis: 30000, // Reducir tiempo de inactividad
-  connectionTimeoutMillis: 15000, // Aumentar tiempo de conexión
-  maxUses: 5000, // Reducir número máximo de usos por conexión
+  max: 10, // Reducir más el máximo número de conexiones para evitar sobrecarga
+  idleTimeoutMillis: 10000, // Reducir tiempo de inactividad para liberar conexiones más rápido
+  connectionTimeoutMillis: 10000, // Reducir tiempo de conexión para fallar más rápido
+  maxUses: 1000, // Reducir número máximo de usos por conexión
   
   // Configuraciones para queries lentas y timeouts
-  statement_timeout: 60000, // 60 segundos timeout para statements
-  query_timeout: 60000, // 60 segundos timeout para queries
+  statement_timeout: 30000, // 30 segundos timeout para statements (más estricto)
+  query_timeout: 30000, // 30 segundos timeout para queries (más estricto)
   
   // Configuraciones adicionales para estabilidad
   allowExitOnIdle: false,
   
-  // Configuraciones específicas para Neon
+  // Configuraciones específicas para Neon - más agresivas
   keepAlive: true,
-  keepAliveInitialDelayMillis: 10000,
+  keepAliveInitialDelayMillis: 5000, // Reducir delay inicial
 });
 
 // Manejar eventos del pool para debugging
@@ -53,6 +53,23 @@ pool.on('remove', (client) => {
   logger.debug('🔌 Conexión removida del pool');
 });
 
+// Health check periódico para detectar conexiones problemáticas
+setInterval(async () => {
+  try {
+    const result = await pool.query('SELECT 1');
+    logger.debug('💚 Health check BD: OK');
+  } catch (error) {
+    console.error('❌ Health check BD falló:', error instanceof Error ? error.message : 'Error desconocido');
+    // Si el health check falla, intentar limpiar el pool
+    try {
+      await pool.end();
+      console.log('🔄 Pool de conexiones reiniciado');
+    } catch (cleanupError) {
+      console.error('❌ Error limpiando pool:', cleanupError);
+    }
+  }
+}, 60000); // Cada minuto
+
 export default pool;
 export { pool };
 export const db = pool;
@@ -62,31 +79,53 @@ export async function getClient() {
   return await pool.connect();
 }
 
-export async function query(text: string, params?: any[]): Promise<any> {
-  const client = await pool.connect();
-  try {
-    const startTime = Date.now();
-    const result = await client.query(text, params);
-    const duration = Date.now() - startTime;
-    
-    // Log solo queries lentos para debugging
-    if (duration > 2000) {
-      console.log(`🐌 Query muy lento (${duration}ms): ${text.substring(0, 100)}...`);
-    } else if (duration > 1000) {
-      console.log(`🐌 Query lento (${duration}ms): ${text.substring(0, 100)}...`);
+export async function query(text: string, params?: any[], retries: number = 3): Promise<any> {
+  let client;
+  let lastError;
+  
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      client = await pool.connect();
+      const startTime = Date.now();
+      const result = await client.query(text, params);
+      const duration = Date.now() - startTime;
+      
+      // Log solo queries lentos para debugging
+      if (duration > 2000) {
+        console.log(`🐌 Query muy lento (${duration}ms): ${text.substring(0, 100)}...`);
+      } else if (duration > 1000) {
+        console.log(`🐌 Query lento (${duration}ms): ${text.substring(0, 100)}...`);
+      }
+      
+      return result;
+    } catch (error) {
+      lastError = error;
+      console.error(`❌ Error en query (intento ${attempt}/${retries}): ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      
+      // Si es un timeout y no es el último intento, esperar antes de reintentar
+      if (attempt < retries && error instanceof Error && 
+          (error.message.includes('ETIMEDOUT') || error.message.includes('timeout'))) {
+        console.log(`🔄 Reintentando query en 1 segundo... (intento ${attempt + 1}/${retries})`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        continue;
+      }
+      
+      // Si no es timeout o es el último intento, mostrar detalles del error
+      console.error(`Query: ${text.substring(0, 200)}...`);
+      if (params) {
+        console.error(`Params: ${JSON.stringify(params).substring(0, 200)}...`);
+      }
+      
+      throw error;
+    } finally {
+      if (client) {
+        client.release();
+      }
     }
-    
-    return result;
-  } catch (error) {
-    console.error(`❌ Error en query: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-    console.error(`Query: ${text.substring(0, 200)}...`);
-    if (params) {
-      console.error(`Params: ${JSON.stringify(params).substring(0, 200)}...`);
-    }
-    throw error;
-  } finally {
-    client.release();
   }
+  
+  // Si llegamos aquí, todos los intentos fallaron
+  throw lastError;
 }
 
 export async function checkConnection(): Promise<boolean> {

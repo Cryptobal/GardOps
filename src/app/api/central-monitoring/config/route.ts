@@ -76,6 +76,20 @@ export async function POST(request: NextRequest) {
       mensaje_template
     } = body;
 
+    // Obtener tenant_id de la instalación
+    const instalacionResult = await sql`
+      SELECT tenant_id FROM instalaciones WHERE id = ${instalacion_id}
+    `;
+    
+    if (instalacionResult.rows.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Instalación no encontrada' },
+        { status: 404 }
+      );
+    }
+    
+    const tenantId = instalacionResult.rows[0].tenant_id;
+
     // Validaciones
     if (!instalacion_id) {
       return NextResponse.json(
@@ -109,6 +123,7 @@ export async function POST(request: NextRequest) {
           ventana_fin = ${ventana_fin || '07:00'},
           modo = ${modo || 'whatsapp'},
           mensaje_template = ${mensaje_template || 'Hola, soy de la central de monitoreo. ¿Todo bien en la instalación?'},
+          tenant_id = ${tenantId},
           updated_at = now()
         WHERE instalacion_id = ${instalacion_id}
         RETURNING *
@@ -118,12 +133,12 @@ export async function POST(request: NextRequest) {
       result = await sql`
         INSERT INTO central_config_instalacion (
           instalacion_id, habilitado, intervalo_minutos, ventana_inicio,
-          ventana_fin, modo, mensaje_template
+          ventana_fin, modo, mensaje_template, tenant_id
         )
         VALUES (
           ${instalacion_id}, ${habilitado}, ${intervalo_minutos || 60},
           ${ventana_inicio || '21:00'}, ${ventana_fin || '07:00'}, ${modo || 'whatsapp'},
-          ${mensaje_template || 'Hola, soy de la central de monitoreo. ¿Todo bien en la instalación?'}
+          ${mensaje_template || 'Hola, soy de la central de monitoreo. ¿Todo bien en la instalación?'}, ${tenantId}
         )
         RETURNING *
       `;

@@ -171,6 +171,33 @@ async function procesarTurnos(turnos: any[]) {
   let eliminados = 0;
   const errores = [];
 
+  // Obtener tenant_id del primer turno (todos los turnos de una pauta deben ser del mismo tenant)
+  let tenantId = null;
+  if (turnos.length > 0 && turnos[0].puesto_id) {
+    try {
+      const tenantResult = await query(`
+        SELECT i.tenant_id 
+        FROM instalaciones i
+        INNER JOIN as_turnos_puestos_operativos po ON i.id = po.instalacion_id
+        WHERE po.id = $1
+      `, [turnos[0].puesto_id]);
+      
+      if (tenantResult.rows.length > 0) {
+        tenantId = tenantResult.rows[0].tenant_id;
+        logger.debug(`🔍 Tenant ID obtenido: ${tenantId}`);
+      }
+    } catch (error) {
+      logger.error('Error obteniendo tenant_id:', error);
+      errores.push('Error obteniendo tenant_id para la pauta');
+      return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+    }
+  }
+
+  if (!tenantId) {
+    errores.push('No se pudo obtener tenant_id para la pauta');
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+  }
+
   for (const turno of turnos) {
     const {
       puesto_id,
@@ -310,9 +337,9 @@ async function procesarTurnos(turnos: any[]) {
             INSERT INTO as_turnos_pauta_mensual (
               puesto_id, guardia_id, anio, mes, dia, plan_base, estado_rrhh, estado_operacion,
               observaciones, reemplazo_guardia_id, editado_manualmente, created_at, updated_at,
-              tipo_turno, estado_puesto, estado_guardia, tipo_cobertura, guardia_trabajo_id
+              tipo_turno, estado_puesto, estado_guardia, tipo_cobertura, guardia_trabajo_id, tenant_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW(), $12, $13, $14, $15, $16)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW(), $12, $13, $14, $15, $16, $17)
             ON CONFLICT (puesto_id, anio, mes, dia)
             DO UPDATE SET
               plan_base = EXCLUDED.plan_base,
@@ -325,12 +352,13 @@ async function procesarTurnos(turnos: any[]) {
               estado_guardia = EXCLUDED.estado_guardia,
               tipo_cobertura = EXCLUDED.tipo_cobertura,
               guardia_trabajo_id = EXCLUDED.guardia_trabajo_id,
+              tenant_id = EXCLUDED.tenant_id,
               updated_at = NOW()
             `,
             [
               puesto_id, null, anio, mes, dia, 'libre', 'sin_evento', 'libre',
               observaciones || null, null, true,
-              'libre', 'libre', null, null, null
+              'libre', 'libre', null, null, null, tenantId
             ]
           );
         } else {
@@ -411,9 +439,9 @@ async function procesarTurnos(turnos: any[]) {
             INSERT INTO as_turnos_pauta_mensual (
               puesto_id, guardia_id, anio, mes, dia, plan_base, estado_rrhh, estado_operacion,
               observaciones, reemplazo_guardia_id, editado_manualmente, created_at, updated_at,
-              tipo_turno, estado_puesto, estado_guardia, tipo_cobertura, guardia_trabajo_id
+              tipo_turno, estado_puesto, estado_guardia, tipo_cobertura, guardia_trabajo_id, tenant_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW(), $12, $13, $14, $15, $16)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW(), $12, $13, $14, $15, $16, $17)
             ON CONFLICT (puesto_id, anio, mes, dia)
             DO UPDATE SET
               plan_base = EXCLUDED.plan_base,
@@ -426,6 +454,7 @@ async function procesarTurnos(turnos: any[]) {
               estado_guardia = EXCLUDED.estado_guardia,
               tipo_cobertura = EXCLUDED.tipo_cobertura,
               guardia_trabajo_id = EXCLUDED.guardia_trabajo_id,
+              tenant_id = EXCLUDED.tenant_id,
               updated_at = NOW()
             `,
             [
@@ -435,7 +464,8 @@ async function procesarTurnos(turnos: any[]) {
               guardia_id ? 'asignado' : 'ppc',                     // estado_puesto: asignado si hay guardia
               null,                                                // estado_guardia: SIEMPRE null en pauta mensual
               guardia_id ? 'guardia_asignado' : 'ppc',            // tipo_cobertura: guardia_asignado si hay guardia
-              guardia_id                                          // guardia_trabajo_id
+              guardia_id,                                          // guardia_trabajo_id
+              tenantId                                             // tenant_id
             ]
           );
         }

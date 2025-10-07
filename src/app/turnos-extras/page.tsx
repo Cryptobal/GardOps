@@ -11,15 +11,16 @@ import { logger } from '@/lib/utils/logger';
 interface TurnoExtra {
   id: string;
   fecha: string;
-  instalacion: string;
-  rol: string;
-  horario: string;
-  guardia: {
-    id: string;
-    nombre: string;
-  };
-  tipo: 'ppc' | 'reemplazo';
+  instalacion_nombre: string;
+  nombre_puesto: string;
+  guardia_nombre: string;
+  guardia_apellido_paterno: string;
+  guardia_apellido_materno: string;
+  guardia_rut: string;
   estado: string;
+  valor: string;
+  pagado: boolean;
+  source: string;
 }
 
 export default function TurnosExtrasPage() {
@@ -41,7 +42,8 @@ export default function TurnosExtrasPage() {
       if (response.ok) {
         const data = await response.json();
         logger.debug('✅ Turnos extras cargados:', data);
-        setTurnosExtras(data || []);
+        // El API devuelve { ok: true, turnos_extras: [...] }
+        setTurnosExtras(data.turnos_extras || []);
       } else {
         logger.error('❌ Error cargando turnos extras');
         setTurnosExtras([]);
@@ -156,7 +158,7 @@ export default function TurnosExtrasPage() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {turnosExtras.filter(t => t.tipo === 'ppc').length}
+                      {turnosExtras.filter(t => t.estado === 'ppc' || t.source === 'materializado').length}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       PPCs
@@ -174,7 +176,7 @@ export default function TurnosExtrasPage() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {turnosExtras.filter(t => t.tipo === 'reemplazo').length}
+                      {turnosExtras.filter(t => t.estado === 'reemplazo' || t.source === 'virtual').length}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       Reemplazos
@@ -211,8 +213,8 @@ export default function TurnosExtrasPage() {
                     <div className="flex-1 space-y-3">
                       {/* Header con tipo y fecha */}
                       <div className="flex items-center gap-3">
-                        <Badge className={obtenerColorTipo(turno.tipo)}>
-                          {obtenerIconoTipo(turno.tipo)} {turno.tipo.toUpperCase()}
+                        <Badge className={obtenerColorTipo(turno.estado)}>
+                          {obtenerIconoTipo(turno.estado)} {turno.estado.toUpperCase()}
                         </Badge>
                         <span className="text-sm text-gray-600 dark:text-gray-400">
                           {formatearFecha(turno.fecha)}
@@ -224,30 +226,41 @@ export default function TurnosExtrasPage() {
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4 text-gray-500" />
                           <span className="text-sm font-medium text-gray-900 dark:text-white">
-                            {turno.instalacion}
+                            {turno.instalacion_nombre}
                           </span>
                         </div>
                         
                         <div className="flex items-center gap-2">
                           <User className="w-4 h-4 text-gray-500" />
                           <span className="text-sm font-medium text-gray-900 dark:text-white">
-                            {turno.guardia.nombre}
+                            {turno.guardia_nombre} {turno.guardia_apellido_paterno} {turno.guardia_apellido_materno}
                           </span>
                         </div>
                         
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-gray-600 dark:text-gray-400">
-                            Rol:
+                            Puesto:
                           </span>
                           <span className="text-sm font-medium text-gray-900 dark:text-white">
-                            {turno.rol}
+                            {turno.nombre_puesto}
                           </span>
                         </div>
                         
                         <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-gray-500" />
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Valor:
+                          </span>
                           <span className="text-sm font-medium text-gray-900 dark:text-white">
-                            {turno.horario}
+                            ${turno.valor}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            RUT:
+                          </span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {turno.guardia_rut}
                           </span>
                         </div>
                       </div>

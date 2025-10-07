@@ -23,11 +23,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Usuario no encontrado' }, { status: 403 });
     }
 
-    // Fallback maestro: si el usuario tiene rol 'admin' en JWT, permitir todo
+    // Fallback maestro: si el usuario tiene rol de admin en JWT, permitir todo
     try {
       const { getCurrentUserServer } = await import('@/lib/auth');
       const u = getCurrentUserServer(request as any);
-      if (u?.rol === 'admin') {
+      if (u?.rol === 'Super Admin' || u?.rol === 'Platform Admin') {
         return NextResponse.json({ ok: true, email, userId, perm, allowed: true, override: 'jwt_admin' });
       }
     } catch {}

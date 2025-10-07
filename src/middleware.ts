@@ -13,7 +13,9 @@ export function middleware(req: NextRequest) {
     const hasAuthHeader = !!req.headers.get("authorization");
     const cookieHeader = req.headers.get("cookie") || "";
     const hasAuthCookie = /(?:^|;\s*)auth_token=/.test(cookieHeader);
-    if (hasAuthHeader || hasAuthCookie) {
+    const hasExplicitEmailHeader = !!req.headers.get("x-user-email");
+    
+    if (hasAuthHeader || hasAuthCookie || hasExplicitEmailHeader) {
       return NextResponse.next();
     }
     const headers = new Headers(req.headers);

@@ -134,41 +134,24 @@ export function GoogleMapsAutocomplete({
       });
 
       // Escuchar selección de lugar
-      autocompleteRef.current.addListener('place_changed', () => {
+      const listener = autocompleteRef.current.addListener('place_changed', () => {
         const place = autocompleteRef.current?.getPlace();
-        if (place && place.address_components) {
-          let streetNumber = '';
-          let route = '';
-          let sublocality = '';
-          let locality = '';
-          let administrativeArea = '';
-
-          // Extraer componentes de la dirección
-          for (const component of place.address_components) {
-            const types = component.types;
-            
-            if (types.includes('street_number')) {
-              streetNumber = component.long_name;
-            } else if (types.includes('route')) {
-              route = component.long_name;
-            } else if (types.includes('sublocality_level_1') || types.includes('sublocality')) {
-              sublocality = component.long_name;
-            } else if (types.includes('locality')) {
-              locality = component.long_name;
-            } else if (types.includes('administrative_area_level_1')) {
-              administrativeArea = component.long_name;
-            }
-          }
-
-          // Construir dirección completa
-          const fullAddress = [streetNumber, route].filter(Boolean).join(' ');
-          
-          // Llamar callbacks
-          onChange(fullAddress);
-          setInputValue(fullAddress);
-          if (onPlaceSelect) {
-            onPlaceSelect(place);
-          }
+        
+        if (!place) {
+          logger.error('❌ No se recibió lugar de Google Maps');
+          return;
+        }
+        
+        logger.debug('🗺️ Lugar recibido:', place);
+        
+        // Usar la dirección formateada
+        const fullAddress = place.formatted_address || place.name || '';
+        onChange(fullAddress);
+        setInputValue(fullAddress);
+        
+        // Pasar el lugar completo al callback
+        if (onPlaceSelect) {
+          onPlaceSelect(place);
         }
       });
 
@@ -242,9 +225,15 @@ export function GoogleMapsAutocomplete({
         <p className="text-sm text-red-500">{error}</p>
       )}
       
+      {isGoogleLoaded && (
+        <p className="text-xs text-green-600 dark:text-green-400">
+          ✓ Google Maps conectado - Selecciona una dirección de las sugerencias
+        </p>
+      )}
+      
       {!isGoogleLoaded && !isLoading && (
-        <p className="text-xs text-gray-500">
-          Autocompletado no disponible. Puede escribir la dirección manualmente.
+        <p className="text-xs text-yellow-600 dark:text-yellow-400">
+          ⚠ Autocompletado no disponible. Escribe la dirección manualmente y completa comuna/ciudad.
         </p>
       )}
     </div>

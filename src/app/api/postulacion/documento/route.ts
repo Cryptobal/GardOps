@@ -158,15 +158,15 @@ export async function POST(request: NextRequest) {
 
       const guardia = guardiaCheck.rows[0];
 
-      // Verificar que el tipo de documento es válido
+      // Verificar que el tipo de documento es válido (sin requerir que esté activo)
       const tipoDocCheck = await client.query(
-        'SELECT id, nombre FROM documentos_tipos WHERE nombre = $1 AND modulo = \'guardias\' AND activo = true',
+        'SELECT id, nombre FROM documentos_tipos WHERE nombre = $1 AND modulo = \'guardias\'',
         [tipoDocumento]
       );
 
       if (tipoDocCheck.rows.length === 0) {
         return NextResponse.json({
-          error: 'Tipo de documento no válido'
+          error: 'Tipo de documento no válido o no configurado'
         }, { status: 400 });
       }
 

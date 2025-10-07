@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "n8n-mcp": {
+      "command": "npx",
+      "args": ["n8n-mcp"],
+      "env": {
+        "MCP_MODE": "stdio",
+        "LOG_LEVEL": "debug",
+        "N8N_API_URL": "https://primary-production-8f25.up.railway.app",
+        "N8N_API_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDBmMGU1Ny04MDkzLTRjMjktODc3Zi0zNDhjMGU2Mjg0ZjAiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzU5MjA1MjcwfQ.GT0_jpV4CIo2yCdz21OxXQuMRTRyOA6lZab64MCirvw"
+      }
+    },
+    "Neon": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote@latest", "https://mcp.neon.tech/mcp"]
+    }
+  }
+}

@@ -511,6 +511,14 @@ export default function ConfiguracionPostulacionesPage() {
                             <div className="flex items-center space-x-4">
                               <div className="flex items-center space-x-2">
                                 <Switch
+                                  checked={documento.activo !== false}
+                                  onCheckedChange={(checked) => actualizarDocumento(documento.id, 'activo', checked)}
+                                />
+                                <Label className="text-sm font-medium">Activo</Label>
+                              </div>
+                              
+                              <div className="flex items-center space-x-2">
+                                <Switch
                                   checked={documento.obligatorio || false}
                                   onCheckedChange={(checked) => actualizarDocumento(documento.id, 'obligatorio', checked)}
                                 />

@@ -1,0 +1,758 @@
+{
+  "proyecto": "Monitor de Seguridad WhatsApp - GardOps",
+  "workflow_id": "1bDGASagTwhJO1oE",
+  "workflow_name": "Agente Whatsapp",
+  "estado": "ACTIVO ✅",
+  "fecha_creacion": "2025-09-30",
+  "ultima_actualizacion": "2025-10-02",
+  "version": "2.0 - Versión Mejorada con Investigación Activa",
+  
+  "objetivo_principal": "Sistema inteligente de monitoreo de seguridad en WhatsApp con 5 flujos automatizados que detectan incidentes, investigan activamente, generan reportes y monitorean proactivamente todos los grupos de seguridad",
+  
+  "arquitectura": {
+    "total_nodos": 30,
+    "triggers": 2,
+    "ai_agents": 4,
+    "ai_models": 3,
+    "functions": 13,
+    "http_requests": 7,
+    "redis_nodes": 6,
+    "switches": 3
+  },
+  
+  "flujos_implementados": [
+    {
+      "numero": 1,
+      "nombre": "Chatbot Conversacional Inteligente",
+      "proposito": "Responder automáticamente a mensajes con contexto y memoria",
+      "trigger": "Webhook (cada mensaje entrante)",
+      "nodos": [
+        "Webhook Wasender",
+        "Extraer Datos Wasender",
+        "AI Agent WhatsApp",
+        "OpenAI GPT-4o-mini",
+        "Redis Chat Memory",
+        "Filtrar Respuestas Vacías",
+        "Switch",
+        "Respuesta",
+        "Respuesta a grupo"
+      ],
+      "caracteristicas": [
+        "Memoria conversacional de 15 días por chat/grupo",
+        "Modo investigador para incidentes (hace preguntas específicas)",
+        "Filtro inteligente de respuestas vacías",
+        "Diferenciación entre grupos #Reporte y chats normales",
+        "No responde a mensajes normales, solo a incidentes o keywords de RRHH"
+      ],
+      "prompt_key_features": [
+        "Detecta palabras clave: incendio, robo, alarma, intruso, emergencia",
+        "Activa modo investigador con preguntas específicas según tipo",
+        "Hace seguimiento paso a paso hasta obtener información completa",
+        "En grupos #Reporte: solo responde si hay conversación activa o incidente",
+        "En chats individuales: solo responde a keywords de RRHH o incidentes"
+      ]
+    },
+    {
+      "numero": 2,
+      "nombre": "Monitor de Seguridad en Tiempo Real",
+      "proposito": "Detectar incidentes de seguridad y alertar inmediatamente",
+      "trigger": "Webhook (cada mensaje entrante)",
+      "nodos": [
+        "Filtrar para Security Monitor",
+        "AI Detector Incidentes",
+        "OpenAI Security",
+        "Parsear Análisis",
+        "Verificar Investigación Activa",
+        "Filtrar Incidentes con Estado",
+        "Filtrar Solo Incidentes",
+        "Alertar Operaciones",
+        "Guardar Incidente",
+        "Marcar Investigación Activa",
+        "Actualizar Timestamp Actividad"
+      ],
+      "caracteristicas": [
+        "Análisis de TODOS los mensajes (grupos e individuales)",
+        "Excluye grupo Operaciones General para evitar loops",
+        "Detección por IA con criterios específicos",
+        "Sistema de estado de investigación (evita alertas duplicadas)",
+        "Guarda incidentes en Redis con TTL 24h",
+        "Registra timestamp de actividad de cada canal"
+      ],
+      "criterios_deteccion": {
+        "emergencias": ["incendios", "explosiones", "derrames químicos"],
+        "seguridad": ["robos", "asaltos", "intrusos", "violencia", "ruidos extraños"],
+        "operacionales": ["fallas eléctricas graves", "colapsos estructurales"],
+        "alertas": ["alarmas activadas", "accesos no autorizados", "sensores"],
+        "medicas": ["accidentes graves", "heridos", "emergencias médicas"]
+      },
+      "alerta_formato": {
+        "destino": "120363424106281199@g.us (Grupo Operaciones)",
+        "template": "⚠️ *ALERTA INICIAL - INCIDENTE DETECTADO*\n\n👤 *Reportado por:* {nombre}\n🚨 *Tipo:* {severidad}\n📍 *Canal:* {canal}\n\n*Mensaje:* \"{mensaje}\"\n\n🔍 _Iniciando investigación..._\n📊 _En breve se enviará un resumen detallado_"
+      }
+    },
+    {
+      "numero": 3,
+      "nombre": "Sistema de Investigación con Resumen Final",
+      "proposito": "Cuando el chatbot completa una investigación, genera y envía un reporte final detallado",
+      "trigger": "Detección de frase clave del chatbot",
+      "nodos": [
+        "Detectar Resumen Final",
+        "Switch Resumen Final",
+        "Obtener Incidente de Redis",
+        "Procesar Incidente para Reporte",
+        "Obtener Conversación Completa",
+        "AI Generar Resumen Final",
+        "OpenAI Resumen Final",
+        "Enviar Reporte Final"
+      ],
+      "caracteristicas": [
+        "Detecta cuando chatbot dice 'Estoy alertando a operaciones'",
+        "Obtiene toda la conversación de investigación",
+        "Genera reporte final profesional con GPT-4o",
+        "Incluye: información general, descripción, investigación, estado, recomendaciones",
+        "Envía al grupo Operaciones General"
+      ],
+      "frase_clave_detector": "Estoy alertando a operaciones",
+      "reporte_final_estructura": {
+        "seccion_1": "Información General (reportador, canal, severidad, horarios)",
+        "seccion_2": "Descripción del Incidente",
+        "seccion_3": "Investigación Realizada (preguntas y respuestas)",
+        "seccion_4": "Información Recopilada (ubicaciones, magnitudes, personas)",
+        "seccion_5": "Estado Actual",
+        "seccion_6": "Recomendaciones",
+        "seccion_7": "Próximos Pasos"
+      }
+    },
+    {
+      "numero": 4,
+      "nombre": "Resumen Diario Automatizado",
+      "proposito": "Generar y enviar reporte diario de seguridad a las 07:00 AM",
+      "trigger": "Cron (07:00 diario)",
+      "nodos": [
+        "Cron Resumen Diario 07:00",
+        "Obtener Incidentes 24h",
+        "Obtener Datos Actividad",
+        "Obtener Valores Redis",
+        "Procesar Resumen Mejorado",
+        "AI Generar Resumen",
+        "OpenAI GPT-4o Resumen",
+        "Enviar Resumen WhatsApp",
+        "Enviar Resumen Email"
+      ],
+      "caracteristicas": [
+        "Se ejecuta todos los días a las 07:00 AM",
+        "Obtiene incidentes de últimas 24h desde Redis",
+        "Obtiene datos de actividad de todos los grupos",
+        "Detecta grupos sin actividad (>8h) y baja actividad (>4h)",
+        "Genera reporte con GPT-4o",
+        "Envía por WhatsApp y Email simultáneamente"
+      ],
+      "destinos": [
+        {
+          "tipo": "WhatsApp",
+          "destinatario": "120363424106281199@g.us",
+          "nombre": "Grupo Operaciones General"
+        },
+        {
+          "tipo": "Email",
+          "destinatario": "operaciones@gard.cl",
+          "formato": "Texto con emojis compatibles"
+        }
+      ],
+      "metricas_incluidas": [
+        "Total de incidentes",
+        "Grupos afectados",
+        "Incidentes urgentes",
+        "Incidentes importantes",
+        "Grupos sin actividad nocturna",
+        "Grupos con baja actividad",
+        "Patrones y tendencias"
+      ]
+    },
+    {
+      "numero": 5,
+      "nombre": "Monitoreo Proactivo Horario",
+      "proposito": "Contactar proactivamente grupos #Reporte cada hora para verificar estado",
+      "trigger": "Cron (cada hora, 24/7)",
+      "nodos": [
+        "Cron Monitoreo Proactivo",
+        "Obtener Grupos",
+        "Filtrar Grupos #Reporte",
+        "Verificar Actividad",
+        "Redis Get Last Activity",
+        "Determinar Tipo Mensaje",
+        "Enviar Mensaje Proactivo",
+        "Marcar Conversación Activa"
+      ],
+      "caracteristicas": [
+        "Se ejecuta cada hora (0:00, 1:00, 2:00... 23:00)",
+        "Obtiene todos los grupos desde Wasender API",
+        "Filtra solo grupos que contienen '#Reporte' en el nombre",
+        "Verifica última actividad de cada grupo",
+        "Si sin actividad >1h, envía mensaje proactivo",
+        "Mensajes diferentes para día (06:00-22:00) vs noche (22:00-06:00)",
+        "Marca conversación como activa en Redis"
+      ],
+      "mensajes_proactivos": {
+        "dia": "Hola equipo, ¿cómo va todo? ¿Alguna novedad que reportar?",
+        "noche": "Control nocturno: ¿Rondas completadas? ¿Todo en orden?"
+      }
+    }
+  ],
+  
+  "configuracion_tecnica": {
+    "webhook": {
+      "url": "https://primary-production-8f25.up.railway.app/webhook/guardops-whatsapp-v2",
+      "metodo": "POST",
+      "path": "guardops-whatsapp-v2",
+      "autenticacion": "x-webhook-signature header"
+    },
+    
+    "credenciales": {
+      "openai": {
+        "id": "VpICqtUssU3DtZVV",
+        "nombre": "OpenAi account",
+        "uso": "GPT-4o-mini (chatbot, detector) y GPT-4o (resúmenes)"
+      },
+      "redis": {
+        "id": "P17fD8gmfb6Ennlv",
+        "nombre": "Redis account",
+        "uso": "Memoria conversacional, storage de incidentes, timestamps de actividad"
+      },
+      "wasender": {
+        "id": "ea83k18jDZTDBBjq",
+        "nombre": "Bearer Auth account",
+        "uso": "Envío de mensajes WhatsApp"
+      },
+      "gmail": {
+        "id": "Oz56AwnpseCjPFOr",
+        "nombre": "Gmail account",
+        "uso": "Envío de resúmenes por email"
+      }
+    },
+    
+    "grupos_configurados": {
+      "operaciones_general": {
+        "id": "120363424106281199@g.us",
+        "nombre": "# Operaciones General",
+        "uso": "Destino de todas las alertas y resúmenes"
+      },
+      "grupo_ejemplo": {
+        "id": "120363421107247762@g.us",
+        "nombre": "Grupo de prueba",
+        "uso": "Testing (según pinData)"
+      }
+    },
+    
+    "redis_keys": {
+      "memoria_chat": {
+        "pattern": "n8n:memory:{remoteJid}:*",
+        "ttl": "15 días",
+        "contenido": "Historial conversacional"
+      },
+      "incidentes": {
+        "pattern": "guardops:incidente:{message_id}",
+        "ttl": "24 horas",
+        "contenido": "Datos completos del incidente + análisis IA"
+      },
+      "ultima_actividad": {
+        "pattern": "guardops:last_activity:{remoteJid}",
+        "ttl": "Sin TTL (permanente)",
+        "contenido": "{timestamp, message, sender}"
+      },
+      "investigacion_activa": {
+        "pattern": "guardops:investigacion_activa:{remoteJid}",
+        "ttl": "Sin especificar",
+        "contenido": "true/false (evita alertas duplicadas)"
+      },
+      "conversacion_activa": {
+        "pattern": "guardops:conversation_active:{groupId}",
+        "ttl": "Sin especificar",
+        "contenido": "{active, timestamp, message}"
+      }
+    }
+  },
+  
+  "flujo_datos_detallado": {
+    "entrada_webhook": {
+      "ejemplo": {
+        "event": "messages.upsert",
+        "sessionId": "57bdf180fefa780f81704d7d756cee8b1ad13e30c34fa27e1d4a18b90135c1ae",
+        "data": {
+          "messages": {
+            "key": {
+              "remoteJid": "120363421107247762@g.us",
+              "fromMe": false,
+              "id": "3BBE1CC431003744C0BA",
+              "participant": "255988825387206@lid"
+            },
+            "messageTimestamp": 1759337798,
+            "pushName": "Carlos",
+            "message": {
+              "conversation": "incendio"
+            }
+          }
+        }
+      }
+    },
+    
+    "datos_extraidos": {
+      "telefono": "+56982307771",
+      "mensaje": "incendio",
+      "timestamp": "2025-10-02T00:39:56.000Z",
+      "message_id": "3BBE1CC431003744C0BA",
+      "nombre_remitente": "Carlos",
+      "remote_jid": "120363421107247762@g.us",
+      "event": "messages.upsert",
+      "from_me": false
+    },
+    
+    "filtros_aplicados": [
+      {
+        "orden": 1,
+        "nodo": "Extraer Datos Wasender",
+        "filtros": [
+          "Solo procesar event: 'messages.upsert' (evitar duplicados)",
+          "Ignorar mensajes fromMe: true (enviados por el bot)"
+        ]
+      },
+      {
+        "orden": 2,
+        "nodo": "Filtrar para Security Monitor",
+        "filtros": [
+          "Excluir grupo Operaciones (120363424106281199@g.us)",
+          "Procesar TODO lo demás (grupos e individuales)"
+        ]
+      },
+      {
+        "orden": 3,
+        "nodo": "Filtrar Respuestas Vacías",
+        "filtros": [
+          "Bloquear respuestas vacías o solo espacios",
+          "Bloquear cadenas '\"\"'",
+          "Solo enviar si hay contenido real"
+        ]
+      }
+    ]
+  },
+  
+  "sistema_investigacion": {
+    "descripcion": "Sistema de 3 fases para investigación profunda de incidentes",
+    
+    "fase_1_deteccion": {
+      "trigger": "Mensaje con palabra clave de incidente",
+      "accion": "AI Agent activa modo investigador",
+      "preguntas_tipo": {
+        "incendio": "¿En qué sector exacto? ¿Qué magnitud tiene?",
+        "robo": "¿Dónde ocurrió? ¿Cuántas personas?",
+        "intruso": "¿Ubicación? ¿Cuántos? ¿Armados?",
+        "alarma": "¿Qué tipo? ¿Sector?",
+        "ruidos_extraños": "¿Dónde? ¿Qué tipo de sonidos? ¿Desde cuándo?",
+        "accidente": "¿Tipo de lesión? ¿Gravedad? ¿Consciente?"
+      }
+    },
+    
+    "fase_2_investigacion": {
+      "comportamiento": "Bot hace UNA pregunta a la vez, espera respuesta",
+      "contexto": "Usa Redis Memory para recordar toda la conversación",
+      "duracion": "Hasta obtener información completa",
+      "estado_redis": "guardops:investigacion_activa:{remoteJid} = true"
+    },
+    
+    "fase_3_reporte_final": {
+      "trigger": "Bot dice 'Estoy alertando a operaciones'",
+      "proceso": [
+        "1. Detectar frase clave",
+        "2. Obtener incidente de Redis",
+        "3. Generar reporte final con GPT-4o",
+        "4. Enviar a grupo Operaciones",
+        "5. Cerrar investigación"
+      ],
+      "contenido_reporte": [
+        "Información general (quien, donde, cuando)",
+        "Descripción del incidente",
+        "Investigación realizada (Q&A)",
+        "Información recopilada",
+        "Estado actual",
+        "Recomendaciones",
+        "Próximos pasos"
+      ]
+    }
+  },
+  
+  "sistema_monitoreo_proactivo": {
+    "descripcion": "Flujo que contacta proactivamente a grupos #Reporte para verificar estado",
+    "frecuencia": "Cada hora (24 triggers diarios)",
+    "horarios": ["00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"],
+    
+    "proceso": [
+      "1. Obtener todos los grupos desde Wasender API",
+      "2. Filtrar solo grupos con '#Reporte' en el nombre",
+      "3. Para cada grupo, verificar timestamp de última actividad en Redis",
+      "4. Si última actividad >1h, determinar tipo de mensaje (día/noche)",
+      "5. Enviar mensaje proactivo al grupo",
+      "6. Marcar conversación como activa en Redis"
+    ],
+    
+    "logica_mensajes": {
+      "horario_dia": {
+        "rango": "06:00 - 21:59",
+        "mensaje": "Hola equipo, ¿cómo va todo? ¿Alguna novedad que reportar?"
+      },
+      "horario_noche": {
+        "rango": "22:00 - 05:59",
+        "mensaje": "Control nocturno: ¿Rondas completadas? ¿Todo en orden?"
+      }
+    }
+  },
+  
+  "resumen_diario": {
+    "horario": "07:00 AM diario",
+    "fuentes_datos": [
+      "guardops:incidente:* (incidentes últimas 24h)",
+      "guardops:last_activity:* (actividad de grupos)"
+    ],
+    
+    "metricas_calculadas": {
+      "incidentes": {
+        "total": "Cantidad total de incidentes",
+        "urgentes": "Filtro: severidad === 'URGENTE'",
+        "importantes": "Filtro: severidad === 'IMPORTANTE'",
+        "grupos_afectados": "Set único de remote_jid"
+      },
+      "actividad": {
+        "sin_actividad": "Grupos sin mensajes >8 horas",
+        "baja_actividad": "Grupos sin mensajes >4 horas"
+      }
+    },
+    
+    "estructura_reporte": {
+      "seccion_1": "📊 RESUMEN DE SEGURIDAD DIARIO",
+      "seccion_2": "RESUMEN EJECUTIVO (2-3 líneas situación general)",
+      "seccion_3": "ESTADÍSTICAS (incidentes, grupos, severidades)",
+      "seccion_4": "INCIDENTES DESTACADOS (lista detallada)",
+      "seccion_5": "MONITOREO DE ACTIVIDAD (grupos sin/baja actividad)",
+      "seccion_6": "GRUPOS SIN ACTIVIDAD NOCTURNA (detalle por grupo)",
+      "seccion_7": "OBSERVACIONES (patrones, tendencias)",
+      "seccion_8": "RECOMENDACIONES (acciones preventivas)"
+    }
+  },
+  
+  "modelos_ia_configuracion": {
+    "chatbot": {
+      "nodo": "AI Agent WhatsApp",
+      "modelo": "gpt-4o-mini",
+      "max_tokens": 300,
+      "temperature": 0.7,
+      "memoria": "Redis Chat Memory (15 días)",
+      "proposito": "Conversación natural, modo investigador"
+    },
+    
+    "detector_incidentes": {
+      "nodo": "AI Detector Incidentes",
+      "modelo": "gpt-4o-mini",
+      "max_tokens": 200,
+      "temperature": 0.3,
+      "memoria": "No usa (análisis independiente)",
+      "proposito": "Clasificación binaria incidente/no-incidente"
+    },
+    
+    "resumen_diario": {
+      "nodo": "AI Generar Resumen",
+      "modelo": "gpt-4o",
+      "max_tokens": 2000,
+      "temperature": 0.5,
+      "memoria": "No usa",
+      "proposito": "Reportes ejecutivos profesionales"
+    },
+    
+    "resumen_final_investigacion": {
+      "nodo": "AI Generar Resumen Final",
+      "modelo": "gpt-4o",
+      "max_tokens": 1500,
+      "temperature": 0.3,
+      "memoria": "No usa",
+      "proposito": "Reporte final de investigación completada"
+    }
+  },
+  
+  "prevencion_loops": {
+    "filtro_1": {
+      "nodo": "Extraer Datos Wasender",
+      "condicion": "fromMe === true",
+      "accion": "return [] (detener ejecución)"
+    },
+    "filtro_2": {
+      "nodo": "Filtrar para Security Monitor",
+      "condicion": "remoteJid === '120363424106281199@g.us'",
+      "accion": "return [] (no analizar grupo de alertas)"
+    },
+    "filtro_3": {
+      "nodo": "Filtrar Incidentes con Estado",
+      "condicion": "investigacion_activa === true",
+      "accion": "return [] (evitar alertas duplicadas durante investigación)"
+    }
+  },
+  
+  "costos_estimados": {
+    "diarios": {
+      "chatbot": {
+        "mensajes": "100-200 mensajes/día",
+        "tokens_promedio": "300 tokens/mensaje",
+        "total_tokens": "30,000-60,000 tokens",
+        "costo_usd": "$0.015-0.030"
+      },
+      "detector": {
+        "mensajes": "100-200 análisis/día",
+        "tokens_promedio": "200 tokens/análisis",
+        "total_tokens": "20,000-40,000 tokens",
+        "costo_usd": "$0.010-0.020"
+      },
+      "resumen_diario": {
+        "ejecuciones": "1 por día",
+        "tokens_promedio": "2000 tokens",
+        "total_tokens": "2,000 tokens",
+        "costo_usd": "$0.030"
+      },
+      "resumen_final": {
+        "ejecuciones": "5-10 por día (estimado)",
+        "tokens_promedio": "1500 tokens",
+        "total_tokens": "7,500-15,000 tokens",
+        "costo_usd": "$0.113-0.225"
+      },
+      "total_estimado": "$0.168-0.305 USD/día = ~$5-9 USD/mes"
+    }
+  },
+  
+  "mejoras_implementadas": {
+    "version_1_0": [
+      "3 flujos básicos (chatbot, detector, resumen)",
+      "Detección simple de incidentes",
+      "Alertas instantáneas",
+      "Resumen diario"
+    ],
+    "version_2_0": [
+      "✅ Sistema de investigación activa con preguntas específicas",
+      "✅ Reportes finales detallados post-investigación",
+      "✅ Monitoreo proactivo horario de grupos #Reporte",
+      "✅ Detección de grupos sin actividad",
+      "✅ Filtros anti-loop mejorados (fromMe, estado investigación)",
+      "✅ Filtro de respuestas vacías",
+      "✅ Mensajes proactivos día/noche diferenciados",
+      "✅ Timestamp de actividad por canal",
+      "✅ Prompt mejorado del detector (incluye incendios explícitamente)"
+    ]
+  },
+  
+  "testing_validacion": {
+    "test_1_chatbot_normal": {
+      "input": "Hola, ¿cómo estás?",
+      "expected": {
+        "chatbot_responde": false,
+        "alerta_enviada": false,
+        "razon": "No es incidente ni keyword de RRHH"
+      }
+    },
+    
+    "test_2_incidente_incendio": {
+      "input": "hay un incendio",
+      "expected": {
+        "chatbot_responde": true,
+        "modo": "investigador",
+        "pregunta": "¿En qué sector exacto se detectó? ¿Qué magnitud tiene?",
+        "alerta_inicial": true,
+        "destino_alerta": "120363424106281199@g.us",
+        "guardado_redis": true,
+        "investigacion_activa": true
+      }
+    },
+    
+    "test_3_continuacion_investigacion": {
+      "input": "Sector norte, magnitud pequeña controlada",
+      "expected": {
+        "chatbot_responde": true,
+        "tipo_respuesta": "Siguiente pregunta o confirmación",
+        "alerta_adicional": false,
+        "razon": "Ya hay investigación activa"
+      }
+    },
+    
+    "test_4_fin_investigacion": {
+      "chatbot_dice": "Perfecto, ya tengo la información. Estoy alertando a operaciones ahora mismo.",
+      "expected": {
+        "reporte_final_generado": true,
+        "reporte_enviado": "120363424106281199@g.us",
+        "investigacion_cerrada": true
+      }
+    },
+    
+    "test_5_resumen_diario": {
+      "trigger": "Cron 07:00 AM",
+      "expected": {
+        "whatsapp_enviado": "120363424106281199@g.us",
+        "email_enviado": "operaciones@gard.cl",
+        "incluye_metricas": true,
+        "incluye_grupos_inactivos": true
+      }
+    },
+    
+    "test_6_monitoreo_proactivo": {
+      "trigger": "Cron cada hora",
+      "condicion": "Grupo #Reporte sin actividad >1h",
+      "expected": {
+        "mensaje_enviado": true,
+        "tipo_mensaje": "día o noche según hora",
+        "conversacion_marcada_activa": true
+      }
+    }
+  },
+  
+  "problemas_solucionados": {
+    "problema_1": {
+      "descripcion": "Incendios no se detectaban como incidentes",
+      "causa": "Prompt no incluía 'incendios' explícitamente",
+      "solucion": "Agregado 'incendios, explosiones, derrames químicos' como primera categoría URGENTE en el prompt"
+    },
+    
+    "problema_2": {
+      "descripcion": "Bot se quedaba sin cuota de OpenAI",
+      "causa": "Límite de uso alcanzado",
+      "solucion": "Agregar créditos en https://platform.openai.com/settings/organization/billing"
+    },
+    
+    "problema_3": {
+      "descripcion": "Alertas duplicadas durante investigación",
+      "causa": "Cada mensaje activaba nueva alerta",
+      "solucion": "Sistema de estado 'investigacion_activa' en Redis que bloquea nuevas alertas"
+    },
+    
+    "problema_4": {
+      "descripcion": "Bot respondía a mensajes normales en grupos",
+      "causa": "No había filtro de relevancia",
+      "solucion": "Prompt modificado para responder vacío si no hay contexto de incidente/RRHH"
+    },
+    
+    "problema_5": {
+      "descripcion": "Loop infinito (bot respondía a sus propios mensajes)",
+      "causa": "No se filtraba fromMe",
+      "solucion": "Filtro en 'Extraer Datos': if (fromMe === true) return []"
+    }
+  },
+  
+  "integraciones": {
+    "wasender_api": {
+      "base_url": "https://wasenderapi.com/api",
+      "endpoints_usados": {
+        "enviar_mensaje": {
+          "method": "POST",
+          "path": "/send-message",
+          "body": {
+            "to": "remoteJid@g.us o número@s.whatsapp.net",
+            "text": "mensaje"
+          }
+        },
+        "obtener_grupos": {
+          "method": "GET",
+          "path": "/groups",
+          "response": {
+            "groups": [
+              {
+                "id": "groupId",
+                "subject": "Nombre del grupo",
+                "participants": ["..."]
+              }
+            ]
+          }
+        }
+      }
+    },
+    
+    "openai_api": {
+      "modelos": ["gpt-4o-mini", "gpt-4o"],
+      "uso_por_temperatura": {
+        "0.3": "Análisis determinista (detector, reporte final)",
+        "0.5": "Balance creatividad/precisión (resumen diario)",
+        "0.7": "Conversacional creativo (chatbot)"
+      }
+    },
+    
+    "redis": {
+      "operaciones": ["SET", "GET", "KEYS"],
+      "uso_langchain": "Redis Chat Memory automático",
+      "patterns": [
+        "guardops:incidente:*",
+        "guardops:last_activity:*",
+        "guardops:investigacion_activa:*",
+        "guardops:conversation_active:*",
+        "n8n:memory:*"
+      ]
+    },
+    
+    "gmail_api": {
+      "operacion": "message.send",
+      "formato": "Texto plano con emojis",
+      "scopes": ["https://www.googleapis.com/auth/gmail.send"]
+    }
+  },
+  
+  "diagramas_flujo": {
+    "flujo_principal": "Webhook → Extraer → [Split] → Chatbot + Monitor + Timestamps",
+    
+    "flujo_chatbot": "AI Agent → Filtrar Vacías → Switch → Respuesta + Detectar Resumen Final",
+    
+    "flujo_monitor": "Filtrar Security → AI Detector → Parsear → Verificar Estado → [Si nuevo] Alertar + Guardar + Marcar Investigación",
+    
+    "flujo_reporte_final": "Detectar Frase Clave → Obtener de Redis → AI Resumen Final → Enviar",
+    
+    "flujo_resumen_diario": "Cron 07:00 → [Get Incidentes + Get Actividad] → Procesar → AI Resumen → [WhatsApp + Email]",
+    
+    "flujo_proactivo": "Cron Horario → Get Grupos → Filtrar #Reporte → Verificar Actividad → [Si >1h] Mensaje Día/Noche → Marcar Activa"
+  },
+  
+  "proximos_pasos_recomendados": [
+    "1. ✅ Activar el workflow (COMPLETADO)",
+    "2. ✅ Resolver cuota OpenAI (agregar créditos)",
+    "3. ⏳ Probar con incidentes reales en producción",
+    "4. ⏳ Monitorear ejecuciones y ajustar prompts según falsos positivos",
+    "5. ⏳ Implementar GET de valores Redis en resumen diario (actualmente solo keys)",
+    "6. ⏳ Agregar dashboard de métricas",
+    "7. ⏳ Implementar base de datos PostgreSQL para historial permanente",
+    "8. ⏳ Crear panel web de control de incidentes"
+  ],
+  
+  "consideraciones_importantes": [
+    "⚠️ El workflow DEBE estar activado para que el webhook funcione",
+    "⚠️ Wasender debe apuntar al webhook correcto",
+    "⚠️ OpenAI necesita cuota suficiente (monitorear uso diario)",
+    "⚠️ Redis debe estar disponible 24/7 (crucial para memoria y estados)",
+    "⚠️ Gmail OAuth2 puede expirar, requiere re-autenticación periódica",
+    "⚠️ Los grupos #Reporte deben existir y estar accesibles",
+    "⚠️ El grupo Operaciones debe permitir mensajes del bot"
+  ],
+  
+  "monitoreo_y_debugging": {
+    "ver_ejecuciones": "https://primary-production-8f25.up.railway.app/executions",
+    "debug_modo": "Activar desde botón 'Debug in editor'",
+    "logs_importantes": [
+      "Console.log en nodos Function muestra estado interno",
+      "Input/Output de cada nodo en Executions",
+      "Error details en caso de falla"
+    ],
+    "metricas_clave": [
+      "Tasa de detección de incidentes",
+      "Falsos positivos/negativos",
+      "Tiempo de respuesta del chatbot",
+      "Completitud de investigaciones",
+      "Grupos monitoreados activamente"
+    ]
+  },
+  
+  "documentacion_relacionada": {
+    "archivo_resumen": "RESUMEN_MONITOR_SEGURIDAD_WHATSAPP.md",
+    "workflow_json": "Exportar desde n8n UI",
+    "mcp_n8n": "Acceso mediante MCP server para cursos",
+    "repositorio": "GardOps/workflow_data/"
+  }
+}
+
+

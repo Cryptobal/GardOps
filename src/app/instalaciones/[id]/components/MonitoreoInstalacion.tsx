@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MilitaryTimeSelect } from '@/components/ui/military-time-select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Satellite, Clock, MessageSquare, Phone, Save, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { getCurrentUser } from '@/lib/auth-client';
@@ -43,6 +44,7 @@ export default function MonitoreoInstalacion({ instalacionId, instalacionNombre 
   const [configOriginal, setConfigOriginal] = useState<MonitoreoConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   useEffect(() => {
     cargarConfiguracion();
@@ -120,9 +122,14 @@ export default function MonitoreoInstalacion({ instalacionId, instalacionNombre 
     }
   };
 
+  const mostrarConfirmacion = () => {
+    setShowConfirmDialog(true);
+  };
+
   const guardarConfiguracion = async () => {
     try {
       setSaving(true);
+      setShowConfirmDialog(false);
       
       // Obtener el usuario actual
       const user = getCurrentUser();
@@ -331,7 +338,7 @@ export default function MonitoreoInstalacion({ instalacionId, instalacionNombre 
       {/* Botón de Guardar */}
       <div className="flex justify-end">
         <Button
-          onClick={guardarConfiguracion}
+          onClick={mostrarConfirmacion}
           disabled={saving || !hayCambios}
           className="flex items-center gap-2"
           size="sm"
@@ -340,6 +347,38 @@ export default function MonitoreoInstalacion({ instalacionId, instalacionNombre 
           {saving ? 'Guardando...' : hayCambios ? 'Guardar Cambios' : 'Guardado'}
         </Button>
       </div>
+
+      {/* Modal de Confirmación */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Cambios</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas guardar los cambios en la configuración de monitoreo para {instalacionNombre}?
+              {config.habilitado ? (
+                <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+                  <p className="text-sm font-medium">Monitoreo será activado:</p>
+                  <ul className="text-xs mt-1 space-y-1">
+                    <li>• Intervalo: {config.intervalo_minutos} minutos</li>
+                    <li>• Ventana: {config.ventana_inicio} - {config.ventana_fin}</li>
+                    <li>• Modo: {config.modo === 'whatsapp' ? 'WhatsApp' : 'Telefónico'}</li>
+                  </ul>
+                </div>
+              ) : (
+                <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
+                  <p className="text-sm font-medium">Monitoreo será desactivado</p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={guardarConfiguracion} disabled={saving}>
+              {saving ? 'Guardando...' : 'Confirmar y Guardar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -26,7 +26,26 @@ export async function POST(req: NextRequest) {
         const tenantId = tenantResult.rows[0].id;
         devLogger.success(' Tenant ID obtenido:', tenantId);
 
+        // Obtener todos los documentos existentes para este tenant
+        const documentosExistentes = await client.query(`
+          SELECT id FROM documentos_tipos WHERE modulo = 'guardias' AND tenant_id = $1
+        `, [tenantId]);
+
+        const idsExistentes = new Set(documentosExistentes.rows.map(row => row.id));
+        const idsEnviados = new Set(tipos_documentos.filter(t => t.id && !t.id.startsWith('nuevo-')).map(t => t.id));
+
+        // Eliminar documentos que ya no están en el array enviado
+        const idsAEliminar = Array.from(idsExistentes).filter(id => !idsEnviados.has(id));
+        if (idsAEliminar.length > 0) {
+          await client.query(`
+            DELETE FROM documentos_tipos 
+            WHERE id = ANY($1) AND tenant_id = $2
+          `, [idsAEliminar, tenantId]);
+          logger.debug(`🗑️ ${idsAEliminar.length} documentos eliminados`);
+        }
+
         // Actualizar cada tipo de documento existente
+        let actualizados = 0;
         for (const tipo of tipos_documentos) {
           if (tipo.id && !tipo.id.startsWith('nuevo-')) {
             await client.query(`
@@ -37,10 +56,11 @@ export async function POST(req: NextRequest) {
                 activo = $3
               WHERE id = $4 AND tenant_id = $5
             `, [tipo.requiere_vencimiento, tipo.dias_antes_alarma, tipo.activo, tipo.id, tenantId]);
+            actualizados++;
           }
         }
 
-        logger.debug(`✅ ${tipos_documentos.length} tipos de documentos actualizados`);
+        logger.debug(`✅ ${actualizados} tipos de documentos actualizados, ${idsAEliminar.length} eliminados`);
 
         return NextResponse.json({
           success: true,

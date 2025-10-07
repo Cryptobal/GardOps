@@ -30,8 +30,8 @@ const MODULO_PREFIXES: Record<string, string[]> = {
   'clientes': ['clientes'],
   'instalaciones': ['instalaciones'],
   'guardias': ['guardias'],
-  'pauta-diaria': ['pauta_diaria', 'pauta-diaria'],
-  'pauta-mensual': ['pauta_mensual', 'pauta-mensual'],
+  'pauta-diaria': ['pautas'], // CORREGIDO: usar 'pautas' que es el permiso real
+  'pauta-mensual': ['pautas'], // CORREGIDO: usar 'pautas' que es el permiso real
   'documentos': ['documentos'],
   'reportes': ['reportes'],
   'usuarios': ['usuarios'],
@@ -190,11 +190,9 @@ export default function RolDetallePage() {
       return cambiosPendientes[modulo];
     }
     
-    // BYPASS PARA PLATFORM ADMIN - EXCEPTO TENANTS
-    if (isPlatformAdmin && modulo !== 'tenants') {
-      logger.debug(`🚀 BYPASS Platform Admin para ${modulo}: admin`);
-      return 'admin';
-    }
+    // ELIMINADO: BYPASS PARA PLATFORM ADMIN - Este bypass impedía la configuración correcta de permisos
+    // Los Platform Admins (como Carlos) deben poder ver y configurar los permisos reales de cada rol
+    // El bypass de Carlos para sus propios permisos se mantiene intacto en el sistema de autenticación
     
     const prefixes = MODULO_PREFIXES[modulo] || [modulo];
     const permisosClaves = Array.from(permisosAsignados).map(id => 

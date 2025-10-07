@@ -103,18 +103,6 @@ export async function POST(
       );
     }
 
-    // Verificar que la instalación existe
-    const instalacionCheck = await query(
-      'SELECT id FROM instalaciones WHERE id = $1',
-      [instalacionId]
-    );
-
-    if (instalacionCheck.rows.length === 0) {
-      return NextResponse.json(
-        { error: 'Instalación no encontrada' },
-        { status: 404 }
-      );
-    }
 
     // Verificar que el rol de servicio existe y está activo
     const rolCheck = await query(
@@ -142,11 +130,26 @@ export async function POST(
       );
     }
 
+    // Obtener tenant_id de la instalación
+    const instalacionData = await query(
+      'SELECT tenant_id FROM instalaciones WHERE id = $1',
+      [instalacionId]
+    );
+
+    if (instalacionData.rows.length === 0) {
+      return NextResponse.json(
+        { error: 'Instalación no encontrada' },
+        { status: 404 }
+      );
+    }
+
+    const tenantId = instalacionData.rows[0].tenant_id;
+
     // Crear puestos operativos usando la función del nuevo modelo
-    logger.debug(`🔄 Creando ${cantidad_guardias} puestos operativos para instalación ${instalacionId}`);
+    logger.debug(`🔄 Creando ${cantidad_guardias} puestos operativos para instalación ${instalacionId} con tenant ${tenantId}`);
     
-    await query('SELECT crear_puestos_turno($1, $2, $3)',
-      [instalacionId, rol_servicio_id, cantidad_guardias]);
+    await query('SELECT crear_puestos_turno($1, $2, $3, $4)',
+      [instalacionId, rol_servicio_id, cantidad_guardias, tenantId]);
 
     logger.debug(`✅ Turno creado exitosamente para instalación ${instalacionId}`);
 

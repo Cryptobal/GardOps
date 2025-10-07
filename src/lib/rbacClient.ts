@@ -13,11 +13,14 @@ export async function rbacFetch(input: string, init: RequestInit = {}) {
   const devEmail = process.env.NEXT_PUBLIC_DEV_USER_EMAIL;
   const isDev = process.env.NODE_ENV !== 'production';
   
-  // En desarrollo, siempre inyectar el header x-user-email si no está presente
+  // TEMPORALMENTE DESHABILITADO: Inyección automática en desarrollo
+  // Esto permite que el login real funcione correctamente
+  /*
   if (isDev && devEmail && !headers.has('x-user-email')) {
     headers.set('x-user-email', devEmail);
     userEmail = devEmail;
   }
+  */
   
   // En producción, intentar obtener el email del usuario autenticado
   if (!userEmail && typeof document !== 'undefined') {

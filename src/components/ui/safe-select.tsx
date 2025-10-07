@@ -44,7 +44,7 @@ const SafeSelect = React.forwardRef<HTMLButtonElement, SafeSelectProps>(
         <SelectTrigger ref={ref} className={className}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="z-[9999]">
           {children}
         </SelectContent>
       </Select>

@@ -23,7 +23,9 @@ class ApiClient {
   private async getAuthHeaders(): Promise<Record<string, string>> {
     const headers = { ...this.defaultHeaders };
 
-    // En desarrollo, usar la variable de entorno
+    // TEMPORALMENTE DESHABILITADO: En desarrollo, usar la variable de entorno
+    // Esto permite que el login real funcione en modo incógnito
+    /*
     if (process.env.NODE_ENV === 'development') {
       const devEmail = process.env.NEXT_PUBLIC_DEV_USER_EMAIL;
       if (devEmail) {
@@ -32,6 +34,7 @@ class ApiClient {
         return headers;
       }
     }
+    */
 
     // En producción, obtener el email del usuario autenticado
     try {
@@ -119,7 +122,9 @@ class ApiClient {
   private getAuthHeadersSync(): Record<string, string> {
     const headers = { ...this.defaultHeaders };
 
-    // En desarrollo, usar la variable de entorno
+    // TEMPORALMENTE DESHABILITADO: En desarrollo, usar la variable de entorno
+    // Esto permite que el login real funcione en modo incógnito
+    /*
     if (process.env.NODE_ENV === 'development') {
       const devEmail = process.env.NEXT_PUBLIC_DEV_USER_EMAIL;
       if (devEmail) {
@@ -127,6 +132,7 @@ class ApiClient {
         return headers;
       }
     }
+    */
 
     // En producción, obtener el email del usuario autenticado
     try {

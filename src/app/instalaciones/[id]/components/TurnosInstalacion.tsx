@@ -301,13 +301,8 @@ export default function TurnosInstalacion({
         cantidad_guardias: 1
       });
 
-      // Recargar datos de forma más robusta
-      try {
-        await cargarDatos();
-      } catch (reloadError) {
-        logger.error('Error recargando datos después de crear turno::', reloadError);
-        // No mostrar error al usuario si la creación fue exitosa
-      }
+      // Recargar solo los datos necesarios sin afectar los datos precargados
+      await recargarDatosTurnos();
     } catch (error) {
       logger.error('Error creando turno::', error);
       toast.error('No se pudo crear el turno', 'Error');
@@ -329,7 +324,9 @@ export default function TurnosInstalacion({
       });
       
       toast.success('Guardia asignado correctamente', 'Éxito');
-      await cargarDatos();
+      
+      // Recargar solo los datos necesarios
+      await recargarDatosTurnos();
     } catch (error) {
       logger.error('Error asignando guardia::', error);
       toast.error('No se pudo asignar el guardia', 'Error');
@@ -345,6 +342,21 @@ export default function TurnosInstalacion({
     // Forzar blur en cualquier elemento enfocado
     if (document.activeElement && document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
+    }
+  };
+
+  // Función helper para recargar datos específicos sin afectar los datos precargados
+  const recargarDatosTurnos = async () => {
+    try {
+      const [nuevosTurnos, nuevosPPCs] = await Promise.all([
+        getTurnosInstalacion(instalacionId),
+        getPPCsInstalacion(instalacionId)
+      ]);
+      
+      setTurnos(Array.isArray(nuevosTurnos) ? nuevosTurnos : []);
+      setPpcs(Array.isArray(nuevosPPCs) ? nuevosPPCs : []);
+    } catch (error) {
+      logger.error('Error recargando datos de turnos::', error);
     }
   };
 
@@ -430,13 +442,8 @@ export default function TurnosInstalacion({
         toast.warning(resultado.mensaje, 'Aviso');
       }
       
-      // Recargar datos de forma más robusta
-      try {
-        await cargarDatos();
-      } catch (reloadError) {
-        logger.error('Error recargando datos después de eliminar::', reloadError);
-        // No mostrar error al usuario si la eliminación fue exitosa
-      }
+      // Recargar solo los datos necesarios
+      await recargarDatosTurnos();
     } catch (error) {
       logger.error('Error eliminando puesto::', error);
       toast.error('No se pudo eliminar el puesto', 'Error');
@@ -452,7 +459,9 @@ export default function TurnosInstalacion({
       setAgregandoPuestos(rolServicioId);
       await agregarPuestosARol(instalacionId, turnoId, cantidad);
       toast.success(`${cantidad} puesto(s) agregado(s) correctamente`, 'Éxito');
-      await cargarDatos();
+      
+      // Recargar solo los datos necesarios
+      await recargarDatosTurnos();
     } catch (error) {
       logger.error('Error agregando puestos::', error);
       toast.error('No se pudieron agregar los puestos', 'Error');

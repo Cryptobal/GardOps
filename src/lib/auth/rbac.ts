@@ -17,14 +17,23 @@ export async function getUserEmail(req: NextRequest): Promise<string | null> {
     if (user?.email) return user.email;
   } catch {}
 
-  // 3) Fallback en desarrollo a variable de entorno
+  // 3) Verificar si hay cookies de sesión real antes de usar fallback
+  const cookieHeader = req.headers.get('cookie') || '';
+  
+  // Si hay cookies de sesión (tenant= o auth_token=), NO usar fallback
+  if (cookieHeader.includes('tenant=') || cookieHeader.includes('auth_token=')) {
+    // Hay sesión real, pero no se pudo extraer email - devolver null
+    return null;
+  }
+
+  // 4) Solo usar fallback de desarrollo si NO hay sesión activa
   const devEmail = process.env.NEXT_PUBLIC_DEV_USER_EMAIL;
   const isDev = process.env.NODE_ENV !== 'production';
   if (isDev) {
     return devEmail || 'carlos.irigoyen@gard.cl';
   }
 
-  // 4) Sin email
+  // 5) Sin email
   return null;
 }
 
