@@ -101,7 +101,7 @@ export async function GET(
         LEFT JOIN as_turnos_roles_servicio rs ON po.rol_id = rs.id
         LEFT JOIN guardias g ON po.guardia_id = g.id
         LEFT JOIN cat_tipos_puesto tp ON po.tipo_puesto_id = tp.id
-        WHERE po.instalacion_id = $1
+        WHERE po.instalacion_id = $1 AND po.activo = true
         ORDER BY po.rol_id, po.nombre_puesto, po.creado_en
       `, [instalacionId]);
       logger.debug(`✅ Puestos operativos encontrados: ${puestosOperativosResult.rows.length}`);
