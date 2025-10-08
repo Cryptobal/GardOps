@@ -406,10 +406,10 @@ export default function TurnosInstalacion({
     }
   };
 
-  const handleAsignacionCompletada = () => {
-    // En lugar de recargar todos los datos, solo recargar la página para obtener datos frescos
-    // Esto es necesario porque la asignación puede haber cambiado múltiples estados
-    window.location.reload();
+  const handleAsignacionCompletada = async () => {
+    // Recargar solo los datos necesarios sin recargar toda la página
+    logger.debug('🔄 Asignación completada, recargando datos de turnos...');
+    await recargarDatosTurnos();
   };
 
   const handleNavegarAGuardia = (guardiaId: string) => {
