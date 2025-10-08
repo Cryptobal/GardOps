@@ -30,14 +30,32 @@ export async function DELETE(
 
     const puesto = puestoCheck.rows[0];
 
-    // Verificar si tiene historial operativo
+    // VALIDACIÓN: Verificar si tiene guardia asignado actualmente
+    if (puesto.guardia_id !== null) {
+      logger.debug('❌ No se puede eliminar: puesto tiene guardia asignado', {
+        puesto_id: ppcId,
+        guardia_id: puesto.guardia_id,
+        nombre_puesto: puesto.nombre_puesto
+      });
+      
+      return NextResponse.json(
+        { 
+          error: 'No se puede eliminar un puesto con guardia asignado',
+          mensaje: 'Primero debes desasignar al guardia antes de eliminar este puesto operativo',
+          tieneGuardiaAsignado: true
+        },
+        { status: 409 } // 409 Conflict
+      );
+    }
+
+    // Verificar si tiene historial operativo (registros en pauta diaria/mensual)
     const historialCheck = await query(`
-      SELECT 
-        (SELECT COUNT(*) FROM as_turnos_puestos_operativos WHERE id = $1 AND guardia_id IS NOT NULL AND activo = true) as guardia_asignada
+      SELECT COUNT(*) as registros
+      FROM as_turnos_pauta_mensual
+      WHERE puesto_id = $1
     `, [ppcId]);
 
-    const { guardia_asignada } = historialCheck.rows[0];
-    const tieneHistorial = guardia_asignada > 0;
+    const tieneHistorial = historialCheck.rows[0].registros > 0;
 
     // Iniciar transacción
     await query('BEGIN');
@@ -62,7 +80,7 @@ export async function DELETE(
           mensaje: '✅ Puesto eliminado correctamente'
         };
       } else {
-        // Inactivar si tiene historial
+        // Inactivar si tiene historial en pautas
         await query(`
           UPDATE as_turnos_puestos_operativos 
           SET activo = false, 
@@ -74,7 +92,7 @@ export async function DELETE(
         resultado = {
           fueEliminado: false,
           fueInactivado: true,
-          mensaje: '⚠️ Puesto inactivado por historial operativo'
+          mensaje: '⚠️ Puesto inactivado porque tiene historial en pautas'
         };
       }
 

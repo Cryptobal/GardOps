@@ -228,18 +228,6 @@ export function GoogleMapsSearch({
       {error && (
         <p className="text-sm text-red-500">{error}</p>
       )}
-      
-      {isReady && (
-        <p className="text-xs text-green-600 dark:text-green-400">
-          ✓ Google Maps listo - Escribe y selecciona una dirección
-        </p>
-      )}
-      
-      {!isReady && !isLoading && (
-        <p className="text-xs text-yellow-600 dark:text-yellow-400">
-          ⚠ No se pudo cargar Google Maps. Escribe la dirección manualmente.
-        </p>
-      )}
     </div>
   );
 }

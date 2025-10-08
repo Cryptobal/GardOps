@@ -429,6 +429,7 @@ export default function TurnosInstalacion({
 
     try {
       setEliminandoPuesto(showDeleteConfirm.ppcId);
+      setShowDeleteConfirm(null); // Cerrar modal de confirmación
       
       devLogger.search(' Llamando a eliminarPPC:', { instalacionId, ppcId: showDeleteConfirm.ppcId });
       const resultado = await eliminarPPC(instalacionId, showDeleteConfirm.ppcId);
@@ -444,13 +445,20 @@ export default function TurnosInstalacion({
       
       // Recargar solo los datos necesarios
       await recargarDatosTurnos();
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error eliminando puesto::', error);
-      toast.error('No se pudo eliminar el puesto', 'Error');
+      
+      // Si el error es 409 (tiene guardia asignado), mostrar modal específico
+      if (error.status === 409 || error.message?.includes('guardia asignado')) {
+        toast.error(
+          'No se puede eliminar este puesto porque tiene un guardia asignado. Primero debes desasignar al guardia.',
+          'Puesto con Guardia Asignado'
+        );
+      } else {
+        toast.error('No se pudo eliminar el puesto', 'Error');
+      }
     } finally {
       setEliminandoPuesto(null);
-      // Cerrar el modal automáticamente después de completar la operación
-      setShowDeleteConfirm(null);
     }
   };
 

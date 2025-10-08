@@ -700,8 +700,13 @@ export default function PautaTable({
     // El GuardiaSearchModal se encarga de mostrar el modal de fecha
   };
 
+  // Estado para el loading de asignación
+  const [asignandoGuardia, setAsignandoGuardia] = React.useState(false);
+
   // Nueva función para confirmar asignación con fecha
   const handleConfirmarAsignacionConFecha = async (fechaInicio: string, observaciones?: string, guardia?: any) => {
+    setAsignandoGuardia(true);
+    
     try {
       // Usar los datos del guardia pasados directamente
       const guardiaId = guardia?.id;
@@ -711,30 +716,11 @@ export default function PautaTable({
         guardiaId,
         ppcId,
         fechaInicio,
-        fechaInicio_tipo: typeof fechaInicio,
-        fechaInicio_length: fechaInicio?.length,
-        guardiaPasado: !!guardia,
-        guardiaObjeto: guardia,
-        asignacionModal: asignacionModal
-      });
-      
-      // DEPURACIÓN ESPECÍFICA PARA EL PROBLEMA DE FECHAS
-      console.log('🔴 [FRONTEND] ANTES DE ENVIAR AL BACKEND:', {
-        fecha_que_se_enviara: fechaInicio,
-        fecha_parseada_js: new Date(fechaInicio),
-        fecha_parseada_iso: new Date(fechaInicio).toISOString(),
-        fecha_parseada_chile: new Date(fechaInicio).toLocaleString('es-CL', { timeZone: 'America/Santiago' })
+        guardiaNombre: guardia?.nombre_completo
       });
       
       // CORREGIR LA FECHA PARA EVITAR PROBLEMAS DE TIMEZONE
-      // Agregar hora específica para evitar que se interprete como medianoche UTC
       const fechaCorregida = fechaInicio + 'T12:00:00';
-      console.log('🔴 [FRONTEND] FECHA CORREGIDA:', {
-        fecha_original: fechaInicio,
-        fecha_corregida: fechaCorregida,
-        fecha_parseada_corregida: new Date(fechaCorregida),
-        fecha_parseada_corregida_chile: new Date(fechaCorregida).toLocaleString('es-CL', { timeZone: 'America/Santiago' })
-      });
       
       const response = await fetch('/api/ppc/asignar-simple', {
         method: 'POST',
@@ -756,17 +742,22 @@ export default function PautaTable({
         throw new Error(data.error || 'Error al asignar guardia');
       }
       
-      toast.success('Guardia asignado correctamente', 'Éxito');
-      
-      // Cerrar modal de búsqueda
+      // Cerrar modal de búsqueda PRIMERO
       closeAsignacionModal();
       
-      // Recargar la página para mostrar los cambios
-      window.location.reload();
+      // Actualizar datos sin recargar toda la página
+      logger.debug('🔄 Actualizando datos de pauta...');
+      if (onUpdatePauta) {
+        await onUpdatePauta();
+      }
+      
+      toast.success('Guardia asignado correctamente', 'Éxito');
       
     } catch (error) {
       logger.error('Error asignando guardia::', error);
       toast.error('No se pudo asignar el guardia', 'Error');
+    } finally {
+      setAsignandoGuardia(false);
     }
   };
 
@@ -1138,7 +1129,7 @@ export default function PautaTable({
             onClose={closeAsignacionModal}
             onSelectGuardia={handleGuardiaSeleccionado}
             guardias={guardiasDisponibles}
-            loading={cargandoGuardias}
+            loading={cargandoGuardias || asignandoGuardia}
             mode="pauta-mensual"
             instalacionNombrePauta={asignacionModal.ppcData.nombre_puesto}
             rolNombre={asignacionModal.ppcData.rol_nombre}

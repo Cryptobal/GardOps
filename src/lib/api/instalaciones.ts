@@ -588,7 +588,10 @@ export async function eliminarPPC(instalacionId: string, ppcId: string): Promise
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || 'Error al eliminar PPC');
+      const error: any = new Error(errorData.error || errorData.mensaje || 'Error al eliminar PPC');
+      error.status = response.status;
+      error.tieneGuardiaAsignado = errorData.tieneGuardiaAsignado;
+      throw error;
     }
 
     return await response.json();
