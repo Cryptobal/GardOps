@@ -447,14 +447,25 @@ export default function TurnosInstalacion({
       await recargarDatosTurnos();
     } catch (error: any) {
       logger.error('Error eliminando puesto::', error);
+      logger.debug('🔍 Error details:', {
+        status: error.status,
+        message: error.message,
+        tieneGuardiaAsignado: error.tieneGuardiaAsignado
+      });
       
       // Si el error es 409 (tiene guardia asignado), mostrar modal específico
       if (error.status === 409 || error.message?.includes('guardia asignado')) {
+        logger.debug('🚨 Mostrando toast de error por guardia asignado');
+        
+        // Usar alert como fallback para asegurar que el usuario vea el mensaje
+        alert('⚠️ No se puede eliminar este puesto\n\nEste puesto tiene un guardia asignado actualmente.\n\nPrimero debes desasignar al guardia antes de eliminar el puesto operativo.');
+        
         toast.error(
           'No se puede eliminar este puesto porque tiene un guardia asignado. Primero debes desasignar al guardia.',
           'Puesto con Guardia Asignado'
         );
       } else {
+        logger.debug('🚨 Mostrando toast de error genérico');
         toast.error('No se pudo eliminar el puesto', 'Error');
       }
     } finally {
