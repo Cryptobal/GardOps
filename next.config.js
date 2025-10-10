@@ -1,9 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Configuración básica
-  experimental: {
-    webpackBuildWorker: true,
-  },
+  // Nota: webpackBuildWorker removido (ya no es experimental en Next 15)
+  
   // Configuración de webpack para manejar módulos de Node.js
   webpack: (config, { isServer }) => {
     if (!isServer) {
