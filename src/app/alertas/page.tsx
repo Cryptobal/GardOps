@@ -63,7 +63,7 @@ export default function AlertasPage() {
   const cargarAlertas = useCallback(async () => {
     try {
       setCargando(true);
-      console.log('🔔 Cargando alertas de documentos...');
+      devLogger.process('🔔 Cargando alertas de documentos...');
       
       const timestamp = new Date().getTime();
       const response = await fetch(`/api/alertas-documentos?_t=${timestamp}`, {
@@ -76,21 +76,21 @@ export default function AlertasPage() {
         }
       });
       
-      console.log('📡 Response status:', response.status);
-      console.log('📡 Response ok:', response.ok);
+      devLogger.process('📡 Response status:', response.status);
+      devLogger.process('📡 Response ok:', response.ok);
       
       const data = await response.json();
-      console.log('📄 Respuesta alertas RAW:', data);
-      console.log('📄 Data.success:', data.success);
-      console.log('📄 Data.data:', data.data);
-      console.log('📄 Data.data length:', data.data?.length);
+      devLogger.process('📄 Respuesta alertas RAW:', data);
+      devLogger.process('📄 Data.success:', data.success);
+      devLogger.process('📄 Data.data:', data.data);
+      devLogger.process('📄 Data.data length:', data.data?.length);
       
       if (data.success) {
         const alertasArray = data.data || [];
-        console.log('✅ Alertas array:', alertasArray);
-        console.log('✅ Setting alertas to:', alertasArray);
+        devLogger.process('✅ Alertas array:', alertasArray);
+        devLogger.process('✅ Setting alertas to:', alertasArray);
         setAlertas(alertasArray);
-        console.log(`✅ ${alertasArray.length} alertas cargadas y establecidas`);
+        devLogger.process(`✅ ${alertasArray.length} alertas cargadas y establecidas`);
       } else {
         console.error('❌ Error cargando alertas:', data.error);
         toast.error('Error al cargar alertas');
@@ -102,7 +102,7 @@ export default function AlertasPage() {
       setAlertas([]);
     } finally {
       setCargando(false);
-      console.log('🏁 Carga de alertas completada');
+      devLogger.process('🏁 Carga de alertas completada');
     }
   }, [toast]);
 
@@ -183,7 +183,7 @@ export default function AlertasPage() {
     try {
       setActualizando(true);
       
-      console.log('🔄 Actualizando fecha de vencimiento:', {
+      devLogger.process('🔄 Actualizando fecha de vencimiento:', {
         documento_id: documentoEditando.documento_id,
         nueva_fecha: nuevaFecha,
         modulo: documentoEditando.modulo
@@ -222,7 +222,7 @@ export default function AlertasPage() {
       });
 
       const data = await response.json();
-      console.log('📄 Respuesta actualización:', data);
+      devLogger.process('📄 Respuesta actualización:', data);
 
       if (data.success) {
         toast.success("Fecha de vencimiento actualizada");
@@ -242,7 +242,7 @@ export default function AlertasPage() {
 
   const marcarComoLeida = async (alertaId: string) => {
     try {
-      console.log('✅ Marcando alerta como leída:', alertaId);
+      devLogger.process('✅ Marcando alerta como leída:', alertaId);
       
       const response = await fetch(`/api/alertas-documentos?id=${alertaId}`, {
         method: 'PUT',
@@ -318,7 +318,7 @@ export default function AlertasPage() {
   };
 
   if (cargando) {
-    console.log('🔄 Renderizando estado de carga...');
+    devLogger.process('🔄 Renderizando estado de carga...');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -329,10 +329,10 @@ export default function AlertasPage() {
     );
   }
 
-  console.log('🎨 Renderizando página de alertas...');
-  console.log('🎨 Estado alertas:', alertas);
-  console.log('🎨 Número de alertas:', alertas.length);
-  console.log('🎨 Cargando:', cargando);
+  devLogger.process('🎨 Renderizando página de alertas...');
+  devLogger.process('🎨 Estado alertas:', alertas);
+  devLogger.process('🎨 Número de alertas:', alertas.length);
+  devLogger.process('🎨 Cargando:', cargando);
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">

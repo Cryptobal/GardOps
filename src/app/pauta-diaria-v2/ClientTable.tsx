@@ -231,7 +231,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   
   // FORCE DEPLOYMENT - DEBUG PPC
   logger.debug('🚀🚀🚀 PAUTA DIARIA V2 LOADED 🚀🚀🚀');
-  console.log('🔍 ClientTable se está ejecutando - TEST BOTON debería estar visible');
+  devLogger.process('🔍 ClientTable se está ejecutando - TEST BOTON debería estar visible');
   
   // Hook para obtener fecha actual respetando configuración del tenant
   const { fechaHoy } = useChileDate();
@@ -339,8 +339,8 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     if (typeof window === 'undefined') return;
     
     const handlePautaReload = (event: CustomEvent) => {
-      console.log('🔄 Evento pauta-diaria-reload recibido en ClientTable:', event.detail);
-      logger.debug('🔄 Recarga solicitada desde buscador GSS:', event.detail);
+      devLogger.process('🔄 Evento pauta-diaria-reload recibido en ClientTable:', event.detail);
+      devLogger.debug('🔄 Recarga solicitada desde buscador GSS:', event.detail);
       
       // Solo UNA recarga cuando se recibe el evento
       refetch();
@@ -348,8 +348,8 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
 
     // LocalStorage fallback REMOVIDO - era molesto
     
-    console.log('🎧 ClientTable: Registrando listener para pauta-diaria-reload');
-    console.log('🎧 ClientTable: URL actual:', window.location.href);
+    devLogger.process('🎧 ClientTable: Registrando listener para pauta-diaria-reload');
+    devLogger.process('🎧 ClientTable: URL actual:', window.location.href);
     
     // Registrar listener de eventos
     window.addEventListener('pauta-diaria-reload', handlePautaReload as EventListener);
@@ -357,7 +357,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
     // LocalStorage polling REMOVIDO - era molesto para el usuario
     
     return () => {
-      console.log('🎧 ClientTable: Removiendo listener para pauta-diaria-reload');
+      devLogger.process('🎧 ClientTable: Removiendo listener para pauta-diaria-reload');
       window.removeEventListener('pauta-diaria-reload', handlePautaReload as EventListener);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -531,10 +531,10 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
 
   // Función para manejar cuando se guarda un comentario
   const handleComentarioSaved = useCallback((comentario: string | null) => {
-    console.log('🔍 handleComentarioSaved ejecutado. Comentario guardado:', comentario);
+    devLogger.process('🔍 handleComentarioSaved ejecutado. Comentario guardado:', comentario);
     // Actualizar los datos después de guardar el comentario
     if (onRecargarDatos) {
-      console.log('🔄 Recargando datos después de comentario...');
+      devLogger.process('🔄 Recargando datos después de comentario...');
       onRecargarDatos();
     }
   }, [onRecargarDatos]);
@@ -560,7 +560,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
 
   // Función para manejar cuando se guardan horas extras
   const handleHorasExtrasSaved = useCallback((monto: number) => {
-    console.log('🔍 handleHorasExtrasSaved ejecutado. Monto guardado:', monto);
+    devLogger.process('🔍 handleHorasExtrasSaved ejecutado. Monto guardado:', monto);
     // Actualizar los datos después de guardar las horas extras
     if (onRecargarDatos) {
       onRecargarDatos();
@@ -804,12 +804,12 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
   }
 
   async function onSinCoberturaPPC(pauta_id: string) {
-    console.log('🔍 [onSinCoberturaPPC] Iniciando función con pauta_id:', pauta_id);
+    devLogger.process('🔍 [onSinCoberturaPPC] Iniciando función con pauta_id:', pauta_id);
     try {
       setSavingId(pauta_id);
-      console.log('🔍 [onSinCoberturaPPC] Llamando a api.marcarSinCoberturaPPC...');
+      devLogger.process('🔍 [onSinCoberturaPPC] Llamando a api.marcarSinCoberturaPPC...');
       const result = await api.marcarSinCoberturaPPC(pauta_id);
-      console.log('🔍 [onSinCoberturaPPC] Resultado de la API:', result);
+      devLogger.process('🔍 [onSinCoberturaPPC] Resultado de la API:', result);
       
       addToast({
         title: "✅ Éxito",
@@ -948,7 +948,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       const estadoUI = mapearAEstadoUI(estadoTurno);
       const canUndoResult = ['asistido', 'turno_extra', 'sin_cobertura'].includes(estadoUI.estado);
       
-      console.log('🔍 Debug canUndo nueva lógica:', {
+      devLogger.process('🔍 Debug canUndo nueva lógica:', {
         pauta_id: r.pauta_id,
         estadoTurno,
         estadoUI,
@@ -2334,7 +2334,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                                             disabled={isLoading} 
                                             className="h-8 px-3 text-sm font-medium border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-900/20" 
                                             onClick={() => {
-                                              console.log('🔍 [Button] Click en Sin cobertura para pauta_id:', r.pauta_id);
+                                              devLogger.process('🔍 [Button] Click en Sin cobertura para pauta_id:', r.pauta_id);
                                               onSinCoberturaPPC(r.pauta_id);
                                             }}
                                           >
@@ -2377,7 +2377,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                                                   : 'text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20'
                                               }`}
                                               onClick={() => {
-                                                console.log('🔍 CLICK BOTÓN HORAS EXTRAS DESKTOP para:', r.puesto_nombre, 'monto:', r.horas_extras);
+                                                devLogger.process('🔍 CLICK BOTÓN HORAS EXTRAS DESKTOP para:', r.puesto_nombre, 'monto:', r.horas_extras);
                                                 openHorasExtrasModal(r);
                                               }}
                                             >
@@ -2421,7 +2421,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
                                                 : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 hover:border-blue-300 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'
                                             }`}
                                             onClick={() => {
-                                              console.log('🔍 CLICK BOTÓN COMENTARIO DESKTOP para:', r.puesto_nombre, 'estado:', r.estado_ui);
+                                              devLogger.process('🔍 CLICK BOTÓN COMENTARIO DESKTOP para:', r.puesto_nombre, 'estado:', r.estado_ui);
                                               openComentarioModal(r);
                                             }}
                                           >
@@ -2578,7 +2578,7 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
         {/* Modal de selección de guardias */}
         {currentRowForModal && (
           <>
-            {console.log('🔍 Renderizando GuardiaSearchModal:', {
+            {devLogger.process('🔍 Renderizando GuardiaSearchModal:', {
               isOpen: showGuardiaModal,
               currentRowForModal: currentRowForModal.pauta_id,
               guardias: rowPanelData[currentRowForModal.pauta_id]?.guardias?.length || 0,
