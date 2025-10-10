@@ -84,16 +84,16 @@ export function Modal({
 
   React.useEffect(() => {
     if (isOpen) {
-      logger.debug('🔍 Modal: Abriendo modal, canClose será true en 300ms');
+      devLogger.process('🔍 Modal: Abriendo modal, canClose será true en 300ms');
       document.body.style.overflow = "hidden";
       // Delay más largo para evitar que el click inicial cierre el modal
       const timer = setTimeout(() => {
         setCanClose(true);
-        logger.debug('🔍 Modal: Ahora se puede cerrar el modal');
+        devLogger.process('🔍 Modal: Ahora se puede cerrar el modal');
       }, 300);
       return () => clearTimeout(timer);
     } else {
-      logger.debug('🔍 Modal: Cerrando modal');
+      devLogger.process('🔍 Modal: Cerrando modal');
       document.body.style.overflow = "unset";
       setCanClose(false);
     }
@@ -123,24 +123,30 @@ export function Modal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+      {/* Backdrop mejorado */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="absolute inset-0 bg-black/60 backdrop-blur-md backdrop-saturate-150"
         onClick={canClose ? () => {
-          logger.debug('🔍 Modal: Backdrop clickeado, cerrando modal');
+          devLogger.process('🔍 Modal: Backdrop clickeado, cerrando modal');
           onClose();
         } : () => {
-          logger.debug('🔍 Modal: Backdrop clickeado pero canClose es false, ignorando');
+          devLogger.process('🔍 Modal: Backdrop clickeado pero canClose es false, ignorando');
         }}
       />
 
-      {/* Modal */}
+      {/* Modal con animaciones suaves */}
       <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
         className={cn(
-          "relative w-full mx-4 bg-background/90 backdrop-blur-sm border border-muted/40 rounded-2xl shadow-2xl",
+          "relative w-full mx-4 bg-background border border-border/50 rounded-2xl shadow-2xl",
+          "shadow-black/25",
           sizeClasses[size],
           className
         )}
@@ -178,7 +184,7 @@ export function useConfirmModal() {
   const confirm = React.useCallback((options: ConfirmModalProps): Promise<boolean> => {
     devLogger.search(' useConfirmModal: confirm llamado con:', options);
     return new Promise((resolve) => {
-      logger.debug('🔍 useConfirmModal: configurando modal y abriendo');
+      devLogger.process('🔍 useConfirmModal: configurando modal y abriendo');
       setConfig(options);
       setIsOpen(true);
       resolveRef.current = resolve;
@@ -186,14 +192,14 @@ export function useConfirmModal() {
   }, []);
 
   const handleConfirm = React.useCallback(() => {
-    logger.debug('🔍 useConfirmModal: handleConfirm ejecutado');
+    devLogger.process('🔍 useConfirmModal: handleConfirm ejecutado');
     resolveRef.current?.(true);
     setIsOpen(false);
     setConfig(null);
   }, []);
 
   const handleCancel = React.useCallback(() => {
-    logger.debug('🔍 useConfirmModal: handleCancel ejecutado');
+    devLogger.process('🔍 useConfirmModal: handleCancel ejecutado');
     resolveRef.current?.(false);
     setIsOpen(false);
     setConfig(null);
