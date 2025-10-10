@@ -11,8 +11,8 @@ import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
  */
 
 import { useState, useEffect, Fragment } from 'react';
+import dynamic from 'next/dynamic';
 import { Loader } from '@googlemaps/js-api-loader';
-import GoogleMapsManager from '@/lib/useGoogleMaps';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectItem, SelectContent } from '@/components/ui/select';
@@ -21,8 +21,25 @@ import { Table, TableHead, TableRow, TableCell, TableHeader, TableBody } from '@
 import { BadgeCheck, MapPin, Loader2, Phone, MessageCircle, Users, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
-import PPCModal from '@/components/asignaciones/PPCModal';
 import GuardiasAsignadosTab from '@/components/asignaciones/GuardiasAsignadosTab';
+
+// ✅ OPTIMIZACIÓN: Lazy load Google Maps (solo carga cuando se necesita el mapa)
+const GoogleMapsManager = dynamic(
+  () => import('@/lib/useGoogleMaps'),
+  { 
+    loading: () => <div className="flex items-center justify-center h-96"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>,
+    ssr: false
+  }
+);
+
+// ✅ OPTIMIZACIÓN: Lazy load del modal PPC
+const PPCModal = dynamic(
+  () => import('@/components/asignaciones/PPCModal'),
+  { 
+    loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>,
+    ssr: false
+  }
+);
 
 /* --- Helpers -------------------------------------------------------------- */
 type Inst = { id: string; nombre: string; lat: number; lng: number; };

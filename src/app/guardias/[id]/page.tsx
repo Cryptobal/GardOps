@@ -3,6 +3,7 @@
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,8 +23,16 @@ import TurnosExtrasGuardia from './components/TurnosExtrasGuardia';
 import HistorialMensual from './components/HistorialMensual';
 import AsignacionGuardia from './components/AsignacionGuardia';
 
-import { GoogleMap } from '@/components/ui/google-map';
 import { geocodificarDireccion, cargarGoogleMaps, type GeocodingResult } from '@/lib/geocoding';
+
+// ✅ OPTIMIZACIÓN: Lazy load Google Map (solo carga en tab de ubicación)
+const GoogleMap = dynamic(
+  () => import('@/components/ui/google-map').then(mod => ({ default: mod.GoogleMap })),
+  { 
+    loading: () => <div className="flex items-center justify-center h-96 bg-muted/20 rounded-lg border-2 border-dashed border-muted-foreground/20"><div className="text-center"><MapPin className="h-12 w-12 text-muted-foreground/40 mx-auto mb-2" /><p className="text-sm text-muted-foreground">Cargando mapa...</p></div></div>,
+    ssr: false
+  }
+);
 
 interface Guardia {
   id: string;
