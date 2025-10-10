@@ -3,6 +3,7 @@
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 
 import React, { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -29,7 +30,6 @@ import {
 import { useRouter } from "next/navigation";
 import { calcularEstadoOS10, obtenerEstadisticasOS10 } from "../../lib/utils/os10-status";
 import { OS10StatusBadge } from "../../components/ui/os10-status-badge";
-import { OS10StatsModal } from "../../components/ui/os10-stats-modal";
 
 // Importar componentes genéricos
 import { DataTable, Column } from "../../components/ui/data-table";
@@ -38,16 +38,39 @@ import { DataTable, Column } from "../../components/ui/data-table";
 import { useEntityModal } from "../../hooks/useEntityModal";
 import { useCrudOperations } from "../../hooks/useCrudOperations";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { ImportSummaryModal } from '@/components/guardias/ImportSummaryModal';
 
 // Importar tipos y esquemas
 import { Guardia } from "../../lib/schemas/guardias";
 
-// Importar el modal editable
-import GuardiaModal from "../../components/guardias/GuardiaModal";
+// Importar API
 import { api } from '@/lib/api-client';
 import { useSimpleInactivation } from "@/components/ui/confirm-inactivation-modal";
 import { ActionDropdown } from "@/components/ui/action-dropdown";
+
+// ✅ OPTIMIZACIÓN: Lazy load de modales (solo cargan cuando se abren)
+const GuardiaModal = dynamic(
+  () => import("../../components/guardias/GuardiaModal"),
+  { 
+    loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>,
+    ssr: false
+  }
+);
+
+const OS10StatsModal = dynamic(
+  () => import("../../components/ui/os10-stats-modal").then(mod => ({ default: mod.OS10StatsModal })),
+  { 
+    loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>,
+    ssr: false
+  }
+);
+
+const ImportSummaryModal = dynamic(
+  () => import('@/components/guardias/ImportSummaryModal').then(mod => ({ default: mod.ImportSummaryModal })),
+  { 
+    loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>,
+    ssr: false
+  }
+);
 
 // Componente KPI Box optimizado para móviles
 const KPIBox = ({ 

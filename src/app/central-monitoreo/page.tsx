@@ -3,6 +3,7 @@
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,7 +41,15 @@ import { useChileDate } from '@/hooks/useChileDate';
 import { KPICards } from './components/KPICards';
 import { DateSelector } from './components/DateSelector';
 import { LlamadoCard } from './components/LlamadoCard';
-import { RegistroModal } from './components/RegistroModal';
+
+// ✅ OPTIMIZACIÓN: Lazy load del modal de registro (carga solo cuando se abre)
+const RegistroModal = dynamic(
+  () => import('./components/RegistroModal').then(mod => ({ default: mod.RegistroModal })),
+  { 
+    loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>,
+    ssr: false
+  }
+);
 
 // Interfaces
 interface Llamado {

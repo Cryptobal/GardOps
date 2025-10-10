@@ -3,6 +3,7 @@
 import { logger, devLogger, apiLogger } from '@/lib/utils/logger';
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -23,11 +24,19 @@ import {
   Power
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import InstalacionModal from "@/components/instalaciones/InstalacionModal";
 import { api } from '@/lib/api-client';
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useSimpleInactivation } from "@/components/ui/confirm-inactivation-modal";
 import { ActionDropdown } from "@/components/ui/action-dropdown";
+
+// ✅ OPTIMIZACIÓN: Lazy load del modal (carga solo cuando se abre)
+const InstalacionModal = dynamic(
+  () => import("@/components/instalaciones/InstalacionModal"),
+  { 
+    loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>,
+    ssr: false // Modales no necesitan SSR
+  }
+);
 
 // Hook personalizado para debounce
 function useDebounce<T>(value: T, delay: number): T {

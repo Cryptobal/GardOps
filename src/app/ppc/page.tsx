@@ -43,10 +43,33 @@ import {
 
 // Importar componentes genéricos
 import { DataTable, Column } from "../../components/ui/data-table";
-import { GuardiaSearchModal } from "../../components/ui/guardia-search-modal";
 import { useToast } from "../../components/ui/toast";
-import ModalExitoAsignacion from "../../components/ui/modal-exito-asignacion";
-import ModalFechaInicioAsignacion from "../../components/ui/modal-fecha-inicio-asignacion";
+import dynamic from "next/dynamic";
+
+// ✅ OPTIMIZACIÓN: Lazy load de modales (solo cargan cuando se abren)
+const GuardiaSearchModal = dynamic(
+  () => import("../../components/ui/guardia-search-modal").then(mod => ({ default: mod.GuardiaSearchModal })),
+  { 
+    loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>,
+    ssr: false
+  }
+);
+
+const ModalExitoAsignacion = dynamic(
+  () => import("../../components/ui/modal-exito-asignacion"),
+  { 
+    loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>,
+    ssr: false
+  }
+);
+
+const ModalFechaInicioAsignacion = dynamic(
+  () => import("../../components/ui/modal-fecha-inicio-asignacion"),
+  { 
+    loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>,
+    ssr: false
+  }
+);
 
 // Componente KPI Box mejorado - Mobile First
 const KPIBox = ({ 
