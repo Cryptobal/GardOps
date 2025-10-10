@@ -61,7 +61,8 @@ interface LlamadoCardProps {
   onObservacionesUpdate?: (llamadoId: string, observaciones: string) => void;
 }
 
-export function LlamadoCard({ llamado, onRegistrar, onWhatsApp, onObservacionesUpdate }: LlamadoCardProps) {
+// ✅ OPTIMIZACIÓN: React.memo para evitar re-renders innecesarios
+export const LlamadoCard = React.memo(function LlamadoCard({ llamado, onRegistrar, onWhatsApp, onObservacionesUpdate }: LlamadoCardProps) {
   const { formatTime } = useSystemConfig();
   const [showEditModal, setShowEditModal] = React.useState(false);
   const [observaciones, setObservaciones] = React.useState(llamado.observaciones || '');
@@ -397,4 +398,9 @@ export function LlamadoCard({ llamado, onRegistrar, onWhatsApp, onObservacionesU
       </Dialog>
     </>
   );
-}
+}, (prevProps, nextProps) => {
+  // Comparación personalizada: solo re-renderizar si el llamado cambia
+  return prevProps.llamado.id === nextProps.llamado.id &&
+         prevProps.llamado.estado === nextProps.llamado.estado &&
+         prevProps.llamado.observaciones === nextProps.llamado.observaciones;
+});

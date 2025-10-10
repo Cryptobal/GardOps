@@ -227,7 +227,8 @@ const renderEstado = (row: PautaRow) => {
   );
 };
 
-export default function ClientTable({ rows: rawRows, fecha, incluirLibres = false, onRecargarDatos, activeTab = 'pauta' }: PautaDiariaV2Props) {
+// ✅ OPTIMIZACIÓN: React.memo para evitar re-renders innecesarios
+const ClientTable = React.memo(function ClientTable({ rows: rawRows, fecha, incluirLibres = false, onRecargarDatos, activeTab = 'pauta' }: PautaDiariaV2Props) {
   
   // FORCE DEPLOYMENT - DEBUG PPC
   logger.debug('🚀🚀🚀 PAUTA DIARIA V2 LOADED 🚀🚀🚀');
@@ -2629,4 +2630,14 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       </div>
     </TooltipProvider>
   );
-}
+}, (prevProps, nextProps) => {
+  // Comparación personalizada: solo re-renderizar si cambian props relevantes
+  return (
+    prevProps.fecha === nextProps.fecha &&
+    prevProps.incluirLibres === nextProps.incluirLibres &&
+    prevProps.activeTab === nextProps.activeTab &&
+    prevProps.rows === nextProps.rows // Referencia de array
+  );
+});
+
+export default ClientTable;

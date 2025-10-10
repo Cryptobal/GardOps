@@ -487,7 +487,8 @@ const DiaCell = ({
   );
 };
 
-export default function PautaTable({ 
+// ✅ OPTIMIZACIÓN: React.memo para evitar re-renders innecesarios
+const PautaTable = React.memo(function PautaTable({ 
   pautaData, 
   diasDelMes, 
   diasSemana, 
@@ -1143,4 +1144,14 @@ export default function PautaTable({
       {/* Modal de fecha de inicio de asignación - ELIMINADO: Se usa el del GuardiaSearchModal */}
     </div>
   );
-} 
+}, (prevProps, nextProps) => {
+  // Comparación personalizada: solo re-renderizar si cambian props relevantes
+  return (
+    prevProps.pautaData === nextProps.pautaData &&
+    prevProps.diasDelMes === nextProps.diasDelMes &&
+    prevProps.modoEdicion === nextProps.modoEdicion &&
+    prevProps.diasGuardados === nextProps.diasGuardados
+  );
+});
+
+export default PautaTable; 

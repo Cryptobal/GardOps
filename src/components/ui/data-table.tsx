@@ -36,7 +36,8 @@ export interface DataTableProps<T> {
   rowClassName?: string;
 }
 
-export function DataTable<T extends { id: string }>({
+// ✅ OPTIMIZACIÓN: React.memo para evitar re-renders innecesarios en tablas
+function DataTableComponent<T extends { id: string }>({
   data,
   columns,
   loading = false,
@@ -145,4 +146,14 @@ export function DataTable<T extends { id: string }>({
       </CardContent>
     </Card>
   );
-} 
+}
+
+// Exportar componente memoizado
+export const DataTable = React.memo(DataTableComponent, (prevProps, nextProps) => {
+  // Comparación personalizada: solo re-renderizar si cambian props relevantes
+  return (
+    prevProps.data === nextProps.data &&
+    prevProps.loading === nextProps.loading &&
+    prevProps.columns === nextProps.columns
+  );
+}) as typeof DataTableComponent; 
