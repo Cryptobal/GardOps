@@ -360,7 +360,8 @@ export default function ClientTable({ rows: rawRows, fecha, incluirLibres = fals
       console.log('🎧 ClientTable: Removiendo listener para pauta-diaria-reload');
       window.removeEventListener('pauta-diaria-reload', handlePautaReload as EventListener);
     };
-  }, [refetch]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ✅ FIX: Solo ejecutar una vez al montar, refetch siempre tendrá la referencia actualizada por closure
 
   // Recarga automática REMOVIDA - era molesta para el usuario
 
