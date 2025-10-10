@@ -15,6 +15,7 @@ import { Badge } from "./badge";
 import { Button } from "./button";
 import { Switch } from "./switch";
 import { LucideIcon } from "lucide-react";
+import { Skeleton } from "./skeleton";
 
 export interface Column<T> {
   key: string;
@@ -60,12 +61,27 @@ function DataTableComponent<T extends { id: string }>({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // ✅ OPTIMIZACIÓN: Skeleton loader profesional en lugar de spinner
   if (loading) {
     return (
       <Card className={`bg-card/50 backdrop-blur-sm border-border/50 shadow-xl h-full ${className}`}>
-        <CardContent className="p-0 h-full flex flex-col">
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <CardContent className="p-6">
+          {/* Header skeleton - solo en desktop */}
+          <div className="hidden lg:flex gap-4 mb-6">
+            {columns.map((col, i) => (
+              <Skeleton key={i} className="h-10 flex-1" />
+            ))}
+          </div>
+          
+          {/* Rows skeleton */}
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex flex-col lg:flex-row gap-4">
+                {columns.slice(0, Math.min(columns.length, 4)).map((col, j) => (
+                  <Skeleton key={j} className="h-16 flex-1" />
+                ))}
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
