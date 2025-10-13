@@ -37,9 +37,16 @@ import { PayrollItemExtra } from "../../../lib/schemas/payroll";
 
 // Importar APIs
 import { payrollItemsExtrasApi, instalacionesApi } from "../../../lib/api/payroll";
+import dynamic from "next/dynamic";
 
-// Importar el modal
-import ItemExtraModal from "../../../components/payroll/ItemExtraModal";
+// ✅ OPTIMIZACIÓN: Lazy load del modal (carga solo cuando se abre)
+const ItemExtraModal = dynamic(
+  () => import("../../../components/payroll/ItemExtraModal"),
+  { 
+    loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>,
+    ssr: false
+  }
+);
 
 // Componente KPI Box
 const KPIBox = ({ 

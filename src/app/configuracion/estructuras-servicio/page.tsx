@@ -13,8 +13,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
-import BonoModal from './components/BonoModal';
+import dynamic from 'next/dynamic';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// ✅ OPTIMIZACIÓN: Lazy load del modal de bonos
+const BonoModal = dynamic(
+  () => import('./components/BonoModal'),
+  { 
+    loading: () => <div className="flex items-center justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>,
+    ssr: false
+  }
+);
 import { 
   Building2, 
   DollarSign, 

@@ -6,6 +6,7 @@ import { AuthWrapperWorking as AuthWrapper } from '../components/layout/auth-wra
 import { ToastContainer } from '../components/ui/toast'
 import { ErrorBoundary } from '../components/debug-error-boundary'
 import { FlagsProvider } from '../lib/flags.context'
+import { WebVitals } from './web-vitals'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -36,6 +37,7 @@ export default function RootLayout({
             <ToastContainer />
           </FlagsProvider>
         </ErrorBoundary>
+        <WebVitals />
       </body>
     </html>
   )
